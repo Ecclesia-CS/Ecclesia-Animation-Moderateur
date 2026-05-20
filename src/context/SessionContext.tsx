@@ -37,8 +37,11 @@ interface SessionCtxValue {
   moveQueueEntry(entryId: string, direction: 'up' | 'down'): Promise<void>
   reorderQueueEntry(entryId: string, newPosition: number): Promise<void>
   correctTurn(turnId: string, params: CorrectTurnParams): Promise<void>
+  kickParticipant(participantId: string): Promise<void>
   endSession(): Promise<void>
 }
+
+type TableName = 'sessions' | 'participants' | 'queue_entries' | 'speaking_turns'
 
 // ── Context ────────────────────────────────────────────────────
 
@@ -84,31 +87,63 @@ export function SessionProvider({
     onSessionEnd()
   }, [onSessionEnd])
 
-  // ── Initial load ─────────────────────────────────────────────
-  useEffect(() => {
-    let mounted = true
-    async function load() {
-      const [s, p, q, t] = await Promise.all([
-        supabase.from('sessions').select('*').eq('id', sessionId).single(),
-        supabase.from('participants').select('*').eq('session_id', sessionId),
-        supabase.from('queue_entries').select('*').eq('session_id', sessionId),
-        supabase.from('speaking_turns').select('*').eq('session_id', sessionId),
-      ])
-      if (!mounted) return
-      if (!s.data) { handleEnd(); return }
-      setSession(s.data as Session)
-      setParticipants((p.data ?? []) as Participant[])
-      setQueueEntries((q.data ?? []) as QueueEntry[])
-      setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
-      setReady(true)
-    }
-    load()
-    return () => { mounted = false }
+  // Refs for Broadcast and WebSocket monitoring
+  const channelRef      = useRef<RealtimeChannel | null>(null)
+  const wasDisconnected = useRef(false)
+
+  // ── Load (stable, reused for initial load, polling, reconnect) ──
+  const load = useCallback(async () => {
+    const [s, p, q, t] = await Promise.all([
+      supabase.from('sessions').select('*').eq('id', sessionId).single(),
+      supabase.from('participants').select('*').eq('session_id', sessionId),
+      supabase.from('queue_entries').select('*').eq('session_id', sessionId),
+      supabase.from('speaking_turns').select('*').eq('session_id', sessionId),
+    ])
+    if (!s.data) { handleEnd(); return }
+    setSession(s.data as Session)
+    setParticipants((p.data ?? []) as Participant[])
+    setQueueEntries((q.data ?? []) as QueueEntry[])
+    setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
+    setReady(true)
   }, [sessionId, handleEnd])
+
+  // ── Targeted refetch (called by broadcast listener) ───────────
+  const refetch = useCallback(async (tables: TableName[]) => {
+    await Promise.all(tables.map(async (table) => {
+      if (table === 'sessions') {
+        const { data } = await supabase.from('sessions').select('*').eq('id', sessionId).single()
+        if (data) setSession(data as Session)
+      } else if (table === 'participants') {
+        const { data } = await supabase.from('participants').select('*').eq('session_id', sessionId)
+        setParticipants((data ?? []) as Participant[])
+      } else if (table === 'queue_entries') {
+        const { data } = await supabase.from('queue_entries').select('*').eq('session_id', sessionId)
+        setQueueEntries((data ?? []) as QueueEntry[])
+      } else if (table === 'speaking_turns') {
+        const { data } = await supabase.from('speaking_turns').select('*').eq('session_id', sessionId)
+        setSpeakingTurns((data ?? []) as SpeakingTurn[])
+      }
+    }))
+  }, [sessionId])
+
+  // ── Broadcast helper (bypasses RLS check → instant delivery) ──
+  const broadcast = useCallback((tables: TableName[]) => {
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'refresh',
+      payload: { tables },
+    })
+  }, [])
+
+  // ── Initial load ──────────────────────────────────────────────
+  useEffect(() => {
+    load()
+  }, [load])
 
   // ── Realtime subscriptions ────────────────────────────────────
   useEffect(() => {
     const ch: RealtimeChannel = supabase.channel(`session:${sessionId}`)
+    channelRef.current = ch
 
     // sessions — UPDATE / DELETE
     ch.on(
@@ -116,7 +151,6 @@ export function SessionProvider({
       { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` },
       ({ new: row, old: prev }) => {
         setSession(row as Session)
-        // Detect moderator reclaim: created_by changed (REPLICA IDENTITY FULL provides old row)
         if ((prev as Session).created_by !== (row as Session).created_by) {
           setIsModerator((row as Session).created_by === userId)
         }
@@ -168,9 +202,33 @@ export function SessionProvider({
       },
     )
 
-    ch.subscribe()
+    // Broadcast — instant refresh signal (no RLS check)
+    ch.on('broadcast', { event: 'refresh' }, ({ payload }) => {
+      const tables = payload?.tables
+      if (Array.isArray(tables)) refetch(tables as TableName[])
+    })
+
+    // WebSocket monitoring — re-sync on reconnect after dropout
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        if (wasDisconnected.current) {
+          wasDisconnected.current = false
+          load()
+        }
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        wasDisconnected.current = true
+      }
+    })
+
     return () => { supabase.removeChannel(ch) }
-  }, [sessionId, handleEnd])
+  }, [sessionId, handleEnd, refetch, load, userId])
+
+  // ── Polling fallback (5 s) — catches missed broadcasts ────────
+  useEffect(() => {
+    if (!ready) return
+    const id = setInterval(() => load(), 5000)
+    return () => clearInterval(id)
+  }, [ready, load])
 
   // ── Actions ───────────────────────────────────────────────────
 
@@ -180,53 +238,78 @@ export function SessionProvider({
   }, [])
 
   const grantFloor = useCallback(
-    (pId: string, src: 'long' | 'interactive' | 'manual') =>
-      rpc('grant_floor', { p_session_id: sessionId, p_participant_id: pId, p_source: src }),
-    [rpc, sessionId],
+    async (pId: string, src: 'long' | 'interactive' | 'manual') => {
+      await rpc('grant_floor', { p_session_id: sessionId, p_participant_id: pId, p_source: src })
+      broadcast(['sessions', 'queue_entries', 'speaking_turns'])
+    },
+    [rpc, sessionId, broadcast],
   )
 
   const endTurn = useCallback(
-    () => rpc('end_turn', { p_session_id: sessionId }),
-    [rpc, sessionId],
+    async () => {
+      await rpc('end_turn', { p_session_id: sessionId })
+      broadcast(['sessions', 'speaking_turns'])
+    },
+    [rpc, sessionId, broadcast],
   )
 
   const addToQueue = useCallback(
-    (pId: string, qt: 'long' | 'interactive') =>
-      rpc('add_to_queue', { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt }),
-    [rpc, sessionId],
+    async (pId: string, qt: 'long' | 'interactive') => {
+      await rpc('add_to_queue', { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt })
+      broadcast(['queue_entries'])
+    },
+    [rpc, sessionId, broadcast],
   )
 
   const removeFromQueue = useCallback(async (entryId: string) => {
     const { error } = await supabase.from('queue_entries').delete().eq('id', entryId)
     if (error) throw error
-  }, [])
+    broadcast(['queue_entries'])
+  }, [broadcast])
 
   const endTurnAsSpeaker = useCallback(
-    () => rpc('end_turn_as_speaker', { p_session_id: sessionId }),
-    [rpc, sessionId],
+    async () => {
+      await rpc('end_turn_as_speaker', { p_session_id: sessionId })
+      broadcast(['sessions', 'speaking_turns'])
+    },
+    [rpc, sessionId, broadcast],
   )
 
   const moveQueueEntry = useCallback(
-    (entryId: string, dir: 'up' | 'down') =>
-      rpc('move_queue_entry', { p_entry_id: entryId, p_direction: dir }),
-    [rpc],
+    async (entryId: string, dir: 'up' | 'down') => {
+      await rpc('move_queue_entry', { p_entry_id: entryId, p_direction: dir })
+      broadcast(['queue_entries'])
+    },
+    [rpc, broadcast],
   )
 
   const reorderQueueEntry = useCallback(
-    (entryId: string, newPosition: number) =>
-      rpc('reorder_queue_entry', { p_entry_id: entryId, p_new_position: newPosition }),
-    [rpc],
+    async (entryId: string, newPosition: number) => {
+      await rpc('reorder_queue_entry', { p_entry_id: entryId, p_new_position: newPosition })
+      broadcast(['queue_entries'])
+    },
+    [rpc, broadcast],
   )
 
   const correctTurn = useCallback(
-    (turnId: string, params: CorrectTurnParams) =>
-      rpc('correct_turn', {
+    async (turnId: string, params: CorrectTurnParams) => {
+      await rpc('correct_turn', {
         p_turn_id:        turnId,
         p_started_at:     params.started_at     ?? null,
         p_ended_at:       params.ended_at        ?? null,
         p_participant_id: params.participant_id  ?? null,
-      }),
-    [rpc],
+      })
+      broadcast(['speaking_turns'])
+    },
+    [rpc, broadcast],
+  )
+
+  const kickParticipant = useCallback(
+    async (pId: string) => {
+      await rpc('kick_participant', { p_session_id: sessionId, p_participant_id: pId })
+      broadcast(['sessions', 'participants', 'queue_entries', 'speaking_turns'])
+    },
+    [rpc, sessionId, broadcast],
   )
 
   const endSession = useCallback(async () => {
@@ -279,6 +362,7 @@ export function SessionProvider({
         moveQueueEntry,
         reorderQueueEntry,
         correctTurn,
+        kickParticipant,
         endSession,
       }}
     >

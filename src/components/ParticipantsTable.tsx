@@ -1,11 +1,20 @@
+import { useState } from 'react'
+import { useDraggable } from '@dnd-kit/core'
 import { useSession } from '../context/SessionContext'
 import { useLiveMs } from '../hooks/useLiveMs'
-import { formatDuration } from '../lib/utils'
+import { formatDuration, extractErr } from '../lib/utils'
 import SpeakerTimer from './SpeakerTimer'
+import ConfirmModal from './ConfirmModal'
+import type { Participant, Session } from '../lib/types'
 
 export default function ParticipantsTable() {
-  const { participants, speakingTurns, session, grantFloor } = useSession()
+  const {
+    participants, speakingTurns, session, grantFloor,
+    kickParticipant, myParticipant,
+  } = useSession()
   const now = useLiveMs()
+  const [kickTarget, setKickTarget] = useState<Participant | null>(null)
+  const [kickErr, setKickErr]       = useState<string | null>(null)
 
   function cumMs(participantId: string): number {
     return speakingTurns
@@ -17,8 +26,19 @@ export default function ParticipantsTable() {
       }, 0)
   }
 
-  const totals = participants.map(p => ({ id: p.id, ms: cumMs(p.id) }))
+  const totals      = participants.map(p => ({ id: p.id, ms: cumMs(p.id) }))
   const sessionTotal = totals.reduce((s, t) => s + t.ms, 0)
+
+  async function doKick() {
+    if (!kickTarget) return
+    try {
+      await kickParticipant(kickTarget.id)
+      setKickTarget(null)
+      setKickErr(null)
+    } catch (e) {
+      setKickErr(extractErr(e))
+    }
+  }
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
@@ -31,99 +51,39 @@ export default function ParticipantsTable() {
       <table className="w-full text-sm">
         <thead className="text-xs text-slate-500 border-b border-slate-700">
           <tr>
+            <th className="w-8" />
             <th className="px-4 py-2.5 text-left font-medium">Pseudo</th>
             <th className="px-4 py-2.5 text-right font-medium">Tour actuel</th>
             <th className="px-4 py-2.5 text-right font-medium">Total</th>
             <th className="px-4 py-2.5 text-right font-medium pr-6">%</th>
-            <th className="px-4 py-2.5 w-24" />
+            <th className="px-4 py-2.5 w-32" />
           </tr>
         </thead>
         <tbody>
           {participants.map(p => {
-            const ms         = cumMs(p.id)
+            const ms         = totals.find(t => t.id === p.id)?.ms ?? 0
             const pct        = sessionTotal > 0 ? Math.round((ms / sessionTotal) * 100) : 0
             const isSpeaking = session.current_speaker_id === p.id
-
+            const isSelf     = p.id === myParticipant.id
             return (
-              <tr
+              <DraggableRow
                 key={p.id}
-                className={`border-t border-slate-700/60 transition-colors ${
-                  isSpeaking ? 'bg-indigo-900/40' : 'hover:bg-slate-700/30'
-                }`}
-              >
-                {/* Pseudo */}
-                <td className="px-4 py-3">
-                  <span className={`font-medium ${
-                    isSpeaking ? 'text-white animate-speaking' : 'text-slate-100'
-                  }`}>
-                    {p.pseudo}
-                  </span>
-                  {isSpeaking && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-xs
-                      text-amber-400 font-semibold">
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                      </svg>
-                      parle
-                    </span>
-                  )}
-                </td>
-
-                {/* Current turn duration */}
-                <td className="px-4 py-3 text-right font-mono tabular-nums">
-                  {isSpeaking && session.current_turn_started_at ? (
-                    <SpeakerTimer
-                      startedAt={session.current_turn_started_at}
-                      className="text-amber-400 text-sm"
-                    />
-                  ) : (
-                    <span className="text-slate-700">—</span>
-                  )}
-                </td>
-
-                {/* Cumulative total */}
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-300">
-                  {formatDuration(ms)}
-                </td>
-
-                {/* Percentage */}
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="w-16 h-1.5 bg-slate-600 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-400 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="tabular-nums text-slate-400 text-xs w-8 text-right">{pct}%</span>
-                  </div>
-                </td>
-
-                {/* Manual floor grant */}
-                <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => grantFloor(p.id, 'manual')}
-                    disabled={isSpeaking}
-                    className="text-xs px-2.5 py-1 bg-slate-700 border border-slate-600
-                      text-slate-200 rounded-lg hover:bg-slate-600 disabled:opacity-30
-                      transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500
-                      focus:ring-offset-1 focus:ring-offset-slate-800"
-                  >
-                    Manuel
-                  </button>
-                </td>
-              </tr>
+                p={p}
+                ms={ms}
+                pct={pct}
+                isSpeaking={isSpeaking}
+                isSelf={isSelf}
+                session={session}
+                onGrantFloor={() => grantFloor(p.id, 'manual')}
+                onKick={() => setKickTarget(p)}
+              />
             )
           })}
         </tbody>
         {participants.length > 0 && (
           <tfoot>
             <tr className="border-t border-slate-600">
-              <td colSpan={2} className="px-4 py-2.5 text-xs text-slate-500 font-medium">
+              <td colSpan={3} className="px-4 py-2.5 text-xs text-slate-500 font-medium">
                 Total séance
               </td>
               <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-300 text-sm font-semibold">
@@ -134,6 +94,162 @@ export default function ParticipantsTable() {
           </tfoot>
         )}
       </table>
+
+      {kickTarget && (
+        <ConfirmModal
+          title={`Exclure ${kickTarget.pseudo} ?`}
+          body="Cette personne sera retirée de la session et renvoyée à l'écran d'accueil. Son historique de parole sera supprimé."
+          confirmLabel="Exclure"
+          onConfirm={doKick}
+          onCancel={() => { setKickTarget(null); setKickErr(null) }}
+        />
+      )}
+      {kickErr && (
+        <p className="px-4 pb-3 text-xs text-red-400">{kickErr}</p>
+      )}
     </div>
+  )
+}
+
+// ── Draggable row ──────────────────────────────────────────────
+
+function DraggableRow({
+  p, ms, pct, isSpeaking, isSelf, session, onGrantFloor, onKick,
+}: {
+  p: Participant
+  ms: number
+  pct: number
+  isSpeaking: boolean
+  isSelf: boolean
+  session: Session
+  onGrantFloor(): void
+  onKick(): void
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: 'p-' + p.id,
+    data: { type: 'participant', participantId: p.id },
+    disabled: isSpeaking,
+  })
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      className={`border-t border-slate-700/60 transition-colors ${
+        isSpeaking ? 'bg-indigo-900/40' : 'hover:bg-slate-700/30'
+      }`}
+    >
+      {/* Drag handle */}
+      <td className="pl-3 w-8">
+        <button
+          {...attributes}
+          {...listeners}
+          disabled={isSpeaking}
+          title="Glisser vers une file"
+          className="p-1.5 rounded text-slate-600 hover:text-slate-300 cursor-grab
+            active:cursor-grabbing disabled:opacity-20 disabled:cursor-not-allowed
+            transition-colors focus:outline-none"
+        >
+          <DragHandleIcon />
+        </button>
+      </td>
+
+      {/* Pseudo */}
+      <td className="px-4 py-3">
+        <span className={`font-medium ${isSpeaking ? 'text-white animate-speaking' : 'text-slate-100'}`}>
+          {p.pseudo}
+        </span>
+        {isSpeaking && (
+          <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-400 font-semibold">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            parle
+          </span>
+        )}
+      </td>
+
+      {/* Current turn */}
+      <td className="px-4 py-3 text-right font-mono tabular-nums">
+        {isSpeaking && session.current_turn_started_at ? (
+          <SpeakerTimer startedAt={session.current_turn_started_at} className="text-amber-400 text-sm" />
+        ) : (
+          <span className="text-slate-700">—</span>
+        )}
+      </td>
+
+      {/* Cumulative */}
+      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-300">
+        {formatDuration(ms)}
+      </td>
+
+      {/* Percentage */}
+      <td className="px-4 py-3 text-right">
+        <div className="flex items-center justify-end gap-2">
+          <div className="w-16 h-1.5 bg-slate-600 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="tabular-nums text-slate-400 text-xs w-8 text-right">{pct}%</span>
+        </div>
+      </td>
+
+      {/* Actions */}
+      <td className="px-4 py-3 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={onGrantFloor}
+            disabled={isSpeaking}
+            title="Donner le micro directement"
+            className="text-xs px-2.5 py-1 bg-slate-700 border border-slate-600
+              text-slate-200 rounded-lg hover:bg-slate-600 disabled:opacity-30
+              transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500
+              focus:ring-offset-1 focus:ring-offset-slate-800"
+          >
+            Manuel
+          </button>
+          {!isSelf && (
+            <button
+              onClick={onKick}
+              title="Exclure de la session"
+              className="p-1.5 rounded-lg border border-red-700/50 text-red-400
+                hover:bg-red-900/30 transition-colors focus:outline-none
+                focus:ring-2 focus:ring-red-500 focus:ring-offset-1 focus:ring-offset-slate-800"
+            >
+              <XIcon />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+// ── Icons ──────────────────────────────────────────────────────
+
+function DragHandleIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="16" y2="6"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+      <line x1="8" y1="18" x2="16" y2="18"/>
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
   )
 }

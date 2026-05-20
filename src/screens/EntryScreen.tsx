@@ -18,7 +18,7 @@ export default function EntryScreen({ userId, onJoined }: Props) {
   const [pseudo, setPseudo] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [creationCode, setCreationCode] = useState('')
-  const [moderatorCode, setModeratorCode] = useState('')
+  const [reclaimCode, setReclaimCode] = useState('')
 
   function store(sessionId: string, participantId: string, jCode: string, isMod: boolean) {
     sessionStore.set({ sessionId, participantId, joinCode: jCode, isModerator: isMod })
@@ -52,7 +52,6 @@ export default function EntryScreen({ userId, onJoined }: Props) {
       const { data, error: err } = await supabase.rpc('create_session', {
         p_pseudo: pseudo,
         p_creation_code: creationCode,
-        p_moderator_code: moderatorCode,
       })
       if (err) throw err
       const r = data as SessionResult
@@ -71,10 +70,10 @@ export default function EntryScreen({ userId, onJoined }: Props) {
     try {
       const { data: ok, error: err } = await supabase.rpc('reclaim_moderator', {
         p_join_code: joinCode,
-        p_moderator_code: moderatorCode,
+        p_moderator_code: reclaimCode,
       })
       if (err) throw err
-      if (!ok) throw new Error('Code modérateur incorrect ou session introuvable.')
+      if (!ok) throw new Error('Mot de passe incorrect ou session introuvable.')
 
       const { data: sess, error: e2 } = await supabase
         .from('sessions')
@@ -157,10 +156,8 @@ export default function EntryScreen({ userId, onJoined }: Props) {
             <form onSubmit={handleCreate} className="space-y-4">
               <Field label="Pseudo (modérateur)" value={pseudo} onChange={setPseudo}
                 placeholder="Alice" />
-              <Field label="Code de création du club" value={creationCode}
+              <Field label="Code Ecclesia" value={creationCode}
                 onChange={setCreationCode} type="password" placeholder="••••••••" />
-              <Field label="Code modérateur (à retenir)" value={moderatorCode}
-                onChange={setModeratorCode} type="password" placeholder="••••••••" />
               <Btn loading={loading} label="Créer la session" />
             </form>
           )}
@@ -169,8 +166,8 @@ export default function EntryScreen({ userId, onJoined }: Props) {
             <form onSubmit={handleReclaim} className="space-y-4">
               <Field label="Code de session" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Code modérateur" value={moderatorCode}
-                onChange={setModeratorCode} type="password" placeholder="••••••••" />
+              <Field label="Code Ecclesia" value={reclaimCode}
+                onChange={setReclaimCode} type="password" placeholder="••••••••" />
               <Btn loading={loading} label="Reprendre la main" />
             </form>
           )}

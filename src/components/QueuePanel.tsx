@@ -1,12 +1,4 @@
-import { useState } from 'react'
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
+import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
   useSortable,
@@ -15,6 +7,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useSession } from '../context/SessionContext'
 import { extractErr } from '../lib/utils'
+import { useState } from 'react'
 import type { Participant, QueueEntry } from '../lib/types'
 
 interface Props {
@@ -24,12 +17,12 @@ interface Props {
   participants: Participant[]
   variant?: 'dark' | 'light'
   accent?: 'indigo' | 'teal'
-  onReorder(entryId: string, newPosition: number): void
+  droppableId: string
 }
 
 export default function QueuePanel({
-  title, entries, participants,
-  variant = 'light', accent = 'indigo', onReorder,
+  title, entries, queueType, participants,
+  variant = 'light', accent = 'indigo', droppableId,
 }: Props) {
   const { removeFromQueue } = useSession()
   const [err, setErr] = useState<string | null>(null)
@@ -37,6 +30,12 @@ export default function QueuePanel({
   const dark = variant === 'dark'
   const accentBorder = accent === 'teal' ? 'border-teal-500' : 'border-indigo-500'
   const accentText   = accent === 'teal' ? 'text-teal-400'  : 'text-indigo-400'
+  const ringColor    = accent === 'teal' ? 'ring-teal-500/50' : 'ring-indigo-500/50'
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: droppableId,
+    data: { queueType },
+  })
 
   const getP = (id: string) => participants.find(p => p.id === id)
 
@@ -45,26 +44,13 @@ export default function QueuePanel({
     try { await fn() } catch (e) { setErr(extractErr(e)) }
   }
 
-  const sensors = useSensors(useSensor(PointerSensor, {
-    activationConstraint: { distance: 4 },
-  }))
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const oldIndex = entries.findIndex(e => e.id === active.id)
-    const newIndex = entries.findIndex(e => e.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-
-    // position is 1-based in DB; wrap in Promise for safe()
-    safe(() => Promise.resolve(onReorder(active.id as string, newIndex + 1)))
-  }
-
   return (
-    <div className={`rounded-xl overflow-hidden border ${
-      dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'
-    }`}>
+    <div
+      ref={setDropRef}
+      className={`rounded-xl overflow-hidden border transition-all ${
+        dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'
+      } ${isOver ? `ring-2 ${ringColor}` : ''}`}
+    >
       {/* Header */}
       <div className={`px-4 py-3 border-b flex items-center justify-between
         border-l-4 ${accentBorder} ${
@@ -79,33 +65,31 @@ export default function QueuePanel({
       </div>
 
       {entries.length === 0 ? (
-        <p className={`px-4 py-4 text-sm italic ${dark ? 'text-slate-500' : 'text-gray-400'}`}>
-          File vide
+        <p className={`px-4 py-4 text-sm italic transition-colors ${
+          isOver
+            ? dark ? 'text-slate-300' : 'text-gray-600'
+            : dark ? 'text-slate-500' : 'text-gray-400'
+        }`}>
+          {isOver ? '↓ Déposer ici' : 'File vide'}
         </p>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={entries.map(e => e.id)} strategy={verticalListSortingStrategy}>
-            <table className="w-full text-sm">
-              <tbody>
-                {entries.map((e, i) => (
-                  <SortableRow
-                    key={e.id}
-                    entry={e}
-                    index={i}
-                    pseudo={getP(e.participant_id)?.pseudo ?? '—'}
-                    dark={dark}
-                    accentText={accentText}
-                    onRemove={() => safe(() => removeFromQueue(e.id))}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </SortableContext>
-        </DndContext>
+        <SortableContext items={entries.map(e => e.id)} strategy={verticalListSortingStrategy}>
+          <table className="w-full text-sm">
+            <tbody>
+              {entries.map((e, i) => (
+                <SortableRow
+                  key={e.id}
+                  entry={e}
+                  index={i}
+                  pseudo={getP(e.participant_id)?.pseudo ?? '—'}
+                  dark={dark}
+                  accentText={accentText}
+                  onRemove={() => safe(() => removeFromQueue(e.id))}
+                />
+              ))}
+            </tbody>
+          </table>
+        </SortableContext>
       )}
 
       {err && (
@@ -128,7 +112,7 @@ function SortableRow({
   onRemove(): void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: entry.id })
+    useSortable({ id: entry.id, data: { type: 'queue-entry', queueType: entry.queue_type } })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -163,7 +147,6 @@ function SortableRow({
       {/* Actions */}
       <td className="px-4 py-2.5 text-right">
         <div className="flex items-center justify-end gap-1">
-          {/* Drag handle */}
           <button
             {...attributes}
             {...listeners}
@@ -179,7 +162,6 @@ function SortableRow({
             <DragHandleIcon />
           </button>
 
-          {/* Remove */}
           <button
             onClick={onRemove}
             aria-label="Retirer de la file"

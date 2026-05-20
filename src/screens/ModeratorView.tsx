@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
 import { useSession } from '../context/SessionContext'
 import { extractErr } from '../lib/utils'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
+import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import CorrectTurnModal from '../components/CorrectTurnModal'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -18,10 +27,15 @@ export default function ModeratorView() {
     isModerator,
     grantFloor,
     endTurn,
+    addToQueue,
     reorderQueueEntry,
     endSession,
     leaveSession,
   } = useSession()
+
+  const sensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: { distance: 4 },
+  }))
 
   const [showCorrect, setShowCorrect] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
@@ -80,6 +94,28 @@ export default function ModeratorView() {
     safe(endTurn)
   }
 
+  function handleMasterDragEnd({ active, over }: DragEndEvent) {
+    if (!over) return
+    const activeData = active.data.current as
+      { type: string; participantId?: string; queueType?: string } | undefined
+    const overData = over.data.current as
+      { type?: string; queueType?: 'long' | 'interactive' } | undefined
+
+    if (activeData?.type === 'queue-entry') {
+      const queue = activeData.queueType === 'long' ? queueLong : queueInteractive
+      const oldIndex = queue.findIndex(e => e.id === active.id)
+      const newIndex = queue.findIndex(e => e.id === over.id)
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+      safe(() => reorderQueueEntry(active.id as string, newIndex + 1))
+    }
+
+    if (activeData?.type === 'participant') {
+      const queueType = overData?.queueType
+      if (!queueType) return
+      safe(() => addToQueue(activeData.participantId!, queueType))
+    }
+  }
+
   function handleResume() {
     if (!pausedSpeakerId) return
     const id = pausedSpeakerId
@@ -136,7 +172,7 @@ export default function ModeratorView() {
                 text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
                 focus:ring-2 focus:ring-slate-500"
             >
-              Chronos
+              Historique
             </button>
 
             <button
@@ -161,7 +197,11 @@ export default function ModeratorView() {
       </header>
 
       {/* ── Body ──────────────────────────────────────────────── */}
-      <main className="max-w-5xl mx-auto p-4 space-y-4">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleMasterDragEnd}>
+      <main className="max-w-6xl mx-auto p-4 flex gap-4 items-start">
+
+        {/* ── Colonne principale ─────────────────────────────── */}
+        <div className="flex-1 min-w-0 space-y-4">
 
         {err && (
           <div className="p-3 rounded-xl bg-red-900/30 border border-red-700 text-sm text-red-300">
@@ -256,7 +296,7 @@ export default function ModeratorView() {
             participants={participants}
             variant="dark"
             accent="indigo"
-            onReorder={(id, pos) => safe(() => reorderQueueEntry(id, pos))}
+            droppableId="queue-long"
           />
           <QueuePanel
             title="File interactive"
@@ -265,13 +305,25 @@ export default function ModeratorView() {
             participants={participants}
             variant="dark"
             accent="teal"
-            onReorder={(id, pos) => safe(() => reorderQueueEntry(id, pos))}
+            droppableId="queue-interactive"
           />
         </div>
 
-        {/* ── Participants ───────────────────────────────────── */}
+        {/* ── Participants stats ─────────────────────────────── */}
         <ParticipantsTable />
+
+        </div>{/* end colonne principale */}
+
+        {/* ── Sidebar participants ───────────────────────────── */}
+        <ParticipantsSidebar
+          participants={participants}
+          currentSpeakerId={session.current_speaker_id}
+          queueLong={queueLong}
+          queueInteractive={queueInteractive}
+        />
+
       </main>
+      </DndContext>
 
       {/* ── Modals ────────────────────────────────────────────── */}
       {showCorrect && <CorrectTurnModal onClose={() => setShowCorrect(false)} />}

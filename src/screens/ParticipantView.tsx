@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSession } from '../context/SessionContext'
 import { extractErr } from '../lib/utils'
+import ParticipantsSidebar from '../components/ParticipantsSidebar'
 
 export default function ParticipantView() {
   const {
@@ -71,7 +72,10 @@ export default function ParticipantView() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col items-center p-4 pt-6 gap-5 max-w-sm mx-auto w-full">
+      {/* ── Body (main + sidebar sur md+) ────────────────────── */}
+      <div className="flex-1 flex gap-4 p-4 pt-6 max-w-2xl mx-auto w-full items-start">
+
+      <div className="flex-1 flex flex-col items-center gap-5 min-w-0">
 
         {/* ── Current speaker card (someone else) ─────────────── */}
         {!iAmSpeaking && (
@@ -123,7 +127,20 @@ export default function ParticipantView() {
         <p className="text-xs text-gray-400 pb-2">
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </p>
+      </div>{/* end colonne principale */}
+
+      {/* Sidebar participants — caché sur mobile */}
+      <div className="hidden md:block">
+        <ParticipantsSidebar
+          participants={participants}
+          currentSpeakerId={session.current_speaker_id}
+          queueLong={queueLong}
+          queueInteractive={queueInteractive}
+          variant="light"
+        />
       </div>
+
+      </div>{/* end body flex */}
     </div>
   )
 }

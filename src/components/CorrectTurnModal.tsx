@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSession, type CorrectTurnParams } from '../context/SessionContext'
-import { toDateTimeLocal, fromDateTimeLocal } from '../lib/utils'
+import { toDateTimeLocal, fromDateTimeLocal, formatDuration } from '../lib/utils'
 import type { SpeakingTurn } from '../lib/types'
 
 interface Props {
@@ -83,6 +83,11 @@ export default function CorrectTurnModal({ onClose }: Props) {
                     }
                   </span>
                   <span className="ml-2 text-xs text-gray-300 capitalize">{t.source}</span>
+                  {t.ended_at ? (
+                    <span className="ml-2 font-mono text-xs text-indigo-600 bg-indigo-50 rounded px-1">
+                      {formatDuration(new Date(t.ended_at).getTime() - new Date(t.started_at).getTime())}
+                    </span>
+                  ) : null}
                 </div>
                 <button
                   onClick={() => openEdit(t)}
