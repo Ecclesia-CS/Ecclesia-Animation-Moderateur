@@ -37,13 +37,22 @@ Fonctionnalités principales :
 | Backend / BDD | Supabase (PostgreSQL + Auth + Realtime) |
 | Auth | Anonyme uniquement (`signInAnonymously`) — pas d'email ni d'OTP |
 | Drag & drop | `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` |
-| Déploiement | Statique (Vite build) |
+| Déploiement | GitHub Pages via GitHub Actions |
 
 Variables d'environnement requises (fichier `.env`, jamais commité) :
 ```
 VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<clé publique anon>
 ```
+
+### Déploiement
+
+- **Site public** : https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/
+- **Dépôt GitHub** : https://github.com/Ecclesia-CS/Ecclesia-Animation-Moderateur
+- **Workflow** : `.github/workflows/deploy.yml` — se déclenche automatiquement à chaque `git push` sur `main`
+- Les variables d'environnement Supabase sont injectées au build via les **GitHub Actions Secrets**
+  (`VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` dans Settings → Secrets → Actions)
+- `vite.config.ts` a `base: '/Ecclesia-Animation-Moderateur/'` — **ne pas supprimer**, requis pour les assets sur GitHub Pages
 
 ---
 
