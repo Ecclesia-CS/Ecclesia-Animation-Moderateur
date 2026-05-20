@@ -21,10 +21,13 @@ Fonctionnalités principales :
 - Cumul du temps de parole par participant + temps total de séance
 - Pause/reprise du chrono par le modérateur (tour clôturé en DB, rouvert à la reprise)
 - Participant : bouton "J'ai fini de parler" pour libérer la parole soi-même
-- Correction manuelle des tours (erreur de démarrage, oubli d'arrêt)
+- Correction manuelle des tours ("Historique des participations")
 - Persistance de session après rechargement (localStorage)
-- Reprise de la modération depuis un autre appareil (code modérateur)
+- Reprise de la modération depuis un autre appareil (Code Ecclesia)
 - Bouton "Quitter" pour participants et modérateur (sans clôturer la session)
+- Sidebar participants en temps réel (vue modérateur + vue participant sur md+)
+- Drag & drop depuis la liste participants vers les files (modérateur)
+- Exclusion de participant ("Exclure") avec confirmation
 
 ---
 
@@ -73,11 +76,14 @@ Zéro politique RLS → accès total interdit hors fonctions SECURITY DEFINER.
 |---|---|---|
 | `id` | uuid PK | |
 | `join_code` | text UNIQUE | 6 caractères hexadécimaux uppercase |
-| `moderator_code_hash` | text | Hash bcrypt — jamais retourné au client |
 | `created_by` | uuid | `auth.uid()` du modérateur courant |
 | `current_speaker_id` | uuid \| null | FK → `participants.id` |
 | `current_turn_started_at` | timestamptz \| null | Timestamp serveur |
 | `created_at` | timestamptz | |
+
+Note : la colonne `moderator_code_hash` a été supprimée (migration 003). Il n'y
+a plus de code par session — la reprise de modération utilise le Code Ecclesia
+global (`app_config.creation_code_hash`).
 
 ### `participants`
 | Colonne | Type | Notes |
@@ -133,14 +139,14 @@ Chaque navigateur reçoit un `user_id` UUID persistant via `signInAnonymously()`
 Pas d'email, pas de mot de passe, pas d'OTP. La clé anon Supabase est publique
 par conception — la sécurité repose entièrement sur RLS + SECURITY DEFINER.
 
-### Les trois codes et leur rôle
+### Les deux codes et leur rôle
 
 | Code | Stocké où | Utilisé pour |
 |---|---|---|
-| **Code de création du club** | `app_config.creation_code_hash` (bcrypt) | Autoriser la création de nouvelles sessions ; connu uniquement de l'organisateur du club |
+| **Code Ecclesia** | `app_config.creation_code_hash` (bcrypt) | Créer une session ET reprendre la modération depuis un autre appareil |
 | **Code de session (join_code)** | `sessions.join_code` (texte clair, 6 hex) | Rejoindre une session existante ; affiché sur le tableau de modération |
-| **Code modérateur** | `sessions.moderator_code_hash` (bcrypt) | Reprendre la modération depuis un autre appareil via `reclaim_moderator` |
 
+Il n'y a plus de code modérateur par session (supprimé en migration 003).
 **Aucun hash ne quitte jamais la base.** Les fonctions SECURITY DEFINER les
 vérifient en base et retournent uniquement un booléen ou les données de session.
 
@@ -169,9 +175,9 @@ propriétaire, pas du client) :
 | Fonction | Migration | Rôle |
 |---|---|---|
 | `is_session_participant(uuid)` | 000 | Helper RLS anti-récursion |
-| `create_session(pseudo, creation_code, moderator_code)` | 000 | Vérifie le code club, génère join_code, crée session + participant |
+| `create_session(pseudo, creation_code)` | 003 | Vérifie le Code Ecclesia, génère join_code, crée session + participant (2 args, ancienne version 3 args supprimée) |
 | `join_session(join_code, pseudo)` | 000 | Idempotent : crée ou met à jour le participant |
-| `reclaim_moderator(join_code, moderator_code)` | 000 | Transfère `created_by` si code correct |
+| `reclaim_moderator(join_code, creation_code)` | 003 | Transfère `created_by` si Code Ecclesia correct (vérifie `app_config`, non plus `sessions`) |
 | `grant_floor(session_id, participant_id, source)` | 001 | Atomique : clôt tour ouvert, défile, ouvre nouveau tour, met à jour session |
 | `end_turn(session_id)` | 001 | Pose `ended_at = now()`, vide `current_speaker_id` — modérateur uniquement |
 | `add_to_queue(session_id, participant_id, queue_type)` | 001 | `MAX(position)+1` atomique, idempotent (`ON CONFLICT DO NOTHING`) |
@@ -179,6 +185,7 @@ propriétaire, pas du client) :
 | `correct_turn(turn_id, started_at, ended_at, participant_id)` | 001 | `COALESCE(param, existing)` — NULL = ne pas modifier |
 | `end_turn_as_speaker(session_id)` | 002 | Comme `end_turn` mais appelable par l'orateur lui-même (vérifie `current_speaker_id`) |
 | `reorder_queue_entry(entry_id, new_position)` | 002 | Déplace atomiquement une entrée à une position arbitraire en décalant les voisins |
+| `kick_participant(session_id, participant_id)` | 004 | Exclut un participant : vérifie que l'appelant est modérateur, clôt son tour si actif, supprime sa ligne (cascade queue + turns) |
 
 ### REPLICA IDENTITY FULL
 
@@ -241,6 +248,34 @@ Il est stocké dans `localStorage` au moment de `create_session` (true) ou
 Il est mis à jour en temps réel uniquement si `created_by` change (reclaim
 détecté via l'événement UPDATE Realtime, possible grâce à REPLICA IDENTITY FULL).
 
+### Stratégie Realtime — Broadcast + polling + monitoring WebSocket
+Le `postgres_changes` + RLS de Supabase génère une vérification SQL par événement
+par subscriber → latence 50–200 ms en production. Solution en trois couches :
+
+1. **Broadcast** (instantané) — après chaque action réussie, un message
+   `{ type: 'broadcast', event: 'refresh', payload: { tables } }` est envoyé sur
+   le channel. Tous les subscribers reçoivent le signal sans vérification RLS et
+   appellent `refetch(tables)` immédiatement.
+2. **Polling 5 s** — `setInterval(() => load(), 5000)` après `ready = true`.
+   Rattrape les broadcasts manqués si un client était temporairement déconnecté.
+3. **Monitoring WebSocket** — `ch.subscribe(status => {...})` détecte
+   `CHANNEL_ERROR` / `TIMED_OUT` et déclenche un `load()` complet à la
+   reconnexion.
+
+Les `postgres_changes` sont conservés en parallèle pour les événements DELETE
+(fin de session, participant exclu) qui ne sont pas broadcastés.
+
+**Mapping broadcast par action** :
+
+| Action | Tables broadcastées |
+|---|---|
+| `grantFloor` | `sessions, queue_entries, speaking_turns` |
+| `endTurn` / `endTurnAsSpeaker` | `sessions, speaking_turns` |
+| `addToQueue` / `removeFromQueue` / `moveQueueEntry` / `reorderQueueEntry` | `queue_entries` |
+| `correctTurn` | `speaking_turns` |
+| `kickParticipant` | `sessions, participants, queue_entries, speaking_turns` |
+| `endSession` | — (DELETE Realtime suffit) |
+
 ---
 
 ## Architecture TypeScript
@@ -255,17 +290,18 @@ src/
 ├── hooks/
 │   └── useLiveMs.ts         setInterval 500ms → Date.now()
 ├── context/
-│   └── SessionContext.tsx   Provider + useSession() hook — état, Realtime, actions
+│   └── SessionContext.tsx   Provider + useSession() hook — état, Realtime, Broadcast, polling, actions
 ├── screens/
-│   ├── EntryScreen.tsx      Tabs : Rejoindre / Reprendre / Créer
+│   ├── EntryScreen.tsx      Tabs : Rejoindre / Reprendre / Créer ("Code Ecclesia")
 │   ├── SessionView.tsx      Routage isModerator → ModeratorView ou ParticipantView
-│   ├── ModeratorView.tsx    Vue projetable (auto-avancement, pause/reprise, DnD files)
-│   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, bouton fin)
+│   ├── ModeratorView.tsx    Vue projetable (DndContext global, auto-avancement, pause/reprise)
+│   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, sidebar md+)
 ├── components/
 │   ├── SpeakerTimer.tsx     Chronomètre en direct (useLiveMs + formatDuration)
-│   ├── QueuePanel.tsx       Tableau de file avec DnD (@dnd-kit) — props variant + accent + onReorder
-│   ├── ParticipantsTable.tsx Temps cumulés, tour actuel, total séance, barres %
-│   ├── CorrectTurnModal.tsx  Formulaire de correction d'un tour
+│   ├── QueuePanel.tsx       File avec DnD — useDroppable (cible drop participants) + SortableContext
+│   ├── ParticipantsTable.tsx Temps cumulés, drag handles (useDraggable), bouton Exclure
+│   ├── ParticipantsSidebar.tsx Liste présents en temps réel, variant dark/light
+│   ├── CorrectTurnModal.tsx  Historique des participations avec durée par tour
 │   └── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
 └── App.tsx                  Machine à états : loading | entry | session
 ```
@@ -278,10 +314,23 @@ leaveSession                          // quitte la vue sans clôturer la session
 grantFloor, endTurn, endTurnAsSpeaker // endTurnAsSpeaker appelable par l'orateur lui-même
 addToQueue, removeFromQueue
 moveQueueEntry, reorderQueueEntry     // reorderQueueEntry pour le DnD (position arbitraire)
-correctTurn, endSession
+correctTurn, kickParticipant, endSession
 ```
 
-Realtime : un seul channel `session:<id>`, 4 abonnements `postgres_changes`.
+Realtime : un seul channel `session:<id>`, 4 abonnements `postgres_changes` +
+1 listener Broadcast `refresh` + subscribe callback pour monitoring WebSocket.
+
+### DnD — architecture cross-container
+Le `<DndContext>` est dans `ModeratorView` (englobant `<main>`). Il y a deux
+types de draggables :
+- `useDraggable({ data: { type: 'participant', participantId } })` — lignes de
+  `ParticipantsTable`, déposables sur les QueuePanel
+- `useSortable({ data: { type: 'queue-entry', queueType } })` — entrées de file,
+  réordonnables dans leur panel
+
+`handleMasterDragEnd` dispatche selon `active.data.current.type` :
+- `'participant'` → `addToQueue(participantId, over.data.queueType)`
+- `'queue-entry'` → `reorderQueueEntry(entryId, newIndex + 1)`
 
 ### extractErr — gestion des erreurs Supabase
 `PostgrestError` (erreur retournée par Supabase) n'est pas une instance de `Error`.
@@ -323,76 +372,38 @@ catch (e) { setErr(extractErr(e)) }
 
 ### ✅ Terminé — Prompt 3 : Polish visuel et UX
 
-**Palette et animation**
-- Fond modérateur `slate-900/950` (optimisé projection) ; fond participant `white/gray-50` (mobile)
-- Palette sémantique : indigo = file longue, teal = file interactive, amber = orateur actif, red = destructif
-- Animation `animate-speaking` (pulse 2 s, keyframe dans `tailwind.config.js`) sur le nom de l'orateur
-
-**Vue modérateur (`ModeratorView.tsx`)**
-- Hero orateur : nom `text-5xl` animé + chrono `text-8xl font-mono` en `indigo-300`
-- Placeholder "Micro libre" quand personne ne parle
-- Badge source du tour (file longue / interactive / manuel) en haut du hero
-- Deux files côte à côte (`grid-cols-2` sur `md+`)
-- Badge **pseudo + "Modérateur"** en haut à droite du header (icône 🔑 sur mobile)
-- "Terminer session" ouvre `ConfirmModal` (plus d'inline confirm)
-
-**Vue participant (`ParticipantView.tsx`)**
-- Banner ambre **"Vous avez la parole !"** avec chrono `text-4xl` quand c'est soi-même qui parle
-- Boutons de file `min-h-[88px]`, label `text-xl` — 4 états visuels distincts :
-  attente (blanc) / file longue (indigo rempli) / file interactive (teal rempli) / en train de parler (grisé)
-- Badge de position `3 / 7` en coin supérieur droit quand actif
-
-**Composants**
-- `QueuePanel` : prop `variant="dark"` pour le skin modérateur, prop `accent` pour la couleur d'en-tête,
-  icônes SVG inline (fini les emoji), premier de file mis en valeur en amber
-- `ParticipantsTable` : skin dark, barres de progression inline pour le %, orateur `animate-speaking`
-- `ConfirmModal` (nouveau) : modal générique réutilisable pour les actions destructives
-
-**EntryScreen (`EntryScreen.tsx`)**
-- Logomark SVG en haut de la carte, inputs plus grands (`py-3`, `rounded-xl`)
-- Spinner SVG animé pendant le chargement (remplace "Chargement…")
+- Palette sémantique : indigo = file longue, teal = file interactive, amber = orateur, red = destructif
+- Animation `animate-speaking` sur le nom de l'orateur
+- Hero orateur `text-5xl` + chrono `text-8xl`, placeholder "Micro libre"
+- Badge source du tour (file longue / interactive / manuel)
+- `ConfirmModal` générique pour les actions destructives
+- Boutons de file participant `min-h-[88px]` avec badge de position
 
 ### ✅ Terminé — Prompt 4 : Automatisation et UX avancée
 
-**Migration `20260520000002_participant_controls.sql` appliquée**
-- `end_turn_as_speaker` : l'orateur peut terminer son propre tour (vérifie `current_speaker_id`)
-- `reorder_queue_entry` : déplacement atomique vers une position arbitraire (pour DnD)
+- Migration `20260520000002_participant_controls.sql` : `end_turn_as_speaker`, `reorder_queue_entry`
+- Auto-avancement (interactive > longue, guards `isGranting` + `pausedSpeakerId`)
+- Pause/reprise du micro (endTurn → pausedSpeakerId → grantFloor)
+- DnD pour réordonner les files (`reorderQueueEntry`)
+- Bouton "J'ai fini de parler" côté participant
+- Colonne "Tour actuel" + pied "Total séance" dans ParticipantsTable
+- Bouton "Quitter" (leaveSession) distinct de "Terminer session"
+- `extractErr` pour les erreurs Supabase
 
-**Auto-avancement (`ModeratorView.tsx`)**
-- `useEffect` sur `session.current_speaker_id`, `queueInteractive`, `queueLong`
-- Interactive en priorité ; guard `isGranting` anti-double-call ; suspendu si `pausedSpeakerId !== null`
+### ✅ Terminé — Prompt 5 : Code unifié + sidebar + DnD cross-container + kick + latence
 
-**Pause / Reprise (`ModeratorView.tsx`)**
-- Bouton "Pause" : `endTurn()` + `setPausedSpeakerId(currentId)`
-- Bandeau ambre "Pause — [Nom]" remplace le hero pendant la pause
-- Bouton "Reprendre" : `grantFloor(pausedSpeakerId, 'manual')` + clear state
-
-**Drag & drop dans les files (`QueuePanel.tsx`)**
-- `@dnd-kit/core` + `@dnd-kit/sortable` — handle de glissement par ligne
-- `PointerSensor` avec `activationConstraint: { distance: 4 }` (évite les drags accidentels)
-- `onDragEnd` → calcule `newIndex + 1` → appelle `onReorder(entryId, newPosition)`
-- Le bouton mic (grant floor manuel) a été supprimé — remplacé par l'auto-avancement
-- La section "Ajouter un participant" a été supprimée — les participants s'ajoutent eux-mêmes
-
-**Vue participant (`ParticipantView.tsx`)**
-- Chrono supprimé côté participant (ils voient juste "Vous avez la parole !")
-- Bouton rouge **"J'ai fini de parler"** → `endTurnAsSpeaker()` → auto-avancement
-- Libellés refondus : "Prendre la parole" (sub : "Introduire un nouveau point…")
-  et "Répondre" (sub : "Répondre directement à l'orateur…")
-
-**ParticipantsTable (`ParticipantsTable.tsx`)**
-- Nouvelle colonne "Tour actuel" : `<SpeakerTimer>` en live pour l'orateur, `—` pour les autres
-- Pied de tableau : "Total séance MM:SS" (somme de tous les tours)
-
-**Bouton "Quitter" (participants + modérateur)**
-- `leaveSession()` dans le contexte : efface localStorage + retour à l'écran d'entrée
-- Ne clôture PAS la session — distinct de "Terminer session"
-
-**Gestion des erreurs (`utils.ts`)**
-- `extractErr(e)` : lit `e.message` si présent, sinon `String(e)` — corrige l'affichage `[object Object]`
+- Migration `20260520000003_unified_code.sql` : fusion des codes (suppression `moderator_code_hash`,
+  `create_session` passe à 2 args, `reclaim_moderator` vérifie `app_config`)
+- Migration `20260520000004_kick_participant.sql` : fonction `kick_participant`
+- `ParticipantsSidebar` (nouveau composant, variant dark/light) intégré vue modérateur + participant (md+)
+- DnD cross-container : `DndContext` remonté dans `ModeratorView`, `useDraggable` sur les lignes
+  participants, `useDroppable` sur les QueuePanel, `handleMasterDragEnd` dispatche selon le type
+- Bouton "Exclure" dans `ParticipantsTable` avec `ConfirmModal` → `kickParticipant`
+- Durée des tours dans `CorrectTurnModal` (formatDuration sur ended_at − started_at)
+- Renommage : "Chronos" → "Historique", "Mot de passe du club" → "Code Ecclesia"
+- Latence Realtime : Broadcast instantané + polling 5 s + monitoring WebSocket reconnect
 
 🔲 **Reste à faire (éventuel)**
-- Gestion des erreurs réseau (reconnexion Realtime, retry)
 - Toast notifications pour les actions
 - Page 404 / session expirée élégante
 - Persistance de la pause après rechargement (localStorage)
@@ -407,10 +418,8 @@ La clé `service_role` bypasse RLS entièrement. Elle ne doit exister que côté
 serveur (Edge Functions, migrations). Dans le frontend : uniquement `anon key`.
 
 ### ❌ Comparer les codes en clair côté client
-Les codes de création et modérateur ne doivent jamais être envoyés au client,
-même hashés. La comparaison se fait **exclusivement** en base via `crypt()` dans
-les fonctions SECURITY DEFINER. Ne jamais SELECT `moderator_code_hash` ou
-`creation_code_hash` depuis le front.
+Les codes ne doivent jamais être envoyés au client, même hashés. La comparaison
+se fait **exclusivement** en base via `crypt()` dans les fonctions SECURITY DEFINER.
 
 ### ❌ Utiliser `setInterval` pour incrémenter un compteur de temps
 ```typescript
@@ -447,7 +456,7 @@ relancer plusieurs fois en rafale (changement de `queueInteractive` + changement
 de `current_speaker_id` dans le même cycle). Sans le flag `isGranting`, deux
 appels simultanés créent deux tours successifs non souhaités.
 
-### ❌ Réinitialiser `moderator_code_hash` via le frontend
-Le hash bcrypt du code modérateur ne doit être modifié qu'en base (via Supabase
-MCP ou SQL Editor). Il n'y a pas d'interface UI pour le changer — c'est voulu.
-Pour réinitialiser : `UPDATE sessions SET moderator_code_hash = crypt('nouveau', gen_salt('bf')) WHERE join_code = 'XXXXXX';`
+### ❌ Oublier `broadcast([...])` après une nouvelle action
+Toute nouvelle fonction d'action dans `SessionContext` doit appeler `broadcast`
+après le RPC (sur succès uniquement). Sans ça, les autres clients ne reçoivent
+la mise à jour qu'au prochain polling (5 s de délai).
