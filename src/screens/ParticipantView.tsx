@@ -1,0 +1,188 @@
+import { useState } from 'react'
+import { useSession } from '../context/SessionContext'
+import { extractErr } from '../lib/utils'
+
+export default function ParticipantView() {
+  const {
+    session,
+    participants,
+    queueLong,
+    queueInteractive,
+    myParticipant,
+    addToQueue,
+    removeFromQueue,
+    endTurnAsSpeaker,
+    leaveSession,
+  } = useSession()
+
+  const [err, setErr] = useState<string | null>(null)
+
+  const speaker        = participants.find(p => p.id === session.current_speaker_id)
+  const iAmSpeaking    = session.current_speaker_id === myParticipant.id
+  const myLong         = queueLong.find(e => e.participant_id === myParticipant.id)
+  const myInteractive  = queueInteractive.find(e => e.participant_id === myParticipant.id)
+
+  async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
+    setErr(null)
+    try {
+      if (existing) await removeFromQueue(existing.id)
+      else await addToQueue(myParticipant.id, type)
+    } catch (e) {
+      setErr(extractErr(e))
+    }
+  }
+
+  async function handleStop() {
+    setErr(null)
+    try { await endTurnAsSpeaker() }
+    catch (e) { setErr(extractErr(e)) }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+
+      {/* ── Header ───────────────────────────────────────────── */}
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <span className="font-mono font-bold text-indigo-600 text-lg tracking-widest">
+          {session.join_code}
+        </span>
+        <span className="text-sm text-gray-500">{myParticipant.pseudo}</span>
+        <button
+          onClick={leaveSession}
+          className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
+            hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+        >
+          Quitter
+        </button>
+      </header>
+
+      {/* ── Speaking banner (self) ────────────────────────────── */}
+      {iAmSpeaking && (
+        <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center">
+          <p className="text-xl font-bold text-amber-700 mb-3">Vous avez la parole !</p>
+          <button
+            onClick={handleStop}
+            className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold
+              rounded-xl text-base transition-colors focus:outline-none focus:ring-2
+              focus:ring-red-400 focus:ring-offset-2"
+          >
+            J'ai fini de parler
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col items-center p-4 pt-6 gap-5 max-w-sm mx-auto w-full">
+
+        {/* ── Current speaker card (someone else) ─────────────── */}
+        {!iAmSpeaking && (
+          <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-center">
+            {speaker ? (
+              <>
+                <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-widest font-medium">
+                  Parole en cours
+                </p>
+                <p className="text-3xl font-bold text-gray-900">{speaker.pseudo}</p>
+              </>
+            ) : (
+              <p className="text-gray-400 text-base py-2">Personne ne parle actuellement</p>
+            )}
+          </div>
+        )}
+
+        {/* ── Queue buttons ────────────────────────────────────── */}
+        <div className="w-full space-y-3">
+          <QueueToggle
+            label="Prendre la parole"
+            sub="Introduire un nouveau point ou des informations complémentaires"
+            color="indigo"
+            active={!!myLong}
+            position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
+            total={queueLong.length}
+            disabled={iAmSpeaking}
+            onClick={() => toggle('long', myLong)}
+          />
+          <QueueToggle
+            label="Répondre"
+            sub="Répondre directement à l'orateur ou au sujet en cours"
+            color="teal"
+            active={!!myInteractive}
+            position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
+            total={queueInteractive.length}
+            disabled={iAmSpeaking}
+            onClick={() => toggle('interactive', myInteractive)}
+          />
+        </div>
+
+        {err && (
+          <p className="text-sm text-red-600 text-center bg-red-50 w-full px-4 py-2 rounded-xl
+            border border-red-200">
+            {err}
+          </p>
+        )}
+
+        <p className="text-xs text-gray-400 pb-2">
+          {participants.length} participant{participants.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Queue toggle button ────────────────────────────────────────
+
+function QueueToggle({
+  label, sub, color, active, position, total, disabled, onClick,
+}: {
+  label: string
+  sub: string
+  color: 'indigo' | 'teal'
+  active: boolean
+  position: number | null
+  total: number
+  disabled: boolean
+  onClick(): void
+}) {
+  const filled = {
+    indigo: 'bg-indigo-600 border-indigo-600 text-white shadow-indigo-200 shadow-md',
+    teal:   'bg-teal-600 border-teal-600 text-white shadow-teal-200 shadow-md',
+  }
+  const outline = {
+    indigo: 'bg-white border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/50',
+    teal:   'bg-white border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50/50',
+  }
+  const badgeBg = {
+    indigo: 'bg-indigo-500 text-white',
+    teal:   'bg-teal-500 text-white',
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative w-full min-h-[88px] px-4 py-4 rounded-2xl border-2 text-left
+        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+        disabled:opacity-40 disabled:cursor-not-allowed ${
+        active
+          ? `${filled[color]} ${color === 'teal' ? 'focus:ring-teal-400' : 'focus:ring-indigo-400'}`
+          : `${outline[color]} focus:ring-gray-300`
+      }`}
+    >
+      {/* Position badge */}
+      {active && position !== null && (
+        <span className={`absolute top-3 right-3 text-sm font-bold px-2.5 py-1 rounded-full
+          ${badgeBg[color]}`}>
+          {position} / {total}
+        </span>
+      )}
+
+      <p className={`text-xl font-semibold leading-tight pr-20 ${active ? 'text-white' : 'text-gray-800'}`}>
+        {label}
+      </p>
+      <p className={`text-sm mt-1 ${active ? 'text-white/80' : 'text-gray-400'}`}>
+        {active
+          ? 'Appuyer pour se retirer de la file'
+          : sub}
+      </p>
+    </button>
+  )
+}

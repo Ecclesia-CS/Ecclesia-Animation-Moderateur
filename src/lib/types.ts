@@ -1,0 +1,34 @@
+export interface Session {
+  id: string
+  join_code: string
+  created_by: string
+  current_speaker_id: string | null
+  current_turn_started_at: string | null
+  created_at: string
+}
+
+export interface Participant {
+  id: string
+  session_id: string
+  user_id: string
+  pseudo: string
+  created_at: string
+}
+
+export interface QueueEntry {
+  id: string
+  session_id: string
+  participant_id: string
+  queue_type: 'long' | 'interactive'
+  position: number
+  created_at: string
+}
+
+export interface SpeakingTurn {
+  id: string
+  session_id: string
+  participant_id: string
+  started_at: string
+  ended_at: string | null
+  source: 'long' | 'interactive' | 'manual'
+}

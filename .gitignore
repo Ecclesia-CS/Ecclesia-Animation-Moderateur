@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Supabase local dev
+supabase/.branches
+supabase/.temp
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Claude Code local settings (chemins absolus spécifiques à la machine)
+.claude/settings.local.json
