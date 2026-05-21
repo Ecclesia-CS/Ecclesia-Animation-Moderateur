@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { sessionStore } from './lib/storage'
+import type { SessionResult } from './lib/supabase'
 import { SessionProvider } from './context/SessionContext'
 import EntryScreen from './screens/EntryScreen'
 import SessionView from './screens/SessionView'
@@ -40,6 +41,25 @@ export default function App() {
           setPhase({ type: 'session', sessionId: stored.sessionId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
           return
         }
+
+        // Participant non accessible (réseau au réveil, JWT expiré, nouvel auth.uid)
+        // → tenter join_session pour re-lier l'auth.uid() courant
+        if (stored.pseudo && stored.joinCode) {
+          try {
+            const { data: rpcData } = await supabase.rpc('join_session', {
+              p_join_code: stored.joinCode,
+              p_pseudo: stored.pseudo,
+            })
+            if (rpcData) {
+              const r = rpcData as SessionResult
+              const isMod = r.created_by === userId
+              sessionStore.set({ sessionId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: isMod, pseudo: stored.pseudo })
+              setPhase({ type: 'session', sessionId: r.id, participantId: r.participant_id, userId, isModerator: isMod })
+              return
+            }
+          } catch { /* session supprimée ou réseau mort → écran d'entrée */ }
+        }
+
         sessionStore.clear()
       }
 

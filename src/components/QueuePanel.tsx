@@ -112,7 +112,7 @@ function SortableRow({
   onRemove(): void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: entry.id, data: { type: 'queue-entry', queueType: entry.queue_type } })
+    useSortable({ id: entry.id, data: { type: 'queue-entry', queueType: entry.queue_type, participantId: entry.participant_id } })
 
   const style = {
     transform: CSS.Transform.toString(transform),

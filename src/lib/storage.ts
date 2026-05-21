@@ -5,6 +5,7 @@ export interface StoredSession {
   participantId: string
   joinCode: string
   isModerator: boolean
+  pseudo?: string
 }
 
 export const sessionStore = {

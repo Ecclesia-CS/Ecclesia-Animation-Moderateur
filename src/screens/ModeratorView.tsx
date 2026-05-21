@@ -33,6 +33,7 @@ export default function ModeratorView() {
     endTurn,
     addToQueue,
     reorderQueueEntry,
+    changeQueueType,
     endSession,
     leaveSession,
   } = useSession()
@@ -112,7 +113,18 @@ export default function ModeratorView() {
       { type?: string; queueType?: 'long' | 'interactive' } | undefined
 
     if (activeData?.type === 'queue-entry') {
-      const queue = activeData.queueType === 'long' ? queueLong : queueInteractive
+      const activeQueueType = activeData.queueType as 'long' | 'interactive'
+      const overQueueType   = overData?.queueType as 'long' | 'interactive' | undefined
+
+      // Déplacement cross-queue
+      if (overQueueType && overQueueType !== activeQueueType) {
+        const participantId = (activeData as { participantId?: string }).participantId
+        if (participantId) safe(() => changeQueueType(active.id as string, participantId, overQueueType))
+        return
+      }
+
+      // Réordonnancement dans la même file
+      const queue = activeQueueType === 'long' ? queueLong : queueInteractive
       const oldIndex = queue.findIndex(e => e.id === active.id)
       const newIndex = queue.findIndex(e => e.id === over.id)
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return

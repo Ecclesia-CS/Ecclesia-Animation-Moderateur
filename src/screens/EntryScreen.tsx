@@ -22,7 +22,7 @@ export default function EntryScreen({ onJoined }: Props) {
   const [reclaimCode, setReclaimCode] = useState('')
 
   function store(sessionId: string, participantId: string, jCode: string, isMod: boolean) {
-    sessionStore.set({ sessionId, participantId, joinCode: jCode, isModerator: isMod })
+    sessionStore.set({ sessionId, participantId, joinCode: jCode, isModerator: isMod, pseudo })
     onJoined(sessionId, participantId, isMod)
   }
 
