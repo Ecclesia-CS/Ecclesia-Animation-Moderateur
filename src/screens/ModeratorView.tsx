@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core'
 import { useSession } from '../context/SessionContext'
-import { extractErr } from '../lib/utils'
+import { useLiveMs } from '../hooks/useLiveMs'
+import { formatDuration, extractErr } from '../lib/utils'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
@@ -37,6 +40,12 @@ export default function ModeratorView() {
     activationConstraint: { distance: 4 },
   }))
 
+  const collisionDetectionStrategy: CollisionDetection = (args) => {
+    const pw = pointerWithin(args)
+    if (pw.length > 0) return pw
+    return closestCenter(args)
+  }
+
   const [showCorrect, setShowCorrect] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [err, setErr]               = useState<string | null>(null)
@@ -48,14 +57,21 @@ export default function ModeratorView() {
   const pausedRef = useRef<string | null>(null)
   pausedRef.current = pausedSpeakerId
 
+  const now = useLiveMs()
+  const sessionTotal = speakingTurns.reduce((sum, t) => {
+    const start = new Date(t.started_at).getTime()
+    const end   = t.ended_at ? new Date(t.ended_at).getTime() : now
+    return sum + Math.max(0, end - start)
+  }, 0)
+
   const speaker     = participants.find(p => p.id === session.current_speaker_id)
   const pausedName  = pausedSpeakerId
     ? participants.find(p => p.id === pausedSpeakerId)?.pseudo ?? '…'
     : null
 
   const sourceLabel: Record<string, string> = {
-    long:        'File longue',
-    interactive: 'File interactive',
+    long:        "File d'attente",
+    interactive: 'Coupe file',
     manual:      'Manuel',
   }
   const sourceBadge: Record<string, string> = {
@@ -197,8 +213,8 @@ export default function ModeratorView() {
       </header>
 
       {/* ── Body ──────────────────────────────────────────────── */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleMasterDragEnd}>
-      <main className="max-w-6xl mx-auto p-4 flex gap-4 items-start">
+      <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragEnd={handleMasterDragEnd}>
+      <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-start">
 
         {/* ── Colonne principale ─────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-4">
@@ -220,6 +236,10 @@ export default function ModeratorView() {
             </div>
             <p className="text-3xl font-bold text-white">{pausedName}</p>
             <p className="text-sm text-slate-400">Le micro est en pause</p>
+            <span className="text-4xl font-mono tabular-nums text-slate-400 leading-none">
+              {formatDuration(sessionTotal)}
+            </span>
+            <p className="text-xs text-slate-600 -mt-2">durée de séance</p>
             <button
               onClick={handleResume}
               className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl
@@ -246,10 +266,18 @@ export default function ModeratorView() {
                 <p className="text-5xl font-bold text-white animate-speaking leading-tight">
                   {speaker.pseudo}
                 </p>
-                <SpeakerTimer
-                  startedAt={session.current_turn_started_at}
-                  className="text-8xl font-mono tabular-nums text-indigo-300 leading-none"
-                />
+                <div className="flex items-center justify-center gap-8 flex-wrap">
+                  <SpeakerTimer
+                    startedAt={session.current_turn_started_at}
+                    className="text-8xl font-mono tabular-nums text-indigo-300 leading-none"
+                  />
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-xs text-slate-500 uppercase tracking-widest">Séance</span>
+                    <span className="text-5xl font-mono tabular-nums text-slate-400 leading-none">
+                      {formatDuration(sessionTotal)}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex items-center gap-3 mt-2">
                   <button
                     onClick={handlePause}
@@ -282,6 +310,10 @@ export default function ModeratorView() {
                     <p className="mt-1 text-sm text-slate-600">Aucun orateur en cours</p>
                   </>
                 )}
+                <span className="text-5xl font-mono tabular-nums text-slate-500 mt-4 leading-none block">
+                  {formatDuration(sessionTotal)}
+                </span>
+                <p className="text-xs text-slate-600 mt-1">durée de séance</p>
               </div>
             )}
           </div>
@@ -290,7 +322,7 @@ export default function ModeratorView() {
         {/* ── Files côte-à-côte ──────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QueuePanel
-            title="File longue"
+            title="File d'attente : demander la parole"
             entries={queueLong}
             queueType="long"
             participants={participants}
@@ -299,7 +331,7 @@ export default function ModeratorView() {
             droppableId="queue-long"
           />
           <QueuePanel
-            title="File interactive"
+            title="Coupe file"
             entries={queueInteractive}
             queueType="interactive"
             participants={participants}

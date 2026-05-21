@@ -96,7 +96,7 @@ export default function ParticipantView() {
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">
           <QueueToggle
-            label="Prendre la parole"
+            label="Demander la parole"
             sub="Introduire un nouveau point ou des informations complémentaires"
             color="indigo"
             active={!!myLong}
@@ -106,7 +106,7 @@ export default function ParticipantView() {
             onClick={() => toggle('long', myLong)}
           />
           <QueueToggle
-            label="Répondre"
+            label="Coupe file"
             sub="Répondre directement à l'orateur ou au sujet en cours"
             color="teal"
             active={!!myInteractive}

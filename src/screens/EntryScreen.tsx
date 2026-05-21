@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { sessionStore } from '../lib/storage'
+import { extractErr } from '../lib/utils'
 import type { SessionResult } from '../lib/supabase'
 
 type Mode = 'join' | 'reclaim' | 'create'
@@ -38,7 +39,7 @@ export default function EntryScreen({ userId, onJoined }: Props) {
       const r = data as SessionResult
       store(r.id, r.participant_id, r.join_code, false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(extractErr(err))
     } finally {
       setLoading(false)
     }
@@ -57,7 +58,7 @@ export default function EntryScreen({ userId, onJoined }: Props) {
       const r = data as SessionResult
       store(r.id, r.participant_id, r.join_code, true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(extractErr(err))
     } finally {
       setLoading(false)
     }
@@ -68,31 +69,15 @@ export default function EntryScreen({ userId, onJoined }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const { data: ok, error: err } = await supabase.rpc('reclaim_moderator', {
+      const { data, error: err } = await supabase.rpc('reclaim_moderator', {
         p_join_code: joinCode,
         p_moderator_code: reclaimCode,
       })
       if (err) throw err
-      if (!ok) throw new Error('Mot de passe incorrect ou session introuvable.')
-
-      const { data: sess, error: e2 } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('join_code', joinCode.toUpperCase())
-        .single()
-      if (e2 || !sess) throw new Error('Session introuvable après la reprise.')
-
-      const { data: part, error: e3 } = await supabase
-        .from('participants')
-        .select('id')
-        .eq('session_id', sess.id)
-        .eq('user_id', userId)
-        .single()
-      if (e3 || !part) throw new Error('Participant introuvable après la reprise.')
-
-      store(sess.id, part.id, joinCode.toUpperCase(), true)
+      const r = data as SessionResult
+      store(r.id, r.participant_id, r.join_code, true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(extractErr(err))
     } finally {
       setLoading(false)
     }

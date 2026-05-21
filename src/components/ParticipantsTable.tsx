@@ -155,8 +155,8 @@ function DraggableRow({
       </td>
 
       {/* Pseudo */}
-      <td className="px-4 py-3">
-        <span className={`font-medium ${isSpeaking ? 'text-white animate-speaking' : 'text-slate-100'}`}>
+      <td className="px-4 py-3 max-w-[120px]">
+        <span className={`font-medium truncate block ${isSpeaking ? 'text-white animate-speaking' : 'text-slate-100'}`}>
           {p.pseudo}
         </span>
         {isSpeaking && (
@@ -210,9 +210,9 @@ function DraggableRow({
             className="text-xs px-2.5 py-1 bg-slate-700 border border-slate-600
               text-slate-200 rounded-lg hover:bg-slate-600 disabled:opacity-30
               transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500
-              focus:ring-offset-1 focus:ring-offset-slate-800"
+              focus:ring-offset-1 focus:ring-offset-slate-800 whitespace-nowrap"
           >
-            Manuel
+            Donner la parole
           </button>
           {!isSelf && (
             <button
@@ -235,11 +235,13 @@ function DraggableRow({
 
 function DragHandleIcon() {
   return (
-    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="8" y1="6" x2="16" y2="6"/>
-      <line x1="8" y1="12" x2="16" y2="12"/>
-      <line x1="8" y1="18" x2="16" y2="18"/>
+    <svg className="w-3.5 h-3.5" viewBox="0 0 10 16" fill="currentColor">
+      <circle cx="2.5" cy="3"  r="1.5"/>
+      <circle cx="7.5" cy="3"  r="1.5"/>
+      <circle cx="2.5" cy="8"  r="1.5"/>
+      <circle cx="7.5" cy="8"  r="1.5"/>
+      <circle cx="2.5" cy="13" r="1.5"/>
+      <circle cx="7.5" cy="13" r="1.5"/>
     </svg>
   )
 }

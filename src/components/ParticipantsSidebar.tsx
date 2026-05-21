@@ -26,7 +26,7 @@ export default function ParticipantsSidebar({
   })
 
   return (
-    <aside className={`w-52 shrink-0 border rounded-2xl p-3 flex flex-col gap-2 self-start sticky top-20 ${
+    <aside className={`w-full lg:w-52 shrink-0 border rounded-2xl p-3 flex flex-col gap-2 self-start sticky top-20 ${
       dark
         ? 'bg-slate-800/50 border-slate-700'
         : 'bg-white border-gray-200 shadow-sm'
@@ -75,10 +75,10 @@ export default function ParticipantsSidebar({
               </span>
 
               {inInteractive && !isSpeaking && (
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" title="File interactive" />
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" title="Coupe file" />
               )}
               {inLong && !isSpeaking && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" title="File longue" />
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" title="File d'attente" />
               )}
             </li>
           )

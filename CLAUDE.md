@@ -13,20 +13,21 @@ de la session) pilote depuis un écran projetable (desktop) ; les participants
 rejoignent depuis leur téléphone.
 
 Fonctionnalités principales :
-- Deux files d'attente de prise de parole : **longue** (nouveau point) et
-  **interactive** (réponse directe)
+- Deux files d'attente de prise de parole : **"File d'attente : demander la parole"** (nouveau point) et
+  **"Coupe file"** (réponse directe)
 - Auto-avancement de la file : la parole est accordée automatiquement au premier
-  de file (interactive en priorité), sans action manuelle du modérateur
-- Chronomètre en direct pour l'orateur (côté modérateur uniquement)
+  de file (Coupe file en priorité), sans action manuelle du modérateur
+- Chronomètre en direct pour l'orateur + **timer global de séance** (= cumul des tours), toujours visible dans le hero
 - Cumul du temps de parole par participant + temps total de séance
 - Pause/reprise du chrono par le modérateur (tour clôturé en DB, rouvert à la reprise)
 - Participant : bouton "J'ai fini de parler" pour libérer la parole soi-même
 - Correction manuelle des tours ("Historique des participations")
 - Persistance de session après rechargement (localStorage)
+- **Pseudo unique par session** : rejoindre avec le même pseudo récupère le compte et l'historique existants
 - Reprise de la modération depuis un autre appareil (Code Ecclesia)
 - Bouton "Quitter" pour participants et modérateur (sans clôturer la session)
-- Sidebar participants en temps réel (vue modérateur + vue participant sur md+)
-- Drag & drop depuis la liste participants vers les files (modérateur)
+- Sidebar participants en temps réel (vue modérateur toujours visible ; vue participant sur md+ uniquement)
+- Drag & drop depuis la liste participants vers les files (modérateur) — stratégie `pointerWithin`
 - Exclusion de participant ("Exclure") avec confirmation
 
 ---
@@ -94,7 +95,16 @@ global (`app_config.creation_code_hash`).
 | `pseudo` | text | |
 | `created_at` | timestamptz | |
 
-Contrainte : `UNIQUE (session_id, user_id)` — un seul pseudonyme par utilisateur par session.
+Contrainte : `UNIQUE (session_id, pseudo)` (migration 005) — un pseudo est unique dans une session.
+Un même `user_id` peut donc avoir plusieurs lignes participants (si l'utilisateur rejoint avec des pseudos
+différents). **Conséquence critique :** toute fonction SQL qui cherche un participant par
+`WHERE user_id = auth.uid()` doit utiliser `LIMIT 1` ou un JOIN direct sur `current_speaker_id`,
+sous peine de récupérer une ligne arbitraire. Voir `end_turn_as_speaker` (migration 007) comme modèle.
+
+Comportement de `join_session` et `reclaim_moderator` en cas de conflit de pseudo :
+`ON CONFLICT (session_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id` — le compte
+(et son historique) est transféré au nouveau venu. Permet de retrouver son compte depuis
+un autre appareil en retapant le même pseudo.
 
 ### `queue_entries`
 | Colonne | Type | Notes |
@@ -148,7 +158,7 @@ par conception — la sécurité repose entièrement sur RLS + SECURITY DEFINER.
 
 Il n'y a plus de code modérateur par session (supprimé en migration 003).
 **Aucun hash ne quitte jamais la base.** Les fonctions SECURITY DEFINER les
-vérifient en base et retournent uniquement un booléen ou les données de session.
+vérifient en base et retournent les données de session (jsonb) ou lèvent une exception.
 
 ### Row Level Security (RLS)
 
@@ -176,14 +186,14 @@ propriétaire, pas du client) :
 |---|---|---|
 | `is_session_participant(uuid)` | 000 | Helper RLS anti-récursion |
 | `create_session(pseudo, creation_code)` | 003 | Vérifie le Code Ecclesia, génère join_code, crée session + participant (2 args, ancienne version 3 args supprimée) |
-| `join_session(join_code, pseudo)` | 000 | Idempotent : crée ou met à jour le participant |
-| `reclaim_moderator(join_code, creation_code)` | 003 | Transfère `created_by` si Code Ecclesia correct (vérifie `app_config`, non plus `sessions`) |
+| `join_session(join_code, pseudo)` | 005 | Conflit sur `(session_id, pseudo)` → transfère `user_id` au nouvel appelant (retour depuis autre appareil) |
+| `reclaim_moderator(join_code, creation_code)` | 006 | Retourne jsonb (même shape que join_session). Lève exception si session introuvable ou code incorrect. Corrige le conflit sur pseudo (migration 005) |
 | `grant_floor(session_id, participant_id, source)` | 001 | Atomique : clôt tour ouvert, défile, ouvre nouveau tour, met à jour session |
 | `end_turn(session_id)` | 001 | Pose `ended_at = now()`, vide `current_speaker_id` — modérateur uniquement |
 | `add_to_queue(session_id, participant_id, queue_type)` | 001 | `MAX(position)+1` atomique, idempotent (`ON CONFLICT DO NOTHING`) |
 | `move_queue_entry(entry_id, direction)` | 001 | Swap de positions avec l'entrée adjacente |
 | `correct_turn(turn_id, started_at, ended_at, participant_id)` | 001 | `COALESCE(param, existing)` — NULL = ne pas modifier |
-| `end_turn_as_speaker(session_id)` | 002 | Comme `end_turn` mais appelable par l'orateur lui-même (vérifie `current_speaker_id`) |
+| `end_turn_as_speaker(session_id)` | 007 | Comme `end_turn` mais appelable par l'orateur lui-même. Utilise un JOIN `sessions → participants` via `current_speaker_id` pour éviter l'ambiguïté quand plusieurs lignes existent pour le même `user_id` |
 | `reorder_queue_entry(entry_id, new_position)` | 002 | Déplace atomiquement une entrée à une position arbitraire en décalant les voisins |
 | `kick_participant(session_id, participant_id)` | 004 | Exclut un participant : vérifie que l'appelant est modérateur, clôt son tour si actif, supprime sa ligne (cascade queue + turns) |
 
@@ -214,8 +224,8 @@ Le hook `useLiveMs()` rafraîchit le composant toutes les 500 ms via
 pas : elle reçoit `Date.now()` à chaque tick.
 
 ### Deux files indépendantes
-`queue_type` : `'long'` (nouveau point/ajout) ou `'interactive'` (réponse
-directe). Elles sont gérées séparément dans l'UI (deux `<QueuePanel>`) et dans
+`queue_type` : `'long'` (affiché "File d'attente : demander la parole") ou `'interactive'`
+(affiché "Coupe file"). Elles sont gérées séparément dans l'UI (deux `<QueuePanel>`) et dans
 les calculs de position (MAX(position) filtré par `queue_type`).
 
 ### Auto-avancement de la file (modérateur uniquement)
@@ -332,6 +342,10 @@ types de draggables :
 - `'participant'` → `addToQueue(participantId, over.data.queueType)`
 - `'queue-entry'` → `reorderQueueEntry(entryId, newIndex + 1)`
 
+**Stratégie de collision** : `pointerWithin` en priorité (le curseur est physiquement
+dans un droppable), fallback `closestCenter`. Obligatoire pour que les drops
+cross-container (participant → file) fonctionnent sur les deux files.
+
 ### extractErr — gestion des erreurs Supabase
 `PostgrestError` (erreur retournée par Supabase) n'est pas une instance de `Error`.
 Utiliser `extractErr(e)` (dans `utils.ts`) partout où une erreur est catchée :
@@ -403,6 +417,21 @@ catch (e) { setErr(extractErr(e)) }
 - Renommage : "Chronos" → "Historique", "Mot de passe du club" → "Code Ecclesia"
 - Latence Realtime : Broadcast instantané + polling 5 s + monitoring WebSocket reconnect
 
+### ✅ Terminé — Prompt 6 : UX, renommages, pseudo unique, corrections
+
+- **Timer de séance** dans le hero modérateur : toujours visible, = cumul `speaking_turns` (même valeur que "Total séance" du tableau), calculé via `useLiveMs` + `formatDuration` dans `ModeratorView`
+- **DnD cross-container** : stratégie `pointerWithin → closestCenter` — les deux files acceptent maintenant les drops depuis la liste participants
+- **Renommages** : "File longue" → "File d'attente : demander la parole" / "File interactive" → "Coupe file" (titres panels, badges source, boutons participant)
+- **Boutons participant** : "Demander la parole" (file longue) / "Coupe file" (file interactive)
+- **Bouton "Donner la parole"** (était "Manuel") dans `ParticipantsTable`
+- **Icône grip 6 points** (dots pleins 2×3) pour tous les drag handles — plus lisible que lignes ou main
+- **Sidebar modérateur** visible sur mobile (layout `flex-col lg:flex-row` + `w-full lg:w-52`)
+- **Colonne Pseudo** : `max-w-[120px] truncate` pour que "Donner la parole" tienne sur une ligne
+- **Pseudo unique par session** (migration 005) : `UNIQUE(session_id, pseudo)`, `join_session` transfère `user_id` au nouvel appelant en cas de conflit
+- **Fix `reclaim_moderator`** (migration 006) : retourne jsonb, lève des exceptions explicites, corrige `ON CONFLICT` cassé par migration 005
+- **Fix `end_turn_as_speaker`** (migration 007) : JOIN direct `sessions → participants` via `current_speaker_id`, robuste quand plusieurs lignes existent pour le même `user_id`
+- **Fix erreurs `[object Object]`** dans `EntryScreen` : `extractErr` utilisé partout, `handleReclaim` simplifié (plus de requêtes post-RPC)
+
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
 - Page 404 / session expirée élégante
@@ -460,3 +489,11 @@ appels simultanés créent deux tours successifs non souhaités.
 Toute nouvelle fonction d'action dans `SessionContext` doit appeler `broadcast`
 après le RPC (sur succès uniquement). Sans ça, les autres clients ne reçoivent
 la mise à jour qu'au prochain polling (5 s de délai).
+
+### ❌ Chercher un participant par `WHERE user_id = auth.uid()` sans précaution
+Depuis migration 005, la contrainte `UNIQUE(session_id, user_id)` n'existe plus.
+Un même `user_id` peut avoir plusieurs lignes `participants` dans une session.
+Un `SELECT id INTO v_participant_id FROM participants WHERE session_id = x AND user_id = auth.uid()`
+sans `LIMIT 1` ou `ORDER BY` renvoie une ligne arbitraire → bugs silencieux.
+**Préférer** un JOIN direct sur `current_speaker_id` (voir `end_turn_as_speaker`)
+ou ajouter `LIMIT 1` avec un `ORDER BY created_at` explicite.

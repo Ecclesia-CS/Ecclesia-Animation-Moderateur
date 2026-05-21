@@ -185,11 +185,13 @@ function SortableRow({
 
 function DragHandleIcon() {
   return (
-    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="8" y1="6" x2="16" y2="6"/>
-      <line x1="8" y1="12" x2="16" y2="12"/>
-      <line x1="8" y1="18" x2="16" y2="18"/>
+    <svg className="w-3.5 h-3.5" viewBox="0 0 10 16" fill="currentColor">
+      <circle cx="2.5" cy="3"  r="1.5"/>
+      <circle cx="7.5" cy="3"  r="1.5"/>
+      <circle cx="2.5" cy="8"  r="1.5"/>
+      <circle cx="7.5" cy="8"  r="1.5"/>
+      <circle cx="2.5" cy="13" r="1.5"/>
+      <circle cx="7.5" cy="13" r="1.5"/>
     </svg>
   )
 }
