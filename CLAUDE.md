@@ -280,7 +280,7 @@ Les `postgres_changes` sont conservés en parallèle pour les événements DELET
 | Action | Tables broadcastées |
 |---|---|
 | `grantFloor` | `sessions, queue_entries, speaking_turns` |
-| `endTurn` / `endTurnAsSpeaker` | `sessions, speaking_turns` |
+| `endTurn` / `endTurnAsSpeaker` | `sessions, speaking_turns, queue_entries` |
 | `addToQueue` / `removeFromQueue` / `moveQueueEntry` / `reorderQueueEntry` | `queue_entries` |
 | `correctTurn` | `speaking_turns` |
 | `kickParticipant` | `sessions, participants, queue_entries, speaking_turns` |
@@ -417,6 +417,21 @@ catch (e) { setErr(extractErr(e)) }
 - Renommage : "Chronos" → "Historique", "Mot de passe du club" → "Code Ecclesia"
 - Latence Realtime : Broadcast instantané + polling 5 s + monitoring WebSocket reconnect
 
+### ✅ Terminé — Prompt 7 : Performances et fiabilité Realtime
+
+- **`SessionTimerDisplay`** : `useLiveMs` extrait de `ModeratorView` vers un composant feuille isolé —
+  `ModeratorView` ne re-render plus toutes les 500 ms, les hooks dnd-kit (`useSortable`, `useDraggable`)
+  ne sont plus évalués inutilement
+- **`useMemo`** sur `queueLong`, `queueInteractive`, `myParticipant` dans `SessionContext` — références
+  stables, le `useEffect` d'auto-avancement ne se déclenche plus sur des arrays identiques
+- **Optimistic UI `ParticipantView`** : boutons "Demander la parole" / "Coupe file" passent en couleur
+  immédiatement au clic (spinner à la place du badge jusqu'à confirmation serveur) ; bannière "Vous avez
+  la parole" disparaît immédiatement au clic "J'ai fini de parler"
+- **Fix auto-avancement bloqué** : `endTurn` et `endTurnAsSpeaker` broadcastent maintenant
+  `queue_entries` en plus de `sessions` + `speaking_turns` — le modérateur resynchronise sa file au
+  moment précis de la décision d'auto-avancer, éliminant les blocages "Micro libre" causés par un
+  broadcast `queue_entries` précédent manqué
+
 ### ✅ Terminé — Prompt 6 : UX, renommages, pseudo unique, corrections
 
 - **Timer de séance** dans le hero modérateur : toujours visible, = cumul `speaking_turns` (même valeur que "Total séance" du tableau), calculé via `useLiveMs` + `formatDuration` dans `ModeratorView`
@@ -449,6 +464,23 @@ serveur (Edge Functions, migrations). Dans le frontend : uniquement `anon key`.
 ### ❌ Comparer les codes en clair côté client
 Les codes ne doivent jamais être envoyés au client, même hashés. La comparaison
 se fait **exclusivement** en base via `crypt()` dans les fonctions SECURITY DEFINER.
+
+### ❌ Placer `useLiveMs()` haut dans l'arbre de composants
+`useLiveMs()` déclenche un re-render de **tout** le sous-arbre toutes les 500 ms. Dès qu'un
+composant parent contient des hooks dnd-kit (`useSortable`, `useDraggable`), cela devient
+très coûteux. Toujours isoler `useLiveMs` dans un petit composant feuille qui ne rend que le
+timer (pattern `SpeakerTimer`, `SessionTimerDisplay`) :
+```tsx
+// ✗ INTERDIT dans un composant parent complexe (ModeratorView, etc.)
+const now = useLiveMs()
+const elapsed = now - start
+
+// ✓ CORRECT — composant feuille dédié
+function MyTimer({ startedAt }: { startedAt: string }) {
+  const now = useLiveMs()
+  return <span>{formatDuration(now - new Date(startedAt).getTime())}</span>
+}
+```
 
 ### ❌ Utiliser `setInterval` pour incrémenter un compteur de temps
 ```typescript

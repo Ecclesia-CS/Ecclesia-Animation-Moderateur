@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from '../context/SessionContext'
 import { extractErr } from '../lib/utils'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
@@ -16,27 +16,40 @@ export default function ParticipantView() {
     leaveSession,
   } = useSession()
 
-  const [err, setErr] = useState<string | null>(null)
+  const [err,                setErr]                = useState<string | null>(null)
+  const [pendingLong,        setPendingLong]        = useState(false)
+  const [pendingInteractive, setPendingInteractive] = useState(false)
+  const [pendingStop,        setPendingStop]        = useState(false)
 
-  const speaker        = participants.find(p => p.id === session.current_speaker_id)
-  const iAmSpeaking    = session.current_speaker_id === myParticipant.id
-  const myLong         = queueLong.find(e => e.participant_id === myParticipant.id)
-  const myInteractive  = queueInteractive.find(e => e.participant_id === myParticipant.id)
+  const speaker       = participants.find(p => p.id === session.current_speaker_id)
+  const iAmSpeaking   = session.current_speaker_id === myParticipant.id
+  const myLong        = queueLong.find(e => e.participant_id === myParticipant.id)
+  const myInteractive = queueInteractive.find(e => e.participant_id === myParticipant.id)
+
+  // Effacer les pending dès que les données réelles arrivent
+  useEffect(() => { if (myLong)        setPendingLong(false)        }, [myLong])
+  useEffect(() => { if (myInteractive) setPendingInteractive(false) }, [myInteractive])
+  useEffect(() => { if (!iAmSpeaking)  setPendingStop(false)        }, [iAmSpeaking])
 
   async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
     setErr(null)
+    if (type === 'long'        && !existing) setPendingLong(true)
+    if (type === 'interactive' && !existing) setPendingInteractive(true)
     try {
       if (existing) await removeFromQueue(existing.id)
       else await addToQueue(myParticipant.id, type)
     } catch (e) {
       setErr(extractErr(e))
+      if (type === 'long')        setPendingLong(false)
+      else                        setPendingInteractive(false)
     }
   }
 
   async function handleStop() {
     setErr(null)
+    setPendingStop(true)
     try { await endTurnAsSpeaker() }
-    catch (e) { setErr(extractErr(e)) }
+    catch (e) { setErr(extractErr(e)); setPendingStop(false) }
   }
 
   return (
@@ -58,7 +71,7 @@ export default function ParticipantView() {
       </header>
 
       {/* ── Speaking banner (self) ────────────────────────────── */}
-      {iAmSpeaking && (
+      {iAmSpeaking && !pendingStop && (
         <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center">
           <p className="text-xl font-bold text-amber-700 mb-3">Vous avez la parole !</p>
           <button
@@ -99,9 +112,10 @@ export default function ParticipantView() {
             label="Demander la parole"
             sub="Introduire un nouveau point ou des informations complémentaires"
             color="indigo"
-            active={!!myLong}
+            active={pendingLong || !!myLong}
             position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
             total={queueLong.length}
+            pending={pendingLong}
             disabled={iAmSpeaking}
             onClick={() => toggle('long', myLong)}
           />
@@ -109,9 +123,10 @@ export default function ParticipantView() {
             label="Coupe file"
             sub="Répondre directement à l'orateur ou au sujet en cours"
             color="teal"
-            active={!!myInteractive}
+            active={pendingInteractive || !!myInteractive}
             position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
             total={queueInteractive.length}
+            pending={pendingInteractive}
             disabled={iAmSpeaking}
             onClick={() => toggle('interactive', myInteractive)}
           />
@@ -148,7 +163,7 @@ export default function ParticipantView() {
 // ── Queue toggle button ────────────────────────────────────────
 
 function QueueToggle({
-  label, sub, color, active, position, total, disabled, onClick,
+  label, sub, color, active, position, total, pending, disabled, onClick,
 }: {
   label: string
   sub: string
@@ -156,6 +171,7 @@ function QueueToggle({
   active: boolean
   position: number | null
   total: number
+  pending: boolean
   disabled: boolean
   onClick(): void
 }) {
@@ -184,12 +200,17 @@ function QueueToggle({
           : `${outline[color]} focus:ring-gray-300`
       }`}
     >
-      {/* Position badge */}
-      {active && position !== null && (
+      {/* Position badge — seulement quand confirmé par le serveur */}
+      {active && position !== null && !pending && (
         <span className={`absolute top-3 right-3 text-sm font-bold px-2.5 py-1 rounded-full
           ${badgeBg[color]}`}>
           {position} / {total}
         </span>
+      )}
+      {/* Indicateur pending : ordre envoyé, en attente de confirmation */}
+      {pending && (
+        <span className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2
+          border-white/60 border-t-transparent animate-spin`} />
       )}
 
       <p className={`text-xl font-semibold leading-tight pr-20 ${active ? 'text-white' : 'text-gray-800'}`}>

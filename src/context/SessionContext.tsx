@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -248,7 +249,7 @@ export function SessionProvider({
   const endTurn = useCallback(
     async () => {
       await rpc('end_turn', { p_session_id: sessionId })
-      broadcast(['sessions', 'speaking_turns'])
+      broadcast(['sessions', 'speaking_turns', 'queue_entries'])
     },
     [rpc, sessionId, broadcast],
   )
@@ -270,7 +271,7 @@ export function SessionProvider({
   const endTurnAsSpeaker = useCallback(
     async () => {
       await rpc('end_turn_as_speaker', { p_session_id: sessionId })
-      broadcast(['sessions', 'speaking_turns'])
+      broadcast(['sessions', 'speaking_turns', 'queue_entries'])
     },
     [rpc, sessionId, broadcast],
   )
@@ -320,6 +321,21 @@ export function SessionProvider({
 
   // ── Render ────────────────────────────────────────────────────
 
+  const myParticipant = useMemo(
+    () => participants.find(p => p.id === participantId),
+    [participants, participantId],
+  )
+
+  const queueLong = useMemo(
+    () => queueEntries.filter(e => e.queue_type === 'long').sort((a, b) => a.position - b.position),
+    [queueEntries],
+  )
+
+  const queueInteractive = useMemo(
+    () => queueEntries.filter(e => e.queue_type === 'interactive').sort((a, b) => a.position - b.position),
+    [queueEntries],
+  )
+
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 text-sm">
@@ -328,20 +344,11 @@ export function SessionProvider({
     )
   }
 
-  const myParticipant = participants.find(p => p.id === participantId)
   if (!myParticipant) {
     // Participant row disappeared — redirect to entry
     handleEnd()
     return null
   }
-
-  const queueLong = queueEntries
-    .filter(e => e.queue_type === 'long')
-    .sort((a, b) => a.position - b.position)
-
-  const queueInteractive = queueEntries
-    .filter(e => e.queue_type === 'interactive')
-    .sort((a, b) => a.position - b.position)
 
   return (
     <SessionCtx.Provider

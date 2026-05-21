@@ -12,6 +12,7 @@ import {
 import { useSession } from '../context/SessionContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
+import type { SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
@@ -56,13 +57,6 @@ export default function ModeratorView() {
   // Ref mirrors pausedSpeakerId so the effect closure always reads the latest value
   const pausedRef = useRef<string | null>(null)
   pausedRef.current = pausedSpeakerId
-
-  const now = useLiveMs()
-  const sessionTotal = speakingTurns.reduce((sum, t) => {
-    const start = new Date(t.started_at).getTime()
-    const end   = t.ended_at ? new Date(t.ended_at).getTime() : now
-    return sum + Math.max(0, end - start)
-  }, 0)
 
   const speaker     = participants.find(p => p.id === session.current_speaker_id)
   const pausedName  = pausedSpeakerId
@@ -236,9 +230,10 @@ export default function ModeratorView() {
             </div>
             <p className="text-3xl font-bold text-white">{pausedName}</p>
             <p className="text-sm text-slate-400">Le micro est en pause</p>
-            <span className="text-4xl font-mono tabular-nums text-slate-400 leading-none">
-              {formatDuration(sessionTotal)}
-            </span>
+            <SessionTimerDisplay
+              speakingTurns={speakingTurns}
+              className="text-4xl font-mono tabular-nums text-slate-400 leading-none"
+            />
             <p className="text-xs text-slate-600 -mt-2">durée de séance</p>
             <button
               onClick={handleResume}
@@ -273,9 +268,10 @@ export default function ModeratorView() {
                   />
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-xs text-slate-500 uppercase tracking-widest">Séance</span>
-                    <span className="text-5xl font-mono tabular-nums text-slate-400 leading-none">
-                      {formatDuration(sessionTotal)}
-                    </span>
+                    <SessionTimerDisplay
+                      speakingTurns={speakingTurns}
+                      className="text-5xl font-mono tabular-nums text-slate-400 leading-none"
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-2">
@@ -310,9 +306,10 @@ export default function ModeratorView() {
                     <p className="mt-1 text-sm text-slate-600">Aucun orateur en cours</p>
                   </>
                 )}
-                <span className="text-5xl font-mono tabular-nums text-slate-500 mt-4 leading-none block">
-                  {formatDuration(sessionTotal)}
-                </span>
+                <SessionTimerDisplay
+                  speakingTurns={speakingTurns}
+                  className="text-5xl font-mono tabular-nums text-slate-500 mt-4 leading-none block"
+                />
                 <p className="text-xs text-slate-600 mt-1">durée de séance</p>
               </div>
             )}
@@ -371,6 +368,24 @@ export default function ModeratorView() {
       )}
     </div>
   )
+}
+
+// ── Session timer (isolated so useLiveMs ne re-rend pas tout ModeratorView) ──
+
+function SessionTimerDisplay({
+  speakingTurns,
+  className,
+}: {
+  speakingTurns: SpeakingTurn[]
+  className: string
+}) {
+  const now = useLiveMs()
+  const total = speakingTurns.reduce((sum, t) => {
+    const start = new Date(t.started_at).getTime()
+    const end   = t.ended_at ? new Date(t.ended_at).getTime() : now
+    return sum + Math.max(0, end - start)
+  }, 0)
+  return <span className={className}>{formatDuration(total)}</span>
 }
 
 // ── Inline icons ───────────────────────────────────────────────
