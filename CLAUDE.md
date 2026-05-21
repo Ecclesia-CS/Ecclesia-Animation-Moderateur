@@ -431,6 +431,8 @@ catch (e) { setErr(extractErr(e)) }
   `queue_entries` en plus de `sessions` + `speaking_turns` — le modérateur resynchronise sa file au
   moment précis de la décision d'auto-avancer, éliminant les blocages "Micro libre" causés par un
   broadcast `queue_entries` précédent manqué
+- **Fix build CI** : `userId` retiré du destructuring de `EntryScreen` (prop accepté mais non utilisé,
+  `noUnusedLocals` le traitait comme erreur fatale)
 
 ### ✅ Terminé — Prompt 6 : UX, renommages, pseudo unique, corrections
 
