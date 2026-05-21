@@ -31,6 +31,7 @@ export default function ModeratorView() {
     isModerator,
     grantFloor,
     endTurn,
+    endTurnAndAdvance,
     addToQueue,
     reorderQueueEntry,
     changeQueueType,
@@ -82,7 +83,10 @@ export default function ModeratorView() {
     try { await fn() } catch (e) { setErr(extractErr(e)) }
   }
 
-  // ── Auto-advance ────────────────────────────────────────────
+  // ── Auto-advance (fallback) ──────────────────────────────────
+  // Chemin principal : endTurnAndAdvance() gère l'avancement côté serveur.
+  // Cet effet ne se déclenche que si la file était vide au moment de la fin
+  // du tour mais qu'une entrée arrive juste après (condition de course).
   useEffect(() => {
     if (!isModerator || isGranting || pausedRef.current !== null) return
     if (session.current_speaker_id !== null) return
@@ -93,7 +97,7 @@ export default function ModeratorView() {
 
     setIsGranting(true)
     grantFloor(next.participant_id, next.queue_type as 'long' | 'interactive')
-      .catch(e => setErr(e instanceof Error ? e.message : String(e)))
+      .catch(e => setErr(extractErr(e)))
       .finally(() => setIsGranting(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.current_speaker_id, queueInteractive, queueLong, isModerator, isGranting])
@@ -298,7 +302,7 @@ export default function ModeratorView() {
                     Pause
                   </button>
                   <button
-                    onClick={() => safe(endTurn)}
+                    onClick={() => safe(endTurnAndAdvance)}
                     className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white
                       rounded-xl text-base font-medium transition-colors focus:outline-none
                       focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2

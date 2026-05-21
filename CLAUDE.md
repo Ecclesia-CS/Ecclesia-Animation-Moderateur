@@ -320,11 +320,12 @@ src/
 ```typescript
 session, participants, queueLong, queueInteractive, speakingTurns
 myParticipant, isModerator
-leaveSession                          // quitte la vue sans clôturer la session
-grantFloor, endTurn, endTurnAsSpeaker // endTurnAsSpeaker appelable par l'orateur lui-même
+leaveSession                              // quitte la vue sans clôturer la session
+grantFloor, endTurn, endTurnAsSpeaker     // endTurnAsSpeaker conservé pour usage futur
+endTurnAndAdvance                         // clôt le tour ET avance atomiquement (1 RPC, sans double aller-retour)
 addToQueue, removeFromQueue
-moveQueueEntry, reorderQueueEntry     // reorderQueueEntry pour le DnD (position arbitraire)
-changeQueueType                       // déplace une entrée d'une file à l'autre (DnD cross-queue)
+moveQueueEntry, reorderQueueEntry         // reorderQueueEntry pour le DnD (position arbitraire)
+changeQueueType                           // déplace une entrée d'une file à l'autre (DnD cross-queue)
 correctTurn, kickParticipant, endSession
 ```
 
@@ -449,6 +450,27 @@ catch (e) { setErr(extractErr(e)) }
 - **Fix `reclaim_moderator`** (migration 006) : retourne jsonb, lève des exceptions explicites, corrige `ON CONFLICT` cassé par migration 005
 - **Fix `end_turn_as_speaker`** (migration 007) : JOIN direct `sessions → participants` via `current_speaker_id`, robuste quand plusieurs lignes existent pour le même `user_id`
 - **Fix erreurs `[object Object]`** dans `EntryScreen` : `extractErr` utilisé partout, `handleReclaim` simplifié (plus de requêtes post-RPC)
+
+### ✅ Terminé — Prompt 8 : Optimisation latence
+
+- **Migration `20260521000000_end_turn_and_advance.sql`** : nouvelle fonction SECURITY DEFINER
+  `end_turn_and_advance(session_id)` — clôt le tour courant ET accorde la parole au suivant
+  (interactive > long) en une seule transaction atomique. Élimine un aller-retour réseau complet
+  sur chaque transition speaker→speaker.
+- **`endTurnAndAdvance` dans SessionContext** : appelle `end_turn_and_advance`, applique
+  immédiatement le jsonb retourné (timestamp serveur exact → pas de skew timer), broadcast pour
+  les autres clients. Utilisé par ModeratorView ("Terminer") et ParticipantView ("J'ai fini").
+- **Mises à jour locales immédiates après RPC** dans `SessionContext` : `endTurn`,
+  `endTurnAsSpeaker`, `grantFloor`, `removeFromQueue` mettent à jour l'état local dès le retour
+  du RPC, sans attendre le rebond du broadcast (~50–200 ms gagnés par action).
+- **`addToQueue`** : refetch `queue_entries` en fire-and-forget immédiatement après le RPC,
+  parallèle au broadcast (position inconnue côté client → pas de mise à jour optimiste pure).
+- **Auto-avancement `useEffect`** dans `ModeratorView` rétrogradé en fallback (file vide au
+  moment de la fin de tour). Commentaire mis à jour.
+- **Heartbeat Supabase** : `heartbeatIntervalMs: 15000` + `reconnectAfterMs` exponentiel
+  (500 ms → 5 s) dans `supabase.ts` — détection de déconnexion 2× plus rapide.
+- **Fix bug `extractErr`** dans `ModeratorView` (auto-avancement) : `e instanceof Error ? ...`
+  remplacé par `extractErr(e)`.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions

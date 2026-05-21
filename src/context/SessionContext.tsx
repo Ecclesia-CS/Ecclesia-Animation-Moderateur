@@ -33,6 +33,7 @@ interface SessionCtxValue {
   grantFloor(participantId: string, source: 'long' | 'interactive' | 'manual'): Promise<void>
   endTurn(): Promise<void>
   endTurnAsSpeaker(): Promise<void>
+  endTurnAndAdvance(): Promise<void>
   addToQueue(participantId: string, queueType: 'long' | 'interactive'): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive'): Promise<void>
@@ -242,6 +243,13 @@ export function SessionProvider({
   const grantFloor = useCallback(
     async (pId: string, src: 'long' | 'interactive' | 'manual') => {
       await rpc('grant_floor', { p_session_id: sessionId, p_participant_id: pId, p_source: src })
+      // Mise à jour locale immédiate du speaker (current_turn_started_at arrive via broadcast)
+      setSession(prev => prev ? { ...prev, current_speaker_id: pId } : prev)
+      if (src !== 'manual') {
+        setQueueEntries(prev => prev.filter(
+          e => !(e.participant_id === pId && e.queue_type === src)
+        ))
+      }
       broadcast(['sessions', 'queue_entries', 'speaking_turns'])
     },
     [rpc, sessionId, broadcast],
@@ -250,6 +258,11 @@ export function SessionProvider({
   const endTurn = useCallback(
     async () => {
       await rpc('end_turn', { p_session_id: sessionId })
+      // Mise à jour locale immédiate — l'useEffect d'auto-avancement se déclenche
+      // sans attendre le rebond du broadcast (~50–200 ms gagnés)
+      setSession(prev => prev
+        ? { ...prev, current_speaker_id: null, current_turn_started_at: null }
+        : prev)
       broadcast(['sessions', 'speaking_turns', 'queue_entries'])
     },
     [rpc, sessionId, broadcast],
@@ -258,14 +271,17 @@ export function SessionProvider({
   const addToQueue = useCallback(
     async (pId: string, qt: 'long' | 'interactive') => {
       await rpc('add_to_queue', { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt })
+      // Refetch local immédiat (fire-and-forget) — n'attend pas le rebond du broadcast
+      refetch(['queue_entries'])
       broadcast(['queue_entries'])
     },
-    [rpc, sessionId, broadcast],
+    [rpc, sessionId, broadcast, refetch],
   )
 
   const removeFromQueue = useCallback(async (entryId: string) => {
     const { error } = await supabase.from('queue_entries').delete().eq('id', entryId)
     if (error) throw error
+    setQueueEntries(prev => prev.filter(e => e.id !== entryId))
     broadcast(['queue_entries'])
   }, [broadcast])
 
@@ -282,9 +298,37 @@ export function SessionProvider({
   const endTurnAsSpeaker = useCallback(
     async () => {
       await rpc('end_turn_as_speaker', { p_session_id: sessionId })
+      setSession(prev => prev
+        ? { ...prev, current_speaker_id: null, current_turn_started_at: null }
+        : prev)
       broadcast(['sessions', 'speaking_turns', 'queue_entries'])
     },
     [rpc, sessionId, broadcast],
+  )
+
+  const endTurnAndAdvance = useCallback(
+    async () => {
+      const { data, error } = await supabase.rpc('end_turn_and_advance', {
+        p_session_id: sessionId,
+      })
+      if (error) throw error
+      const result = data as {
+        current_speaker_id: string | null
+        current_turn_started_at: string | null
+        removed_queue_entry_id: string | null
+      }
+      // Mise à jour locale immédiate avec le timestamp serveur exact (pas de skew timer)
+      setSession(prev => prev
+        ? { ...prev,
+            current_speaker_id: result.current_speaker_id,
+            current_turn_started_at: result.current_turn_started_at }
+        : prev)
+      if (result.removed_queue_entry_id) {
+        setQueueEntries(prev => prev.filter(e => e.id !== result.removed_queue_entry_id))
+      }
+      broadcast(['sessions', 'speaking_turns', 'queue_entries'])
+    },
+    [sessionId, broadcast],
   )
 
   const moveQueueEntry = useCallback(
@@ -375,6 +419,7 @@ export function SessionProvider({
         grantFloor,
         endTurn,
         endTurnAsSpeaker,
+        endTurnAndAdvance,
         addToQueue,
         removeFromQueue,
         changeQueueType,

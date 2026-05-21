@@ -12,7 +12,7 @@ export default function ParticipantView() {
     myParticipant,
     addToQueue,
     removeFromQueue,
-    endTurnAsSpeaker,
+    endTurnAndAdvance,
     leaveSession,
   } = useSession()
 
@@ -48,7 +48,7 @@ export default function ParticipantView() {
   async function handleStop() {
     setErr(null)
     setPendingStop(true)
-    try { await endTurnAsSpeaker() }
+    try { await endTurnAndAdvance() }
     catch (e) { setErr(extractErr(e)); setPendingStop(false) }
   }
 
