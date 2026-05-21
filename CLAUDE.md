@@ -196,6 +196,7 @@ propriétaire, pas du client) :
 | `end_turn_as_speaker(session_id)` | 007 | Comme `end_turn` mais appelable par l'orateur lui-même. Utilise un JOIN `sessions → participants` via `current_speaker_id` pour éviter l'ambiguïté quand plusieurs lignes existent pour le même `user_id` |
 | `reorder_queue_entry(entry_id, new_position)` | 002 | Déplace atomiquement une entrée à une position arbitraire en décalant les voisins |
 | `kick_participant(session_id, participant_id)` | 004 | Exclut un participant : vérifie que l'appelant est modérateur, clôt son tour si actif, supprime sa ligne (cascade queue + turns) |
+| `end_turn_and_advance(session_id)` | 008 | Clôt le tour courant ET accorde la parole au suivant (interactive > long) en une transaction atomique. Appelable par le modérateur OU l'orateur actuel. Retourne jsonb `{ current_speaker_id, current_turn_started_at, removed_queue_entry_id }` pour mise à jour locale immédiate côté client. |
 
 ### REPLICA IDENTITY FULL
 
@@ -228,10 +229,15 @@ pas : elle reçoit `Date.now()` à chaque tick.
 (affiché "Coupe file"). Elles sont gérées séparément dans l'UI (deux `<QueuePanel>`) et dans
 les calculs de position (MAX(position) filtré par `queue_type`).
 
-### Auto-avancement de la file (modérateur uniquement)
-Un `useEffect` dans `ModeratorView` déclenche `grantFloor` automatiquement dès
-que `session.current_speaker_id` passe à `null` et qu'une file est non-vide.
-**Priorité : interactive > longue.** Protégé par deux guards :
+### Auto-avancement de la file
+**Chemin principal** : `endTurnAndAdvance` (RPC 008) gère l'avancement côté serveur en une
+seule transaction. Appelé par le bouton "Terminer la prise de parole" (modérateur) et
+"J'ai fini de parler" (participant). Priorité : interactive > longue.
+
+**Fallback** : un `useEffect` dans `ModeratorView` déclenche `grantFloor` si
+`session.current_speaker_id` passe à `null` alors que la file est non-vide. Couvre
+uniquement les cas où la file était vide au moment de `endTurnAndAdvance` mais qu'une
+entrée est arrivée juste après (condition de course). Protégé par deux guards :
 - `isGranting` (flag local) — évite les double-appels en cas de re-render rapide
 - `pausedSpeakerId !== null` — ne pas auto-avancer quand le modérateur est en pause
 
@@ -260,17 +266,22 @@ détecté via l'événement UPDATE Realtime, possible grâce à REPLICA IDENTITY
 
 ### Stratégie Realtime — Broadcast + polling + monitoring WebSocket
 Le `postgres_changes` + RLS de Supabase génère une vérification SQL par événement
-par subscriber → latence 50–200 ms en production. Solution en trois couches :
+par subscriber → latence 50–200 ms en production. Solution en quatre couches :
 
-1. **Broadcast** (instantané) — après chaque action réussie, un message
+1. **Mise à jour locale immédiate** (0 ms) — après chaque RPC réussi, l'acteur met à
+   jour son état local directement (`setSession`, `setQueueEntries`) sans attendre le
+   broadcast. `endTurnAndAdvance` retourne le jsonb serveur pour éviter tout skew de
+   timestamp. `current_turn_started_at` n'est jamais posé optimistiquement par le client
+   (sauf via le retour de `endTurnAndAdvance`).
+2. **Broadcast** (instantané) — après chaque action réussie, un message
    `{ type: 'broadcast', event: 'refresh', payload: { tables } }` est envoyé sur
    le channel. Tous les subscribers reçoivent le signal sans vérification RLS et
    appellent `refetch(tables)` immédiatement.
-2. **Polling 5 s** — `setInterval(() => load(), 5000)` après `ready = true`.
+3. **Polling 5 s** — `setInterval(() => load(), 5000)` après `ready = true`.
    Rattrape les broadcasts manqués si un client était temporairement déconnecté.
-3. **Monitoring WebSocket** — `ch.subscribe(status => {...})` détecte
+4. **Monitoring WebSocket** — `ch.subscribe(status => {...})` détecte
    `CHANNEL_ERROR` / `TIMED_OUT` et déclenche un `load()` complet à la
-   reconnexion.
+   reconnexion. Heartbeat toutes les 15 s (au lieu de 30 s par défaut).
 
 Les `postgres_changes` sont conservés en parallèle pour les événements DELETE
 (fin de session, participant exclu) qui ne sont pas broadcastés.
@@ -281,6 +292,7 @@ Les `postgres_changes` sont conservés en parallèle pour les événements DELET
 |---|---|
 | `grantFloor` | `sessions, queue_entries, speaking_turns` |
 | `endTurn` / `endTurnAsSpeaker` | `sessions, speaking_turns, queue_entries` |
+| `endTurnAndAdvance` | `sessions, speaking_turns, queue_entries` |
 | `addToQueue` / `removeFromQueue` / `moveQueueEntry` / `reorderQueueEntry` / `changeQueueType` | `queue_entries` |
 | `correctTurn` | `speaking_turns` |
 | `kickParticipant` | `sessions, participants, queue_entries, speaking_turns` |
