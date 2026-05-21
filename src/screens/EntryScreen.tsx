@@ -11,7 +11,7 @@ interface Props {
   onJoined(sessionId: string, participantId: string, isModerator: boolean): void
 }
 
-export default function EntryScreen({ userId, onJoined }: Props) {
+export default function EntryScreen({ onJoined }: Props) {
   const [mode, setMode] = useState<Mode>('join')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
