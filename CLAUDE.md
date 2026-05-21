@@ -281,7 +281,7 @@ Les `postgres_changes` sont conservés en parallèle pour les événements DELET
 |---|---|
 | `grantFloor` | `sessions, queue_entries, speaking_turns` |
 | `endTurn` / `endTurnAsSpeaker` | `sessions, speaking_turns, queue_entries` |
-| `addToQueue` / `removeFromQueue` / `moveQueueEntry` / `reorderQueueEntry` | `queue_entries` |
+| `addToQueue` / `removeFromQueue` / `moveQueueEntry` / `reorderQueueEntry` / `changeQueueType` | `queue_entries` |
 | `correctTurn` | `speaking_turns` |
 | `kickParticipant` | `sessions, participants, queue_entries, speaking_turns` |
 | `endSession` | — (DELETE Realtime suffit) |
@@ -324,6 +324,7 @@ leaveSession                          // quitte la vue sans clôturer la session
 grantFloor, endTurn, endTurnAsSpeaker // endTurnAsSpeaker appelable par l'orateur lui-même
 addToQueue, removeFromQueue
 moveQueueEntry, reorderQueueEntry     // reorderQueueEntry pour le DnD (position arbitraire)
+changeQueueType                       // déplace une entrée d'une file à l'autre (DnD cross-queue)
 correctTurn, kickParticipant, endSession
 ```
 
