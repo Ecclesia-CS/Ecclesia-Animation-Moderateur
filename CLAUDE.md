@@ -14,7 +14,7 @@ rejoignent depuis leur téléphone.
 
 Fonctionnalités principales :
 - Deux files d'attente de prise de parole : **"File d'attente : demander la parole"** (nouveau point) et
-  **"Coupe file"** (réponse directe)
+  **"Coupe file"** (pour répondre à ce qui est dit actuellement uniquement)
 - Auto-avancement de la file : la parole est accordée automatiquement au premier
   de file (Coupe file en priorité), sans action manuelle du modérateur
 - Chronomètre en direct pour l'orateur + **timer global de séance** (= cumul des tours), toujours visible dans le hero
@@ -22,13 +22,15 @@ Fonctionnalités principales :
 - Pause/reprise du chrono par le modérateur (tour clôturé en DB, rouvert à la reprise)
 - Participant : bouton "J'ai fini de parler" pour libérer la parole soi-même
 - Correction manuelle des tours ("Historique des participations")
-- Persistance de session après rechargement (localStorage)
+- **Export CSV** : bouton "Exporter" (modérateur) — télécharge résumé participants + historique complet des tours
+- Persistance de session après rechargement (localStorage) ; reconnexion automatique au même participant via pseudo
 - **Pseudo unique par session** : rejoindre avec le même pseudo récupère le compte et l'historique existants
 - Reprise de la modération depuis un autre appareil (Code Ecclesia)
 - Bouton "Quitter" pour participants et modérateur (sans clôturer la session)
 - Sidebar participants en temps réel (vue modérateur toujours visible ; vue participant sur md+ uniquement)
 - Drag & drop depuis la liste participants vers les files (modérateur) — stratégie `pointerWithin`
 - Exclusion de participant ("Exclure") avec confirmation
+- Vue participant : pas d'affichage de l'orateur en cours (les participants ne voient que leurs propres boutons)
 
 ---
 
@@ -576,6 +578,20 @@ appels simultanés créent deux tours successifs non souhaités.
 Toute nouvelle fonction d'action dans `SessionContext` doit appeler `broadcast`
 après le RPC (sur succès uniquement). Sans ça, les autres clients ne reçoivent
 la mise à jour qu'au prochain polling (5 s de délai).
+
+### ❌ Supposer qu'un événement Realtime `INSERT` sur `participants` signifie un nouveau participant
+Un upsert SQL (`INSERT ... ON CONFLICT DO UPDATE`) déclenche parfois un événement `INSERT` côté
+Supabase Realtime (plutôt que `UPDATE`). Ne jamais faire `prev => [...prev, n]` sans vérifier si
+`n.id` existe déjà dans `prev` — sinon le même participant apparaît deux fois dans la liste.
+Pattern correct (dans les handlers Realtime de `SessionContext`) :
+```typescript
+if (eventType === 'INSERT')
+  setParticipants(prev =>
+    prev.some(p => p.id === n.id)
+      ? prev.map(p => p.id === n.id ? n : p)   // déjà présent → mettre à jour
+      : [...prev, n]                             // vraiment nouveau
+  )
+```
 
 ### ❌ Chercher un participant par `WHERE user_id = auth.uid()` sans précaution
 Depuis migration 005, la contrainte `UNIQUE(session_id, user_id)` n'existe plus.
