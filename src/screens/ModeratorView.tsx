@@ -45,18 +45,7 @@ export default function ModeratorView() {
 
   const collisionDetectionStrategy: CollisionDetection = (args) => {
     const pw = pointerWithin(args)
-    if (pw.length > 0) {
-      // Trier par surface croissante : le container le plus petit (SortableRow) est
-      // retourné en premier, ce qui permet de détecter la position d'insertion lors
-      // d'un drag participant → file.
-      const sorted = [...pw].sort((a, b) => {
-        const ra = args.droppableRects.get(a.id)
-        const rb = args.droppableRects.get(b.id)
-        if (!ra || !rb) return 0
-        return (ra.width * ra.height) - (rb.width * rb.height)
-      })
-      return sorted
-    }
+    if (pw.length > 0) return pw
     return closestCenter(args)
   }
 
@@ -135,7 +124,7 @@ export default function ModeratorView() {
       .finally(() => setIsGranting(false))
   }
 
-  function handleMasterDragEnd({ active, over }: DragEndEvent) {
+  function handleMasterDragEnd({ active, over, collisions }: DragEndEvent) {
     if (!over) return
     const activeData = active.data.current as
       { type: string; participantId?: string; queueType?: string } | undefined
@@ -164,12 +153,14 @@ export default function ModeratorView() {
     if (activeData?.type === 'participant') {
       const queueType = overData?.queueType
       if (!queueType) return
-      // Si déposé sur une ligne précise, insérer à cette position
+      // Parcourir toutes les collisions pour trouver le SortableRow survolé (id = UUID d'entrée).
+      // Le QueuePanel revient en premier (over) pour l'illumination ; les SortableRows
+      // suivent dans collisions → on récupère la position exacte sans casser le isOver.
       let position: number | undefined
-      if (overData?.type === 'queue-entry') {
-        const queue = queueType === 'long' ? queueLong : queueInteractive
-        const idx = queue.findIndex(e => e.id === over.id)
-        if (idx !== -1) position = idx + 1
+      const queue = queueType === 'long' ? queueLong : queueInteractive
+      for (const c of collisions ?? []) {
+        const idx = queue.findIndex(e => e.id === c.id)
+        if (idx !== -1) { position = idx + 1; break }
       }
       safe(() => addToQueue(activeData.participantId!, queueType, position))
     }
