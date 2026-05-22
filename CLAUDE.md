@@ -321,8 +321,9 @@ src/
 │   ├── ModeratorView.tsx    Vue projetable (DndContext global, auto-avancement, pause/reprise)
 │   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, sidebar md+)
 ├── components/
-│   ├── SpeakerTimer.tsx     Chronomètre en direct (useLiveMs + formatDuration)
+│   ├── SpeakerTimer.tsx     Chronomètre en direct (useLiveMs + formatDuration + offsetMs)
 │   ├── QueuePanel.tsx       File avec DnD — useDroppable (cible drop participants) + SortableContext
+│   ├── ReadOnlyQueuePanel.tsx File lecture seule (participants) — aucun DnD, position + pseudo
 │   ├── ParticipantsTable.tsx Temps cumulés, drag handles (useDraggable), bouton Exclure
 │   ├── ParticipantsSidebar.tsx Liste présents en temps réel, variant dark/light
 │   ├── CorrectTurnModal.tsx  Historique des participations avec durée par tour
@@ -355,12 +356,10 @@ types de draggables :
   réordonnables dans leur panel
 
 `handleMasterDragEnd` dispatche selon `active.data.current.type` :
-- `'participant'` → `addToQueue(participantId, over.data.queueType)`
+- `'participant'` → `addToQueue(participantId, over.data.queueType, position?)` — position = index de la ligne survolée (1-based) si `over` est un SortableRow, sinon insertion en fin
 - `'queue-entry'` → `reorderQueueEntry(entryId, newIndex + 1)`
 
-**Stratégie de collision** : `pointerWithin` en priorité (le curseur est physiquement
-dans un droppable), fallback `closestCenter`. Obligatoire pour que les drops
-cross-container (participant → file) fonctionnent sur les deux files.
+**Stratégie de collision** : `pointerWithin` trié par surface croissante (plus petit container en premier), fallback `closestCenter`. Le tri garantit que les `SortableRow` (petits) l'emportent sur le `QueuePanel` (grand), ce qui permet de détecter la position d'insertion exacte lors des drops participant → file.
 
 ### extractErr — gestion des erreurs Supabase
 `PostgrestError` (erreur retournée par Supabase) n'est pas une instance de `Error`.
@@ -503,6 +502,15 @@ catch (e) { setErr(extractErr(e)) }
   `participant.user_id === auth.uid()` avant de restaurer directement. Si l'auth anonyme a été renouvelé
   (nouvel `user_id`), le flux tombe sur `join_session` qui relie le nouvel `auth.uid()` via `ON CONFLICT
   DO UPDATE SET user_id = EXCLUDED.user_id` — le participant existant est récupéré sans doublon.
+
+### ✅ Terminé — Prompt 10 : Pause améliorée, timer continu, files participant, DnD position, fix doublon
+
+- **Bouton "Passer au suivant"** en état pause : l'admin peut sauter l'orateur pausé et accorder la parole au premier en file (interactive > longue). Si les files sont vides, retour à "Micro libre".
+- **Timer continu à la reprise** : `SpeakerTimer` accepte un `offsetMs?: number`. À la pause, `handlePause` capture le temps écoulé dans `timerOffset` (state). À la reprise, le chrono repart du temps cumulé (pas de remise à zéro). Double pause supportée (accumulation). `setTimerOffset(0)` appelé sur "Terminer" et "Passer au suivant".
+- **Fix doublon `queue_entries` Realtime** : le handler `INSERT` de `queue_entries` dans `SessionContext` dédoublonne désormais (même pattern que `participants`) — un `ON CONFLICT DO NOTHING` ou un refetch en double ne peut plus doubler une entrée dans la liste.
+- **DnD position** : migration `20260522000000` — `add_to_queue` accepte `p_position int DEFAULT NULL`. Quand `p_position` est fourni, les entrées existantes sont décalées et le participant est inséré à la position exacte. `addToQueue` dans `SessionContext` + `handleMasterDragEnd` dans `ModeratorView` transmettent la position. La collision detection trie les résultats `pointerWithin` par surface croissante (container le plus petit en premier) : les `SortableRow` prennent la priorité sur le `QueuePanel`, ce qui permet de détecter la ligne exacte survolée.
+- **Files en lecture seule côté participant** : nouveau composant `ReadOnlyQueuePanel` (pas de DnD, affiche position + pseudo). Affiché dans `ParticipantView` après les boutons de demande de parole — visible sur mobile sans encombrer.
+- **Suppression "J'ai fini de parler"** : bouton retiré de `ParticipantView`. La bannière "Vous avez la parole !" reste. Seul l'admin gère la fin de tour via "Terminer la prise de parole".
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
