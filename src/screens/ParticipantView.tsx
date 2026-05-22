@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from '../context/SessionContext'
 import { extractErr } from '../lib/utils'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
+import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
 
 export default function ParticipantView() {
   const {
@@ -12,14 +13,12 @@ export default function ParticipantView() {
     myParticipant,
     addToQueue,
     removeFromQueue,
-    endTurnAndAdvance,
     leaveSession,
   } = useSession()
 
   const [err,                setErr]                = useState<string | null>(null)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
-  const [pendingStop,        setPendingStop]        = useState(false)
 
   const iAmSpeaking   = session.current_speaker_id === myParticipant.id
   const myLong        = queueLong.find(e => e.participant_id === myParticipant.id)
@@ -28,7 +27,6 @@ export default function ParticipantView() {
   // Effacer les pending dès que les données réelles arrivent
   useEffect(() => { if (myLong)        setPendingLong(false)        }, [myLong])
   useEffect(() => { if (myInteractive) setPendingInteractive(false) }, [myInteractive])
-  useEffect(() => { if (!iAmSpeaking)  setPendingStop(false)        }, [iAmSpeaking])
 
   async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
     setErr(null)
@@ -42,13 +40,6 @@ export default function ParticipantView() {
       if (type === 'long')        setPendingLong(false)
       else                        setPendingInteractive(false)
     }
-  }
-
-  async function handleStop() {
-    setErr(null)
-    setPendingStop(true)
-    try { await endTurnAndAdvance() }
-    catch (e) { setErr(extractErr(e)); setPendingStop(false) }
   }
 
   return (
@@ -70,17 +61,9 @@ export default function ParticipantView() {
       </header>
 
       {/* ── Speaking banner (self) ────────────────────────────── */}
-      {iAmSpeaking && !pendingStop && (
+      {iAmSpeaking && (
         <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center">
-          <p className="text-xl font-bold text-amber-700 mb-3">Vous avez la parole !</p>
-          <button
-            onClick={handleStop}
-            className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold
-              rounded-xl text-base transition-colors focus:outline-none focus:ring-2
-              focus:ring-red-400 focus:ring-offset-2"
-          >
-            J'ai fini de parler
-          </button>
+          <p className="text-xl font-bold text-amber-700">Vous avez la parole !</p>
         </div>
       )}
 
@@ -121,6 +104,23 @@ export default function ParticipantView() {
             {err}
           </p>
         )}
+
+        {/* ── Files en lecture seule ────────────────────────────── */}
+        <div className="w-full space-y-3">
+          <ReadOnlyQueuePanel
+            title="File d'attente : demander la parole"
+            entries={queueLong}
+            participants={participants}
+            accent="indigo"
+          />
+          <ReadOnlyQueuePanel
+            title="Coupe file"
+            subtitle="Pour répondre à ce qui est dit actuellement uniquement"
+            entries={queueInteractive}
+            participants={participants}
+            accent="teal"
+          />
+        </div>
 
         <p className="text-xs text-gray-400 pb-2">
           {participants.length} participant{participants.length !== 1 ? 's' : ''}

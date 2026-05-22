@@ -45,7 +45,18 @@ export default function ModeratorView() {
 
   const collisionDetectionStrategy: CollisionDetection = (args) => {
     const pw = pointerWithin(args)
-    if (pw.length > 0) return pw
+    if (pw.length > 0) {
+      // Trier par surface croissante : le container le plus petit (SortableRow) est
+      // retourné en premier, ce qui permet de détecter la position d'insertion lors
+      // d'un drag participant → file.
+      const sorted = [...pw].sort((a, b) => {
+        const ra = args.droppableRects.get(a.id)
+        const rb = args.droppableRects.get(b.id)
+        if (!ra || !rb) return 0
+        return (ra.width * ra.height) - (rb.width * rb.height)
+      })
+      return sorted
+    }
     return closestCenter(args)
   }
 
@@ -54,11 +65,13 @@ export default function ModeratorView() {
   const [err, setErr]               = useState<string | null>(null)
 
   // Auto-advance state
-  const [isGranting, setIsGranting]         = useState(false)
+  const [isGranting, setIsGranting]           = useState(false)
   const [pausedSpeakerId, setPausedSpeakerId] = useState<string | null>(null)
   // Ref mirrors pausedSpeakerId so the effect closure always reads the latest value
   const pausedRef = useRef<string | null>(null)
   pausedRef.current = pausedSpeakerId
+  // Temps accumulé avant la pause (ms) — restitué au chrono à la reprise
+  const [timerOffset, setTimerOffset] = useState(0)
 
   const speaker     = participants.find(p => p.id === session.current_speaker_id)
   const pausedName  = pausedSpeakerId
@@ -102,11 +115,24 @@ export default function ModeratorView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.current_speaker_id, queueInteractive, queueLong, isModerator, isGranting])
 
-  // ── Pause / Resume ──────────────────────────────────────────
+  // ── Pause / Resume / Skip ────────────────────────────────────
   function handlePause() {
-    if (!session.current_speaker_id) return
+    if (!session.current_speaker_id || !session.current_turn_started_at) return
+    const currentElapsed = Date.now() - new Date(session.current_turn_started_at).getTime()
+    setTimerOffset(currentElapsed + timerOffset) // accumule en cas de double pause
     setPausedSpeakerId(session.current_speaker_id)
     safe(endTurn)
+  }
+
+  function handleSkip() {
+    setTimerOffset(0)
+    setPausedSpeakerId(null)
+    const next = queueInteractive[0] ?? queueLong[0]
+    if (!next) return
+    setIsGranting(true)
+    grantFloor(next.participant_id, next.queue_type as 'long' | 'interactive')
+      .catch(e => setErr(extractErr(e)))
+      .finally(() => setIsGranting(false))
   }
 
   function handleMasterDragEnd({ active, over }: DragEndEvent) {
@@ -138,7 +164,14 @@ export default function ModeratorView() {
     if (activeData?.type === 'participant') {
       const queueType = overData?.queueType
       if (!queueType) return
-      safe(() => addToQueue(activeData.participantId!, queueType))
+      // Si déposé sur une ligne précise, insérer à cette position
+      let position: number | undefined
+      if (overData?.type === 'queue-entry') {
+        const queue = queueType === 'long' ? queueLong : queueInteractive
+        const idx = queue.findIndex(e => e.id === over.id)
+        if (idx !== -1) position = idx + 1
+      }
+      safe(() => addToQueue(activeData.participantId!, queueType, position))
     }
   }
 
@@ -179,6 +212,7 @@ export default function ModeratorView() {
                   <span className="text-slate-300 truncate">{speaker.pseudo}</span>
                   <SpeakerTimer
                     startedAt={session.current_turn_started_at}
+                    offsetMs={timerOffset}
                     className="text-indigo-400 shrink-0 font-mono tabular-nums"
                   />
                 </span>
@@ -271,14 +305,24 @@ export default function ModeratorView() {
               className="text-4xl font-mono tabular-nums text-slate-400 leading-none"
             />
             <p className="text-xs text-slate-600 -mt-2">durée de séance</p>
-            <button
-              onClick={handleResume}
-              className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl
-                text-base font-medium transition-colors focus:outline-none
-                focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
-            >
-              Reprendre la parole
-            </button>
+            <div className="flex items-center gap-3 flex-wrap justify-center">
+              <button
+                onClick={handleResume}
+                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl
+                  text-base font-medium transition-colors focus:outline-none
+                  focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+              >
+                Reprendre la parole
+              </button>
+              <button
+                onClick={handleSkip}
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl
+                  text-base font-medium transition-colors focus:outline-none
+                  focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+              >
+                Passer au suivant
+              </button>
+            </div>
           </div>
         ) : (
           <div className={`rounded-2xl border transition-all duration-300 ${
@@ -300,6 +344,7 @@ export default function ModeratorView() {
                 <div className="flex items-center justify-center gap-8 flex-wrap">
                   <SpeakerTimer
                     startedAt={session.current_turn_started_at}
+                    offsetMs={timerOffset}
                     className="text-8xl font-mono tabular-nums text-indigo-300 leading-none"
                   />
                   <div className="flex flex-col items-center gap-0.5">
@@ -322,7 +367,7 @@ export default function ModeratorView() {
                     Pause
                   </button>
                   <button
-                    onClick={() => safe(endTurnAndAdvance)}
+                    onClick={() => { setTimerOffset(0); safe(endTurnAndAdvance) }}
                     className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white
                       rounded-xl text-base font-medium transition-colors focus:outline-none
                       focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2

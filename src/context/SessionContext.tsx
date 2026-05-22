@@ -34,7 +34,7 @@ interface SessionCtxValue {
   endTurn(): Promise<void>
   endTurnAsSpeaker(): Promise<void>
   endTurnAndAdvance(): Promise<void>
-  addToQueue(participantId: string, queueType: 'long' | 'interactive'): Promise<void>
+  addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive'): Promise<void>
   moveQueueEntry(entryId: string, direction: 'up' | 'down'): Promise<void>
@@ -190,7 +190,11 @@ export function SessionProvider({
       { event: '*', schema: 'public', table: 'queue_entries', filter: `session_id=eq.${sessionId}` },
       ({ eventType, new: n, old: o }) => {
         if (eventType === 'INSERT')
-          setQueueEntries(prev => [...prev, n as QueueEntry])
+          setQueueEntries(prev =>
+            prev.some(e => e.id === (n as QueueEntry).id)
+              ? prev.map(e => e.id === (n as QueueEntry).id ? n as QueueEntry : e)
+              : [...prev, n as QueueEntry]
+          )
         else if (eventType === 'UPDATE')
           setQueueEntries(prev => prev.map(x => x.id === (n as QueueEntry).id ? n as QueueEntry : x))
         else if (eventType === 'DELETE')
@@ -274,8 +278,11 @@ export function SessionProvider({
   )
 
   const addToQueue = useCallback(
-    async (pId: string, qt: 'long' | 'interactive') => {
-      await rpc('add_to_queue', { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt })
+    async (pId: string, qt: 'long' | 'interactive', position?: number) => {
+      const args = position !== undefined
+        ? { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt, p_position: position }
+        : { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt }
+      await rpc('add_to_queue', args)
       // Refetch local immédiat (fire-and-forget) — n'attend pas le rebond du broadcast
       refetch(['queue_entries'])
       broadcast(['queue_entries'])
