@@ -21,7 +21,6 @@ export default function ParticipantView() {
   const [pendingInteractive, setPendingInteractive] = useState(false)
   const [pendingStop,        setPendingStop]        = useState(false)
 
-  const speaker       = participants.find(p => p.id === session.current_speaker_id)
   const iAmSpeaking   = session.current_speaker_id === myParticipant.id
   const myLong        = queueLong.find(e => e.participant_id === myParticipant.id)
   const myInteractive = queueInteractive.find(e => e.participant_id === myParticipant.id)
@@ -90,22 +89,6 @@ export default function ParticipantView() {
 
       <div className="flex-1 flex flex-col items-center gap-5 min-w-0">
 
-        {/* ── Current speaker card (someone else) ─────────────── */}
-        {!iAmSpeaking && (
-          <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-center">
-            {speaker ? (
-              <>
-                <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-widest font-medium">
-                  Parole en cours
-                </p>
-                <p className="text-3xl font-bold text-gray-900">{speaker.pseudo}</p>
-              </>
-            ) : (
-              <p className="text-gray-400 text-base py-2">Personne ne parle actuellement</p>
-            )}
-          </div>
-        )}
-
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">
           <QueueToggle
@@ -121,7 +104,7 @@ export default function ParticipantView() {
           />
           <QueueToggle
             label="Coupe file"
-            sub="Répondre directement à l'orateur ou au sujet en cours"
+            sub="Pour répondre à ce qui est dit actuellement uniquement"
             color="teal"
             active={pendingInteractive || !!myInteractive}
             position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}

@@ -12,6 +12,7 @@ import type { Participant, QueueEntry } from '../lib/types'
 
 interface Props {
   title: string
+  subtitle?: string
   entries: QueueEntry[]
   queueType: 'long' | 'interactive'
   participants: Participant[]
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export default function QueuePanel({
-  title, entries, queueType, participants,
+  title, subtitle, entries, queueType, participants,
   variant = 'light', accent = 'indigo', droppableId,
 }: Props) {
   const { removeFromQueue } = useSession()
@@ -52,16 +53,22 @@ export default function QueuePanel({
       } ${isOver ? `ring-2 ${ringColor}` : ''}`}
     >
       {/* Header */}
-      <div className={`px-4 py-3 border-b flex items-center justify-between
-        border-l-4 ${accentBorder} ${
+      <div className={`px-4 py-3 border-b border-l-4 ${accentBorder} ${
         dark ? 'bg-slate-700/50 border-b-slate-700' : 'bg-gray-50 border-b-gray-100'
       }`}>
-        <span className={`font-semibold text-sm ${dark ? 'text-slate-100' : 'text-gray-900'}`}>
-          {title}
-        </span>
-        <span className={`text-xs ${accentText}`}>
-          {entries.length} {entries.length !== 1 ? 'personnes' : 'personne'}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className={`font-semibold text-sm ${dark ? 'text-slate-100' : 'text-gray-900'}`}>
+            {title}
+          </span>
+          <span className={`text-xs ${accentText}`}>
+            {entries.length} {entries.length !== 1 ? 'personnes' : 'personne'}
+          </span>
+        </div>
+        {subtitle && (
+          <p className={`text-xs mt-0.5 ${dark ? 'text-slate-400' : 'text-gray-400'}`}>
+            {subtitle}
+          </p>
+        )}
       </div>
 
       {entries.length === 0 ? (

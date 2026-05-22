@@ -308,7 +308,7 @@ src/
 │   ├── supabase.ts          Client Supabase (anon key depuis .env)
 │   ├── types.ts             Interfaces Session, Participant, QueueEntry, SpeakingTurn
 │   ├── storage.ts           sessionStore.get/set/clear (localStorage)
-│   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr
+│   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateSessionCSV
 ├── hooks/
 │   └── useLiveMs.ts         setInterval 500ms → Date.now()
 ├── context/
@@ -483,6 +483,24 @@ catch (e) { setErr(extractErr(e)) }
   (500 ms → 5 s) dans `supabase.ts` — détection de déconnexion 2× plus rapide.
 - **Fix bug `extractErr`** dans `ModeratorView` (auto-avancement) : `e instanceof Error ? ...`
   remplacé par `extractErr(e)`.
+
+### ✅ Terminé — Prompt 9 : UX & corrections
+
+- **Bouton "Exporter"** dans le header modérateur : génère un CSV UTF-8 (BOM Excel) avec résumé
+  participants (tours, temps total) + historique détaillé des tours (`generateSessionCSV` dans `utils.ts`).
+  Téléchargement immédiat via `URL.createObjectURL`, fichier nommé `ecclesia_<joinCode>_<date>.csv`.
+- **Masquage "Parole en cours"** côté participant : la carte affichant l'orateur actuel est supprimée de
+  `ParticipantView` — les participants ne voient que leurs propres boutons de file.
+- **Coupe file — précision** : sous-titre "Pour répondre à ce qui est dit actuellement uniquement" ajouté
+  sur le bouton participant (props `sub`) et le QueuePanel modérateur (nouvelle prop `subtitle` optionnelle
+  dans `QueuePanel`). Le panel "File longue" n'a pas de subtitle.
+- **Fix doublon participant Realtime** : le handler `INSERT` de `participants` dans `SessionContext` dédoublonne
+  désormais — un upsert (`ON CONFLICT DO UPDATE`) peut déclencher un événement Realtime `INSERT` ; sans
+  déduplication, le même participant apparaissait deux fois dans la liste.
+- **Fix restauration session (user_id check)** dans `App.tsx` : la restauration vérifie que
+  `participant.user_id === auth.uid()` avant de restaurer directement. Si l'auth anonyme a été renouvelé
+  (nouvel `user_id`), le flux tombe sur `join_session` qui relie le nouvel `auth.uid()` via `ON CONFLICT
+  DO UPDATE SET user_id = EXCLUDED.user_id` — le participant existant est récupéré sans doublon.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions

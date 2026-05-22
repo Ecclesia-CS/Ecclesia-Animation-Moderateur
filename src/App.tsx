@@ -31,19 +31,19 @@ export default function App() {
       // Try to restore a previous session from localStorage
       const stored = sessionStore.get()
       if (stored) {
-        const { data } = await supabase
+        const { data: pRow } = await supabase
           .from('participants')
-          .select('id')
+          .select('id, user_id')
           .eq('id', stored.participantId)
           .maybeSingle()
 
-        if (data) {
+        if (pRow && (pRow as { id: string; user_id: string }).user_id === userId) {
+          // Même auth.uid → restauration directe sans RPC
           setPhase({ type: 'session', sessionId: stored.sessionId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
           return
         }
-
-        // Participant non accessible (réseau au réveil, JWT expiré, nouvel auth.uid)
-        // → tenter join_session pour re-lier l'auth.uid() courant
+        // Participant trouvé mais user_id différent (auth anonyme renouvelé), ou non trouvé →
+        // join_session relie l'auth.uid() courant via ON CONFLICT DO UPDATE
         if (stored.pseudo && stored.joinCode) {
           try {
             const { data: rpcData } = await supabase.rpc('join_session', {

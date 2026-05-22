@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { useSession } from '../context/SessionContext'
 import { useLiveMs } from '../hooks/useLiveMs'
-import { formatDuration, extractErr } from '../lib/utils'
+import { formatDuration, extractErr, generateSessionCSV } from '../lib/utils'
 import type { SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
@@ -149,6 +149,17 @@ export default function ModeratorView() {
     safe(() => grantFloor(id, 'manual'))
   }
 
+  function handleExport() {
+    const csv = generateSessionCSV(session, participants, speakingTurns)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ecclesia_${session.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
 
@@ -191,6 +202,15 @@ export default function ModeratorView() {
             >
               🔑
             </span>
+
+            <button
+              onClick={handleExport}
+              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+                text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+                focus:ring-2 focus:ring-slate-500"
+            >
+              Exporter
+            </button>
 
             <button
               onClick={() => setShowCorrect(true)}
@@ -345,6 +365,7 @@ export default function ModeratorView() {
           />
           <QueuePanel
             title="Coupe file"
+            subtitle="Pour répondre à ce qui est dit actuellement uniquement"
             entries={queueInteractive}
             queueType="interactive"
             participants={participants}

@@ -171,7 +171,12 @@ export function SessionProvider({
       { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${sessionId}` },
       ({ eventType, new: n, old: o }) => {
         if (eventType === 'INSERT')
-          setParticipants(prev => [...prev, n as Participant])
+          // Dédoublonner : un INSERT Realtime peut arriver pour un upsert (ON CONFLICT DO UPDATE)
+          setParticipants(prev =>
+            prev.some(p => p.id === (n as Participant).id)
+              ? prev.map(p => p.id === (n as Participant).id ? n as Participant : p)
+              : [...prev, n as Participant]
+          )
         else if (eventType === 'UPDATE')
           setParticipants(prev => prev.map(x => x.id === (n as Participant).id ? n as Participant : x))
         else if (eventType === 'DELETE')
