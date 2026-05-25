@@ -72,8 +72,6 @@ export default function ModeratorView() {
   // Dernier over.id valide (row UUID, pas panel) pendant un drag intra-queue.
   // Évite le cas où over.id = panel ID au drop → newIndex = -1 → réordonnancement silencieusement ignoré.
   const intraQueueLastOverRef  = useRef<string | null>(null)
-  // Position Y courante du curseur, mis à jour par un listener pointermove global.
-  const cursorYRef             = useRef(0)
 
   function setLocalLong(val: QueueEntry[]) {
     localLongRef.current = val
@@ -92,13 +90,6 @@ export default function ModeratorView() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queueLong, queueInteractive, isDragging])
-
-  // Tracker la position Y du curseur pour la détection haut/bas dans handleDragOver
-  useEffect(() => {
-    const track = (e: PointerEvent) => { cursorYRef.current = e.clientY }
-    window.addEventListener('pointermove', track)
-    return () => window.removeEventListener('pointermove', track)
-  }, [])
 
   const [showCorrect, setShowCorrect] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
@@ -190,7 +181,7 @@ export default function ModeratorView() {
     setActiveDragPseudo(pseudo)
   }
 
-  function handleDragOver({ active, over }: DragOverEvent) {
+  function handleDragOver({ active, over, delta }: DragOverEvent) {
     if (!over) return
     const activeData = active.data.current as { type?: string; participantId?: string; queueType?: string } | undefined
     const overData   = over.data.current   as { queueType?: 'long' | 'interactive' } | undefined
@@ -243,7 +234,11 @@ export default function ModeratorView() {
           dstIdx = targetBase.length
         } else {
           const midY = over.rect.top + over.rect.height / 2
-          dstIdx = cursorYRef.current > midY ? foundIdx + 1 : foundIdx
+          const initialRect = active.rect.current.initial
+          const cursorY = initialRect
+            ? (initialRect.top + initialRect.height / 2) + delta.y
+            : 0
+          dstIdx = cursorY > midY ? foundIdx + 1 : foundIdx
         }
       }
       const targetArr = [...targetBase]
@@ -284,7 +279,11 @@ export default function ModeratorView() {
           dstIdx = targetBase.length
         } else {
           const midY = over.rect.top + over.rect.height / 2
-          dstIdx = cursorYRef.current > midY ? foundIdx + 1 : foundIdx
+          const initialRect = active.rect.current.initial
+          const cursorY = initialRect
+            ? (initialRect.top + initialRect.height / 2) + delta.y
+            : 0
+          dstIdx = cursorY > midY ? foundIdx + 1 : foundIdx
         }
       }
       const targetArr = [...targetBase]
