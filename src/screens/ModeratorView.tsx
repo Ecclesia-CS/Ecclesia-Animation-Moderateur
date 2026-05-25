@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
   pointerWithin,
   PointerSensor,
   useSensor,
@@ -13,6 +12,7 @@ import {
   type DragCancelEvent,
   type CollisionDetection,
 } from '@dnd-kit/core'
+
 import { useSession } from '../context/SessionContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr, generateSessionCSV } from '../lib/utils'
@@ -48,9 +48,9 @@ export default function ModeratorView() {
   }))
 
   const collisionDetectionStrategy: CollisionDetection = (args) => {
-    const pw = pointerWithin(args)
-    if (pw.length > 0) return pw
-    return closestCenter(args)
+    // Pas de fallback closestCenter : si le curseur est hors de tout droppable,
+    // on ne snap pas vers la première row (ce qui donnait "par défaut en premier").
+    return pointerWithin(args)
   }
 
   // ── Ghost entry ID pour le drag participant → file ─────────────
@@ -68,7 +68,12 @@ export default function ModeratorView() {
   // Queue type ORIGINAL de l'entrée au moment du dragStart (immuable pendant le drag).
   // Ne pas lire active.data.current.queueType dans handleDragEnd : dnd-kit le met à jour
   // quand le composant re-render après handleDragOver, ce qui casse la détection cross-queue.
-  const activeOriginalQTRef = useRef<'long' | 'interactive' | null>(null)
+  const activeOriginalQTRef    = useRef<'long' | 'interactive' | null>(null)
+  // Dernier over.id valide (row UUID, pas panel) pendant un drag intra-queue.
+  // Évite le cas où over.id = panel ID au drop → newIndex = -1 → réordonnancement silencieusement ignoré.
+  const intraQueueLastOverRef  = useRef<string | null>(null)
+  // Position Y courante du curseur, mis à jour par un listener pointermove global.
+  const cursorYRef             = useRef(0)
 
   function setLocalLong(val: QueueEntry[]) {
     localLongRef.current = val
@@ -87,6 +92,13 @@ export default function ModeratorView() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queueLong, queueInteractive, isDragging])
+
+  // Tracker la position Y du curseur pour la détection haut/bas dans handleDragOver
+  useEffect(() => {
+    const track = (e: PointerEvent) => { cursorYRef.current = e.clientY }
+    window.addEventListener('pointermove', track)
+    return () => window.removeEventListener('pointermove', track)
+  }, [])
 
   const [showCorrect, setShowCorrect] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
@@ -168,7 +180,8 @@ export default function ModeratorView() {
     // Capturer le queueType ORIGINAL avant tout re-render causé par handleDragOver.
     // active.data.current est un ref mutable dans dnd-kit : il change quand le composant
     // re-render avec de nouvelles data (ex: queue_type: 'interactive' après un déplacement).
-    activeOriginalQTRef.current = (d?.queueType as 'long' | 'interactive') ?? null
+    activeOriginalQTRef.current   = (d?.queueType as 'long' | 'interactive') ?? null
+    intraQueueLastOverRef.current = null
     // Initialise les copies locales depuis l'état serveur courant
     setLocalLong(queueLong)
     setLocalInteractive(queueInteractive)
@@ -201,7 +214,14 @@ export default function ModeratorView() {
       // Skip UNIQUEMENT si l'item est dans sa file d'ORIGINE et survole cette même file.
       // Quand il a déjà traversé (currentQT ≠ activeOriginalQTRef.current),
       // on continue à tracker la position même à l'intérieur de la file cible.
-      if (currentQT === overQT && currentQT === activeOriginalQTRef.current) return
+      if (currentQT === overQT && currentQT === activeOriginalQTRef.current) {
+        // Tracker le dernier over.id valide (row UUID, pas panel) pour l'intra-queue.
+        const isPanelOver = over.id === 'queue-long' || over.id === 'queue-interactive'
+        if (!isPanelOver && over.id !== active.id) {
+          intraQueueLastOverRef.current = over.id as string
+        }
+        return
+      }
 
       // Si on survole l'item actif lui-même (rendu à opacity 0.5 dans la file cible),
       // ne pas recalculer : active.id est absent de targetBase → dstIdx = -1 → erreur.
@@ -211,14 +231,23 @@ export default function ModeratorView() {
       const newLong        = currentLong.filter(e => e.id !== active.id)
       const newInteractive = currentInteractive.filter(e => e.id !== active.id)
 
-      // Insérer dans la file cible à la position survolée
-      const targetBase = overQT === 'long' ? newLong : newInteractive
+      // Insérer dans la file cible à la position survolée (haut = avant, bas = après)
+      const targetBase  = overQT === 'long' ? newLong : newInteractive
       const overIsPanel = over.id === 'queue-long' || over.id === 'queue-interactive'
-      const dstIdx = overIsPanel
-        ? targetBase.length
-        : targetBase.findIndex(e => e.id === over.id)
+      let dstIdx: number
+      if (overIsPanel) {
+        dstIdx = targetBase.length
+      } else {
+        const foundIdx = targetBase.findIndex(e => e.id === over.id)
+        if (foundIdx === -1) {
+          dstIdx = targetBase.length
+        } else {
+          const midY = over.rect.top + over.rect.height / 2
+          dstIdx = cursorYRef.current > midY ? foundIdx + 1 : foundIdx
+        }
+      }
       const targetArr = [...targetBase]
-      targetArr.splice(dstIdx === -1 ? targetArr.length : dstIdx, 0, { ...moving, queue_type: overQT })
+      targetArr.splice(dstIdx, 0, { ...moving, queue_type: overQT })
 
       setLocalLong(overQT === 'long' ? targetArr : newLong)
       setLocalInteractive(overQT === 'interactive' ? targetArr : newInteractive)
@@ -243,14 +272,23 @@ export default function ModeratorView() {
         created_at:     '',
       }
 
-      // Insérer le ghost à la position survolée
-      const targetBase = overQT === 'long' ? longWithoutGhost : interactiveWithoutGhost
+      // Insérer le ghost à la position survolée (haut = avant, bas = après)
+      const targetBase  = overQT === 'long' ? longWithoutGhost : interactiveWithoutGhost
       const overIsPanel = over.id === 'queue-long' || over.id === 'queue-interactive'
-      const dstIdx = (overIsPanel || over.id === GHOST_ID)
-        ? targetBase.length
-        : targetBase.findIndex(e => e.id === over.id)
+      let dstIdx: number
+      if (overIsPanel || over.id === GHOST_ID) {
+        dstIdx = targetBase.length
+      } else {
+        const foundIdx = targetBase.findIndex(e => e.id === over.id)
+        if (foundIdx === -1) {
+          dstIdx = targetBase.length
+        } else {
+          const midY = over.rect.top + over.rect.height / 2
+          dstIdx = cursorYRef.current > midY ? foundIdx + 1 : foundIdx
+        }
+      }
       const targetArr = [...targetBase]
-      targetArr.splice(dstIdx === -1 ? targetArr.length : dstIdx, 0, ghost)
+      targetArr.splice(dstIdx, 0, ghost)
 
       setLocalLong(overQT === 'long' ? targetArr : longWithoutGhost)
       setLocalInteractive(overQT === 'interactive' ? targetArr : interactiveWithoutGhost)
@@ -260,6 +298,7 @@ export default function ModeratorView() {
   function handleDragCancel(_e: DragCancelEvent) {
     setIsDragging(false)
     setActiveDragPseudo(null)
+    intraQueueLastOverRef.current = null
     // Le useEffect de sync va restaurer l'état serveur automatiquement
   }
 
@@ -295,10 +334,13 @@ export default function ModeratorView() {
       }
 
       // ── Intra-queue : réordonnancement ────────────────────────
-      // Pour l'intra-queue, on lit la file ORIGINALE (active.id est encore dedans)
-      const queue = activeOriginalQT === 'long' ? queueLong : queueInteractive
+      // Utilise le dernier over.id valide capturé par handleDragOver (évite le panel ID
+      // qui donne newIndex = -1 et fait rater silencieusement le réordonnancement).
+      const overId   = intraQueueLastOverRef.current ?? (over.id as string)
+      intraQueueLastOverRef.current = null
+      const queue    = activeOriginalQT === 'long' ? queueLong : queueInteractive
       const oldIndex = queue.findIndex(e => e.id === active.id)
-      const newIndex = queue.findIndex(e => e.id === over.id)
+      const newIndex = queue.findIndex(e => e.id === overId)
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
       safe(() => reorderQueueEntry(active.id as string, newIndex + 1))
     }

@@ -353,7 +353,7 @@ Le `<DndContext>` est dans `ModeratorView` (englobant `<main>`). Il y a deux typ
 - `useDraggable({ id: 'p-' + p.id, data: { type: 'participant', participantId } })` — lignes de `ParticipantsTable`
 - `useSortable({ data: { type: 'queue-entry', queueType } })` — entrées de file, réordonnables
 
-**Stratégie de collision** : `pointerWithin` (toutes zones sous le curseur) fallback `closestCenter`.
+**Stratégie de collision** : `pointerWithin` uniquement, **sans fallback** `closestCenter`. Retourner `[]` quand le curseur est hors de tout droppable évite le snap parasite vers la première row (ce qui plaçait l'item en position 1 par défaut). La position d'insertion utilise la **moitié verticale** de la row survolée (`cursorYRef.current > over.rect.top + over.rect.height / 2` → insérer après ; sinon avant).
 
 #### DnD optimiste — état local pendant le drag
 
@@ -368,6 +368,12 @@ Cela évite les stale closures dans `handleDragOver` (qui peut être appelé plu
 #### Ghost entry (participant → file)
 
 Quand un participant est draggé, un `QueueEntry` fantôme (`id: '__ghost__'`) est inséré dans la file locale à la position survolée. `QueuePanel` accepte une prop `ghostId` et `SortableRow` affiche le ghost en `opacity-50` + bordure pointillée sans boutons d'action.
+
+#### `intraQueueLastOverRef` — dernier over valide pour l'intra-queue
+
+`handleDragOver` fait un early return pour l'intra-queue (SortableContext gère l'animation CSS). Mais au moment du drop, `over.id` peut être le panel ID (`'queue-long'`) si le curseur s'est déplacé vers le bord du panel. Sans ce ref, `findIndex(over.id)` retourne -1 → réordonnancement silencieusement ignoré.
+
+Solution : dans le bloc early return intra-queue, si `over.id` est un UUID de row (pas un panel ID ni `active.id`), on le stocke dans `intraQueueLastOverRef.current`. `handleMasterDragEnd` l'utilise en priorité sur `over.id`. Réinitialisé au dragStart et dragCancel.
 
 #### `activeOriginalQTRef` — queue type d'origine immuable
 
@@ -535,7 +541,7 @@ catch (e) { setErr(extractErr(e)) }
 - **Bouton "Passer au suivant"** en état pause : l'admin peut sauter l'orateur pausé et accorder la parole au premier en file (interactive > longue). Si les files sont vides, retour à "Micro libre".
 - **Timer continu à la reprise** : `SpeakerTimer` accepte un `offsetMs?: number`. À la pause, `handlePause` capture le temps écoulé dans `timerOffset` (state). À la reprise, le chrono repart du temps cumulé (pas de remise à zéro). Double pause supportée (accumulation). `setTimerOffset(0)` appelé sur "Terminer" et "Passer au suivant".
 - **Fix doublon `queue_entries` Realtime** : le handler `INSERT` de `queue_entries` dans `SessionContext` dédoublonne désormais (même pattern que `participants`) — un `ON CONFLICT DO NOTHING` ou un refetch en double ne peut plus doubler une entrée dans la liste.
-- **DnD position** : migration `20260522000000` — `add_to_queue` accepte `p_position int DEFAULT NULL`. Quand `p_position` est fourni, les entrées existantes sont décalées et le participant est inséré à la position exacte. `addToQueue` dans `SessionContext` + `handleMasterDragEnd` dans `ModeratorView` transmettent la position. La collision detection trie les résultats `pointerWithin` par surface croissante (container le plus petit en premier) : les `SortableRow` prennent la priorité sur le `QueuePanel`, ce qui permet de détecter la ligne exacte survolée.
+- **DnD position** : migration `20260522000000` — `add_to_queue` accepte `p_position int DEFAULT NULL`. Quand `p_position` est fourni, les entrées existantes sont décalées et le participant est inséré à la position exacte. `addToQueue` dans `SessionContext` + `handleMasterDragEnd` dans `ModeratorView` transmettent la position.
 - **Files en lecture seule côté participant** : nouveau composant `ReadOnlyQueuePanel` (pas de DnD, affiche position + pseudo). Affiché dans `ParticipantView` après les boutons de demande de parole — visible sur mobile sans encombrer.
 - **Suppression "J'ai fini de parler"** : bouton retiré de `ParticipantView`. La bannière "Vous avez la parole !" reste. Seul l'admin gère la fin de tour via "Terminer la prise de parole".
 
@@ -548,6 +554,12 @@ catch (e) { setErr(extractErr(e)) }
 - **Fix `active.data.current.queueType` mutable** : en utilisant `activeOriginalQTRef`, la détection cross-queue (`overQT !== activeOriginalQT`) reste correcte même après les re-renders causés par `handleDragOver`.
 - **Migration `20260522000000`** : `add_to_queue` accepte `p_position int DEFAULT NULL` (suppression de l'ancien overload 3-params via DROP FUNCTION pour éviter l'ambiguïté PostgreSQL). `changeQueueType` dans `SessionContext` transmet également la position.
 - **`DragOverlay`** : affiche le nom du draggable (participant ou entrée de file) dans une pastille flottante pendant tout le drag.
+
+### ✅ Terminé — Prompt 12 : Fix DnD — position précise + défaut en dernier
+
+- **Suppression du fallback `closestCenter`** : quand le curseur est hors de tout droppable, `pointerWithin` retourne `[]` et `handleDragOver` ne se déclenche pas. Avant, `closestCenter` sélectionnait quasi-systématiquement la première row (curseur arrivant par le haut) → l'item atterrissait toujours en position 1 par défaut. Désormais, drop hors panel = ignoré ; drop sur le panel vide = dernier (= seul).
+- **Détection haut/bas** : dans `handleDragOver`, `cursorYRef.current` (mis à jour par un listener `pointermove` global) est comparé au centre vertical de `over.rect` pour insérer AVANT (moitié haute) ou APRÈS (moitié basse) la row survolée. Élimine l'off-by-1 quand le curseur est dans la moitié basse d'une row. Pour mettre en dernier : survoler la moitié basse du dernier item → insère après lui.
+- **`intraQueueLastOverRef`** : nouveau ref capturant le dernier `over.id` valide (UUID de row, pas panel) dans `handleDragOver` intra-queue. Utilisé par `handleMasterDragEnd` en priorité sur `over.id` du drop event (qui peut être le panel ID → `newIndex = -1` → réordonnancement silencieusement ignoré). Réinitialisé au dragStart et dragCancel.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
