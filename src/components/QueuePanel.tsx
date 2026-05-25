@@ -19,11 +19,12 @@ interface Props {
   variant?: 'dark' | 'light'
   accent?: 'indigo' | 'teal'
   droppableId: string
+  ghostId?: string
 }
 
 export default function QueuePanel({
   title, subtitle, entries, queueType, participants,
-  variant = 'light', accent = 'indigo', droppableId,
+  variant = 'light', accent = 'indigo', droppableId, ghostId,
 }: Props) {
   const { removeFromQueue } = useSession()
   const [err, setErr] = useState<string | null>(null)
@@ -39,6 +40,8 @@ export default function QueuePanel({
   })
 
   const getP = (id: string) => participants.find(p => p.id === id)
+  // Don't count the ghost entry in the header
+  const visibleCount = ghostId ? entries.filter(e => e.id !== ghostId).length : entries.length
 
   async function safe(fn: () => Promise<void>) {
     setErr(null)
@@ -61,7 +64,7 @@ export default function QueuePanel({
             {title}
           </span>
           <span className={`text-xs ${accentText}`}>
-            {entries.length} {entries.length !== 1 ? 'personnes' : 'personne'}
+            {visibleCount} {visibleCount !== 1 ? 'personnes' : 'personne'}
           </span>
         </div>
         {subtitle && (
@@ -91,6 +94,7 @@ export default function QueuePanel({
                   pseudo={getP(e.participant_id)?.pseudo ?? '—'}
                   dark={dark}
                   accentText={accentText}
+                  isGhost={e.id === ghostId}
                   onRemove={() => safe(() => removeFromQueue(e.id))}
                 />
               ))}
@@ -109,13 +113,14 @@ export default function QueuePanel({
 // ── Sortable row ───────────────────────────────────────────────
 
 function SortableRow({
-  entry, index, pseudo, dark, accentText, onRemove,
+  entry, index, pseudo, dark, accentText, isGhost = false, onRemove,
 }: {
   entry: QueueEntry
   index: number
   pseudo: string
   dark: boolean
   accentText: string
+  isGhost?: boolean
   onRemove(): void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -124,7 +129,29 @@ function SortableRow({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isGhost ? 0.45 : isDragging ? 0.5 : 1,
+  }
+
+  if (isGhost) {
+    return (
+      <tr
+        ref={setNodeRef}
+        style={style}
+        className={`border-b border-dashed last:border-0 ${
+          dark ? 'border-slate-500' : 'border-gray-300'
+        }`}
+      >
+        <td className={`px-4 py-2.5 w-8 tabular-nums font-mono text-sm ${
+          dark ? 'text-slate-500' : 'text-gray-400'
+        }`}>
+          {index + 1}
+        </td>
+        <td className={`px-4 py-2.5 font-medium italic ${dark ? 'text-slate-400' : 'text-gray-500'}`}>
+          {pseudo}
+        </td>
+        <td className="px-4 py-2.5" />
+      </tr>
+    )
   }
 
   return (

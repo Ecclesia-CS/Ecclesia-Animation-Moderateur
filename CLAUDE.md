@@ -348,18 +348,45 @@ Realtime : un seul channel `session:<id>`, 4 abonnements `postgres_changes` +
 1 listener Broadcast `refresh` + subscribe callback pour monitoring WebSocket.
 
 ### DnD — architecture cross-container
-Le `<DndContext>` est dans `ModeratorView` (englobant `<main>`). Il y a deux
-types de draggables :
-- `useDraggable({ data: { type: 'participant', participantId } })` — lignes de
-  `ParticipantsTable`, déposables sur les QueuePanel
-- `useSortable({ data: { type: 'queue-entry', queueType } })` — entrées de file,
-  réordonnables dans leur panel
 
-`handleMasterDragEnd` dispatche selon `active.data.current.type` :
-- `'participant'` → `addToQueue(participantId, over.data.queueType, position?)` — position = index de la ligne survolée (1-based) si `over` est un SortableRow, sinon insertion en fin
-- `'queue-entry'` → `reorderQueueEntry(entryId, newIndex + 1)`
+Le `<DndContext>` est dans `ModeratorView` (englobant `<main>`). Il y a deux types de draggables :
+- `useDraggable({ id: 'p-' + p.id, data: { type: 'participant', participantId } })` — lignes de `ParticipantsTable`
+- `useSortable({ data: { type: 'queue-entry', queueType } })` — entrées de file, réordonnables
 
-**Stratégie de collision** : `pointerWithin` trié par surface croissante (plus petit container en premier), fallback `closestCenter`. Le tri garantit que les `SortableRow` (petits) l'emportent sur le `QueuePanel` (grand), ce qui permet de détecter la position d'insertion exacte lors des drops participant → file.
+**Stratégie de collision** : `pointerWithin` (toutes zones sous le curseur) fallback `closestCenter`.
+
+#### DnD optimiste — état local pendant le drag
+
+`ModeratorView` maintient des **copies locales** des files (`localLong`, `localInteractive`) qui se mettent à jour à chaque `onDragOver`. Ces copies sont passées aux `QueuePanel` pendant le drag ; l'état serveur (`queueLong`, `queueInteractive`) sert uniquement à resynchroniser quand `isDragging` passe à `false`.
+
+Références (`useRef`) gardées à jour en temps réel par des fonctions wrapper (`setLocalLong`/`setLocalInteractive`) :
+```typescript
+function setLocalLong(val) { localLongRef.current = val; _setLocalLong(val) }
+```
+Cela évite les stale closures dans `handleDragOver` (qui peut être appelé plusieurs fois avant un re-render).
+
+#### Ghost entry (participant → file)
+
+Quand un participant est draggé, un `QueueEntry` fantôme (`id: '__ghost__'`) est inséré dans la file locale à la position survolée. `QueuePanel` accepte une prop `ghostId` et `SortableRow` affiche le ghost en `opacity-50` + bordure pointillée sans boutons d'action.
+
+#### `activeOriginalQTRef` — queue type d'origine immuable
+
+`active.data.current` dans dnd-kit est un **ref mutable** : il change quand le composant re-render avec de nouvelles données. Quand `handleDragOver` déplace une entrée de `long` vers `interactive`, le composant re-render avec `queue_type: 'interactive'`, ce qui corrompt `active.data.current.queueType`. On capture donc le `queueType` original dans `activeOriginalQTRef` au moment du `dragStart` et on utilise ce ref (pas `active.data.current.queueType`) dans `handleMasterDragEnd` pour la détection cross-queue.
+
+#### Comportement de `handleDragOver` selon le scénario
+
+| Scénario | Comportement |
+|---|---|
+| Intra-source-queue | `currentQT === overQT && currentQT === activeOriginalQTRef.current` → skip (SortableContext gère l'animation CSS) |
+| Cross-queue (1er passage) | Retire l'entrée de la source, insère dans la cible à la position survolée, met à jour les deux refs |
+| Intra-target-queue (après crossing) | Même logique : retire et réinsère à la nouvelle position (tracking continu pour le drop final) |
+| Hover sur l'item actif lui-même | `over.id === active.id` → skip (l'item est absent de `targetBase`, évite dstIdx = -1) |
+
+#### `handleMasterDragEnd` — lecture de la position finale
+
+- **Cross-queue** : `localLongRef.current` ou `localInteractiveRef.current` → `findIndex(e.id === active.id)` → position 1-based
+- **Participant → file** : `localRef` → `findIndex(e.id === GHOST_ID)` → position 1-based
+- **Intra-queue** : `queueLong`/`queueInteractive` (état serveur, non modifié) → `findIndex(over.id)` → `reorderQueueEntry`
 
 ### extractErr — gestion des erreurs Supabase
 `PostgrestError` (erreur retournée par Supabase) n'est pas une instance de `Error`.
@@ -512,6 +539,16 @@ catch (e) { setErr(extractErr(e)) }
 - **Files en lecture seule côté participant** : nouveau composant `ReadOnlyQueuePanel` (pas de DnD, affiche position + pseudo). Affiché dans `ParticipantView` après les boutons de demande de parole — visible sur mobile sans encombrer.
 - **Suppression "J'ai fini de parler"** : bouton retiré de `ParticipantView`. La bannière "Vous avez la parole !" reste. Seul l'admin gère la fin de tour via "Terminer la prise de parole".
 
+### ✅ Terminé — Prompt 11 : DnD fluide cross-queue + ghost participant
+
+- **DnD optimiste** : `ModeratorView` maintient des copies locales `localLong`/`localInteractive` mises à jour à chaque `onDragOver`. Les `QueuePanel` affichent ces copies pendant le drag ; resynchronisation automatique avec l'état serveur quand `isDragging` passe à `false`.
+- **Ghost entry** : lors d'un drag depuis la liste participants, un `QueueEntry` fantôme (`id: '__ghost__'`) s'insère dans la file locale à la position survolée et suit le curseur. `QueuePanel` reçoit une prop `ghostId` ; `SortableRow` affiche le ghost en semi-transparent + bordure pointillée.
+- **`activeOriginalQTRef`** : capture le `queueType` au `dragStart` (immuable pendant le drag) pour éviter que `active.data.current.queueType` — ref mutable mis à jour par dnd-kit à chaque re-render — ne corrompe la détection cross-queue dans `handleMasterDragEnd`.
+- **Fix cross-queue drop en dernière place** : `handleDragOver` continuait à tracker les mouvements intra-target-queue (après crossing) au lieu de skipper — la position finale est lue directement depuis `localLongRef`/`localInteractiveRef` (même principe que le ghost).
+- **Fix `active.data.current.queueType` mutable** : en utilisant `activeOriginalQTRef`, la détection cross-queue (`overQT !== activeOriginalQT`) reste correcte même après les re-renders causés par `handleDragOver`.
+- **Migration `20260522000000`** : `add_to_queue` accepte `p_position int DEFAULT NULL` (suppression de l'ancien overload 3-params via DROP FUNCTION pour éviter l'ambiguïté PostgreSQL). `changeQueueType` dans `SessionContext` transmet également la position.
+- **`DragOverlay`** : affiche le nom du draggable (participant ou entrée de file) dans une pastille flottante pendant tout le drag.
+
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
 - Page 404 / session expirée élégante
@@ -575,6 +612,10 @@ Incorrect dans un même navigateur où les deux onglets partagent le même
 ### ❌ Catcher les erreurs Supabase avec `String(e)` directement
 `PostgrestError` est un objet plain (pas `instanceof Error`). `String(e)` donne
 `[object Object]`. Toujours utiliser `extractErr(e)` de `src/lib/utils.ts`.
+
+### ❌ Lire `active.data.current` dans `handleDragEnd` pour un drag cross-queue
+`active.data.current` dans dnd-kit est un **ref mutable** mis à jour à chaque re-render du composant source. Quand `handleDragOver` déplace une entrée de `long` vers `interactive`, le `SortableRow` re-render avec `queue_type: 'interactive'` → dnd-kit met à jour `active.data.current.queueType` → la détection cross-queue dans `handleDragEnd` (`overQT !== activeOriginalQT`) échoue, et on tombe sur le bloc intra-queue qui appelle `reorderQueueEntry` au lieu de `changeQueueType`.
+**Solution** : capturer le `queueType` dans un `useRef` au moment du `dragStart` et utiliser ce ref (pas `active.data.current.queueType`) pour toute logique dépendant du type d'origine.
 
 ### ❌ Déclencher `grantFloor` sans guard `isGranting`
 L'auto-avancement dans `ModeratorView` est dans un `useEffect` qui peut se

@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   pointerWithin,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+  type DragCancelEvent,
   type CollisionDetection,
 } from '@dnd-kit/core'
 import { useSession } from '../context/SessionContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr, generateSessionCSV } from '../lib/utils'
-import type { SpeakingTurn } from '../lib/types'
+import type { QueueEntry, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
@@ -48,6 +52,41 @@ export default function ModeratorView() {
     if (pw.length > 0) return pw
     return closestCenter(args)
   }
+
+  // ── Ghost entry ID pour le drag participant → file ─────────────
+  const GHOST_ID = '__ghost__'
+
+  // ── Copies locales des files pour le preview drag ──────────────
+  const [localLong, _setLocalLong]               = useState<QueueEntry[]>([])
+  const [localInteractive, _setLocalInteractive] = useState<QueueEntry[]>([])
+  const [isDragging, setIsDragging]              = useState(false)
+  const [activeDragPseudo, setActiveDragPseudo]  = useState<string | null>(null)
+
+  // Refs : toujours à jour même entre les renders (évite les stale closures dans les handlers)
+  const localLongRef        = useRef<QueueEntry[]>([])
+  const localInteractiveRef = useRef<QueueEntry[]>([])
+  // Queue type ORIGINAL de l'entrée au moment du dragStart (immuable pendant le drag).
+  // Ne pas lire active.data.current.queueType dans handleDragEnd : dnd-kit le met à jour
+  // quand le composant re-render après handleDragOver, ce qui casse la détection cross-queue.
+  const activeOriginalQTRef = useRef<'long' | 'interactive' | null>(null)
+
+  function setLocalLong(val: QueueEntry[]) {
+    localLongRef.current = val
+    _setLocalLong(val)
+  }
+  function setLocalInteractive(val: QueueEntry[]) {
+    localInteractiveRef.current = val
+    _setLocalInteractive(val)
+  }
+
+  // Synchronisation local ← serveur quand on ne drague pas
+  useEffect(() => {
+    if (!isDragging) {
+      setLocalLong(queueLong)
+      setLocalInteractive(queueInteractive)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueLong, queueInteractive, isDragging])
 
   const [showCorrect, setShowCorrect] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
@@ -124,26 +163,140 @@ export default function ModeratorView() {
       .finally(() => setIsGranting(false))
   }
 
-  function handleMasterDragEnd({ active, over, collisions }: DragEndEvent) {
+  function handleDragStart({ active }: DragStartEvent) {
+    const d = active.data.current as { type?: string; participantId?: string; queueType?: string } | undefined
+    // Capturer le queueType ORIGINAL avant tout re-render causé par handleDragOver.
+    // active.data.current est un ref mutable dans dnd-kit : il change quand le composant
+    // re-render avec de nouvelles data (ex: queue_type: 'interactive' après un déplacement).
+    activeOriginalQTRef.current = (d?.queueType as 'long' | 'interactive') ?? null
+    // Initialise les copies locales depuis l'état serveur courant
+    setLocalLong(queueLong)
+    setLocalInteractive(queueInteractive)
+    setIsDragging(true)
+    const pseudo = participants.find(p => p.id === d?.participantId)?.pseudo ?? '…'
+    setActiveDragPseudo(pseudo)
+  }
+
+  function handleDragOver({ active, over }: DragOverEvent) {
     if (!over) return
+    const activeData = active.data.current as { type?: string; participantId?: string; queueType?: string } | undefined
+    const overData   = over.data.current   as { queueType?: 'long' | 'interactive' } | undefined
+    const overQT     = overData?.queueType
+    if (!overQT) return
+
+    // ── Entrée de file cross-queue ────────────────────────────────
+    if (activeData?.type === 'queue-entry') {
+      const currentLong        = localLongRef.current
+      const currentInteractive = localInteractiveRef.current
+
+      // Trouver l'entrée dans l'une ou l'autre file locale
+      const moving = currentLong.find(e => e.id === active.id)
+                  ?? currentInteractive.find(e => e.id === active.id)
+      if (!moving) return
+
+      // Déterminer la file locale actuelle de l'entrée
+      const entryInLong = currentLong.some(e => e.id === active.id)
+      const currentQT   = entryInLong ? 'long' : 'interactive'
+
+      // Skip UNIQUEMENT si l'item est dans sa file d'ORIGINE et survole cette même file.
+      // Quand il a déjà traversé (currentQT ≠ activeOriginalQTRef.current),
+      // on continue à tracker la position même à l'intérieur de la file cible.
+      if (currentQT === overQT && currentQT === activeOriginalQTRef.current) return
+
+      // Si on survole l'item actif lui-même (rendu à opacity 0.5 dans la file cible),
+      // ne pas recalculer : active.id est absent de targetBase → dstIdx = -1 → erreur.
+      if (over.id === active.id) return
+
+      // Retirer l'entrée des deux files
+      const newLong        = currentLong.filter(e => e.id !== active.id)
+      const newInteractive = currentInteractive.filter(e => e.id !== active.id)
+
+      // Insérer dans la file cible à la position survolée
+      const targetBase = overQT === 'long' ? newLong : newInteractive
+      const overIsPanel = over.id === 'queue-long' || over.id === 'queue-interactive'
+      const dstIdx = overIsPanel
+        ? targetBase.length
+        : targetBase.findIndex(e => e.id === over.id)
+      const targetArr = [...targetBase]
+      targetArr.splice(dstIdx === -1 ? targetArr.length : dstIdx, 0, { ...moving, queue_type: overQT })
+
+      setLocalLong(overQT === 'long' ? targetArr : newLong)
+      setLocalInteractive(overQT === 'interactive' ? targetArr : newInteractive)
+      return
+    }
+
+    // ── Participant → file : déplacer / insérer le ghost ─────────
+    if (activeData?.type === 'participant') {
+      const currentLong        = localLongRef.current
+      const currentInteractive = localInteractiveRef.current
+
+      // Retirer tout ghost existant des deux files
+      const longWithoutGhost        = currentLong.filter(e => e.id !== GHOST_ID)
+      const interactiveWithoutGhost = currentInteractive.filter(e => e.id !== GHOST_ID)
+
+      const ghost: QueueEntry = {
+        id:             GHOST_ID,
+        session_id:     session.id,
+        participant_id: activeData.participantId ?? '',
+        queue_type:     overQT,
+        position:       0,
+        created_at:     '',
+      }
+
+      // Insérer le ghost à la position survolée
+      const targetBase = overQT === 'long' ? longWithoutGhost : interactiveWithoutGhost
+      const overIsPanel = over.id === 'queue-long' || over.id === 'queue-interactive'
+      const dstIdx = (overIsPanel || over.id === GHOST_ID)
+        ? targetBase.length
+        : targetBase.findIndex(e => e.id === over.id)
+      const targetArr = [...targetBase]
+      targetArr.splice(dstIdx === -1 ? targetArr.length : dstIdx, 0, ghost)
+
+      setLocalLong(overQT === 'long' ? targetArr : longWithoutGhost)
+      setLocalInteractive(overQT === 'interactive' ? targetArr : interactiveWithoutGhost)
+    }
+  }
+
+  function handleDragCancel(_e: DragCancelEvent) {
+    setIsDragging(false)
+    setActiveDragPseudo(null)
+    // Le useEffect de sync va restaurer l'état serveur automatiquement
+  }
+
+  function handleMasterDragEnd({ active, over }: DragEndEvent) {
+    setIsDragging(false)
+    setActiveDragPseudo(null)
+    if (!over) return
+
     const activeData = active.data.current as
       { type: string; participantId?: string; queueType?: string } | undefined
     const overData = over.data.current as
       { type?: string; queueType?: 'long' | 'interactive' } | undefined
 
     if (activeData?.type === 'queue-entry') {
-      const activeQueueType = activeData.queueType as 'long' | 'interactive'
-      const overQueueType   = overData?.queueType as 'long' | 'interactive' | undefined
+      // Utiliser le queueType capturé au dragStart (immuable).
+      // Ne PAS lire activeData.queueType ici : dnd-kit le met à jour quand le
+      // composant re-render après handleDragOver, ce qui ferait rater la détection cross-queue.
+      const activeOriginalQT = activeOriginalQTRef.current ?? (activeData.queueType as 'long' | 'interactive')
+      const overQT           = overData?.queueType as 'long' | 'interactive' | undefined
 
-      // Déplacement cross-queue
-      if (overQueueType && overQueueType !== activeQueueType) {
-        const participantId = (activeData as { participantId?: string }).participantId
-        if (participantId) safe(() => changeQueueType(active.id as string, participantId, overQueueType))
+      // ── Cross-queue ───────────────────────────────────────────
+      if (overQT && overQT !== activeOriginalQT) {
+        const participantId = activeData.participantId
+        if (!participantId) return
+        // Position finale lue depuis localRef, tenu à jour par handleDragOver
+        // (y compris les mouvements intra-target-queue grâce au changement ci-dessus).
+        // Même principe que le ghost pour participant→queue : on lit l'index dans le state local.
+        const targetQueue = overQT === 'long' ? localLongRef.current : localInteractiveRef.current
+        const idx      = targetQueue.findIndex(e => e.id === active.id)
+        const position = idx === -1 ? undefined : idx + 1
+        safe(() => changeQueueType(active.id as string, participantId, overQT, position))
         return
       }
 
-      // Réordonnancement dans la même file
-      const queue = activeQueueType === 'long' ? queueLong : queueInteractive
+      // ── Intra-queue : réordonnancement ────────────────────────
+      // Pour l'intra-queue, on lit la file ORIGINALE (active.id est encore dedans)
+      const queue = activeOriginalQT === 'long' ? queueLong : queueInteractive
       const oldIndex = queue.findIndex(e => e.id === active.id)
       const newIndex = queue.findIndex(e => e.id === over.id)
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
@@ -151,18 +304,13 @@ export default function ModeratorView() {
     }
 
     if (activeData?.type === 'participant') {
-      const queueType = overData?.queueType
-      if (!queueType) return
-      // Parcourir toutes les collisions pour trouver le SortableRow survolé (id = UUID d'entrée).
-      // Le QueuePanel revient en premier (over) pour l'illumination ; les SortableRows
-      // suivent dans collisions → on récupère la position exacte sans casser le isOver.
-      let position: number | undefined
-      const queue = queueType === 'long' ? queueLong : queueInteractive
-      for (const c of collisions ?? []) {
-        const idx = queue.findIndex(e => e.id === c.id)
-        if (idx !== -1) { position = idx + 1; break }
-      }
-      safe(() => addToQueue(activeData.participantId!, queueType, position))
+      const overQT = overData?.queueType
+      if (!overQT) return
+      // La position est celle du ghost dans la file locale (mis à jour à chaque onDragOver)
+      const finalQueue = overQT === 'long' ? localLongRef.current : localInteractiveRef.current
+      const ghostIdx   = finalQueue.findIndex(e => e.id === GHOST_ID)
+      const position   = ghostIdx === -1 ? undefined : ghostIdx + 1
+      safe(() => addToQueue(activeData.participantId!, overQT, position))
     }
   }
 
@@ -268,7 +416,14 @@ export default function ModeratorView() {
       </header>
 
       {/* ── Body ──────────────────────────────────────────────── */}
-      <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragEnd={handleMasterDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetectionStrategy}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleMasterDragEnd}
+        onDragCancel={handleDragCancel}
+      >
       <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-start">
 
         {/* ── Colonne principale ─────────────────────────────── */}
@@ -392,22 +547,24 @@ export default function ModeratorView() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QueuePanel
             title="File d'attente : demander la parole"
-            entries={queueLong}
+            entries={localLong}
             queueType="long"
             participants={participants}
             variant="dark"
             accent="indigo"
             droppableId="queue-long"
+            ghostId={GHOST_ID}
           />
           <QueuePanel
             title="Coupe file"
             subtitle="Pour répondre à ce qui est dit actuellement uniquement"
-            entries={queueInteractive}
+            entries={localInteractive}
             queueType="interactive"
             participants={participants}
             variant="dark"
             accent="teal"
             droppableId="queue-interactive"
+            ghostId={GHOST_ID}
           />
         </div>
 
@@ -425,6 +582,18 @@ export default function ModeratorView() {
         />
 
       </main>
+
+      {/* ── DragOverlay : bulle qui suit le curseur pendant le drag ── */}
+      <DragOverlay dropAnimation={null}>
+        {activeDragPseudo && (
+          <div className="px-4 py-2 bg-slate-700 text-slate-100 rounded-lg shadow-xl
+            text-sm font-medium border border-slate-500/80 opacity-90 cursor-grabbing
+            pointer-events-none select-none whitespace-nowrap">
+            {activeDragPseudo}
+          </div>
+        )}
+      </DragOverlay>
+
       </DndContext>
 
       {/* ── Modals ────────────────────────────────────────────── */}

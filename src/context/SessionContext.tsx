@@ -36,7 +36,7 @@ interface SessionCtxValue {
   endTurnAndAdvance(): Promise<void>
   addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
-  changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive'): Promise<void>
+  changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive', position?: number): Promise<void>
   moveQueueEntry(entryId: string, direction: 'up' | 'down'): Promise<void>
   reorderQueueEntry(entryId: string, newPosition: number): Promise<void>
   correctTurn(turnId: string, params: CorrectTurnParams): Promise<void>
@@ -298,10 +298,13 @@ export function SessionProvider({
   }, [broadcast])
 
   const changeQueueType = useCallback(
-    async (entryId: string, pId: string, targetQt: 'long' | 'interactive') => {
+    async (entryId: string, pId: string, targetQt: 'long' | 'interactive', position?: number) => {
       const { error } = await supabase.from('queue_entries').delete().eq('id', entryId)
       if (error) throw error
-      await rpc('add_to_queue', { p_session_id: sessionId, p_participant_id: pId, p_queue_type: targetQt })
+      const args = position !== undefined
+        ? { p_session_id: sessionId, p_participant_id: pId, p_queue_type: targetQt, p_position: position }
+        : { p_session_id: sessionId, p_participant_id: pId, p_queue_type: targetQt }
+      await rpc('add_to_queue', args)
       broadcast(['queue_entries'])
     },
     [rpc, sessionId, broadcast],
