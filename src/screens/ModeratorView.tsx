@@ -15,6 +15,7 @@ import {
 
 import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
+import { useTranscription } from '../hooks/useTranscription'
 import { formatDuration, extractErr, generateTableCSV } from '../lib/utils'
 import type { QueueEntry, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
@@ -103,6 +104,26 @@ export default function ModeratorView() {
   pausedRef.current = pausedSpeakerId
   // Temps accumulé avant la pause (ms) — restitué au chrono à la reprise
   const [timerOffset, setTimerOffset] = useState(0)
+
+  // Transcription
+  const BACKEND_URL_KEY = 'ecclesia_transcription_url'
+  const [backendUrl, setBackendUrl] = useState<string>(
+    () => localStorage.getItem(BACKEND_URL_KEY) ?? ''
+  )
+  const [showUrlInput, setShowUrlInput] = useState(false)
+  const [urlDraft, setUrlDraft] = useState(backendUrl)
+
+  const { isRecording, connected, start, stop } = useTranscription(
+    backendUrl,
+    table.join_code,
+  )
+
+  function saveBackendUrl() {
+    const trimmed = urlDraft.trim().replace(/\/$/, '')
+    setBackendUrl(trimmed)
+    localStorage.setItem(BACKEND_URL_KEY, trimmed)
+    setShowUrlInput(false)
+  }
 
   const speaker     = participants.find(p => p.id === table.current_speaker_id)
   const pausedName  = pausedSpeakerId
@@ -416,6 +437,77 @@ export default function ModeratorView() {
             >
               🔑
             </span>
+
+            {/* Transcription */}
+            {showUrlInput ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={urlDraft}
+                  onChange={(e) => setUrlDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveBackendUrl() }}
+                  placeholder="https://xxxx.ngrok.io"
+                  className="text-xs px-2 py-1 rounded border border-slate-600 bg-slate-800
+                    text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1
+                    focus:ring-indigo-500 w-48"
+                  autoFocus
+                />
+                <button
+                  onClick={saveBackendUrl}
+                  className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => setShowUrlInput(false)}
+                  className="text-xs px-2 py-1 border border-slate-600 rounded text-slate-400
+                    hover:bg-slate-700"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                {backendUrl && (
+                  <span className={`text-xs font-medium ${connected ? 'text-green-400' : 'text-slate-500'}`}>
+                    {connected ? '● live' : '○'}
+                  </span>
+                )}
+                {isRecording ? (
+                  <button
+                    onClick={stop}
+                    className="text-xs px-3 py-1.5 bg-red-600 border border-red-500 rounded-lg
+                      text-white hover:bg-red-700 transition-colors focus:outline-none
+                      focus:ring-2 focus:ring-red-500 flex items-center gap-1.5"
+                  >
+                    <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse" />
+                    Arrêter
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (!backendUrl) { setShowUrlInput(true); setUrlDraft(''); return }
+                      start()
+                    }}
+                    disabled={isRecording}
+                    className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+                      text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+                      focus:ring-2 focus:ring-slate-500 flex items-center gap-1.5"
+                  >
+                    🎙 Transcription
+                  </button>
+                )}
+                {backendUrl && (
+                  <button
+                    onClick={() => { setUrlDraft(backendUrl); setShowUrlInput(true) }}
+                    title="Changer l'URL du backend"
+                    className="text-slate-500 hover:text-slate-300 text-xs px-1"
+                  >
+                    ✎
+                  </button>
+                )}
+              </div>
+            )}
 
             <button
               onClick={handleExport}
