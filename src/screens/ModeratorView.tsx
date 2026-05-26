@@ -116,14 +116,54 @@ export default function ModeratorView() {
       .then(({ data }) => { if (data) setSessionDocs(data) })
   }, [table.session_id])
 
+  // ── Pause persistence ────────────────────────────────────────
+  // La pause est persistée dans localStorage avec une clé spécifique à la table
+  // pour survivre à un rechargement de page du modérateur.
+  const PAUSE_KEY = `ecclesia_pause_${table.id}`
+
+  function clearPauseStorage() {
+    localStorage.removeItem(PAUSE_KEY)
+  }
+
+  function readPauseStorage(): { pausedSpeakerId: string; timerOffset: number } | null {
+    try {
+      const raw = localStorage.getItem(PAUSE_KEY)
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  }
+
   // Auto-advance state
   const [isGranting, setIsGranting]           = useState(false)
-  const [pausedSpeakerId, setPausedSpeakerId] = useState<string | null>(null)
+  const [pausedSpeakerId, setPausedSpeakerId] = useState<string | null>(
+    () => readPauseStorage()?.pausedSpeakerId ?? null
+  )
   // Ref mirrors pausedSpeakerId so the effect closure always reads the latest value
   const pausedRef = useRef<string | null>(null)
   pausedRef.current = pausedSpeakerId
   // Temps accumulé avant la pause (ms) — restitué au chrono à la reprise
-  const [timerOffset, setTimerOffset] = useState(0)
+  const [timerOffset, setTimerOffset] = useState<number>(
+    () => readPauseStorage()?.timerOffset ?? 0
+  )
+
+  // Validation après chargement des données : invalider la pause restaurée si
+  // quelqu'un d'autre a déjà la parole, ou si le participant n'existe plus.
+  useEffect(() => {
+    if (!pausedSpeakerId) return
+    if (table.current_speaker_id !== null) {
+      // Quelqu'un d'autre a obtenu la parole → pause obsolète
+      setPausedSpeakerId(null)
+      setTimerOffset(0)
+      clearPauseStorage()
+      return
+    }
+    if (!participants.some(p => p.id === pausedSpeakerId)) {
+      // Participant n'existe plus (exclu ou parti)
+      setPausedSpeakerId(null)
+      setTimerOffset(0)
+      clearPauseStorage()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table.current_speaker_id, participants])
 
   // Transcription
   const BACKEND_URL_KEY = 'ecclesia_transcription_url'
@@ -191,14 +231,20 @@ export default function ModeratorView() {
   function handlePause() {
     if (!table.current_speaker_id || !table.current_turn_started_at) return
     const currentElapsed = Date.now() - new Date(table.current_turn_started_at).getTime()
-    setTimerOffset(currentElapsed + timerOffset) // accumule en cas de double pause
+    const newOffset = currentElapsed + timerOffset // accumule en cas de double pause
+    setTimerOffset(newOffset)
     setPausedSpeakerId(table.current_speaker_id)
+    localStorage.setItem(PAUSE_KEY, JSON.stringify({
+      pausedSpeakerId: table.current_speaker_id,
+      timerOffset: newOffset,
+    }))
     safe(endTurn)
   }
 
   function handleSkip() {
     setTimerOffset(0)
     setPausedSpeakerId(null)
+    clearPauseStorage()
     const next = queueInteractive[0] ?? queueLong[0]
     if (!next) return
     setIsGranting(true)
@@ -400,6 +446,7 @@ export default function ModeratorView() {
     if (!pausedSpeakerId) return
     const id = pausedSpeakerId
     setPausedSpeakerId(null)
+    clearPauseStorage()
     safe(() => grantFloor(id, 'manual'))
   }
 
@@ -675,7 +722,7 @@ export default function ModeratorView() {
                     Pause
                   </button>
                   <button
-                    onClick={() => { setTimerOffset(0); safe(endTurnAndAdvance) }}
+                    onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
                     className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white
                       rounded-xl text-base font-medium transition-colors focus:outline-none
                       focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2

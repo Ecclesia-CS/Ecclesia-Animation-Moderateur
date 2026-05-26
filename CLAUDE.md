@@ -301,8 +301,7 @@ La pause est **réelle en DB** : elle appelle `endTurn()` (pose `ended_at`), et
 stocke l'ID de l'orateur dans `pausedSpeakerId` (état local `useState`).
 La reprise appelle `grantFloor(pausedSpeakerId, 'manual')`. Le temps cumulé est
 correct car `ParticipantsTable` somme tous les tours y compris le tour pré-pause.
-**Limitation** : si le modérateur recharge la page pendant une pause, `pausedSpeakerId`
-est perdu et l'auto-avancement reprend normalement.
+La pause est persistée dans `localStorage` sous la clé `ecclesia_pause_<tableId>` (JSON `{ pausedSpeakerId, timerOffset }`). Au rechargement, `ModeratorView` restaure ces valeurs via un initialiseur paresseux — le guard de l'auto-avancement (`pausedRef.current !== null`) est donc actif dès le premier rendu, empêchant le déclenchement de `grantFloor`. Un `useEffect` de validation invalide la pause restaurée si quelqu'un d'autre a entre-temps obtenu la parole, ou si le participant n'existe plus.
 
 ### ON DELETE CASCADE
 Supprimer la ligne `tables` déclenche la suppression en cascade de tous les

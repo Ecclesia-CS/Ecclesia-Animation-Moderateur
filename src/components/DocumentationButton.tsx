@@ -58,7 +58,7 @@ export default function DocumentationButton({ session, className, dropdownClass 
                 className={linkClass}
                 onClick={() => setOpen(false)}
               >
-                Résumé
+                Résumé fiche information
               </a>
             )}
             {doc_collab_url && (
