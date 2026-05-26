@@ -17,6 +17,7 @@ import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { useTranscription } from '../hooks/useTranscription'
 import { formatDuration, extractErr, generateTableCSV } from '../lib/utils'
+import { supabase } from '../lib/supabase'
 import type { QueueEntry, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
@@ -25,6 +26,7 @@ import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import CorrectTurnModal from '../components/CorrectTurnModal'
 import ConfirmModal from '../components/ConfirmModal'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
+import DocumentationButton from '../components/DocumentationButton'
 
 export default function ModeratorView() {
   const {
@@ -96,6 +98,23 @@ export default function ModeratorView() {
   const [showCorrect, setShowCorrect] = useState(false)
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [err, setErr]               = useState<string | null>(null)
+
+  // Session docs pour le bouton Documentation
+  const [sessionDocs, setSessionDocs] = useState<{
+    doc_info_url: string | null
+    doc_summary_url: string | null
+    doc_collab_url: string | null
+  } | null>(null)
+
+  useEffect(() => {
+    if (!table.session_id) return
+    supabase
+      .from('sessions')
+      .select('doc_info_url, doc_summary_url, doc_collab_url')
+      .eq('id', table.session_id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setSessionDocs(data) })
+  }, [table.session_id])
 
   // Auto-advance state
   const [isGranting, setIsGranting]           = useState(false)
@@ -424,6 +443,11 @@ export default function ModeratorView() {
 
           {/* Right: moderator badge + actions */}
           <div className="flex items-center gap-3 shrink-0">
+            <DocumentationButton
+              session={sessionDocs}
+              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
+                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            />
             <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
               focus:ring-2 focus:ring-slate-500" />

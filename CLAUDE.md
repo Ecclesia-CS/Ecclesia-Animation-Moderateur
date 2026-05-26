@@ -34,6 +34,7 @@ Fonctionnalités principales :
 - Exclusion de participant ("Exclure") avec confirmation
 - Vue participant : pas d'affichage de l'orateur en cours (les participants ne voient que leurs propres boutons)
 - **Questionnaire post-débat** : bouton dans le header des deux vues → modale avec 6 questions (idées de thèmes, vote 0-5 sur 26 thèmes en ordre aléatoire, staffing, note du débat, retour libre) ; réponses persistées en base (upsert par user+table)
+- **Documentation par séance** : 3 URLs optionnelles sur la séance (`doc_info_url`, `doc_summary_url`, `doc_collab_url`) — configurées par le superadmin ; bouton "Documentation" dropdown dans les headers modérateur et participant (masqué si aucun doc) ; lien collaboratif visible sur l'EntryScreen avant même de rejoindre
 
 ---
 
@@ -87,6 +88,9 @@ Zéro politique RLS → accès total interdit hors fonctions SECURITY DEFINER.
 | `join_code` | text \| null | 6 caractères hex uppercase, unique parmi non-fermées |
 | `phase` | text | `'draft'` \| `'voting'` \| `'allocating'` \| `'debating'` \| `'questionnaire'` \| `'closed'` |
 | `created_at` | timestamptz | |
+| `doc_info_url` | text \| null | URL publique de la fiche information (PDF kDrive, etc.) |
+| `doc_summary_url` | text \| null | URL publique du résumé (PDF) |
+| `doc_collab_url` | text \| null | URL du document collaboratif (Google Docs, Notion…) |
 
 Index partiel `sessions_join_code_active_idx` sur `(join_code) WHERE phase != 'closed' AND join_code IS NOT NULL`.
 
@@ -247,6 +251,7 @@ propriétaire, pas du client) :
 | `list_session_tables(password, session_id)` | B1.3 | Retourne les tables rattachées à une séance (id, join_code, moderator_pseudo, participant_count, is_active). SECURITY DEFINER — bypass RLS `tables`. |
 | `list_available_tables(password)` | B1.3 | Retourne les tables sans séance créées dans les 48h. Même structure que `list_session_tables`. |
 | `submit_questionnaire(table_id, session_id?, theme_ideas?, theme_ratings?, debate_attended?, debate_rating?, staff_interest?, feedback?)` | 003 questionnaire | Upsert `questionnaire_responses` pour `auth.uid()`. Conflit sur `(user_id, table_id)` → mise à jour. Retourne la ligne résultante. |
+| `update_session_docs(password, session_id, doc_info_url?, doc_summary_url?, doc_collab_url?)` | session_docs | Met à jour les 3 URLs de documentation d'une séance (NULL = vide le champ). Retourne la ligne `sessions`. |
 
 ### REPLICA IDENTITY FULL
 
@@ -380,7 +385,8 @@ src/
 │   ├── CorrectTurnModal.tsx  Historique des participations avec durée par tour
 │   ├── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
 │   ├── QuestionnaireModal.tsx Formulaire post-débat (6 questions, 26 thèmes en ordre aléatoire, 5 visibles + "voir plus", upsert via RPC)
-│   └── QuestionnaireFab.tsx Bouton "Questionnaire post-débat" dans le header (rend QuestionnaireModal)
+│   ├── QuestionnaireFab.tsx Bouton "Questionnaire post-débat" dans le header (rend QuestionnaireModal)
+│   └── DocumentationButton.tsx Bouton "Documentation" dropdown dans le header — 3 liens (fiche info, résumé, doc collab) ouverts en nouvel onglet ; masqué si aucune URL configurée ; fermeture au clic extérieur
 └── App.tsx                  Machine à états : loading | entry | table + listener hashchange → SuperadminScreen sur `#superadmin`
 ```
 
@@ -724,6 +730,17 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 - **`src/components/QuestionnaireFab.tsx`** : composant bouton réutilisable (accept `className`) qui ouvre `QuestionnaireModal`. Label : "Questionnaire post-débat".
 - **`src/screens/ModeratorView.tsx`** et **`src/screens/ParticipantView.tsx`** : bouton "Questionnaire post-débat" ajouté dans le header (premier bouton à gauche du groupe d'actions pour le modérateur, à gauche de "Quitter" pour le participant), stylé comme les boutons existants.
 - **`src/lib/types.ts`** : interface `QuestionnaireResponse` ajoutée.
+
+### ✅ Terminé — Documentation par séance
+
+- **Migration `20260526000004_session_docs.sql`** : 3 colonnes `doc_info_url`, `doc_summary_url`, `doc_collab_url` (text nullable) sur `sessions`. `create_session` mis à jour pour accepter ces 3 paramètres optionnels. Nouvelle fonction SECURITY DEFINER `update_session_docs(password, session_id, ...)` pour édition post-création.
+- **`src/lib/types.ts`** : 3 champs ajoutés à l'interface `Session`.
+- **`src/lib/sessions.ts`** : `createSession` accepte les 3 URLs optionnelles. Nouveau wrapper `updateSessionDocs`.
+- **`src/components/DocumentationButton.tsx`** : bouton "Documentation" avec dropdown (état React + overlay clic-extérieur). S'auto-masque si aucune URL configurée. Séparateur visuel entre PDFs et doc collaboratif. Accepte `className` pour s'adapter aux thèmes light/dark.
+- **`src/screens/SuperadminScreen.tsx`** : 3 champs URL dans la modale de création + section "Documentation" dans le détail de séance (lecture des URLs actuelles + bouton "Modifier" → formulaire inline `update_session_docs`).
+- **`src/screens/ParticipantView.tsx`** : fetch étendu pour récupérer les 3 URLs en plus du titre. `DocumentationButton` dans le header (avant Questionnaire).
+- **`src/screens/ModeratorView.tsx`** : fetch ajouté (`doc_info_url, doc_summary_url, doc_collab_url`). `DocumentationButton` dans le header (premier bouton).
+- **`src/screens/EntryScreen.tsx`** : dropdown séances charge `doc_collab_url` ; si la séance sélectionnée a un lien collaboratif, un lien "Document collaboratif de cette séance →" apparaît sous le dropdown — accessible avant de rejoindre.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions

@@ -21,12 +21,36 @@ export async function createSession(
   title: string,
   description?: string,
   scheduledAt?: string,
+  docInfoUrl?: string,
+  docSummaryUrl?: string,
+  docCollabUrl?: string,
 ): Promise<Session> {
   const { data, error } = await supabase.rpc('create_session', {
     p_password: password,
     p_title: title,
     p_description: description ?? null,
     p_scheduled_at: scheduledAt ?? null,
+    p_doc_info_url: docInfoUrl ?? null,
+    p_doc_summary_url: docSummaryUrl ?? null,
+    p_doc_collab_url: docCollabUrl ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
+export async function updateSessionDocs(
+  password: string,
+  sessionId: string,
+  docInfoUrl: string | null,
+  docSummaryUrl: string | null,
+  docCollabUrl: string | null,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('update_session_docs', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_doc_info_url: docInfoUrl,
+    p_doc_summary_url: docSummaryUrl,
+    p_doc_collab_url: docCollabUrl,
   })
   if (error) throw new Error(extractErr(error))
   return data as Session

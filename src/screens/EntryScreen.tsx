@@ -21,13 +21,17 @@ export default function EntryScreen({ onJoined }: Props) {
   const [creationCode, setCreationCode] = useState('')
   const [reclaimCode, setReclaimCode] = useState('')
   const [selectedSessionId, setSelectedSessionId] = useState('')
-  const [availableSessions, setAvailableSessions] = useState<{ id: string; title: string }[]>([])
+  const [availableSessions, setAvailableSessions] = useState<{
+    id: string
+    title: string
+    doc_collab_url: string | null
+  }[]>([])
 
   useEffect(() => {
     if (mode !== 'create') return
     supabase
       .from('sessions')
-      .select('id, title')
+      .select('id, title, doc_collab_url')
       .in('phase', ['draft', 'voting', 'debating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setAvailableSessions(data) })
@@ -173,6 +177,25 @@ export default function EntryScreen({ onJoined }: Props) {
                       <option key={s.id} value={s.id}>{s.title}</option>
                     ))}
                   </select>
+                  {(() => {
+                    const sel = availableSessions.find(s => s.id === selectedSessionId)
+                    if (!sel?.doc_collab_url) return null
+                    return (
+                      <a
+                        href={sel.doc_collab_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:underline"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                        Document collaboratif de cette séance
+                      </a>
+                    )
+                  })()}
                 </div>
               )}
               <Btn loading={loading} label="Créer la session" />

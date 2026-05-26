@@ -6,6 +6,9 @@ export interface Session {
   join_code: string | null
   phase: 'draft' | 'voting' | 'allocating' | 'debating' | 'questionnaire' | 'closed'
   created_at: string
+  doc_info_url: string | null
+  doc_summary_url: string | null
+  doc_collab_url: string | null
 }
 
 export interface Table {

@@ -4,7 +4,7 @@ import { extractErr, fromDateTimeLocal } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession,
   attachTableToSession, detachTableFromSession,
-  listSessionTables, listAvailableTables,
+  listSessionTables, listAvailableTables, updateSessionDocs,
 } from '../lib/sessions'
 import type { SessionTableRow } from '../lib/sessions'
 import type { Session } from '../lib/types'
@@ -379,11 +379,14 @@ function CreateModal({
   onClose(): void
   onAuthError(): void
 }) {
-  const [title, setTitle]             = useState('')
-  const [description, setDescription] = useState('')
-  const [scheduledAt, setScheduledAt] = useState('')
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState<string | null>(null)
+  const [title, setTitle]               = useState('')
+  const [description, setDescription]   = useState('')
+  const [scheduledAt, setScheduledAt]   = useState('')
+  const [docInfoUrl, setDocInfoUrl]     = useState('')
+  const [docSummaryUrl, setDocSummaryUrl] = useState('')
+  const [docCollabUrl, setDocCollabUrl] = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -396,6 +399,9 @@ function CreateModal({
         title,
         description || undefined,
         scheduledAt ? fromDateTimeLocal(scheduledAt) : undefined,
+        docInfoUrl || undefined,
+        docSummaryUrl || undefined,
+        docCollabUrl || undefined,
       )
       onCreated(session)
     } catch (e) {
@@ -458,6 +464,17 @@ function CreateModal({
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                 transition-shadow"
             />
+          </div>
+
+          <div className="pt-1 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Documentation <span className="font-normal normal-case text-gray-400">(optionnel)</span>
+            </p>
+            <div className="space-y-3">
+              <UrlField label="Fiche information (PDF)" value={docInfoUrl} onChange={setDocInfoUrl} />
+              <UrlField label="Résumé (PDF)" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+              <UrlField label="Document collaboratif" value={docCollabUrl} onChange={setDocCollabUrl} />
+            </div>
           </div>
 
           {error && (
@@ -588,6 +605,50 @@ function SessionDetail({
   const [error,           setError]           = useState<string | null>(null)
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
 
+  // ── Documentation editing state ────────────────────────────
+  const [editingDocs,    setEditingDocs]    = useState(false)
+  const [docInfoUrl,     setDocInfoUrl]     = useState(session.doc_info_url ?? '')
+  const [docSummaryUrl,  setDocSummaryUrl]  = useState(session.doc_summary_url ?? '')
+  const [docCollabUrl,   setDocCollabUrl]   = useState(session.doc_collab_url ?? '')
+  const [docsLoading,    setDocsLoading]    = useState(false)
+  const [docsErr,        setDocsErr]        = useState<string | null>(null)
+  const [sessionDocs,    setSessionDocs]    = useState({
+    doc_info_url:    session.doc_info_url,
+    doc_summary_url: session.doc_summary_url,
+    doc_collab_url:  session.doc_collab_url,
+  })
+
+  async function handleSaveDocs(e: React.FormEvent) {
+    e.preventDefault()
+    const password = getPwd()!
+    setDocsLoading(true)
+    setDocsErr(null)
+    try {
+      const updated = await updateSessionDocs(
+        password,
+        session.id,
+        docInfoUrl || null,
+        docSummaryUrl || null,
+        docCollabUrl || null,
+      )
+      setSessionDocs({
+        doc_info_url:    updated.doc_info_url,
+        doc_summary_url: updated.doc_summary_url,
+        doc_collab_url:  updated.doc_collab_url,
+      })
+      setEditingDocs(false)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setDocsErr(msg)
+    } finally {
+      setDocsLoading(false)
+    }
+  }
+
   const load = useCallback(async () => {
     const password = getPwd()!
     setLoading(true)
@@ -692,6 +753,66 @@ function SessionDetail({
           <div className="flex items-center justify-center py-16 text-sm text-gray-400">Chargement…</div>
         ) : (
           <>
+            {/* ── Documentation ───────────────────────────── */}
+            <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Documentation
+                </h2>
+                {!editingDocs && (
+                  <button
+                    onClick={() => {
+                      setDocInfoUrl(sessionDocs.doc_info_url ?? '')
+                      setDocSummaryUrl(sessionDocs.doc_summary_url ?? '')
+                      setDocCollabUrl(sessionDocs.doc_collab_url ?? '')
+                      setDocsErr(null)
+                      setEditingDocs(true)
+                    }}
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    Modifier
+                  </button>
+                )}
+              </div>
+
+              {editingDocs ? (
+                <form onSubmit={handleSaveDocs} className="space-y-3">
+                  <UrlField label="Fiche information (PDF)" value={docInfoUrl} onChange={setDocInfoUrl} />
+                  <UrlField label="Résumé (PDF)" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                  <UrlField label="Document collaboratif" value={docCollabUrl} onChange={setDocCollabUrl} />
+                  {docsErr && (
+                    <p className="text-xs text-red-600">{docsErr}</p>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingDocs(false)}
+                      className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={docsLoading}
+                      className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                        text-white rounded-xl transition-colors"
+                    >
+                      {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
+                  <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                  <DocLink label="Document collaboratif" url={sessionDocs.doc_collab_url} />
+                  {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && !sessionDocs.doc_collab_url && (
+                    <p className="text-xs text-gray-400">Aucun document configuré</p>
+                  )}
+                </div>
+              )}
+            </section>
+
             <section>
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                 Tables rattachées
@@ -759,6 +880,40 @@ function SessionDetail({
           onCancel={() => setDetachConfirm(null)}
         />
       )}
+    </div>
+  )
+}
+
+function DocLink({ label, url }: { label: string; url: string | null }) {
+  if (!url) return null
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-gray-500 text-xs shrink-0">{label}</span>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:underline text-xs truncate"
+      >
+        {url}
+      </a>
+    </div>
+  )
+}
+
+function UrlField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
+      <input
+        type="url"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder="https://…"
+        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+          focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+          placeholder:text-gray-300 transition-shadow"
+      />
     </div>
   )
 }

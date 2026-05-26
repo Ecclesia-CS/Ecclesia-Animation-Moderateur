@@ -5,6 +5,7 @@ import { extractErr } from '../lib/utils'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
+import DocumentationButton from '../components/DocumentationButton'
 
 export default function ParticipantView() {
   const {
@@ -22,15 +23,29 @@ export default function ParticipantView() {
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
   const [sessionTitle,       setSessionTitle]       = useState<string | null>(null)
+  const [sessionDocs,        setSessionDocs]        = useState<{
+    doc_info_url: string | null
+    doc_summary_url: string | null
+    doc_collab_url: string | null
+  } | null>(null)
 
   useEffect(() => {
     if (!table.session_id) return
     supabase
       .from('sessions')
-      .select('title')
+      .select('title, doc_info_url, doc_summary_url, doc_collab_url')
       .eq('id', table.session_id)
       .maybeSingle()
-      .then(({ data }) => { if (data) setSessionTitle(data.title) })
+      .then(({ data }) => {
+        if (data) {
+          setSessionTitle(data.title)
+          setSessionDocs({
+            doc_info_url:    data.doc_info_url,
+            doc_summary_url: data.doc_summary_url,
+            doc_collab_url:  data.doc_collab_url,
+          })
+        }
+      })
   }, [table.session_id])
 
   const iAmSpeaking   = table.current_speaker_id === myParticipant.id
@@ -70,6 +85,11 @@ export default function ParticipantView() {
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
         <div className="flex items-center gap-2">
+          <DocumentationButton
+            session={sessionDocs}
+            className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
+              hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+          />
           <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500
             rounded-lg hover:bg-gray-100 transition-colors focus:outline-none
             focus:ring-2 focus:ring-gray-300" />
