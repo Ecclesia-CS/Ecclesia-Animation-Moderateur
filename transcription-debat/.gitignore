@@ -1,0 +1,13 @@
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/.venv/
+backend/transcripts/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Git imbriqué (sauvegarde locale uniquement)
+.git_backup/
