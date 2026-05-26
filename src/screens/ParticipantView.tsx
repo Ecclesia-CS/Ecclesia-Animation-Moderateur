@@ -1,26 +1,26 @@
 import { useEffect, useState } from 'react'
-import { useSession } from '../context/SessionContext'
+import { useTable } from '../context/TableContext'
 import { extractErr } from '../lib/utils'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
 
 export default function ParticipantView() {
   const {
-    session,
+    table,
     participants,
     queueLong,
     queueInteractive,
     myParticipant,
     addToQueue,
     removeFromQueue,
-    leaveSession,
-  } = useSession()
+    leaveTable,
+  } = useTable()
 
   const [err,                setErr]                = useState<string | null>(null)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
 
-  const iAmSpeaking   = session.current_speaker_id === myParticipant.id
+  const iAmSpeaking   = table.current_speaker_id === myParticipant.id
   const myLong        = queueLong.find(e => e.participant_id === myParticipant.id)
   const myInteractive = queueInteractive.find(e => e.participant_id === myParticipant.id)
 
@@ -48,11 +48,11 @@ export default function ParticipantView() {
       {/* ── Header ───────────────────────────────────────────── */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <span className="font-mono font-bold text-indigo-600 text-lg tracking-widest">
-          {session.join_code}
+          {table.join_code}
         </span>
         <span className="text-sm text-gray-500">{myParticipant.pseudo}</span>
         <button
-          onClick={leaveSession}
+          onClick={leaveTable}
           className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
             hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
         >
@@ -131,7 +131,7 @@ export default function ParticipantView() {
       <div className="hidden md:block">
         <ParticipantsSidebar
           participants={participants}
-          currentSpeakerId={session.current_speaker_id}
+          currentSpeakerId={table.current_speaker_id}
           queueLong={queueLong}
           queueInteractive={queueInteractive}
           variant="light"

@@ -1,4 +1,4 @@
-export interface Session {
+export interface Table {
   id: string
   join_code: string
   created_by: string
@@ -9,7 +9,7 @@ export interface Session {
 
 export interface Participant {
   id: string
-  session_id: string
+  table_id: string
   user_id: string
   pseudo: string
   created_at: string
@@ -17,7 +17,7 @@ export interface Participant {
 
 export interface QueueEntry {
   id: string
-  session_id: string
+  table_id: string
   participant_id: string
   queue_type: 'long' | 'interactive'
   position: number
@@ -26,7 +26,7 @@ export interface QueueEntry {
 
 export interface SpeakingTurn {
   id: string
-  session_id: string
+  table_id: string
   participant_id: string
   started_at: string
   ended_at: string | null

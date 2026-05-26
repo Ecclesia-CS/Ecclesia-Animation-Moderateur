@@ -5,7 +5,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useSession } from '../context/SessionContext'
+import { useTable } from '../context/TableContext'
 import { extractErr } from '../lib/utils'
 import { useState } from 'react'
 import type { Participant, QueueEntry } from '../lib/types'
@@ -26,7 +26,7 @@ export default function QueuePanel({
   title, subtitle, entries, queueType, participants,
   variant = 'light', accent = 'indigo', droppableId, ghostId,
 }: Props) {
-  const { removeFromQueue } = useSession()
+  const { removeFromQueue } = useTable()
   const [err, setErr] = useState<string | null>(null)
 
   const dark = variant === 'dark'

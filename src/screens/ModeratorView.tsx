@@ -13,9 +13,9 @@ import {
   type CollisionDetection,
 } from '@dnd-kit/core'
 
-import { useSession } from '../context/SessionContext'
+import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
-import { formatDuration, extractErr, generateSessionCSV } from '../lib/utils'
+import { formatDuration, extractErr, generateTableCSV } from '../lib/utils'
 import type { QueueEntry, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
@@ -26,7 +26,7 @@ import ConfirmModal from '../components/ConfirmModal'
 
 export default function ModeratorView() {
   const {
-    session,
+    table,
     participants,
     queueLong,
     queueInteractive,
@@ -39,9 +39,9 @@ export default function ModeratorView() {
     addToQueue,
     reorderQueueEntry,
     changeQueueType,
-    endSession,
-    leaveSession,
-  } = useSession()
+    endTable,
+    leaveTable,
+  } = useTable()
 
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 4 },
@@ -104,7 +104,7 @@ export default function ModeratorView() {
   // Temps accumulé avant la pause (ms) — restitué au chrono à la reprise
   const [timerOffset, setTimerOffset] = useState(0)
 
-  const speaker     = participants.find(p => p.id === session.current_speaker_id)
+  const speaker     = participants.find(p => p.id === table.current_speaker_id)
   const pausedName  = pausedSpeakerId
     ? participants.find(p => p.id === pausedSpeakerId)?.pseudo ?? '…'
     : null
@@ -133,7 +133,7 @@ export default function ModeratorView() {
   // du tour mais qu'une entrée arrive juste après (condition de course).
   useEffect(() => {
     if (!isModerator || isGranting || pausedRef.current !== null) return
-    if (session.current_speaker_id !== null) return
+    if (table.current_speaker_id !== null) return
 
     // Interactive has priority over long
     const next = queueInteractive[0] ?? queueLong[0]
@@ -144,14 +144,14 @@ export default function ModeratorView() {
       .catch(e => setErr(extractErr(e)))
       .finally(() => setIsGranting(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.current_speaker_id, queueInteractive, queueLong, isModerator, isGranting])
+  }, [table.current_speaker_id, queueInteractive, queueLong, isModerator, isGranting])
 
   // ── Pause / Resume / Skip ────────────────────────────────────
   function handlePause() {
-    if (!session.current_speaker_id || !session.current_turn_started_at) return
-    const currentElapsed = Date.now() - new Date(session.current_turn_started_at).getTime()
+    if (!table.current_speaker_id || !table.current_turn_started_at) return
+    const currentElapsed = Date.now() - new Date(table.current_turn_started_at).getTime()
     setTimerOffset(currentElapsed + timerOffset) // accumule en cas de double pause
-    setPausedSpeakerId(session.current_speaker_id)
+    setPausedSpeakerId(table.current_speaker_id)
     safe(endTurn)
   }
 
@@ -260,7 +260,7 @@ export default function ModeratorView() {
 
       const ghost: QueueEntry = {
         id:             GHOST_ID,
-        session_id:     session.id,
+        table_id:       table.id,
         participant_id: activeData.participantId ?? '',
         queue_type:     overQT,
         position:       0,
@@ -363,12 +363,12 @@ export default function ModeratorView() {
   }
 
   function handleExport() {
-    const csv = generateSessionCSV(session, participants, speakingTurns)
+    const csv = generateTableCSV(table, participants, speakingTurns)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `ecclesia_${session.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `ecclesia_${table.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -383,15 +383,15 @@ export default function ModeratorView() {
           {/* Left: join code + live mini-speaker */}
           <div className="flex items-center gap-3 min-w-0">
             <span className="font-mono text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
-              {session.join_code}
+              {table.join_code}
             </span>
-            {speaker && session.current_turn_started_at && (
+            {speaker && table.current_turn_started_at && (
               <>
                 <span className="text-slate-700 shrink-0">|</span>
                 <span className="flex items-center gap-2 text-sm min-w-0">
                   <span className="text-slate-300 truncate">{speaker.pseudo}</span>
                   <SpeakerTimer
-                    startedAt={session.current_turn_started_at}
+                    startedAt={table.current_turn_started_at}
                     offsetMs={timerOffset}
                     className="text-indigo-400 shrink-0 font-mono tabular-nums"
                   />
@@ -436,7 +436,7 @@ export default function ModeratorView() {
             </button>
 
             <button
-              onClick={leaveSession}
+              onClick={leaveTable}
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
                 text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
                 focus:ring-2 focus:ring-slate-500"
@@ -517,7 +517,7 @@ export default function ModeratorView() {
               ? 'bg-slate-800 border-indigo-500/40'
               : 'bg-slate-800/60 border-slate-700'
           }`}>
-            {speaker && session.current_turn_started_at ? (
+            {speaker && table.current_turn_started_at ? (
               <div className="p-6 flex flex-col items-center text-center gap-3">
                 <div className="flex items-center gap-3">
                   <span className={`text-xs px-2.5 py-1 rounded-full border font-medium
@@ -530,7 +530,7 @@ export default function ModeratorView() {
                 </p>
                 <div className="flex items-center justify-center gap-8 flex-wrap">
                   <SpeakerTimer
-                    startedAt={session.current_turn_started_at}
+                    startedAt={table.current_turn_started_at}
                     offsetMs={timerOffset}
                     className="text-8xl font-mono tabular-nums text-indigo-300 leading-none"
                   />
@@ -617,7 +617,7 @@ export default function ModeratorView() {
         {/* ── Sidebar participants ───────────────────────────── */}
         <ParticipantsSidebar
           participants={participants}
-          currentSpeakerId={session.current_speaker_id}
+          currentSpeakerId={table.current_speaker_id}
           queueLong={queueLong}
           queueInteractive={queueInteractive}
         />
@@ -645,7 +645,7 @@ export default function ModeratorView() {
           title="Terminer la session ?"
           body="Cette action est irréversible. Tous les participants seront déconnectés et les données de la session supprimées."
           confirmLabel="Terminer"
-          onConfirm={() => safe(endSession)}
+          onConfirm={() => safe(endTable)}
           onCancel={() => setConfirmEnd(false)}
         />
       )}

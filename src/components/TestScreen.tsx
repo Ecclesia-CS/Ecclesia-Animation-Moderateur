@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, type SessionResult } from '../lib/supabase'
+import { supabase, type TableResult } from '../lib/supabase'
 
 type Mode = 'create' | 'join' | 'reclaim'
 
@@ -7,7 +7,7 @@ export default function TestScreen() {
   const [mode, setMode] = useState<Mode>('join')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<SessionResult | null>(null)
+  const [result, setResult] = useState<TableResult | null>(null)
   const [reclaimOk, setReclaimOk] = useState<boolean | null>(null)
 
   // Shared fields
@@ -27,13 +27,13 @@ export default function TestScreen() {
     reset()
     setLoading(true)
     try {
-      const { data, error: rpcError } = await supabase.rpc('create_session', {
+      const { data, error: rpcError } = await supabase.rpc('create_table', {
         p_pseudo: pseudo,
         p_creation_code: creationCode,
         p_moderator_code: moderatorCode,
       })
       if (rpcError) throw rpcError
-      setResult(data as SessionResult)
+      setResult(data as TableResult)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -46,12 +46,12 @@ export default function TestScreen() {
     reset()
     setLoading(true)
     try {
-      const { data, error: rpcError } = await supabase.rpc('join_session', {
+      const { data, error: rpcError } = await supabase.rpc('join_table', {
         p_join_code: joinCode,
         p_pseudo: pseudo,
       })
       if (rpcError) throw rpcError
-      setResult(data as SessionResult)
+      setResult(data as TableResult)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

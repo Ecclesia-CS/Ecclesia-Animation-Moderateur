@@ -10,7 +10,7 @@ import {
 } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import type { Participant, QueueEntry, Session, SpeakingTurn } from '../lib/types'
+import type { Participant, QueueEntry, Table, SpeakingTurn } from '../lib/types'
 
 // ── Public types ───────────────────────────────────────────────
 
@@ -20,8 +20,8 @@ export interface CorrectTurnParams {
   participant_id?: string
 }
 
-interface SessionCtxValue {
-  session: Session
+interface TableCtxValue {
+  table: Table
   participants: Participant[]
   queueLong: QueueEntry[]
   queueInteractive: QueueEntry[]
@@ -29,7 +29,7 @@ interface SessionCtxValue {
   myParticipant: Participant
   isModerator: boolean
 
-  leaveSession(): void
+  leaveTable(): void
   grantFloor(participantId: string, source: 'long' | 'interactive' | 'manual'): Promise<void>
   endTurn(): Promise<void>
   endTurnAsSpeaker(): Promise<void>
@@ -41,54 +41,54 @@ interface SessionCtxValue {
   reorderQueueEntry(entryId: string, newPosition: number): Promise<void>
   correctTurn(turnId: string, params: CorrectTurnParams): Promise<void>
   kickParticipant(participantId: string): Promise<void>
-  endSession(): Promise<void>
+  endTable(): Promise<void>
 }
 
-type TableName = 'sessions' | 'participants' | 'queue_entries' | 'speaking_turns'
+type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
 
 // ── Context ────────────────────────────────────────────────────
 
-const SessionCtx = createContext<SessionCtxValue | null>(null)
+const TableCtx = createContext<TableCtxValue | null>(null)
 
-export function useSession(): SessionCtxValue {
-  const ctx = useContext(SessionCtx)
-  if (!ctx) throw new Error('useSession must be used inside <SessionProvider>')
+export function useTable(): TableCtxValue {
+  const ctx = useContext(TableCtx)
+  if (!ctx) throw new Error('useTable must be used inside <TableProvider>')
   return ctx
 }
 
 // ── Provider ───────────────────────────────────────────────────
 
 interface Props {
-  sessionId: string
+  tableId: string
   participantId: string
   userId: string
   initialIsModerator: boolean
-  onSessionEnd(): void
+  onTableEnd(): void
   children: ReactNode
 }
 
-export function SessionProvider({
-  sessionId,
+export function TableProvider({
+  tableId,
   participantId,
   userId,
   initialIsModerator,
-  onSessionEnd,
+  onTableEnd,
   children,
 }: Props) {
-  const [session, setSession] = useState<Session | null>(null)
+  const [table, setTable] = useState<Table | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
   const [ready, setReady] = useState(false)
   const [isModerator, setIsModerator] = useState(initialIsModerator)
 
-  // Guard against double-calling onSessionEnd
+  // Guard against double-calling onTableEnd
   const endedRef = useRef(false)
   const handleEnd = useCallback(() => {
     if (endedRef.current) return
     endedRef.current = true
-    onSessionEnd()
-  }, [onSessionEnd])
+    onTableEnd()
+  }, [onTableEnd])
 
   // Refs for Broadcast and WebSocket monitoring
   const channelRef      = useRef<RealtimeChannel | null>(null)
@@ -97,37 +97,37 @@ export function SessionProvider({
   // ── Load (stable, reused for initial load, polling, reconnect) ──
   const load = useCallback(async () => {
     const [s, p, q, t] = await Promise.all([
-      supabase.from('sessions').select('*').eq('id', sessionId).single(),
-      supabase.from('participants').select('*').eq('session_id', sessionId),
-      supabase.from('queue_entries').select('*').eq('session_id', sessionId),
-      supabase.from('speaking_turns').select('*').eq('session_id', sessionId),
+      supabase.from('tables').select('*').eq('id', tableId).single(),
+      supabase.from('participants').select('*').eq('table_id', tableId),
+      supabase.from('queue_entries').select('*').eq('table_id', tableId),
+      supabase.from('speaking_turns').select('*').eq('table_id', tableId),
     ])
     if (!s.data) { handleEnd(); return }
-    setSession(s.data as Session)
+    setTable(s.data as Table)
     setParticipants((p.data ?? []) as Participant[])
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
     setReady(true)
-  }, [sessionId, handleEnd])
+  }, [tableId, handleEnd])
 
   // ── Targeted refetch (called by broadcast listener) ───────────
   const refetch = useCallback(async (tables: TableName[]) => {
-    await Promise.all(tables.map(async (table) => {
-      if (table === 'sessions') {
-        const { data } = await supabase.from('sessions').select('*').eq('id', sessionId).single()
-        if (data) setSession(data as Session)
-      } else if (table === 'participants') {
-        const { data } = await supabase.from('participants').select('*').eq('session_id', sessionId)
+    await Promise.all(tables.map(async (tbl) => {
+      if (tbl === 'tables') {
+        const { data } = await supabase.from('tables').select('*').eq('id', tableId).single()
+        if (data) setTable(data as Table)
+      } else if (tbl === 'participants') {
+        const { data } = await supabase.from('participants').select('*').eq('table_id', tableId)
         setParticipants((data ?? []) as Participant[])
-      } else if (table === 'queue_entries') {
-        const { data } = await supabase.from('queue_entries').select('*').eq('session_id', sessionId)
+      } else if (tbl === 'queue_entries') {
+        const { data } = await supabase.from('queue_entries').select('*').eq('table_id', tableId)
         setQueueEntries((data ?? []) as QueueEntry[])
-      } else if (table === 'speaking_turns') {
-        const { data } = await supabase.from('speaking_turns').select('*').eq('session_id', sessionId)
+      } else if (tbl === 'speaking_turns') {
+        const { data } = await supabase.from('speaking_turns').select('*').eq('table_id', tableId)
         setSpeakingTurns((data ?? []) as SpeakingTurn[])
       }
     }))
-  }, [sessionId])
+  }, [tableId])
 
   // ── Broadcast helper (bypasses RLS check → instant delivery) ──
   const broadcast = useCallback((tables: TableName[]) => {
@@ -145,30 +145,30 @@ export function SessionProvider({
 
   // ── Realtime subscriptions ────────────────────────────────────
   useEffect(() => {
-    const ch: RealtimeChannel = supabase.channel(`session:${sessionId}`)
+    const ch: RealtimeChannel = supabase.channel(`table:${tableId}`)
     channelRef.current = ch
 
-    // sessions — UPDATE / DELETE
+    // tables — UPDATE / DELETE
     ch.on(
       'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` },
+      { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
       ({ new: row, old: prev }) => {
-        setSession(row as Session)
-        if ((prev as Session).created_by !== (row as Session).created_by) {
-          setIsModerator((row as Session).created_by === userId)
+        setTable(row as Table)
+        if ((prev as Table).created_by !== (row as Table).created_by) {
+          setIsModerator((row as Table).created_by === userId)
         }
       },
     )
     ch.on(
       'postgres_changes',
-      { event: 'DELETE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` },
+      { event: 'DELETE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
       () => handleEnd(),
     )
 
     // participants
     ch.on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${sessionId}` },
+      { event: '*', schema: 'public', table: 'participants', filter: `table_id=eq.${tableId}` },
       ({ eventType, new: n, old: o }) => {
         if (eventType === 'INSERT')
           // Dédoublonner : un INSERT Realtime peut arriver pour un upsert (ON CONFLICT DO UPDATE)
@@ -187,7 +187,7 @@ export function SessionProvider({
     // queue_entries
     ch.on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'queue_entries', filter: `session_id=eq.${sessionId}` },
+      { event: '*', schema: 'public', table: 'queue_entries', filter: `table_id=eq.${tableId}` },
       ({ eventType, new: n, old: o }) => {
         if (eventType === 'INSERT')
           setQueueEntries(prev =>
@@ -205,7 +205,7 @@ export function SessionProvider({
     // speaking_turns (INSERT + UPDATE only; no DELETE expected)
     ch.on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'speaking_turns', filter: `session_id=eq.${sessionId}` },
+      { event: '*', schema: 'public', table: 'speaking_turns', filter: `table_id=eq.${tableId}` },
       ({ eventType, new: n }) => {
         if (eventType === 'INSERT')
           setSpeakingTurns(prev => [...prev, n as SpeakingTurn])
@@ -233,7 +233,7 @@ export function SessionProvider({
     })
 
     return () => { supabase.removeChannel(ch) }
-  }, [sessionId, handleEnd, refetch, load, userId])
+  }, [tableId, handleEnd, refetch, load, userId])
 
   // ── Polling fallback (5 s) — catches missed broadcasts ────────
   useEffect(() => {
@@ -251,43 +251,43 @@ export function SessionProvider({
 
   const grantFloor = useCallback(
     async (pId: string, src: 'long' | 'interactive' | 'manual') => {
-      await rpc('grant_floor', { p_session_id: sessionId, p_participant_id: pId, p_source: src })
+      await rpc('grant_floor', { p_table_id: tableId, p_participant_id: pId, p_source: src })
       // Mise à jour locale immédiate du speaker (current_turn_started_at arrive via broadcast)
-      setSession(prev => prev ? { ...prev, current_speaker_id: pId } : prev)
+      setTable(prev => prev ? { ...prev, current_speaker_id: pId } : prev)
       if (src !== 'manual') {
         setQueueEntries(prev => prev.filter(
           e => !(e.participant_id === pId && e.queue_type === src)
         ))
       }
-      broadcast(['sessions', 'queue_entries', 'speaking_turns'])
+      broadcast(['tables', 'queue_entries', 'speaking_turns'])
     },
-    [rpc, sessionId, broadcast],
+    [rpc, tableId, broadcast],
   )
 
   const endTurn = useCallback(
     async () => {
-      await rpc('end_turn', { p_session_id: sessionId })
+      await rpc('end_turn', { p_table_id: tableId })
       // Mise à jour locale immédiate — l'useEffect d'auto-avancement se déclenche
       // sans attendre le rebond du broadcast (~50–200 ms gagnés)
-      setSession(prev => prev
+      setTable(prev => prev
         ? { ...prev, current_speaker_id: null, current_turn_started_at: null }
         : prev)
-      broadcast(['sessions', 'speaking_turns', 'queue_entries'])
+      broadcast(['tables', 'speaking_turns', 'queue_entries'])
     },
-    [rpc, sessionId, broadcast],
+    [rpc, tableId, broadcast],
   )
 
   const addToQueue = useCallback(
     async (pId: string, qt: 'long' | 'interactive', position?: number) => {
       const args = position !== undefined
-        ? { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt, p_position: position }
-        : { p_session_id: sessionId, p_participant_id: pId, p_queue_type: qt }
+        ? { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt, p_position: position }
+        : { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt }
       await rpc('add_to_queue', args)
       // Refetch local immédiat (fire-and-forget) — n'attend pas le rebond du broadcast
       refetch(['queue_entries'])
       broadcast(['queue_entries'])
     },
-    [rpc, sessionId, broadcast, refetch],
+    [rpc, tableId, broadcast, refetch],
   )
 
   const removeFromQueue = useCallback(async (entryId: string) => {
@@ -302,29 +302,29 @@ export function SessionProvider({
       const { error } = await supabase.from('queue_entries').delete().eq('id', entryId)
       if (error) throw error
       const args = position !== undefined
-        ? { p_session_id: sessionId, p_participant_id: pId, p_queue_type: targetQt, p_position: position }
-        : { p_session_id: sessionId, p_participant_id: pId, p_queue_type: targetQt }
+        ? { p_table_id: tableId, p_participant_id: pId, p_queue_type: targetQt, p_position: position }
+        : { p_table_id: tableId, p_participant_id: pId, p_queue_type: targetQt }
       await rpc('add_to_queue', args)
       broadcast(['queue_entries'])
     },
-    [rpc, sessionId, broadcast],
+    [rpc, tableId, broadcast],
   )
 
   const endTurnAsSpeaker = useCallback(
     async () => {
-      await rpc('end_turn_as_speaker', { p_session_id: sessionId })
-      setSession(prev => prev
+      await rpc('end_turn_as_speaker', { p_table_id: tableId })
+      setTable(prev => prev
         ? { ...prev, current_speaker_id: null, current_turn_started_at: null }
         : prev)
-      broadcast(['sessions', 'speaking_turns', 'queue_entries'])
+      broadcast(['tables', 'speaking_turns', 'queue_entries'])
     },
-    [rpc, sessionId, broadcast],
+    [rpc, tableId, broadcast],
   )
 
   const endTurnAndAdvance = useCallback(
     async () => {
       const { data, error } = await supabase.rpc('end_turn_and_advance', {
-        p_session_id: sessionId,
+        p_table_id: tableId,
       })
       if (error) throw error
       const result = data as {
@@ -333,7 +333,7 @@ export function SessionProvider({
         removed_queue_entry_id: string | null
       }
       // Mise à jour locale immédiate avec le timestamp serveur exact (pas de skew timer)
-      setSession(prev => prev
+      setTable(prev => prev
         ? { ...prev,
             current_speaker_id: result.current_speaker_id,
             current_turn_started_at: result.current_turn_started_at }
@@ -341,9 +341,9 @@ export function SessionProvider({
       if (result.removed_queue_entry_id) {
         setQueueEntries(prev => prev.filter(e => e.id !== result.removed_queue_entry_id))
       }
-      broadcast(['sessions', 'speaking_turns', 'queue_entries'])
+      broadcast(['tables', 'speaking_turns', 'queue_entries'])
     },
-    [sessionId, broadcast],
+    [tableId, broadcast],
   )
 
   const moveQueueEntry = useCallback(
@@ -377,17 +377,17 @@ export function SessionProvider({
 
   const kickParticipant = useCallback(
     async (pId: string) => {
-      await rpc('kick_participant', { p_session_id: sessionId, p_participant_id: pId })
-      broadcast(['sessions', 'participants', 'queue_entries', 'speaking_turns'])
+      await rpc('kick_participant', { p_table_id: tableId, p_participant_id: pId })
+      broadcast(['tables', 'participants', 'queue_entries', 'speaking_turns'])
     },
-    [rpc, sessionId, broadcast],
+    [rpc, tableId, broadcast],
   )
 
-  const endSession = useCallback(async () => {
-    const { error } = await supabase.from('sessions').delete().eq('id', sessionId)
+  const endTable = useCallback(async () => {
+    const { error } = await supabase.from('tables').delete().eq('id', tableId)
     if (error) throw error
     handleEnd()
-  }, [sessionId, handleEnd])
+  }, [tableId, handleEnd])
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -421,16 +421,16 @@ export function SessionProvider({
   }
 
   return (
-    <SessionCtx.Provider
+    <TableCtx.Provider
       value={{
-        session: session!,
+        table: table!,
         participants,
         queueLong,
         queueInteractive,
         speakingTurns,
         myParticipant,
         isModerator,
-        leaveSession: handleEnd,
+        leaveTable: handleEnd,
         grantFloor,
         endTurn,
         endTurnAsSpeaker,
@@ -442,10 +442,10 @@ export function SessionProvider({
         reorderQueueEntry,
         correctTurn,
         kickParticipant,
-        endSession,
+        endTable,
       }}
     >
       {children}
-    </SessionCtx.Provider>
+    </TableCtx.Provider>
   )
 }

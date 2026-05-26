@@ -1,5 +1,7 @@
 # CLAUDE.md — Ecclesia · Modérateur de débat
 
+> **Note (refactor B0)** : depuis ce refactor, ce qu'on appelait "session" dans le code (un cercle de débat modéré) s'appelle désormais **"table"**. Le mot "session" est réservé pour un futur niveau supérieur (= "séance"), qui contiendra plusieurs tables.
+
 Document de référence pour les sessions Claude Code. Lire en entier avant de
 modifier quoi que ce soit.
 
@@ -74,7 +76,7 @@ Cinq tables dans le schéma `public`. Toutes ont RLS activé.
 
 Zéro politique RLS → accès total interdit hors fonctions SECURITY DEFINER.
 
-### `sessions`
+### `tables`
 | Colonne | Type | Notes |
 |---|---|---|
 | `id` | uuid PK | |
@@ -85,26 +87,26 @@ Zéro politique RLS → accès total interdit hors fonctions SECURITY DEFINER.
 | `created_at` | timestamptz | |
 
 Note : la colonne `moderator_code_hash` a été supprimée (migration 003). Il n'y
-a plus de code par session — la reprise de modération utilise le Code Ecclesia
+a plus de code par table — la reprise de modération utilise le Code Ecclesia
 global (`app_config.creation_code_hash`).
 
 ### `participants`
 | Colonne | Type | Notes |
 |---|---|---|
 | `id` | uuid PK | |
-| `session_id` | uuid FK → sessions | ON DELETE CASCADE |
+| `table_id` | uuid FK → tables | ON DELETE CASCADE |
 | `user_id` | uuid | `auth.uid()` |
 | `pseudo` | text | |
 | `created_at` | timestamptz | |
 
-Contrainte : `UNIQUE (session_id, pseudo)` (migration 005) — un pseudo est unique dans une session.
+Contrainte : `UNIQUE (table_id, pseudo)` (migration 005) — un pseudo est unique dans une table.
 Un même `user_id` peut donc avoir plusieurs lignes participants (si l'utilisateur rejoint avec des pseudos
 différents). **Conséquence critique :** toute fonction SQL qui cherche un participant par
 `WHERE user_id = auth.uid()` doit utiliser `LIMIT 1` ou un JOIN direct sur `current_speaker_id`,
 sous peine de récupérer une ligne arbitraire. Voir `end_turn_as_speaker` (migration 007) comme modèle.
 
-Comportement de `join_session` et `reclaim_moderator` en cas de conflit de pseudo :
-`ON CONFLICT (session_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id` — le compte
+Comportement de `join_table` et `reclaim_moderator` en cas de conflit de pseudo :
+`ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id` — le compte
 (et son historique) est transféré au nouveau venu. Permet de retrouver son compte depuis
 un autre appareil en retapant le même pseudo.
 
@@ -112,20 +114,20 @@ un autre appareil en retapant le même pseudo.
 | Colonne | Type | Notes |
 |---|---|---|
 | `id` | uuid PK | |
-| `session_id` | uuid FK → sessions | ON DELETE CASCADE |
+| `table_id` | uuid FK → tables | ON DELETE CASCADE |
 | `participant_id` | uuid FK → participants | ON DELETE CASCADE |
 | `queue_type` | text | `'long'` ou `'interactive'` |
 | `position` | int | Ordre dans la file |
 | `created_at` | timestamptz | |
 
-Contrainte : `UNIQUE (session_id, participant_id, queue_type)` — un participant ne
+Contrainte : `UNIQUE (table_id, participant_id, queue_type)` — un participant ne
 peut être qu'une seule fois dans chaque file.
 
 ### `speaking_turns`
 | Colonne | Type | Notes |
 |---|---|---|
 | `id` | uuid PK | |
-| `session_id` | uuid FK → sessions | ON DELETE CASCADE |
+| `table_id` | uuid FK → tables | ON DELETE CASCADE |
 | `participant_id` | uuid FK → participants | ON DELETE CASCADE |
 | `started_at` | timestamptz NOT NULL | Posé par le serveur (`now()`) |
 | `ended_at` | timestamptz \| null | NULL = tour en cours |
@@ -135,11 +137,11 @@ peut être qu'une seule fois dans chaque file.
 ```
 app_config (standalone)
 
-sessions ──< participants ──< queue_entries
-         ──< speaking_turns
-         ──< participants (via current_speaker_id, nullable)
+tables ──< participants ──< queue_entries
+       ──< speaking_turns
+       ──< participants (via current_speaker_id, nullable)
 ```
-Toutes les suppressions en cascade depuis `sessions` : supprimer une session
+Toutes les suppressions en cascade depuis `tables` : supprimer une table
 nettoie automatiquement participants, queue_entries et speaking_turns.
 
 ---
@@ -155,27 +157,27 @@ par conception — la sécurité repose entièrement sur RLS + SECURITY DEFINER.
 
 | Code | Stocké où | Utilisé pour |
 |---|---|---|
-| **Code Ecclesia** | `app_config.creation_code_hash` (bcrypt) | Créer une session ET reprendre la modération depuis un autre appareil |
-| **Code de session (join_code)** | `sessions.join_code` (texte clair, 6 hex) | Rejoindre une session existante ; affiché sur le tableau de modération |
+| **Code Ecclesia** | `app_config.creation_code_hash` (bcrypt) | Créer une table ET reprendre la modération depuis un autre appareil |
+| **Code de table (join_code)** | `tables.join_code` (texte clair, 6 hex) | Rejoindre une table existante ; affiché sur le tableau de modération |
 
-Il n'y a plus de code modérateur par session (supprimé en migration 003).
+Il n'y a plus de code modérateur par table (supprimé en migration 003).
 **Aucun hash ne quitte jamais la base.** Les fonctions SECURITY DEFINER les
-vérifient en base et retournent les données de session (jsonb) ou lèvent une exception.
+vérifient en base et retournent les données de table (jsonb) ou lèvent une exception.
 
 ### Row Level Security (RLS)
 
 | Table | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
 | `app_config` | ✗ (zéro politique) | ✗ | ✗ | ✗ |
-| `sessions` | participant de la session | ✗ (via RPC) | modérateur | modérateur |
-| `participants` | participant de la session | `user_id = auth.uid()` | — | — |
-| `queue_entries` | participant de la session | soi-même ou modérateur | modérateur | soi-même ou modérateur |
-| `speaking_turns` | participant de la session | modérateur | modérateur | — |
+| `tables` | participant de la table | ✗ (via RPC) | modérateur | modérateur |
+| `participants` | participant de la table | `user_id = auth.uid()` | — | — |
+| `queue_entries` | participant de la table | soi-même ou modérateur | modérateur | soi-même ou modérateur |
+| `speaking_turns` | participant de la table | modérateur | modérateur | — |
 
-**Piège RLS auto-référentiel :** la politique SELECT sur `sessions` appelle
-`is_session_participant()` qui lit `participants`, dont la politique SELECT
-appelle à son tour `is_session_participant()` → boucle infinie. Résolu par la
-fonction helper `is_session_participant(uuid)` déclarée `SECURITY DEFINER` qui
+**Piège RLS auto-référentiel :** la politique SELECT sur `tables` appelle
+`is_table_participant()` qui lit `participants`, dont la politique SELECT
+appelle à son tour `is_table_participant()` → boucle infinie. Résolu par la
+fonction helper `is_table_participant(uuid)` déclarée `SECURITY DEFINER` qui
 contourne RLS pour sa propre requête interne.
 
 ### Fonctions SECURITY DEFINER
@@ -186,25 +188,25 @@ propriétaire, pas du client) :
 
 | Fonction | Migration | Rôle |
 |---|---|---|
-| `is_session_participant(uuid)` | 000 | Helper RLS anti-récursion |
-| `create_session(pseudo, creation_code)` | 003 | Vérifie le Code Ecclesia, génère join_code, crée session + participant (2 args, ancienne version 3 args supprimée) |
-| `join_session(join_code, pseudo)` | 005 | Conflit sur `(session_id, pseudo)` → transfère `user_id` au nouvel appelant (retour depuis autre appareil) |
-| `reclaim_moderator(join_code, creation_code)` | 006 | Retourne jsonb (même shape que join_session). Lève exception si session introuvable ou code incorrect. Corrige le conflit sur pseudo (migration 005) |
-| `grant_floor(session_id, participant_id, source)` | 001 | Atomique : clôt tour ouvert, défile, ouvre nouveau tour, met à jour session |
-| `end_turn(session_id)` | 001 | Pose `ended_at = now()`, vide `current_speaker_id` — modérateur uniquement |
-| `add_to_queue(session_id, participant_id, queue_type)` | 001 | `MAX(position)+1` atomique, idempotent (`ON CONFLICT DO NOTHING`) |
+| `is_table_participant(uuid)` | 000 | Helper RLS anti-récursion |
+| `create_table(pseudo, creation_code)` | 003 | Vérifie le Code Ecclesia, génère join_code, crée table + participant (2 args, ancienne version 3 args supprimée) |
+| `join_table(join_code, pseudo)` | 005 | Conflit sur `(table_id, pseudo)` → transfère `user_id` au nouvel appelant (retour depuis autre appareil) |
+| `reclaim_moderator(join_code, creation_code)` | 006 | Retourne jsonb (même shape que join_table). Lève exception si table introuvable ou code incorrect. Corrige le conflit sur pseudo (migration 005) |
+| `grant_floor(table_id, participant_id, source)` | 001 | Atomique : clôt tour ouvert, défile, ouvre nouveau tour, met à jour table |
+| `end_turn(table_id)` | 001 | Pose `ended_at = now()`, vide `current_speaker_id` — modérateur uniquement |
+| `add_to_queue(table_id, participant_id, queue_type)` | 001 | `MAX(position)+1` atomique, idempotent (`ON CONFLICT DO NOTHING`) |
 | `move_queue_entry(entry_id, direction)` | 001 | Swap de positions avec l'entrée adjacente |
 | `correct_turn(turn_id, started_at, ended_at, participant_id)` | 001 | `COALESCE(param, existing)` — NULL = ne pas modifier |
-| `end_turn_as_speaker(session_id)` | 007 | Comme `end_turn` mais appelable par l'orateur lui-même. Utilise un JOIN `sessions → participants` via `current_speaker_id` pour éviter l'ambiguïté quand plusieurs lignes existent pour le même `user_id` |
+| `end_turn_as_speaker(table_id)` | 007 | Comme `end_turn` mais appelable par l'orateur lui-même. Utilise un JOIN `tables → participants` via `current_speaker_id` pour éviter l'ambiguïté quand plusieurs lignes existent pour le même `user_id` |
 | `reorder_queue_entry(entry_id, new_position)` | 002 | Déplace atomiquement une entrée à une position arbitraire en décalant les voisins |
-| `kick_participant(session_id, participant_id)` | 004 | Exclut un participant : vérifie que l'appelant est modérateur, clôt son tour si actif, supprime sa ligne (cascade queue + turns) |
-| `end_turn_and_advance(session_id)` | 008 | Clôt le tour courant ET accorde la parole au suivant (interactive > long) en une transaction atomique. Appelable par le modérateur OU l'orateur actuel. Retourne jsonb `{ current_speaker_id, current_turn_started_at, removed_queue_entry_id }` pour mise à jour locale immédiate côté client. |
+| `kick_participant(table_id, participant_id)` | 004 | Exclut un participant : vérifie que l'appelant est modérateur, clôt son tour si actif, supprime sa ligne (cascade queue + turns) |
+| `end_turn_and_advance(table_id)` | 008 | Clôt le tour courant ET accorde la parole au suivant (interactive > long) en une transaction atomique. Appelable par le modérateur OU l'orateur actuel. Retourne jsonb `{ current_speaker_id, current_turn_started_at, removed_queue_entry_id }` pour mise à jour locale immédiate côté client. |
 
 ### REPLICA IDENTITY FULL
 
 Posé sur les 4 tables de données (migration 001). Obligatoire pour que les
 événements DELETE de Supabase Realtime incluent les colonnes non-PK dans le
-filtre côté client (ex. `session_id=eq.<id>` sur `queue_entries`). Sans cela,
+filtre côté client (ex. `table_id=eq.<id>` sur `queue_entries`). Sans cela,
 les abonnements filtrés ne reçoivent pas les DELETE.
 
 ---
@@ -214,12 +216,12 @@ les abonnements filtrés ne reçoivent pas les DELETE.
 ### Un seul orateur à la fois
 `grant_floor` clôt systématiquement le tour ouvert (UPDATE `ended_at = now()`)
 avant d'en créer un nouveau. Il n'y a jamais deux `speaking_turns` avec
-`ended_at IS NULL` pour la même session.
+`ended_at IS NULL` pour la même table.
 
 ### Chronomètre depuis le timestamp serveur
 Le temps affiché est **toujours** calculé comme :
 ```typescript
-Date.now() - new Date(session.current_turn_started_at).getTime()
+Date.now() - new Date(table.current_turn_started_at).getTime()
 ```
 `current_turn_started_at` est posé par `now()` côté PostgreSQL dans `grant_floor`.
 Le hook `useLiveMs()` rafraîchit le composant toutes les 500 ms via
@@ -237,7 +239,7 @@ seule transaction. Appelé par le bouton "Terminer la prise de parole" (modérat
 "J'ai fini de parler" (participant). Priorité : interactive > longue.
 
 **Fallback** : un `useEffect` dans `ModeratorView` déclenche `grantFloor` si
-`session.current_speaker_id` passe à `null` alors que la file est non-vide. Couvre
+`table.current_speaker_id` passe à `null` alors que la file est non-vide. Couvre
 uniquement les cas où la file était vide au moment de `endTurnAndAdvance` mais qu'une
 entrée est arrivée juste après (condition de course). Protégé par deux guards :
 - `isGranting` (flag local) — évite les double-appels en cas de re-render rapide
@@ -252,17 +254,17 @@ correct car `ParticipantsTable` somme tous les tours y compris le tour pré-paus
 est perdu et l'auto-avancement reprend normalement.
 
 ### ON DELETE CASCADE
-Supprimer la ligne `sessions` déclenche la suppression en cascade de tous les
-participants, entrées de file et tours. C'est le mécanisme de clôture de session.
+Supprimer la ligne `tables` déclenche la suppression en cascade de tous les
+participants, entrées de file et tours. C'est le mécanisme de clôture de table.
 Les participants reçoivent l'événement DELETE via Realtime → `handleEnd()` →
 retour à l'écran d'entrée.
 
 ### Flag `isModerator` stocké au moment de l'action
 Dans un même navigateur (même `userId` anonyme), deux onglets peuvent être l'un
 modérateur et l'autre participant. Le flag ne peut pas être dérivé de
-`session.created_by === userId` à l'exécution (égal pour les deux onglets).
-Il est stocké dans `localStorage` au moment de `create_session` (true) ou
-`join_session` (false) et passé comme `initialIsModerator` au `SessionProvider`.
+`table.created_by === userId` à l'exécution (égal pour les deux onglets).
+Il est stocké dans `localStorage` au moment de `create_table` (true) ou
+`join_table` (false) et passé comme `initialIsModerator` au `TableProvider`.
 Il est mis à jour en temps réel uniquement si `created_by` change (reclaim
 détecté via l'événement UPDATE Realtime, possible grâce à REPLICA IDENTITY FULL).
 
@@ -271,7 +273,7 @@ Le `postgres_changes` + RLS de Supabase génère une vérification SQL par évé
 par subscriber → latence 50–200 ms en production. Solution en quatre couches :
 
 1. **Mise à jour locale immédiate** (0 ms) — après chaque RPC réussi, l'acteur met à
-   jour son état local directement (`setSession`, `setQueueEntries`) sans attendre le
+   jour son état local directement (`setTable`, `setQueueEntries`) sans attendre le
    broadcast. `endTurnAndAdvance` retourne le jsonb serveur pour éviter tout skew de
    timestamp. `current_turn_started_at` n'est jamais posé optimistiquement par le client
    (sauf via le retour de `endTurnAndAdvance`).
@@ -286,19 +288,19 @@ par subscriber → latence 50–200 ms en production. Solution en quatre couches
    reconnexion. Heartbeat toutes les 15 s (au lieu de 30 s par défaut).
 
 Les `postgres_changes` sont conservés en parallèle pour les événements DELETE
-(fin de session, participant exclu) qui ne sont pas broadcastés.
+(fin de table, participant exclu) qui ne sont pas broadcastés.
 
 **Mapping broadcast par action** :
 
 | Action | Tables broadcastées |
 |---|---|
-| `grantFloor` | `sessions, queue_entries, speaking_turns` |
-| `endTurn` / `endTurnAsSpeaker` | `sessions, speaking_turns, queue_entries` |
-| `endTurnAndAdvance` | `sessions, speaking_turns, queue_entries` |
+| `grantFloor` | `tables, queue_entries, speaking_turns` |
+| `endTurn` / `endTurnAsSpeaker` | `tables, speaking_turns, queue_entries` |
+| `endTurnAndAdvance` | `tables, speaking_turns, queue_entries` |
 | `addToQueue` / `removeFromQueue` / `moveQueueEntry` / `reorderQueueEntry` / `changeQueueType` | `queue_entries` |
 | `correctTurn` | `speaking_turns` |
-| `kickParticipant` | `sessions, participants, queue_entries, speaking_turns` |
-| `endSession` | — (DELETE Realtime suffit) |
+| `kickParticipant` | `tables, participants, queue_entries, speaking_turns` |
+| `endTable` | — (DELETE Realtime suffit) |
 
 ---
 
@@ -308,16 +310,16 @@ Les `postgres_changes` sont conservés en parallèle pour les événements DELET
 src/
 ├── lib/
 │   ├── supabase.ts          Client Supabase (anon key depuis .env)
-│   ├── types.ts             Interfaces Session, Participant, QueueEntry, SpeakingTurn
-│   ├── storage.ts           sessionStore.get/set/clear (localStorage)
-│   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateSessionCSV
+│   ├── types.ts             Interfaces Table, Participant, QueueEntry, SpeakingTurn
+│   ├── storage.ts           tableStore.get/set/clear (localStorage)
+│   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateTableCSV
 ├── hooks/
 │   └── useLiveMs.ts         setInterval 500ms → Date.now()
 ├── context/
-│   └── SessionContext.tsx   Provider + useSession() hook — état, Realtime, Broadcast, polling, actions
+│   └── TableContext.tsx     Provider + useTable() hook — état, Realtime, Broadcast, polling, actions
 ├── screens/
 │   ├── EntryScreen.tsx      Tabs : Rejoindre / Reprendre / Créer ("Code Ecclesia")
-│   ├── SessionView.tsx      Routage isModerator → ModeratorView ou ParticipantView
+│   ├── TableView.tsx        Routage isModerator → ModeratorView ou ParticipantView
 │   ├── ModeratorView.tsx    Vue projetable (DndContext global, auto-avancement, pause/reprise)
 │   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, sidebar md+)
 ├── components/
@@ -328,23 +330,23 @@ src/
 │   ├── ParticipantsSidebar.tsx Liste présents en temps réel, variant dark/light
 │   ├── CorrectTurnModal.tsx  Historique des participations avec durée par tour
 │   └── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
-└── App.tsx                  Machine à états : loading | entry | session
+└── App.tsx                  Machine à états : loading | entry | table
 ```
 
-### SessionContext — état exposé
+### TableContext — état exposé
 ```typescript
-session, participants, queueLong, queueInteractive, speakingTurns
+table, participants, queueLong, queueInteractive, speakingTurns
 myParticipant, isModerator
-leaveSession                              // quitte la vue sans clôturer la session
+leaveTable                                // quitte la vue sans clôturer la table
 grantFloor, endTurn, endTurnAsSpeaker     // endTurnAsSpeaker conservé pour usage futur
 endTurnAndAdvance                         // clôt le tour ET avance atomiquement (1 RPC, sans double aller-retour)
 addToQueue, removeFromQueue
 moveQueueEntry, reorderQueueEntry         // reorderQueueEntry pour le DnD (position arbitraire)
 changeQueueType                           // déplace une entrée d'une file à l'autre (DnD cross-queue)
-correctTurn, kickParticipant, endSession
+correctTurn, kickParticipant, endTable
 ```
 
-Realtime : un seul channel `session:<id>`, 4 abonnements `postgres_changes` +
+Realtime : un seul channel `table:<id>`, 4 abonnements `postgres_changes` +
 1 listener Broadcast `refresh` + subscribe callback pour monitoring WebSocket.
 
 ### DnD — architecture cross-container
@@ -425,7 +427,7 @@ catch (e) { setErr(extractErr(e)) }
 - Migration `20260520000001_core_functions.sql` appliquée :
   - REPLICA IDENTITY FULL sur les 4 tables
   - Fonctions `grant_floor`, `end_turn`, `add_to_queue`, `move_queue_entry`, `correct_turn`
-- `SessionContext` avec chargement initial + Realtime temps réel
+- `TableContext` avec chargement initial + Realtime temps réel
 - `ModeratorView` : header sticky, bloc orateur, deux QueuePanel, ParticipantsTable, CorrectTurnModal
 - `ParticipantView` : carte orateur, boutons toggle files, position dans la file
 - `SpeakerTimer` : chronomètre depuis timestamp serveur
@@ -449,13 +451,13 @@ catch (e) { setErr(extractErr(e)) }
 - DnD pour réordonner les files (`reorderQueueEntry`)
 - Bouton "J'ai fini de parler" côté participant
 - Colonne "Tour actuel" + pied "Total séance" dans ParticipantsTable
-- Bouton "Quitter" (leaveSession) distinct de "Terminer session"
+- Bouton "Quitter" (leaveTable) distinct de "Terminer session"
 - `extractErr` pour les erreurs Supabase
 
 ### ✅ Terminé — Prompt 5 : Code unifié + sidebar + DnD cross-container + kick + latence
 
 - Migration `20260520000003_unified_code.sql` : fusion des codes (suppression `moderator_code_hash`,
-  `create_session` passe à 2 args, `reclaim_moderator` vérifie `app_config`)
+  `create_table` passe à 2 args, `reclaim_moderator` vérifie `app_config`)
 - Migration `20260520000004_kick_participant.sql` : fonction `kick_participant`
 - `ParticipantsSidebar` (nouveau composant, variant dark/light) intégré vue modérateur + participant (md+)
 - DnD cross-container : `DndContext` remonté dans `ModeratorView`, `useDraggable` sur les lignes
@@ -470,13 +472,13 @@ catch (e) { setErr(extractErr(e)) }
 - **`SessionTimerDisplay`** : `useLiveMs` extrait de `ModeratorView` vers un composant feuille isolé —
   `ModeratorView` ne re-render plus toutes les 500 ms, les hooks dnd-kit (`useSortable`, `useDraggable`)
   ne sont plus évalués inutilement
-- **`useMemo`** sur `queueLong`, `queueInteractive`, `myParticipant` dans `SessionContext` — références
+- **`useMemo`** sur `queueLong`, `queueInteractive`, `myParticipant` dans `TableContext` — références
   stables, le `useEffect` d'auto-avancement ne se déclenche plus sur des arrays identiques
 - **Optimistic UI `ParticipantView`** : boutons "Demander la parole" / "Coupe file" passent en couleur
   immédiatement au clic (spinner à la place du badge jusqu'à confirmation serveur) ; bannière "Vous avez
   la parole" disparaît immédiatement au clic "J'ai fini de parler"
 - **Fix auto-avancement bloqué** : `endTurn` et `endTurnAsSpeaker` broadcastent maintenant
-  `queue_entries` en plus de `sessions` + `speaking_turns` — le modérateur resynchronise sa file au
+  `queue_entries` en plus de `tables` + `speaking_turns` — le modérateur resynchronise sa file au
   moment précis de la décision d'auto-avancer, éliminant les blocages "Micro libre" causés par un
   broadcast `queue_entries` précédent manqué
 - **Fix build CI** : `userId` retiré du destructuring de `EntryScreen` (prop accepté mais non utilisé,
@@ -492,21 +494,21 @@ catch (e) { setErr(extractErr(e)) }
 - **Icône grip 6 points** (dots pleins 2×3) pour tous les drag handles — plus lisible que lignes ou main
 - **Sidebar modérateur** visible sur mobile (layout `flex-col lg:flex-row` + `w-full lg:w-52`)
 - **Colonne Pseudo** : `max-w-[120px] truncate` pour que "Donner la parole" tienne sur une ligne
-- **Pseudo unique par session** (migration 005) : `UNIQUE(session_id, pseudo)`, `join_session` transfère `user_id` au nouvel appelant en cas de conflit
+- **Pseudo unique par table** (migration 005) : `UNIQUE(table_id, pseudo)`, `join_table` transfère `user_id` au nouvel appelant en cas de conflit
 - **Fix `reclaim_moderator`** (migration 006) : retourne jsonb, lève des exceptions explicites, corrige `ON CONFLICT` cassé par migration 005
-- **Fix `end_turn_as_speaker`** (migration 007) : JOIN direct `sessions → participants` via `current_speaker_id`, robuste quand plusieurs lignes existent pour le même `user_id`
+- **Fix `end_turn_as_speaker`** (migration 007) : JOIN direct `tables → participants` via `current_speaker_id`, robuste quand plusieurs lignes existent pour le même `user_id`
 - **Fix erreurs `[object Object]`** dans `EntryScreen` : `extractErr` utilisé partout, `handleReclaim` simplifié (plus de requêtes post-RPC)
 
 ### ✅ Terminé — Prompt 8 : Optimisation latence
 
 - **Migration `20260521000000_end_turn_and_advance.sql`** : nouvelle fonction SECURITY DEFINER
-  `end_turn_and_advance(session_id)` — clôt le tour courant ET accorde la parole au suivant
+  `end_turn_and_advance(table_id)` — clôt le tour courant ET accorde la parole au suivant
   (interactive > long) en une seule transaction atomique. Élimine un aller-retour réseau complet
   sur chaque transition speaker→speaker.
-- **`endTurnAndAdvance` dans SessionContext** : appelle `end_turn_and_advance`, applique
+- **`endTurnAndAdvance` dans TableContext** : appelle `end_turn_and_advance`, applique
   immédiatement le jsonb retourné (timestamp serveur exact → pas de skew timer), broadcast pour
   les autres clients. Utilisé par ModeratorView ("Terminer") et ParticipantView ("J'ai fini").
-- **Mises à jour locales immédiates après RPC** dans `SessionContext` : `endTurn`,
+- **Mises à jour locales immédiates après RPC** dans `TableContext` : `endTurn`,
   `endTurnAsSpeaker`, `grantFloor`, `removeFromQueue` mettent à jour l'état local dès le retour
   du RPC, sans attendre le rebond du broadcast (~50–200 ms gagnés par action).
 - **`addToQueue`** : refetch `queue_entries` en fire-and-forget immédiatement après le RPC,
@@ -521,27 +523,27 @@ catch (e) { setErr(extractErr(e)) }
 ### ✅ Terminé — Prompt 9 : UX & corrections
 
 - **Bouton "Exporter"** dans le header modérateur : génère un CSV UTF-8 (BOM Excel) avec résumé
-  participants (tours, temps total) + historique détaillé des tours (`generateSessionCSV` dans `utils.ts`).
+  participants (tours, temps total) + historique détaillé des tours (`generateTableCSV` dans `utils.ts`).
   Téléchargement immédiat via `URL.createObjectURL`, fichier nommé `ecclesia_<joinCode>_<date>.csv`.
 - **Masquage "Parole en cours"** côté participant : la carte affichant l'orateur actuel est supprimée de
   `ParticipantView` — les participants ne voient que leurs propres boutons de file.
 - **Coupe file — précision** : sous-titre "Pour répondre à ce qui est dit actuellement uniquement" ajouté
   sur le bouton participant (props `sub`) et le QueuePanel modérateur (nouvelle prop `subtitle` optionnelle
   dans `QueuePanel`). Le panel "File longue" n'a pas de subtitle.
-- **Fix doublon participant Realtime** : le handler `INSERT` de `participants` dans `SessionContext` dédoublonne
+- **Fix doublon participant Realtime** : le handler `INSERT` de `participants` dans `TableContext` dédoublonne
   désormais — un upsert (`ON CONFLICT DO UPDATE`) peut déclencher un événement Realtime `INSERT` ; sans
   déduplication, le même participant apparaissait deux fois dans la liste.
-- **Fix restauration session (user_id check)** dans `App.tsx` : la restauration vérifie que
+- **Fix restauration table (user_id check)** dans `App.tsx` : la restauration vérifie que
   `participant.user_id === auth.uid()` avant de restaurer directement. Si l'auth anonyme a été renouvelé
-  (nouvel `user_id`), le flux tombe sur `join_session` qui relie le nouvel `auth.uid()` via `ON CONFLICT
+  (nouvel `user_id`), le flux tombe sur `join_table` qui relie le nouvel `auth.uid()` via `ON CONFLICT
   DO UPDATE SET user_id = EXCLUDED.user_id` — le participant existant est récupéré sans doublon.
 
 ### ✅ Terminé — Prompt 10 : Pause améliorée, timer continu, files participant, DnD position, fix doublon
 
 - **Bouton "Passer au suivant"** en état pause : l'admin peut sauter l'orateur pausé et accorder la parole au premier en file (interactive > longue). Si les files sont vides, retour à "Micro libre".
 - **Timer continu à la reprise** : `SpeakerTimer` accepte un `offsetMs?: number`. À la pause, `handlePause` capture le temps écoulé dans `timerOffset` (state). À la reprise, le chrono repart du temps cumulé (pas de remise à zéro). Double pause supportée (accumulation). `setTimerOffset(0)` appelé sur "Terminer" et "Passer au suivant".
-- **Fix doublon `queue_entries` Realtime** : le handler `INSERT` de `queue_entries` dans `SessionContext` dédoublonne désormais (même pattern que `participants`) — un `ON CONFLICT DO NOTHING` ou un refetch en double ne peut plus doubler une entrée dans la liste.
-- **DnD position** : migration `20260522000000` — `add_to_queue` accepte `p_position int DEFAULT NULL`. Quand `p_position` est fourni, les entrées existantes sont décalées et le participant est inséré à la position exacte. `addToQueue` dans `SessionContext` + `handleMasterDragEnd` dans `ModeratorView` transmettent la position.
+- **Fix doublon `queue_entries` Realtime** : le handler `INSERT` de `queue_entries` dans `TableContext` dédoublonne désormais (même pattern que `participants`) — un `ON CONFLICT DO NOTHING` ou un refetch en double ne peut plus doubler une entrée dans la liste.
+- **DnD position** : migration `20260522000000` — `add_to_queue` accepte `p_position int DEFAULT NULL`. Quand `p_position` est fourni, les entrées existantes sont décalées et le participant est inséré à la position exacte. `addToQueue` dans `TableContext` + `handleMasterDragEnd` dans `ModeratorView` transmettent la position.
 - **Files en lecture seule côté participant** : nouveau composant `ReadOnlyQueuePanel` (pas de DnD, affiche position + pseudo). Affiché dans `ParticipantView` après les boutons de demande de parole — visible sur mobile sans encombrer.
 - **Suppression "J'ai fini de parler"** : bouton retiré de `ParticipantView`. La bannière "Vous avez la parole !" reste. Seul l'admin gère la fin de tour via "Terminer la prise de parole".
 
@@ -561,9 +563,16 @@ catch (e) { setErr(extractErr(e)) }
 - **`intraQueueLastOverRef`** : nouveau ref capturant le dernier `over.id` valide (UUID de row, pas panel) dans `handleDragOver` intra-queue. Utilisé par `handleMasterDragEnd` en priorité sur `over.id` du drop event (qui peut être le panel ID → `newIndex = -1` → réordonnancement silencieusement ignoré). Réinitialisé au dragStart et dragCancel.
 - **Détection haut/bas abandonnée** : insérer avant ou après la row survolée selon la moitié verticale du curseur a été tenté via un listener `pointermove` global, puis via `delta.y` de `DragOverEvent`. Les deux approches se sont révélées non fiables (dnd-kit PointerSensor capture les events pointer avant les listeners externes ; `delta.y` seul ne reconstitue pas fidèlement la position absolue). Comportement retenu : insertion toujours en dernière position.
 
+### ✅ Terminé — Refactor B0 : Renommage `session` → `table`
+
+- **Migration SQL `20260526000000_rename_sessions_to_tables.sql`** : `ALTER TABLE sessions RENAME TO tables`, `session_id` → `table_id` dans `participants`, `queue_entries`, `speaking_turns`. Contraintes renommées, policies et fonctions SECURITY DEFINER recréées (`is_table_participant`, `create_table`, `join_table`, corps mis à jour pour les autres). Realtime publication mise à jour.
+- **TypeScript** : `Session` → `Table`, `SessionResult` → `TableResult`, `StoredSession` → `StoredTable`, `sessionStore` → `tableStore`, `useSession` → `useTable`, `SessionProvider` → `TableProvider`, `SessionContext.tsx` → `TableContext.tsx`, `SessionView.tsx` → `TableView.tsx`, `generateSessionCSV` → `generateTableCSV`, `leaveSession` → `leaveTable`, `endSession` → `endTable`, RPC `create_session` → `create_table`, `join_session` → `join_table`, params `p_session_id` → `p_table_id`, Supabase `.from('sessions')` → `.from('tables')`, filtres `session_id=eq.*` → `table_id=eq.*`, channel `session:*` → `table:*`.
+- **localStorage migration** : `tableStore.get()` lit d'abord `'ecclesia_table'`, migre silencieusement depuis `'ecclesia_session'` (mapping `sessionId` → `tableId`) — les utilisateurs existants ne sont pas déconnectés.
+- **Strings UI françaises conservées** : "Chargement de la session…", "Code de session", "Créer une session", "Terminer session", "Session introuvable" (messages SQL), `cell('Session')` (en-tête CSV).
+
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
-- Page 404 / session expirée élégante
+- Page 404 / table expirée élégante
 - Persistance de la pause après rechargement (localStorage)
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
 
@@ -613,12 +622,12 @@ Ces timestamps doivent être posés par `now()` côté PostgreSQL (dans
 modérateur corrige manuellement après coup.
 
 ### ❌ Créer un channel Realtime par abonnement
-Un seul channel par session, avec plusieurs `.on()` chaînés. Multiplier les
+Un seul channel par table, avec plusieurs `.on()` chaînés. Multiplier les
 channels consomme des connexions WebSocket inutiles.
 
-### ❌ Dériver `isModerator` de `session.created_by === userId` dans le rendu
+### ❌ Dériver `isModerator` de `table.created_by === userId` dans le rendu
 Incorrect dans un même navigateur où les deux onglets partagent le même
-`userId`. Utiliser `initialIsModerator` passé au `SessionProvider` depuis
+`userId`. Utiliser `initialIsModerator` passé au `TableProvider` depuis
 `localStorage`.
 
 ### ❌ Catcher les erreurs Supabase avec `String(e)` directement
@@ -636,7 +645,7 @@ de `current_speaker_id` dans le même cycle). Sans le flag `isGranting`, deux
 appels simultanés créent deux tours successifs non souhaités.
 
 ### ❌ Oublier `broadcast([...])` après une nouvelle action
-Toute nouvelle fonction d'action dans `SessionContext` doit appeler `broadcast`
+Toute nouvelle fonction d'action dans `TableContext` doit appeler `broadcast`
 après le RPC (sur succès uniquement). Sans ça, les autres clients ne reçoivent
 la mise à jour qu'au prochain polling (5 s de délai).
 
@@ -644,7 +653,7 @@ la mise à jour qu'au prochain polling (5 s de délai).
 Un upsert SQL (`INSERT ... ON CONFLICT DO UPDATE`) déclenche parfois un événement `INSERT` côté
 Supabase Realtime (plutôt que `UPDATE`). Ne jamais faire `prev => [...prev, n]` sans vérifier si
 `n.id` existe déjà dans `prev` — sinon le même participant apparaît deux fois dans la liste.
-Pattern correct (dans les handlers Realtime de `SessionContext`) :
+Pattern correct (dans les handlers Realtime de `TableContext`) :
 ```typescript
 if (eventType === 'INSERT')
   setParticipants(prev =>
@@ -655,9 +664,9 @@ if (eventType === 'INSERT')
 ```
 
 ### ❌ Chercher un participant par `WHERE user_id = auth.uid()` sans précaution
-Depuis migration 005, la contrainte `UNIQUE(session_id, user_id)` n'existe plus.
-Un même `user_id` peut avoir plusieurs lignes `participants` dans une session.
-Un `SELECT id INTO v_participant_id FROM participants WHERE session_id = x AND user_id = auth.uid()`
+Depuis migration 005, la contrainte `UNIQUE(table_id, user_id)` n'existe plus.
+Un même `user_id` peut avoir plusieurs lignes `participants` dans une table.
+Un `SELECT id INTO v_participant_id FROM participants WHERE table_id = x AND user_id = auth.uid()`
 sans `LIMIT 1` ou `ORDER BY` renvoie une ligne arbitraire → bugs silencieux.
 **Préférer** un JOIN direct sur `current_speaker_id` (voir `end_turn_as_speaker`)
 ou ajouter `LIMIT 1` avec un `ORDER BY created_at` explicite.

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSession, type CorrectTurnParams } from '../context/SessionContext'
+import { useTable, type CorrectTurnParams } from '../context/TableContext'
 import { toDateTimeLocal, fromDateTimeLocal, formatDuration } from '../lib/utils'
 import type { SpeakingTurn } from '../lib/types'
 
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function CorrectTurnModal({ onClose }: Props) {
-  const { speakingTurns, participants, correctTurn } = useSession()
+  const { speakingTurns, participants, correctTurn } = useTable()
   const [editing, setEditing] = useState<SpeakingTurn | null>(null)
   const [startedAt, setStartedAt] = useState('')
   const [endedAt, setEndedAt] = useState('')

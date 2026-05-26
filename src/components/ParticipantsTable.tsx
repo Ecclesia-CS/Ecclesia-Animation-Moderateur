@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
-import { useSession } from '../context/SessionContext'
+import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
 import SpeakerTimer from './SpeakerTimer'
 import ConfirmModal from './ConfirmModal'
-import type { Participant, Session } from '../lib/types'
+import type { Participant, Table } from '../lib/types'
 
 export default function ParticipantsTable() {
   const {
-    participants, speakingTurns, session, grantFloor,
+    participants, speakingTurns, table, grantFloor,
     kickParticipant, myParticipant,
-  } = useSession()
+  } = useTable()
   const now = useLiveMs()
   const [kickTarget, setKickTarget] = useState<Participant | null>(null)
   const [kickErr, setKickErr]       = useState<string | null>(null)
@@ -63,7 +63,7 @@ export default function ParticipantsTable() {
           {participants.map(p => {
             const ms         = totals.find(t => t.id === p.id)?.ms ?? 0
             const pct        = sessionTotal > 0 ? Math.round((ms / sessionTotal) * 100) : 0
-            const isSpeaking = session.current_speaker_id === p.id
+            const isSpeaking = table.current_speaker_id === p.id
             const isSelf     = p.id === myParticipant.id
             return (
               <DraggableRow
@@ -73,7 +73,7 @@ export default function ParticipantsTable() {
                 pct={pct}
                 isSpeaking={isSpeaking}
                 isSelf={isSelf}
-                session={session}
+                table={table}
                 onGrantFloor={() => grantFloor(p.id, 'manual')}
                 onKick={() => setKickTarget(p)}
               />
@@ -114,14 +114,14 @@ export default function ParticipantsTable() {
 // ── Draggable row ──────────────────────────────────────────────
 
 function DraggableRow({
-  p, ms, pct, isSpeaking, isSelf, session, onGrantFloor, onKick,
+  p, ms, pct, isSpeaking, isSelf, table, onGrantFloor, onKick,
 }: {
   p: Participant
   ms: number
   pct: number
   isSpeaking: boolean
   isSelf: boolean
-  session: Session
+  table: Table
   onGrantFloor(): void
   onKick(): void
 }) {
@@ -175,8 +175,8 @@ function DraggableRow({
 
       {/* Current turn */}
       <td className="px-4 py-3 text-right font-mono tabular-nums">
-        {isSpeaking && session.current_turn_started_at ? (
-          <SpeakerTimer startedAt={session.current_turn_started_at} className="text-amber-400 text-sm" />
+        {isSpeaking && table.current_turn_started_at ? (
+          <SpeakerTimer startedAt={table.current_turn_started_at} className="text-amber-400 text-sm" />
         ) : (
           <span className="text-slate-700">—</span>
         )}

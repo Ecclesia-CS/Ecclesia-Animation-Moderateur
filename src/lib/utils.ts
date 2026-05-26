@@ -1,4 +1,4 @@
-import type { Session, Participant, SpeakingTurn } from './types'
+import type { Table, Participant, SpeakingTurn } from './types'
 
 /** Extracts a human-readable message from any thrown value (Error, PostgrestError, string…). */
 export function extractErr(e: unknown): string {
@@ -24,9 +24,9 @@ export function fromDateTimeLocal(dtl: string): string {
   return new Date(dtl).toISOString()
 }
 
-/** Génère un CSV UTF-8 (avec BOM pour Excel) exportant session, participants et tours. */
-export function generateSessionCSV(
-  session: Session,
+/** Génère un CSV UTF-8 (avec BOM pour Excel) exportant table, participants et tours. */
+export function generateTableCSV(
+  table: Table,
   participants: Participant[],
   speakingTurns: SpeakingTurn[],
 ): string {
@@ -45,7 +45,7 @@ export function generateSessionCSV(
 
   // En-tête de session
   rows.push(cell('Ecclesia — Export débat'))
-  rows.push([cell('Session'), cell(session.join_code), cell('Créé le'), cell(session.created_at)].join(','))
+  rows.push([cell('Session'), cell(table.join_code), cell('Créé le'), cell(table.created_at)].join(','))
   rows.push('')
 
   // Résumé participants

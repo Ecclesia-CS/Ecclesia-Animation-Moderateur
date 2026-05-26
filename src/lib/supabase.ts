@@ -17,8 +17,8 @@ export async function signInAnonymously() {
   return data
 }
 
-// Shape returned by create_session and join_session (no hashes)
-export type SessionResult = {
+// Shape returned by create_table and join_table (no hashes)
+export type TableResult = {
   id: string
   join_code: string
   created_by: string

@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { sessionStore } from '../lib/storage'
+import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
-import type { SessionResult } from '../lib/supabase'
+import type { TableResult } from '../lib/supabase'
 
 type Mode = 'join' | 'reclaim' | 'create'
 
 interface Props {
   userId: string
-  onJoined(sessionId: string, participantId: string, isModerator: boolean): void
+  onJoined(tableId: string, participantId: string, isModerator: boolean): void
 }
 
 export default function EntryScreen({ onJoined }: Props) {
@@ -21,9 +21,9 @@ export default function EntryScreen({ onJoined }: Props) {
   const [creationCode, setCreationCode] = useState('')
   const [reclaimCode, setReclaimCode] = useState('')
 
-  function store(sessionId: string, participantId: string, jCode: string, isMod: boolean) {
-    sessionStore.set({ sessionId, participantId, joinCode: jCode, isModerator: isMod, pseudo })
-    onJoined(sessionId, participantId, isMod)
+  function store(tableId: string, participantId: string, jCode: string, isMod: boolean) {
+    tableStore.set({ tableId, participantId, joinCode: jCode, isModerator: isMod, pseudo })
+    onJoined(tableId, participantId, isMod)
   }
 
   async function handleJoin(e: React.FormEvent) {
@@ -31,12 +31,12 @@ export default function EntryScreen({ onJoined }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const { data, error: err } = await supabase.rpc('join_session', {
+      const { data, error: err } = await supabase.rpc('join_table', {
         p_join_code: joinCode,
         p_pseudo: pseudo,
       })
       if (err) throw err
-      const r = data as SessionResult
+      const r = data as TableResult
       store(r.id, r.participant_id, r.join_code, false)
     } catch (err) {
       setError(extractErr(err))
@@ -50,12 +50,12 @@ export default function EntryScreen({ onJoined }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const { data, error: err } = await supabase.rpc('create_session', {
+      const { data, error: err } = await supabase.rpc('create_table', {
         p_pseudo: pseudo,
         p_creation_code: creationCode,
       })
       if (err) throw err
-      const r = data as SessionResult
+      const r = data as TableResult
       store(r.id, r.participant_id, r.join_code, true)
     } catch (err) {
       setError(extractErr(err))
@@ -74,7 +74,7 @@ export default function EntryScreen({ onJoined }: Props) {
         p_moderator_code: reclaimCode,
       })
       if (err) throw err
-      const r = data as SessionResult
+      const r = data as TableResult
       store(r.id, r.participant_id, r.join_code, true)
     } catch (err) {
       setError(extractErr(err))
