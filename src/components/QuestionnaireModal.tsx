@@ -184,7 +184,10 @@ export default function QuestionnaireModal({ onClose }: Props) {
                       key={theme}
                       theme={theme}
                       value={themeRatings[theme] ?? null}
-                      onChange={v => setThemeRatings(prev => ({ ...prev, [theme]: v }))}
+                      onChange={v => setThemeRatings(prev => {
+                        if (v === null) { const next = { ...prev }; delete next[theme]; return next }
+                        return { ...prev, [theme]: v }
+                      })}
                     />
                   ))}
                 </div>
@@ -285,7 +288,7 @@ function ThemeRatingRow({
 }: {
   theme: string
   value: number | null
-  onChange: (v: number) => void
+  onChange: (v: number | null) => void
 }) {
   return (
     <div className="flex items-start gap-3">
@@ -294,7 +297,7 @@ function ThemeRatingRow({
         {[0, 1, 2, 3, 4, 5].map(n => (
           <button
             key={n}
-            onClick={() => onChange(n)}
+            onClick={() => onChange(value === n ? null : n)}
             className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors
               focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
               value === n
@@ -314,14 +317,14 @@ function RatingRow({
   value, onChange,
 }: {
   value: number | null
-  onChange: (v: number) => void
+  onChange: (v: number | null) => void
 }) {
   return (
     <div className="flex gap-2">
       {[0, 1, 2, 3, 4, 5].map(n => (
         <button
           key={n}
-          onClick={() => onChange(n)}
+          onClick={() => onChange(value === n ? null : n)}
           className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors
             focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
             value === n
