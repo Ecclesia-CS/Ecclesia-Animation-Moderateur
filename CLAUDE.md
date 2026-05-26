@@ -33,6 +33,7 @@ Fonctionnalités principales :
 - Drag & drop depuis la liste participants vers les files (modérateur) — stratégie `pointerWithin`
 - Exclusion de participant ("Exclure") avec confirmation
 - Vue participant : pas d'affichage de l'orateur en cours (les participants ne voient que leurs propres boutons)
+- **Questionnaire post-débat** : bouton dans le header des deux vues → modale avec 6 questions (idées de thèmes, vote 0-5 sur 26 thèmes en ordre aléatoire, staffing, note du débat, retour libre) ; réponses persistées en base (upsert par user+table)
 
 ---
 
@@ -138,6 +139,24 @@ un autre appareil en retapant le même pseudo.
 Contrainte : `UNIQUE (table_id, participant_id, queue_type)` — un participant ne
 peut être qu'une seule fois dans chaque file.
 
+### `questionnaire_responses`
+| Colonne | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `table_id` | uuid \| null | FK → `tables.id` ON DELETE SET NULL |
+| `session_id` | uuid \| null | FK → `sessions.id` ON DELETE SET NULL |
+| `user_id` | uuid NOT NULL | `auth.uid()` |
+| `theme_ideas` | text \| null | Idées de thèmes libres |
+| `theme_ratings` | jsonb DEFAULT '{}' | Notes 0-5 par thème `{ "thème": note }` |
+| `debate_attended` | text \| null | Débat auquel l'utilisateur a participé |
+| `debate_rating` | smallint \| null | Note globale 0-5 |
+| `staff_interest` | text \| null | Coordonnées si intérêt pour staffer |
+| `feedback` | text \| null | Retour libre |
+| `created_at` | timestamptz | |
+
+Index partiel unique `(user_id, table_id) WHERE table_id IS NOT NULL` — un user ne répond qu'une fois par table (upsert possible).
+RLS : SELECT `user_id = auth.uid()` ; INSERT/UPDATE uniquement via `submit_questionnaire` (SECURITY DEFINER).
+
 ### `speaking_turns`
 | Colonne | Type | Notes |
 |---|---|---|
@@ -227,6 +246,7 @@ propriétaire, pas du client) :
 | `close_session(password, session_id)` | B1 | Passe `phase = 'closed'`. Retourne la ligne `sessions`. |
 | `list_session_tables(password, session_id)` | B1.3 | Retourne les tables rattachées à une séance (id, join_code, moderator_pseudo, participant_count, is_active). SECURITY DEFINER — bypass RLS `tables`. |
 | `list_available_tables(password)` | B1.3 | Retourne les tables sans séance créées dans les 48h. Même structure que `list_session_tables`. |
+| `submit_questionnaire(table_id, session_id?, theme_ideas?, theme_ratings?, debate_attended?, debate_rating?, staff_interest?, feedback?)` | 003 questionnaire | Upsert `questionnaire_responses` pour `auth.uid()`. Conflit sur `(user_id, table_id)` → mise à jour. Retourne la ligne résultante. |
 
 ### REPLICA IDENTITY FULL
 
@@ -358,7 +378,9 @@ src/
 │   ├── ParticipantsTable.tsx Temps cumulés, drag handles (useDraggable), bouton Exclure
 │   ├── ParticipantsSidebar.tsx Liste présents en temps réel, variant dark/light
 │   ├── CorrectTurnModal.tsx  Historique des participations avec durée par tour
-│   └── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
+│   ├── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
+│   ├── QuestionnaireModal.tsx Formulaire post-débat (6 questions, 26 thèmes en ordre aléatoire, 5 visibles + "voir plus", upsert via RPC)
+│   └── QuestionnaireFab.tsx Bouton "Questionnaire post-débat" dans le header (rend QuestionnaireModal)
 └── App.tsx                  Machine à états : loading | entry | table + listener hashchange → SuperadminScreen sur `#superadmin`
 ```
 
@@ -694,6 +716,14 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 - **`src/App.tsx`** : listener `hashchange` → navigation hash réactive au clic (le check statique `window.location.hash` n'était évalué qu'au render initial)
 - **`src/screens/EntryScreen.tsx`** : lien "Administration" discret en bas de la carte d'entrée
 - **`src/screens/SuperadminScreen.tsx`** : bouton "← Retour" sur l'écran de mot de passe ET sur le header de la liste
+
+### ✅ Terminé — Questionnaire post-débat
+
+- **Migration `20260526000003_questionnaire.sql`** : table `questionnaire_responses`, index partiel unique `(user_id, table_id) WHERE table_id IS NOT NULL`, RLS SELECT (`user_id = auth.uid()`), fonction SECURITY DEFINER `submit_questionnaire` (upsert).
+- **`src/components/QuestionnaireModal.tsx`** : modale avec 6 questions dans l'ordre — idées de thèmes (texte libre), vote 0-5 sur 26 thèmes proposés, intérêt pour staffer, débat suivi, note globale 0-5, retour libre. Les 26 thèmes sont mélangés aléatoirement à chaque ouverture (`useMemo` + `sort(() => Math.random() - 0.5)`), 5 affichés initialement avec bouton "Voir plus". Pré-remplissage automatique si une réponse existe déjà. Fermeture via Escape, clic overlay, ou bouton ✕. Auto-close 2s après soumission.
+- **`src/components/QuestionnaireFab.tsx`** : composant bouton réutilisable (accept `className`) qui ouvre `QuestionnaireModal`. Label : "Questionnaire post-débat".
+- **`src/screens/ModeratorView.tsx`** et **`src/screens/ParticipantView.tsx`** : bouton "Questionnaire post-débat" ajouté dans le header (premier bouton à gauche du groupe d'actions pour le modérateur, à gauche de "Quitter" pour le participant), stylé comme les boutons existants.
+- **`src/lib/types.ts`** : interface `QuestionnaireResponse` ajoutée.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions

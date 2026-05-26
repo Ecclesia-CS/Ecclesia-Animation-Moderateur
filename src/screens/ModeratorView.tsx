@@ -24,6 +24,7 @@ import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import CorrectTurnModal from '../components/CorrectTurnModal'
 import ConfirmModal from '../components/ConfirmModal'
+import QuestionnaireBtn from '../components/QuestionnaireFab'
 
 export default function ModeratorView() {
   const {
@@ -423,6 +424,9 @@ export default function ModeratorView() {
 
           {/* Right: moderator badge + actions */}
           <div className="flex items-center gap-3 shrink-0">
+            <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+              focus:ring-2 focus:ring-slate-500" />
             <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-300">
               <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
               <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-0.5
@@ -742,6 +746,7 @@ export default function ModeratorView() {
           onCancel={() => setConfirmEnd(false)}
         />
       )}
+
     </div>
   )
 }

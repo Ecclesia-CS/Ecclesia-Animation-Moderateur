@@ -43,3 +43,17 @@ export interface SpeakingTurn {
   ended_at: string | null
   source: 'long' | 'interactive' | 'manual'
 }
+
+export interface QuestionnaireResponse {
+  id: string
+  table_id: string | null
+  session_id: string | null
+  user_id: string
+  theme_ideas: string | null
+  theme_ratings: Record<string, number>
+  debate_attended: string | null
+  debate_rating: number | null
+  staff_interest: string | null
+  feedback: string | null
+  created_at: string
+}
