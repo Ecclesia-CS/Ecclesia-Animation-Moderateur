@@ -1,6 +1,10 @@
 import logging
+import os
+import tempfile
 from dataclasses import dataclass
 from typing import List
+
+import av
 from pyannote.audio import Pipeline
 
 logger = logging.getLogger(__name__)
@@ -31,11 +35,29 @@ class Diarizer:
             logger.error("Impossible de charger le modèle de diarisation : %s", exc)
             self._pipeline = None
 
+    @staticmethod
+    def _to_wav(audio_path: str) -> str:
+        """Convertit n'importe quel format audio en WAV 16 kHz mono (requis par pyannote)."""
+        wav_fd, wav_path = tempfile.mkstemp(suffix='.wav')
+        os.close(wav_fd)
+        with av.open(audio_path) as src:
+            with av.open(wav_path, 'w', format='wav') as dst:
+                out_stream = dst.add_stream('pcm_s16le', rate=16000, layout='mono')
+                for frame in src.decode(audio=0):
+                    frame.pts = None
+                    for packet in out_stream.encode(frame):
+                        dst.mux(packet)
+                for packet in out_stream.encode(None):
+                    dst.mux(packet)
+        return wav_path
+
     def diarize(self, audio_path: str) -> List[DiarizationSegment]:
         if self._pipeline is None:
             return []
+        wav_path = None
         try:
-            diarization = self._pipeline(audio_path)
+            wav_path = self._to_wav(audio_path)
+            diarization = self._pipeline(wav_path)
             return [
                 DiarizationSegment(start=turn.start, end=turn.end, speaker=speaker)
                 for turn, _, speaker in diarization.itertracks(yield_label=True)
@@ -43,3 +65,9 @@ class Diarizer:
         except Exception as exc:
             logger.warning("Diarisation échouée : %s", exc)
             return []
+        finally:
+            if wav_path:
+                try:
+                    os.unlink(wav_path)
+                except FileNotFoundError:
+                    pass
