@@ -7,17 +7,12 @@
 -- ============================================================
 
 -- ── A. Supprimer les policies (bodies référencent sessions/session_id) ──
+-- Note : on drop uniquement sur 'sessions'. DROP POLICY IF EXISTS sur une table inexistante
+-- lève quand même 42P01 — donc pas de DROP ... ON tables ici (la table sera renommée en C).
 
 DROP POLICY IF EXISTS sessions_select ON sessions;
 DROP POLICY IF EXISTS sessions_update_moderator ON sessions;
 DROP POLICY IF EXISTS sessions_delete_moderator ON sessions;
--- En cas de relance partielle, ces policies peuvent déjà être sur 'tables'
-DROP POLICY IF EXISTS sessions_select ON tables;
-DROP POLICY IF EXISTS sessions_update_moderator ON tables;
-DROP POLICY IF EXISTS sessions_delete_moderator ON tables;
-DROP POLICY IF EXISTS tables_select ON tables;
-DROP POLICY IF EXISTS tables_update_moderator ON tables;
-DROP POLICY IF EXISTS tables_delete_moderator ON tables;
 
 DROP POLICY IF EXISTS participants_select ON participants;
 DROP POLICY IF EXISTS participants_insert ON participants;
@@ -836,7 +831,7 @@ BEGIN
 END;
 $$;
 
--- ── J. Mettre à jour la publication Realtime ──
-
-ALTER PUBLICATION supabase_realtime ADD TABLE tables;
--- participants, queue_entries, speaking_turns sont déjà publiées depuis migration 000
+-- ── J. Publication Realtime ──
+-- sessions était déjà dans supabase_realtime. Après le RENAME, PostgreSQL suit par OID :
+-- la publication référence automatiquement 'tables'. Pas d'ADD TABLE nécessaire.
+-- (Ajouter ADD TABLE tables ici causerait "relation already member of publication".)

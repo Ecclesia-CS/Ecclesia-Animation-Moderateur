@@ -5,6 +5,7 @@ import type { TableResult } from './lib/supabase'
 import { TableProvider } from './context/TableContext'
 import EntryScreen from './screens/EntryScreen'
 import TableView from './screens/TableView'
+import SuperadminScreen from './screens/SuperadminScreen'
 
 type AppPhase =
   | { type: 'loading' }
@@ -78,6 +79,11 @@ export default function App() {
     tableStore.clear()
     const userId = phase.type === 'table' ? phase.userId : ''
     setPhase({ type: 'entry', userId })
+  }
+
+  // Route /superadmin via hash — indépendant du flow principal
+  if (window.location.hash === '#superadmin') {
+    return <SuperadminScreen />
   }
 
   if (phase.type === 'loading') {

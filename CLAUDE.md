@@ -66,15 +66,28 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 
 ## Modèle de données
 
-Cinq tables dans le schéma `public`. Toutes ont RLS activé.
+Six tables dans le schéma `public`. Toutes ont RLS activé.
 
 ### `app_config`
 | Colonne | Type | Notes |
 |---|---|---|
-| `key` | text PK | Ex. `creation_code_hash` |
+| `key` | text PK | Ex. `creation_code_hash`, `superadmin_code_hash` |
 | `value` | text | Hash bcrypt — jamais retourné au client |
 
 Zéro politique RLS → accès total interdit hors fonctions SECURITY DEFINER.
+
+### `sessions`
+| Colonne | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `title` | text NOT NULL | Titre de la séance |
+| `description` | text \| null | Description optionnelle |
+| `scheduled_at` | timestamptz \| null | Date/heure prévue |
+| `join_code` | text \| null | 6 caractères hex uppercase, unique parmi non-fermées |
+| `phase` | text | `'draft'` \| `'voting'` \| `'allocating'` \| `'debating'` \| `'questionnaire'` \| `'closed'` |
+| `created_at` | timestamptz | |
+
+Index partiel `sessions_join_code_active_idx` sur `(join_code) WHERE phase != 'closed' AND join_code IS NOT NULL`.
 
 ### `tables`
 | Colonne | Type | Notes |
@@ -85,10 +98,12 @@ Zéro politique RLS → accès total interdit hors fonctions SECURITY DEFINER.
 | `current_speaker_id` | uuid \| null | FK → `participants.id` |
 | `current_turn_started_at` | timestamptz \| null | Timestamp serveur |
 | `created_at` | timestamptz | |
+| `session_id` | uuid \| null | FK → `sessions.id` ON DELETE SET NULL |
 
 Note : la colonne `moderator_code_hash` a été supprimée (migration 003). Il n'y
 a plus de code par table — la reprise de modération utilise le Code Ecclesia
 global (`app_config.creation_code_hash`).
+`session_id` est NULL par défaut : une table sans séance fonctionne exactement comme avant (non-régression B0).
 
 ### `participants`
 | Colonne | Type | Notes |
@@ -137,12 +152,13 @@ peut être qu'une seule fois dans chaque file.
 ```
 app_config (standalone)
 
-tables ──< participants ──< queue_entries
-       ──< speaking_turns
-       ──< participants (via current_speaker_id, nullable)
+sessions ──< tables ──< participants ──< queue_entries
+                    ──< speaking_turns
+                    ──< participants (via current_speaker_id, nullable)
 ```
 Toutes les suppressions en cascade depuis `tables` : supprimer une table
 nettoie automatiquement participants, queue_entries et speaking_turns.
+Supprimer une `sessions` pose `tables.session_id = NULL` (ON DELETE SET NULL) — les tables survivent.
 
 ---
 
@@ -153,22 +169,24 @@ Chaque navigateur reçoit un `user_id` UUID persistant via `signInAnonymously()`
 Pas d'email, pas de mot de passe, pas d'OTP. La clé anon Supabase est publique
 par conception — la sécurité repose entièrement sur RLS + SECURITY DEFINER.
 
-### Les deux codes et leur rôle
+### Les codes et leur rôle
 
 | Code | Stocké où | Utilisé pour |
 |---|---|---|
 | **Code Ecclesia** | `app_config.creation_code_hash` (bcrypt) | Créer une table ET reprendre la modération depuis un autre appareil |
 | **Code de table (join_code)** | `tables.join_code` (texte clair, 6 hex) | Rejoindre une table existante ; affiché sur le tableau de modération |
+| **Mot de passe superadmin** | `app_config.superadmin_code_hash` (bcrypt) | Gérer les séances (créer, attacher des tables, fermer) |
 
 Il n'y a plus de code modérateur par table (supprimé en migration 003).
 **Aucun hash ne quitte jamais la base.** Les fonctions SECURITY DEFINER les
-vérifient en base et retournent les données de table (jsonb) ou lèvent une exception.
+vérifient en base et retournent les données (jsonb ou objet) ou lèvent une exception.
 
 ### Row Level Security (RLS)
 
 | Table | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
 | `app_config` | ✗ (zéro politique) | ✗ | ✗ | ✗ |
+| `sessions` | public (`true`) | ✗ (via RPC) | ✗ (via RPC) | ✗ (via RPC) |
 | `tables` | participant de la table | ✗ (via RPC) | modérateur | modérateur |
 | `participants` | participant de la table | `user_id = auth.uid()` | — | — |
 | `queue_entries` | participant de la table | soi-même ou modérateur | modérateur | soi-même ou modérateur |
@@ -201,6 +219,12 @@ propriétaire, pas du client) :
 | `reorder_queue_entry(entry_id, new_position)` | 002 | Déplace atomiquement une entrée à une position arbitraire en décalant les voisins |
 | `kick_participant(table_id, participant_id)` | 004 | Exclut un participant : vérifie que l'appelant est modérateur, clôt son tour si actif, supprime sa ligne (cascade queue + turns) |
 | `end_turn_and_advance(table_id)` | 008 | Clôt le tour courant ET accorde la parole au suivant (interactive > long) en une transaction atomique. Appelable par le modérateur OU l'orateur actuel. Retourne jsonb `{ current_speaker_id, current_turn_started_at, removed_queue_entry_id }` pour mise à jour locale immédiate côté client. |
+| `generate_session_join_code()` | B1 | Helper interne — génère un join_code 6 hex unique parmi les séances non-fermées (retry max 10). |
+| `check_superadmin_password(password)` | B1 | Helper interne — vérifie `app_config.superadmin_code_hash` via bcrypt, lève exception si faux. |
+| `create_session(password, title, description?, scheduled_at?)` | B1 | Crée une séance avec join_code généré. Retourne la ligne `sessions`. |
+| `attach_table_to_session(password, table_id, session_id)` | B1 | Rattache une table à une séance. Retourne la ligne `tables`. |
+| `detach_table_from_session(password, table_id)` | B1 | Détache une table de sa séance (`session_id = NULL`). Retourne la ligne `tables`. |
+| `close_session(password, session_id)` | B1 | Passe `phase = 'closed'`. Retourne la ligne `sessions`. |
 
 ### REPLICA IDENTITY FULL
 
@@ -301,6 +325,7 @@ Les `postgres_changes` sont conservés en parallèle pour les événements DELET
 | `correctTurn` | `speaking_turns` |
 | `kickParticipant` | `tables, participants, queue_entries, speaking_turns` |
 | `endTable` | — (DELETE Realtime suffit) |
+| `createSession` / `closeSession` / `attachTableToSession` / `detachTableFromSession` | — (Realtime `sessions` suffit ; pas de broadcast dédié) |
 
 ---
 
@@ -310,7 +335,8 @@ Les `postgres_changes` sont conservés en parallèle pour les événements DELET
 src/
 ├── lib/
 │   ├── supabase.ts          Client Supabase (anon key depuis .env)
-│   ├── types.ts             Interfaces Table, Participant, QueueEntry, SpeakingTurn
+│   ├── types.ts             Interfaces Session, Table, Participant, QueueEntry, SpeakingTurn
+│   ├── sessions.ts          Wrappers RPC séances : createSession, attachTableToSession, detachTableFromSession, closeSession
 │   ├── storage.ts           tableStore.get/set/clear (localStorage)
 │   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateTableCSV
 ├── hooks/
@@ -406,6 +432,63 @@ catch (e) { setErr(extractErr(e)) }
 // ✗ NE PAS faire : e instanceof Error ? e.message : String(e)
 //   (String(e) sur un PostgrestError donne "[object Object]")
 ```
+
+---
+
+## Niveau séance (B1)
+
+### Concept
+
+Une **séance** (`sessions`) est un conteneur optionnel qui regroupe plusieurs tables de débat
+(= une soirée, un sujet). Une table peut exister sans séance — comportement B0 inchangé.
+
+### Relation
+
+```
+sessions (1) ──< (0..n) tables
+```
+
+`tables.session_id` est NULL par défaut. `ON DELETE SET NULL` : supprimer une séance libère les
+tables sans les effacer.
+
+### Auth superadmin
+
+Le superadmin est un rôle sans compte Supabase nominatif (B2). Il s'authentifie via un mot de
+passe distinct du Code Ecclesia, vérifié côté PostgreSQL :
+
+- Stocké hashé (bcrypt) dans `app_config` sous la clé `superadmin_code_hash`
+- Même modèle de sécurité que `creation_code_hash` (zéro RLS, SECURITY DEFINER uniquement)
+- Le client saisit le mot de passe dans l'UI (B1.2) et l'envoie à chaque appel RPC — il n'est
+  jamais stocké côté navigateur
+
+Pour définir ou changer le mot de passe superadmin (via SQL Editor Supabase) :
+```sql
+INSERT INTO app_config (key, value)
+VALUES ('superadmin_code_hash', crypt('MON_MOT_DE_PASSE', gen_salt('bf')))
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+```
+
+### Fonctions RPC disponibles (migration B1)
+
+| Fonction | Rôle |
+|---|---|
+| `create_session(password, title, description?, scheduled_at?)` | Crée une séance, génère un join_code |
+| `attach_table_to_session(password, table_id, session_id)` | Rattache une table à une séance |
+| `detach_table_from_session(password, table_id)` | Détache une table (session_id → NULL) |
+| `close_session(password, session_id)` | Ferme une séance (phase → 'closed') |
+
+### Phases déclarées
+
+`draft` → `voting` → `allocating` → `debating` → `questionnaire` → `closed`
+
+En B1, seuls `draft` (à la création) et `closed` (via `close_session`) sont utilisés.
+Les autres valeurs sont déclarées pour préparer les chantiers futurs.
+
+### Wrappers TypeScript
+
+`src/lib/sessions.ts` expose `createSession`, `attachTableToSession`, `detachTableFromSession`,
+`closeSession`. Chaque fonction prend le mot de passe en premier argument et retourne le type
+`Session` ou `Table` depuis `src/lib/types.ts`.
 
 ---
 
@@ -570,11 +653,21 @@ catch (e) { setErr(extractErr(e)) }
 - **localStorage migration** : `tableStore.get()` lit d'abord `'ecclesia_table'`, migre silencieusement depuis `'ecclesia_session'` (mapping `sessionId` → `tableId`) — les utilisateurs existants ne sont pas déconnectés.
 - **Strings UI françaises conservées** : "Chargement de la session…", "Code de session", "Créer une session", "Terminer session", "Session introuvable" (messages SQL), `cell('Session')` (en-tête CSV).
 
+### ✅ Terminé — B1 : Schéma sessions (séances)
+
+- **Migration SQL `20260526000001_sessions_schema.sql`** : table `sessions`, colonne `tables.session_id` (NULL par défaut), RLS SELECT public, index partiel unicité join_code parmi non-fermées, helpers `generate_session_join_code` / `check_superadmin_password`, fonctions SECURITY DEFINER `create_session` / `attach_table_to_session` / `detach_table_from_session` / `close_session`, publication Realtime.
+- **`src/lib/types.ts`** : ajout interface `Session`, ajout `session_id: string | null` sur `Table`.
+- **`src/lib/sessions.ts`** : wrappers typés pour les 4 RPC superadmin.
+- **`.env.example`** : hint `VITE_ECCLESIA_SUPERADMIN_PASSWORD_HINT`.
+- **`CLAUDE.md`** : section "Niveau séance (B1)", mise à jour modèle de données, relations, RLS, fonctions, broadcast mapping.
+- ⚠️ **Action manuelle requise après merge** : définir le vrai mot de passe superadmin via SQL Editor (`INSERT INTO app_config ... ON CONFLICT DO UPDATE`).
+
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
 - Page 404 / table expirée élégante
 - Persistance de la pause après rechargement (localStorage)
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
+- B1.2 : UI superadmin (créer/gérer séances)
 
 ---
 

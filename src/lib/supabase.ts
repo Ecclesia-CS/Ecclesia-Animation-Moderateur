@@ -25,5 +25,6 @@ export type TableResult = {
   current_speaker_id: string | null
   current_turn_started_at: string | null
   created_at: string
+  session_id: string | null
   participant_id: string
 }

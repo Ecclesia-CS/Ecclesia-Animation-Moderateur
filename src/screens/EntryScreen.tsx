@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
@@ -20,6 +20,18 @@ export default function EntryScreen({ onJoined }: Props) {
   const [joinCode, setJoinCode] = useState('')
   const [creationCode, setCreationCode] = useState('')
   const [reclaimCode, setReclaimCode] = useState('')
+  const [selectedSessionId, setSelectedSessionId] = useState('')
+  const [availableSessions, setAvailableSessions] = useState<{ id: string; title: string }[]>([])
+
+  useEffect(() => {
+    if (mode !== 'create') return
+    supabase
+      .from('sessions')
+      .select('id, title')
+      .in('phase', ['draft', 'voting', 'debating'])
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setAvailableSessions(data) })
+  }, [mode])
 
   function store(tableId: string, participantId: string, jCode: string, isMod: boolean) {
     tableStore.set({ tableId, participantId, joinCode: jCode, isModerator: isMod, pseudo })
@@ -53,6 +65,7 @@ export default function EntryScreen({ onJoined }: Props) {
       const { data, error: err } = await supabase.rpc('create_table', {
         p_pseudo: pseudo,
         p_creation_code: creationCode,
+        p_session_id: selectedSessionId || null,
       })
       if (err) throw err
       const r = data as TableResult
@@ -143,6 +156,25 @@ export default function EntryScreen({ onJoined }: Props) {
                 placeholder="Alice" />
               <Field label="Code Ecclesia" value={creationCode}
                 onChange={setCreationCode} type="password" placeholder="••••••••" />
+              {availableSessions.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Rattacher à une séance <span className="text-gray-400 font-normal">(optionnel)</span>
+                  </label>
+                  <select
+                    value={selectedSessionId}
+                    onChange={e => setSelectedSessionId(e.target.value)}
+                    className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                      bg-white transition-shadow"
+                  >
+                    <option value="">— Aucune séance —</option>
+                    {availableSessions.map(s => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <Btn loading={loading} label="Créer la session" />
             </form>
           )}

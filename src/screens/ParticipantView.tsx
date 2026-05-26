@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTable } from '../context/TableContext'
+import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
@@ -19,6 +20,17 @@ export default function ParticipantView() {
   const [err,                setErr]                = useState<string | null>(null)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
+  const [sessionTitle,       setSessionTitle]       = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!table.session_id) return
+    supabase
+      .from('sessions')
+      .select('title')
+      .eq('id', table.session_id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setSessionTitle(data.title) })
+  }, [table.session_id])
 
   const iAmSpeaking   = table.current_speaker_id === myParticipant.id
   const myLong        = queueLong.find(e => e.participant_id === myParticipant.id)
@@ -47,10 +59,15 @@ export default function ParticipantView() {
 
       {/* ── Header ───────────────────────────────────────────── */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <span className="font-mono font-bold text-indigo-600 text-lg tracking-widest">
-          {table.join_code}
-        </span>
-        <span className="text-sm text-gray-500">{myParticipant.pseudo}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="font-mono font-bold text-indigo-600 text-lg tracking-widest leading-tight">
+            {table.join_code}
+          </span>
+          {sessionTitle && (
+            <span className="text-xs text-gray-400 truncate max-w-[140px]">{sessionTitle}</span>
+          )}
+        </div>
+        <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
         <button
           onClick={leaveTable}
           className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg

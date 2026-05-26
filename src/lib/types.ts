@@ -1,3 +1,13 @@
+export interface Session {
+  id: string
+  title: string
+  description: string | null
+  scheduled_at: string | null
+  join_code: string | null
+  phase: 'draft' | 'voting' | 'allocating' | 'debating' | 'questionnaire' | 'closed'
+  created_at: string
+}
+
 export interface Table {
   id: string
   join_code: string
@@ -5,6 +15,7 @@ export interface Table {
   current_speaker_id: string | null
   current_turn_started_at: string | null
   created_at: string
+  session_id: string | null
 }
 
 export interface Participant {
