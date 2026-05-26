@@ -353,7 +353,7 @@ Le `<DndContext>` est dans `ModeratorView` (englobant `<main>`). Il y a deux typ
 - `useDraggable({ id: 'p-' + p.id, data: { type: 'participant', participantId } })` — lignes de `ParticipantsTable`
 - `useSortable({ data: { type: 'queue-entry', queueType } })` — entrées de file, réordonnables
 
-**Stratégie de collision** : `pointerWithin` uniquement, **sans fallback** `closestCenter`. Retourner `[]` quand le curseur est hors de tout droppable évite le snap parasite vers la première row (ce qui plaçait l'item en position 1 par défaut). La position d'insertion utilise la **moitié verticale** de la row survolée (`cursorYRef.current > over.rect.top + over.rect.height / 2` → insérer après ; sinon avant).
+**Stratégie de collision** : `pointerWithin` uniquement, **sans fallback** `closestCenter`. Retourner `[]` quand le curseur est hors de tout droppable évite le snap parasite vers la première row (ce qui plaçait l'item en position 1 par défaut). Désormais, drop hors panel = ignoré ; drop sur le panel ou une row = insertion en **dernière position** par défaut. La détection haut/bas (insérer avant ou après la row survolée selon la moitié verticale) a été tentée via `pointermove` global puis via `delta.y` de `DragOverEvent`, mais les deux approches se sont révélées non fiables avec dnd-kit (PointerSensor capture les events pointer avant qu'ils n'atteignent les listeners externes ; `delta.y` seul ne permet pas de reconstituer fidèlement la position absolue du curseur). Cette fonctionnalité a été abandonnée.
 
 #### DnD optimiste — état local pendant le drag
 
@@ -555,11 +555,11 @@ catch (e) { setErr(extractErr(e)) }
 - **Migration `20260522000000`** : `add_to_queue` accepte `p_position int DEFAULT NULL` (suppression de l'ancien overload 3-params via DROP FUNCTION pour éviter l'ambiguïté PostgreSQL). `changeQueueType` dans `SessionContext` transmet également la position.
 - **`DragOverlay`** : affiche le nom du draggable (participant ou entrée de file) dans une pastille flottante pendant tout le drag.
 
-### ✅ Terminé — Prompt 12 : Fix DnD — position précise + défaut en dernier
+### ✅ Terminé — Prompt 12 : Fix DnD — suppression closestCenter + défaut en dernier
 
-- **Suppression du fallback `closestCenter`** : quand le curseur est hors de tout droppable, `pointerWithin` retourne `[]` et `handleDragOver` ne se déclenche pas. Avant, `closestCenter` sélectionnait quasi-systématiquement la première row (curseur arrivant par le haut) → l'item atterrissait toujours en position 1 par défaut. Désormais, drop hors panel = ignoré ; drop sur le panel vide = dernier (= seul).
-- **Détection haut/bas** : dans `handleDragOver`, `cursorYRef.current` (mis à jour par un listener `pointermove` global) est comparé au centre vertical de `over.rect` pour insérer AVANT (moitié haute) ou APRÈS (moitié basse) la row survolée. Élimine l'off-by-1 quand le curseur est dans la moitié basse d'une row. Pour mettre en dernier : survoler la moitié basse du dernier item → insère après lui.
+- **Suppression du fallback `closestCenter`** : quand le curseur est hors de tout droppable, `pointerWithin` retourne `[]` et `handleDragOver` ne se déclenche pas. Avant, `closestCenter` sélectionnait quasi-systématiquement la première row → l'item atterrissait toujours en position 1 par défaut. Désormais, drop hors panel = ignoré ; drop sur le panel ou une row = insertion en dernière position.
 - **`intraQueueLastOverRef`** : nouveau ref capturant le dernier `over.id` valide (UUID de row, pas panel) dans `handleDragOver` intra-queue. Utilisé par `handleMasterDragEnd` en priorité sur `over.id` du drop event (qui peut être le panel ID → `newIndex = -1` → réordonnancement silencieusement ignoré). Réinitialisé au dragStart et dragCancel.
+- **Détection haut/bas abandonnée** : insérer avant ou après la row survolée selon la moitié verticale du curseur a été tenté via un listener `pointermove` global, puis via `delta.y` de `DragOverEvent`. Les deux approches se sont révélées non fiables (dnd-kit PointerSensor capture les events pointer avant les listeners externes ; `delta.y` seul ne reconstitue pas fidèlement la position absolue). Comportement retenu : insertion toujours en dernière position.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
