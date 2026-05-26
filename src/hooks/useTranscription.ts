@@ -50,11 +50,7 @@ export function useTranscription(
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
-    await new Promise<void>((resolve, reject) => {
-      ws.onopen = () => { setConnected(true); resolve() }
-      ws.onerror = () => reject(new Error('WebSocket connection failed'))
-    })
-
+    // Persistent handlers for ongoing connection management
     ws.onclose = () => {
       setConnected(false)
       setIsRecording(false)
@@ -62,6 +58,33 @@ export function useTranscription(
     ws.onerror = () => {
       setConnected(false)
       setIsRecording(false)
+    }
+
+    // Wait for connection — use a connection-specific timeout
+    try {
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          const origOnOpen = ws.onopen
+          const origOnError = ws.onerror
+          ws.onopen = () => {
+            ws.onopen = origOnOpen
+            ws.onerror = origOnError
+            setConnected(true)
+            resolve()
+          }
+          ws.onerror = () => {
+            ws.onopen = origOnOpen
+            ws.onerror = origOnError
+            reject(new Error('WebSocket connection failed'))
+          }
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('WebSocket connection timeout')), 8000)
+        ),
+      ])
+    } catch {
+      cleanup()
+      return
     }
 
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -79,7 +102,7 @@ export function useTranscription(
 
     recorder.start(CHUNK_DURATION_MS)
     setIsRecording(true)
-  }, [backendUrl, group])
+  }, [backendUrl, group, cleanup])
 
   const stop = useCallback(() => {
     cleanup()
