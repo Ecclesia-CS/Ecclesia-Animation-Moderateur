@@ -492,7 +492,8 @@ export default function ModeratorView() {
                     disabled={isRecording}
                     className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
                       text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                      focus:ring-2 focus:ring-slate-500 flex items-center gap-1.5"
+                      focus:ring-2 focus:ring-slate-500 flex items-center gap-1.5
+                      disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     🎙 Transcription
                   </button>
