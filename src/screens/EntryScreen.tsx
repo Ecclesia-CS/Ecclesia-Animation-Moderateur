@@ -195,6 +195,15 @@ export default function EntryScreen({ onJoined }: Props) {
             </div>
           )}
         </div>
+
+        <div className="pb-4 text-center">
+          <a
+            href="#superadmin"
+            className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
+          >
+            Administration
+          </a>
+        </div>
       </div>
     </div>
   )

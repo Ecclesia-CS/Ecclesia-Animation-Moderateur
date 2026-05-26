@@ -14,6 +14,13 @@ type AppPhase =
 
 export default function App() {
   const [phase, setPhase] = useState<AppPhase>({ type: 'loading' })
+  const [hash, setHash] = useState(window.location.hash)
+
+  useEffect(() => {
+    const handler = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', handler)
+    return () => window.removeEventListener('hashchange', handler)
+  }, [])
 
   useEffect(() => {
     async function init() {
@@ -82,7 +89,7 @@ export default function App() {
   }
 
   // Route /superadmin via hash — indépendant du flow principal
-  if (window.location.hash === '#superadmin') {
+  if (hash === '#superadmin') {
     return <SuperadminScreen />
   }
 

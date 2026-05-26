@@ -211,7 +211,17 @@ export default function SuperadminScreen() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => { window.location.hash = '' }}
+            className="shrink-0 text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Retour
+          </button>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
