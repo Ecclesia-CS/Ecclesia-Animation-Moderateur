@@ -171,7 +171,18 @@ export default function SuperadminScreen() {
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="w-full max-w-md">
+          <button
+            onClick={() => { window.location.hash = '' }}
+            className="mb-3 text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Retour
+          </button>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 pt-7 pb-2 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none"
@@ -201,6 +212,7 @@ export default function SuperadminScreen() {
               </div>
             )}
           </form>
+        </div>
         </div>
       </div>
     )
