@@ -25,6 +25,11 @@ from transcriber import Transcriber
 from diarizer import Diarizer
 from speaker_tracker import SpeakerTracker
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
 load_dotenv()
 HF_TOKEN = os.getenv("HF_TOKEN")
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "./transcripts"))
@@ -73,8 +78,13 @@ app.add_middleware(
 )
 
 # Initialisation une seule fois au démarrage (téléchargement des modèles)
+logger.info("Chargement du modèle Whisper…")
 transcriber = Transcriber()
+logger.info("Whisper prêt.")
+
+logger.info("Chargement du modèle de diarisation (HF_TOKEN=%s)…", "présent" if HF_TOKEN else "ABSENT")
 diarizer = Diarizer(HF_TOKEN)
+logger.info("Diariseur prêt.")
 
 CHUNK_DURATION = 12.0
 OVERLAP = 1.0
