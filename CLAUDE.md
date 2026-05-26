@@ -252,6 +252,7 @@ propriétaire, pas du client) :
 | `list_available_tables(password)` | B1.3 | Retourne les tables sans séance créées dans les 48h. Même structure que `list_session_tables`. |
 | `submit_questionnaire(table_id, session_id?, theme_ideas?, theme_ratings?, debate_attended?, debate_rating?, staff_interest?, feedback?)` | 003 questionnaire | Upsert `questionnaire_responses` pour `auth.uid()`. Conflit sur `(user_id, table_id)` → mise à jour. Retourne la ligne résultante. |
 | `update_session_docs(password, session_id, doc_info_url?, doc_summary_url?, doc_collab_url?)` | session_docs | Met à jour les 3 URLs de documentation d'une séance (NULL = vide le champ). Retourne la ligne `sessions`. |
+| `get_questionnaire_responses(password, session_id?)` | questionnaire_export | Retourne toutes les réponses au questionnaire (bypass RLS) avec JOIN sessions + tables. Si `session_id` fourni, filtre sur la séance ; sinon retourne tout. |
 
 ### REPLICA IDENTITY FULL
 
@@ -362,9 +363,9 @@ src/
 ├── lib/
 │   ├── supabase.ts          Client Supabase (anon key depuis .env)
 │   ├── types.ts             Interfaces Session, Table, Participant, QueueEntry, SpeakingTurn
-│   ├── sessions.ts          Wrappers RPC séances : verifyPassword, createSession, closeSession, attachTableToSession, detachTableFromSession, listSessionTables, listAvailableTables — type SessionTableRow
+│   ├── sessions.ts          Wrappers RPC séances : verifyPassword, createSession, closeSession, attachTableToSession, detachTableFromSession, listSessionTables, listAvailableTables, getQuestionnaireResponses — types SessionTableRow
 │   ├── storage.ts           tableStore.get/set/clear (localStorage)
-│   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateTableCSV
+│   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateTableCSV, generateQuestionnaireCSV, QUESTIONNAIRE_THEMES
 ├── hooks/
 │   └── useLiveMs.ts         setInterval 500ms → Date.now()
 ├── context/
@@ -741,10 +742,17 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 - **`src/screens/ModeratorView.tsx`** : fetch ajouté (`doc_info_url, doc_summary_url, doc_collab_url`). `DocumentationButton` dans le header (premier bouton).
 - **`src/screens/EntryScreen.tsx`** : dropdown séances charge `doc_collab_url` ; si la séance sélectionnée a un lien collaboratif, un lien "Document collaboratif de cette séance →" apparaît sous le dropdown — accessible avant de rejoindre.
 
+### ✅ Terminé — Export CSV questionnaires (superadmin)
+
+- **Migration `20260527000000_questionnaire_export.sql`** : fonction SECURITY DEFINER `get_questionnaire_responses(password, session_id?)` — bypass RLS, JOIN `sessions` + `tables`, filtre optionnel par séance.
+- **`src/lib/types.ts`** : interface `QuestionnaireExportRow` (shape retourné par la RPC, avec `session_title` et `table_join_code` joints).
+- **`src/lib/sessions.ts`** : wrapper `getQuestionnaireResponses(password, sessionId?)`.
+- **`src/lib/utils.ts`** : constante `QUESTIONNAIRE_THEMES` (liste des 26 thèmes) + `generateQuestionnaireCSV(rows)` — CSV UTF-8 BOM, colonnes : Date, Séance, Code table, Débat suivi, Note débat, Idées de thèmes, Intérêt staffing, Retour libre, puis une colonne par thème.
+- **`src/screens/SuperadminScreen.tsx`** : bouton **"Questionnaires"** (icône téléchargement, couleur teal) dans le header de `SessionDetail` — déclenche la RPC, génère et télécharge le CSV immédiatement.
+
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
 - Page 404 / table expirée élégante
-- Persistance de la pause après rechargement (localStorage)
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
 
 ---

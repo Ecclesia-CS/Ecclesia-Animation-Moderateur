@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession,
   attachTableToSession, detachTableFromSession,
   listSessionTables, listAvailableTables, updateSessionDocs,
+  getQuestionnaireResponses,
 } from '../lib/sessions'
 import type { SessionTableRow } from '../lib/sessions'
 import type { Session } from '../lib/types'
@@ -604,6 +605,7 @@ function SessionDetail({
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
+  const [exporting,       setExporting]       = useState(false)
 
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
@@ -707,6 +709,33 @@ function SessionDetail({
     }
   }
 
+  async function handleExportQuestionnaires() {
+    const password = getPwd()!
+    setExporting(true)
+    setError(null)
+    try {
+      const rows = await getQuestionnaireResponses(password, session.id)
+      const csv  = generateQuestionnaireCSV(rows)
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      const slug = session.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)
+      a.download = `ecclesia_questionnaires_${slug}_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setError(msg)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-4">
@@ -730,6 +759,26 @@ function SessionDetail({
               <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
             )}
           </div>
+          <button
+            onClick={handleExportQuestionnaires}
+            disabled={exporting}
+            className="shrink-0 flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium
+              border border-teal-200 rounded-lg text-teal-700 hover:bg-teal-50
+              transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Télécharger les réponses au questionnaire (CSV)"
+          >
+            {exporting ? (
+              <Spinner />
+            ) : (
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            )}
+            {exporting ? 'Export…' : 'Questionnaires'}
+          </button>
         </div>
         {(session.description || session.scheduled_at) && (
           <div className="max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-gray-400 space-y-0.5">

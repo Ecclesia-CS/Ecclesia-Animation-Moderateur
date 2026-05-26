@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { Session, Table } from './types'
+import { Session, Table, QuestionnaireExportRow } from './types'
 import { extractErr } from './utils'
 
 export type SessionTableRow = {
@@ -114,4 +114,16 @@ export async function listAvailableTables(
   })
   if (error) throw new Error(extractErr(error))
   return (data as SessionTableRow[]) ?? []
+}
+
+export async function getQuestionnaireResponses(
+  password: string,
+  sessionId?: string,
+): Promise<QuestionnaireExportRow[]> {
+  const { data, error } = await supabase.rpc('get_questionnaire_responses', {
+    p_password:   password,
+    p_session_id: sessionId ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as QuestionnaireExportRow[]) ?? []
 }

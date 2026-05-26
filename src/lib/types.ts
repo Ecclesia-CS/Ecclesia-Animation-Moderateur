@@ -60,3 +60,19 @@ export interface QuestionnaireResponse {
   feedback: string | null
   created_at: string
 }
+
+/** Ligne retournée par get_questionnaire_responses (export superadmin) */
+export interface QuestionnaireExportRow {
+  id: string
+  created_at: string
+  session_id: string | null
+  session_title: string | null
+  table_id: string | null
+  table_join_code: string | null
+  debate_attended: string | null
+  debate_rating: number | null
+  theme_ideas: string | null
+  theme_ratings: Record<string, number>
+  staff_interest: string | null
+  feedback: string | null
+}
