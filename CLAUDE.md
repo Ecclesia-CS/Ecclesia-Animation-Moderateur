@@ -207,12 +207,12 @@ propriétaire, pas du client) :
 | Fonction | Migration | Rôle |
 |---|---|---|
 | `is_table_participant(uuid)` | 000 | Helper RLS anti-récursion |
-| `create_table(pseudo, creation_code)` | 003 | Vérifie le Code Ecclesia, génère join_code, crée table + participant (2 args, ancienne version 3 args supprimée) |
+| `create_table(pseudo, creation_code, session_id?)` | 003/B1.3 | Vérifie le Code Ecclesia, génère join_code, crée table + participant. `p_session_id uuid DEFAULT NULL` — rattache optionnellement à une séance à la création. |
 | `join_table(join_code, pseudo)` | 005 | Conflit sur `(table_id, pseudo)` → transfère `user_id` au nouvel appelant (retour depuis autre appareil) |
 | `reclaim_moderator(join_code, creation_code)` | 006 | Retourne jsonb (même shape que join_table). Lève exception si table introuvable ou code incorrect. Corrige le conflit sur pseudo (migration 005) |
 | `grant_floor(table_id, participant_id, source)` | 001 | Atomique : clôt tour ouvert, défile, ouvre nouveau tour, met à jour table |
 | `end_turn(table_id)` | 001 | Pose `ended_at = now()`, vide `current_speaker_id` — modérateur uniquement |
-| `add_to_queue(table_id, participant_id, queue_type)` | 001 | `MAX(position)+1` atomique, idempotent (`ON CONFLICT DO NOTHING`) |
+| `add_to_queue(table_id, participant_id, queue_type, position?)` | 001/010 | `MAX(position)+1` atomique, idempotent. Si `p_position` fourni, décale les entrées existantes et insère à la position exacte (DnD). |
 | `move_queue_entry(entry_id, direction)` | 001 | Swap de positions avec l'entrée adjacente |
 | `correct_turn(turn_id, started_at, ended_at, participant_id)` | 001 | `COALESCE(param, existing)` — NULL = ne pas modifier |
 | `end_turn_as_speaker(table_id)` | 007 | Comme `end_turn` mais appelable par l'orateur lui-même. Utilise un JOIN `tables → participants` via `current_speaker_id` pour éviter l'ambiguïté quand plusieurs lignes existent pour le même `user_id` |
@@ -225,6 +225,8 @@ propriétaire, pas du client) :
 | `attach_table_to_session(password, table_id, session_id)` | B1 | Rattache une table à une séance. Retourne la ligne `tables`. |
 | `detach_table_from_session(password, table_id)` | B1 | Détache une table de sa séance (`session_id = NULL`). Retourne la ligne `tables`. |
 | `close_session(password, session_id)` | B1 | Passe `phase = 'closed'`. Retourne la ligne `sessions`. |
+| `list_session_tables(password, session_id)` | B1.3 | Retourne les tables rattachées à une séance (id, join_code, moderator_pseudo, participant_count, is_active). SECURITY DEFINER — bypass RLS `tables`. |
+| `list_available_tables(password)` | B1.3 | Retourne les tables sans séance créées dans les 48h. Même structure que `list_session_tables`. |
 
 ### REPLICA IDENTITY FULL
 
@@ -336,7 +338,7 @@ src/
 ├── lib/
 │   ├── supabase.ts          Client Supabase (anon key depuis .env)
 │   ├── types.ts             Interfaces Session, Table, Participant, QueueEntry, SpeakingTurn
-│   ├── sessions.ts          Wrappers RPC séances : createSession, attachTableToSession, detachTableFromSession, closeSession
+│   ├── sessions.ts          Wrappers RPC séances : verifyPassword, createSession, closeSession, attachTableToSession, detachTableFromSession, listSessionTables, listAvailableTables — type SessionTableRow
 │   ├── storage.ts           tableStore.get/set/clear (localStorage)
 │   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateTableCSV
 ├── hooks/
@@ -344,10 +346,11 @@ src/
 ├── context/
 │   └── TableContext.tsx     Provider + useTable() hook — état, Realtime, Broadcast, polling, actions
 ├── screens/
-│   ├── EntryScreen.tsx      Tabs : Rejoindre / Reprendre / Créer ("Code Ecclesia")
+│   ├── EntryScreen.tsx      Tabs : Rejoindre / Reprendre / Créer + lien "Administration" (hash routing)
+│   ├── SuperadminScreen.tsx Auth mot de passe (sessionStorage), liste séances, création, fermeture, vue détail rattachement tables
 │   ├── TableView.tsx        Routage isModerator → ModeratorView ou ParticipantView
 │   ├── ModeratorView.tsx    Vue projetable (DndContext global, auto-avancement, pause/reprise)
-│   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, sidebar md+)
+│   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, titre séance si rattachée, sidebar md+)
 ├── components/
 │   ├── SpeakerTimer.tsx     Chronomètre en direct (useLiveMs + formatDuration + offsetMs)
 │   ├── QueuePanel.tsx       File avec DnD — useDroppable (cible drop participants) + SortableContext
@@ -356,7 +359,7 @@ src/
 │   ├── ParticipantsSidebar.tsx Liste présents en temps réel, variant dark/light
 │   ├── CorrectTurnModal.tsx  Historique des participations avec durée par tour
 │   └── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
-└── App.tsx                  Machine à états : loading | entry | table
+└── App.tsx                  Machine à états : loading | entry | table + listener hashchange → SuperadminScreen sur `#superadmin`
 ```
 
 ### TableContext — état exposé
@@ -458,8 +461,8 @@ passe distinct du Code Ecclesia, vérifié côté PostgreSQL :
 
 - Stocké hashé (bcrypt) dans `app_config` sous la clé `superadmin_code_hash`
 - Même modèle de sécurité que `creation_code_hash` (zéro RLS, SECURITY DEFINER uniquement)
-- Le client saisit le mot de passe dans l'UI (B1.2) et l'envoie à chaque appel RPC — il n'est
-  jamais stocké côté navigateur
+- Le client saisit le mot de passe dans l'UI superadmin ; il est conservé en `sessionStorage`
+  le temps de la session navigateur (effacé à la fermeture de l'onglet) et envoyé à chaque appel RPC
 
 Pour définir ou changer le mot de passe superadmin (via SQL Editor Supabase) :
 ```sql
@@ -486,9 +489,14 @@ Les autres valeurs sont déclarées pour préparer les chantiers futurs.
 
 ### Wrappers TypeScript
 
-`src/lib/sessions.ts` expose `createSession`, `attachTableToSession`, `detachTableFromSession`,
-`closeSession`. Chaque fonction prend le mot de passe en premier argument et retourne le type
-`Session` ou `Table` depuis `src/lib/types.ts`.
+`src/lib/sessions.ts` expose :
+- `verifyPassword(password)` — vérifie le mot de passe sans effet de bord
+- `createSession` / `closeSession` — gestion cycle de vie séance
+- `attachTableToSession` / `detachTableFromSession` — rattachement
+- `listSessionTables(password, sessionId)` → `SessionTableRow[]` — tables rattachées
+- `listAvailableTables(password)` → `SessionTableRow[]` — tables sans séance (48h)
+
+Chaque fonction prend le mot de passe en premier argument. Types de retour : `Session`, `Table`, ou `SessionTableRow[]`.
 
 ---
 
@@ -653,21 +661,45 @@ Les autres valeurs sont déclarées pour préparer les chantiers futurs.
 - **localStorage migration** : `tableStore.get()` lit d'abord `'ecclesia_table'`, migre silencieusement depuis `'ecclesia_session'` (mapping `sessionId` → `tableId`) — les utilisateurs existants ne sont pas déconnectés.
 - **Strings UI françaises conservées** : "Chargement de la session…", "Code de session", "Créer une session", "Terminer session", "Session introuvable" (messages SQL), `cell('Session')` (en-tête CSV).
 
-### ✅ Terminé — B1 : Schéma sessions (séances)
+### ✅ Terminé — B1.1 : Schéma sessions (séances)
 
 - **Migration SQL `20260526000001_sessions_schema.sql`** : table `sessions`, colonne `tables.session_id` (NULL par défaut), RLS SELECT public, index partiel unicité join_code parmi non-fermées, helpers `generate_session_join_code` / `check_superadmin_password`, fonctions SECURITY DEFINER `create_session` / `attach_table_to_session` / `detach_table_from_session` / `close_session`, publication Realtime.
 - **`src/lib/types.ts`** : ajout interface `Session`, ajout `session_id: string | null` sur `Table`.
-- **`src/lib/sessions.ts`** : wrappers typés pour les 4 RPC superadmin.
+- **`src/lib/sessions.ts`** : wrappers typés pour les 4 RPC superadmin + `verifyPassword`.
 - **`.env.example`** : hint `VITE_ECCLESIA_SUPERADMIN_PASSWORD_HINT`.
-- **`CLAUDE.md`** : section "Niveau séance (B1)", mise à jour modèle de données, relations, RLS, fonctions, broadcast mapping.
-- ⚠️ **Action manuelle requise après merge** : définir le vrai mot de passe superadmin via SQL Editor (`INSERT INTO app_config ... ON CONFLICT DO UPDATE`).
+
+### ✅ Terminé — B1.2 : UI superadmin
+
+- **`src/screens/SuperadminScreen.tsx`** : écran de gestion des séances accessible via `/#superadmin`.
+  - Formulaire mot de passe (vérification via `verifyPassword`) ; auto-login depuis `sessionStorage`
+  - Liste des séances avec badges de phase, date, description, compteur de tables
+  - Tri : actives (draft/debating/…) en tête, clôturées en bas, par date décroissante
+  - Création de séance (titre, description optionnelle, date/heure optionnelle) → `createSession`
+  - Fermeture de séance avec `ConfirmModal` → `closeSession`
+- **`src/App.tsx`** : import et rendu conditionnel `<SuperadminScreen />` (hash routing, voir B1.3+)
+
+### ✅ Terminé — B1.3 : Rattachement tables ↔ séances
+
+- **Migration `20260526000002_b1_3_session_attachment.sql`** :
+  - `create_table` passe de 2 à 3 args (`p_session_id uuid DEFAULT NULL`) — appels existants non cassés
+  - `list_session_tables(password, session_id)` et `list_available_tables(password)` — SECURITY DEFINER, bypass RLS `tables`
+- **`src/screens/SuperadminScreen.tsx`** : navigation list → detail par clic sur `SessionCard` ; `SessionDetail` affiche tables rattachées + tables disponibles (48h), actions Rattacher / Détacher + confirmation
+- **`src/screens/EntryScreen.tsx`** : dropdown séances actives dans le formulaire "Créer" (optionnel, caché si aucune séance active)
+- **`src/screens/ParticipantView.tsx`** : titre de séance affiché discrètement sous le join_code dans le header
+- **`src/lib/sessions.ts`** : `SessionTableRow` type + `listSessionTables` / `listAvailableTables`
+- **`src/lib/supabase.ts`** : `session_id: string | null` ajouté à `TableResult`
+
+### ✅ Terminé — Branchement SuperadminScreen (accès visible)
+
+- **`src/App.tsx`** : listener `hashchange` → navigation hash réactive au clic (le check statique `window.location.hash` n'était évalué qu'au render initial)
+- **`src/screens/EntryScreen.tsx`** : lien "Administration" discret en bas de la carte d'entrée
+- **`src/screens/SuperadminScreen.tsx`** : bouton "← Retour" sur l'écran de mot de passe ET sur le header de la liste
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
 - Page 404 / table expirée élégante
 - Persistance de la pause après rechargement (localStorage)
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
-- B1.2 : UI superadmin (créer/gérer séances)
 
 ---
 
