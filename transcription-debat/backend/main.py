@@ -18,6 +18,8 @@ def _safe_stack(*a, **kw):
         return []
 _inspect.stack = _safe_stack
 
+import asyncio
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -129,11 +131,22 @@ def append_segments(group: str, segments: list) -> None:
             f.write(f"{timestamp} {seg['speaker']}: {seg['text']}\n")
 
 
+async def _keepalive(ws: WebSocket) -> None:
+    """Envoie un ping toutes les 30 s pour éviter le timeout ngrok."""
+    try:
+        while True:
+            await asyncio.sleep(30)
+            await ws.send_json({"ping": True})
+    except Exception:
+        pass
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, group: str = Query(default="unknown")):
     await ws.accept()
     state = get_group_state(group)
     logger.info("Groupe '%s' connecté (chunk_index=%d)", group, state.chunk_index)
+    ping_task = asyncio.create_task(_keepalive(ws))
 
     try:
         while True:
@@ -196,3 +209,5 @@ async def websocket_endpoint(ws: WebSocket, group: str = Query(default="unknown"
 
     except WebSocketDisconnect:
         logger.info("Groupe '%s' déconnecté (chunk_index=%d)", group, state.chunk_index)
+    finally:
+        ping_task.cancel()

@@ -50,14 +50,17 @@ export function useTranscription(
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
-    // Persistent handlers for ongoing connection management
+    // Reconnexion automatique si la connexion est perdue en cours d'enregistrement
     ws.onclose = () => {
       setConnected(false)
-      setIsRecording(false)
+      if (recorderRef.current) {
+        setTimeout(() => start(), 2000)
+      } else {
+        setIsRecording(false)
+      }
     }
     ws.onerror = () => {
       setConnected(false)
-      setIsRecording(false)
     }
 
     // Wait for connection — use a connection-specific timeout
