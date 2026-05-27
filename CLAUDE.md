@@ -161,6 +161,18 @@ peut être qu'une seule fois dans chaque file.
 Index partiel unique `(user_id, table_id) WHERE table_id IS NOT NULL` — un user ne répond qu'une fois par table (upsert possible).
 RLS : SELECT `user_id = auth.uid()` ; INSERT/UPDATE uniquement via `submit_questionnaire` (SECURITY DEFINER).
 
+### `private_notes`
+| Colonne | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `table_id` | uuid FK → tables | ON DELETE CASCADE |
+| `user_id` | uuid NOT NULL | `auth.uid()` |
+| `content` | text NOT NULL | HTML produit par contenteditable |
+| `updated_at` | timestamptz NOT NULL | |
+
+Contrainte : `UNIQUE(table_id, user_id)` — une note par utilisateur par table (upsert).
+RLS : SELECT/INSERT/UPDATE/DELETE uniquement par `user_id = auth.uid()`. Aucune fonction SECURITY DEFINER — les notes ne sont accessibles à personne d'autre, y compris le superadmin.
+
 ### `speaking_turns`
 | Colonne | Type | Notes |
 |---|---|---|
@@ -789,6 +801,20 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 
 - **Auto-pseudo depuis la table** : quand on navigue vers `#collab/<join_code>` depuis le bouton "Sources collaboratives" d'une vue modérateur ou participant, le pseudo de la table est stocké dans `sessionStorage` sous la clé `ecclesia_collab_pseudo_<join_code>` avant la navigation. `CollabDocScreen` lit et supprime cette clé au montage — si l'utilisateur n'est pas encore enregistré, `registerCollabPseudo` est appelé silencieusement. Zéro friction pour les participants en table ; les utilisateurs arrivant via lien direct voient toujours le formulaire de pseudo.
 - **Draft préservé à la fermeture** : `openAdd()` n'efface plus les champs `formTitle`/`formUrl`/`formContent` — le brouillon survive à la fermeture du formulaire. Les champs sont vidés uniquement après une soumission réussie (ajout). `openEdit()` écrase les champs avec les valeurs de la source existante sans toucher au brouillon (il est restauré à la fermeture de l'édition).
+
+### ✅ Terminé — Notes privées par participant
+
+- **Migration `20260527000007_private_notes.sql`** : table `private_notes` (`id`, `table_id` FK → `tables` ON DELETE CASCADE, `user_id`, `content`, `updated_at`). Contrainte `UNIQUE(table_id, user_id)`. RLS stricte `user_id = auth.uid()` sur SELECT/INSERT/UPDATE/DELETE — aucune fonction SECURITY DEFINER, aucun bypass possible. Les notes sont supprimées automatiquement en cascade à la suppression de la table.
+- **`src/components/NotesModal.tsx`** : éditeur `contenteditable` avec toolbar — Gras (Ctrl+B), Italique (Ctrl+I), Souligné (Ctrl+U), Barré, taille de police (Petit/Normal/Grand via `fontSize` execCommand). Auto-save debounced 800 ms → upsert Supabase. Chargement de la note existante au montage. Fermeture : Escape, clic overlay, bouton ✕. Placeholder CSS via `content: attr(data-placeholder)`.
+- **`src/components/NotesButton.tsx`** : bouton générique, prop `label?: ReactNode` pour afficher texte ou icône selon le contexte. Ouvre `NotesModal` au clic.
+- **`src/lib/types.ts`** : interface `PrivateNote` ajoutée.
+- **`src/screens/ModeratorView.tsx`** : `NotesButton` avec icône SVG crayon (bouton compact, `title="Mes notes"`) — header déjà chargé.
+- **`src/screens/ParticipantView.tsx`** : `NotesButton` avec label texte "Mes notes" — header moins chargé.
+
+### ✅ Terminé — Dropdown "Outils Modo" + titre de séance dans le header modérateur
+
+- **Dropdown "Outils Modo"** : Transcription, Exporter et Historique regroupés en un seul bouton dropdown dans le header modérateur (même pattern dark que `DocumentationButton`). Réduit le header de 3 boutons à 1. Transcription : start/stop depuis le menu, point coloré vert/gris si connecté, "Modifier l'URL" en sous-item discret. Point rouge clignotant sur le bouton "Outils Modo" si enregistrement en cours. L'input URL reste inline dans le header quand actif.
+- **Titre de séance à gauche** : `ModeratorView` fetch aussi `title` depuis `sessions` (en plus des URLs doc déjà chargées) et l'affiche à l'extrême gauche du header (`hidden sm:block`, `truncate max-w-[180px]`, `title` tooltip) — utilise l'espace libre côté gauche sans impacter les boutons.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
