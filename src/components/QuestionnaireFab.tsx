@@ -1,47 +1,70 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTable } from '../context/TableContext'
+import { QUESTIONNAIRE_THEMES } from '../lib/utils'
+import type { QuestionnaireResponse } from '../lib/types'
 import QuestionnaireModal from './QuestionnaireModal'
 
 interface Props {
   className?: string
 }
 
+/** Renvoie true si toutes les questions ET tous les thèmes ont été remplis. */
+function isComplete(r: QuestionnaireResponse | null): boolean {
+  if (!r) return false
+  return (
+    r.theme_ideas     !== null &&
+    r.debate_attended !== null &&
+    r.debate_rating   !== null &&
+    r.staff_interest  !== null &&
+    r.feedback        !== null &&
+    QUESTIONNAIRE_THEMES.every(t => r.theme_ratings[t] !== undefined)
+  )
+}
+
 export default function QuestionnaireBtn({ className = '' }: Props) {
   const { table } = useTable()
-  const [isOpen,       setIsOpen]       = useState(false)
-  const [hasResponded, setHasResponded] = useState(false)
+  const [isOpen,         setIsOpen]         = useState(false)
+  const [savedResponse,  setSavedResponse]  = useState<QuestionnaireResponse | null>(null)
+  const [checkDone,      setCheckDone]      = useState(false)
 
-  async function checkResponded() {
+  async function fetchResponse() {
     const { data } = await supabase
       .from('questionnaire_responses')
-      .select('id')
+      .select('*')
       .eq('table_id', table.id)
       .maybeSingle()
-    if (data) setHasResponded(true)
+    setSavedResponse(data as QuestionnaireResponse | null)
+    setCheckDone(true)
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { checkResponded() }, [table.id])
+  useEffect(() => { fetchResponse() }, [table.id])
 
   function handleClose() {
     setIsOpen(false)
-    checkResponded()
+    fetchResponse()
   }
 
-  const disabledClass = hasResponded ? ' opacity-50 cursor-not-allowed pointer-events-none' : ''
+  const done = checkDone && isComplete(savedResponse)
+  const disabledClass = done ? ' opacity-50 cursor-not-allowed pointer-events-none' : ''
 
   return (
     <>
       <button
-        onClick={() => !hasResponded && setIsOpen(true)}
-        disabled={hasResponded}
-        title={hasResponded ? 'Questionnaire déjà rempli' : undefined}
+        onClick={() => !done && setIsOpen(true)}
+        disabled={done}
+        title={done ? 'Questionnaire déjà rempli' : undefined}
         className={className + disabledClass}
       >
         Questionnaire post-débat
       </button>
-      {isOpen && <QuestionnaireModal onClose={handleClose} />}
+      {isOpen && (
+        <QuestionnaireModal
+          savedResponse={savedResponse}
+          onClose={handleClose}
+        />
+      )}
     </>
   )
 }

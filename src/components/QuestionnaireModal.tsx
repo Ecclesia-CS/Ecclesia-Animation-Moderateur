@@ -1,63 +1,50 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
-import { extractErr } from '../lib/utils'
+import { extractErr, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import type { QuestionnaireResponse } from '../lib/types'
-
-const PROPOSED_THEMES = [
-  "L'IA : encadrer ou accélérer ?",
-  "Faut-il envoyer plus de satellites dans l'espace ?",
-  "Faut-il privatiser des services publics essentiels ?",
-  "La publicité : quel rôle devrait-elle avoir dans notre société ?",
-  "IA : un salaire universel pour compenser l'augmentation de la productivité et la destruction des emplois ?",
-  "Quels sont les indicateurs pertinents pour les politiques publiques ? (PIB ?)",
-  "Comment allier la production/exportation des produits qui participent au réchauffement climatique ?",
-  "Quelles politiques par rapport aux substances addictives ?",
-  "Avion : quel futur pour l'industrie du voyage ?",
-  "Algorithme de recommandation : comment les réglementer pour lutter contre la polarisation et l'ingérence de puissances étrangères dans notre vie politique ?",
-  "Médias traditionnels : quels financements pour assurer leur indépendance (états et milliardaires) ?",
-  "Taxe carbone : quelles propriétés pour aider à la transition écologique et sociale ?",
-  "Faut-il réquisitionner les logements inoccupés pour loger tout le monde ?",
-  "Quelle responsabilité individuelle pour travailler dans l'armement ?",
-  "Quel système de financement pour quel type de retraite ?",
-  "Comment peut-on réformer le système éducatif ?",
-  "Grande distribution : faut-il réglementer l'oligopole ?",
-  "Agriculteurs : comment protéger une profession si vitale ?",
-  "Comment réformer l'hôpital public ?",
-  "Quelle place pour la laïcité ?",
-  "Faut-il que la France mette en place une réparation historique ?",
-  "Quelle place pour la souffrance animale dans notre relation au vivant ?",
-  "Doit-on s'écarter de l'Europe ou au contraire s'en rapprocher ?",
-  "Le nationalisme est-il une bonne chose ?",
-  "Dépenses publiques / retraite : comment gérer leur évolution ?",
-  "Quel multiculturalisme voulons-nous ?",
-]
 
 const THEMES_INITIAL = 5
 
 interface Props {
   onClose: () => void
+  /** Réponse déjà enregistrée, chargée par QuestionnaireFab avant l'ouverture. */
+  savedResponse: QuestionnaireResponse | null
 }
 
-export default function QuestionnaireModal({ onClose }: Props) {
+export default function QuestionnaireModal({ onClose, savedResponse }: Props) {
   const { table } = useTable()
 
-  const [isLoading,    setIsLoading]    = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess,  setShowSuccess]  = useState(false)
   const [err,          setErr]          = useState<string | null>(null)
-  const [showAllThemes, setShowAllThemes] = useState(false)
 
-  const [themeIdeas,     setThemeIdeas]     = useState('')
-  const [themeRatings,   setThemeRatings]   = useState<Record<string, number>>({})
-  const [staffInterest,  setStaffInterest]  = useState('')
-  const [debateAttended, setDebateAttended] = useState('')
-  const [debateRating,   setDebateRating]   = useState<number | null>(null)
-  const [feedback,       setFeedback]       = useState('')
+  // Afficher tous les thèmes d'emblée s'il y en a déjà des notés
+  const hasAnyThemeRated = savedResponse !== null &&
+    Object.keys(savedResponse.theme_ratings ?? {}).length > 0
+  const [showAllThemes, setShowAllThemes] = useState(hasAnyThemeRated)
 
-  // Ordre aléatoire fixé au montage du composant, re-mélangé à chaque ouverture
+  // État initialisé depuis savedResponse (pas de fetch : déjà chargé par le parent)
+  const [themeIdeas,     setThemeIdeas]     = useState(savedResponse?.theme_ideas     ?? '')
+  const [themeRatings,   setThemeRatings]   = useState<Record<string, number>>(savedResponse?.theme_ratings ?? {})
+  const [staffInterest,  setStaffInterest]  = useState(savedResponse?.staff_interest  ?? '')
+  const [debateAttended, setDebateAttended] = useState(savedResponse?.debate_attended ?? '')
+  const [debateRating,   setDebateRating]   = useState<number | null>(savedResponse?.debate_rating ?? null)
+  const [feedback,       setFeedback]       = useState(savedResponse?.feedback        ?? '')
+
+  // Helpers de verrouillage : un champ est verrouillé s'il a une valeur enregistrée non nulle
+  const locked = {
+    themeIdeas:     savedResponse?.theme_ideas     != null,
+    debateAttended: savedResponse?.debate_attended != null,
+    debateRating:   savedResponse?.debate_rating   != null,
+    staffInterest:  savedResponse?.staff_interest  != null,
+    feedback:       savedResponse?.feedback        != null,
+    theme: (t: string) => savedResponse?.theme_ratings[t] !== undefined,
+  }
+
+  // Ordre aléatoire fixé au montage, re-mélangé à chaque ouverture
   const shuffledThemes = useMemo(
-    () => [...PROPOSED_THEMES].sort(() => Math.random() - 0.5),
+    () => [...QUESTIONNAIRE_THEMES].sort(() => Math.random() - 0.5),
     []
   )
   const visibleThemes = showAllThemes ? shuffledThemes : shuffledThemes.slice(0, THEMES_INITIAL)
@@ -68,27 +55,6 @@ export default function QuestionnaireModal({ onClose }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
-
-  // Pré-remplissage si l'utilisateur a déjà répondu
-  useEffect(() => {
-    supabase
-      .from('questionnaire_responses')
-      .select('*')
-      .eq('table_id', table.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const r = data as QuestionnaireResponse
-          setThemeIdeas(r.theme_ideas ?? '')
-          setThemeRatings(r.theme_ratings ?? {})
-          setStaffInterest(r.staff_interest ?? '')
-          setDebateAttended(r.debate_attended ?? '')
-          setDebateRating(r.debate_rating)
-          setFeedback(r.feedback ?? '')
-        }
-        setIsLoading(false)
-      })
-  }, [table.id])
 
   async function handleSubmit() {
     setErr(null)
@@ -130,6 +96,11 @@ export default function QuestionnaireModal({ onClose }: Props) {
             <p className="text-sm text-gray-500 mt-0.5 leading-snug">
               Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
             </p>
+            {savedResponse && (
+              <p className="text-xs text-amber-600 mt-1">
+                Certaines réponses sont déjà enregistrées et ne peuvent plus être modifiées.
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -147,12 +118,7 @@ export default function QuestionnaireModal({ onClose }: Props) {
 
         {/* ── Body ── */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
-
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <span className="w-6 h-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-            </div>
-          ) : showSuccess ? (
+          {showSuccess ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
                 <svg className="w-7 h-7 text-green-600" viewBox="0 0 24 24" fill="none"
@@ -166,13 +132,17 @@ export default function QuestionnaireModal({ onClose }: Props) {
           ) : (
             <>
               {/* Q1 — Idées de thèmes */}
-              <QuestionBlock label="Quelle(s) idée(s) de thème pour un débat aimerais-tu aborder ?">
+              <QuestionBlock
+                label="Quelle(s) idée(s) de thème pour un débat aimerais-tu aborder ?"
+                locked={locked.themeIdeas}
+              >
                 <textarea
                   value={themeIdeas}
                   onChange={e => setThemeIdeas(e.target.value)}
+                  disabled={locked.themeIdeas}
                   rows={3}
                   placeholder="Ex. : l'intelligence artificielle, la démocratie directe…"
-                  className={textareaClass}
+                  className={locked.themeIdeas ? textareaLockedClass : textareaClass}
                 />
               </QuestionBlock>
 
@@ -184,6 +154,7 @@ export default function QuestionnaireModal({ onClose }: Props) {
                       key={theme}
                       theme={theme}
                       value={themeRatings[theme] ?? null}
+                      locked={locked.theme(theme)}
                       onChange={v => setThemeRatings(prev => {
                         if (v === null) { const next = { ...prev }; delete next[theme]; return next }
                         return { ...prev, [theme]: v }
@@ -203,7 +174,10 @@ export default function QuestionnaireModal({ onClose }: Props) {
               </QuestionBlock>
 
               {/* Q3 — Staffer */}
-              <QuestionBlock label="Est-ce que tu voudrais staffer chez Ecclesia ?">
+              <QuestionBlock
+                label="Est-ce que tu voudrais staffer chez Ecclesia ?"
+                locked={locked.staffInterest}
+              >
                 <p className="text-xs text-gray-500 mb-2 leading-relaxed">
                   Modérer un débat, aider à la préparation des fiches d'informations ou à la
                   communication, etc. Si oui, ajoute ton Prénom Nom et un contact (num ou mail).
@@ -211,36 +185,52 @@ export default function QuestionnaireModal({ onClose }: Props) {
                 <textarea
                   value={staffInterest}
                   onChange={e => setStaffInterest(e.target.value)}
+                  disabled={locked.staffInterest}
                   rows={2}
                   placeholder="Prénom Nom, 06… ou email@…"
-                  className={textareaClass}
+                  className={locked.staffInterest ? textareaLockedClass : textareaClass}
                 />
               </QuestionBlock>
 
               {/* Q4 — Quel débat */}
-              <QuestionBlock label="À quel débat viens-tu de participer ?">
+              <QuestionBlock
+                label="À quel débat viens-tu de participer ?"
+                locked={locked.debateAttended}
+              >
                 <input
                   type="text"
                   value={debateAttended}
                   onChange={e => setDebateAttended(e.target.value)}
+                  disabled={locked.debateAttended}
                   placeholder="Ex. : La religion, Le 12 mai 2026…"
-                  className={inputClass}
+                  className={locked.debateAttended ? inputLockedClass : inputClass}
                 />
               </QuestionBlock>
 
               {/* Q5 — Note globale */}
-              <QuestionBlock label="De 0 (horrible) à 5 (super), as-tu apprécié le débat ?">
-                <RatingRow value={debateRating} onChange={setDebateRating} />
+              <QuestionBlock
+                label="De 0 (horrible) à 5 (super), as-tu apprécié le débat ?"
+                locked={locked.debateRating}
+              >
+                <RatingRow
+                  value={debateRating}
+                  locked={locked.debateRating}
+                  onChange={setDebateRating}
+                />
               </QuestionBlock>
 
               {/* Q6 — Retour libre */}
-              <QuestionBlock label="As-tu un retour à nous faire ? Négatif comme positif !">
+              <QuestionBlock
+                label="As-tu un retour à nous faire ? Négatif comme positif !"
+                locked={locked.feedback}
+              >
                 <textarea
                   value={feedback}
                   onChange={e => setFeedback(e.target.value)}
+                  disabled={locked.feedback}
                   rows={3}
                   placeholder="Tout commentaire est le bienvenu…"
-                  className={textareaClass}
+                  className={locked.feedback ? textareaLockedClass : textareaClass}
                 />
               </QuestionBlock>
 
@@ -254,7 +244,7 @@ export default function QuestionnaireModal({ onClose }: Props) {
         </div>
 
         {/* ── Footer ── */}
-        {!isLoading && !showSuccess && (
+        {!showSuccess && (
           <div className="px-6 pb-6 pt-4 border-t border-gray-100 flex-shrink-0">
             <button
               onClick={handleSubmit}
@@ -274,35 +264,55 @@ export default function QuestionnaireModal({ onClose }: Props) {
 
 // ── Sous-composants ───────────────────────────────────────────────
 
-function QuestionBlock({ label, children }: { label: string; children: React.ReactNode }) {
+function QuestionBlock({
+  label, locked, children,
+}: {
+  label: string
+  locked?: boolean
+  children: React.ReactNode
+}) {
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-semibold text-gray-800 leading-snug">{label}</p>
+    <div className={`space-y-2 ${locked ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-1.5">
+        <p className="text-sm font-semibold text-gray-800 leading-snug">{label}</p>
+        {locked && (
+          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        )}
+      </div>
       {children}
     </div>
   )
 }
 
 function ThemeRatingRow({
-  theme, value, onChange,
+  theme, value, locked, onChange,
 }: {
   theme: string
   value: number | null
+  locked: boolean
   onChange: (v: number | null) => void
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className={`flex items-start gap-3 ${locked ? 'opacity-60' : ''}`}>
       <span className="flex-1 text-sm text-gray-700 leading-snug pt-1">{theme}</span>
       <div className="flex gap-1 flex-shrink-0">
         {[0, 1, 2, 3, 4, 5].map(n => (
           <button
             key={n}
-            onClick={() => onChange(value === n ? null : n)}
+            onClick={() => !locked && onChange(value === n ? null : n)}
+            disabled={locked}
             className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors
-              focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+              focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1
+              disabled:cursor-not-allowed ${
               value === n
                 ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+                : locked
+                  ? 'bg-gray-100 text-gray-400'
+                  : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
             }`}
           >
             {n}
@@ -314,9 +324,10 @@ function ThemeRatingRow({
 }
 
 function RatingRow({
-  value, onChange,
+  value, locked, onChange,
 }: {
   value: number | null
+  locked: boolean
   onChange: (v: number | null) => void
 }) {
   return (
@@ -324,12 +335,16 @@ function RatingRow({
       {[0, 1, 2, 3, 4, 5].map(n => (
         <button
           key={n}
-          onClick={() => onChange(value === n ? null : n)}
+          onClick={() => !locked && onChange(value === n ? null : n)}
+          disabled={locked}
           className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors
-            focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+            focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1
+            disabled:cursor-not-allowed ${
             value === n
               ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+              : locked
+                ? 'bg-gray-100 text-gray-400'
+                : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
           }`}
         >
           {n}
@@ -343,6 +358,12 @@ const textareaClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text
   text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed
   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`
 
+const textareaLockedClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
+  text-gray-700 bg-gray-50 resize-none leading-relaxed cursor-not-allowed`
+
 const inputClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
   text-gray-900 placeholder:text-gray-400
   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`
+
+const inputLockedClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
+  text-gray-700 bg-gray-50 cursor-not-allowed`
