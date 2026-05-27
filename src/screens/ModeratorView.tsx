@@ -97,7 +97,8 @@ export default function ModeratorView() {
   }, [queueLong, queueInteractive, isDragging])
 
   const [showCorrect, setShowCorrect] = useState(false)
-  const [confirmEnd, setConfirmEnd] = useState(false)
+  const [confirmEnd, setConfirmEnd]   = useState(false)
+  const [showOutils,  setShowOutils]  = useState(false)
   const [err, setErr]               = useState<string | null>(null)
 
   // Session docs pour le bouton Documentation
@@ -541,7 +542,7 @@ export default function ModeratorView() {
               🔑
             </span>
 
-            {/* Transcription */}
+            {/* ── Outils Modo dropdown ─────────────────────────── */}
             {showUrlInput ? (
               <div className="flex items-center gap-1">
                 <input
@@ -570,66 +571,77 @@ export default function ModeratorView() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
-                {backendUrl && (
-                  <span className={`text-xs font-medium ${connected ? 'text-green-400' : 'text-slate-500'}`}>
-                    {connected ? '● live' : '○'}
-                  </span>
-                )}
-                {isRecording ? (
-                  <button
-                    onClick={stop}
-                    className="text-xs px-3 py-1.5 bg-red-600 border border-red-500 rounded-lg
-                      text-white hover:bg-red-700 transition-colors focus:outline-none
-                      focus:ring-2 focus:ring-red-500 flex items-center gap-1.5"
-                  >
-                    <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse" />
-                    Arrêter
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      if (!backendUrl) { setShowUrlInput(true); setUrlDraft(''); return }
-                      start()
-                    }}
-                    disabled={isRecording}
-                    className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
-                      text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                      focus:ring-2 focus:ring-slate-500 flex items-center gap-1.5
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    🎙 Transcription
-                  </button>
-                )}
-                {backendUrl && (
-                  <button
-                    onClick={() => { setUrlDraft(backendUrl); setShowUrlInput(true) }}
-                    title="Changer l'URL du backend"
-                    className="text-slate-500 hover:text-slate-300 text-xs px-1"
-                  >
-                    ✎
-                  </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowOutils(v => !v)}
+                  aria-expanded={showOutils}
+                  className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
+                    hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2
+                    focus:ring-slate-500 flex items-center gap-1.5"
+                >
+                  {isRecording && (
+                    <span className="inline-block w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                  )}
+                  Outils Modo
+                </button>
+
+                {showOutils && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowOutils(false)} />
+                    <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-600
+                      rounded-xl shadow-lg py-1 z-50 min-w-[200px]">
+
+                      {/* Transcription */}
+                      <button
+                        onClick={() => {
+                          setShowOutils(false)
+                          if (!backendUrl) { setShowUrlInput(true); setUrlDraft(''); return }
+                          isRecording ? stop() : start()
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm
+                          text-slate-200 hover:bg-slate-700 text-left whitespace-nowrap"
+                      >
+                        {backendUrl ? (
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${connected ? 'bg-green-400' : 'bg-slate-500'}`} />
+                        ) : (
+                          <span className="text-base leading-none">🎙</span>
+                        )}
+                        {isRecording ? 'Arrêter la transcription' : 'Transcription'}
+                      </button>
+                      {backendUrl && (
+                        <button
+                          onClick={() => { setShowOutils(false); setUrlDraft(backendUrl); setShowUrlInput(true) }}
+                          className="w-full px-4 py-1.5 text-xs text-slate-500 hover:bg-slate-700
+                            hover:text-slate-300 text-left whitespace-nowrap"
+                        >
+                          Modifier l'URL
+                        </button>
+                      )}
+
+                      <div className="my-1 border-t border-slate-700" />
+
+                      {/* Export */}
+                      <button
+                        onClick={() => { setShowOutils(false); handleExport() }}
+                        className="w-full px-4 py-2 text-sm text-slate-200 hover:bg-slate-700
+                          text-left whitespace-nowrap"
+                      >
+                        Exporter
+                      </button>
+
+                      {/* Historique */}
+                      <button
+                        onClick={() => { setShowOutils(false); setShowCorrect(true) }}
+                        className="w-full px-4 py-2 text-sm text-slate-200 hover:bg-slate-700
+                          text-left whitespace-nowrap"
+                      >
+                        Historique
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             )}
-
-            <button
-              onClick={handleExport}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
-                text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-slate-500"
-            >
-              Exporter
-            </button>
-
-            <button
-              onClick={() => setShowCorrect(true)}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
-                text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-slate-500"
-            >
-              Historique
-            </button>
 
             <button
               onClick={leaveTable}
