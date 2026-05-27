@@ -12,9 +12,10 @@ interface Props {
   className?: string
   dropdownClass?: string
   userPseudo?: string
+  currentTableJoinCode?: string
 }
 
-export default function DocumentationButton({ session, className, dropdownClass, userPseudo }: Props) {
+export default function DocumentationButton({ session, className, dropdownClass, userPseudo, currentTableJoinCode }: Props) {
   const [open, setOpen] = useState(false)
 
   if (!session) return null
@@ -30,6 +31,9 @@ export default function DocumentationButton({ session, className, dropdownClass,
     if (session_join_code) {
       if (userPseudo) {
         sessionStorage.setItem(`ecclesia_collab_pseudo_${session_join_code}`, userPseudo)
+      }
+      if (currentTableJoinCode) {
+        sessionStorage.setItem(`ecclesia_collab_table_${session_join_code}`, currentTableJoinCode)
       }
       window.location.hash = `#collab/${session_join_code}`
     }

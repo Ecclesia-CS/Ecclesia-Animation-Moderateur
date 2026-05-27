@@ -104,6 +104,7 @@ Index partiel `sessions_join_code_active_idx` sur `(join_code) WHERE phase != 'c
 | `current_turn_started_at` | timestamptz \| null | Timestamp serveur |
 | `created_at` | timestamptz | |
 | `session_id` | uuid \| null | FK → `sessions.id` ON DELETE SET NULL |
+| `questionnaire_forced_at` | timestamptz \| null | Posé par `force_session_questionnaire` pour déclencher l'ouverture du modal chez les participants |
 
 Note : la colonne `moderator_code_hash` a été supprimée (migration 003). Il n'y
 a plus de code par table — la reprise de modération utilise le Code Ecclesia
@@ -266,6 +267,9 @@ propriétaire, pas du client) :
 | `update_session_docs(password, session_id, doc_info_url?, doc_summary_url?, doc_collab_url?)` | session_docs | Met à jour les 3 URLs de documentation d'une séance (NULL = vide le champ). Retourne la ligne `sessions`. |
 | `get_questionnaire_responses(password, session_id?)` | questionnaire_export | Retourne toutes les réponses au questionnaire (bypass RLS) avec JOIN sessions + tables. Si `session_id` fourni, filtre sur la séance ; sinon retourne tout. |
 | `delete_questionnaire_response(password, response_id)` | questionnaire_export | Supprime une réponse au questionnaire (bypass RLS). Vérifie le mot de passe superadmin. |
+| `add_collab_source(session_id, title, url?, content?, table_join_code?)` | collab_sources + 20260527130000 | Insert une source ; stocke `table_join_code` explicitement (évite la sous-requête non-déterministe). |
+| `list_session_sources(session_id)` | collab_sources + 20260527130000 | Retourne les sources avec `COALESCE(ss.table_join_code, sous-requête ORDER BY created_at LIMIT 1)` — rétrocompatible avec les anciennes sources sans valeur stockée. |
+| `force_session_questionnaire(password, session_id)` | 20260527140000 | Pose `questionnaire_forced_at = now()` sur toutes les tables de la séance — déclenche l'ouverture du QuestionnaireModal chez les participants connectés. |
 
 ### REPLICA IDENTITY FULL
 
@@ -399,7 +403,8 @@ src/
 │   ├── ConfirmModal.tsx     Modal de confirmation générique (actions destructives)
 │   ├── QuestionnaireModal.tsx Formulaire post-débat (6 questions, 26 thèmes en ordre aléatoire, 5 visibles + "voir plus", upsert via RPC)
 │   ├── QuestionnaireFab.tsx Bouton "Questionnaire post-débat" dans le header (rend QuestionnaireModal)
-│   └── DocumentationButton.tsx Bouton "Documentation" dropdown dans le header — 3 liens (fiche info, résumé, doc collab) ouverts en nouvel onglet ; masqué si aucune URL configurée ; fermeture au clic extérieur
+│   ├── DocumentationButton.tsx Bouton "Documentation" dropdown dans le header — 3 liens (fiche info, résumé, doc collab) ouverts en nouvel onglet ; masqué si aucune URL configurée ; fermeture au clic extérieur ; prop `currentTableJoinCode` pour stocker le code table dans sessionStorage avant navigation collab
+│   └── ParticipantToolsButton.tsx Bouton "Outils" unique dans le header participant — ouvre un panel bottom-sheet contenant : liens Documentation (inline, conditionnels), bouton "Mes notes" (→ NotesModal), bouton "Questionnaire post-débat" (→ QuestionnaireModal, désactivé si complet). Remplace les 3 boutons séparés dans ParticipantView.
 └── App.tsx                  Machine à états : loading | entry | table + listener hashchange → SuperadminScreen sur `#superadmin`
 ```
 
@@ -775,12 +780,12 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 
 - **Migration `20260527000006_collab_sources.sql`** : deux nouvelles tables + 5 fonctions SECURITY DEFINER.
   - `collab_session_users` (`id`, `session_id` FK → `sessions`, `user_id`, `pseudo`, `created_at`) — RLS SELECT `true`, écriture via RPC uniquement. Contrainte `UNIQUE(session_id, pseudo)` avec `ON CONFLICT DO UPDATE SET user_id = EXCLUDED.user_id` (même mécanique que `join_table` : retaper son pseudo depuis un autre appareil réattribue le compte).
-  - `session_sources` (`id`, `session_id` FK, `user_id`, `pseudo`, `title`, `url` nullable, `content` nullable, `created_at`, `updated_at`) — RLS SELECT `true`, écriture via RPC uniquement. Realtime activé.
+  - `session_sources` (`id`, `session_id` FK, `user_id`, `pseudo`, `title`, `url` nullable, `content` nullable, `table_join_code` nullable, `created_at`, `updated_at`) — colonne `table_join_code` ajoutée (migration 20260527130000) pour stocker explicitement le code table à la création. RLS SELECT `true`, écriture via RPC uniquement. Realtime activé.
   - `register_collab_pseudo(session_id, pseudo)` — enregistre ou transfère le compte utilisateur.
-  - `add_collab_source(session_id, title, url?, content?)` — insert une source liée au compte courant.
+  - `add_collab_source(session_id, title, url?, content?, table_join_code?)` — insert une source liée au compte courant, stocke `table_join_code` explicitement.
   - `update_collab_source(source_id, title, url?, content?)` — mise à jour (vérifie `user_id`).
   - `delete_collab_source(source_id)` — suppression (vérifie `user_id`).
-  - `list_session_sources(session_id)` — retourne toutes les sources avec `table_join_code` (sous-requête corrélée `LIMIT 1` pour éviter les doublons si le pseudo est dans plusieurs tables).
+  - `list_session_sources(session_id)` — retourne les sources avec `COALESCE(ss.table_join_code, sous-requête ORDER BY created_at LIMIT 1)` — déterministe.
 - **`src/lib/types.ts`** : interface `CollabSource` (`id`, `session_id`, `user_id`, `pseudo`, `title`, `url`, `content`, `created_at`, `updated_at`, `table_join_code`).
 - **`src/lib/sessions.ts`** : wrappers `registerCollabPseudo`, `addCollabSource`, `updateCollabSource`, `deleteCollabSource`, `listSessionSources`.
 - **`src/screens/CollabDocScreen.tsx`** : nouveau screen complet accessible via `/#collab/<session_join_code>`.
@@ -815,6 +820,15 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 
 - **Dropdown "Outils Modo"** : Transcription, Exporter et Historique regroupés en un seul bouton dropdown dans le header modérateur (même pattern dark que `DocumentationButton`). Réduit le header de 3 boutons à 1. Transcription : start/stop depuis le menu, point coloré vert/gris si connecté, "Modifier l'URL" en sous-item discret. Point rouge clignotant sur le bouton "Outils Modo" si enregistrement en cours. L'input URL reste inline dans le header quand actif.
 - **Titre de séance à gauche** : `ModeratorView` fetch aussi `title` depuis `sessions` (en plus des URLs doc déjà chargées) et l'affiche à l'extrême gauche du header (`hidden sm:block`, `truncate max-w-[180px]`, `title` tooltip) — utilise l'espace libre côté gauche sans impacter les boutons.
+
+### ✅ Terminé — Consolidation header participant + correctifs notes et sources collaboratives + forçage questionnaire
+
+- **`src/components/ParticipantToolsButton.tsx`** (nouveau) : bouton "Outils" unique qui remplace les 3 boutons séparés (Documentation, Mes notes, Questionnaire post-débat) dans le header participant. Ouvre un panel bottom-sheet (overlay clic-extérieur, slide-up mobile). Stocke `ecclesia_collab_table_<join_code>` dans sessionStorage avant navigation collab.
+- **`src/screens/ParticipantView.tsx`** : remplacé les 3 anciens boutons par `<ParticipantToolsButton>` + détection du forçage questionnaire (`questionnaire_forced_at`) via `useRef` pour éviter les ré-ouvertures parasites — ouvre automatiquement `QuestionnaireModal` quand la valeur change.
+- **`src/components/NotesModal.tsx`** : `saveNote` destructure `{ error: dbErr }` du résultat upsert et affiche l'erreur en rouge dans le header modal — fin des échecs silencieux. Imports `extractErr` ajoutés.
+- **Sources collaboratives — déterminisme** : migration `20260527130000_collab_table_join_code.sql` — `session_sources.table_join_code` stocké explicitement à la création (`add_collab_source` reçoit `p_table_join_code`). `list_session_sources` utilise `COALESCE(ss.table_join_code, sous-requête ORDER BY created_at LIMIT 1)` pour la rétrocompatibilité. La chaîne sessionStorage `DocumentationButton` → `CollabDocScreen` assure que le bon code table est toujours transmis.
+- **Sources collaboratives — déconnexion** : bouton "Changer" discret à côté du pseudo dans `CollabDocScreen` — remet `myPseudo` à null et réaffiche le formulaire d'enregistrement.
+- **Forçage questionnaire** : migration `20260527140000_questionnaire_force.sql` — colonne `tables.questionnaire_forced_at` + RPC SECURITY DEFINER `force_session_questionnaire(password, session_id)`. `TableContext` expose `forceQuestionnaire()` (UPDATE direct par RLS modérateur + broadcast). `ModeratorView` : item "Forcer questionnaire" dans le dropdown "Outils Modo". `SuperadminScreen` : bouton "Forcer questionnaire" dans le header `SessionDetail` avec `ConfirmModal`. `ParticipantView` : détection realtime de `questionnaire_forced_at` → ouverture automatique du modal.
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions

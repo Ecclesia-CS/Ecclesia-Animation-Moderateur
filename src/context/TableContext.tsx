@@ -42,6 +42,7 @@ interface TableCtxValue {
   correctTurn(turnId: string, params: CorrectTurnParams): Promise<void>
   kickParticipant(participantId: string): Promise<void>
   endTable(): Promise<void>
+  forceQuestionnaire(): Promise<void>
 }
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
@@ -389,6 +390,15 @@ export function TableProvider({
     handleEnd()
   }, [tableId, handleEnd])
 
+  const forceQuestionnaire = useCallback(async () => {
+    const { error } = await supabase
+      .from('tables')
+      .update({ questionnaire_forced_at: new Date().toISOString() })
+      .eq('id', tableId)
+    if (error) throw error
+    broadcast(['tables'])
+  }, [tableId, broadcast])
+
   // ── Render ────────────────────────────────────────────────────
 
   const myParticipant = useMemo(
@@ -443,6 +453,7 @@ export function TableProvider({
         correctTurn,
         kickParticipant,
         endTable,
+        forceQuestionnaire,
       }}
     >
       {children}

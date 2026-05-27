@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
+import type { QuestionnaireResponse } from '../lib/types'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
-import QuestionnaireBtn from '../components/QuestionnaireFab'
-import DocumentationButton from '../components/DocumentationButton'
-import NotesButton from '../components/NotesButton'
+import ParticipantToolsButton from '../components/ParticipantToolsButton'
+import QuestionnaireModal from '../components/QuestionnaireModal'
 
 export default function ParticipantView() {
   const {
@@ -30,6 +30,26 @@ export default function ParticipantView() {
     doc_collab_url: string | null
     session_join_code: string | null
   } | null>(null)
+
+  // Forçage du questionnaire par le modérateur
+  const [forcedQOpen,     setForcedQOpen]     = useState(false)
+  const [forcedQResponse, setForcedQResponse] = useState<QuestionnaireResponse | null>(null)
+  const lastForcedRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const forced = table.questionnaire_forced_at
+    if (!forced || forced === lastForcedRef.current) return
+    lastForcedRef.current = forced
+    supabase
+      .from('questionnaire_responses')
+      .select('*')
+      .eq('table_id', table.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setForcedQResponse(data as QuestionnaireResponse | null)
+        setForcedQOpen(true)
+      })
+  }, [table.questionnaire_forced_at, table.id])
 
   useEffect(() => {
     if (!table.session_id) return
@@ -88,18 +108,12 @@ export default function ParticipantView() {
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
         <div className="flex items-center gap-2">
-          <DocumentationButton
+          <ParticipantToolsButton
             session={sessionDocs}
             userPseudo={myParticipant.pseudo}
             className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
               hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
           />
-          <NotesButton className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500
-            rounded-lg hover:bg-gray-100 transition-colors focus:outline-none
-            focus:ring-2 focus:ring-gray-300" />
-          <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500
-            rounded-lg hover:bg-gray-100 transition-colors focus:outline-none
-            focus:ring-2 focus:ring-gray-300" />
           <button
             onClick={leaveTable}
             className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
@@ -189,6 +203,14 @@ export default function ParticipantView() {
       </div>
 
       </div>{/* end body flex */}
+
+      {/* Questionnaire forcé par le modérateur */}
+      {forcedQOpen && (
+        <QuestionnaireModal
+          savedResponse={forcedQResponse}
+          onClose={() => setForcedQOpen(false)}
+        />
+      )}
     </div>
   )
 }

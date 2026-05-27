@@ -201,12 +201,14 @@ export async function addCollabSource(
   title: string,
   url?: string | null,
   content?: string | null,
+  tableJoinCode?: string | null,
 ): Promise<CollabSource> {
   const { data, error } = await supabase.rpc('add_collab_source', {
-    p_session_id: sessionId,
-    p_title:      title,
-    p_url:        url ?? null,
-    p_content:    content ?? null,
+    p_session_id:       sessionId,
+    p_title:            title,
+    p_url:              url ?? null,
+    p_content:          content ?? null,
+    p_table_join_code:  tableJoinCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as CollabSource
@@ -231,6 +233,17 @@ export async function updateCollabSource(
 export async function deleteCollabSource(sourceId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_collab_source', {
     p_source_id: sourceId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function forceSessionQuestionnaire(
+  password: string,
+  sessionId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('force_session_questionnaire', {
+    p_password:   password,
+    p_session_id: sessionId,
   })
   if (error) throw new Error(extractErr(error))
 }

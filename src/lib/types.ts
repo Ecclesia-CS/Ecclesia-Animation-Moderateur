@@ -19,6 +19,7 @@ export interface Table {
   current_turn_started_at: string | null
   created_at: string
   session_id: string | null
+  questionnaire_forced_at: string | null
 }
 
 export interface Participant {

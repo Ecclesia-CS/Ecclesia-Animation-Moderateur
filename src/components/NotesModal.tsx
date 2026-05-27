@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { extractErr } from '../lib/utils'
 
 interface Props {
   tableId: string
@@ -18,6 +19,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
   const userIdRef = useRef<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveErr, setSaveErr] = useState<string | null>(null)
 
   // Load existing note on mount
   useEffect(() => {
@@ -55,10 +57,12 @@ export default function NotesModal({ tableId, onClose }: Props) {
     const userId = userIdRef.current
     if (!userId) return
     setSaving(true)
-    await supabase.from('private_notes').upsert(
+    setSaveErr(null)
+    const { error: dbErr } = await supabase.from('private_notes').upsert(
       { table_id: tableId, user_id: userId, content: html, updated_at: new Date().toISOString() },
       { onConflict: 'table_id,user_id' }
     )
+    if (dbErr) setSaveErr(extractErr(dbErr))
     setSaving(false)
   }, [tableId])
 
@@ -93,6 +97,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-gray-900">Mes notes</h2>
             {saving && <span className="text-xs text-gray-400">Enregistrement…</span>}
+            {saveErr && <span className="text-xs text-red-500">Erreur : {saveErr}</span>}
           </div>
           <button
             onClick={onClose}

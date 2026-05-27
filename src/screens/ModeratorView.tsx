@@ -46,6 +46,7 @@ export default function ModeratorView() {
     changeQueueType,
     endTable,
     leaveTable,
+    forceQuestionnaire,
   } = useTable()
 
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -511,6 +512,7 @@ export default function ModeratorView() {
             <DocumentationButton
               session={sessionDocs}
               userPseudo={myParticipant?.pseudo}
+              currentTableJoinCode={table.join_code}
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
             />
@@ -636,6 +638,20 @@ export default function ModeratorView() {
                           text-left whitespace-nowrap"
                       >
                         Historique
+                      </button>
+
+                      <div className="my-1 border-t border-slate-700" />
+
+                      {/* Forcer questionnaire */}
+                      <button
+                        onClick={() => {
+                          setShowOutils(false)
+                          forceQuestionnaire().catch(e => setErr(e instanceof Error ? e.message : String(e)))
+                        }}
+                        className="w-full px-4 py-2 text-sm text-slate-200 hover:bg-slate-700
+                          text-left whitespace-nowrap"
+                      >
+                        Forcer questionnaire
                       </button>
                     </div>
                   </>

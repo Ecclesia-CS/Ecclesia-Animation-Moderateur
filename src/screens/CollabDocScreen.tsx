@@ -22,13 +22,14 @@ type SessionInfo = {
 }
 
 export default function CollabDocScreen({ sessionJoinCode }: Props) {
-  const [session,       setSession]       = useState<SessionInfo | null>(null)
-  const [notFound,      setNotFound]      = useState(false)
-  const [myPseudo,      setMyPseudo]      = useState<string | null>(null)
-  const [myUserId,      setMyUserId]      = useState<string | null>(null)
-  const [sources,       setSources]       = useState<CollabSource[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [error,         setError]         = useState<string | null>(null)
+  const [session,          setSession]          = useState<SessionInfo | null>(null)
+  const [notFound,         setNotFound]         = useState(false)
+  const [myPseudo,         setMyPseudo]         = useState<string | null>(null)
+  const [myUserId,         setMyUserId]         = useState<string | null>(null)
+  const [myTableJoinCode,  setMyTableJoinCode]  = useState<string | null>(null)
+  const [sources,          setSources]          = useState<CollabSource[]>([])
+  const [loading,          setLoading]          = useState(true)
+  const [error,            setError]            = useState<string | null>(null)
 
   // ── Registration state ─────────────────────────────────────────
   const [registerPseudo,  setRegisterPseudo]  = useState('')
@@ -87,6 +88,13 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
           setMyPseudo((regData as { pseudo: string }).pseudo)
           alreadyRegistered = true
         }
+      }
+
+      // Lire le table_join_code transmis via sessionStorage (si navigation depuis une vue table)
+      const storedTable = sessionStorage.getItem(`ecclesia_collab_table_${sessionJoinCode}`)
+      if (storedTable) {
+        sessionStorage.removeItem(`ecclesia_collab_table_${sessionJoinCode}`)
+        setMyTableJoinCode(storedTable)
       }
 
       // Auto-enregistrement si pseudo transmis depuis la vue table (via sessionStorage)
@@ -185,8 +193,8 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         const updated = await updateCollabSource(editingSource.id, title, url, content)
         setSources(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s))
       } else {
-        const created = await addCollabSource(session.id, title, url, content)
-        setSources(prev => [...prev, { ...created, table_join_code: null }])
+        const created = await addCollabSource(session.id, title, url, content, myTableJoinCode)
+        setSources(prev => [...prev, { ...created, table_join_code: myTableJoinCode }])
         // Vide le brouillon après soumission réussie
         setFormTitle('')
         setFormUrl('')
@@ -269,7 +277,14 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
           {myPseudo && (
             <div className="shrink-0 flex items-center gap-2">
               <span className="text-xs text-gray-400">
-                Connecté·e en tant que <span className="font-medium text-gray-600">{myPseudo}</span>
+                <span className="font-medium text-gray-600">{myPseudo}</span>
+                {' '}
+                <button
+                  onClick={() => setMyPseudo(null)}
+                  className="text-gray-400 hover:text-gray-600 underline"
+                >
+                  Changer
+                </button>
               </span>
               <button
                 onClick={openAdd}
