@@ -253,6 +253,7 @@ propriétaire, pas du client) :
 | `submit_questionnaire(table_id, session_id?, theme_ideas?, theme_ratings?, debate_attended?, debate_rating?, staff_interest?, feedback?)` | 003 questionnaire | Upsert `questionnaire_responses` pour `auth.uid()`. Conflit sur `(user_id, table_id)` → mise à jour. Retourne la ligne résultante. |
 | `update_session_docs(password, session_id, doc_info_url?, doc_summary_url?, doc_collab_url?)` | session_docs | Met à jour les 3 URLs de documentation d'une séance (NULL = vide le champ). Retourne la ligne `sessions`. |
 | `get_questionnaire_responses(password, session_id?)` | questionnaire_export | Retourne toutes les réponses au questionnaire (bypass RLS) avec JOIN sessions + tables. Si `session_id` fourni, filtre sur la séance ; sinon retourne tout. |
+| `delete_questionnaire_response(password, response_id)` | questionnaire_export | Supprime une réponse au questionnaire (bypass RLS). Vérifie le mot de passe superadmin. |
 
 ### REPLICA IDENTITY FULL
 
@@ -363,7 +364,7 @@ src/
 ├── lib/
 │   ├── supabase.ts          Client Supabase (anon key depuis .env)
 │   ├── types.ts             Interfaces Session, Table, Participant, QueueEntry, SpeakingTurn
-│   ├── sessions.ts          Wrappers RPC séances : verifyPassword, createSession, closeSession, attachTableToSession, detachTableFromSession, listSessionTables, listAvailableTables, getQuestionnaireResponses — types SessionTableRow
+│   ├── sessions.ts          Wrappers RPC séances : verifyPassword, createSession, closeSession, attachTableToSession, detachTableFromSession, listSessionTables, listAvailableTables, getQuestionnaireResponses, deleteQuestionnaireResponse — types SessionTableRow
 │   ├── storage.ts           tableStore.get/set/clear (localStorage)
 │   └── utils.ts             formatDuration, toDateTimeLocal, fromDateTimeLocal, extractErr, generateTableCSV, generateQuestionnaireCSV, QUESTIONNAIRE_THEMES
 ├── hooks/
@@ -372,7 +373,7 @@ src/
 │   └── TableContext.tsx     Provider + useTable() hook — état, Realtime, Broadcast, polling, actions
 ├── screens/
 │   ├── EntryScreen.tsx      Tabs : Rejoindre / Reprendre / Créer + lien "Administration" (hash routing)
-│   ├── SuperadminScreen.tsx Auth mot de passe (sessionStorage), liste séances, création, fermeture, vue détail rattachement tables
+│   ├── SuperadminScreen.tsx Auth mot de passe (sessionStorage), liste séances, création, fermeture, vue détail rattachement tables ; accordéons "Thèmes" (classement par moyenne) et "Réponses" (liste cliquable + suppression)
 │   ├── TableView.tsx        Routage isModerator → ModeratorView ou ParticipantView
 │   ├── ModeratorView.tsx    Vue projetable (DndContext global, auto-avancement, pause/reprise)
 │   └── ParticipantView.tsx  Vue mobile (boutons file, bannière parole, titre séance si rattachée, sidebar md+)
@@ -742,13 +743,21 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
 - **`src/screens/ModeratorView.tsx`** : fetch ajouté (`doc_info_url, doc_summary_url, doc_collab_url`). `DocumentationButton` dans le header (premier bouton).
 - **`src/screens/EntryScreen.tsx`** : dropdown séances charge `doc_collab_url` ; si la séance sélectionnée a un lien collaboratif, un lien "Document collaboratif de cette séance →" apparaît sous le dropdown — accessible avant de rejoindre.
 
-### ✅ Terminé — Export CSV questionnaires (superadmin)
+### ✅ Terminé — Export CSV + tableau de bord questionnaires (superadmin)
 
 - **Migration `20260527000000_questionnaire_export.sql`** : fonction SECURITY DEFINER `get_questionnaire_responses(password, session_id?)` — bypass RLS, JOIN `sessions` + `tables`, filtre optionnel par séance.
-- **`src/lib/types.ts`** : interface `QuestionnaireExportRow` (shape retourné par la RPC, avec `session_title` et `table_join_code` joints).
-- **`src/lib/sessions.ts`** : wrapper `getQuestionnaireResponses(password, sessionId?)`.
-- **`src/lib/utils.ts`** : constante `QUESTIONNAIRE_THEMES` (liste des 26 thèmes) + `generateQuestionnaireCSV(rows)` — CSV UTF-8 BOM, colonnes : Date, Séance, Code table, Débat suivi, Note débat, Idées de thèmes, Intérêt staffing, Retour libre, puis une colonne par thème.
-- **`src/screens/SuperadminScreen.tsx`** : bouton **"Questionnaires"** (icône téléchargement, couleur teal) dans le header de `SessionDetail` — déclenche la RPC, génère et télécharge le CSV immédiatement.
+- **Migration `20260527000001_questionnaire_coalesce.sql`** : `submit_questionnaire` mis à jour — `COALESCE` sur les champs texte/number (valeur existante non écrasable), `||` sur `theme_ratings` (fusion additive). Permet le verrouillage granulaire côté client.
+- **Migration `20260527000002_delete_questionnaire_response.sql`** : fonction SECURITY DEFINER `delete_questionnaire_response(password, response_id)` — suppression d'une réponse individuelle.
+- **`src/lib/types.ts`** : interfaces `QuestionnaireExportRow` et `QuestionnaireResponse`.
+- **`src/lib/sessions.ts`** : wrappers `getQuestionnaireResponses`, `deleteQuestionnaireResponse`.
+- **`src/lib/utils.ts`** : constante `QUESTIONNAIRE_THEMES` (liste des thèmes, source unique de vérité) + `generateQuestionnaireCSV(rows)` — CSV UTF-8 BOM, colonnes : Date, Séance, Code table, Débat suivi, Note débat, Idées de thèmes, Intérêt staffing, Retour libre, puis une colonne par thème (dynamique).
+- **`src/components/QuestionnaireFab.tsx`** : fetch la ligne complète au montage + à la fermeture du modal ; bouton désactivé (fade) uniquement si **tout** est rempli (tous les champs + tous les thèmes de `QUESTIONNAIRE_THEMES`).
+- **`src/components/QuestionnaireModal.tsx`** : accepte `savedResponse` en prop ; champs et thèmes déjà répondus affichés en fade/disabled avec icône cadenas — les champs vierges restent éditables. Re-clic sur une note → déselection (toggle vers null).
+- **`src/screens/SuperadminScreen.tsx`** :
+  - Bouton **"Questionnaires"** (CSV) dans le header de `SessionDetail`
+  - Accordéon **"Thèmes — classement par moyenne"** : barre de progression colorée (teal ≥ 3.5, indigo, amber < 2), score /5 (1 décimale), nb votes — trié par moyenne desc, dynamique sur `QUESTIONNAIRE_THEMES`
+  - Accordéon **"Réponses au questionnaire"** : liste cliquable (expand détails : idées de thèmes, staffing, notes par thème, retour libre), croix rouge + `ConfirmModal` → `deleteQuestionnaireResponse`
+  - Les deux accordéons sont fermés par défaut et placés en bas de la vue détail
 
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
