@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
-  verifyPassword, createSession, closeSession,
+  verifyPassword, createSession, closeSession, deleteSession,
   attachTableToSession, detachTableFromSession,
   listSessionTables, listAvailableTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
+  getTableParticipants, deleteTableAdmin,
 } from '../lib/sessions'
-import type { SessionTableRow } from '../lib/sessions'
+import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -71,6 +72,7 @@ export default function SuperadminScreen() {
   const [view, setView]             = useState<AdminView>({ type: 'list' })
   const [showCreate, setShowCreate] = useState(false)
   const [toClose, setToClose]       = useState<SessionRow | null>(null)
+  const [toDelete, setToDelete]     = useState<SessionRow | null>(null)
 
   // ── Load sessions ──────────────────────────────────────────────
   const loadSessions = useCallback(async () => {
@@ -139,6 +141,24 @@ export default function SuperadminScreen() {
       setSessions(prev =>
         sortSessions(prev.map(s => s.id === target.id ? { ...s, phase: 'closed' as const } : s))
       )
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+      }
+      setListErr(msg)
+    }
+  }
+
+  // ── Delete session ─────────────────────────────────────────────
+  async function handleDelete() {
+    if (!toDelete) return
+    const password = getPwd()!
+    const target = toDelete
+    setToDelete(null)
+    try {
+      await deleteSession(password, target.id)
+      setSessions(prev => prev.filter(s => s.id !== target.id))
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -290,6 +310,7 @@ export default function SuperadminScreen() {
                 key={s.id}
                 session={s}
                 onClose={() => setToClose(s)}
+                onDelete={() => setToDelete(s)}
                 onClick={() => setView({ type: 'detail', session: s })}
               />
             ))}
@@ -315,55 +336,167 @@ export default function SuperadminScreen() {
           onCancel={() => setToClose(null)}
         />
       )}
+
+      {toDelete && (
+        <ConfirmModal
+          title="Supprimer la séance"
+          body={`Supprimer définitivement "${toDelete.title}" ? Les tables rattachées seront détachées mais pas supprimées.`}
+          confirmLabel="Supprimer"
+          onConfirm={handleDelete}
+          onCancel={() => setToDelete(null)}
+        />
+      )}
     </div>
   )
 }
 
 // ── SessionCard ───────────────────────────────────────────────────
 
-function SessionCard({ session, onClose, onClick }: { session: SessionRow; onClose(): void; onClick(): void }) {
+function SessionCard({
+  session, onClose, onDelete, onClick,
+}: {
+  session: SessionRow
+  onClose(): void
+  onDelete(): void
+  onClick(): void
+}) {
   const isClosed = session.phase === 'closed'
+  const [expanded, setExpanded]   = useState(false)
+  const [tables, setTables]       = useState<SessionTableRow[] | null>(null)
+  const [tablesErr, setTablesErr] = useState<string | null>(null)
+  const [tablesLoading, setTablesLoading] = useState(false)
+
+  async function toggleExpand(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!expanded && tables === null) {
+      setTablesLoading(true)
+      setTablesErr(null)
+      try {
+        const rows = await listSessionTables(getPwd()!, session.id)
+        setTables(rows)
+      } catch (err) {
+        setTablesErr(extractErr(err))
+      } finally {
+        setTablesLoading(false)
+      }
+    }
+    setExpanded(v => !v)
+  }
 
   return (
-    <div
-      className="bg-white rounded-2xl border border-gray-200 px-5 py-4 flex items-start gap-4 cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors"
-      onClick={onClick}
-    >
-      <div className="flex-1 min-w-0 space-y-1.5">
-        {/* Title + badge */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-            {PHASE_LABEL[session.phase] ?? session.phase}
-          </span>
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden transition-colors hover:border-indigo-200">
+      {/* ── Header row ── */}
+      <div
+        className="px-5 py-4 flex items-start gap-3 cursor-pointer hover:bg-indigo-50/30 transition-colors"
+        onClick={onClick}
+      >
+        {/* Expand chevron */}
+        <button
+          onClick={toggleExpand}
+          title={expanded ? 'Réduire' : 'Voir les tables'}
+          className="shrink-0 mt-0.5 text-gray-400 hover:text-indigo-600 transition-colors"
+        >
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+          >
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {/* Title + badge */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
+              {PHASE_LABEL[session.phase] ?? session.phase}
+            </span>
+          </div>
+
+          {/* Meta row */}
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
+            {session.scheduled_at && (
+              <span>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            )}
+            {session.join_code && (
+              <span className="font-mono tracking-widest text-gray-700">{session.join_code}</span>
+            )}
+            <span>{session.tableCount} table{session.tableCount !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Description */}
+          {session.description && (
+            <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{session.description}</p>
+          )}
         </div>
 
-        {/* Meta row */}
-        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
-          {session.scheduled_at && (
-            <span>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        {/* Action buttons */}
+        <div className="shrink-0 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+          {!isClosed && (
+            <button
+              onClick={onClose}
+              className="py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
+                text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+            >
+              Fermer
+            </button>
           )}
-          {session.join_code && (
-            <span className="font-mono tracking-widest text-gray-700">{session.join_code}</span>
-          )}
-          <span>{session.tableCount} table{session.tableCount !== 1 ? 's' : ''}</span>
+          <button
+            onClick={onDelete}
+            title="Supprimer la séance"
+            className="p-1.5 rounded-lg border border-transparent text-gray-300
+              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
         </div>
-
-        {/* Description */}
-        {session.description && (
-          <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{session.description}</p>
-        )}
       </div>
 
-      {/* Close button */}
-      {!isClosed && (
-        <button
-          onClick={e => { e.stopPropagation(); onClose() }}
-          className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
-            text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
-        >
-          Fermer
-        </button>
+      {/* ── Expanded tables panel ── */}
+      {expanded && (
+        <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/60">
+          {tablesLoading && (
+            <p className="text-xs text-gray-400 py-2">Chargement…</p>
+          )}
+          {tablesErr && (
+            <p className="text-xs text-red-500 py-2">{tablesErr}</p>
+          )}
+          {!tablesLoading && !tablesErr && tables !== null && (
+            tables.length === 0 ? (
+              <p className="text-xs text-gray-400 py-2 text-center">Aucune table rattachée</p>
+            ) : (
+              <div className="space-y-1.5">
+                {tables.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 text-xs">
+                    {/* Active indicator */}
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.is_active ? 'bg-teal-400' : 'bg-gray-300'}`} />
+                    {/* Join code */}
+                    <span className="font-mono tracking-widest text-gray-700 w-14 shrink-0">{t.join_code}</span>
+                    {/* Moderator */}
+                    <span className="text-gray-500 truncate flex-1">
+                      {t.moderator_pseudo ?? <span className="italic text-gray-300">—</span>}
+                    </span>
+                    {/* Participants */}
+                    <span className="text-gray-400 shrink-0">
+                      {t.participant_count} participant{Number(t.participant_count) !== 1 ? 's' : ''}
+                    </span>
+                    {/* Created at */}
+                    <span className="text-gray-300 shrink-0 hidden sm:block">
+                      {new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
       )}
     </div>
   )
@@ -385,7 +518,6 @@ function CreateModal({
   const [scheduledAt, setScheduledAt]   = useState('')
   const [docInfoUrl, setDocInfoUrl]     = useState('')
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
-  const [docCollabUrl, setDocCollabUrl] = useState('')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -402,7 +534,6 @@ function CreateModal({
         scheduledAt ? fromDateTimeLocal(scheduledAt) : undefined,
         docInfoUrl || undefined,
         docSummaryUrl || undefined,
-        docCollabUrl || undefined,
       )
       onCreated(session)
     } catch (e) {
@@ -474,8 +605,11 @@ function CreateModal({
             <div className="space-y-3">
               <UrlField label="Fiche information (PDF)" value={docInfoUrl} onChange={setDocInfoUrl} />
               <UrlField label="Résumé (PDF)" value={docSummaryUrl} onChange={setDocSummaryUrl} />
-              <UrlField label="Document collaboratif" value={docCollabUrl} onChange={setDocCollabUrl} />
             </div>
+            <p className="mt-3 text-xs text-gray-400">
+              Le document de sources collaboratives est disponible automatiquement pour chaque séance
+              avec un code de rejoindre.
+            </p>
           </div>
 
           {error && (
@@ -605,7 +739,13 @@ function SessionDetail({
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
+  const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
   const [exporting,       setExporting]       = useState(false)
+
+  // ── Filtre "Tables disponibles" ────────────────────────────
+  type TableFilter = '48h' | 'all' | 'custom'
+  const [tableFilter,  setTableFilter]  = useState<TableFilter>('48h')
+  const [customSince,  setCustomSince]  = useState('')
 
   // ── Questionnaire data ─────────────────────────────────────────
   const [responses,          setResponses]          = useState<QuestionnaireExportRow[]>([])
@@ -620,7 +760,6 @@ function SessionDetail({
   const [editingDocs,    setEditingDocs]    = useState(false)
   const [docInfoUrl,     setDocInfoUrl]     = useState(session.doc_info_url ?? '')
   const [docSummaryUrl,  setDocSummaryUrl]  = useState(session.doc_summary_url ?? '')
-  const [docCollabUrl,   setDocCollabUrl]   = useState(session.doc_collab_url ?? '')
   const [docsLoading,    setDocsLoading]    = useState(false)
   const [docsErr,        setDocsErr]        = useState<string | null>(null)
   const [sessionDocs,    setSessionDocs]    = useState({
@@ -640,7 +779,7 @@ function SessionDetail({
         session.id,
         docInfoUrl || null,
         docSummaryUrl || null,
-        docCollabUrl || null,
+        sessionDocs.doc_collab_url,
       )
       setSessionDocs({
         doc_info_url:    updated.doc_info_url,
@@ -660,14 +799,19 @@ function SessionDetail({
     }
   }
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (filter: TableFilter = tableFilter, sinceDateStr: string = customSince) => {
     const password = getPwd()!
     setLoading(true)
     setError(null)
     try {
+      let since: Date | null | undefined
+      if (filter === 'all') since = null
+      else if (filter === 'custom' && sinceDateStr) since = new Date(sinceDateStr)
+      else since = undefined // défaut 48h
+
       const [attached, available] = await Promise.all([
         listSessionTables(password, session.id),
-        listAvailableTables(password),
+        listAvailableTables(password, since),
       ])
       setAttachedTables(attached)
       setAvailableTables(available)
@@ -681,7 +825,7 @@ function SessionDetail({
     } finally {
       setLoading(false)
     }
-  }, [session.id, onAuthError])
+  }, [session.id, onAuthError, tableFilter, customSince])
 
   useEffect(() => { load() }, [load])
 
@@ -744,6 +888,25 @@ function SessionDetail({
     try {
       await detachTableFromSession(password, target.id)
       await load()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setError(msg)
+    }
+  }
+
+  async function handleDeleteTable() {
+    if (!deleteTableConfirm) return
+    const password = getPwd()!
+    const target = deleteTableConfirm
+    setDeleteTableConfirm(null)
+    try {
+      await deleteTableAdmin(password, target.id)
+      setAttachedTables(prev => prev.filter(t => t.id !== target.id))
+      setAvailableTables(prev => prev.filter(t => t.id !== target.id))
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -858,7 +1021,6 @@ function SessionDetail({
                     onClick={() => {
                       setDocInfoUrl(sessionDocs.doc_info_url ?? '')
                       setDocSummaryUrl(sessionDocs.doc_summary_url ?? '')
-                      setDocCollabUrl(sessionDocs.doc_collab_url ?? '')
                       setDocsErr(null)
                       setEditingDocs(true)
                     }}
@@ -873,7 +1035,6 @@ function SessionDetail({
                 <form onSubmit={handleSaveDocs} className="space-y-3">
                   <UrlField label="Fiche information (PDF)" value={docInfoUrl} onChange={setDocInfoUrl} />
                   <UrlField label="Résumé (PDF)" value={docSummaryUrl} onChange={setDocSummaryUrl} />
-                  <UrlField label="Document collaboratif" value={docCollabUrl} onChange={setDocCollabUrl} />
                   {docsErr && (
                     <p className="text-xs text-red-600">{docsErr}</p>
                   )}
@@ -899,9 +1060,19 @@ function SessionDetail({
                 <div className="space-y-2 text-sm">
                   <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
                   <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
-                  <DocLink label="Document collaboratif" url={sessionDocs.doc_collab_url} />
-                  {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && !sessionDocs.doc_collab_url && (
-                    <p className="text-xs text-gray-400">Aucun document configuré</p>
+                  {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
+                    <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
+                  )}
+                  {session.join_code && (
+                    <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
+                      <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
+                      <a
+                        href={`#collab/${session.join_code}`}
+                        className="text-indigo-600 hover:underline text-xs"
+                      >
+                        Ouvrir le document →
+                      </a>
+                    </div>
                   )}
                 </div>
               )}
@@ -916,9 +1087,10 @@ function SessionDetail({
               ) : (
                 <div className="space-y-2">
                   {attachedTables.map(t => (
-                    <TableRow
+                    <ExpandableTableRow
                       key={t.id}
                       table={t}
+                      onDelete={() => setDeleteTableConfirm(t)}
                       action={
                         <button
                           onClick={() => setDetachConfirm(t)}
@@ -938,15 +1110,46 @@ function SessionDetail({
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                 Tables disponibles à rattacher
               </h2>
-              <p className="text-xs text-gray-400 mb-3">Créées dans les dernières 48h, non rattachées</p>
+              {/* Contrôles de filtre */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                {(['48h', 'all', 'custom'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => {
+                      setTableFilter(f)
+                      load(f, customSince)
+                    }}
+                    className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                      tableFilter === f
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
+                    }`}
+                  >
+                    {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
+                  </button>
+                ))}
+                {tableFilter === 'custom' && (
+                  <input
+                    type="datetime-local"
+                    value={customSince}
+                    onChange={e => {
+                      setCustomSince(e.target.value)
+                      if (e.target.value) load('custom', e.target.value)
+                    }}
+                    className="px-2 py-1 text-xs border border-gray-300 rounded-lg
+                      focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                )}
+              </div>
               {availableTables.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
               ) : (
                 <div className="space-y-2">
                   {availableTables.map(t => (
-                    <TableRow
+                    <ExpandableTableRow
                       key={t.id}
                       table={t}
+                      onDelete={() => setDeleteTableConfirm(t)}
                       action={
                         <button
                           onClick={() => handleAttach(t.id)}
@@ -1038,6 +1241,16 @@ function SessionDetail({
           confirmLabel="Détacher"
           onConfirm={handleDetach}
           onCancel={() => setDetachConfirm(null)}
+        />
+      )}
+
+      {deleteTableConfirm && (
+        <ConfirmModal
+          title="Supprimer la table"
+          body={`Supprimer définitivement la table ${deleteTableConfirm.join_code} ? Tous les participants, tours et files seront supprimés.`}
+          confirmLabel="Supprimer"
+          onConfirm={handleDeleteTable}
+          onCancel={() => setDeleteTableConfirm(null)}
         />
       )}
 
@@ -1298,24 +1511,117 @@ function ResponseRow({
   )
 }
 
-function TableRow({ table, action }: { table: SessionTableRow; action: React.ReactNode }) {
+function ExpandableTableRow({
+  table, action, onDelete,
+}: {
+  table: SessionTableRow
+  action: React.ReactNode
+  onDelete(): void
+}) {
+  const [expanded, setExpanded]           = useState(false)
+  const [participants, setParticipants]   = useState<TableParticipantRow[] | null>(null)
+  const [partLoading, setPartLoading]     = useState(false)
+  const [partErr, setPartErr]             = useState<string | null>(null)
+
+  async function toggleExpand(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!expanded && participants === null) {
+      setPartLoading(true)
+      setPartErr(null)
+      try {
+        const rows = await getTableParticipants(getPwd()!, table.id)
+        setParticipants(rows)
+      } catch (err) {
+        setPartErr(extractErr(err))
+      } finally {
+        setPartLoading(false)
+      }
+    }
+    setExpanded(v => !v)
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 px-5 py-3 flex items-center gap-4">
-      <div className="flex-1 min-w-0 flex items-center gap-4 flex-wrap text-sm">
-        <span className="font-mono font-bold text-indigo-600 tracking-widest">{table.join_code}</span>
-        {table.moderator_pseudo && (
-          <span className="text-gray-600 truncate">{table.moderator_pseudo}</span>
-        )}
-        <span className="text-gray-400 text-xs">
-          {table.participant_count} participant{table.participant_count !== 1 ? 's' : ''}
-        </span>
-        {table.is_active && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-            En cours
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      {/* ── Header ── */}
+      <div className="px-4 py-3 flex items-center gap-3">
+        {/* Chevron expand */}
+        <button
+          onClick={toggleExpand}
+          title={expanded ? 'Réduire' : 'Voir les participants'}
+          className="shrink-0 text-gray-400 hover:text-indigo-600 transition-colors"
+        >
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+          >
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        {/* Table info */}
+        <div className="flex-1 min-w-0 flex items-center gap-4 flex-wrap text-sm">
+          <span className="font-mono font-bold text-indigo-600 tracking-widest">{table.join_code}</span>
+          {table.moderator_pseudo && (
+            <span className="text-gray-600 truncate">{table.moderator_pseudo}</span>
+          )}
+          <span className="text-gray-400 text-xs">
+            {table.participant_count} participant{table.participant_count !== 1 ? 's' : ''}
           </span>
-        )}
+          {table.is_active && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              En cours
+            </span>
+          )}
+        </div>
+
+        {/* Trash + action */}
+        <div className="shrink-0 flex items-center gap-1.5">
+          <button
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            title="Supprimer la table"
+            className="p-1.5 rounded-lg border border-transparent text-gray-300
+              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+          {action}
+        </div>
       </div>
-      {action}
+
+      {/* ── Expanded participants ── */}
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/60">
+          {partLoading && <p className="text-xs text-gray-400">Chargement…</p>}
+          {partErr && <p className="text-xs text-red-500">{partErr}</p>}
+          {!partLoading && !partErr && participants !== null && (
+            participants.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-1">Aucun participant</p>
+            ) : (
+              <div className="space-y-1">
+                {participants.map(p => (
+                  <div key={p.pseudo} className={`flex items-center gap-3 text-xs ${p.is_current_speaker ? 'text-amber-700 font-medium' : 'text-gray-600'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.is_current_speaker ? 'bg-amber-400' : 'bg-gray-300'}`} />
+                    <span className="truncate flex-1">{p.pseudo}</span>
+                    <span className={p.is_current_speaker ? 'text-amber-600' : 'text-gray-400'}>
+                      {formatDuration(p.total_ms)}
+                    </span>
+                    <span className="text-gray-300 shrink-0">
+                      {p.turn_count} tour{Number(p.turn_count) !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      )}
     </div>
   )
 }

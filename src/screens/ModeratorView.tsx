@@ -104,16 +104,24 @@ export default function ModeratorView() {
     doc_info_url: string | null
     doc_summary_url: string | null
     doc_collab_url: string | null
+    session_join_code: string | null
   } | null>(null)
 
   useEffect(() => {
     if (!table.session_id) return
     supabase
       .from('sessions')
-      .select('doc_info_url, doc_summary_url, doc_collab_url')
+      .select('join_code, doc_info_url, doc_summary_url, doc_collab_url')
       .eq('id', table.session_id)
       .maybeSingle()
-      .then(({ data }) => { if (data) setSessionDocs(data) })
+      .then(({ data }) => {
+        if (data) setSessionDocs({
+          doc_info_url:      data.doc_info_url,
+          doc_summary_url:   data.doc_summary_url,
+          doc_collab_url:    data.doc_collab_url,
+          session_join_code: data.join_code,
+        })
+      })
   }, [table.session_id])
 
   // ── Pause persistence ────────────────────────────────────────
@@ -492,6 +500,7 @@ export default function ModeratorView() {
           <div className="flex items-center gap-3 shrink-0">
             <DocumentationButton
               session={sessionDocs}
+              userPseudo={myParticipant?.pseudo}
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
             />

@@ -24,14 +24,14 @@ export default function EntryScreen({ onJoined }: Props) {
   const [availableSessions, setAvailableSessions] = useState<{
     id: string
     title: string
-    doc_collab_url: string | null
+    join_code: string | null
   }[]>([])
 
   useEffect(() => {
     if (mode !== 'create') return
     supabase
       .from('sessions')
-      .select('id, title, doc_collab_url')
+      .select('id, title, join_code')
       .in('phase', ['draft', 'voting', 'debating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setAvailableSessions(data) })
@@ -63,13 +63,17 @@ export default function EntryScreen({ onJoined }: Props) {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
+    if (!selectedSessionId) {
+      setError('Veuillez sélectionner une séance.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
       const { data, error: err } = await supabase.rpc('create_table', {
         p_pseudo: pseudo,
         p_creation_code: creationCode,
-        p_session_id: selectedSessionId || null,
+        p_session_id: selectedSessionId,
       })
       if (err) throw err
       const r = data as TableResult
@@ -160,45 +164,56 @@ export default function EntryScreen({ onJoined }: Props) {
                 placeholder="Alice" />
               <Field label="Code Ecclesia" value={creationCode}
                 onChange={setCreationCode} type="password" placeholder="••••••••" />
-              {availableSessions.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    Rattacher à une séance <span className="text-gray-400 font-normal">(optionnel)</span>
-                  </label>
-                  <select
-                    value={selectedSessionId}
-                    onChange={e => setSelectedSessionId(e.target.value)}
-                    className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                      bg-white transition-shadow"
-                  >
-                    <option value="">— Aucune séance —</option>
-                    {availableSessions.map(s => (
-                      <option key={s.id} value={s.id}>{s.title}</option>
-                    ))}
-                  </select>
-                  {(() => {
-                    const sel = availableSessions.find(s => s.id === selectedSessionId)
-                    if (!sel?.doc_collab_url) return null
-                    return (
-                      <a
-                        href={sel.doc_collab_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:underline"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                        </svg>
-                        Document collaboratif de cette séance
-                      </a>
-                    )
-                  })()}
-                </div>
-              )}
-              <Btn loading={loading} label="Créer la session" />
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Séance <span className="text-red-500">*</span>
+                </label>
+                {availableSessions.length === 0 ? (
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    Aucune séance active — créez d'abord une séance dans l'Administration.
+                  </p>
+                ) : (
+                  <>
+                    <select
+                      value={selectedSessionId}
+                      onChange={e => setSelectedSessionId(e.target.value)}
+                      required
+                      className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+                        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                        bg-white transition-shadow"
+                    >
+                      <option value="" disabled>— Sélectionner une séance —</option>
+                      {availableSessions.map(s => (
+                        <option key={s.id} value={s.id}>{s.title}</option>
+                      ))}
+                    </select>
+                    {(() => {
+                      const sel = availableSessions.find(s => s.id === selectedSessionId)
+                      if (!sel?.join_code) return null
+                      return (
+                        <a
+                          href={`#collab/${sel.join_code}`}
+                          className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:underline"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                          </svg>
+                          Sources collaboratives de cette séance
+                        </a>
+                      )
+                    })()}
+                  </>
+                )}
+              </div>
+              <Btn
+                loading={loading}
+                label="Créer la session"
+                disabled={availableSessions.length === 0 || !selectedSessionId}
+              />
             </form>
           )}
 
@@ -302,11 +317,11 @@ function EyeOff() {
   )
 }
 
-function Btn({ loading, label }: { loading: boolean; label: string }) {
+function Btn({ loading, label, disabled = false }: { loading: boolean; label: string; disabled?: boolean }) {
   return (
     <button
       type="submit"
-      disabled={loading}
+      disabled={loading || disabled}
       className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
         text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
         focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center gap-2"

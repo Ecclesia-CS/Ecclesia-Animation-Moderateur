@@ -61,6 +61,19 @@ export interface QuestionnaireResponse {
   created_at: string
 }
 
+export interface CollabSource {
+  id: string
+  session_id: string
+  user_id: string
+  pseudo: string
+  title: string
+  url: string | null
+  content: string | null
+  created_at: string
+  updated_at: string
+  table_join_code: string | null
+}
+
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {
   id: string

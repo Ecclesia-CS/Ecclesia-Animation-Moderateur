@@ -759,6 +759,37 @@ Chaque fonction prend le mot de passe en premier argument. Types de retour : `Se
   - Accordéon **"Réponses au questionnaire"** : liste cliquable (expand détails : idées de thèmes, staffing, notes par thème, retour libre), croix rouge + `ConfirmModal` → `deleteQuestionnaireResponse`
   - Les deux accordéons sont fermés par défaut et placés en bas de la vue détail
 
+### ✅ Terminé — Sources collaboratives par séance
+
+- **Migration `20260527000006_collab_sources.sql`** : deux nouvelles tables + 5 fonctions SECURITY DEFINER.
+  - `collab_session_users` (`id`, `session_id` FK → `sessions`, `user_id`, `pseudo`, `created_at`) — RLS SELECT `true`, écriture via RPC uniquement. Contrainte `UNIQUE(session_id, pseudo)` avec `ON CONFLICT DO UPDATE SET user_id = EXCLUDED.user_id` (même mécanique que `join_table` : retaper son pseudo depuis un autre appareil réattribue le compte).
+  - `session_sources` (`id`, `session_id` FK, `user_id`, `pseudo`, `title`, `url` nullable, `content` nullable, `created_at`, `updated_at`) — RLS SELECT `true`, écriture via RPC uniquement. Realtime activé.
+  - `register_collab_pseudo(session_id, pseudo)` — enregistre ou transfère le compte utilisateur.
+  - `add_collab_source(session_id, title, url?, content?)` — insert une source liée au compte courant.
+  - `update_collab_source(source_id, title, url?, content?)` — mise à jour (vérifie `user_id`).
+  - `delete_collab_source(source_id)` — suppression (vérifie `user_id`).
+  - `list_session_sources(session_id)` — retourne toutes les sources avec `table_join_code` (sous-requête corrélée `LIMIT 1` pour éviter les doublons si le pseudo est dans plusieurs tables).
+- **`src/lib/types.ts`** : interface `CollabSource` (`id`, `session_id`, `user_id`, `pseudo`, `title`, `url`, `content`, `created_at`, `updated_at`, `table_join_code`).
+- **`src/lib/sessions.ts`** : wrappers `registerCollabPseudo`, `addCollabSource`, `updateCollabSource`, `deleteCollabSource`, `listSessionSources`.
+- **`src/screens/CollabDocScreen.tsx`** : nouveau screen complet accessible via `/#collab/<session_join_code>`.
+  - Auth anonyme → fetch séance par join_code → vérification enregistrement → auto-pseudo sessionStorage → chargement sources.
+  - Abonnement Realtime `collab:<session.id>` sur `session_sources` (INSERT/UPDATE/DELETE temps réel).
+  - Sources groupées par `table_join_code` via `groupByTable()` — chaque groupe dans un accordéon.
+  - `SourceCard` : titre, lien URL, contenu, boutons Modifier/Supprimer pour ses propres sources uniquement.
+  - `ConfirmModal` de confirmation avant suppression.
+  - Formulaire "Ajouter" et "Modifier" partagé ; passage entre les deux via `editingSource` state.
+  - Bannière d'avertissement pseudo : "Retenez bien votre pseudo — il est nécessaire pour retrouver vos sources depuis un autre appareil."
+- **`src/App.tsx`** : route `if (hash.startsWith('#collab/'))` → `<CollabDocScreen sessionJoinCode={joinCode} />` dans le listener `hashchange`.
+- **`src/components/DocumentationButton.tsx`** : `session_join_code` ajouté au type `SessionDocs` ; `hasCollab = !!session_join_code || !!doc_collab_url` ; bouton "Sources collaboratives" (navigation in-app) quand `session_join_code` présent, sinon lien externe `doc_collab_url` ; prop `userPseudo?: string` pour le passage de pseudo.
+- **`src/screens/EntryScreen.tsx`** : lien "Sources collaboratives de cette séance" dans le dropdown des séances actives — pointe vers `#collab/<session_join_code>` (au lieu de l'ancien lien externe `doc_collab_url`).
+- **`src/screens/ModeratorView.tsx`** et **`src/screens/ParticipantView.tsx`** : fetch étendu avec `join_code` ; `session_join_code: data.join_code` dans l'état `sessionDocs` ; prop `userPseudo` passée à `<DocumentationButton>`.
+- **`src/screens/SuperadminScreen.tsx`** : suppression du champ `doc_collab_url` dans le formulaire de création et d'édition (auto-géré par le join_code) ; lien "Ouvrir le document →" dans la vue détail séance quand `session.join_code` existe.
+
+### ✅ Terminé — Améliorations UX CollabDoc (auto-pseudo + draft)
+
+- **Auto-pseudo depuis la table** : quand on navigue vers `#collab/<join_code>` depuis le bouton "Sources collaboratives" d'une vue modérateur ou participant, le pseudo de la table est stocké dans `sessionStorage` sous la clé `ecclesia_collab_pseudo_<join_code>` avant la navigation. `CollabDocScreen` lit et supprime cette clé au montage — si l'utilisateur n'est pas encore enregistré, `registerCollabPseudo` est appelé silencieusement. Zéro friction pour les participants en table ; les utilisateurs arrivant via lien direct voient toujours le formulaire de pseudo.
+- **Draft préservé à la fermeture** : `openAdd()` n'efface plus les champs `formTitle`/`formUrl`/`formContent` — le brouillon survive à la fermeture du formulaire. Les champs sont vidés uniquement après une soumission réussie (ajout). `openEdit()` écrase les champs avec les valeurs de la source existante sans toucher au brouillon (il est restauré à la fermeture de l'édition).
+
 🔲 **Reste à faire (éventuel)**
 - Toast notifications pour les actions
 - Page 404 / table expirée élégante

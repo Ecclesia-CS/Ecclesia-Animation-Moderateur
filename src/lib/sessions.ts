@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { Session, Table, QuestionnaireExportRow } from './types'
+import { Session, Table, QuestionnaireExportRow, CollabSource } from './types'
 import { extractErr } from './utils'
 
 export type SessionTableRow = {
@@ -9,6 +9,13 @@ export type SessionTableRow = {
   moderator_pseudo: string | null
   participant_count: number
   is_active: boolean
+}
+
+export type TableParticipantRow = {
+  pseudo: string
+  total_ms: number
+  turn_count: number
+  is_current_speaker: boolean
 }
 
 export async function verifyPassword(password: string): Promise<void> {
@@ -82,6 +89,40 @@ export async function detachTableFromSession(
   return data as Table
 }
 
+export async function getTableParticipants(
+  password: string,
+  tableId: string,
+): Promise<TableParticipantRow[]> {
+  const { data, error } = await supabase.rpc('get_table_participants', {
+    p_password: password,
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as TableParticipantRow[]) ?? []
+}
+
+export async function deleteTableAdmin(
+  password: string,
+  tableId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('delete_table_admin', {
+    p_password: password,
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function deleteSession(
+  password: string,
+  sessionId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('delete_session', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 export async function closeSession(
   password: string,
   sessionId: string,
@@ -108,10 +149,13 @@ export async function listSessionTables(
 
 export async function listAvailableTables(
   password: string,
+  since?: Date | null,
 ): Promise<SessionTableRow[]> {
-  const { data, error } = await supabase.rpc('list_available_tables', {
-    p_password: password,
-  })
+  const params: Record<string, unknown> = { p_password: password }
+  if (since !== undefined) {
+    params.p_since = since === null ? null : since.toISOString()
+  }
+  const { data, error } = await supabase.rpc('list_available_tables', params)
   if (error) throw new Error(extractErr(error))
   return (data as SessionTableRow[]) ?? []
 }
@@ -137,4 +181,64 @@ export async function getQuestionnaireResponses(
   })
   if (error) throw new Error(extractErr(error))
   return (data as QuestionnaireExportRow[]) ?? []
+}
+
+// ── Collab sources ─────────────────────────────────────────────────
+
+export async function registerCollabPseudo(
+  sessionId: string,
+  pseudo: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('register_collab_pseudo', {
+    p_session_id: sessionId,
+    p_pseudo:     pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function addCollabSource(
+  sessionId: string,
+  title: string,
+  url?: string | null,
+  content?: string | null,
+): Promise<CollabSource> {
+  const { data, error } = await supabase.rpc('add_collab_source', {
+    p_session_id: sessionId,
+    p_title:      title,
+    p_url:        url ?? null,
+    p_content:    content ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as CollabSource
+}
+
+export async function updateCollabSource(
+  sourceId: string,
+  title: string,
+  url?: string | null,
+  content?: string | null,
+): Promise<CollabSource> {
+  const { data, error } = await supabase.rpc('update_collab_source', {
+    p_source_id: sourceId,
+    p_title:     title,
+    p_url:       url ?? null,
+    p_content:   content ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as CollabSource
+}
+
+export async function deleteCollabSource(sourceId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_collab_source', {
+    p_source_id: sourceId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function listSessionSources(sessionId: string): Promise<CollabSource[]> {
+  const { data, error } = await supabase.rpc('list_session_sources', {
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as CollabSource[]) ?? []
 }

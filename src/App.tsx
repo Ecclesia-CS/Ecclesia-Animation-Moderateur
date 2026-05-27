@@ -6,6 +6,7 @@ import { TableProvider } from './context/TableContext'
 import EntryScreen from './screens/EntryScreen'
 import TableView from './screens/TableView'
 import SuperadminScreen from './screens/SuperadminScreen'
+import CollabDocScreen from './screens/CollabDocScreen'
 
 type AppPhase =
   | { type: 'loading' }
@@ -91,6 +92,12 @@ export default function App() {
   // Route /superadmin via hash — indépendant du flow principal
   if (hash === '#superadmin') {
     return <SuperadminScreen />
+  }
+
+  // Route #collab/<join_code> — document collaboratif de sources
+  if (hash.startsWith('#collab/')) {
+    const joinCode = hash.slice('#collab/'.length)
+    return <CollabDocScreen sessionJoinCode={joinCode} />
   }
 
   if (phase.type === 'loading') {

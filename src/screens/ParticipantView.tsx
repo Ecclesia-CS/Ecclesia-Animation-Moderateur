@@ -27,22 +27,24 @@ export default function ParticipantView() {
     doc_info_url: string | null
     doc_summary_url: string | null
     doc_collab_url: string | null
+    session_join_code: string | null
   } | null>(null)
 
   useEffect(() => {
     if (!table.session_id) return
     supabase
       .from('sessions')
-      .select('title, doc_info_url, doc_summary_url, doc_collab_url')
+      .select('title, join_code, doc_info_url, doc_summary_url, doc_collab_url')
       .eq('id', table.session_id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setSessionTitle(data.title)
           setSessionDocs({
-            doc_info_url:    data.doc_info_url,
-            doc_summary_url: data.doc_summary_url,
-            doc_collab_url:  data.doc_collab_url,
+            doc_info_url:      data.doc_info_url,
+            doc_summary_url:   data.doc_summary_url,
+            doc_collab_url:    data.doc_collab_url,
+            session_join_code: data.join_code,
           })
         }
       })
@@ -87,6 +89,7 @@ export default function ParticipantView() {
         <div className="flex items-center gap-2">
           <DocumentationButton
             session={sessionDocs}
+            userPseudo={myParticipant.pseudo}
             className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
               hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
           />
