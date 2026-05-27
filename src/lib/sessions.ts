@@ -116,6 +116,17 @@ export async function listAvailableTables(
   return (data as SessionTableRow[]) ?? []
 }
 
+export async function deleteQuestionnaireResponse(
+  password: string,
+  responseId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('delete_questionnaire_response', {
+    p_password:    password,
+    p_response_id: responseId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 export async function getQuestionnaireResponses(
   password: string,
   sessionId?: string,

@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession,
   attachTableToSession, detachTableFromSession,
   listSessionTables, listAvailableTables, updateSessionDocs,
-  getQuestionnaireResponses,
+  getQuestionnaireResponses, deleteQuestionnaireResponse,
 } from '../lib/sessions'
 import type { SessionTableRow } from '../lib/sessions'
-import type { Session } from '../lib/types'
+import type { Session, QuestionnaireExportRow } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
@@ -607,6 +607,13 @@ function SessionDetail({
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
   const [exporting,       setExporting]       = useState(false)
 
+  // ── Questionnaire data ─────────────────────────────────────────
+  const [responses,         setResponses]         = useState<QuestionnaireExportRow[]>([])
+  const [responsesLoading,  setResponsesLoading]  = useState(false)
+  const [expandedResponseId, setExpandedResponseId] = useState<string | null>(null)
+  const [deleteRespConfirm, setDeleteRespConfirm] = useState<QuestionnaireExportRow | null>(null)
+  const [deletingRespId,    setDeletingRespId]    = useState<string | null>(null)
+
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
   const [docInfoUrl,     setDocInfoUrl]     = useState(session.doc_info_url ?? '')
@@ -675,6 +682,42 @@ function SessionDetail({
   }, [session.id, onAuthError])
 
   useEffect(() => { load() }, [load])
+
+  const loadResponses = useCallback(async () => {
+    const password = getPwd()!
+    setResponsesLoading(true)
+    try {
+      const rows = await getQuestionnaireResponses(password, session.id)
+      setResponses(rows)
+    } catch {
+      // non-bloquant : on affiche juste une liste vide
+    } finally {
+      setResponsesLoading(false)
+    }
+  }, [session.id])
+
+  useEffect(() => { loadResponses() }, [loadResponses])
+
+  async function handleDeleteResponse() {
+    if (!deleteRespConfirm) return
+    const password = getPwd()!
+    const target = deleteRespConfirm
+    setDeleteRespConfirm(null)
+    setDeletingRespId(target.id)
+    try {
+      await deleteQuestionnaireResponse(password, target.id)
+      setResponses(prev => prev.filter(r => r.id !== target.id))
+      if (expandedResponseId === target.id) setExpandedResponseId(null)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setError(msg)
+    } finally {
+      setDeletingRespId(null)
+    }
+  }
 
   async function handleAttach(tableId: string) {
     const password = getPwd()!
@@ -862,6 +905,19 @@ function SessionDetail({
               )}
             </section>
 
+            {/* ── Tableau de bord thèmes ──────────────────── */}
+            <ThemeDashboard responses={responses} loading={responsesLoading} />
+
+            {/* ── Liste des réponses ──────────────────────── */}
+            <ResponsesList
+              responses={responses}
+              loading={responsesLoading}
+              expandedId={expandedResponseId}
+              deletingId={deletingRespId}
+              onToggle={id => setExpandedResponseId(prev => prev === id ? null : id)}
+              onDeleteRequest={r => setDeleteRespConfirm(r)}
+            />
+
             <section>
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                 Tables rattachées
@@ -929,6 +985,16 @@ function SessionDetail({
           onCancel={() => setDetachConfirm(null)}
         />
       )}
+
+      {deleteRespConfirm && (
+        <ConfirmModal
+          title="Supprimer cette réponse"
+          body="Supprimer définitivement cette réponse au questionnaire ? Cette action est irréversible."
+          confirmLabel="Supprimer"
+          onConfirm={handleDeleteResponse}
+          onCancel={() => setDeleteRespConfirm(null)}
+        />
+      )}
     </div>
   )
 }
@@ -963,6 +1029,239 @@ function UrlField({ label, value, onChange }: { label: string; value: string; on
           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
           placeholder:text-gray-300 transition-shadow"
       />
+    </div>
+  )
+}
+
+// ── ThemeDashboard ────────────────────────────────────────────────
+
+type ThemeStat = { theme: string; avg: number; count: number }
+
+function computeThemeStats(responses: QuestionnaireExportRow[]): ThemeStat[] {
+  return QUESTIONNAIRE_THEMES
+    .map(theme => {
+      const ratings = responses
+        .map(r => r.theme_ratings?.[theme])
+        .filter((v): v is number => v !== undefined)
+      if (ratings.length === 0) return null
+      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length
+      return { theme, avg, count: ratings.length }
+    })
+    .filter((s): s is ThemeStat => s !== null)
+    .sort((a, b) => b.avg - a.avg)
+}
+
+function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExportRow[]; loading: boolean }) {
+  const stats = computeThemeStats(responses)
+
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        Thèmes — classement par moyenne
+      </h2>
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+        </div>
+      ) : stats.length === 0 ? (
+        <p className="text-xs text-gray-400 py-2">Aucune note de thème pour l'instant.</p>
+      ) : (
+        <div className="space-y-2.5">
+          {stats.map((s, i) => {
+            const pct = (s.avg / 5) * 100
+            const barColor = s.avg >= 3.5
+              ? 'bg-teal-500'
+              : s.avg >= 2
+                ? 'bg-indigo-400'
+                : 'bg-amber-400'
+            return (
+              <div key={s.theme} className="flex items-center gap-3">
+                <span className="w-5 text-xs text-gray-400 text-right shrink-0">{i + 1}.</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-xs text-gray-700 truncate leading-snug">{s.theme}</span>
+                    <span className="text-xs font-semibold text-gray-900 shrink-0 tabular-nums">
+                      {s.avg.toFixed(1)}<span className="text-gray-400 font-normal">/5</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 shrink-0 w-12 text-right">
+                  {s.count} vote{s.count > 1 ? 's' : ''}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── ResponsesList ─────────────────────────────────────────────────
+
+function ResponsesList({
+  responses, loading, expandedId, deletingId, onToggle, onDeleteRequest,
+}: {
+  responses: QuestionnaireExportRow[]
+  loading: boolean
+  expandedId: string | null
+  deletingId: string | null
+  onToggle(id: string): void
+  onDeleteRequest(r: QuestionnaireExportRow): void
+}) {
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          Réponses au questionnaire
+          {responses.length > 0 && (
+            <span className="ml-2 font-normal normal-case text-gray-400">({responses.length})</span>
+          )}
+        </h2>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+        </div>
+      ) : responses.length === 0 ? (
+        <p className="text-xs text-gray-400 py-2">Aucune réponse pour l'instant.</p>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {responses.map(r => (
+            <ResponseRow
+              key={r.id}
+              response={r}
+              expanded={expandedId === r.id}
+              deleting={deletingId === r.id}
+              onToggle={() => onToggle(r.id)}
+              onDeleteRequest={() => onDeleteRequest(r)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ResponseRow({
+  response: r, expanded, deleting, onToggle, onDeleteRequest,
+}: {
+  response: QuestionnaireExportRow
+  expanded: boolean
+  deleting: boolean
+  onToggle(): void
+  onDeleteRequest(): void
+}) {
+  const date = new Date(r.created_at).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+  const ratedThemes = QUESTIONNAIRE_THEMES.filter(t => r.theme_ratings?.[t] !== undefined)
+
+  return (
+    <div className="py-3">
+      {/* ── Ligne résumé (cliquable) ── */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onToggle}
+          className="flex-1 min-w-0 flex items-center gap-3 text-left group"
+        >
+          {/* Chevron */}
+          <svg
+            className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span className="text-xs text-gray-400 shrink-0 tabular-nums">{date}</span>
+          {r.table_join_code && (
+            <span className="font-mono text-xs text-indigo-600 tracking-widest shrink-0">
+              {r.table_join_code}
+            </span>
+          )}
+          {r.debate_attended && (
+            <span className="text-xs text-gray-700 truncate">{r.debate_attended}</span>
+          )}
+          {r.debate_rating !== null && (
+            <span className="shrink-0 text-xs font-semibold text-amber-600">
+              {r.debate_rating}/5
+            </span>
+          )}
+          {ratedThemes.length > 0 && (
+            <span className="shrink-0 text-xs text-gray-400">
+              {ratedThemes.length} thème{ratedThemes.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </button>
+
+        {/* Bouton supprimer */}
+        <button
+          onClick={e => { e.stopPropagation(); onDeleteRequest() }}
+          disabled={deleting}
+          title="Supprimer cette réponse"
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg
+            text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors
+            disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {deleting ? (
+            <span className="w-3.5 h-3.5 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+          ) : (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* ── Détail expandé ── */}
+      {expanded && (
+        <div className="mt-3 ml-6 space-y-3 text-xs text-gray-600 bg-gray-50 rounded-xl p-4">
+          {r.theme_ideas && (
+            <div>
+              <p className="font-semibold text-gray-500 mb-0.5">Idées de thèmes</p>
+              <p className="leading-relaxed">{r.theme_ideas}</p>
+            </div>
+          )}
+          {r.staff_interest && (
+            <div>
+              <p className="font-semibold text-gray-500 mb-0.5">Intérêt pour staffer</p>
+              <p className="leading-relaxed">{r.staff_interest}</p>
+            </div>
+          )}
+          {r.feedback && (
+            <div>
+              <p className="font-semibold text-gray-500 mb-0.5">Retour libre</p>
+              <p className="leading-relaxed">{r.feedback}</p>
+            </div>
+          )}
+          {ratedThemes.length > 0 && (
+            <div>
+              <p className="font-semibold text-gray-500 mb-1.5">Notes par thème</p>
+              <div className="space-y-1">
+                {ratedThemes.map(t => (
+                  <div key={t} className="flex items-center gap-2">
+                    <span className="flex-1 truncate text-gray-600">{t}</span>
+                    <span className="font-semibold tabular-nums text-indigo-600 shrink-0">
+                      {r.theme_ratings[t]}/5
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {!r.theme_ideas && !r.staff_interest && !r.feedback && ratedThemes.length === 0 && (
+            <p className="text-gray-400 italic">Aucun détail renseigné.</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
