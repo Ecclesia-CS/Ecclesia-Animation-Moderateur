@@ -102,6 +102,7 @@ export default function ModeratorView() {
 
   // Session docs pour le bouton Documentation
   const [sessionDocs, setSessionDocs] = useState<{
+    title: string | null
     doc_info_url: string | null
     doc_summary_url: string | null
     doc_collab_url: string | null
@@ -112,11 +113,12 @@ export default function ModeratorView() {
     if (!table.session_id) return
     supabase
       .from('sessions')
-      .select('join_code, doc_info_url, doc_summary_url, doc_collab_url')
+      .select('title, join_code, doc_info_url, doc_summary_url, doc_collab_url')
       .eq('id', table.session_id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) setSessionDocs({
+          title:             data.title,
           doc_info_url:      data.doc_info_url,
           doc_summary_url:   data.doc_summary_url,
           doc_collab_url:    data.doc_collab_url,
@@ -477,8 +479,14 @@ export default function ModeratorView() {
       <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-700 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
 
-          {/* Left: join code + live mini-speaker */}
+          {/* Left: session title + join code + live mini-speaker */}
           <div className="flex items-center gap-3 min-w-0">
+            {sessionDocs?.title && (
+              <span className="hidden sm:block text-sm font-medium text-slate-400 truncate max-w-[180px]"
+                title={sessionDocs.title}>
+                {sessionDocs.title}
+              </span>
+            )}
             <span className="font-mono text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
               {table.join_code}
             </span>
