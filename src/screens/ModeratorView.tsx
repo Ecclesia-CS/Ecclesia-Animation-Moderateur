@@ -27,6 +27,7 @@ import CorrectTurnModal from '../components/CorrectTurnModal'
 import ConfirmModal from '../components/ConfirmModal'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
 import DocumentationButton from '../components/DocumentationButton'
+import NotesButton from '../components/NotesButton'
 
 export default function ModeratorView() {
   const {
@@ -504,6 +505,9 @@ export default function ModeratorView() {
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
             />
+            <NotesButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+              focus:ring-2 focus:ring-slate-500" />
             <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
               focus:ring-2 focus:ring-slate-500" />

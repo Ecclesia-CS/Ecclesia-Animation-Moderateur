@@ -74,6 +74,14 @@ export interface CollabSource {
   table_join_code: string | null
 }
 
+export interface PrivateNote {
+  id: string
+  table_id: string
+  user_id: string
+  content: string
+  updated_at: string
+}
+
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {
   id: string

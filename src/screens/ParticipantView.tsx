@@ -6,6 +6,7 @@ import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
 import DocumentationButton from '../components/DocumentationButton'
+import NotesButton from '../components/NotesButton'
 
 export default function ParticipantView() {
   const {
@@ -93,6 +94,9 @@ export default function ParticipantView() {
             className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
               hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
           />
+          <NotesButton className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500
+            rounded-lg hover:bg-gray-100 transition-colors focus:outline-none
+            focus:ring-2 focus:ring-gray-300" />
           <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500
             rounded-lg hover:bg-gray-100 transition-colors focus:outline-none
             focus:ring-2 focus:ring-gray-300" />
