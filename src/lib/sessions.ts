@@ -248,6 +248,17 @@ export async function forceSessionQuestionnaire(
   if (error) throw new Error(extractErr(error))
 }
 
+export async function cancelSessionQuestionnaire(
+  password: string,
+  sessionId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('cancel_session_questionnaire', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 export async function listSessionSources(sessionId: string): Promise<CollabSource[]> {
   const { data, error } = await supabase.rpc('list_session_sources', {
     p_session_id: sessionId,

@@ -24,15 +24,17 @@ export default function NotesModal({ tableId, onClose }: Props) {
   // Load existing note on mount
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-      userIdRef.current = user.id
+      // getSession() lit depuis le localStorage (pas de round-trip réseau)
+      // → fiable dès le montage, contrairement à getUser() qui fait un appel serveur
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { setLoading(false); setSaveErr('Non connecté'); return }
+      userIdRef.current = session.user.id
 
       const { data } = await supabase
         .from('private_notes')
         .select('content')
         .eq('table_id', tableId)
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .maybeSingle()
 
       if (data && editorRef.current) {
@@ -55,7 +57,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
 
   const saveNote = useCallback(async (html: string) => {
     const userId = userIdRef.current
-    if (!userId) return
+    if (!userId) { setSaveErr('Session expirée – rechargez la page'); return }
     setSaving(true)
     setSaveErr(null)
     const { error: dbErr } = await supabase.from('private_notes').upsert(

@@ -7,6 +7,7 @@ import {
   listSessionTables, listAvailableTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
+  cancelSessionQuestionnaire,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow } from '../lib/types'
@@ -743,6 +744,8 @@ function SessionDetail({
   const [exporting,          setExporting]          = useState(false)
   const [showForceQConfirm,  setShowForceQConfirm]  = useState(false)
   const [forcingQ,           setForcingQ]           = useState(false)
+  const [showCancelQConfirm, setShowCancelQConfirm] = useState(false)
+  const [cancellingQ,        setCancellingQ]        = useState(false)
 
   // ── Filtre "Tables disponibles" ────────────────────────────
   type TableFilter = '48h' | 'all' | 'custom'
@@ -964,6 +967,24 @@ function SessionDetail({
     }
   }
 
+  async function handleCancelQuestionnaire() {
+    const password = getPwd()!
+    setCancellingQ(true)
+    setError(null)
+    try {
+      await cancelSessionQuestionnaire(password, session.id)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setError(msg)
+    } finally {
+      setCancellingQ(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-4">
@@ -989,13 +1010,23 @@ function SessionDetail({
           </div>
           <button
             onClick={() => setShowForceQConfirm(true)}
-            disabled={forcingQ}
+            disabled={forcingQ || cancellingQ}
             className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
               rounded-lg text-indigo-700 hover:bg-indigo-50 transition-colors
               disabled:opacity-50 disabled:cursor-not-allowed"
             title="Forcer l'affichage du questionnaire chez tous les participants"
           >
             {forcingQ ? 'Envoi…' : 'Forcer questionnaire'}
+          </button>
+          <button
+            onClick={() => setShowCancelQConfirm(true)}
+            disabled={forcingQ || cancellingQ}
+            className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200
+              rounded-lg text-gray-500 hover:bg-gray-50 transition-colors
+              disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Réinitialiser le forçage du questionnaire pour toutes les tables"
+          >
+            {cancellingQ ? 'Annulation…' : 'Annuler forçage'}
           </button>
           <button
             onClick={handleExportQuestionnaires}
@@ -1301,6 +1332,16 @@ function SessionDetail({
           confirmLabel="Forcer"
           onConfirm={() => { setShowForceQConfirm(false); handleForceQuestionnaire() }}
           onCancel={() => setShowForceQConfirm(false)}
+        />
+      )}
+
+      {showCancelQConfirm && (
+        <ConfirmModal
+          title="Annuler le forçage du questionnaire"
+          body="Réinitialiser le forçage du questionnaire ? Les participants qui se reconnecteront n'auront plus le modal ouvert automatiquement."
+          confirmLabel="Annuler le forçage"
+          onConfirm={() => { setShowCancelQConfirm(false); handleCancelQuestionnaire() }}
+          onCancel={() => setShowCancelQConfirm(false)}
         />
       )}
     </div>

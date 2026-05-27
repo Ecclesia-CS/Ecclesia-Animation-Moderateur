@@ -47,6 +47,7 @@ export default function ModeratorView() {
     endTable,
     leaveTable,
     forceQuestionnaire,
+    cancelForceQuestionnaire,
   } = useTable()
 
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -646,13 +647,27 @@ export default function ModeratorView() {
                       <button
                         onClick={() => {
                           setShowOutils(false)
-                          forceQuestionnaire().catch(e => setErr(e instanceof Error ? e.message : String(e)))
+                          forceQuestionnaire().catch(e => setErr(extractErr(e)))
                         }}
                         className="w-full px-4 py-2 text-sm text-slate-200 hover:bg-slate-700
                           text-left whitespace-nowrap"
                       >
                         Forcer questionnaire
                       </button>
+
+                      {/* Annuler forçage — visible seulement si questionnaire_forced_at est posé */}
+                      {table.questionnaire_forced_at && (
+                        <button
+                          onClick={() => {
+                            setShowOutils(false)
+                            cancelForceQuestionnaire().catch(e => setErr(extractErr(e)))
+                          }}
+                          className="w-full px-4 py-2 text-sm text-slate-400 hover:bg-slate-700
+                            text-left whitespace-nowrap"
+                        >
+                          Annuler forçage questionnaire
+                        </button>
+                      )}
                     </div>
                   </>
                 )}

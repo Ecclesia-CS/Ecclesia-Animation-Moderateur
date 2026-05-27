@@ -43,6 +43,7 @@ interface TableCtxValue {
   kickParticipant(participantId: string): Promise<void>
   endTable(): Promise<void>
   forceQuestionnaire(): Promise<void>
+  cancelForceQuestionnaire(): Promise<void>
 }
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
@@ -399,6 +400,15 @@ export function TableProvider({
     broadcast(['tables'])
   }, [tableId, broadcast])
 
+  const cancelForceQuestionnaire = useCallback(async () => {
+    const { error } = await supabase
+      .from('tables')
+      .update({ questionnaire_forced_at: null })
+      .eq('id', tableId)
+    if (error) throw error
+    broadcast(['tables'])
+  }, [tableId, broadcast])
+
   // ── Render ────────────────────────────────────────────────────
 
   const myParticipant = useMemo(
@@ -454,6 +464,7 @@ export function TableProvider({
         kickParticipant,
         endTable,
         forceQuestionnaire,
+        cancelForceQuestionnaire,
       }}
     >
       {children}
