@@ -608,11 +608,13 @@ function SessionDetail({
   const [exporting,       setExporting]       = useState(false)
 
   // ── Questionnaire data ─────────────────────────────────────────
-  const [responses,         setResponses]         = useState<QuestionnaireExportRow[]>([])
-  const [responsesLoading,  setResponsesLoading]  = useState(false)
+  const [responses,          setResponses]          = useState<QuestionnaireExportRow[]>([])
+  const [responsesLoading,   setResponsesLoading]   = useState(false)
   const [expandedResponseId, setExpandedResponseId] = useState<string | null>(null)
-  const [deleteRespConfirm, setDeleteRespConfirm] = useState<QuestionnaireExportRow | null>(null)
-  const [deletingRespId,    setDeletingRespId]    = useState<string | null>(null)
+  const [deleteRespConfirm,  setDeleteRespConfirm]  = useState<QuestionnaireExportRow | null>(null)
+  const [deletingRespId,     setDeletingRespId]     = useState<string | null>(null)
+  const [themesOpen,         setThemesOpen]         = useState(false)
+  const [responsesOpen,      setResponsesOpen]      = useState(false)
 
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
@@ -905,19 +907,6 @@ function SessionDetail({
               )}
             </section>
 
-            {/* ── Tableau de bord thèmes ──────────────────── */}
-            <ThemeDashboard responses={responses} loading={responsesLoading} />
-
-            {/* ── Liste des réponses ──────────────────────── */}
-            <ResponsesList
-              responses={responses}
-              loading={responsesLoading}
-              expandedId={expandedResponseId}
-              deletingId={deletingRespId}
-              onToggle={id => setExpandedResponseId(prev => prev === id ? null : id)}
-              onDeleteRequest={r => setDeleteRespConfirm(r)}
-            />
-
             <section>
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                 Tables rattachées
@@ -969,6 +958,72 @@ function SessionDetail({
                       }
                     />
                   ))}
+                </div>
+              )}
+            </section>
+            {/* ── Tableau de bord thèmes (accordéon) ─────── */}
+            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setThemesOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left
+                  hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Thèmes — classement par moyenne
+                  {responses.length > 0 && (
+                    <span className="ml-2 font-normal normal-case text-gray-400">
+                      ({responses.length} réponse{responses.length > 1 ? 's' : ''})
+                    </span>
+                  )}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${themesOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {themesOpen && (
+                <div className="px-5 pb-5 border-t border-gray-100">
+                  <ThemeDashboard responses={responses} loading={responsesLoading} />
+                </div>
+              )}
+            </section>
+
+            {/* ── Liste des réponses (accordéon) ──────────── */}
+            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setResponsesOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left
+                  hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Réponses au questionnaire
+                  {responses.length > 0 && (
+                    <span className="ml-2 font-normal normal-case text-gray-400">
+                      ({responses.length})
+                    </span>
+                  )}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${responsesOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {responsesOpen && (
+                <div className="border-t border-gray-100">
+                  <ResponsesList
+                    responses={responses}
+                    loading={responsesLoading}
+                    expandedId={expandedResponseId}
+                    deletingId={deletingRespId}
+                    onToggle={id => setExpandedResponseId(prev => prev === id ? null : id)}
+                    onDeleteRequest={r => setDeleteRespConfirm(r)}
+                  />
                 </div>
               )}
             </section>
@@ -1053,53 +1108,40 @@ function computeThemeStats(responses: QuestionnaireExportRow[]): ThemeStat[] {
 
 function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExportRow[]; loading: boolean }) {
   const stats = computeThemeStats(responses)
-
+  if (loading) return (
+    <div className="flex justify-center py-6">
+      <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+    </div>
+  )
+  if (stats.length === 0) return (
+    <p className="text-xs text-gray-400 py-2">Aucune note de thème pour l'instant.</p>
+  )
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-        Thèmes — classement par moyenne
-      </h2>
-      {loading ? (
-        <div className="flex justify-center py-6">
-          <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
-        </div>
-      ) : stats.length === 0 ? (
-        <p className="text-xs text-gray-400 py-2">Aucune note de thème pour l'instant.</p>
-      ) : (
-        <div className="space-y-2.5">
-          {stats.map((s, i) => {
-            const pct = (s.avg / 5) * 100
-            const barColor = s.avg >= 3.5
-              ? 'bg-teal-500'
-              : s.avg >= 2
-                ? 'bg-indigo-400'
-                : 'bg-amber-400'
-            return (
-              <div key={s.theme} className="flex items-center gap-3">
-                <span className="w-5 text-xs text-gray-400 text-right shrink-0">{i + 1}.</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-xs text-gray-700 truncate leading-snug">{s.theme}</span>
-                    <span className="text-xs font-semibold text-gray-900 shrink-0 tabular-nums">
-                      {s.avg.toFixed(1)}<span className="text-gray-400 font-normal">/5</span>
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${barColor}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-                <span className="text-xs text-gray-400 shrink-0 w-12 text-right">
-                  {s.count} vote{s.count > 1 ? 's' : ''}
+    <div className="space-y-2.5 pt-4">
+      {stats.map((s, i) => {
+        const pct = (s.avg / 5) * 100
+        const barColor = s.avg >= 3.5 ? 'bg-teal-500' : s.avg >= 2 ? 'bg-indigo-400' : 'bg-amber-400'
+        return (
+          <div key={s.theme} className="flex items-center gap-3">
+            <span className="w-5 text-xs text-gray-400 text-right shrink-0">{i + 1}.</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs text-gray-700 truncate leading-snug">{s.theme}</span>
+                <span className="text-xs font-semibold text-gray-900 shrink-0 tabular-nums">
+                  {s.avg.toFixed(1)}<span className="text-gray-400 font-normal">/5</span>
                 </span>
               </div>
-            )
-          })}
-        </div>
-      )}
-    </section>
+              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+            <span className="text-xs text-gray-400 shrink-0 w-12 text-right">
+              {s.count} vote{s.count > 1 ? 's' : ''}
+            </span>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -1115,37 +1157,27 @@ function ResponsesList({
   onToggle(id: string): void
   onDeleteRequest(r: QuestionnaireExportRow): void
 }) {
+  if (loading) return (
+    <div className="flex justify-center py-6">
+      <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+    </div>
+  )
+  if (responses.length === 0) return (
+    <p className="text-xs text-gray-400 px-5 py-4">Aucune réponse pour l'instant.</p>
+  )
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          Réponses au questionnaire
-          {responses.length > 0 && (
-            <span className="ml-2 font-normal normal-case text-gray-400">({responses.length})</span>
-          )}
-        </h2>
-      </div>
-      {loading ? (
-        <div className="flex justify-center py-6">
-          <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
-        </div>
-      ) : responses.length === 0 ? (
-        <p className="text-xs text-gray-400 py-2">Aucune réponse pour l'instant.</p>
-      ) : (
-        <div className="divide-y divide-gray-100">
-          {responses.map(r => (
-            <ResponseRow
-              key={r.id}
-              response={r}
-              expanded={expandedId === r.id}
-              deleting={deletingId === r.id}
-              onToggle={() => onToggle(r.id)}
-              onDeleteRequest={() => onDeleteRequest(r)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
+    <div className="divide-y divide-gray-100 px-5">
+      {responses.map(r => (
+        <ResponseRow
+          key={r.id}
+          response={r}
+          expanded={expandedId === r.id}
+          deleting={deletingId === r.id}
+          onToggle={() => onToggle(r.id)}
+          onDeleteRequest={() => onDeleteRequest(r)}
+        />
+      ))}
+    </div>
   )
 }
 
