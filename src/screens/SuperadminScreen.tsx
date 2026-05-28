@@ -1513,7 +1513,8 @@ function DocFileField({ label, placeholder, value, onChange }: {
   onChange(v: string): void
 }) {
   const baseUrl = `https://ecclesia-cs.github.io${import.meta.env.BASE_URL}docs/`
-  const filename = value.startsWith(baseUrl) ? value.slice(baseUrl.length) : value
+  const docsPath = `${import.meta.env.BASE_URL}docs/`
+  const filename = value.includes(docsPath) ? value.split(docsPath)[1] ?? '' : value
 
   function handleChange(raw: string) {
     const trimmed = raw.trim()
