@@ -20,6 +20,7 @@ export default function EntryScreen({ onJoined }: Props) {
   const [joinCode, setJoinCode] = useState('')
   const [creationCode, setCreationCode] = useState('')
   const [reclaimCode, setReclaimCode] = useState('')
+  const [reclaimPseudo, setReclaimPseudo] = useState('')
   const [selectedSessionId, setSelectedSessionId] = useState('')
   const [availableSessions, setAvailableSessions] = useState<{
     id: string
@@ -87,16 +88,22 @@ export default function EntryScreen({ onJoined }: Props) {
 
   async function handleReclaim(e: React.FormEvent) {
     e.preventDefault()
+    if (!reclaimPseudo.trim()) {
+      setError('Veuillez entrer votre pseudo.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
       const { data, error: err } = await supabase.rpc('reclaim_moderator', {
         p_join_code: joinCode,
         p_moderator_code: reclaimCode,
+        p_pseudo: reclaimPseudo.trim(),
       })
       if (err) throw err
       const r = data as TableResult
-      store(r.id, r.participant_id, r.join_code, true)
+      tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: true, pseudo: reclaimPseudo.trim() })
+      onJoined(r.id, r.participant_id, true)
     } catch (err) {
       setError(extractErr(err))
     } finally {
@@ -221,6 +228,8 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleReclaim} className="space-y-4">
               <Field label="Code de session" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
+              <Field label="Votre pseudo" value={reclaimPseudo}
+                onChange={setReclaimPseudo} placeholder="Alice" />
               <Field label="Code Ecclesia" value={reclaimCode}
                 onChange={setReclaimCode} type="password" placeholder="••••••••" />
               <Btn loading={loading} label="Reprendre la main" />
