@@ -16,9 +16,9 @@ export default function DocViewerModal({ url, title, onClose }: Props) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex flex-col sm:bg-black/60" onClick={onClose}>
       <div
-        className="relative flex flex-col bg-white rounded-xl shadow-2xl m-4 flex-1 overflow-hidden"
+        className="relative flex flex-col bg-white sm:rounded-xl sm:shadow-2xl sm:m-4 flex-1 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
@@ -35,6 +35,7 @@ export default function DocViewerModal({ url, title, onClose }: Props) {
           src={url}
           className="flex-1 w-full border-0"
           title={title}
+          scrolling="yes"
         />
       </div>
     </div>
