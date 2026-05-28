@@ -1,0 +1,301 @@
+import { useState } from 'react'
+import { submitEntryResponse } from '../../lib/voting'
+import type { EntryResponse, SessionMember } from '../../lib/types'
+
+interface OnboardingFormProps {
+  sessionId: string
+  member: SessionMember
+  onSuccess: (response: EntryResponse) => void
+}
+
+interface Answers {
+  consentTranscript: boolean
+  groupSizePref: 'small' | 'medium' | 'large'
+  moderatorPref: boolean
+  opennessToDiff: number
+  participationStyle: 'listener' | 'active'
+}
+
+const TOTAL_QUESTIONS = 5
+
+export default function OnboardingForm({ sessionId, member, onSuccess }: OnboardingFormProps) {
+  const [currentQ, setCurrentQ] = useState(0)
+  const [answers, setAnswers] = useState<Answers>({
+    consentTranscript: false,
+    groupSizePref: 'medium',
+    moderatorPref: true,
+    opennessToDiff: 3,
+    participationStyle: 'active',
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function update<K extends keyof Answers>(key: K, value: Answers[K]) {
+    setAnswers(prev => ({ ...prev, [key]: value }))
+  }
+
+  async function handleValidate() {
+    setError(null)
+    setLoading(true)
+    try {
+      const response = await submitEntryResponse(
+        sessionId,
+        answers.consentTranscript,
+        answers.groupSizePref,
+        answers.moderatorPref,
+        answers.opennessToDiff,
+        answers.participationStyle,
+      )
+      onSuccess(response)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur inattendue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const pct = Math.round(((currentQ + 1) / TOTAL_QUESTIONS) * 100)
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Progress bar */}
+      <div className="px-4 pt-5 pb-4 bg-white border-b border-gray-100">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-500">Question {currentQ + 1}/{TOTAL_QUESTIONS}</span>
+          <span className="text-xs text-indigo-600 font-medium">{member.pseudo}</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div
+            className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Question */}
+      <div className="flex-1 flex flex-col justify-center px-4 py-8">
+        {currentQ === 0 && (
+          <QuestionConsent
+            value={answers.consentTranscript}
+            onChange={v => update('consentTranscript', v)}
+          />
+        )}
+        {currentQ === 1 && (
+          <QuestionGroupSize
+            value={answers.groupSizePref}
+            onChange={v => update('groupSizePref', v)}
+          />
+        )}
+        {currentQ === 2 && (
+          <QuestionModerator
+            value={answers.moderatorPref}
+            onChange={v => update('moderatorPref', v)}
+          />
+        )}
+        {currentQ === 3 && (
+          <QuestionOpenness
+            value={answers.opennessToDiff}
+            onChange={v => update('opennessToDiff', v)}
+          />
+        )}
+        {currentQ === 4 && (
+          <QuestionStyle
+            value={answers.participationStyle}
+            onChange={v => update('participationStyle', v)}
+          />
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="px-4 pb-8 space-y-3">
+        {error && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+        <div className="flex gap-3">
+          {currentQ > 0 && (
+            <button
+              onClick={() => setCurrentQ(q => q - 1)}
+              className="flex-1 py-3 px-4 border border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              ← Précédent
+            </button>
+          )}
+          {currentQ < TOTAL_QUESTIONS - 1 ? (
+            <button
+              onClick={() => setCurrentQ(q => q + 1)}
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Suivant →
+            </button>
+          ) : (
+            <button
+              onClick={handleValidate}
+              disabled={loading}
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              {loading ? 'Enregistrement…' : 'Valider et voter ✓'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// --- Question sub-components ---
+
+function QuestionConsent({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Consentement</p>
+        <h2 className="text-xl font-bold text-gray-900 leading-snug">
+          Acceptes-tu que les conversations à ta table soient transcrites de manière anonyme pour produire un résumé ?
+        </h2>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <ChoiceButton selected={value === true} onClick={() => onChange(true)} emoji="✅" label="Oui" />
+        <ChoiceButton selected={value === false} onClick={() => onChange(false)} emoji="🚫" label="Non" />
+      </div>
+    </div>
+  )
+}
+
+function QuestionGroupSize({
+  value,
+  onChange,
+}: {
+  value: 'small' | 'medium' | 'large'
+  onChange: (v: 'small' | 'medium' | 'large') => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Taille de groupe</p>
+        <h2 className="text-xl font-bold text-gray-900 leading-snug">
+          Tu préfères être dans un groupe de quelle taille ?
+        </h2>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <ChoiceButton selected={value === 'small'} onClick={() => onChange('small')} emoji="👥" label="Petit" sub="~5 pers." />
+        <ChoiceButton selected={value === 'medium'} onClick={() => onChange('medium')} emoji="👥👥" label="Moyen" sub="~7 pers." />
+        <ChoiceButton selected={value === 'large'} onClick={() => onChange('large')} emoji="👥👥👥" label="Grand" sub="~10 pers." />
+      </div>
+    </div>
+  )
+}
+
+function QuestionModerator({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Modération</p>
+        <h2 className="text-xl font-bold text-gray-900 leading-snug">
+          Préfères-tu une table avec un modérateur ?
+        </h2>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <ChoiceButton selected={value === true} onClick={() => onChange(true)} emoji="🎙️" label="Oui" />
+        <ChoiceButton selected={value === false} onClick={() => onChange(false)} emoji="🤝" label="Pas nécessaire" />
+      </div>
+    </div>
+  )
+}
+
+function QuestionOpenness({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Diversité des avis</p>
+        <h2 className="text-xl font-bold text-gray-900 leading-snug">
+          À quel point veux-tu rencontrer des avis différents du tien ?
+        </h2>
+      </div>
+      <div className="space-y-4">
+        <input
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className="w-full h-2 accent-indigo-600"
+        />
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Avis similaires</span>
+          <span className="text-indigo-700 font-semibold text-sm">{value}/5</span>
+          <span>Maximum de diversité</span>
+        </div>
+        <div className="flex justify-between">
+          {[1, 2, 3, 4, 5].map(v => (
+            <button
+              key={v}
+              onClick={() => onChange(v)}
+              className={`w-10 h-10 rounded-full text-sm font-semibold transition-colors ${
+                value === v
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-indigo-50'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QuestionStyle({
+  value,
+  onChange,
+}: {
+  value: 'listener' | 'active'
+  onChange: (v: 'listener' | 'active') => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Style de participation</p>
+        <h2 className="text-xl font-bold text-gray-900 leading-snug">
+          Comment comptes-tu participer ?
+        </h2>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Plutôt écouter" />
+        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Participer activement" />
+      </div>
+    </div>
+  )
+}
+
+function ChoiceButton({
+  selected,
+  onClick,
+  emoji,
+  label,
+  sub,
+}: {
+  selected: boolean
+  onClick: () => void
+  emoji: string
+  label: string
+  sub?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1 py-4 px-3 rounded-2xl border-2 transition-all ${
+        selected
+          ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+          : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-200 hover:bg-indigo-50/50'
+      }`}
+    >
+      <span className="text-2xl">{emoji}</span>
+      <span className="text-sm font-semibold leading-tight text-center">{label}</span>
+      {sub && <span className="text-xs text-gray-400">{sub}</span>}
+    </button>
+  )
+}
