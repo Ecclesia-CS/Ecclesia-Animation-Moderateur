@@ -26,6 +26,7 @@ import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import CorrectTurnModal from '../components/CorrectTurnModal'
 import ConfirmModal from '../components/ConfirmModal'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
+import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
 
 export default function ModeratorView() {
@@ -516,7 +517,16 @@ export default function ModeratorView() {
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
             />
-            {/* NotesButton temporairement masqué */}
+            <NotesButton
+              className="p-1.5 border border-slate-600 rounded-lg text-slate-300
+                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              label={
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
+                </svg>
+              }
+            />
             <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
               focus:ring-2 focus:ring-slate-500" />
