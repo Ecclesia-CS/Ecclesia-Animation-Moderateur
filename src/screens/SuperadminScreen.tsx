@@ -605,8 +605,8 @@ function CreateModal({
               Documentation <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
             <div className="space-y-3">
-              <UrlField label="Fiche information (PDF)" value={docInfoUrl} onChange={setDocInfoUrl} />
-              <UrlField label="Résumé (PDF)" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+              <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
+              <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
             </div>
             <p className="mt-3 text-xs text-gray-400">
               Le document de sources collaboratives est disponible automatiquement pour chaque séance
@@ -1115,8 +1115,8 @@ function SessionDetail({
 
               {editingDocs ? (
                 <form onSubmit={handleSaveDocs} className="space-y-3">
-                  <UrlField label="Fiche information (PDF)" value={docInfoUrl} onChange={setDocInfoUrl} />
-                  <UrlField label="Résumé (PDF)" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                  <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
+                  <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
                   {docsErr && (
                     <p className="text-xs text-red-600">{docsErr}</p>
                   )}
@@ -1506,19 +1506,36 @@ function DocLink({ label, url }: { label: string; url: string | null }) {
   )
 }
 
-function UrlField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
+function DocFileField({ label, placeholder, value, onChange }: {
+  label: string
+  placeholder: string
+  value: string
+  onChange(v: string): void
+}) {
+  const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}docs/`
+  const filename = value.startsWith(baseUrl) ? value.slice(baseUrl.length) : value
+
+  function handleChange(raw: string) {
+    const trimmed = raw.trim()
+    onChange(trimmed ? baseUrl + trimmed : '')
+  }
+
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
-      <input
-        type="url"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder="https://…"
-        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl
-          focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-          placeholder:text-gray-300 transition-shadow"
-      />
+      <div className="flex items-center gap-0 border border-gray-300 rounded-xl overflow-hidden
+        focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-shadow">
+        <span className="px-3 py-2.5 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 shrink-0 select-none whitespace-nowrap">
+          docs/
+        </span>
+        <input
+          type="text"
+          value={filename}
+          onChange={e => handleChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 px-3 py-2.5 text-sm focus:outline-none placeholder:text-gray-300 bg-white"
+        />
+      </div>
     </div>
   )
 }

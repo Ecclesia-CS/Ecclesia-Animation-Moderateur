@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DocViewerModal from './DocViewerModal'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -17,6 +18,12 @@ interface Props {
 
 export default function DocumentationButton({ session, className, dropdownClass, userPseudo, currentTableJoinCode }: Props) {
   const [open, setOpen] = useState(false)
+  const [viewer, setViewer] = useState<{ url: string; title: string } | null>(null)
+
+  function openDoc(url: string, title: string) {
+    setOpen(false)
+    setViewer({ url, title })
+  }
 
   if (!session) return null
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session
@@ -40,6 +47,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
   }
 
   return (
+    <>
     <div className="relative">
       <button
         onClick={() => setOpen(v => !v)}
@@ -58,26 +66,20 @@ export default function DocumentationButton({ session, className, dropdownClass,
               shadow-lg py-1 z-50 min-w-[200px] ${dropdownClass ?? ''}`}
           >
             {doc_info_url && (
-              <a
-                href={doc_info_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-                onClick={() => setOpen(false)}
+              <button
+                className={`${linkClass} w-full text-left`}
+                onClick={() => openDoc(doc_info_url, 'Fiche information')}
               >
                 Fiche information
-              </a>
+              </button>
             )}
             {doc_summary_url && (
-              <a
-                href={doc_summary_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-                onClick={() => setOpen(false)}
+              <button
+                className={`${linkClass} w-full text-left`}
+                onClick={() => openDoc(doc_summary_url, 'Résumé fiche information')}
               >
                 Résumé fiche information
-              </a>
+              </button>
             )}
             {hasCollab && (
               <>
@@ -108,5 +110,10 @@ export default function DocumentationButton({ session, className, dropdownClass,
         </>
       )}
     </div>
+
+    {viewer && (
+      <DocViewerModal url={viewer.url} title={viewer.title} onClose={() => setViewer(null)} />
+    )}
+    </>
   )
 }
