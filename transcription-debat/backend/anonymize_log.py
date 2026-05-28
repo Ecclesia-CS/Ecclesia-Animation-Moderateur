@@ -10,10 +10,13 @@ def parse_ecclesia_csv(path: str) -> list[dict]:
         rows = list(reader)
 
     # Trouver la ligne "HISTORIQUE DES TOURS"
-    history_idx = next(
-        i for i, row in enumerate(rows)
-        if row and row[0].strip() == "HISTORIQUE DES TOURS"
-    )
+    try:
+        history_idx = next(
+            i for i, row in enumerate(rows)
+            if row and row[0].strip() == "HISTORIQUE DES TOURS"
+        )
+    except StopIteration:
+        raise ValueError("Section 'HISTORIQUE DES TOURS' non trouvée dans le CSV") from None
     # La ligne suivante est l'en-tête des colonnes, on commence après
     data_rows = rows[history_idx + 2:]
 
