@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props {
   url: string
@@ -7,6 +7,8 @@ interface Props {
 }
 
 export default function DocViewerModal({ url, title, onClose }: Props) {
+  const [srcdoc, setSrcdoc] = useState<string | null>(null)
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -14,6 +16,22 @@ export default function DocViewerModal({ url, title, onClose }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  useEffect(() => {
+    setSrcdoc(null)
+    fetch(url)
+      .then(r => r.text())
+      .then(html => {
+        if (!html.includes('name="viewport"')) {
+          html = html.replace(
+            /<head[^>]*>/i,
+            match => match + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+          )
+        }
+        setSrcdoc(html)
+      })
+      .catch(() => setSrcdoc(''))
+  }, [url])
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col sm:bg-black/60" onClick={onClose}>
@@ -31,12 +49,13 @@ export default function DocViewerModal({ url, title, onClose }: Props) {
             ✕
           </button>
         </div>
-        <iframe
-          src={url}
-          className="flex-1 w-full border-0"
-          title={title}
-          scrolling="yes"
-        />
+
+        {srcdoc === null
+          ? <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">Chargement…</div>
+          : srcdoc === ''
+            ? <iframe src={url} className="flex-1 w-full border-0" title={title} scrolling="yes" />
+            : <iframe srcDoc={srcdoc} className="flex-1 w-full border-0" title={title} scrolling="yes" />
+        }
       </div>
     </div>
   )
