@@ -881,16 +881,21 @@ function SessionDetail({
     setAssertionsLoading(true)
     setAssertionsErr(null)
     try {
-      const [rows, results] = await Promise.all([
+      const [rowsResult, resultsResult] = await Promise.allSettled([
         listAssertionsAdmin(password, session.id),
         getVoteResults(session.id),
       ])
-      setAssertions(rows)
-      setVoteResults(results)
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
-      setAssertionsErr(msg)
+      if (rowsResult.status === 'fulfilled') {
+        setAssertions(rowsResult.value)
+      } else {
+        const msg = extractErr(rowsResult.reason)
+        if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+        setAssertionsErr(msg)
+      }
+      if (resultsResult.status === 'fulfilled') {
+        setVoteResults(resultsResult.value)
+      }
+      // getVoteResults failure is non-blocking — assertions still display without vote bars
     } finally {
       setAssertionsLoading(false)
     }
