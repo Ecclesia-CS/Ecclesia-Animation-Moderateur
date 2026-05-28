@@ -8,9 +8,10 @@ import {
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
   cancelSessionQuestionnaire,
+  listSessionSources, deleteCollabSourceAdmin,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
-import type { Session, QuestionnaireExportRow } from '../lib/types'
+import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
@@ -760,6 +761,13 @@ function SessionDetail({
   const [themesOpen,         setThemesOpen]         = useState(false)
   const [responsesOpen,      setResponsesOpen]      = useState(false)
 
+  // ── Collab sources data ────────────────────────────────────────
+  const [sources,             setSources]             = useState<CollabSource[]>([])
+  const [sourcesLoading,      setSourcesLoading]      = useState(false)
+  const [sourcesOpen,         setSourcesOpen]         = useState(false)
+  const [deleteSourceConfirm, setDeleteSourceConfirm] = useState<CollabSource | null>(null)
+  const [deletingSourceId,    setDeletingSourceId]    = useState<string | null>(null)
+
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
   const [docInfoUrl,     setDocInfoUrl]     = useState(session.doc_info_url ?? '')
@@ -847,6 +855,40 @@ function SessionDetail({
   }, [session.id])
 
   useEffect(() => { loadResponses() }, [loadResponses])
+
+  const loadSources = useCallback(async () => {
+    setSourcesLoading(true)
+    try {
+      const rows = await listSessionSources(session.id)
+      setSources(rows)
+    } catch {
+      // non-bloquant
+    } finally {
+      setSourcesLoading(false)
+    }
+  }, [session.id])
+
+  useEffect(() => { loadSources() }, [loadSources])
+
+  async function handleDeleteSource() {
+    if (!deleteSourceConfirm) return
+    const password = getPwd()!
+    const target = deleteSourceConfirm
+    setDeleteSourceConfirm(null)
+    setDeletingSourceId(target.id)
+    try {
+      await deleteCollabSourceAdmin(password, target.id)
+      setSources(prev => prev.filter(s => s.id !== target.id))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setError(msg)
+    } finally {
+      setDeletingSourceId(null)
+    }
+  }
 
   async function handleDeleteResponse() {
     if (!deleteRespConfirm) return
@@ -1270,9 +1312,54 @@ function SessionDetail({
                 </div>
               )}
             </section>
+
+            {/* ── Sources collaboratives (accordéon) ──────── */}
+            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setSourcesOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left
+                  hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Sources collaboratives
+                  {sources.length > 0 && (
+                    <span className="ml-2 font-normal normal-case text-gray-400">
+                      ({sources.length} source{sources.length > 1 ? 's' : ''})
+                    </span>
+                  )}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${sourcesOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {sourcesOpen && (
+                <div className="border-t border-gray-100 px-5 py-4">
+                  <CollabSourcesList
+                    sources={sources}
+                    loading={sourcesLoading}
+                    deletingId={deletingSourceId}
+                    onDeleteRequest={s => setDeleteSourceConfirm(s)}
+                  />
+                </div>
+              )}
+            </section>
           </>
         )}
       </main>
+
+      {deleteSourceConfirm && (
+        <ConfirmModal
+          title="Supprimer cette source"
+          body={`Supprimer définitivement "${deleteSourceConfirm.title}" (${deleteSourceConfirm.pseudo}) ? Cette action est irréversible.`}
+          confirmLabel="Supprimer"
+          onConfirm={handleDeleteSource}
+          onCancel={() => setDeleteSourceConfirm(null)}
+        />
+      )}
 
       {detachConfirm && (
         <ConfirmModal
@@ -1315,6 +1402,89 @@ function SessionDetail({
           onCancel={() => setShowQConfirm(false)}
         />
       )}
+    </div>
+  )
+}
+
+// ── CollabSourcesList ─────────────────────────────────────────────
+
+function CollabSourcesList({
+  sources,
+  loading,
+  deletingId,
+  onDeleteRequest,
+}: {
+  sources: CollabSource[]
+  loading: boolean
+  deletingId: string | null
+  onDeleteRequest(s: CollabSource): void
+}) {
+  if (loading) {
+    return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+  }
+  if (sources.length === 0) {
+    return <p className="text-sm text-gray-400 text-center py-4">Aucune source collaborative</p>
+  }
+
+  // Grouper par pseudo
+  const groups = sources.reduce<Record<string, CollabSource[]>>((acc, s) => {
+    const key = s.pseudo || '(anonyme)'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(s)
+    return acc
+  }, {})
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(groups).map(([pseudo, items]) => (
+        <div key={pseudo}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-gray-700">{pseudo}</span>
+            {items[0].table_join_code && (
+              <span className="text-xs text-gray-400">— table {items[0].table_join_code}</span>
+            )}
+          </div>
+          <div className="space-y-2 pl-3 border-l-2 border-gray-100">
+            {items.map(s => (
+              <div
+                key={s.id}
+                className="flex items-start justify-between gap-3 py-2 px-3
+                  bg-gray-50 rounded-xl"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-800 truncate">{s.title}</p>
+                  {s.url && (
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-indigo-600 hover:underline truncate block"
+                    >
+                      {s.url}
+                    </a>
+                  )}
+                  {s.content && (
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{s.content}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(s.created_at).toLocaleDateString('fr-FR', {
+                      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => onDeleteRequest(s)}
+                  disabled={deletingId === s.id}
+                  className="shrink-0 py-1 px-2.5 text-xs font-medium border border-red-200 rounded-lg
+                    text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors"
+                >
+                  {deletingId === s.id ? '…' : 'Supprimer'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

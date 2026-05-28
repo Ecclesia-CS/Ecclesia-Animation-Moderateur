@@ -237,6 +237,14 @@ export async function deleteCollabSource(sourceId: string): Promise<void> {
   if (error) throw new Error(extractErr(error))
 }
 
+export async function deleteCollabSourceAdmin(password: string, sourceId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_collab_source_admin', {
+    p_password:  password,
+    p_source_id: sourceId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 export async function forceSessionQuestionnaire(
   password: string,
   sessionId: string,

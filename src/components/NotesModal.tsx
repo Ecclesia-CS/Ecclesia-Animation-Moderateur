@@ -21,6 +21,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveErr, setSaveErr] = useState<string | null>(null)
+  const [initialHtml, setInitialHtml] = useState<string | null>(null)
 
   // Load existing note on mount
   useEffect(() => {
@@ -40,13 +41,21 @@ export default function NotesModal({ tableId, onClose }: Props) {
 
       if (data) {
         noteIdRef.current = data.id
-        if (editorRef.current) editorRef.current.innerHTML = data.content
+        setInitialHtml(data.content)
       }
       setLoading(false)
-      editorRef.current?.focus()
     }
     load()
   }, [tableId])
+
+  // Applique le contenu initial après que l'éditeur est dans le DOM
+  // (editorRef.current est null pendant loading=true car le div est conditionnellement rendu)
+  useEffect(() => {
+    if (!loading && initialHtml !== null && editorRef.current) {
+      editorRef.current.innerHTML = initialHtml
+      editorRef.current.focus()
+    }
+  }, [loading, initialHtml])
 
   // Escape to close
   useEffect(() => {
