@@ -36,6 +36,7 @@ export default function ParticipantView() {
   const [forcedQResponse, setForcedQResponse] = useState<QuestionnaireResponse | null>(null)
   const lastForcedRef = useRef<string | null>(null)
 
+  // Ouvrir le modal quand le forçage est activé
   useEffect(() => {
     const forced = table.questionnaire_forced_at
     if (!forced || forced === lastForcedRef.current) return
@@ -50,6 +51,14 @@ export default function ParticipantView() {
         setForcedQOpen(true)
       })
   }, [table.questionnaire_forced_at, table.id])
+
+  // Fermer le modal quand l'admin annule le forçage
+  useEffect(() => {
+    if (!table.questionnaire_forced_at) {
+      setForcedQOpen(false)
+      lastForcedRef.current = null
+    }
+  }, [table.questionnaire_forced_at])
 
   useEffect(() => {
     if (!table.session_id) return
@@ -204,10 +213,11 @@ export default function ParticipantView() {
 
       </div>{/* end body flex */}
 
-      {/* Questionnaire forcé par le modérateur */}
+      {/* Questionnaire forcé par le modérateur — modal verrouillé */}
       {forcedQOpen && (
         <QuestionnaireModal
           savedResponse={forcedQResponse}
+          forced={true}
           onClose={() => setForcedQOpen(false)}
         />
       )}

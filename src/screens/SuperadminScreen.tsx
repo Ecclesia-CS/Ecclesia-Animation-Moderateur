@@ -742,10 +742,9 @@ function SessionDetail({
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
   const [exporting,          setExporting]          = useState(false)
-  const [showForceQConfirm,  setShowForceQConfirm]  = useState(false)
-  const [forcingQ,           setForcingQ]           = useState(false)
-  const [showCancelQConfirm, setShowCancelQConfirm] = useState(false)
-  const [cancellingQ,        setCancellingQ]        = useState(false)
+  const [isQForced,    setIsQForced]    = useState(false)
+  const [showQConfirm, setShowQConfirm] = useState(false)
+  const [qActing,      setQActing]      = useState(false)
 
   // ── Filtre "Tables disponibles" ────────────────────────────
   type TableFilter = '48h' | 'all' | 'custom'
@@ -949,12 +948,18 @@ function SessionDetail({
     }
   }
 
-  async function handleForceQuestionnaire() {
+  async function handleToggleQuestionnaire() {
     const password = getPwd()!
-    setForcingQ(true)
+    setQActing(true)
     setError(null)
     try {
-      await forceSessionQuestionnaire(password, session.id)
+      if (isQForced) {
+        await cancelSessionQuestionnaire(password, session.id)
+        setIsQForced(false)
+      } else {
+        await forceSessionQuestionnaire(password, session.id)
+        setIsQForced(true)
+      }
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -963,25 +968,7 @@ function SessionDetail({
       }
       setError(msg)
     } finally {
-      setForcingQ(false)
-    }
-  }
-
-  async function handleCancelQuestionnaire() {
-    const password = getPwd()!
-    setCancellingQ(true)
-    setError(null)
-    try {
-      await cancelSessionQuestionnaire(password, session.id)
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError()
-        return
-      }
-      setError(msg)
-    } finally {
-      setCancellingQ(false)
+      setQActing(false)
     }
   }
 
@@ -1009,24 +996,16 @@ function SessionDetail({
             )}
           </div>
           <button
-            onClick={() => setShowForceQConfirm(true)}
-            disabled={forcingQ || cancellingQ}
-            className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
-              rounded-lg text-indigo-700 hover:bg-indigo-50 transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Forcer l'affichage du questionnaire chez tous les participants"
+            onClick={() => setShowQConfirm(true)}
+            disabled={qActing}
+            className="shrink-0 py-1.5 px-3 text-xs font-medium border rounded-lg
+              transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+              border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            title={isQForced
+              ? 'Réinitialiser le forçage du questionnaire pour toutes les tables'
+              : 'Forcer l\'affichage du questionnaire chez tous les participants'}
           >
-            {forcingQ ? 'Envoi…' : 'Forcer questionnaire'}
-          </button>
-          <button
-            onClick={() => setShowCancelQConfirm(true)}
-            disabled={forcingQ || cancellingQ}
-            className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200
-              rounded-lg text-gray-500 hover:bg-gray-50 transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Réinitialiser le forçage du questionnaire pour toutes les tables"
-          >
-            {cancellingQ ? 'Annulation…' : 'Annuler forçage'}
+            {qActing ? '…' : isQForced ? 'Annuler forçage questionnaire' : 'Forcer questionnaire'}
           </button>
           <button
             onClick={handleExportQuestionnaires}
@@ -1325,23 +1304,15 @@ function SessionDetail({
         />
       )}
 
-      {showForceQConfirm && (
+      {showQConfirm && (
         <ConfirmModal
-          title="Forcer le questionnaire"
-          body="Ouvrir automatiquement le questionnaire chez tous les participants actuellement connectés aux tables de cette séance ?"
-          confirmLabel="Forcer"
-          onConfirm={() => { setShowForceQConfirm(false); handleForceQuestionnaire() }}
-          onCancel={() => setShowForceQConfirm(false)}
-        />
-      )}
-
-      {showCancelQConfirm && (
-        <ConfirmModal
-          title="Annuler le forçage du questionnaire"
-          body="Réinitialiser le forçage du questionnaire ? Les participants qui se reconnecteront n'auront plus le modal ouvert automatiquement."
-          confirmLabel="Annuler le forçage"
-          onConfirm={() => { setShowCancelQConfirm(false); handleCancelQuestionnaire() }}
-          onCancel={() => setShowCancelQConfirm(false)}
+          title={isQForced ? 'Annuler le forçage' : 'Forcer le questionnaire'}
+          body={isQForced
+            ? "Réinitialiser le forçage du questionnaire ? Les participants qui se reconnecteront n'auront plus le modal ouvert automatiquement."
+            : "Ouvrir automatiquement le questionnaire chez tous les participants actuellement connectés aux tables de cette séance ?"}
+          confirmLabel={isQForced ? 'Annuler le forçage' : 'Forcer'}
+          onConfirm={() => { setShowQConfirm(false); handleToggleQuestionnaire() }}
+          onCancel={() => setShowQConfirm(false)}
         />
       )}
     </div>

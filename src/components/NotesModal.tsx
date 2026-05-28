@@ -17,6 +17,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const userIdRef = useRef<string | null>(null)
+  const noteIdRef = useRef<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveErr, setSaveErr] = useState<string | null>(null)
@@ -32,13 +33,14 @@ export default function NotesModal({ tableId, onClose }: Props) {
 
       const { data } = await supabase
         .from('private_notes')
-        .select('content')
+        .select('id, content')
         .eq('table_id', tableId)
         .eq('user_id', session.user.id)
         .maybeSingle()
 
-      if (data && editorRef.current) {
-        editorRef.current.innerHTML = data.content
+      if (data) {
+        noteIdRef.current = data.id
+        if (editorRef.current) editorRef.current.innerHTML = data.content
       }
       setLoading(false)
       editorRef.current?.focus()
@@ -60,10 +62,25 @@ export default function NotesModal({ tableId, onClose }: Props) {
     if (!userId) { setSaveErr('Session expirée – rechargez la page'); return }
     setSaving(true)
     setSaveErr(null)
-    const { error: dbErr } = await supabase.from('private_notes').upsert(
-      { table_id: tableId, user_id: userId, content: html, updated_at: new Date().toISOString() },
-      { onConflict: 'table_id,user_id' }
-    )
+    // INSERT/UPDATE explicites pour éviter les complications RLS du upsert ON CONFLICT
+    let dbErr: unknown = null
+    if (noteIdRef.current) {
+      // Note existante → UPDATE par PK
+      const { error } = await supabase
+        .from('private_notes')
+        .update({ content: html, updated_at: new Date().toISOString() })
+        .eq('id', noteIdRef.current)
+      dbErr = error
+    } else {
+      // Première sauvegarde → INSERT
+      const { data: newNote, error } = await supabase
+        .from('private_notes')
+        .insert({ table_id: tableId, user_id: userId, content: html, updated_at: new Date().toISOString() })
+        .select('id')
+        .single()
+      dbErr = error
+      if (!error && newNote) noteIdRef.current = newNote.id
+    }
     if (dbErr) setSaveErr(extractErr(dbErr))
     setSaving(false)
   }, [tableId])

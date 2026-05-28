@@ -10,9 +10,11 @@ interface Props {
   onClose: () => void
   /** Réponse déjà enregistrée, chargée par QuestionnaireFab avant l'ouverture. */
   savedResponse: QuestionnaireResponse | null
+  /** Quand true : modal verrouillé (forçage admin) — pas de croix, Echap ni clic overlay. */
+  forced?: boolean
 }
 
-export default function QuestionnaireModal({ onClose, savedResponse }: Props) {
+export default function QuestionnaireModal({ onClose, savedResponse, forced = false }: Props) {
   const { table } = useTable()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,12 +51,12 @@ export default function QuestionnaireModal({ onClose, savedResponse }: Props) {
   )
   const visibleThemes = showAllThemes ? shuffledThemes : shuffledThemes.slice(0, THEMES_INITIAL)
 
-  // Fermeture via Escape
+  // Fermeture via Escape (désactivée si modal forcé)
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function onKey(e: KeyboardEvent) { if (!forced && e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, forced])
 
   async function handleSubmit() {
     setErr(null)
@@ -83,7 +85,7 @@ export default function QuestionnaireModal({ onClose, savedResponse }: Props) {
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4"
-      onClick={onClose}
+      onClick={!forced ? onClose : undefined}
     >
       <div
         className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
@@ -102,18 +104,20 @@ export default function QuestionnaireModal({ onClose, savedResponse }: Props) {
               </p>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-lg p-1"
-            aria-label="Fermer"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+          {!forced && (
+            <button
+              onClick={onClose}
+              className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-lg p-1"
+              aria-label="Fermer"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* ── Body ── */}

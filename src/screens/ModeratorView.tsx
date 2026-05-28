@@ -643,31 +643,23 @@ export default function ModeratorView() {
 
                       <div className="my-1 border-t border-slate-700" />
 
-                      {/* Forcer questionnaire */}
+                      {/* Forcer / Annuler forçage questionnaire — bouton unique */}
                       <button
                         onClick={() => {
                           setShowOutils(false)
-                          forceQuestionnaire().catch(e => setErr(extractErr(e)))
+                          if (table.questionnaire_forced_at) {
+                            cancelForceQuestionnaire().catch(e => setErr(extractErr(e)))
+                          } else {
+                            forceQuestionnaire().catch(e => setErr(extractErr(e)))
+                          }
                         }}
                         className="w-full px-4 py-2 text-sm text-slate-200 hover:bg-slate-700
                           text-left whitespace-nowrap"
                       >
-                        Forcer questionnaire
+                        {table.questionnaire_forced_at
+                          ? 'Annuler forçage questionnaire'
+                          : 'Forcer questionnaire'}
                       </button>
-
-                      {/* Annuler forçage — visible seulement si questionnaire_forced_at est posé */}
-                      {table.questionnaire_forced_at && (
-                        <button
-                          onClick={() => {
-                            setShowOutils(false)
-                            cancelForceQuestionnaire().catch(e => setErr(extractErr(e)))
-                          }}
-                          className="w-full px-4 py-2 text-sm text-slate-400 hover:bg-slate-700
-                            text-left whitespace-nowrap"
-                        >
-                          Annuler forçage questionnaire
-                        </button>
-                      )}
                     </div>
                   </>
                 )}
