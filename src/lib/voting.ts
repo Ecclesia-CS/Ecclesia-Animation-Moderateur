@@ -126,5 +126,61 @@ export async function runClusteringV1(
   return (data as { table_count: number }).table_count
 }
 
+// --- Admin wrappers (C2) ---
+
+export interface AssertionWithPseudo extends Assertion {
+  member_pseudo: string
+}
+
+export interface SessionVotingStats {
+  member_count: number
+  onboarded_count: number
+  voter_count: number
+  approved_assertion_count: number
+  total_votes: number
+}
+
+export async function listAssertionsAdmin(
+  password: string,
+  sessionId: string
+): Promise<AssertionWithPseudo[]> {
+  const { data, error } = await supabase.rpc('list_assertions_admin', {
+    p_password: password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as AssertionWithPseudo[]) ?? []
+}
+
+export async function getSessionVotingStats(
+  password: string,
+  sessionId: string
+): Promise<SessionVotingStats> {
+  const { data, error } = await supabase.rpc('get_session_voting_stats', {
+    p_password: password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as SessionVotingStats
+}
+
+export async function updateSessionConfig(
+  password: string,
+  sessionId: string,
+  moderationPolicy: 'open' | 'closed',
+  voteTimerMinutes: number | null,
+  voteThresholdPercent: number | null
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('update_session_config', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_moderation_policy: moderationPolicy,
+    p_vote_timer_minutes: voteTimerMinutes,
+    p_vote_threshold_percent: voteThresholdPercent,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
 // Re-export types for convenience
 export type { SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment }

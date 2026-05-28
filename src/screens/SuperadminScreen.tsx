@@ -13,6 +13,13 @@ import {
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types'
+import {
+  setSessionPhase, approveAssertion, rejectAssertion,
+  listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
+  getVoteResults,
+} from '../lib/voting'
+import type { AssertionWithPseudo, SessionVotingStats } from '../lib/voting'
+import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
@@ -521,6 +528,9 @@ function CreateModal({
   const [scheduledAt, setScheduledAt]   = useState('')
   const [docInfoUrl, setDocInfoUrl]     = useState('')
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
+  const [moderationPolicy, setModerationPolicy] = useState<'open' | 'closed'>('closed')
+  const [voteTimerMinutes, setVoteTimerMinutes]     = useState('')
+  const [voteThresholdPercent, setVoteThresholdPercent] = useState('')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -538,6 +548,12 @@ function CreateModal({
         docInfoUrl || undefined,
         docSummaryUrl || undefined,
       )
+      // Apply vote config if any field is set
+      const timerVal = voteTimerMinutes ? parseInt(voteTimerMinutes, 10) : null
+      const thresholdVal = voteThresholdPercent ? parseInt(voteThresholdPercent, 10) : null
+      if (moderationPolicy !== 'closed' || timerVal !== null || thresholdVal !== null) {
+        await updateSessionConfig(password, session.id, moderationPolicy, timerVal, thresholdVal)
+      }
       onCreated(session)
     } catch (e) {
       const msg = extractErr(e)
@@ -613,6 +629,58 @@ function CreateModal({
               Le document de sources collaboratives est disponible automatiquement pour chaque séance
               avec un code de rejoindre.
             </p>
+          </div>
+
+          <div className="pt-1 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Configuration du vote <span className="font-normal normal-case text-gray-400">(optionnel)</span>
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['closed', 'open'] as const).map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setModerationPolicy(val)}
+                      className={`py-2 px-3 rounded-xl border-2 text-xs font-medium transition-all ${
+                        moderationPolicy === val
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 text-gray-600 hover:border-indigo-200'
+                      }`}
+                    >
+                      {val === 'closed' ? '🔒 Fermée (validation requise)' : '🔓 Ouverte (immédiat)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Durée du vote (min)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={voteTimerMinutes}
+                    onChange={e => setVoteTimerMinutes(e.target.value)}
+                    placeholder="Sans timer"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Seuil automatique (%)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={voteThresholdPercent}
+                    onChange={e => setVoteThresholdPercent(e.target.value)}
+                    placeholder="Sans seuil"
+                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-300"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -768,6 +836,132 @@ function SessionDetail({
   const [sourcesOpen,         setSourcesOpen]         = useState(false)
   const [deleteSourceConfirm, setDeleteSourceConfirm] = useState<CollabSource | null>(null)
   const [deletingSourceId,    setDeletingSourceId]    = useState<string | null>(null)
+
+  // ── Current session state (mutable for phase changes) ──────
+  const [currentSession, setCurrentSession] = useState<SessionRow>(session)
+
+  // ── Phase transitions ──────────────────────────────────────
+  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
+  const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
+  const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
+  const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
+  const [phaseConfirm, setPhaseConfirm] = useState<{ phase: Session['phase']; label: string; isBack: boolean } | null>(null)
+  const [phaseActing, setPhaseActing]   = useState(false)
+
+  async function handlePhaseChange(targetPhase: Session['phase']) {
+    const password = getPwd()!
+    setPhaseActing(true)
+    setPhaseConfirm(null)
+    try {
+      const updated = await setSessionPhase(password, currentSession.id, targetPhase)
+      setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setPhaseActing(false)
+    }
+  }
+
+  // ── Assertions (C2) ────────────────────────────────────────
+  const VOTE_PHASES: Session['phase'][] = ['voting', 'allocating', 'debating', 'questionnaire']
+  const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
+
+  const [assertions,        setAssertions]        = useState<AssertionWithPseudo[]>([])
+  const [assertionsLoading, setAssertionsLoading] = useState(false)
+  const [assertionsErr,     setAssertionsErr]     = useState<string | null>(null)
+  const [assertionsTab,     setAssertionsTab]     = useState<'pending' | 'approved' | 'rejected'>('pending')
+  const [assertionsOpen,    setAssertionsOpen]    = useState(true)
+  const [actingAssertionId, setActingAssertionId] = useState<string | null>(null)
+  const [voteResults,       setVoteResults]       = useState<VoteResult[]>([])
+
+  const loadAssertions = useCallback(async () => {
+    const password = getPwd()!
+    setAssertionsLoading(true)
+    setAssertionsErr(null)
+    try {
+      const [rows, results] = await Promise.all([
+        listAssertionsAdmin(password, session.id),
+        getVoteResults(session.id),
+      ])
+      setAssertions(rows)
+      setVoteResults(results)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setAssertionsErr(msg)
+    } finally {
+      setAssertionsLoading(false)
+    }
+  }, [session.id, onAuthError])
+
+  useEffect(() => {
+    if (!showVotingSections) return
+    loadAssertions()
+    const interval = setInterval(loadAssertions, 10000)
+    return () => clearInterval(interval)
+  }, [loadAssertions, showVotingSections])
+
+  async function handleApprove(assertionId: string) {
+    const password = getPwd()!
+    setActingAssertionId(assertionId)
+    try {
+      const updated = await approveAssertion(password, assertionId)
+      setAssertions(prev => prev.map(a => a.id === assertionId ? { ...a, status: updated.status } : a))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setActingAssertionId(null)
+    }
+  }
+
+  async function handleReject(assertionId: string) {
+    const password = getPwd()!
+    setActingAssertionId(assertionId)
+    try {
+      const updated = await rejectAssertion(password, assertionId)
+      setAssertions(prev => prev.map(a => a.id === assertionId ? { ...a, status: updated.status } : a))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setActingAssertionId(null)
+    }
+  }
+
+  async function handleApproveAll() {
+    const pending = assertions.filter(a => a.status === 'pending')
+    for (const a of pending) await handleApprove(a.id)
+  }
+
+  // ── Voting stats (C2) ──────────────────────────────────────
+  const [votingStats,    setVotingStats]    = useState<SessionVotingStats | null>(null)
+  const [statsLoading,   setStatsLoading]   = useState(false)
+  const [statsOpen,      setStatsOpen]      = useState(true)
+
+  const loadStats = useCallback(async () => {
+    const password = getPwd()!
+    setStatsLoading(true)
+    try {
+      const stats = await getSessionVotingStats(password, session.id)
+      setVotingStats(stats)
+    } catch {
+      // non-bloquant
+    } finally {
+      setStatsLoading(false)
+    }
+  }, [session.id])
+
+  useEffect(() => {
+    if (!showVotingSections) return
+    loadStats()
+    const interval = setInterval(loadStats, 15000)
+    return () => clearInterval(interval)
+  }, [loadStats, showVotingSections])
 
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
@@ -1089,10 +1283,63 @@ function SessionDetail({
           </div>
         )}
 
+        {/* ── Phase bar ───────────────────────────────────── */}
+        <PhaseBar
+          currentPhase={currentSession.phase}
+          nextPhase={nextPhase}
+          prevPhase={prevPhase}
+          acting={phaseActing}
+          onNext={() => nextPhase && setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })}
+          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
+        />
+
         {loading ? (
           <div className="flex items-center justify-center py-16 text-sm text-gray-400">Chargement…</div>
         ) : (
           <>
+            {/* ── Stats de vote ────────────────────────────── */}
+            {showVotingSections && (
+              <SectionAccordion
+                title="Statistiques de vote"
+                open={statsOpen}
+                onToggle={() => setStatsOpen(o => !o)}
+                badge={votingStats ? `${votingStats.voter_count}/${votingStats.member_count} ont voté` : undefined}
+              >
+                {statsLoading && !votingStats ? (
+                  <p className="text-sm text-gray-400 py-2">Chargement…</p>
+                ) : votingStats ? (
+                  <VotingStatsPanel stats={votingStats} session={currentSession} />
+                ) : null}
+              </SectionAccordion>
+            )}
+
+            {/* ── Assertions ──────────────────────────────── */}
+            {showVotingSections && (
+              <SectionAccordion
+                title="Assertions"
+                open={assertionsOpen}
+                onToggle={() => setAssertionsOpen(o => !o)}
+                badge={assertionsLoading ? '…' : `${assertions.filter(a => a.status === 'pending').length} en attente`}
+                onRefresh={loadAssertions}
+              >
+                {assertionsErr && (
+                  <p className="text-sm text-red-600 mb-2">{assertionsErr}</p>
+                )}
+                <AssertionsPanel
+                  assertions={assertions}
+                  voteResults={voteResults}
+                  tab={assertionsTab}
+                  onTabChange={setAssertionsTab}
+                  session={currentSession}
+                  actingId={actingAssertionId}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onApproveAll={handleApproveAll}
+                  onReapprove={handleApprove}
+                />
+              </SectionAccordion>
+            )}
+
             {/* ── Documentation ───────────────────────────── */}
             <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
               <div className="flex items-center justify-between mb-3">
@@ -1407,6 +1654,384 @@ function SessionDetail({
           onCancel={() => setShowQConfirm(false)}
         />
       )}
+
+      {phaseConfirm && (
+        <ConfirmModal
+          title={phaseConfirm.isBack ? '← Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
+          body={phaseConfirm.isBack
+            ? `Revenir à « ${phaseConfirm.label} » ? Les participants verront leur écran changer immédiatement.`
+            : `Passer la séance en phase « ${phaseConfirm.label} » ? Les participants verront leur écran changer immédiatement.`}
+          confirmLabel={phaseConfirm.isBack ? '← Revenir' : 'Confirmer →'}
+          onConfirm={() => handlePhaseChange(phaseConfirm.phase)}
+          onCancel={() => setPhaseConfirm(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── PhaseBar ──────────────────────────────────────────────────────
+
+const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
+  { phase: 'draft',         short: 'Brouillon' },
+  { phase: 'voting',        short: 'Vote' },
+  { phase: 'allocating',    short: 'Allocation' },
+  { phase: 'debating',      short: 'Débat' },
+  { phase: 'questionnaire', short: 'Questionnaire' },
+  { phase: 'closed',        short: 'Clôturée' },
+]
+
+function PhaseBar({
+  currentPhase,
+  nextPhase,
+  prevPhase,
+  acting,
+  onNext,
+  onPrev,
+}: {
+  currentPhase: Session['phase']
+  nextPhase: Session['phase'] | null
+  prevPhase: Session['phase'] | null
+  acting: boolean
+  onNext(): void
+  onPrev(): void
+}) {
+  const currentIdx = PHASE_SEQUENCE_LABELS.findIndex(p => p.phase === currentPhase)
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 space-y-4">
+      {/* Step indicators */}
+      <div className="flex items-center gap-0">
+        {PHASE_SEQUENCE_LABELS.map((p, i) => {
+          const isPast    = i < currentIdx
+          const isCurrent = i === currentIdx
+          const isFuture  = i > currentIdx
+          return (
+            <div key={p.phase} className="flex items-center flex-1 min-w-0">
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  isCurrent ? 'bg-indigo-600 text-white ring-2 ring-indigo-200' :
+                  isPast    ? 'bg-indigo-200 text-indigo-700' :
+                              'bg-gray-100 text-gray-400'
+                }`}>
+                  {isPast ? '✓' : i + 1}
+                </div>
+                <span className={`mt-1 text-[10px] font-medium text-center leading-tight hidden sm:block ${
+                  isCurrent ? 'text-indigo-700' : isFuture ? 'text-gray-400' : 'text-indigo-400'
+                }`}>
+                  {p.short}
+                </span>
+              </div>
+              {i < PHASE_SEQUENCE_LABELS.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-1 ${i < currentIdx ? 'bg-indigo-300' : 'bg-gray-200'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2">
+        {prevPhase && (
+          <button
+            onClick={onPrev}
+            disabled={acting}
+            className="text-xs text-gray-400 hover:text-gray-600 py-1.5 px-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
+          >
+            ← {PHASE_LABEL[prevPhase]}
+          </button>
+        )}
+        <div className="flex-1" />
+        {nextPhase && (
+          <button
+            onClick={onNext}
+            disabled={acting}
+            className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {acting ? '…' : `Passer en ${PHASE_LABEL[nextPhase]} →`}
+          </button>
+        )}
+        {!nextPhase && currentPhase !== 'closed' && (
+          <span className="text-xs text-gray-400">Phase finale</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── SectionAccordion ──────────────────────────────────────────────
+
+function SectionAccordion({
+  title,
+  open,
+  onToggle,
+  badge,
+  onRefresh,
+  children,
+}: {
+  title: string
+  open: boolean
+  onToggle(): void
+  badge?: string
+  onRefresh?: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+      <div className="flex items-center justify-between mb-0">
+        <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</h2>
+          {badge && (
+            <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{badge}</span>
+          )}
+          <svg
+            className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          ><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="ml-2 p-1 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            title="Rafraîchir"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+        )}
+      </div>
+      {open && <div className="mt-3">{children}</div>}
+    </section>
+  )
+}
+
+// ── VotingStatsPanel ──────────────────────────────────────────────
+
+function VotingStatsPanel({ stats, session }: { stats: SessionVotingStats; session: SessionRow }) {
+  const voterPct = stats.member_count > 0
+    ? Math.round((stats.voter_count / stats.member_count) * 100)
+    : 0
+  const threshold = session.vote_threshold_percent
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { emoji: '👥', label: 'Participants inscrits',    val: stats.member_count },
+          { emoji: '📋', label: 'Onboarding complété',      val: stats.onboarded_count },
+          { emoji: '🗳️', label: 'Ont voté au moins 1 fois', val: stats.voter_count },
+          { emoji: '💬', label: 'Assertions approuvées',    val: stats.approved_assertion_count },
+        ].map(item => (
+          <div key={item.label} className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+            <span className="text-xl">{item.emoji}</span>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{item.val}</p>
+              <p className="text-xs text-gray-500 leading-tight">{item.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {threshold != null && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Participation au vote</span>
+            <span className="font-medium">{voterPct}% / seuil {threshold}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${voterPct >= threshold ? 'bg-green-500' : 'bg-indigo-500'}`}
+              style={{ width: `${Math.min(voterPct, 100)}%` }}
+            />
+          </div>
+          {voterPct >= threshold && (
+            <p className="text-xs text-green-600 font-medium">✅ Seuil atteint</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── AssertionsPanel ───────────────────────────────────────────────
+
+function AssertionsPanel({
+  assertions,
+  voteResults,
+  tab,
+  onTabChange,
+  session,
+  actingId,
+  onApprove,
+  onReject,
+  onApproveAll,
+  onReapprove,
+}: {
+  assertions: AssertionWithPseudo[]
+  voteResults: VoteResult[]
+  tab: 'pending' | 'approved' | 'rejected'
+  onTabChange(t: 'pending' | 'approved' | 'rejected'): void
+  session: SessionRow
+  actingId: string | null
+  onApprove(id: string): void
+  onReject(id: string): void
+  onApproveAll(): void
+  onReapprove(id: string): void
+}) {
+  const pending  = assertions.filter(a => a.status === 'pending')
+  const approved = assertions.filter(a => a.status === 'approved')
+  const rejected = assertions.filter(a => a.status === 'rejected')
+
+  const voteMap = new Map(voteResults.map(v => [v.id, v]))
+
+  const tabs: { key: 'pending' | 'approved' | 'rejected'; label: string; count: number }[] = [
+    ...(session.moderation_policy === 'closed' ? [{ key: 'pending' as const, label: 'En attente', count: pending.length }] : []),
+    { key: 'approved', label: 'Approuvées', count: approved.length },
+    { key: 'rejected', label: 'Rejetées',   count: rejected.length },
+  ]
+
+  // Default to approved tab if no closed moderation
+  const effectiveTab = session.moderation_policy === 'open' && tab === 'pending' ? 'approved' : tab
+
+  return (
+    <div className="space-y-3">
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => onTabChange(t.key)}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${
+              effectiveTab === t.key
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t.label}
+            {t.count > 0 && (
+              <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
+                t.key === 'pending' ? 'bg-amber-100 text-amber-700' :
+                t.key === 'approved' ? 'bg-green-100 text-green-700' :
+                'bg-gray-200 text-gray-500'
+              }`}>{t.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Pending tab */}
+      {effectiveTab === 'pending' && (
+        <div className="space-y-2">
+          {pending.length > 1 && (
+            <button
+              onClick={onApproveAll}
+              disabled={actingId !== null}
+              className="w-full py-2 px-3 text-xs font-medium bg-green-50 border border-green-200 text-green-700 rounded-xl hover:bg-green-100 transition-colors disabled:opacity-50"
+            >
+              ✅ Tout approuver ({pending.length})
+            </button>
+          )}
+          {pending.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion en attente</p>
+          )}
+          {pending.map(a => (
+            <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
+              <button
+                onClick={() => onApprove(a.id)}
+                disabled={actingId !== null}
+                className="py-1 px-2.5 text-xs font-medium bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+              >✅ Approuver</button>
+              <button
+                onClick={() => onReject(a.id)}
+                disabled={actingId !== null}
+                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              >❌ Rejeter</button>
+            </AssertionRow>
+          ))}
+        </div>
+      )}
+
+      {/* Approved tab */}
+      {effectiveTab === 'approved' && (
+        <div className="space-y-2">
+          {approved.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion approuvée</p>
+          )}
+          {[...approved]
+            .sort((a, b) => (voteMap.get(b.id)?.consensus_score ?? 0) - (voteMap.get(a.id)?.consensus_score ?? 0))
+            .map(a => {
+              const v = voteMap.get(a.id)
+              return (
+                <AssertionRow key={a.id} assertion={a} acting={false}>
+                  {v && v.total_votes > 0 ? (
+                    <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
+                  ) : (
+                    <span className="text-xs text-gray-400">Pas encore de votes</span>
+                  )}
+                </AssertionRow>
+              )
+            })}
+        </div>
+      )}
+
+      {/* Rejected tab */}
+      {effectiveTab === 'rejected' && (
+        <div className="space-y-2">
+          {rejected.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion rejetée</p>
+          )}
+          {rejected.map(a => (
+            <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
+              <button
+                onClick={() => onReapprove(a.id)}
+                disabled={actingId !== null}
+                className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+              >↩ Réapprouver</button>
+            </AssertionRow>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AssertionRow({
+  assertion,
+  acting,
+  children,
+}: {
+  assertion: AssertionWithPseudo
+  acting: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className={`border border-gray-200 rounded-xl p-3 space-y-2 ${acting ? 'opacity-50' : ''}`}>
+      <p className="text-sm text-gray-900">{assertion.content}</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <span className="text-xs text-gray-400">{assertion.member_pseudo} · {new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        <div className="flex gap-2 flex-wrap">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disagree: number; pass: number; total: number; score: number | null }) {
+  const agreePct    = Math.round((agree    / total) * 100)
+  const disagreePct = Math.round((disagree / total) * 100)
+  const passPct     = Math.round((pass     / total) * 100)
+
+  return (
+    <div className="w-full space-y-1">
+      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+        <div className="bg-green-400 transition-all" style={{ width: `${agreePct}%` }} />
+        <div className="bg-red-400 transition-all"   style={{ width: `${disagreePct}%` }} />
+        <div className="bg-gray-300 transition-all"  style={{ width: `${passPct}%` }} />
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-gray-500">
+        <span>✅ {agree} · ❌ {disagree} · ⏭ {pass} ({total} votes)</span>
+        {score !== null && <span className="font-semibold text-indigo-600">Score : {score}%</span>}
+      </div>
     </div>
   )
 }
