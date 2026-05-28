@@ -775,8 +775,8 @@ function SessionDetail({
   const [docsLoading,    setDocsLoading]    = useState(false)
   const [docsErr,        setDocsErr]        = useState<string | null>(null)
   const [sessionDocs,    setSessionDocs]    = useState({
-    doc_info_url:    session.doc_info_url,
-    doc_summary_url: session.doc_summary_url,
+    doc_info_url:    normalizeDocUrl(session.doc_info_url ?? '') || null,
+    doc_summary_url: normalizeDocUrl(session.doc_summary_url ?? '') || null,
     doc_collab_url:  session.doc_collab_url,
   })
 

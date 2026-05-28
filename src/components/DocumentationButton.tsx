@@ -26,7 +26,21 @@ export default function DocumentationButton({ session, className, dropdownClass,
   }
 
   if (!session) return null
-  const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session
+
+  const DOCS_PATH = `${import.meta.env.BASE_URL}docs/`
+  const BASE_DOCS = `https://ecclesia-cs.github.io${DOCS_PATH}`
+  function normalizeUrl(url: string | null): string | null {
+    if (!url) return null
+    if (url.includes(DOCS_PATH)) {
+      const filename = url.split(DOCS_PATH)[1] ?? ''
+      return filename ? BASE_DOCS + filename : null
+    }
+    return url
+  }
+
+  const doc_info_url = normalizeUrl(session.doc_info_url)
+  const doc_summary_url = normalizeUrl(session.doc_summary_url)
+  const { doc_collab_url, session_join_code } = session
 
   const hasCollab = !!session_join_code || !!doc_collab_url
   if (!doc_info_url && !doc_summary_url && !hasCollab) return null
