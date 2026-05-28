@@ -9,6 +9,9 @@ export interface Session {
   doc_info_url: string | null
   doc_summary_url: string | null
   doc_collab_url: string | null
+  moderation_policy: 'open' | 'closed'
+  vote_timer_minutes: number | null
+  vote_threshold_percent: number | null
 }
 
 export interface Table {
@@ -81,6 +84,66 @@ export interface PrivateNote {
   user_id: string
   content: string
   updated_at: string
+}
+
+// --- Bloc C : phase de vote ---
+
+export interface SessionMember {
+  id: string
+  session_id: string
+  user_id: string
+  pseudo: string
+  created_at: string
+}
+
+export interface EntryResponse {
+  id: string
+  session_id: string
+  member_id: string
+  consent_transcript: boolean
+  group_size_pref: 'small' | 'medium' | 'large'
+  moderator_pref: boolean
+  openness_to_diff: number
+  participation_style: 'listener' | 'active'
+  created_at: string
+}
+
+export interface Assertion {
+  id: string
+  session_id: string
+  member_id: string
+  content: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+}
+
+export interface AssertionVote {
+  id: string
+  assertion_id: string
+  session_id: string
+  member_id: string
+  vote: 'agree' | 'disagree' | 'pass'
+  created_at: string
+}
+
+export interface VoteResult {
+  id: string
+  content: string
+  status: 'approved'
+  agree_count: number
+  disagree_count: number
+  pass_count: number
+  total_votes: number
+  consensus_score: number | null
+}
+
+export interface TableAssignment {
+  id: string
+  session_id: string
+  member_id: string
+  table_number: number
+  table_id: string | null
+  created_at: string
 }
 
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */

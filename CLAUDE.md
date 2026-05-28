@@ -23,7 +23,7 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int)
 
 ### `tables`
 `id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL)
@@ -42,6 +42,25 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 
 ### `speaking_turns`
 `id`, `table_id` (CASCADE), `participant_id` (CASCADE), `started_at` (NOT NULL, posé par serveur), `ended_at?` (NULL = en cours), `source` (`'long'`|`'interactive'`|`'manual'`)
+
+### `session_members` — Bloc C
+`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`
+Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
+
+### `entry_responses` — Bloc C
+`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `consent_transcript`, `group_size_pref` (`small`|`medium`|`large`), `moderator_pref`, `openness_to_diff` (1-5), `participation_style` (`listener`|`active`), `created_at`
+Contrainte : `UNIQUE(session_id, member_id)`.
+
+### `assertions` — Bloc C
+`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
+
+### `assertion_votes` — Bloc C
+`id`, `assertion_id` (CASCADE), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `vote` (`agree`|`disagree`|`pass`), `created_at`
+Contrainte : `UNIQUE(assertion_id, member_id)`.
+
+### `table_assignments` — Bloc C
+`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `table_number` (int), `table_id?` (FK→tables ON DELETE SET NULL), `created_at`
+Contrainte : `UNIQUE(session_id, member_id)`.
 
 ---
 
@@ -79,8 +98,18 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 | `list_available_tables(password)` | Tables sans séance (48h) |
 | `submit_questionnaire(table_id, ...)` | Upsert questionnaire_responses |
 | `update_session_docs(password, session_id, doc_*?)` | Met à jour les 3 URLs docs |
+| `register_session_member(session_id, pseudo)` | Inscrit l'utilisateur (ON CONFLICT user → retourne existant ; pseudo pris → exception) |
+| `submit_entry_response(session_id, ...)` | Upsert entry_responses |
+| `submit_assertion(session_id, content)` | Insère assertion (status auto selon moderation_policy) |
+| `cast_vote(assertion_id, vote)` | Upsert assertion_votes |
+| `get_vote_results(session_id)` | Retourne assertions approved avec consensus_score |
+| `approve_assertion(password, assertion_id)` | status → 'approved' |
+| `reject_assertion(password, assertion_id)` | status → 'rejected' |
+| `set_session_phase(password, session_id, phase)` | Change la phase de la séance |
+| `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire des membres → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les 4 tables de données — obligatoire pour que les DELETE filtrés arrivent aux subscribers.
+Les tables Bloc C (`session_members`, `assertions`, `assertion_votes`, `table_assignments`) sont dans la publication Realtime — pas de broadcast custom, Realtime natif uniquement.
 
 ---
 
@@ -90,8 +119,9 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 src/
 ├── lib/
 │   ├── supabase.ts       Client Supabase
-│   ├── types.ts          Session, Table, Participant, QueueEntry, SpeakingTurn, QuestionnaireResponse
+│   ├── types.ts          Session, Table, Participant, QueueEntry, SpeakingTurn, QuestionnaireResponse + SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
+│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1)
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
@@ -175,6 +205,18 @@ Stocké en localStorage au moment du create/join. Ne pas dériver de `table.crea
 - **Oublier `broadcast()` après une action** — sinon 5s de délai pour les autres clients
 - **`prev => [...prev, n]` sans déduplication Realtime** — upsert SQL déclenche parfois INSERT. Toujours vérifier `prev.some(p => p.id === n.id)` avant d'ajouter
 - **`WHERE user_id = auth.uid()` sans `LIMIT 1`** — un user_id peut avoir plusieurs participants depuis migration 005
+
+---
+
+## Phase de vote (Bloc C)
+
+Flux : `draft` → `voting` (inscription membres via `register_session_member` + soumission assertions) → `allocating` (clustering via `run_clustering_v1`, `table_assignments` créés, `table_id` NULL) → `debating` (modérateurs créent leurs tables, superadmin rattache via `attach_table_to_session`).
+
+`moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`.
+
+`vote_timer_minutes` / `vote_threshold_percent` : configurés à la création ou via update, NULL = désactivé.
+
+Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom).
 
 ---
 
