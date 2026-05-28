@@ -1512,7 +1512,7 @@ function DocFileField({ label, placeholder, value, onChange }: {
   value: string
   onChange(v: string): void
 }) {
-  const baseUrl = `${window.location.origin}${import.meta.env.BASE_URL}docs/`
+  const baseUrl = `https://ecclesia-cs.github.io${import.meta.env.BASE_URL}docs/`
   const filename = value.startsWith(baseUrl) ? value.slice(baseUrl.length) : value
 
   function handleChange(raw: string) {
