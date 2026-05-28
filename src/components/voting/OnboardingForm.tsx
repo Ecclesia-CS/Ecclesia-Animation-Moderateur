@@ -178,9 +178,8 @@ function QuestionGroupSize({
           Tu préfères être dans un groupe de quelle taille ?
         </h2>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <ChoiceButton selected={value === 'small'} onClick={() => onChange('small')} emoji="👥" label="Petit" sub="~5 pers." />
-        <ChoiceButton selected={value === 'medium'} onClick={() => onChange('medium')} emoji="👥👥" label="Moyen" sub="~7 pers." />
         <ChoiceButton selected={value === 'large'} onClick={() => onChange('large')} emoji="👥👥👥" label="Grand" sub="~10 pers." />
       </div>
     </div>
@@ -205,6 +204,12 @@ function QuestionModerator({ value, onChange }: { value: boolean; onChange: (v: 
 }
 
 function QuestionOpenness({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  // On présente 3 niveaux, mappés sur les valeurs 1, 3, 5
+  const levels = [
+    { val: 1, emoji: '🤝', label: 'Similaires', sub: 'Des gens qui pensent comme moi' },
+    { val: 3, emoji: '⚖️', label: 'Intermédiaires', sub: 'Un peu de tout' },
+    { val: 5, emoji: '🌍', label: 'Très différents', sub: 'Maximum de diversité' },
+  ]
   return (
     <div className="space-y-6">
       <div>
@@ -213,36 +218,17 @@ function QuestionOpenness({ value, onChange }: { value: number; onChange: (v: nu
           À quel point veux-tu rencontrer des avis différents du tien ?
         </h2>
       </div>
-      <div className="space-y-4">
-        <input
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          value={value}
-          onChange={e => onChange(Number(e.target.value))}
-          className="w-full h-2 accent-indigo-600"
-        />
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>Avis similaires</span>
-          <span className="text-indigo-700 font-semibold text-sm">{value}/5</span>
-          <span>Maximum de diversité</span>
-        </div>
-        <div className="flex justify-between">
-          {[1, 2, 3, 4, 5].map(v => (
-            <button
-              key={v}
-              onClick={() => onChange(v)}
-              className={`w-10 h-10 rounded-full text-sm font-semibold transition-colors ${
-                value === v
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-indigo-50'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        {levels.map(l => (
+          <ChoiceButton
+            key={l.val}
+            selected={value === l.val}
+            onClick={() => onChange(l.val)}
+            emoji={l.emoji}
+            label={l.label}
+            sub={l.sub}
+          />
+        ))}
       </div>
     </div>
   )
