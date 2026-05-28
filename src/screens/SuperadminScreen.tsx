@@ -770,8 +770,8 @@ function SessionDetail({
 
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
-  const [docInfoUrl,     setDocInfoUrl]     = useState(session.doc_info_url ?? '')
-  const [docSummaryUrl,  setDocSummaryUrl]  = useState(session.doc_summary_url ?? '')
+  const [docInfoUrl,     setDocInfoUrl]     = useState(() => normalizeDocUrl(session.doc_info_url ?? ''))
+  const [docSummaryUrl,  setDocSummaryUrl]  = useState(() => normalizeDocUrl(session.doc_summary_url ?? ''))
   const [docsLoading,    setDocsLoading]    = useState(false)
   const [docsErr,        setDocsErr]        = useState<string | null>(null)
   const [sessionDocs,    setSessionDocs]    = useState({
@@ -1101,8 +1101,8 @@ function SessionDetail({
                 {!editingDocs && (
                   <button
                     onClick={() => {
-                      setDocInfoUrl(sessionDocs.doc_info_url ?? '')
-                      setDocSummaryUrl(sessionDocs.doc_summary_url ?? '')
+                      setDocInfoUrl(normalizeDocUrl(sessionDocs.doc_info_url ?? ''))
+                      setDocSummaryUrl(normalizeDocUrl(sessionDocs.doc_summary_url ?? ''))
                       setDocsErr(null)
                       setEditingDocs(true)
                     }}
@@ -1504,6 +1504,17 @@ function DocLink({ label, url }: { label: string; url: string | null }) {
       </a>
     </div>
   )
+}
+
+function normalizeDocUrl(value: string): string {
+  const docsPath = `${import.meta.env.BASE_URL}docs/`
+  const baseUrl = `https://ecclesia-cs.github.io${docsPath}`
+  if (!value) return ''
+  if (value.includes(docsPath)) {
+    const filename = value.split(docsPath)[1] ?? ''
+    return filename ? baseUrl + filename : ''
+  }
+  return value
 }
 
 function DocFileField({ label, placeholder, value, onChange }: {
