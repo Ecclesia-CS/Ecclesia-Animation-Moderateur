@@ -112,34 +112,61 @@ def write_json(segments: list[dict], path: Path) -> None:
         json.dump(segments, f, ensure_ascii=False, indent=2)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Transcription hors-ligne avec attribution des locuteurs")
-    parser.add_argument("audio", help="Fichier audio à transcrire")
-    parser.add_argument("log_anon", help="Fichier log_anon.csv produit par anonymize_log.py")
-    parser.add_argument("--model", default="large-v3", help="Modèle Whisper (défaut: large-v3)")
-    parser.add_argument("--language", default="fr", help="Langue (défaut: fr)")
-    parser.add_argument("--audio-start", default=None, help="Heure de début de l'audio (ISO 8601)")
-    parser.add_argument("--out-txt", default="transcription.txt", help="Fichier de sortie TXT")
-    parser.add_argument("--out-json", default="transcription.json", help="Fichier de sortie JSON")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Transcrit un fichier audio avec Whisper large-v3 en s'appuyant sur un log de tours de parole."
+    )
+    parser.add_argument("audio", help="Fichier audio source (mp3, wav, m4a, webm...)")
+    parser.add_argument("log", help="log_anon.csv produit par anonymize_log.py")
+    parser.add_argument(
+        "--audio-start",
+        default=None,
+        help="Timestamp ISO du debut de l'enregistrement. Defaut : timestamp du premier tour.",
+    )
+    parser.add_argument("--group", default="debat", help="Nom du groupe pour les fichiers de sortie")
     args = parser.parse_args()
 
-    audio_start = None
-    if args.audio_start:
-        audio_start = datetime.datetime.fromisoformat(args.audio_start)
+    if WhisperModel is None:
+        print("Erreur : faster-whisper n'est pas installe. Installer avec: pip install faster-whisper", file=__import__('sys').stderr)
+        __import__('sys').exit(1)
 
-    turns = load_anon_log(args.log_anon)
-    turns_with_offsets = compute_offsets(turns, audio_start)
+    # 1. Charger le log et calculer les offsets
+    turns = load_anon_log(args.log)
+    audio_start = datetime.datetime.fromisoformat(args.audio_start) if args.audio_start else None
+    turns = compute_offsets(turns, audio_start)
 
-    model = WhisperModel(args.model, device="cpu", compute_type="int8")
-    segments_raw, _ = model.transcribe(args.audio, language=args.language, word_timestamps=False)
-    segments = [{"start": s.start, "end": s.end, "text": s.text.strip()} for s in segments_raw]
+    # 2. Transcrire avec Whisper large-v3 sur GPU
+    print("Chargement de Whisper large-v3 (GPU)...")
+    model = WhisperModel("large-v3", device="cuda", compute_type="float16")
+    print(f"Transcription de {args.audio}...")
+    raw_segments, _ = model.transcribe(
+        args.audio,
+        language="fr",
+        beam_size=5,
+        vad_filter=True,
+        condition_on_previous_text=True,
+        word_timestamps=True,
+    )
+    whisper_segs = [
+        {"start": s.start, "end": s.end, "text": s.text.strip()}
+        for s in raw_segments
+        if s.text.strip()
+    ]
+    print(f"{len(whisper_segs)} segments Whisper produits.")
 
-    assigned = assign_speakers(segments, turns_with_offsets)
-    merged = merge_same_speaker(assigned)
+    # 3. Aligner, fusionner, ecrire
+    segments = assign_speakers(whisper_segs, turns)
+    segments = merge_same_speaker(segments)
 
-    write_txt(merged, Path(args.out_txt))
-    write_json(merged, Path(args.out_json))
-    print(f"Transcription écrite dans {args.out_txt} et {args.out_json}")
+    output_dir = Path(__file__).parent / "transcripts"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.date.today().isoformat()
+    base = output_dir / f"{args.group}_{date_str}"
+
+    write_txt(segments, base.with_suffix(".txt"))
+    write_json(segments, base.with_suffix(".json"))
+
+    print(f"Transcript ecrit :\n  {base}.txt\n  {base}.json")
 
 
 if __name__ == "__main__":
