@@ -1,5 +1,6 @@
 import csv
 import argparse
+import sys
 from pathlib import Path
 
 
@@ -74,10 +75,19 @@ def main() -> None:
     parser.add_argument("--output", default=None, help="Chemin de sortie (défaut: log_anon.csv à côté du CSV)")
     args = parser.parse_args()
 
-    tours = parse_ecclesia_csv(args.csv)
+    try:
+        tours = parse_ecclesia_csv(args.csv)
+    except FileNotFoundError:
+        print(f"Erreur : fichier '{args.csv}' introuvable.", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Erreur CSV : {e}", file=sys.stderr)
+        sys.exit(1)
+
     anon, mapping = anonymize(tours, refused=args.refuse)
 
     output_path = args.output or str(Path(args.csv).parent / "log_anon.csv")
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     write_anon_log(anon, output_path)
 
     print("Correspondance nom -> label (a conserver) :")
