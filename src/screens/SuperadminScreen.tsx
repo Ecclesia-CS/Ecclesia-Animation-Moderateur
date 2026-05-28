@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession,
   attachTableToSession, detachTableFromSession,
@@ -9,6 +9,7 @@ import {
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
+  getSessionTableCounts, moveParticipant, getTableSpeakingTurnsAdmin,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types'
@@ -81,17 +82,17 @@ export default function SuperadminScreen() {
     setListLoad(true)
     setListErr(null)
     try {
-      const [{ data: sessData, error: sessErr }, { data: tableData, error: tableErr }] =
+      const pwd = getPwd()!
+      const [{ data: sessData, error: sessErr }, countRows] =
         await Promise.all([
           supabase.from('sessions').select('*').order('created_at', { ascending: false }),
-          supabase.from('tables').select('session_id').not('session_id', 'is', null),
+          getSessionTableCounts(pwd),
         ])
       if (sessErr) throw sessErr
-      if (tableErr) throw tableErr
 
       const counts: Record<string, number> = {}
-      for (const t of tableData ?? []) {
-        if (t.session_id) counts[t.session_id] = (counts[t.session_id] ?? 0) + 1
+      for (const row of countRows) {
+        counts[row.session_id] = row.cnt
       }
 
       setSessions(sortSessions(
@@ -1173,6 +1174,8 @@ function SessionDetail({
                       key={t.id}
                       table={t}
                       onDelete={() => setDeleteTableConfirm(t)}
+                      otherTables={attachedTables.filter(ot => ot.id !== t.id)}
+                      onParticipantMoved={load}
                       action={
                         <button
                           onClick={() => setDetachConfirm(t)}
@@ -1232,6 +1235,8 @@ function SessionDetail({
                       key={t.id}
                       table={t}
                       onDelete={() => setDeleteTableConfirm(t)}
+                      otherTables={[]}
+                      onParticipantMoved={() => {}}
                       action={
                         <button
                           onClick={() => handleAttach(t.id)}
@@ -1763,16 +1768,22 @@ function ResponseRow({
 }
 
 function ExpandableTableRow({
-  table, action, onDelete,
+  table, action, onDelete, otherTables, onParticipantMoved,
 }: {
   table: SessionTableRow
   action: React.ReactNode
   onDelete(): void
+  otherTables: SessionTableRow[]
+  onParticipantMoved(): void
 }) {
   const [expanded, setExpanded]           = useState(false)
   const [participants, setParticipants]   = useState<TableParticipantRow[] | null>(null)
   const [partLoading, setPartLoading]     = useState(false)
   const [partErr, setPartErr]             = useState<string | null>(null)
+  const [movingId, setMovingId]           = useState<string | null>(null)
+  const [moveMenuId, setMoveMenuId]       = useState<string | null>(null)
+  const [csvLoading, setCsvLoading]       = useState(false)
+  const moveMenuRef                       = useRef<HTMLDivElement>(null)
 
   async function toggleExpand(e: React.MouseEvent) {
     e.stopPropagation()
@@ -1789,6 +1800,68 @@ function ExpandableTableRow({
       }
     }
     setExpanded(v => !v)
+  }
+
+  async function handleMove(participantId: string, targetTableId: string) {
+    const pwd = getPwd()!
+    setMovingId(participantId)
+    setMoveMenuId(null)
+    try {
+      await moveParticipant(pwd, participantId, targetTableId)
+      setParticipants(prev => prev ? prev.filter(p => p.participant_id !== participantId) : prev)
+      onParticipantMoved()
+    } catch (err) {
+      setPartErr(extractErr(err))
+    } finally {
+      setMovingId(null)
+    }
+  }
+
+  async function handleExportCsv() {
+    const pwd = getPwd()!
+    setCsvLoading(true)
+    try {
+      const [turns, parts] = await Promise.all([
+        getTableSpeakingTurnsAdmin(pwd, table.id),
+        participants ?? getTableParticipants(pwd, table.id),
+      ])
+      const fakeTable = {
+        id: table.id,
+        join_code: table.join_code,
+        created_at: table.created_at,
+        created_by: '',
+        current_speaker_id: null,
+        current_turn_started_at: null,
+        session_id: null,
+      } as import('../lib/types').Table
+      const fakeParticipants = parts.map(p => ({
+        id: p.participant_id,
+        table_id: table.id,
+        user_id: '',
+        pseudo: p.pseudo,
+        created_at: '',
+      } as import('../lib/types').Participant))
+      const fakeTurns = turns.map(t => ({
+        id: t.id,
+        table_id: table.id,
+        participant_id: t.participant_id,
+        started_at: t.started_at,
+        ended_at: t.ended_at ?? null,
+        source: t.source as import('../lib/types').SpeakingTurn['source'],
+      }))
+      const csv  = generateTableCSV(fakeTable, fakeParticipants, fakeTurns)
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `ecclesia_table_${table.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setPartErr(extractErr(err))
+    } finally {
+      setCsvLoading(false)
+    }
   }
 
   return (
@@ -1826,8 +1899,27 @@ function ExpandableTableRow({
           )}
         </div>
 
-        {/* Trash + action */}
+        {/* CSV + Trash + action */}
         <div className="shrink-0 flex items-center gap-1.5">
+          <button
+            onClick={e => { e.stopPropagation(); handleExportCsv() }}
+            disabled={csvLoading}
+            title="Télécharger les temps de parole et l'historique (CSV)"
+            className="p-1.5 rounded-lg border border-transparent text-gray-300
+              hover:border-teal-200 hover:text-teal-600 hover:bg-teal-50 transition-colors
+              disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {csvLoading ? (
+              <Spinner />
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            )}
+          </button>
           <button
             onClick={e => { e.stopPropagation(); onDelete() }}
             title="Supprimer la table"
@@ -1857,15 +1949,58 @@ function ExpandableTableRow({
             ) : (
               <div className="space-y-1">
                 {participants.map(p => (
-                  <div key={p.pseudo} className={`flex items-center gap-3 text-xs ${p.is_current_speaker ? 'text-amber-700 font-medium' : 'text-gray-600'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.is_current_speaker ? 'bg-amber-400' : 'bg-gray-300'}`} />
-                    <span className="truncate flex-1">{p.pseudo}</span>
-                    <span className={p.is_current_speaker ? 'text-amber-600' : 'text-gray-400'}>
-                      {formatDuration(p.total_ms)}
-                    </span>
-                    <span className="text-gray-300 shrink-0">
-                      {p.turn_count} tour{Number(p.turn_count) !== 1 ? 's' : ''}
-                    </span>
+                  <div key={p.pseudo} className="relative">
+                    <div className={`flex items-center gap-3 text-xs ${p.is_current_speaker ? 'text-amber-700 font-medium' : 'text-gray-600'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.is_current_speaker ? 'bg-amber-400' : 'bg-gray-300'}`} />
+                      <span className="truncate flex-1">{p.pseudo}</span>
+                      <span className={p.is_current_speaker ? 'text-amber-600' : 'text-gray-400'}>
+                        {formatDuration(p.total_ms)}
+                      </span>
+                      <span className="text-gray-300 shrink-0">
+                        {p.turn_count} tour{Number(p.turn_count) !== 1 ? 's' : ''}
+                      </span>
+                      {otherTables.length > 0 && (
+                        <div className="relative shrink-0" ref={moveMenuId === p.participant_id ? moveMenuRef : undefined}>
+                          <button
+                            onClick={() => setMoveMenuId(prev => prev === p.participant_id ? null : p.participant_id)}
+                            disabled={movingId === p.participant_id}
+                            title="Déplacer vers une autre table"
+                            className="p-0.5 rounded text-gray-300 hover:text-indigo-500 hover:bg-indigo-50
+                              transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {movingId === p.participant_id ? (
+                              <Spinner />
+                            ) : (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6"/>
+                              </svg>
+                            )}
+                          </button>
+                          {moveMenuId === p.participant_id && (
+                            <div className="absolute right-0 top-5 z-20 bg-white border border-gray-200
+                              rounded-xl shadow-lg py-1 min-w-[120px]">
+                              <p className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                                Déplacer vers
+                              </p>
+                              {otherTables.map(ot => (
+                                <button
+                                  key={ot.id}
+                                  onClick={() => handleMove(p.participant_id, ot.id)}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-gray-700
+                                    hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                >
+                                  <span className="font-mono tracking-widest text-indigo-600 mr-2">{ot.join_code}</span>
+                                  {ot.moderator_pseudo && (
+                                    <span className="text-gray-400">{ot.moderator_pseudo}</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

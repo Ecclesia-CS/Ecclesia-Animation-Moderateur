@@ -12,10 +12,19 @@ export type SessionTableRow = {
 }
 
 export type TableParticipantRow = {
+  participant_id: string
   pseudo: string
   total_ms: number
   turn_count: number
   is_current_speaker: boolean
+}
+
+export type TableSpeakingTurnRow = {
+  id: string
+  participant_id: string
+  started_at: string
+  ended_at: string | null
+  source: string
 }
 
 export async function verifyPassword(password: string): Promise<void> {
@@ -265,6 +274,41 @@ export async function cancelSessionQuestionnaire(
     p_session_id: sessionId,
   })
   if (error) throw new Error(extractErr(error))
+}
+
+export async function getSessionTableCounts(
+  password: string,
+): Promise<{ session_id: string; cnt: number }[]> {
+  const { data, error } = await supabase.rpc('get_session_table_counts', {
+    p_password: password,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as { session_id: string; cnt: number }[]) ?? []
+}
+
+export async function moveParticipant(
+  password: string,
+  participantId: string,
+  targetTableId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('move_participant', {
+    p_password:        password,
+    p_participant_id:  participantId,
+    p_target_table_id: targetTableId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function getTableSpeakingTurnsAdmin(
+  password: string,
+  tableId: string,
+): Promise<TableSpeakingTurnRow[]> {
+  const { data, error } = await supabase.rpc('get_table_speaking_turns_admin', {
+    p_password: password,
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as TableSpeakingTurnRow[]) ?? []
 }
 
 export async function listSessionSources(sessionId: string): Promise<CollabSource[]> {
