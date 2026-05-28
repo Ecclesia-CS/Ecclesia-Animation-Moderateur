@@ -4,6 +4,7 @@ import { useTable } from '../context/TableContext'
 import { QUESTIONNAIRE_THEMES } from '../lib/utils'
 import type { QuestionnaireResponse } from '../lib/types'
 import NotesModal from './NotesModal'
+import DocViewerModal from './DocViewerModal'
 import QuestionnaireModal from './QuestionnaireModal'
 
 type SessionDocs = {
@@ -62,9 +63,24 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
 
   const done = checkDone && isComplete(savedResponse)
 
+  const DOCS_PATH = `${import.meta.env.BASE_URL}docs/`
+  const BASE_DOCS = `https://ecclesia-cs.github.io${DOCS_PATH}`
+  function normalizeUrl(url: string | null | undefined): string | null {
+    if (!url) return null
+    if (url.includes(DOCS_PATH)) {
+      const filename = url.split(DOCS_PATH)[1] ?? ''
+      return filename ? BASE_DOCS + filename : null
+    }
+    return url
+  }
+
+  const [viewer, setViewer] = useState<{ url: string; title: string } | null>(null)
+
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session ?? {}
-  const hasCollab = !!session_join_code || !!doc_collab_url
-  const hasDocs   = !!(doc_info_url || doc_summary_url || hasCollab)
+  const infoUrl    = normalizeUrl(doc_info_url)
+  const summaryUrl = normalizeUrl(doc_summary_url)
+  const hasCollab  = !!session_join_code || !!doc_collab_url
+  const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
 
   function handleCollabClick() {
     setPanelOpen(false)
@@ -114,13 +130,10 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 <div className="pt-3 pb-1 px-5">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
                 </div>
-                {doc_info_url && (
-                  <a
-                    href={doc_info_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {infoUrl && (
+                  <button
                     className={subLinkClass}
-                    onClick={() => setPanelOpen(false)}
+                    onClick={() => { setPanelOpen(false); setViewer({ url: infoUrl, title: 'Fiche information' }) }}
                   >
                     <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" strokeWidth={2}>
@@ -130,15 +143,12 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                       <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
                     </svg>
                     Fiche information
-                  </a>
+                  </button>
                 )}
-                {doc_summary_url && (
-                  <a
-                    href={doc_summary_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {summaryUrl && (
+                  <button
                     className={subLinkClass}
-                    onClick={() => setPanelOpen(false)}
+                    onClick={() => { setPanelOpen(false); setViewer({ url: summaryUrl, title: 'Résumé fiche information' }) }}
                   >
                     <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" strokeWidth={2}>
@@ -148,7 +158,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                       <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
                     </svg>
                     Résumé fiche information
-                  </a>
+                  </button>
                 )}
                 {hasCollab && (
                   session_join_code ? (
@@ -221,6 +231,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           </div>
         </div>
       )}
+
+      {viewer && <DocViewerModal url={viewer.url} title={viewer.title} onClose={() => setViewer(null)} />}
 
       {notesOpen && (
         <NotesModal tableId={table.id} onClose={() => setNotesOpen(false)} />
