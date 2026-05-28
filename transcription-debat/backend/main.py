@@ -38,6 +38,26 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "./transcripts"))
 
 DEDUP_WINDOW = 30.0
+DEDUP_SIMILARITY = 0.7
+
+
+def _jaccard_trigrams(a: str, b: str) -> float:
+    def trigrams(s):
+        return set(s[i:i+3] for i in range(len(s) - 2)) if len(s) >= 3 else {s}
+    ta, tb = trigrams(a), trigrams(b)
+    if not ta and not tb:
+        return 1.0
+    inter = len(ta & tb)
+    union = len(ta | tb)
+    return inter / union if union else 0.0
+
+
+def _extract_webm_init(data: bytes) -> bytes:
+    CLUSTER_TAG = b'\x1f\x43\xb6\x75'
+    idx = data.find(CLUSTER_TAG)
+    if idx > 0:
+        return data[:idx]
+    return data
 
 
 class SegmentDeduplicator:
@@ -53,7 +73,7 @@ class SegmentDeduplicator:
         cutoff = global_start - DEDUP_WINDOW
         self._recent = [(t, s) for t, s in self._recent if s > cutoff]
         normalized = text.strip().lower()
-        if any(t == normalized for t, _ in self._recent):
+        if any(_jaccard_trigrams(t, normalized) >= DEDUP_SIMILARITY for t, _ in self._recent):
             return True
         self._recent.append((normalized, global_start))
         self._cursor = max(self._cursor, global_end)
@@ -156,7 +176,7 @@ async def websocket_endpoint(ws: WebSocket, group: str = Query(default="unknown"
                 continue
 
             if state.webm_header is None:
-                state.webm_header = data
+                state.webm_header = _extract_webm_init(data)
 
             tmp_path = os.path.join(tempfile.gettempdir(), f"chunk_{uuid.uuid4().hex}.webm")
             chunk_offset = state.chunk_index * (CHUNK_DURATION - OVERLAP)

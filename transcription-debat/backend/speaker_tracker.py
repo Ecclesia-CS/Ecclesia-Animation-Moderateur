@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from transcriber import TranscriptSegment
 from diarizer import DiarizationSegment
 
@@ -34,10 +34,9 @@ class SpeakerTracker:
     def _build_mapping(
         self, d_segs: List[DiarizationSegment], chunk_duration: float
     ) -> Dict[str, str]:
-        """Map each raw speaker ID to a stable "Locuteur N" label."""
         mapping: Dict[str, str] = {}
 
-        # Speakers present in the incoming overlap (first OVERLAP_DURATION seconds)
+        # Durées dans la zone d'overlap entrant (premières OVERLAP_DURATION secondes)
         overlap_in: Dict[str, float] = {}
         for seg in d_segs:
             start = max(seg.start, 0.0)
@@ -45,19 +44,23 @@ class SpeakerTracker:
             if end > start:
                 overlap_in[seg.speaker] = overlap_in.get(seg.speaker, 0.0) + (end - start)
 
-        # Greedy match by duration (descending)
-        curr_sorted: List[Tuple[str, float]] = sorted(overlap_in.items(), key=lambda x: -x[1])
-        prev_sorted: List[Tuple[str, float]] = sorted(self._last_overlap.items(), key=lambda x: -x[1])
+        # Matching bijectif greedy par produit de durées (cross-chunk)
+        # _last_overlap = {label_stable: durée} dans fin du chunk précédent
+        candidates = []
+        for raw_id, dur_in in overlap_in.items():
+            for label, dur_prev in self._last_overlap.items():
+                candidates.append((dur_in * dur_prev, raw_id, label))
+        candidates.sort(key=lambda x: -x[0])
 
-        used_labels = set()
-        for i, (raw_id, _) in enumerate(curr_sorted):
-            if i < len(prev_sorted):
-                label = prev_sorted[i][0]
-                if label not in used_labels:
-                    mapping[raw_id] = label
-                    used_labels.add(label)
+        used_raw: set = set()
+        used_labels: set = set()
+        for _, raw_id, label in candidates:
+            if raw_id not in used_raw and label not in used_labels:
+                mapping[raw_id] = label
+                used_raw.add(raw_id)
+                used_labels.add(label)
 
-        # Assign new labels to unmatched speakers
+        # Assigner de nouveaux labels aux speakers non matchés
         for seg in d_segs:
             if seg.speaker not in mapping:
                 mapping[seg.speaker] = f"Locuteur {self._next_id}"

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Segment } from '../types'
 
-const WS_URL = 'ws://localhost:8000/ws'
 const MAX_RETRIES = 3
 
-export function useWebSocket(onSegments: (segments: Segment[]) => void) {
+export function useWebSocket(onSegments: (segments: Segment[]) => void, group: string) {
   const wsRef = useRef<WebSocket | null>(null)
   const retriesRef = useRef(0)
   const onSegmentsRef = useRef(onSegments)
@@ -16,7 +15,8 @@ export function useWebSocket(onSegments: (segments: Segment[]) => void) {
   }, [onSegments])
 
   const connect = useCallback(() => {
-    const ws = new WebSocket(WS_URL)
+    const encodedGroup = encodeURIComponent(group)
+    const ws = new WebSocket(`ws://localhost:8000/ws?group=${encodedGroup}`)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -44,7 +44,7 @@ export function useWebSocket(onSegments: (segments: Segment[]) => void) {
     }
 
     ws.onerror = () => ws.close()
-  }, [])
+  }, [group])
 
   useEffect(() => {
     connect()

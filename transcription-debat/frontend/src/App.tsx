@@ -18,6 +18,7 @@ export default function App() {
   const [state, setState] = useState<AppState>('idle')
   const [lines, setLines] = useState<TranscriptLine[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [group, setGroup] = useState('debat')
 
   const handleSegments = useCallback((segments: Segment[]) => {
     setLines((prev) => [
@@ -30,7 +31,7 @@ export default function App() {
     ])
   }, [])
 
-  const { send, connected } = useWebSocket(handleSegments)
+  const { send, connected } = useWebSocket(handleSegments, group)
 
   const handleChunk = useCallback((blob: Blob) => send(blob), [send])
 
@@ -69,6 +70,21 @@ export default function App() {
           <span className={`text-xs font-medium ${connected ? 'text-green-600' : 'text-red-500'}`}>
             {connected ? '● Backend connecté' : '● Backend déconnecté'}
           </span>
+
+          {state === 'idle' && (
+            <div className="flex items-center gap-2 text-sm">
+              <label className="text-gray-600 font-medium" htmlFor="group-input">Groupe :</label>
+              <input
+                id="group-input"
+                type="text"
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                disabled={state !== 'idle'}
+                placeholder="nom-du-debat"
+                className="border border-gray-300 rounded px-2 py-1 text-sm w-36 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+            </div>
+          )}
 
           {state === 'idle' && (
             <button
