@@ -1072,11 +1072,17 @@ function SessionDetail({
   const loadGroups = useCallback(async () => {
     setGroupsLoading(true)
     try {
-      const { data: rows } = await supabase
-        .from('table_assignments')
-        .select('table_number, member_id, table_id, session_members!member_id(pseudo), tables!table_id(id, join_code)')
-        .eq('session_id', session.id)
-        .order('table_number')
+      const [{ data: rows }, sessionTbls, availTbls] = await Promise.all([
+        supabase
+          .from('table_assignments')
+          .select('table_number, member_id, table_id, session_members!member_id(pseudo)')
+          .eq('session_id', session.id)
+          .order('table_number'),
+        listSessionTables(getPwd()!, session.id).catch(() => [] as Awaited<ReturnType<typeof listSessionTables>>),
+        listAvailableTables(getPwd()!).catch(() => [] as Awaited<ReturnType<typeof listAvailableTables>>),
+      ])
+
+      const joinCodeMap = new Map<string, string>(sessionTbls.map(t => [t.id, t.join_code]))
 
       const map = new Map<number, GroupRow>()
       for (const row of rows ?? []) {
@@ -1088,7 +1094,7 @@ function SessionDetail({
             table_number: tableNum,
             members: [],
             table_id: r.table_id ?? null,
-            join_code: r.tables?.join_code ?? null,
+            join_code: r.table_id ? (joinCodeMap.get(r.table_id) ?? null) : null,
           })
         }
         const g = map.get(tableNum)!
@@ -1096,12 +1102,8 @@ function SessionDetail({
       }
       setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
 
-      const [sessionTbls, availTbls] = await Promise.allSettled([
-        listSessionTables(getPwd()!, session.id),
-        listAvailableTables(getPwd()!),
-      ])
-      const sessionPhys = sessionTbls.status === 'fulfilled' ? sessionTbls.value : []
-      const avail       = availTbls.status === 'fulfilled'   ? availTbls.value   : []
+      const sessionPhys = sessionTbls
+      const avail       = availTbls
       const linkedIds   = new Set([...map.values()].map(g => g.table_id).filter((id): id is string => id !== null))
       setDropdownTables([
         ...sessionPhys.filter(t => !linkedIds.has(t.id)),

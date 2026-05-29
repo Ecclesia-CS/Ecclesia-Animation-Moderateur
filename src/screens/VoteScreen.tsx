@@ -9,12 +9,13 @@ import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
 import VoteTimerBadge from '../components/voting/VoteTimerBadge'
 import AllocatingScreen from './AllocatingScreen'
+import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 
 interface VoteScreenProps {
   sessionJoinCode: string
 }
 
-type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'ended'
+type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended'
 
 /** Fisher-Yates shuffle — immutable */
 function shuffle<T>(arr: T[]): T[] {
@@ -57,16 +58,15 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
         return
       }
 
-      // 2. Fetch session by join_code (must not be closed)
+      // 2. Fetch session by join_code
       const { data: sess, error: sessErr } = await supabase
         .from('sessions')
         .select('*')
         .eq('join_code', sessionJoinCode)
-        .neq('phase', 'closed')
         .maybeSingle()
 
       if (sessErr || !sess) {
-        setErrorMsg('Séance introuvable ou déjà fermée.')
+        setErrorMsg('Séance introuvable.')
         setStep('error')
         return
       }
@@ -82,15 +82,29 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
         .maybeSingle()
 
       if (!existingMember) {
+        // Can't join if the vote phase is already over
+        if (s.phase !== 'draft' && s.phase !== 'voting') {
+          setErrorMsg('Le vote est terminé, tu ne peux plus rejoindre cette séance.')
+          setStep('ended')
+          return
+        }
         setStep('pseudo')
         return
       }
       const m = existingMember as SessionMember
       setMember(m)
 
-      // 3b. If session is past voting phase, go directly to allocating screen
+      // 3b. If session is past voting phase, route accordingly
       if (s.phase === 'allocating' || s.phase === 'debating') {
         setStep('allocating')
+        return
+      }
+      if (s.phase === 'questionnaire') {
+        setStep('questionnaire')
+        return
+      }
+      if (s.phase === 'closed') {
+        setStep('closed')
         return
       }
 
@@ -143,6 +157,10 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             loadVoteData(updated, m)
           } else if (updated.phase === 'allocating' || updated.phase === 'debating') {
             setStep('allocating')
+          } else if (updated.phase === 'questionnaire') {
+            setStep('questionnaire')
+          } else if (updated.phase === 'closed') {
+            setStep('closed')
           } else if (updated.phase !== 'draft') {
             setStep('ended')
           }
@@ -244,6 +262,10 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
           setSession(updated)
           if (updated.phase === 'allocating' || updated.phase === 'debating') {
             setStep('allocating')
+          } else if (updated.phase === 'questionnaire') {
+            setStep('questionnaire')
+          } else if (updated.phase === 'closed') {
+            setStep('closed')
           } else if (updated.phase === 'draft') {
             // Admin reverted to draft — go back to waiting
             setStep('waiting')
@@ -334,6 +356,29 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
 
   if (step === 'allocating' && session && member) {
     return <AllocatingScreen session={session} member={member} />
+  }
+
+  if (step === 'questionnaire' && session) {
+    return (
+      <SessionQuestionnaireForm
+        sessionId={session.id}
+        onDone={() => setStep('ended')}
+      />
+    )
+  }
+
+  if (step === 'closed') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="text-5xl">🔒</div>
+          <h1 className="text-xl font-bold text-gray-900">Séance terminée</h1>
+          <p className="text-sm text-gray-500">
+            Cette séance est maintenant clôturée. Merci pour ta participation !
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (step === 'ended') {

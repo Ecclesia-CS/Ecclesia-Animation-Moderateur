@@ -61,7 +61,7 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
           <div className="pt-1">
             {joinCode ? (
               joined ? (
-                // Écran d'attente post-join
+                // Post-join : attente confirmation arrivée
                 <div className="space-y-3">
                   <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-center">
                     <p className="text-sm font-semibold text-green-800">✓ Connecté à la Table {assignment.table_number}</p>
@@ -93,7 +93,7 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
                         </svg>
                         Connexion…
                       </>
-                    ) : 'Rejoindre ma table →'}
+                    ) : 'Accéder à la table →'}
                   </button>
                   {joinError && (
                     <p className="text-xs text-red-600 text-center mt-2">{joinError}</p>

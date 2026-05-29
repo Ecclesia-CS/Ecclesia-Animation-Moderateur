@@ -8,6 +8,7 @@ import type { Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
+import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 
 interface AllocatingScreenProps {
   session: Session
@@ -23,13 +24,14 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   const [joinLoading,       setJoinLoading]       = useState(false)
   const [joinError,         setJoinError]         = useState<string | null>(null)
   const [joined,            setJoined]            = useState(false)
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false)
+  const [sessionClosed,     setSessionClosed]     = useState(false)
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   // ── Fetch on mount ────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      // Fetch vote results + table assignment in parallel
       const [resultsRes, assignmentRes] = await Promise.allSettled([
         getVoteResults(session.id),
         getMyTableAssignment(session.id),
@@ -47,13 +49,12 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
     }
 
     load()
-  }, [session.id, member.id])
+  }, [session.id])
 
   // ── Realtime ──────────────────────────────────────────────────────
   useEffect(() => {
     const channel = supabase
       .channel(`allocating:${session.id}`)
-      // Watch for table assignment INSERT for this member
       .on(
         'postgres_changes',
         {
@@ -70,7 +71,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
             .catch(() => { /* ignore */ })
         },
       )
-      // Watch for table assignment UPDATE (e.g. table_id set when table is created)
       .on(
         'postgres_changes',
         {
@@ -87,7 +87,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
             .catch(() => { /* ignore */ })
         },
       )
-      // Watch for session phase changes (allocating → debating, etc.)
       .on(
         'postgres_changes',
         {
@@ -97,7 +96,10 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
           filter: `id=eq.${session.id}`,
         },
         payload => {
-          setCurrentSession(payload.new as Session)
+          const updated = payload.new as Session
+          setCurrentSession(updated)
+          if (updated.phase === 'questionnaire') setShowQuestionnaire(true)
+          if (updated.phase === 'closed')        setSessionClosed(true)
         },
       )
       .subscribe()
@@ -107,9 +109,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   }, [session.id, member.id])
 
   // ── Re-fetch assignment when phase → debating ────────────────────
-  // Safety net : if the Realtime UPDATE on table_assignments was missed
-  // (e.g. before REPLICA IDENTITY FULL was applied), the transition to
-  // debating is the last chance to pull fresh data.
   useEffect(() => {
     if (currentSession.phase !== 'debating') return
     getMyTableAssignment(session.id)
@@ -118,8 +117,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   }, [currentSession.phase, session.id])
 
   // ── Polling de secours quand debating + pas encore de join_code ──
-  // Si Realtime a été manqué et que la table n'est toujours pas rattachée,
-  // on re-fetch toutes les 5 s jusqu'à obtenir le code.
   useEffect(() => {
     if (currentSession.phase !== 'debating') return
     if (assignment?.tables?.join_code) return
@@ -132,7 +129,7 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
     return () => clearInterval(interval)
   }, [currentSession.phase, assignment?.tables?.join_code, session.id])
 
-  // ── Join table ───────────────────────────────────────────────────
+  // ── Join table (bouton cliquable) ─────────────────────────────────
   async function handleJoin() {
     const joinCode = assignment?.tables?.join_code
     if (!joinCode) return
@@ -146,13 +143,13 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
       if (error) throw error
       const r = data as TableResult
       tableStore.set({
-        tableId: r.id,
+        tableId:       r.id,
         participantId: r.participant_id,
-        joinCode: r.join_code,
-        isModerator: false,
-        pseudo: member.pseudo,
+        joinCode:      r.join_code,
+        isModerator:   false,
+        pseudo:        member.pseudo,
       })
-      setJoined(true) // affiche l'écran d'attente — ne navigue pas encore
+      setJoined(true)
     } catch (err) {
       setJoinError(extractErr(err))
     } finally {
@@ -161,10 +158,35 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   }
 
   function handleArrived() {
-    window.location.reload()
+    // Naviguer vers la base URL (sans hash) → App.tsx relit tableStore → TableView
+    window.location.href = window.location.pathname + window.location.search
   }
 
   // ── Render ────────────────────────────────────────────────────────
+
+  if (sessionClosed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="text-5xl">🔒</div>
+          <h1 className="text-xl font-bold text-gray-900">Séance terminée</h1>
+          <p className="text-sm text-gray-500">
+            Cette séance est maintenant clôturée. Merci pour ta participation !
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (showQuestionnaire) {
+    return (
+      <SessionQuestionnaireForm
+        sessionId={currentSession.id}
+        onDone={() => setShowQuestionnaire(false)}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -179,7 +201,7 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
 
       {/* Content */}
       <main className="flex-1 max-w-lg mx-auto w-full p-4 space-y-4 pb-8">
-        {/* Table assignment — always first, most important */}
+        {/* Table assignment */}
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ton groupe</p>
           <TableAssignmentCard
