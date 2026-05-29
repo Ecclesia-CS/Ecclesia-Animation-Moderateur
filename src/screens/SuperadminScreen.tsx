@@ -17,13 +17,14 @@ import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteResults, getAllVoteResults, runClusteringV1, assignTableToGroup,
+  getVoteResults, getThemeStatsAll, runClusteringV1, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion,
 } from '../lib/voting'
-import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin, AllSessionVoteResult } from '../lib/voting'
+import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
+import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
 
@@ -88,7 +89,7 @@ export default function SuperadminScreen() {
   const [toDelete, setToDelete]     = useState<SessionRow | null>(null)
 
   const [allVotesOpen,    setAllVotesOpen]    = useState(false)
-  const [allVoteResults,  setAllVoteResults]  = useState<AllSessionVoteResult[]>([])
+  const [allThemeStats,   setAllThemeStats]   = useState<ThemeStat[]>([])
   const [allVotesLoading, setAllVotesLoading] = useState(false)
   const [allVotesErr,     setAllVotesErr]     = useState<string | null>(null)
 
@@ -121,8 +122,8 @@ export default function SuperadminScreen() {
 
       setAllVotesLoading(true)
       setAllVotesErr(null)
-      getAllVoteResults(pwd)
-        .then(rows => setAllVoteResults(rows))
+      getThemeStatsAll(pwd)
+        .then(rows => setAllThemeStats(rows))
         .catch(e => setAllVotesErr(extractErr(e)))
         .finally(() => setAllVotesLoading(false))
     } catch (e) {
@@ -326,12 +327,12 @@ export default function SuperadminScreen() {
             className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
           >
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Votes — toutes séances
+              Thèmes — toutes séances
               {allVotesLoading ? (
                 <span className="ml-2 font-normal normal-case text-gray-400">Chargement…</span>
-              ) : allVoteResults.length > 0 ? (
+              ) : allThemeStats.length > 0 ? (
                 <span className="ml-2 font-normal normal-case text-gray-400">
-                  ({allVoteResults.length} assertion{allVoteResults.length !== 1 ? 's' : ''})
+                  ({allThemeStats.length} thème{allThemeStats.length !== 1 ? 's' : ''})
                 </span>
               ) : null}
             </span>
@@ -349,45 +350,21 @@ export default function SuperadminScreen() {
                 <p className="px-5 py-4 text-xs text-red-600">{allVotesErr}</p>
               ) : allVotesLoading ? (
                 <p className="px-5 py-4 text-sm text-gray-400">Chargement…</p>
-              ) : allVoteResults.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-gray-400 text-center">Aucune assertion approuvée</p>
+              ) : allThemeStats.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-gray-400 text-center">Aucune réponse au questionnaire</p>
               ) : (
-                <div className="divide-y divide-gray-100">
-                  {Object.entries(
-                    allVoteResults.reduce<Record<string, { title: string; results: AllSessionVoteResult[] }>>(
-                      (acc, r) => {
-                        if (!acc[r.session_id]) acc[r.session_id] = { title: r.session_title, results: [] }
-                        acc[r.session_id].results.push(r)
-                        return acc
-                      }, {}
-                    )
-                  ).map(([sessionId, { title, results }]) => (
-                    <div key={sessionId} className="px-5 py-4">
-                      <p className="text-xs font-semibold text-indigo-600 mb-3">{title}</p>
-                      <div className="space-y-2">
-                        {results.map(r => {
-                          const total = r.agree_count + r.disagree_count + r.pass_count
-                          const agreeW = total > 0 ? Math.round((r.agree_count / total) * 100) : 0
-                          const disagreeW = total > 0 ? Math.round((r.disagree_count / total) * 100) : 0
-                          return (
-                            <div key={r.id} className="text-xs">
-                              <p className="text-gray-700 mb-1 leading-snug">{r.content}</p>
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-gray-100">
-                                  <div className="bg-green-400 h-full" style={{ width: `${agreeW}%` }} />
-                                  <div className="bg-red-400 h-full" style={{ width: `${disagreeW}%` }} />
-                                </div>
-                                <span className="text-gray-400 shrink-0">
-                                  {r.agree_count}↑ {r.disagree_count}↓
-                                  {r.consensus_score != null && (
-                                    <span className="ml-1 text-indigo-500">· {r.consensus_score}%</span>
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
+                <div className="px-5 py-4 space-y-2.5">
+                  {allThemeStats.map(s => (
+                    <div key={s.theme} className="flex items-center gap-3 text-xs">
+                      <span className="w-48 shrink-0 text-gray-700 truncate" title={s.theme}>{s.theme}</span>
+                      <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-gray-100">
+                        <div
+                          className="bg-teal-400 h-full rounded-full"
+                          style={{ width: `${(s.avg / 5) * 100}%` }}
+                        />
                       </div>
+                      <span className="shrink-0 text-gray-500 font-medium w-8 text-right">{s.avg}/5</span>
+                      <span className="shrink-0 text-gray-400 w-14 text-right">{s.count} rép.</span>
                     </div>
                   ))}
                 </div>
@@ -931,6 +908,7 @@ function SessionDetail({
   const [rattacheesOpen,  setRattacheesOpen]  = useState(true)
   const [disponiblesOpen, setDisponiblesOpen] = useState(false)
   const [docsOpen,        setDocsOpen]        = useState(false)
+  const [synthOpen,       setSynthOpen]       = useState(false)
 
   // ── Filtre "Tables disponibles" ────────────────────────────
   type TableFilter = '48h' | 'all' | 'custom'
@@ -1631,6 +1609,35 @@ function SessionDetail({
                   onAdminSubmit={handleAdminSubmitAssertion}
                 />
               </SectionAccordion>
+            )}
+
+            {/* ── Synthèse des votes ───────────────────────── */}
+            {showVotingSections && voteResults.length > 0 && (
+              <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => setSynthOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Synthèse des votes
+                    <span className="ml-2 font-normal normal-case text-gray-400">
+                      ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
+                    </span>
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                {synthOpen && (
+                  <div className="border-t border-gray-100 px-5 py-4">
+                    <VoteResultsSummary results={voteResults} loading={false} />
+                  </div>
+                )}
+              </section>
             )}
 
             {/* ── Participants inscrits ───────────────────── */}

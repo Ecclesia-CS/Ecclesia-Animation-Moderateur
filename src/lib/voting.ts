@@ -89,6 +89,16 @@ export async function getAllVoteResults(password: string): Promise<AllSessionVot
   return (data as AllSessionVoteResult[]) ?? []
 }
 
+export type ThemeStat = { theme: string; avg: number; count: number }
+
+export async function getThemeStatsAll(password: string): Promise<ThemeStat[]> {
+  const { data, error } = await supabase.rpc('get_theme_stats_all', {
+    p_password: password,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as ThemeStat[]) ?? []
+}
+
 export async function approveAssertion(
   password: string,
   assertionId: string
