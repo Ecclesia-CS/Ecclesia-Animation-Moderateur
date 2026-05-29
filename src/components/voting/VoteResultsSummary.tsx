@@ -24,12 +24,25 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
     )
   }
 
-  const sorted = [...results].sort((a, b) => (b.consensus_score ?? -1) - (a.consensus_score ?? -1))
-  const topCount = Math.min(3, sorted.length)
-  const top = sorted.slice(0, topCount)
-  // Show bottom 2 only if there are at least 4 results and they have votes
-  const bottom = sorted.length >= 4
-    ? sorted.slice(-(Math.min(2, sorted.length - topCount))).filter(r => r.total_votes > 0)
+  // consensus_score (from DB): |agree-disagree|/(agree+disagree) × participation → high = one side dominates
+  // dissensus_score (client): balanced split with ≥3 non-pass votes → high = true disagreement
+  function dissensusScore(r: VoteResult): number {
+    const nonPass = r.agree_count + r.disagree_count
+    if (nonPass < 3) return 0
+    const dominance = Math.abs(r.agree_count - r.disagree_count) / nonPass
+    return (1 - dominance) * Math.min(nonPass / 3, 1) * 100
+  }
+
+  const byConsensus = [...results].sort((a, b) => (b.consensus_score ?? -1) - (a.consensus_score ?? -1))
+  const topCount = Math.min(3, byConsensus.length)
+  const top = byConsensus.slice(0, topCount)
+  const topIds = new Set(top.map(r => r.id))
+  // dissensus: exclude top consensus picks, sort by split score, min 3 non-pass votes
+  const bottom = results.length >= 4
+    ? [...results]
+        .filter(r => !topIds.has(r.id) && (r.agree_count + r.disagree_count) >= 3)
+        .sort((a, b) => dissensusScore(b) - dissensusScore(a))
+        .slice(0, 2)
     : []
 
   const totalVotes = results.reduce((sum, r) => sum + r.total_votes, 0)
@@ -78,13 +91,15 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
 
   const score = result.consensus_score
 
+  // consensus_score: high = one side dominates × participation
+  // threshold 50 ≈ ≥50% non-pass votes on one side
   let badge: { label: string; className: string }
   if (variant === 'dissensus') {
     badge = { label: 'Point de désaccord', className: 'bg-red-100 text-red-700' }
-  } else if (score != null && score >= 70) {
+  } else if (score != null && score >= 50) {
     badge = { label: 'Fort consensus', className: 'bg-green-100 text-green-700' }
   } else {
-    badge = { label: 'Consensus moyen', className: 'bg-yellow-100 text-yellow-700' }
+    badge = { label: 'Consensus partiel', className: 'bg-yellow-100 text-yellow-700' }
   }
 
   return (

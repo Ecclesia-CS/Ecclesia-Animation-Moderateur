@@ -107,6 +107,7 @@ export interface EntryResponse {
   moderator_pref: boolean
   openness_to_diff: number
   participation_style: 'listener' | 'active'
+  ecclesia_experience: 'never' | 'once_twice' | 'several_times' | null
   created_at: string
 }
 

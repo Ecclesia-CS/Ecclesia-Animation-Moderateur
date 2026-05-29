@@ -10,18 +10,20 @@ interface OnboardingFormProps {
 
 interface Answers {
   consentTranscript: boolean
+  ecclesiaExperience: 'never' | 'once_twice' | 'several_times' | null
   groupSizePref: 'small' | 'medium' | 'large'
   moderatorPref: boolean
   opennessToDiff: number
   participationStyle: 'listener' | 'active'
 }
 
-const TOTAL_QUESTIONS = 5
+const TOTAL_QUESTIONS = 6
 
 export default function OnboardingForm({ sessionId, member, onSuccess }: OnboardingFormProps) {
   const [currentQ, setCurrentQ] = useState(0)
   const [answers, setAnswers] = useState<Answers>({
     consentTranscript: false,
+    ecclesiaExperience: null,
     groupSizePref: 'medium',
     moderatorPref: true,
     opennessToDiff: 3,
@@ -32,6 +34,15 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
 
   function update<K extends keyof Answers>(key: K, value: Answers[K]) {
     setAnswers(prev => ({ ...prev, [key]: value }))
+  }
+
+  function handleEcclesiaExperience(v: 'never' | 'once_twice' | 'several_times') {
+    setAnswers(prev => ({
+      ...prev,
+      ecclesiaExperience: v,
+      // First-timer → suggest moderated large-group; user can still override
+      ...(v === 'never' ? { moderatorPref: true, groupSizePref: 'large' } : {}),
+    }))
   }
 
   async function handleValidate() {
@@ -45,6 +56,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
         answers.moderatorPref,
         answers.opennessToDiff,
         answers.participationStyle,
+        answers.ecclesiaExperience,
       )
       onSuccess(response)
     } catch (err: unknown) {
@@ -81,24 +93,30 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
           />
         )}
         {currentQ === 1 && (
+          <QuestionEcclesia
+            value={answers.ecclesiaExperience}
+            onChange={handleEcclesiaExperience}
+          />
+        )}
+        {currentQ === 2 && (
           <QuestionGroupSize
             value={answers.groupSizePref}
             onChange={v => update('groupSizePref', v)}
           />
         )}
-        {currentQ === 2 && (
+        {currentQ === 3 && (
           <QuestionModerator
             value={answers.moderatorPref}
             onChange={v => update('moderatorPref', v)}
           />
         )}
-        {currentQ === 3 && (
+        {currentQ === 4 && (
           <QuestionOpenness
             value={answers.opennessToDiff}
             onChange={v => update('opennessToDiff', v)}
           />
         )}
-        {currentQ === 4 && (
+        {currentQ === 5 && (
           <QuestionStyle
             value={answers.participationStyle}
             onChange={v => update('participationStyle', v)}
@@ -145,6 +163,48 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
 }
 
 // --- Question sub-components ---
+
+function QuestionEcclesia({
+  value,
+  onChange,
+}: {
+  value: 'never' | 'once_twice' | 'several_times' | null
+  onChange: (v: 'never' | 'once_twice' | 'several_times') => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Expérience</p>
+        <h2 className="text-xl font-bold text-gray-900 leading-snug">
+          As-tu déjà participé à un débat Ecclesia ?
+        </h2>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <ChoiceButton
+          selected={value === 'never'}
+          onClick={() => onChange('never')}
+          emoji="🌱"
+          label="Jamais"
+          sub="Première fois"
+        />
+        <ChoiceButton
+          selected={value === 'once_twice'}
+          onClick={() => onChange('once_twice')}
+          emoji="🌿"
+          label="1-2 fois"
+          sub="Déjà essayé"
+        />
+        <ChoiceButton
+          selected={value === 'several_times'}
+          onClick={() => onChange('several_times')}
+          emoji="🌳"
+          label="Plusieurs fois"
+          sub="Habitué(e)"
+        />
+      </div>
+    </div>
+  )
+}
 
 function QuestionConsent({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (

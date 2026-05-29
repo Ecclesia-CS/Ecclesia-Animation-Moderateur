@@ -28,7 +28,8 @@ export async function submitEntryResponse(
   groupSizePref: 'small' | 'medium' | 'large',
   moderatorPref: boolean,
   opennessToDiff: number,
-  participationStyle: 'listener' | 'active'
+  participationStyle: 'listener' | 'active',
+  ecclesiaExperience: 'never' | 'once_twice' | 'several_times' | null
 ): Promise<EntryResponse> {
   const { data, error } = await supabase.rpc('submit_entry_response', {
     p_session_id: sessionId,
@@ -37,6 +38,7 @@ export async function submitEntryResponse(
     p_moderator_pref: moderatorPref,
     p_openness_to_diff: opennessToDiff,
     p_participation_style: participationStyle,
+    p_ecclesia_experience: ecclesiaExperience,
   })
   if (error) throw new Error(extractErr(error))
   return data as EntryResponse
