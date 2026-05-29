@@ -76,6 +76,15 @@ export async function getVoteResults(sessionId: string): Promise<VoteResult[]> {
   return (data as VoteResult[]) ?? []
 }
 
+export async function getVoteCountsAdmin(password: string, sessionId: string): Promise<VoteResult[]> {
+  const { data, error } = await supabase.rpc('get_vote_counts_admin', {
+    p_password: password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as VoteResult[]) ?? []
+}
+
 export type AllSessionVoteResult = VoteResult & {
   session_id: string
   session_title: string

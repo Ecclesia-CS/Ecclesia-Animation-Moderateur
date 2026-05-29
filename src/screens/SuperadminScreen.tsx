@@ -17,7 +17,7 @@ import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteResults, getThemeStatsAll, runClusteringV1, assignTableToGroup,
+  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion,
 } from '../lib/voting'
 import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
@@ -981,7 +981,7 @@ function SessionDetail({
     try {
       const [rowsResult, resultsResult] = await Promise.allSettled([
         listAssertionsAdmin(password, session.id),
-        getVoteResults(session.id),
+        getVoteCountsAdmin(password, session.id),
       ])
       if (rowsResult.status === 'fulfilled') {
         setAssertions(rowsResult.value)
@@ -993,7 +993,7 @@ function SessionDetail({
       if (resultsResult.status === 'fulfilled') {
         setVoteResults(resultsResult.value)
       }
-      // getVoteResults failure is non-blocking — assertions still display without vote bars
+      // getVoteCountsAdmin failure is non-blocking — assertions still display without vote bars
     } finally {
       setAssertionsLoading(false)
     }
