@@ -10,7 +10,7 @@ import {
 } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import type { Participant, QueueEntry, Table, SpeakingTurn } from '../lib/types'
+import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
 
 // ── Public types ───────────────────────────────────────────────
 
@@ -22,6 +22,7 @@ export interface CorrectTurnParams {
 
 interface TableCtxValue {
   table: Table
+  session: Session | null
   participants: Participant[]
   queueLong: QueueEntry[]
   queueInteractive: QueueEntry[]
@@ -78,6 +79,7 @@ export function TableProvider({
   children,
 }: Props) {
   const [table, setTable] = useState<Table | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
@@ -105,10 +107,17 @@ export function TableProvider({
       supabase.from('speaking_turns').select('*').eq('table_id', tableId),
     ])
     if (!s.data) { handleEnd(); return }
-    setTable(s.data as Table)
+    const tbl = s.data as Table
+    setTable(tbl)
     setParticipants((p.data ?? []) as Participant[])
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
+    if (tbl.session_id) {
+      const { data: sess } = await supabase.from('sessions').select('*').eq('id', tbl.session_id).maybeSingle()
+      setSession(sess as Session | null)
+    } else {
+      setSession(null)
+    }
     setReady(true)
   }, [tableId, handleEnd])
 
@@ -444,6 +453,7 @@ export function TableProvider({
     <TableCtx.Provider
       value={{
         table: table!,
+        session,
         participants,
         queueLong,
         queueInteractive,

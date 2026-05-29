@@ -869,6 +869,10 @@ function SessionDetail({
     try {
       const updated = await setSessionPhase(password, currentSession.id, targetPhase)
       setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
+      if (targetPhase === 'questionnaire') {
+        await forceSessionQuestionnaire(password, currentSession.id)
+        setIsQForced(true)
+      }
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }

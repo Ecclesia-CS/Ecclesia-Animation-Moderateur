@@ -32,6 +32,7 @@ import DocumentationButton from '../components/DocumentationButton'
 export default function ModeratorView() {
   const {
     table,
+    session,
     participants,
     queueLong,
     queueInteractive,
@@ -879,6 +880,14 @@ export default function ModeratorView() {
           onConfirm={() => safe(endTable)}
           onCancel={() => setConfirmEnd(false)}
         />
+      )}
+
+      {/* Séance terminée */}
+      {session?.phase === 'closed' && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+          <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
+          <p className="text-gray-500 mt-2">La séance a été clôturée par le superadmin.</p>
+        </div>
       )}
 
     </div>
