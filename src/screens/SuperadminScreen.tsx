@@ -9,7 +9,7 @@ import {
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
-  getSessionTableCounts, moveParticipant, getTableSpeakingTurnsAdmin,
+  getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
   adminCreateTable,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
@@ -17,10 +17,10 @@ import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteResults, runClusteringV1, assignTableToGroup,
+  getVoteResults, getAllVoteResults, runClusteringV1, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion,
 } from '../lib/voting'
-import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
+import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin, AllSessionVoteResult } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
@@ -31,7 +31,7 @@ const getPwd = () => sessionStorage.getItem(PWD_KEY)
 const setPwd = (p: string) => sessionStorage.setItem(PWD_KEY, p)
 const clearPwd = () => sessionStorage.removeItem(PWD_KEY)
 
-type SessionRow = Session & { tableCount: number }
+type SessionRow = Session & { tableCount: number; memberCount: number }
 
 type AdminView = { type: 'list' } | { type: 'detail'; session: SessionRow }
 
@@ -87,16 +87,21 @@ export default function SuperadminScreen() {
   const [toClose, setToClose]       = useState<SessionRow | null>(null)
   const [toDelete, setToDelete]     = useState<SessionRow | null>(null)
 
+  const [allVotesOpen,    setAllVotesOpen]    = useState(false)
+  const [allVoteResults,  setAllVoteResults]  = useState<AllSessionVoteResult[]>([])
+  const [allVotesLoading, setAllVotesLoading] = useState(false)
+
   // ── Load sessions ──────────────────────────────────────────────
   const loadSessions = useCallback(async () => {
     setListLoad(true)
     setListErr(null)
     try {
       const pwd = getPwd()!
-      const [{ data: sessData, error: sessErr }, countRows] =
+      const [{ data: sessData, error: sessErr }, countRows, memberRows] =
         await Promise.all([
           supabase.from('sessions').select('*').order('created_at', { ascending: false }),
           getSessionTableCounts(pwd),
+          getSessionMemberCounts(pwd),
         ])
       if (sessErr) throw sessErr
 
@@ -104,10 +109,20 @@ export default function SuperadminScreen() {
       for (const row of countRows) {
         counts[row.session_id] = row.cnt
       }
+      const memberCounts: Record<string, number> = {}
+      for (const row of memberRows) {
+        memberCounts[row.session_id] = row.cnt
+      }
 
       setSessions(sortSessions(
-        (sessData ?? []).map(s => ({ ...s, tableCount: counts[s.id] ?? 0 }))
+        (sessData ?? []).map(s => ({ ...s, tableCount: counts[s.id] ?? 0, memberCount: memberCounts[s.id] ?? 0 }))
       ))
+
+      setAllVotesLoading(true)
+      getAllVoteResults(pwd)
+        .then(rows => setAllVoteResults(rows))
+        .catch(() => {})
+        .finally(() => setAllVotesLoading(false))
     } catch (e) {
       setListErr(extractErr(e))
     } finally {
@@ -183,7 +198,7 @@ export default function SuperadminScreen() {
 
   // ── Session created ────────────────────────────────────────────
   function handleCreated(s: Session) {
-    setSessions(prev => sortSessions([{ ...s, tableCount: 0 }, ...prev]))
+    setSessions(prev => sortSessions([{ ...s, tableCount: 0, memberCount: 0 }, ...prev]))
     setShowCreate(false)
   }
 
@@ -299,6 +314,76 @@ export default function SuperadminScreen() {
           <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{listErr}</span>
             <button onClick={() => setListErr(null)} className="shrink-0 text-red-400 hover:text-red-600">✕</button>
+          </div>
+        )}
+
+        {/* ── Votes toutes séances ───────────────────────────── */}
+        {(allVoteResults.length > 0 || allVotesLoading) && (
+          <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setAllVotesOpen(o => !o)}
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Votes — toutes séances
+                {allVoteResults.length > 0 && (
+                  <span className="ml-2 font-normal normal-case text-gray-400">
+                    ({allVoteResults.length} assertion{allVoteResults.length !== 1 ? 's' : ''})
+                  </span>
+                )}
+                {allVotesLoading && (
+                  <span className="ml-2 font-normal normal-case text-gray-400">Chargement…</span>
+                )}
+              </span>
+              <svg
+                className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${allVotesOpen ? 'rotate-180' : ''}`}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {allVotesOpen && (
+              <div className="border-t border-gray-100 divide-y divide-gray-100">
+                {Object.entries(
+                  allVoteResults.reduce<Record<string, { title: string; results: AllSessionVoteResult[] }>>(
+                    (acc, r) => {
+                      if (!acc[r.session_id]) acc[r.session_id] = { title: r.session_title, results: [] }
+                      acc[r.session_id].results.push(r)
+                      return acc
+                    }, {}
+                  )
+                ).map(([sessionId, { title, results }]) => (
+                  <div key={sessionId} className="px-5 py-4">
+                    <p className="text-xs font-semibold text-indigo-600 mb-3">{title}</p>
+                    <div className="space-y-2">
+                      {results.map(r => {
+                        const total = r.agree_count + r.disagree_count + r.pass_count
+                        const agreeW = total > 0 ? Math.round((r.agree_count / total) * 100) : 0
+                        const disagreeW = total > 0 ? Math.round((r.disagree_count / total) * 100) : 0
+                        return (
+                          <div key={r.id} className="text-xs">
+                            <p className="text-gray-700 mb-1 leading-snug">{r.content}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                                <div className="bg-green-400 h-full" style={{ width: `${agreeW}%` }} />
+                                <div className="bg-red-400 h-full" style={{ width: `${disagreeW}%` }} />
+                              </div>
+                              <span className="text-gray-400 shrink-0">
+                                {r.agree_count}↑ {r.disagree_count}↓
+                                {r.consensus_score != null && (
+                                  <span className="ml-1 text-indigo-500">· {r.consensus_score}%</span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -436,6 +521,9 @@ function SessionCard({
               <span className="font-mono tracking-widest text-gray-700">{session.join_code}</span>
             )}
             <span>{session.tableCount} table{session.tableCount !== 1 ? 's' : ''}</span>
+            {session.memberCount > 0 && (
+              <span>{session.memberCount} membre{session.memberCount !== 1 ? 's' : ''}</span>
+            )}
           </div>
 
           {/* Description */}
@@ -830,6 +918,11 @@ function SessionDetail({
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
 
+  const [tablesOpen,      setTablesOpen]      = useState(true)
+  const [rattacheesOpen,  setRattacheesOpen]  = useState(true)
+  const [disponiblesOpen, setDisponiblesOpen] = useState(false)
+  const [docsOpen,        setDocsOpen]        = useState(false)
+
   // ── Filtre "Tables disponibles" ────────────────────────────
   type TableFilter = '48h' | 'all' | 'custom'
   const [tableFilter,  setTableFilter]  = useState<TableFilter>('48h')
@@ -1202,6 +1295,7 @@ function SessionDetail({
         listAvailableTables(password, since),
       ])
       setAttachedTables(attached)
+      setIsQForced(attached.some(t => t.questionnaire_forced_at != null))
       setAvailableTables(available)
     } catch (e) {
       const msg = extractErr(e)
@@ -1502,19 +1596,6 @@ function SessionDetail({
               </SectionAccordion>
             )}
 
-            {/* ── Participants inscrits ───────────────────── */}
-            {showVotingSections && (
-              <SectionAccordion
-                title="Participants inscrits"
-                open={membersOpen}
-                onToggle={() => setMembersOpen(o => !o)}
-                badge={membersLoading ? '…' : `${members.length}`}
-                onRefresh={loadMembers}
-              >
-                <MembersPanel members={members} loading={membersLoading} />
-              </SectionAccordion>
-            )}
-
             {/* ── Assertions ──────────────────────────────── */}
             {showVotingSections && (
               <SectionAccordion
@@ -1543,281 +1624,374 @@ function SessionDetail({
               </SectionAccordion>
             )}
 
-            {/* ── Documentation ───────────────────────────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Documentation
-                </h2>
-                {!editingDocs && (
-                  <button
-                    onClick={() => {
-                      setDocInfoUrl(normalizeDocUrl(sessionDocs.doc_info_url ?? ''))
-                      setDocSummaryUrl(normalizeDocUrl(sessionDocs.doc_summary_url ?? ''))
-                      setDocsErr(null)
-                      setEditingDocs(true)
-                    }}
-                    className="text-xs text-indigo-600 hover:underline"
-                  >
-                    Modifier
-                  </button>
-                )}
-              </div>
+            {/* ── Participants inscrits ───────────────────── */}
+            {showVotingSections && (
+              <SectionAccordion
+                title="Participants inscrits"
+                open={membersOpen}
+                onToggle={() => setMembersOpen(o => !o)}
+                badge={membersLoading ? '…' : `${members.length}`}
+                onRefresh={loadMembers}
+              >
+                <MembersPanel members={members} loading={membersLoading} />
+              </SectionAccordion>
+            )}
 
-              {editingDocs ? (
-                <form onSubmit={handleSaveDocs} className="space-y-3">
-                  <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
-                  <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
-                  {docsErr && (
-                    <p className="text-xs text-red-600">{docsErr}</p>
+            {/* ── Tables et assignations (parent accordion) ── */}
+            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setTablesOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Tables et assignations
+                  {attachedTables.length > 0 && (
+                    <span className="ml-2 font-normal normal-case text-gray-400">
+                      ({attachedTables.length} table{attachedTables.length !== 1 ? 's' : ''})
+                    </span>
                   )}
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditingDocs(false)}
-                      className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={docsLoading}
-                      className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                        text-white rounded-xl transition-colors"
-                    >
-                      {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-2 text-sm">
-                  <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
-                  <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
-                  {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
-                    <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
-                  )}
-                  {session.join_code && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
-                      <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
-                      <a
-                        href={`#collab/${session.join_code}`}
-                        className="text-indigo-600 hover:underline text-xs"
-                      >
-                        Ouvrir le document →
-                      </a>
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${tablesOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {tablesOpen && (
+                <div className="border-t border-gray-100 divide-y divide-gray-100">
+                  {/* Groupes (allocating/debating) */}
+                  {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
+                    <div className="px-5 py-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
+                        {groupsLoading && <Spinner />}
+                      </div>
+                      {assignError && (
+                        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+                          <span>{assignError}</span>
+                          <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                        </div>
+                      )}
+                      {groups.length === 0 && !groupsLoading ? (
+                        <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {groups.map(g => (
+                            <div key={g.table_number} className="bg-white rounded-xl border border-gray-200 p-4">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
+                                <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                                {g.members.map(m => m.pseudo).join(', ')}
+                              </p>
+                              <div className="border-t border-gray-100 pt-3">
+                                {g.join_code ? (
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                                        <span className="font-mono tracking-widest">{g.join_code}</span>
+                                      </span>
+                                      <span className="text-xs text-gray-400">rattachée</span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleAssignGroup(g.table_number, null)}
+                                      disabled={assigningGroup === g.table_number}
+                                      className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-500
+                                        hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
+                                        disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {assigningGroup === g.table_number ? '…' : 'Détacher'}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <select
+                                      value={selectedTableId[g.table_number] ?? ''}
+                                      onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
+                                      className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+                                        focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                    >
+                                      <option value="">— Sélectionner une table —</option>
+                                      {dropdownTables.map(t => (
+                                        <option key={t.id} value={t.id}>
+                                          {t.join_code}{t.moderator_pseudo ? ` (${t.moderator_pseudo})` : ''}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      onClick={() => {
+                                        const tableId = selectedTableId[g.table_number]
+                                        if (tableId) handleAssignGroup(g.table_number, tableId)
+                                      }}
+                                      disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
+                                      className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                                        text-indigo-600 hover:bg-indigo-50 transition-colors
+                                        disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {assigningGroup === g.table_number ? '…' : 'Rattacher'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {currentSession.phase === 'allocating' && (
+                        <div className="space-y-2">
+                          {groups.some(g => !g.join_code) && (
+                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                              ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
+                              les participants concernés ne pourront pas rejoindre directement.
+                            </p>
+                          )}
+                          <button
+                            onClick={() => setShowDebateConfirm(true)}
+                            className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
+                              text-sm font-semibold rounded-xl transition-colors"
+                          >
+                            Ouvrir le débat →
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </section>
 
-            {/* ── Tables et assignations (C5) ─────────────── */}
-            {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Tables et assignations
-                  </h2>
-                  {groupsLoading && <Spinner />}
-                </div>
-                {assignError && (
-                  <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
-                    <span>{assignError}</span>
-                    <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                  {/* Notification table créée */}
+                  {newTableCode && (
+                    <div className="px-5 py-3 bg-green-50 flex items-center justify-between gap-2 text-sm text-green-800">
+                      <span>Table créée ! Code : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
+                      <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
+                    </div>
+                  )}
+
+                  {/* Tables rattachées (sous-accordion) */}
+                  <div>
+                    <button
+                      onClick={() => setRattacheesOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Tables rattachées
+                        {attachedTables.length > 0 && (
+                          <span className="ml-2 font-normal normal-case">({attachedTables.length})</span>
+                        )}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleCreateTable() }}
+                          disabled={creatingTable}
+                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+                            text-indigo-600 hover:bg-indigo-50 transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {creatingTable ? '…' : '+ Créer une table'}
+                        </button>
+                        <svg
+                          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${rattacheesOpen ? 'rotate-180' : ''}`}
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </div>
+                    </button>
+                    {rattacheesOpen && (
+                      <div className="border-t border-gray-50 px-5 py-3">
+                        {attachedTables.length === 0 ? (
+                          <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {attachedTables.map(t => (
+                              <ExpandableTableRow
+                                key={t.id}
+                                table={t}
+                                onDelete={() => setDeleteTableConfirm(t)}
+                                otherTables={attachedTables.filter(ot => ot.id !== t.id)}
+                                onParticipantMoved={load}
+                                action={
+                                  <button
+                                    onClick={() => setDetachConfirm(t)}
+                                    className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
+                                      text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  >
+                                    Détacher
+                                  </button>
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-                {groups.length === 0 && !groupsLoading ? (
-                  <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
-                ) : (
-                  <div className="space-y-3">
-                    {groups.map(g => (
-                      <div key={g.table_number} className="bg-white rounded-xl border border-gray-200 p-4">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
-                          <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                          {g.members.map(m => m.pseudo).join(', ')}
-                        </p>
-                        <div className="border-t border-gray-100 pt-3">
-                          {g.join_code ? (
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                                  <span className="font-mono tracking-widest">{g.join_code}</span>
-                                </span>
-                                <span className="text-xs text-gray-400">rattachée</span>
-                              </div>
-                              <button
-                                onClick={() => handleAssignGroup(g.table_number, null)}
-                                disabled={assigningGroup === g.table_number}
-                                className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-500
-                                  hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
-                                  disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {assigningGroup === g.table_number ? '…' : 'Détacher'}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={selectedTableId[g.table_number] ?? ''}
-                                onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
-                                className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
-                                  focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
-                              >
-                                <option value="">— Sélectionner une table —</option>
-                                {dropdownTables.map(t => (
-                                  <option key={t.id} value={t.id}>
-                                    {t.join_code}{t.moderator_pseudo ? ` (${t.moderator_pseudo})` : ''}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                onClick={() => {
-                                  const tableId = selectedTableId[g.table_number]
-                                  if (tableId) handleAssignGroup(g.table_number, tableId)
-                                }}
-                                disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
-                                className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                                  text-indigo-600 hover:bg-indigo-50 transition-colors
-                                  disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {assigningGroup === g.table_number ? '…' : 'Rattacher'}
-                              </button>
-                            </div>
+
+                  {/* Tables disponibles à rattacher (sous-accordion) */}
+                  <div>
+                    <button
+                      onClick={() => setDisponiblesOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Tables disponibles à rattacher
+                        {availableTables.length > 0 && (
+                          <span className="ml-2 font-normal normal-case">({availableTables.length})</span>
+                        )}
+                      </span>
+                      <svg
+                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${disponiblesOpen ? 'rotate-180' : ''}`}
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {disponiblesOpen && (
+                      <div className="border-t border-gray-50 px-5 py-3">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          {(['48h', 'all', 'custom'] as const).map(f => (
+                            <button
+                              key={f}
+                              onClick={() => {
+                                setTableFilter(f)
+                                load(f, customSince)
+                              }}
+                              className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                                tableFilter === f
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
+                              }`}
+                            >
+                              {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
+                            </button>
+                          ))}
+                          {tableFilter === 'custom' && (
+                            <input
+                              type="datetime-local"
+                              value={customSince}
+                              onChange={e => {
+                                setCustomSince(e.target.value)
+                                if (e.target.value) load('custom', e.target.value)
+                              }}
+                              className="px-2 py-1 text-xs border border-gray-300 rounded-lg
+                                focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            />
                           )}
                         </div>
+                        {availableTables.length === 0 ? (
+                          <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {availableTables.map(t => (
+                              <ExpandableTableRow
+                                key={t.id}
+                                table={t}
+                                onDelete={() => setDeleteTableConfirm(t)}
+                                otherTables={[]}
+                                onParticipantMoved={() => {}}
+                                action={
+                                  <button
+                                    onClick={() => handleAttach(t.id)}
+                                    className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                                      text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                  >
+                                    Rattacher
+                                  </button>
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-                {currentSession.phase === 'allocating' && (
-                  <div className="mt-4 space-y-2">
-                    {groups.some(g => !g.join_code) && (
-                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                        ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
-                        les participants concernés ne pourront pas rejoindre directement.
-                      </p>
                     )}
-                    <button
-                      onClick={() => setShowDebateConfirm(true)}
-                      className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
-                        text-sm font-semibold rounded-xl transition-colors"
-                    >
-                      Ouvrir le débat →
-                    </button>
                   </div>
-                )}
-              </section>
-            )}
-
-            {newTableCode && (
-              <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-800 flex items-center justify-between gap-2">
-                <span>Table créée ! Code à donner au modérateur : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
-                <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
-              </div>
-            )}
-
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Tables rattachées
-                </h2>
-                <button
-                  onClick={handleCreateTable}
-                  disabled={creatingTable}
-                  className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                    text-indigo-600 hover:bg-indigo-50 transition-colors
-                    disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creatingTable ? '…' : '+ Créer une table'}
-                </button>
-              </div>
-              {attachedTables.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
-              ) : (
-                <div className="space-y-2">
-                  {attachedTables.map(t => (
-                    <ExpandableTableRow
-                      key={t.id}
-                      table={t}
-                      onDelete={() => setDeleteTableConfirm(t)}
-                      otherTables={attachedTables.filter(ot => ot.id !== t.id)}
-                      onParticipantMoved={load}
-                      action={
-                        <button
-                          onClick={() => setDetachConfirm(t)}
-                          className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
-                            text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          Détacher
-                        </button>
-                      }
-                    />
-                  ))}
                 </div>
               )}
             </section>
 
-            <section>
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                Tables disponibles à rattacher
-              </h2>
-              {/* Contrôles de filtre */}
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                {(['48h', 'all', 'custom'] as const).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => {
-                      setTableFilter(f)
-                      load(f, customSince)
-                    }}
-                    className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
-                      tableFilter === f
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
-                    }`}
-                  >
-                    {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
-                  </button>
-                ))}
-                {tableFilter === 'custom' && (
-                  <input
-                    type="datetime-local"
-                    value={customSince}
-                    onChange={e => {
-                      setCustomSince(e.target.value)
-                      if (e.target.value) load('custom', e.target.value)
-                    }}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded-lg
-                      focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                )}
-              </div>
-              {availableTables.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
-              ) : (
-                <div className="space-y-2">
-                  {availableTables.map(t => (
-                    <ExpandableTableRow
-                      key={t.id}
-                      table={t}
-                      onDelete={() => setDeleteTableConfirm(t)}
-                      otherTables={[]}
-                      onParticipantMoved={() => {}}
-                      action={
+            {/* ── Documentation (accordion) ─────────────────── */}
+            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setDocsOpen(o => !o)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Documentation
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${docsOpen ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {docsOpen && (
+                <div className="border-t border-gray-100 px-5 py-4">
+                  <div className="flex items-center justify-between mb-3">
+                    {!editingDocs && (
+                      <button
+                        onClick={() => {
+                          setDocInfoUrl(normalizeDocUrl(sessionDocs.doc_info_url ?? ''))
+                          setDocSummaryUrl(normalizeDocUrl(sessionDocs.doc_summary_url ?? ''))
+                          setDocsErr(null)
+                          setEditingDocs(true)
+                        }}
+                        className="text-xs text-indigo-600 hover:underline"
+                      >
+                        Modifier
+                      </button>
+                    )}
+                  </div>
+                  {editingDocs ? (
+                    <form onSubmit={handleSaveDocs} className="space-y-3">
+                      <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
+                      <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                      {docsErr && (
+                        <p className="text-xs text-red-600">{docsErr}</p>
+                      )}
+                      <div className="flex gap-2 pt-1">
                         <button
-                          onClick={() => handleAttach(t.id)}
-                          className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                            text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          type="button"
+                          onClick={() => setEditingDocs(false)}
+                          className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
                         >
-                          Rattacher
+                          Annuler
                         </button>
-                      }
-                    />
-                  ))}
+                        <button
+                          type="submit"
+                          disabled={docsLoading}
+                          className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                            text-white rounded-xl transition-colors"
+                        >
+                          {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-2 text-sm">
+                      <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
+                      <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                      {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
+                        <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
+                      )}
+                      {session.join_code && (
+                        <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
+                          <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
+                          <a
+                            href={`#collab/${session.join_code}`}
+                            className="text-indigo-600 hover:underline text-xs"
+                          >
+                            Ouvrir le document →
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </section>

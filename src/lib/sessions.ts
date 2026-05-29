@@ -9,6 +9,7 @@ export type SessionTableRow = {
   moderator_pseudo: string | null
   participant_count: number
   is_active: boolean
+  questionnaire_forced_at: string | null
 }
 
 export type TableParticipantRow = {
@@ -280,6 +281,16 @@ export async function getSessionTableCounts(
   password: string,
 ): Promise<{ session_id: string; cnt: number }[]> {
   const { data, error } = await supabase.rpc('get_session_table_counts', {
+    p_password: password,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as { session_id: string; cnt: number }[]) ?? []
+}
+
+export async function getSessionMemberCounts(
+  password: string,
+): Promise<{ session_id: string; cnt: number }[]> {
+  const { data, error } = await supabase.rpc('get_session_member_counts', {
     p_password: password,
   })
   if (error) throw new Error(extractErr(error))

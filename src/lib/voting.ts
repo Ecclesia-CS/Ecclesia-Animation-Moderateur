@@ -76,6 +76,19 @@ export async function getVoteResults(sessionId: string): Promise<VoteResult[]> {
   return (data as VoteResult[]) ?? []
 }
 
+export type AllSessionVoteResult = VoteResult & {
+  session_id: string
+  session_title: string
+}
+
+export async function getAllVoteResults(password: string): Promise<AllSessionVoteResult[]> {
+  const { data, error } = await supabase.rpc('get_vote_results_all', {
+    p_password: password,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as AllSessionVoteResult[]) ?? []
+}
+
 export async function approveAssertion(
   password: string,
   assertionId: string
