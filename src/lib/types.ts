@@ -12,6 +12,7 @@ export interface Session {
   moderation_policy: 'open' | 'closed'
   vote_timer_minutes: number | null
   vote_threshold_percent: number | null
+  phase_changed_at: string | null
 }
 
 export interface Table {

@@ -3,8 +3,31 @@ import { supabase } from '../lib/supabase'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
+import type { Session } from '../lib/types'
 
-type Mode = 'join' | 'reclaim' | 'create'
+// ── Séances en cours ────────────────────────────────────────────
+const PHASE_BADGE: Record<string, string> = {
+  voting:        'bg-indigo-100 text-indigo-700',
+  allocating:    'bg-amber-100 text-amber-700',
+  debating:      'bg-green-100 text-green-700',
+  questionnaire: 'bg-purple-100 text-purple-700',
+}
+const PHASE_LABEL: Record<string, string> = {
+  voting:        'Vote en cours',
+  allocating:    'Formation des groupes',
+  debating:      'Débat en cours',
+  questionnaire: 'Questionnaire',
+}
+const PHASE_ACTION: Record<string, string> = {
+  voting:        'Participer →',
+  allocating:    'Mon affectation →',
+  debating:      'Rejoindre →',
+  questionnaire: 'Répondre →',
+}
+
+type ActiveSession = Pick<Session, 'id' | 'title' | 'phase' | 'join_code'>
+
+type Mode = 'join' | 'reclaim' | 'create' | 'vote'
 
 interface Props {
   userId: string
@@ -27,6 +50,17 @@ export default function EntryScreen({ onJoined }: Props) {
     title: string
     join_code: string | null
   }[]>([])
+
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('sessions')
+      .select('id, title, phase, join_code')
+      .in('phase', ['voting', 'allocating', 'debating', 'questionnaire'])
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setActiveSessions(data as ActiveSession[]) })
+  }, [])
 
   useEffect(() => {
     if (mode !== 'create') return
@@ -111,10 +145,13 @@ export default function EntryScreen({ onJoined }: Props) {
     }
   }
 
+  const [voteCode, setVoteCode] = useState('')
+
   const tabs: { id: Mode; label: string }[] = [
+    { id: 'vote',    label: '🗳️ Voter' },
     { id: 'join',    label: 'Rejoindre' },
-    { id: 'reclaim', label: 'Reprendre la modération' },
-    { id: 'create',  label: 'Créer une session' },
+    { id: 'reclaim', label: 'Reprendre' },
+    { id: 'create',  label: 'Créer' },
   ]
 
   return (
@@ -138,6 +175,34 @@ export default function EntryScreen({ onJoined }: Props) {
           </div>
         </div>
 
+        {/* Séances en cours */}
+        {activeSessions.length > 0 && (
+          <section className="px-6 pt-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Séances en cours
+            </p>
+            <div className="space-y-2">
+              {activeSessions.filter(s => s.join_code).map(s => (
+                <div key={s.id}
+                  className="bg-gray-50 rounded-xl border border-gray-200 p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{s.title}</p>
+                    <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_BADGE[s.phase] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {PHASE_LABEL[s.phase] ?? s.phase}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => { window.location.hash = '#session/' + s.join_code! }}
+                    className="shrink-0 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors"
+                  >
+                    {PHASE_ACTION[s.phase] ?? 'Accéder →'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mt-4">
           {tabs.map(t => (
@@ -156,6 +221,27 @@ export default function EntryScreen({ onJoined }: Props) {
         </div>
 
         <div className="p-6">
+          {mode === 'vote' && (
+            <form
+              onSubmit={e => {
+                e.preventDefault()
+                if (voteCode.trim()) window.location.hash = `#vote/${voteCode.trim()}`
+              }}
+              className="space-y-4"
+            >
+              <p className="text-xs text-gray-500">
+                Entre le code de ta séance pour accéder au vote et aux résultats.
+              </p>
+              <Field
+                label="Code de la séance"
+                value={voteCode}
+                onChange={v => setVoteCode(v.toUpperCase())}
+                placeholder="A1B2C3"
+              />
+              <Btn loading={false} label="Accéder au vote →" />
+            </form>
+          )}
+
           {mode === 'join' && (
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de session" value={joinCode}

@@ -107,9 +107,11 @@ Contrainte : `UNIQUE(session_id, member_id)`.
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |
 | `set_session_phase(password, session_id, phase)` | Change la phase de la séance |
 | `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire des membres → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
+| `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les 4 tables de données — obligatoire pour que les DELETE filtrés arrivent aux subscribers.
 Les tables Bloc C (`session_members`, `assertions`, `assertion_votes`, `table_assignments`) sont dans la publication Realtime — pas de broadcast custom, Realtime natif uniquement.
+`table_assignments` a aussi `REPLICA IDENTITY FULL` (migration `20260530`) : sans ça, un UPDATE de `table_id` seul ne transmet pas `session_id` dans le WAL → le filtre Realtime `session_id=eq.<id>` ne peut pas matcher → les participants ne reçoivent pas le join_code en temps réel.
 
 ---
 
@@ -121,18 +123,26 @@ src/
 │   ├── supabase.ts       Client Supabase
 │   ├── types.ts          Session, Table, Participant, QueueEntry, SpeakingTurn, QuestionnaireResponse + SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
-│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1)
+│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, assignTableToGroup)
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
-│   ├── EntryScreen.tsx      Tabs Rejoindre/Reprendre/Créer + lien Administration
-│   ├── SuperadminScreen.tsx Auth sessionStorage, liste séances, rattachement tables
-│   ├── TableView.tsx        Routage isModerator
-│   ├── ModeratorView.tsx    Vue projetable (DndContext, auto-avancement, pause)
-│   └── ParticipantView.tsx  Vue mobile
+│   ├── EntryScreen.tsx         Section "Séances en cours" (fetch public) + tabs Rejoindre/Reprendre/Créer + lien Administration
+│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, section "Tables et assignations" (clustering → groupes + rattachement tables physiques + bouton Ouvrir le débat)
+│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
+│   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
+│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, bouton rejoindre (join_table RPC + tableStore + reload)
+│   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
+│   ├── TableView.tsx           Routage isModerator
+│   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause)
+│   └── ParticipantView.tsx     Vue mobile
 └── components/
+    ├── voting/
+    │   ├── TableAssignmentCard.tsx   Carte groupe + join_code + bouton rejoindre (2 états : join / arrived)
+    │   ├── VoteResultsSummary.tsx    Résumé des votes (assertions + consensus_score)
+    │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
     ├── ReadOnlyQueuePanel.tsx    File lecture seule (participants)
@@ -144,6 +154,19 @@ src/
     ├── QuestionnaireFab.tsx      Bouton header → QuestionnaireModal
     └── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL
 ```
+
+### Hash routes (App.tsx)
+
+| Hash | Composant | Description |
+|---|---|---|
+| `#session/<join_code>` | `SessionRouterScreen` | Routeur intelligent — QR code / lien WhatsApp |
+| `#vote/<join_code>` | `VoteScreen` | Flow vote participant |
+| `#collab/<join_code>` | `CollabDocScreen` | Document collaboratif sources |
+| `#superadmin` | `SuperadminScreen` | Administration séances |
+| *(vide)* | `EntryScreen` ou `TableView` | Accueil ou débat en cours |
+
+URL de production : `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/#session/<join_code>`
+URL locale : `http://localhost:5173/Ecclesia-Animation-Moderateur/#session/<join_code>`
 
 ### TableContext — état exposé
 ```typescript
@@ -210,13 +233,25 @@ Stocké en localStorage au moment du create/join. Ne pas dériver de `table.crea
 
 ## Phase de vote (Bloc C)
 
-Flux : `draft` → `voting` (inscription membres via `register_session_member` + soumission assertions) → `allocating` (clustering via `run_clustering_v1`, `table_assignments` créés, `table_id` NULL) → `debating` (modérateurs créent leurs tables, superadmin rattache via `attach_table_to_session`).
+Flux complet :
+
+1. **`draft`** → séance créée, pas encore ouverte
+2. **`voting`** → participants s'inscrivent (`register_session_member`) + soumettent/votent des assertions. VoteScreen géré via `#vote/<join_code>`.
+3. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` NULL, `table_number` logique attribué). Superadmin rattache chaque groupe à une table physique via `assign_table_to_group`. Participants voient leur numéro de groupe dans AllocatingScreen (polling 5s + Realtime).
+4. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` de leur table et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → `window.location.reload()` → TableView.
 
 `moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`.
 
 `vote_timer_minutes` / `vote_threshold_percent` : configurés à la création ou via update, NULL = désactivé.
 
 Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom).
+
+### Navigation post-vote (AllocatingScreen)
+
+- `join_table(join_code, pseudo)` → `TableResult`
+- `tableStore.set({ tableId, participantId, joinCode, isModerator: false, pseudo })`
+- `window.location.reload()` → App.tsx relit le `tableStore` dans `init()` → monte `TableView`
+- **Ne pas faire** `window.location.hash = ''` directement : App.tsx a déjà `phase={type:'entry'}` en mémoire, il afficherait EntryScreen au lieu de TableView.
 
 ---
 
@@ -225,3 +260,5 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 - Page 404 / table expirée élégante
 - Persistance de la pause après rechargement (localStorage)
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
+- Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant
+- Génération de QR code dans l'UI superadmin (actuellement : site externe)

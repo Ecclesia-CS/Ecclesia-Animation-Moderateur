@@ -116,14 +116,14 @@ export async function runClusteringV1(
   password: string,
   sessionId: string,
   targetSize = 7
-): Promise<number> {
+): Promise<{ table_count: number; member_count: number }> {
   const { data, error } = await supabase.rpc('run_clustering_v1', {
     p_password: password,
     p_session_id: sessionId,
     p_target_size: targetSize,
   })
   if (error) throw new Error(extractErr(error))
-  return (data as { table_count: number }).table_count
+  return data as { table_count: number; member_count: number }
 }
 
 // --- Admin wrappers (C2) ---
@@ -180,6 +180,21 @@ export async function updateSessionConfig(
   })
   if (error) throw new Error(extractErr(error))
   return data as Session
+}
+
+export async function assignTableToGroup(
+  password: string,
+  sessionId: string,
+  tableNumber: number,
+  tableId: string | null,
+): Promise<void> {
+  const { error } = await supabase.rpc('assign_table_to_group', {
+    p_password:     password,
+    p_session_id:   sessionId,
+    p_table_number: tableNumber,
+    p_table_id:     tableId,
+  })
+  if (error) throw new Error(extractErr(error))
 }
 
 // Re-export types for convenience

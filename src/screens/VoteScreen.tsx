@@ -7,12 +7,14 @@ import OnboardingForm from '../components/voting/OnboardingForm'
 import AssertionCard from '../components/voting/AssertionCard'
 import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
+import VoteTimerBadge from '../components/voting/VoteTimerBadge'
+import AllocatingScreen from './AllocatingScreen'
 
 interface VoteScreenProps {
   sessionJoinCode: string
 }
 
-type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'vote' | 'ended'
+type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'vote' | 'allocating' | 'ended'
 
 /** Fisher-Yates shuffle — immutable */
 function shuffle<T>(arr: T[]): T[] {
@@ -85,6 +87,12 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
       }
       const m = existingMember as SessionMember
       setMember(m)
+
+      // 3b. If session is past voting phase, go directly to allocating screen
+      if (s.phase === 'allocating' || s.phase === 'debating') {
+        setStep('allocating')
+        return
+      }
 
       // 4. Check if already answered onboarding
       const { data: existingResponse } = await supabase
@@ -195,7 +203,9 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
         payload => {
           const updated = payload.new as Session
           setSession(updated)
-          if (updated.phase !== 'voting') {
+          if (updated.phase === 'allocating' || updated.phase === 'debating') {
+            setStep('allocating')
+          } else if (updated.phase !== 'voting') {
             setStep('ended')
           }
         },
@@ -221,15 +231,13 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   // ── Vote handler ──────────────────────────────────────────────────────────
   async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
     const voteRow = await castVote(assertionId, vote)
+    // Add vote to map — the assertion disappears from unvotedAssertions automatically,
+    // so the next unvoted one slides into view without needing to advance the index.
     setMyVotes(prev => {
       const next = new Map(prev)
       next.set(assertionId, voteRow)
       return next
     })
-    // Advance to next assertion after a short delay for animation
-    setTimeout(() => {
-      setAssertionIndex(prev => Math.min(prev + 1, assertions.length - 1))
-    }, 220)
   }
 
   // ── Callbacks from children ───────────────────────────────────────────────
@@ -276,6 +284,10 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     )
   }
 
+  if (step === 'allocating' && session && member) {
+    return <AllocatingScreen session={session} member={member} />
+  }
+
   if (step === 'ended') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
@@ -302,9 +314,15 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   }
 
   if (step === 'vote' && session && member) {
-    const currentAssertion = assertions[assertionIndex] ?? null
     const votedCount = myVotes.size
-    const allVoted = assertions.length > 0 && votedCount >= assertions.length
+    // Only show assertions that haven't been voted on yet
+    const unvotedAssertions = assertions.filter(a => !myVotes.has(a.id))
+    const allVoted = assertions.length > 0 && unvotedAssertions.length === 0
+    // Clamp index in case the array shrank
+    const safeIdx = unvotedAssertions.length > 0
+      ? Math.min(assertionIndex, unvotedAssertions.length - 1)
+      : 0
+    const currentAssertion = unvotedAssertions[safeIdx] ?? null
 
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -316,6 +334,12 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             </h1>
             <p className="text-xs text-gray-500">{member.pseudo}</p>
           </div>
+          {session.vote_timer_minutes != null && session.phase_changed_at != null && (
+            <VoteTimerBadge
+              phaseChangedAt={session.phase_changed_at}
+              timerMinutes={session.vote_timer_minutes}
+            />
+          )}
           <button
             onClick={() => setShowSubmitModal(true)}
             className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
@@ -341,24 +365,20 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             assertion={currentAssertion}
             existingVote={myVotes.get(currentAssertion.id) ?? null}
             onVote={vote => handleVote(currentAssertion.id, vote)}
-            index={assertionIndex}
-            total={assertions.length}
+            index={safeIdx}
+            total={unvotedAssertions.length}
           />
         ) : null}
 
-        {/* Navigation dots */}
-        {assertions.length > 1 && !allVoted && (
+        {/* Navigation dots — only unvoted */}
+        {unvotedAssertions.length > 1 && !allVoted && (
           <div className="flex justify-center gap-1.5 pb-4 flex-wrap px-4">
-            {assertions.map((a, i) => (
+            {unvotedAssertions.map((a, i) => (
               <button
                 key={a.id}
                 onClick={() => setAssertionIndex(i)}
                 className={`w-2 h-2 rounded-full transition-colors ${
-                  i === assertionIndex
-                    ? 'bg-indigo-600'
-                    : myVotes.has(a.id)
-                    ? 'bg-indigo-200'
-                    : 'bg-gray-300'
+                  i === safeIdx ? 'bg-indigo-600' : 'bg-gray-300'
                 }`}
               />
             ))}

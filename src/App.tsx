@@ -8,6 +8,7 @@ import TableView from './screens/TableView'
 import SuperadminScreen from './screens/SuperadminScreen'
 import CollabDocScreen from './screens/CollabDocScreen'
 import VoteScreen from './screens/VoteScreen'
+import SessionRouterScreen from './screens/SessionRouterScreen'
 
 type AppPhase =
   | { type: 'loading' }
@@ -99,6 +100,12 @@ export default function App() {
   if (hash.startsWith('#collab/')) {
     const joinCode = hash.slice('#collab/'.length)
     return <CollabDocScreen sessionJoinCode={joinCode} />
+  }
+
+  // Route #session/<join_code> — routeur intelligent (QR code / lien WhatsApp)
+  if (hash.startsWith('#session/')) {
+    const joinCode = hash.slice('#session/'.length)
+    return <SessionRouterScreen sessionJoinCode={joinCode} />
   }
 
   // Route #vote/<join_code> — interface de vote participant

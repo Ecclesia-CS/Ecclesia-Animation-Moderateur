@@ -16,9 +16,10 @@ import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteResults,
+  getVoteResults, runClusteringV1, assignTableToGroup,
 } from '../lib/voting'
 import type { AssertionWithPseudo, SessionVotingStats } from '../lib/voting'
+import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -796,6 +797,17 @@ function Spinner() {
 
 // ── SessionDetail ─────────────────────────────────────────────────
 
+// ── Types C5 ─────────────────────────────────────────────────────
+
+interface GroupRow {
+  table_number: number
+  members: { pseudo: string; member_id: string }[]
+  table_id: string | null
+  join_code: string | null
+}
+
+// ── SessionDetail ─────────────────────────────────────────────────
+
 function SessionDetail({
   session,
   onBack,
@@ -948,6 +960,21 @@ function SessionDetail({
   const [statsLoading,   setStatsLoading]   = useState(false)
   const [statsOpen,      setStatsOpen]      = useState(true)
 
+  // ── C3 : clustering + timer + threshold ───────────────────
+  const [showClusteringModal,  setShowClusteringModal]  = useState(false)
+  const [showTimerAlert,       setShowTimerAlert]       = useState(false)
+  const [showThresholdAlert,   setShowThresholdAlert]   = useState(false)
+  const thresholdAlertShownRef = useRef(false)
+
+  // ── C5 : groupes et assignation ───────────────────────────
+  const [groups,          setGroups]          = useState<GroupRow[]>([])
+  const [groupsLoading,   setGroupsLoading]   = useState(false)
+  const [dropdownTables,  setDropdownTables]  = useState<SessionTableRow[]>([])
+  const [assigningGroup,  setAssigningGroup]  = useState<number | null>(null)
+  const [assignError,     setAssignError]     = useState<string | null>(null)
+  const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
+  const [showDebateConfirm, setShowDebateConfirm] = useState(false)
+
   const loadStats = useCallback(async () => {
     const password = getPwd()!
     setStatsLoading(true)
@@ -967,6 +994,91 @@ function SessionDetail({
     const interval = setInterval(loadStats, 15000)
     return () => clearInterval(interval)
   }, [loadStats, showVotingSections])
+
+  // Threshold alert — fires at most once per session detail view
+  useEffect(() => {
+    if (thresholdAlertShownRef.current) return
+    if (currentSession.phase !== 'voting') return
+    if (!votingStats) return
+    const threshold = currentSession.vote_threshold_percent
+    if (threshold == null) return
+    if (votingStats.member_count === 0) return
+    const pct = (votingStats.voter_count / votingStats.member_count) * 100
+    if (pct >= threshold) {
+      thresholdAlertShownRef.current = true
+      setShowThresholdAlert(true)
+    }
+  }, [votingStats, currentSession.phase, currentSession.vote_threshold_percent])
+
+  // ── C5 : loadGroups ──────────────────────────────────────────
+  const loadGroups = useCallback(async () => {
+    setGroupsLoading(true)
+    try {
+      const { data: rows } = await supabase
+        .from('table_assignments')
+        .select('table_number, member_id, table_id, session_members!member_id(pseudo), tables!table_id(id, join_code)')
+        .eq('session_id', session.id)
+        .order('table_number')
+
+      const map = new Map<number, GroupRow>()
+      for (const row of rows ?? []) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const r = row as any
+        const tableNum = r.table_number as number
+        if (!map.has(tableNum)) {
+          map.set(tableNum, {
+            table_number: tableNum,
+            members: [],
+            table_id: r.table_id ?? null,
+            join_code: r.tables?.join_code ?? null,
+          })
+        }
+        const g = map.get(tableNum)!
+        g.members.push({ pseudo: r.session_members?.pseudo ?? '?', member_id: r.member_id })
+      }
+      setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
+
+      const [sessionTbls, availTbls] = await Promise.allSettled([
+        listSessionTables(getPwd()!, session.id),
+        listAvailableTables(getPwd()!),
+      ])
+      const sessionPhys = sessionTbls.status === 'fulfilled' ? sessionTbls.value : []
+      const avail       = availTbls.status === 'fulfilled'   ? availTbls.value   : []
+      const linkedIds   = new Set([...map.values()].map(g => g.table_id).filter((id): id is string => id !== null))
+      setDropdownTables([
+        ...sessionPhys.filter(t => !linkedIds.has(t.id)),
+        ...avail,
+      ])
+    } finally {
+      setGroupsLoading(false)
+    }
+  }, [session.id])
+
+  useEffect(() => {
+    const p = currentSession.phase
+    if (p === 'allocating' || p === 'debating') loadGroups()
+  }, [currentSession.phase, loadGroups])
+
+  async function handleAssignGroup(tableNumber: number, tableId: string | null) {
+    const password = getPwd()!
+    setAssigningGroup(tableNumber)
+    setAssignError(null)
+    try {
+      await assignTableToGroup(password, session.id, tableNumber, tableId)
+      if (tableId) {
+        setSelectedTableId(prev => { const next = { ...prev }; delete next[tableNumber]; return next })
+      }
+      await loadGroups()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setAssigningGroup(null)
+    }
+  }
 
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
@@ -1230,8 +1342,8 @@ function SessionDetail({
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[session.phase] ?? session.phase}
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[currentSession.phase] ?? 'bg-gray-100 text-gray-600'}`}>
+              {PHASE_LABEL[currentSession.phase] ?? currentSession.phase}
             </span>
             {session.join_code && (
               <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
@@ -1313,7 +1425,12 @@ function SessionDetail({
                 {statsLoading && !votingStats ? (
                   <p className="text-sm text-gray-400 py-2">Chargement…</p>
                 ) : votingStats ? (
-                  <VotingStatsPanel stats={votingStats} session={currentSession} />
+                  <VotingStatsPanel
+                    stats={votingStats}
+                    session={currentSession}
+                    onTimerExpired={() => setShowTimerAlert(true)}
+                    onTriggerClustering={() => setShowClusteringModal(true)}
+                  />
                 ) : null}
               </SectionAccordion>
             )}
@@ -1412,6 +1529,108 @@ function SessionDetail({
                 </div>
               )}
             </section>
+
+            {/* ── Tables et assignations (C5) ─────────────── */}
+            {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Tables et assignations
+                  </h2>
+                  {groupsLoading && <Spinner />}
+                </div>
+                {assignError && (
+                  <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+                    <span>{assignError}</span>
+                    <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                  </div>
+                )}
+                {groups.length === 0 && !groupsLoading ? (
+                  <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
+                ) : (
+                  <div className="space-y-3">
+                    {groups.map(g => (
+                      <div key={g.table_number} className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
+                          <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                          {g.members.map(m => m.pseudo).join(', ')}
+                        </p>
+                        <div className="border-t border-gray-100 pt-3">
+                          {g.join_code ? (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                                  <span className="font-mono tracking-widest">{g.join_code}</span>
+                                </span>
+                                <span className="text-xs text-gray-400">rattachée</span>
+                              </div>
+                              <button
+                                onClick={() => handleAssignGroup(g.table_number, null)}
+                                disabled={assigningGroup === g.table_number}
+                                className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-500
+                                  hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
+                                  disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {assigningGroup === g.table_number ? '…' : 'Détacher'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={selectedTableId[g.table_number] ?? ''}
+                                onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
+                                className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+                                  focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                              >
+                                <option value="">— Sélectionner une table —</option>
+                                {dropdownTables.map(t => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.join_code}{t.moderator_pseudo ? ` (${t.moderator_pseudo})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => {
+                                  const tableId = selectedTableId[g.table_number]
+                                  if (tableId) handleAssignGroup(g.table_number, tableId)
+                                }}
+                                disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
+                                className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                                  text-indigo-600 hover:bg-indigo-50 transition-colors
+                                  disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {assigningGroup === g.table_number ? '…' : 'Rattacher'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {currentSession.phase === 'allocating' && (
+                  <div className="mt-4 space-y-2">
+                    {groups.some(g => !g.join_code) && (
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
+                        les participants concernés ne pourront pas rejoindre directement.
+                      </p>
+                    )}
+                    <button
+                      onClick={() => setShowDebateConfirm(true)}
+                      className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
+                        text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      Ouvrir le débat →
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
 
             <section>
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -1660,6 +1879,16 @@ function SessionDetail({
         />
       )}
 
+      {showDebateConfirm && (
+        <ConfirmModal
+          title="Ouvrir le débat"
+          body="Passer la séance en phase « Débat » ? Les participants verront le code de leur table et pourront rejoindre immédiatement."
+          confirmLabel="Ouvrir le débat →"
+          onConfirm={() => { setShowDebateConfirm(false); handlePhaseChange('debating') }}
+          onCancel={() => setShowDebateConfirm(false)}
+        />
+      )}
+
       {phaseConfirm && (
         <ConfirmModal
           title={phaseConfirm.isBack ? '← Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
@@ -1669,6 +1898,40 @@ function SessionDetail({
           confirmLabel={phaseConfirm.isBack ? '← Revenir' : 'Confirmer →'}
           onConfirm={() => handlePhaseChange(phaseConfirm.phase)}
           onCancel={() => setPhaseConfirm(null)}
+        />
+      )}
+
+      {showTimerAlert && (
+        <ConfirmModal
+          title="⏰ Timer écoulé"
+          body="Le temps de vote configuré est écoulé. Voulez-vous lancer le clustering maintenant ?"
+          confirmLabel="🔀 Lancer le clustering"
+          onConfirm={() => { setShowTimerAlert(false); setShowClusteringModal(true) }}
+          onCancel={() => setShowTimerAlert(false)}
+        />
+      )}
+
+      {showThresholdAlert && (
+        <ConfirmModal
+          title="✅ Seuil de participation atteint"
+          body={`${currentSession.vote_threshold_percent}% des participants ont voté. Voulez-vous lancer le clustering maintenant ?`}
+          confirmLabel="🔀 Lancer le clustering"
+          onConfirm={() => { setShowThresholdAlert(false); setShowClusteringModal(true) }}
+          onCancel={() => setShowThresholdAlert(false)}
+        />
+      )}
+
+      {showClusteringModal && votingStats && (
+        <ClusteringModal
+          stats={votingStats}
+          onConfirm={async (targetSize) => {
+            const password = getPwd()!
+            const result = await runClusteringV1(password, currentSession.id, targetSize)
+            setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
+            return result
+          }}
+          onClose={() => setShowClusteringModal(false)}
+          onAuthError={onAuthError}
         />
       )}
     </div>
@@ -1813,14 +2076,41 @@ function SectionAccordion({
 
 // ── VotingStatsPanel ──────────────────────────────────────────────
 
-function VotingStatsPanel({ stats, session }: { stats: SessionVotingStats; session: SessionRow }) {
+function VotingStatsPanel({
+  stats,
+  session,
+  onTimerExpired,
+  onTriggerClustering,
+}: {
+  stats: SessionVotingStats
+  session: SessionRow
+  onTimerExpired(): void
+  onTriggerClustering(): void
+}) {
   const voterPct = stats.member_count > 0
     ? Math.round((stats.voter_count / stats.member_count) * 100)
     : 0
   const threshold = session.vote_threshold_percent
 
+  const showTimer = session.phase === 'voting'
+    && session.vote_timer_minutes != null
+    && session.phase_changed_at != null
+
+  const showClusterBtn = session.phase === 'voting'
+
   return (
     <div className="space-y-3">
+      {/* Timer row */}
+      {showTimer && (
+        <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-xl px-3 py-2">
+          <span className="text-xs font-medium text-orange-700">⏱ Temps restant</span>
+          <TimerCountdown
+            deadline={new Date(session.phase_changed_at!).getTime() + session.vote_timer_minutes! * 60 * 1000}
+            onExpired={onTimerExpired}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         {[
           { emoji: '👥', label: 'Participants inscrits',    val: stats.member_count },
@@ -1855,6 +2145,155 @@ function VotingStatsPanel({ stats, session }: { stats: SessionVotingStats; sessi
           )}
         </div>
       )}
+
+      {/* Clustering trigger */}
+      {showClusterBtn && (
+        <button
+          onClick={onTriggerClustering}
+          className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          🔀 Déclencher le clustering
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── TimerCountdown (leaf — uses useLiveMs) ────────────────────────
+
+function TimerCountdown({ deadline, onExpired }: { deadline: number; onExpired(): void }) {
+  const now      = useLiveMs()
+  const firedRef = useRef(false)
+  const remaining = deadline - now
+
+  useEffect(() => {
+    if (!firedRef.current && remaining <= 0) {
+      firedRef.current = true
+      onExpired()
+    }
+  }, [remaining, onExpired])
+
+  if (remaining <= 0) {
+    return <span className="text-xs font-bold text-orange-700">Écoulé</span>
+  }
+
+  return (
+    <span className="text-xs font-bold text-orange-700 font-mono">
+      {formatDuration(remaining)}
+    </span>
+  )
+}
+
+// ── ClusteringModal ───────────────────────────────────────────────
+
+function ClusteringModal({
+  stats,
+  onConfirm,
+  onClose,
+  onAuthError,
+}: {
+  stats: SessionVotingStats
+  onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
+  onClose(): void
+  onAuthError(): void
+}) {
+  const [targetSize, setTargetSize]   = useState(7)
+  const [loading,    setLoading]      = useState(false)
+  const [error,      setError]        = useState<string | null>(null)
+  const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
+
+  async function handleConfirm() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await onConfirm(targetSize)
+      setResult(res)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+        <div className="px-6 pt-6 pb-2">
+          <h2 className="text-base font-semibold text-gray-900">🔀 Déclencher le clustering</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Répartit les participants en tables de discussion</p>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          {/* Stats recap */}
+          <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-gray-500 text-xs">Participants inscrits</p>
+              <p className="font-bold text-gray-900">{stats.member_count}</p>
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs">Ont voté</p>
+              <p className="font-bold text-gray-900">{stats.voter_count}</p>
+            </div>
+          </div>
+
+          {result ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+              <p className="text-green-700 font-semibold text-sm">
+                ✅ {result.table_count} tables créées pour {result.member_count} participants
+              </p>
+              <p className="text-xs text-green-600 mt-1">La séance est maintenant en phase Allocation</p>
+            </div>
+          ) : (
+            <>
+              {/* Target size input */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Taille cible par table
+                </label>
+                <input
+                  type="number"
+                  min={3}
+                  max={15}
+                  value={targetSize}
+                  onChange={e => setTargetSize(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Environ {stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : '?'} table(s) seront créées
+                </p>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="px-6 pb-6 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {result ? 'Fermer' : 'Annuler'}
+          </button>
+          {!result && (
+            <button
+              onClick={handleConfirm}
+              disabled={loading}
+              className="flex-1 py-2.5 text-sm font-medium bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl transition-colors"
+            >
+              {loading ? 'Clustering…' : 'Confirmer'}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
