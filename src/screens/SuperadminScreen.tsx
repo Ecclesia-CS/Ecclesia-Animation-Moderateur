@@ -90,6 +90,7 @@ export default function SuperadminScreen() {
   const [allVotesOpen,    setAllVotesOpen]    = useState(false)
   const [allVoteResults,  setAllVoteResults]  = useState<AllSessionVoteResult[]>([])
   const [allVotesLoading, setAllVotesLoading] = useState(false)
+  const [allVotesErr,     setAllVotesErr]     = useState<string | null>(null)
 
   // ── Load sessions ──────────────────────────────────────────────
   const loadSessions = useCallback(async () => {
@@ -119,9 +120,10 @@ export default function SuperadminScreen() {
       ))
 
       setAllVotesLoading(true)
+      setAllVotesErr(null)
       getAllVoteResults(pwd)
         .then(rows => setAllVoteResults(rows))
-        .catch(() => {})
+        .catch(e => setAllVotesErr(extractErr(e)))
         .finally(() => setAllVotesLoading(false))
     } catch (e) {
       setListErr(extractErr(e))
@@ -318,74 +320,81 @@ export default function SuperadminScreen() {
         )}
 
         {/* ── Votes toutes séances ───────────────────────────── */}
-        {(allVoteResults.length > 0 || allVotesLoading) && (
-          <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <button
-              onClick={() => setAllVotesOpen(o => !o)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <button
+            onClick={() => setAllVotesOpen(o => !o)}
+            className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Votes — toutes séances
+              {allVotesLoading ? (
+                <span className="ml-2 font-normal normal-case text-gray-400">Chargement…</span>
+              ) : allVoteResults.length > 0 ? (
+                <span className="ml-2 font-normal normal-case text-gray-400">
+                  ({allVoteResults.length} assertion{allVoteResults.length !== 1 ? 's' : ''})
+                </span>
+              ) : null}
+            </span>
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${allVotesOpen ? 'rotate-180' : ''}`}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
             >
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Votes — toutes séances
-                {allVoteResults.length > 0 && (
-                  <span className="ml-2 font-normal normal-case text-gray-400">
-                    ({allVoteResults.length} assertion{allVoteResults.length !== 1 ? 's' : ''})
-                  </span>
-                )}
-                {allVotesLoading && (
-                  <span className="ml-2 font-normal normal-case text-gray-400">Chargement…</span>
-                )}
-              </span>
-              <svg
-                className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${allVotesOpen ? 'rotate-180' : ''}`}
-                viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </button>
-            {allVotesOpen && (
-              <div className="border-t border-gray-100 divide-y divide-gray-100">
-                {Object.entries(
-                  allVoteResults.reduce<Record<string, { title: string; results: AllSessionVoteResult[] }>>(
-                    (acc, r) => {
-                      if (!acc[r.session_id]) acc[r.session_id] = { title: r.session_title, results: [] }
-                      acc[r.session_id].results.push(r)
-                      return acc
-                    }, {}
-                  )
-                ).map(([sessionId, { title, results }]) => (
-                  <div key={sessionId} className="px-5 py-4">
-                    <p className="text-xs font-semibold text-indigo-600 mb-3">{title}</p>
-                    <div className="space-y-2">
-                      {results.map(r => {
-                        const total = r.agree_count + r.disagree_count + r.pass_count
-                        const agreeW = total > 0 ? Math.round((r.agree_count / total) * 100) : 0
-                        const disagreeW = total > 0 ? Math.round((r.disagree_count / total) * 100) : 0
-                        return (
-                          <div key={r.id} className="text-xs">
-                            <p className="text-gray-700 mb-1 leading-snug">{r.content}</p>
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-gray-100">
-                                <div className="bg-green-400 h-full" style={{ width: `${agreeW}%` }} />
-                                <div className="bg-red-400 h-full" style={{ width: `${disagreeW}%` }} />
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          {allVotesOpen && (
+            <div className="border-t border-gray-100">
+              {allVotesErr ? (
+                <p className="px-5 py-4 text-xs text-red-600">{allVotesErr}</p>
+              ) : allVotesLoading ? (
+                <p className="px-5 py-4 text-sm text-gray-400">Chargement…</p>
+              ) : allVoteResults.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-gray-400 text-center">Aucune assertion approuvée</p>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {Object.entries(
+                    allVoteResults.reduce<Record<string, { title: string; results: AllSessionVoteResult[] }>>(
+                      (acc, r) => {
+                        if (!acc[r.session_id]) acc[r.session_id] = { title: r.session_title, results: [] }
+                        acc[r.session_id].results.push(r)
+                        return acc
+                      }, {}
+                    )
+                  ).map(([sessionId, { title, results }]) => (
+                    <div key={sessionId} className="px-5 py-4">
+                      <p className="text-xs font-semibold text-indigo-600 mb-3">{title}</p>
+                      <div className="space-y-2">
+                        {results.map(r => {
+                          const total = r.agree_count + r.disagree_count + r.pass_count
+                          const agreeW = total > 0 ? Math.round((r.agree_count / total) * 100) : 0
+                          const disagreeW = total > 0 ? Math.round((r.disagree_count / total) * 100) : 0
+                          return (
+                            <div key={r.id} className="text-xs">
+                              <p className="text-gray-700 mb-1 leading-snug">{r.content}</p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                                  <div className="bg-green-400 h-full" style={{ width: `${agreeW}%` }} />
+                                  <div className="bg-red-400 h-full" style={{ width: `${disagreeW}%` }} />
+                                </div>
+                                <span className="text-gray-400 shrink-0">
+                                  {r.agree_count}↑ {r.disagree_count}↓
+                                  {r.consensus_score != null && (
+                                    <span className="ml-1 text-indigo-500">· {r.consensus_score}%</span>
+                                  )}
+                                </span>
                               </div>
-                              <span className="text-gray-400 shrink-0">
-                                {r.agree_count}↑ {r.disagree_count}↓
-                                {r.consensus_score != null && (
-                                  <span className="ml-1 text-indigo-500">· {r.consensus_score}%</span>
-                                )}
-                              </span>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {listLoading ? (
           <div className="flex items-center justify-center py-20 text-sm text-gray-400">
