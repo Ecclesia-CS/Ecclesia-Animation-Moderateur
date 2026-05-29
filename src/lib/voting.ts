@@ -197,5 +197,78 @@ export async function assignTableToGroup(
   if (error) throw new Error(extractErr(error))
 }
 
+export interface SessionMemberAdmin {
+  id: string
+  pseudo: string
+  created_at: string
+  joined_phase: string | null
+  has_entry_response: boolean
+  has_voted: boolean
+}
+
+export async function listSessionMembersAdmin(
+  password: string,
+  sessionId: string
+): Promise<SessionMemberAdmin[]> {
+  const { data, error } = await supabase.rpc('list_session_members_admin', {
+    p_password: password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as SessionMemberAdmin[]) ?? []
+}
+
+export async function adminSubmitAssertion(
+  password: string,
+  sessionId: string,
+  content: string
+): Promise<Assertion> {
+  const { data, error } = await supabase.rpc('admin_submit_assertion', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_content: content,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Assertion
+}
+
+export async function getMyTableAssignment(
+  sessionId: string
+): Promise<AssignmentWithJoinCode | null> {
+  const { data, error } = await supabase.rpc('get_my_table_assignment', {
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  if (!data) return null
+  const raw = data as {
+    id: string
+    session_id: string
+    member_id: string
+    table_number: number
+    table_id: string | null
+    join_code: string | null
+    created_at: string
+  }
+  return {
+    id:           raw.id,
+    session_id:   raw.session_id,
+    member_id:    raw.member_id,
+    table_number: raw.table_number,
+    table_id:     raw.table_id,
+    created_at:   raw.created_at,
+    tables:       raw.join_code ? { join_code: raw.join_code } : null,
+  }
+}
+
+export interface AssignmentWithJoinCode {
+  id: string
+  session_id: string
+  member_id: string
+  table_number: number
+  table_id: string | null
+  created_at: string
+  tables: { join_code: string } | null
+}
+
 // Re-export types for convenience
 export type { SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment }

@@ -14,7 +14,7 @@ interface VoteScreenProps {
   sessionJoinCode: string
 }
 
-type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'vote' | 'allocating' | 'ended'
+type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'ended'
 
 /** Fisher-Yates shuffle — immutable */
 function shuffle<T>(arr: T[]): T[] {
@@ -107,13 +107,52 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
         return
       }
 
-      // 5. Load vote data
+      // 5. If session is in draft, show waiting screen
+      if (s.phase === 'draft') {
+        setStep('waiting')
+        subscribeForWaiting(s, m)
+        return
+      }
+
+      // 6. Load vote data
       await loadVoteData(s, m)
     }
 
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionJoinCode])
+
+  // ── Subscribe to phase changes while waiting (draft phase) ──────────────
+  function subscribeForWaiting(s: Session, m: SessionMember) {
+    if (channelRef.current) supabase.removeChannel(channelRef.current)
+
+    const channel = supabase
+      .channel(`vote-wait:${s.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=eq.${s.id}`,
+        },
+        payload => {
+          const updated = payload.new as Session
+          setSession(updated)
+          if (updated.phase === 'voting') {
+            loadVoteData(updated, m)
+          } else if (updated.phase === 'allocating' || updated.phase === 'debating') {
+            setStep('allocating')
+          } else if (updated.phase !== 'draft') {
+            setStep('ended')
+          }
+          // draft → draft: stay on waiting
+        },
+      )
+      .subscribe()
+
+    channelRef.current = channel
+  }
 
   // ── Load assertions + votes ───────────────────────────────────────────────
   async function loadVoteData(s: Session, m: SessionMember) {
@@ -205,6 +244,10 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
           setSession(updated)
           if (updated.phase === 'allocating' || updated.phase === 'debating') {
             setStep('allocating')
+          } else if (updated.phase === 'draft') {
+            // Admin reverted to draft — go back to waiting
+            setStep('waiting')
+            subscribeForWaiting(updated, m)
           } else if (updated.phase !== 'voting') {
             setStep('ended')
           }
@@ -248,7 +291,12 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
 
   function handleOnboardingSuccess(_response: EntryResponse) {
     if (!session || !member) return
-    loadVoteData(session, member)
+    if (session.phase === 'draft') {
+      setStep('waiting')
+      subscribeForWaiting(session, member)
+    } else {
+      loadVoteData(session, member)
+    }
   }
 
   function handleAssertionSubmitted() {
@@ -298,6 +346,26 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             Merci pour ta participation ! Les résultats vont être analysés pour former les groupes de débat.
           </p>
           <p className="text-xs text-gray-400">Attends les instructions de l'organisateur.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'waiting' && session && member) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="text-5xl">⏳</div>
+          <h1 className="text-xl font-bold text-gray-900">En attente de l'organisateur</h1>
+          <p className="text-sm text-gray-500">
+            Bienvenue <strong>{member.pseudo}</strong> ! L'organisateur va ouvrir le vote dans quelques instants.
+          </p>
+          <p className="text-xs text-gray-400">
+            Tu seras automatiquement redirigé(e) quand le vote commencera.
+          </p>
+          <div className="flex justify-center pt-2">
+            <span className="inline-block w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          </div>
         </div>
       </div>
     )

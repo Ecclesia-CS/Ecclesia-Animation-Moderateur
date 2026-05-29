@@ -10,6 +10,7 @@ import {
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
   getSessionTableCounts, moveParticipant, getTableSpeakingTurnsAdmin,
+  adminCreateTable,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types'
@@ -17,8 +18,9 @@ import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteResults, runClusteringV1, assignTableToGroup,
+  listSessionMembersAdmin, adminSubmitAssertion,
 } from '../lib/voting'
-import type { AssertionWithPseudo, SessionVotingStats } from '../lib/voting'
+import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
@@ -574,10 +576,10 @@ function CreateModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
+        className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 pt-5 pb-0">
+        <div className="flex items-center justify-between px-6 pt-5 pb-0 shrink-0">
           <h2 className="text-base font-semibold text-gray-900">Nouvelle séance</h2>
           <button
             onClick={onClose}
@@ -590,7 +592,7 @@ function CreateModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale — mai 2026" />
 
           <div>
@@ -877,7 +879,7 @@ function SessionDetail({
   }
 
   // ── Assertions (C2) ────────────────────────────────────────
-  const VOTE_PHASES: Session['phase'][] = ['voting', 'allocating', 'debating', 'questionnaire']
+  const VOTE_PHASES: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
   const [assertions,        setAssertions]        = useState<AssertionWithPseudo[]>([])
@@ -974,6 +976,62 @@ function SessionDetail({
   const [assignError,     setAssignError]     = useState<string | null>(null)
   const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
   const [showDebateConfirm, setShowDebateConfirm] = useState(false)
+
+  // ── Membres inscrits ──────────────────────────────────────
+  const [members,         setMembers]         = useState<SessionMemberAdmin[]>([])
+  const [membersLoading,  setMembersLoading]  = useState(false)
+  const [membersOpen,     setMembersOpen]     = useState(false)
+
+  const loadMembers = useCallback(async () => {
+    const password = getPwd()!
+    setMembersLoading(true)
+    try {
+      const data = await listSessionMembersAdmin(password, session.id)
+      setMembers(data)
+    } catch {
+      // non-bloquant
+    } finally {
+      setMembersLoading(false)
+    }
+  }, [session.id])
+
+  useEffect(() => {
+    if (!showVotingSections) return
+    loadMembers()
+    const interval = setInterval(loadMembers, 15000)
+    return () => clearInterval(interval)
+  }, [loadMembers, showVotingSections])
+
+  // ── Création de table admin ────────────────────────────────
+  const [creatingTable, setCreatingTable] = useState(false)
+  const [newTableCode,  setNewTableCode]  = useState<string | null>(null)
+
+  async function handleCreateTable() {
+    const password = getPwd()!
+    setCreatingTable(true)
+    setError(null)
+    try {
+      const result = await adminCreateTable(password, session.id)
+      setNewTableCode(result.join_code)
+      await load()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setCreatingTable(false)
+    }
+  }
+
+  // ── Assertions admin ───────────────────────────────────────
+  async function handleAdminSubmitAssertion(content: string) {
+    const password = getPwd()!
+    const newAssertion = await adminSubmitAssertion(password, session.id, content)
+    setAssertions(prev => {
+      if (prev.some(a => a.id === newAssertion.id)) return prev
+      return [...prev, { ...newAssertion, member_pseudo: 'Animateur' }]
+    })
+  }
 
   const loadStats = useCallback(async () => {
     const password = getPwd()!
@@ -1410,6 +1468,9 @@ function SessionDetail({
           onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
         />
 
+        {/* ── Lien de partage ────────────────────────────── */}
+        {session.join_code && <ShareLinkBanner joinCode={session.join_code} />}
+
         {loading ? (
           <div className="flex items-center justify-center py-16 text-sm text-gray-400">Chargement…</div>
         ) : (
@@ -1432,6 +1493,19 @@ function SessionDetail({
                     onTriggerClustering={() => setShowClusteringModal(true)}
                   />
                 ) : null}
+              </SectionAccordion>
+            )}
+
+            {/* ── Participants inscrits ───────────────────── */}
+            {showVotingSections && (
+              <SectionAccordion
+                title="Participants inscrits"
+                open={membersOpen}
+                onToggle={() => setMembersOpen(o => !o)}
+                badge={membersLoading ? '…' : `${members.length}`}
+                onRefresh={loadMembers}
+              >
+                <MembersPanel members={members} loading={membersLoading} />
               </SectionAccordion>
             )}
 
@@ -1458,6 +1532,7 @@ function SessionDetail({
                   onReject={handleReject}
                   onApproveAll={handleApproveAll}
                   onReapprove={handleApprove}
+                  onAdminSubmit={handleAdminSubmitAssertion}
                 />
               </SectionAccordion>
             )}
@@ -1632,10 +1707,28 @@ function SessionDetail({
               </section>
             )}
 
+            {newTableCode && (
+              <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-800 flex items-center justify-between gap-2">
+                <span>Table créée ! Code à donner au modérateur : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
+                <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
+              </div>
+            )}
+
             <section>
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                Tables rattachées
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Tables rattachées
+                </h2>
+                <button
+                  onClick={handleCreateTable}
+                  disabled={creatingTable}
+                  className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                    text-indigo-600 hover:bg-indigo-50 transition-colors
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingTable ? '…' : '+ Créer une table'}
+                </button>
+              </div>
               {attachedTables.length === 0 ? (
                 <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
               ) : (
@@ -2311,6 +2404,7 @@ function AssertionsPanel({
   onReject,
   onApproveAll,
   onReapprove,
+  onAdminSubmit,
 }: {
   assertions: AssertionWithPseudo[]
   voteResults: VoteResult[]
@@ -2322,7 +2416,56 @@ function AssertionsPanel({
   onReject(id: string): void
   onApproveAll(): void
   onReapprove(id: string): void
+  onAdminSubmit?: (content: string) => Promise<void>
 }) {
+  const [adminText,      setAdminText]      = useState('')
+  const [adminAdding,    setAdminAdding]    = useState(false)
+  const [csvImporting,   setCsvImporting]   = useState(false)
+  const [csvProgress,    setCsvProgress]    = useState<{ done: number; total: number } | null>(null)
+  const [adminFormOpen,  setAdminFormOpen]  = useState(false)
+  const csvInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleAdminAdd() {
+    if (!onAdminSubmit || !adminText.trim()) return
+    setAdminAdding(true)
+    try {
+      await onAdminSubmit(adminText.trim())
+      setAdminText('')
+    } finally {
+      setAdminAdding(false)
+    }
+  }
+
+  async function handleCsvImport(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!onAdminSubmit) return
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    const buf   = await file.arrayBuffer()
+    const bytes = new Uint8Array(buf)
+    const enc   = (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) ? 'utf-8' : 'windows-1252'
+    const text  = new TextDecoder(enc).decode(buf)
+    const lines = text.split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l.length > 0 && l.toLowerCase() !== 'content')
+
+    setCsvImporting(true)
+    setCsvProgress({ done: 0, total: lines.length })
+    let done = 0
+    for (const line of lines) {
+      try {
+        await onAdminSubmit(line)
+      } catch {
+        // ignorer les erreurs individuelles
+      }
+      done++
+      setCsvProgress({ done, total: lines.length })
+    }
+    setCsvImporting(false)
+    setCsvProgress(null)
+  }
+
   const pending  = assertions.filter(a => a.status === 'pending')
   const approved = assertions.filter(a => a.status === 'approved')
   const rejected = assertions.filter(a => a.status === 'rejected')
@@ -2340,6 +2483,66 @@ function AssertionsPanel({
 
   return (
     <div className="space-y-3">
+      {/* ── Formulaire admin ── */}
+      {onAdminSubmit && (
+        <div className="border border-indigo-100 rounded-xl bg-indigo-50/40 overflow-hidden">
+          <button
+            onClick={() => setAdminFormOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors"
+          >
+            <span className="text-xs font-semibold text-indigo-700">+ Ajouter des assertions (animateur)</span>
+            <svg className={`w-3.5 h-3.5 text-indigo-400 transition-transform shrink-0 ${adminFormOpen ? 'rotate-180' : ''}`}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          {adminFormOpen && (
+            <div className="px-4 pb-4 space-y-2 border-t border-indigo-100">
+              <textarea
+                value={adminText}
+                onChange={e => setAdminText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdminAdd() } }}
+                placeholder="Saisir une assertion… (Entrée pour valider)"
+                rows={2}
+                disabled={adminAdding}
+                className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none
+                  focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50"
+              />
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={handleAdminAdd}
+                  disabled={adminAdding || !adminText.trim()}
+                  className="py-1.5 px-4 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl
+                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {adminAdding ? '…' : 'Ajouter'}
+                </button>
+                <button
+                  onClick={() => csvInputRef.current?.click()}
+                  disabled={csvImporting}
+                  className="py-1.5 px-4 text-xs font-medium border border-indigo-200 text-indigo-700 rounded-xl
+                    hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {csvImporting
+                    ? `Import… ${csvProgress ? `${csvProgress.done}/${csvProgress.total}` : ''}`
+                    : 'Importer CSV'}
+                </button>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  onChange={handleCsvImport}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400">
+                CSV : une assertion par ligne, colonne optionnelle <code>content</code> en en-tête.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
         {tabs.map(t => (
@@ -2436,6 +2639,106 @@ function AssertionsPanel({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── ShareLinkBanner ──────────────────────────────────────────────
+
+function ShareLinkBanner({ joinCode }: { joinCode: string }) {
+  const [copied, setCopied] = useState(false)
+  const url = `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/#session/${joinCode}`
+
+  function handleCopy() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide mb-0.5">
+          Lien de partage
+        </p>
+        <p className="text-xs font-mono text-gray-700 truncate">{url}</p>
+      </div>
+      <button
+        onClick={handleCopy}
+        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+          text-indigo-700 hover:bg-indigo-100 transition-colors"
+      >
+        {copied ? '✓ Copié' : 'Copier'}
+      </button>
+    </div>
+  )
+}
+
+// ── MembersPanel ─────────────────────────────────────────────────
+
+const PHASE_LABEL_MEMBER: Record<string, string> = {
+  draft:   'Brouillon',
+  voting:  'Vote',
+  admin:   'Animateur',
+}
+
+function MembersPanel({
+  members,
+  loading,
+}: {
+  members: SessionMemberAdmin[]
+  loading: boolean
+}) {
+  if (loading && members.length === 0) {
+    return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+  }
+  if (members.length === 0) {
+    return <p className="text-sm text-gray-400 text-center py-4">Aucun participant inscrit</p>
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-gray-400 border-b border-gray-100">
+            <th className="text-left py-2 pr-3 font-medium">Pseudo</th>
+            <th className="text-left py-2 pr-3 font-medium">Heure</th>
+            <th className="text-left py-2 pr-3 font-medium">Phase</th>
+            <th className="text-center py-2 pr-3 font-medium" title="Questionnaire d'entrée rempli">Q.</th>
+            <th className="text-center py-2 font-medium" title="A voté">V.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.map(m => (
+            <tr key={m.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+              <td className="py-2 pr-3 font-medium text-gray-900">{m.pseudo}</td>
+              <td className="py-2 pr-3 text-gray-500">
+                {new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+              </td>
+              <td className="py-2 pr-3">
+                {m.joined_phase ? (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                    m.joined_phase === 'voting' ? 'bg-purple-100 text-purple-700' :
+                    m.joined_phase === 'draft'  ? 'bg-gray-100 text-gray-600' :
+                    'bg-indigo-100 text-indigo-700'
+                  }`}>
+                    {PHASE_LABEL_MEMBER[m.joined_phase] ?? m.joined_phase}
+                  </span>
+                ) : (
+                  <span className="text-gray-300">—</span>
+                )}
+              </td>
+              <td className="py-2 pr-3 text-center">
+                {m.has_entry_response ? '✅' : '⬜'}
+              </td>
+              <td className="py-2 text-center">
+                {m.has_voted ? '✅' : '⬜'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

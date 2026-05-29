@@ -95,6 +95,7 @@ export interface SessionMember {
   user_id: string
   pseudo: string
   created_at: string
+  joined_phase?: string | null
 }
 
 export interface EntryResponse {

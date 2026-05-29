@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { getVoteResults } from '../lib/voting'
+import { getVoteResults, getMyTableAssignment } from '../lib/voting'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
@@ -32,12 +32,7 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
       // Fetch vote results + table assignment in parallel
       const [resultsRes, assignmentRes] = await Promise.allSettled([
         getVoteResults(session.id),
-        supabase
-          .from('table_assignments')
-          .select('*, tables(join_code)')
-          .eq('session_id', session.id)
-          .eq('member_id', member.id)
-          .maybeSingle(),
+        getMyTableAssignment(session.id),
       ])
 
       if (resultsRes.status === 'fulfilled') {
@@ -45,8 +40,8 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
       }
       setResultsLoading(false)
 
-      if (assignmentRes.status === 'fulfilled' && assignmentRes.value.data) {
-        setAssignment(assignmentRes.value.data as AssignmentWithTable)
+      if (assignmentRes.status === 'fulfilled' && assignmentRes.value) {
+        setAssignment(assignmentRes.value as AssignmentWithTable)
       }
       setAssignmentLoading(false)
     }
@@ -68,15 +63,11 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
           filter: `session_id=eq.${session.id}`,
         },
         payload => {
-          const row = payload.new as { id: string; member_id: string }
+          const row = payload.new as { member_id: string }
           if (row.member_id !== member.id) return
-          // Re-fetch to get the joined tables.join_code
-          supabase
-            .from('table_assignments')
-            .select('*, tables(join_code)')
-            .eq('id', row.id)
-            .single()
-            .then(({ data }) => { if (data) setAssignment(data as AssignmentWithTable) })
+          getMyTableAssignment(session.id)
+            .then(data => { if (data) setAssignment(data as AssignmentWithTable) })
+            .catch(() => { /* ignore */ })
         },
       )
       // Watch for table assignment UPDATE (e.g. table_id set when table is created)
@@ -89,14 +80,11 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
           filter: `session_id=eq.${session.id}`,
         },
         payload => {
-          const row = payload.new as { id: string; member_id: string }
+          const row = payload.new as { member_id: string }
           if (row.member_id !== member.id) return
-          supabase
-            .from('table_assignments')
-            .select('*, tables(join_code)')
-            .eq('id', row.id)
-            .single()
-            .then(({ data }) => { if (data) setAssignment(data as AssignmentWithTable) })
+          getMyTableAssignment(session.id)
+            .then(data => { if (data) setAssignment(data as AssignmentWithTable) })
+            .catch(() => { /* ignore */ })
         },
       )
       // Watch for session phase changes (allocating → debating, etc.)
@@ -124,16 +112,10 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   // debating is the last chance to pull fresh data.
   useEffect(() => {
     if (currentSession.phase !== 'debating') return
-    supabase
-      .from('table_assignments')
-      .select('*, tables(join_code)')
-      .eq('session_id', session.id)
-      .eq('member_id', member.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setAssignment(data as AssignmentWithTable)
-      })
-  }, [currentSession.phase, session.id, member.id])
+    getMyTableAssignment(session.id)
+      .then(data => { if (data) setAssignment(data as AssignmentWithTable) })
+      .catch(() => { /* ignore */ })
+  }, [currentSession.phase, session.id])
 
   // ── Polling de secours quand debating + pas encore de join_code ──
   // Si Realtime a été manqué et que la table n'est toujours pas rattachée,
@@ -143,17 +125,12 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
     if (assignment?.tables?.join_code) return
 
     const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from('table_assignments')
-        .select('*, tables(join_code)')
-        .eq('session_id', session.id)
-        .eq('member_id', member.id)
-        .maybeSingle()
+      const data = await getMyTableAssignment(session.id).catch(() => null)
       if (data) setAssignment(data as AssignmentWithTable)
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [currentSession.phase, assignment?.tables?.join_code, session.id, member.id])
+  }, [currentSession.phase, assignment?.tables?.join_code, session.id])
 
   // ── Join table ───────────────────────────────────────────────────
   async function handleJoin() {

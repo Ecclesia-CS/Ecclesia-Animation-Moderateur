@@ -311,6 +311,18 @@ export async function getTableSpeakingTurnsAdmin(
   return (data as TableSpeakingTurnRow[]) ?? []
 }
 
+export async function adminCreateTable(
+  password: string,
+  sessionId?: string,
+): Promise<{ table_id: string; join_code: string }> {
+  const { data, error } = await supabase.rpc('admin_create_table', {
+    p_password: password,
+    p_session_id: sessionId ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { table_id: string; join_code: string }
+}
+
 export async function listSessionSources(sessionId: string): Promise<CollabSource[]> {
   const { data, error } = await supabase.rpc('list_session_sources', {
     p_session_id: sessionId,
