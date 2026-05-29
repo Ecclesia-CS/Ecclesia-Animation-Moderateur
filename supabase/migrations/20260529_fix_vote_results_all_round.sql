@@ -1,24 +1,4 @@
--- ============================================================
--- get_session_member_counts : nb de membres par séance
--- ============================================================
-DROP FUNCTION IF EXISTS get_session_member_counts(text);
-
-CREATE OR REPLACE FUNCTION get_session_member_counts(p_password text)
-RETURNS TABLE (session_id uuid, cnt bigint)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  PERFORM check_superadmin_password(p_password);
-  RETURN QUERY
-    SELECT sm.session_id, COUNT(*)::bigint
-    FROM session_members sm
-    GROUP BY sm.session_id;
-END;
-$$;
-
--- ============================================================
--- get_vote_results_all : assertions approuvées de toutes les
--- séances, avec consensus_score (même formule que get_vote_results)
--- ============================================================
+-- fix: ROUND attend numeric, pas double precision
 DROP FUNCTION IF EXISTS get_vote_results_all(text);
 
 CREATE OR REPLACE FUNCTION get_vote_results_all(p_password text)
@@ -49,7 +29,7 @@ BEGIN
         (ABS(
           COUNT(av.id) FILTER (WHERE av.vote = 'agree') -
           COUNT(av.id) FILTER (WHERE av.vote = 'disagree')
-        )::float / NULLIF(
+        )::numeric / NULLIF(
           COUNT(av.id) FILTER (WHERE av.vote = 'agree') +
           COUNT(av.id) FILTER (WHERE av.vote = 'disagree'),
           0
