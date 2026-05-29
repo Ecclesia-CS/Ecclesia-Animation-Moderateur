@@ -83,7 +83,7 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
 
       if (!existingMember) {
         // Can't join if the vote phase is already over
-        if (s.phase !== 'draft' && s.phase !== 'voting') {
+        if (s.phase !== 'draft' && s.phase !== 'voting' && s.phase !== 'allocating') {
           setErrorMsg('Le vote est terminé, tu ne peux plus rejoindre cette séance.')
           setStep('ended')
           return
@@ -94,8 +94,8 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
       const m = existingMember as SessionMember
       setMember(m)
 
-      // 3b. If session is past voting phase, route accordingly
-      if (s.phase === 'allocating' || s.phase === 'debating') {
+      // 3b. Route based on phase — allocating: on reste sur le vote avec bannière
+      if (s.phase === 'debating') {
         setStep('allocating')
         return
       }
@@ -153,9 +153,9 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
         payload => {
           const updated = payload.new as Session
           setSession(updated)
-          if (updated.phase === 'voting') {
+          if (updated.phase === 'voting' || updated.phase === 'allocating') {
             loadVoteData(updated, m)
-          } else if (updated.phase === 'allocating' || updated.phase === 'debating') {
+          } else if (updated.phase === 'debating') {
             setStep('allocating')
           } else if (updated.phase === 'questionnaire') {
             setStep('questionnaire')
@@ -260,7 +260,7 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
         payload => {
           const updated = payload.new as Session
           setSession(updated)
-          if (updated.phase === 'allocating' || updated.phase === 'debating') {
+          if (updated.phase === 'debating') {
             setStep('allocating')
           } else if (updated.phase === 'questionnaire') {
             setStep('questionnaire')
@@ -270,7 +270,7 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             // Admin reverted to draft — go back to waiting
             setStep('waiting')
             subscribeForWaiting(updated, m)
-          } else if (updated.phase !== 'voting') {
+          } else if (updated.phase !== 'voting' && updated.phase !== 'allocating') {
             setStep('ended')
           }
         },
@@ -460,6 +460,13 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             ✏️ Proposer
           </button>
         </div>
+
+        {/* Allocating banner */}
+        {session.phase === 'allocating' && (
+          <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+            ⏳ Le classement des groupes est en cours. Tu peux encore voter, mais ton vote n'influencera plus la répartition des tables.
+          </div>
+        )}
 
         {/* Progress */}
         <VoteProgress voted={votedCount} total={assertions.length} proposed={proposedCount} />

@@ -1,4 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
 import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
@@ -18,7 +29,7 @@ import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, assignTableToGroup,
-  listSessionMembersAdmin, adminSubmitAssertion,
+  listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
 } from '../lib/voting'
 import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
@@ -1061,6 +1072,40 @@ function SessionDetail({
   const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
   const [showDebateConfirm, setShowDebateConfirm] = useState(false)
 
+  // ── DnD déplacement membres entre groupes ─────────────────
+  const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string } | null>(null)
+  const [movingMember,   setMovingMember]   = useState(false)
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  async function handleGroupDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setDraggingMember(null)
+    if (!over) return
+
+    const memberId   = active.id as string
+    const overIdStr  = over.id as string
+    if (!overIdStr.startsWith('group-')) return
+
+    const targetTableNumber = parseInt(overIdStr.replace('group-', ''), 10)
+    const currentGroup = groups.find(g => g.members.some(m => m.member_id === memberId))
+    if (!currentGroup || currentGroup.table_number === targetTableNumber) return
+
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await moveMemberToGroup(password, currentSession.id, memberId, targetTableNumber)
+      await loadGroups()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }
+
   // ── Membres inscrits ──────────────────────────────────────
   const [members,         setMembers]         = useState<SessionMemberAdmin[]>([])
   const [membersLoading,  setMembersLoading]  = useState(false)
@@ -1693,16 +1738,28 @@ function SessionDetail({
                       {groups.length === 0 && !groupsLoading ? (
                         <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
                       ) : (
+                        <DndContext
+                          sensors={dndSensors}
+                          onDragStart={(e: DragStartEvent) => {
+                            const member = groups.flatMap(g => g.members).find(m => m.member_id === e.active.id)
+                            if (member) setDraggingMember(member)
+                          }}
+                          onDragEnd={handleGroupDragEnd}
+                          onDragCancel={() => setDraggingMember(null)}
+                        >
                         <div className="space-y-3">
                           {groups.map(g => (
-                            <div key={g.table_number} className="bg-white rounded-xl border border-gray-200 p-4">
+                            <DroppableGroupCard key={g.table_number} tableNumber={g.table_number}>
                               <div className="flex items-center gap-2 mb-1.5">
                                 <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
                                 <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                                {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
                               </div>
-                              <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                                {g.members.map(m => m.pseudo).join(', ')}
-                              </p>
+                              <div className="flex flex-wrap gap-1.5 mb-3">
+                                {g.members.map(m => (
+                                  <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
+                                ))}
+                              </div>
                               <div className="border-t border-gray-100 pt-3">
                                 {g.join_code ? (
                                   <div className="flex items-center justify-between gap-2">
@@ -1753,9 +1810,17 @@ function SessionDetail({
                                   </div>
                                 )}
                               </div>
-                            </div>
+                            </DroppableGroupCard>
                           ))}
                         </div>
+                        <DragOverlay dropAnimation={null}>
+                          {draggingMember && (
+                            <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg opacity-90">
+                              {draggingMember.pseudo}
+                            </div>
+                          )}
+                        </DragOverlay>
+                        </DndContext>
                       )}
                       {currentSession.phase === 'allocating' && (
                         <div className="space-y-2">
@@ -2213,6 +2278,7 @@ function SessionDetail({
       {showClusteringModal && votingStats && (
         <ClusteringModal
           stats={votingStats}
+          attachedTableCount={attachedTables.length}
           onConfirm={async (targetSize) => {
             const password = getPwd()!
             const result = await runClusteringV1(password, currentSession.id, targetSize)
@@ -2473,15 +2539,52 @@ function TimerCountdown({ deadline, onExpired }: { deadline: number; onExpired()
   )
 }
 
+// ── DnD primitives pour les groupes ──────────────────────────────
+
+function DraggableMemberChip({ memberId, pseudo }: { memberId: string; pseudo: string }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: memberId })
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      style={transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)` } : undefined}
+      className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none transition-opacity ${
+        isDragging
+          ? 'opacity-0'
+          : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+      }`}
+    >
+      {pseudo}
+    </div>
+  )
+}
+
+function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `group-${tableNumber}` })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-white rounded-xl border p-4 transition-colors ${
+        isOver ? 'border-indigo-400 bg-indigo-50/30' : 'border-gray-200'
+      }`}
+    >
+      {children}
+    </div>
+  )
+}
+
 // ── ClusteringModal ───────────────────────────────────────────────
 
 function ClusteringModal({
   stats,
+  attachedTableCount,
   onConfirm,
   onClose,
   onAuthError,
 }: {
   stats: SessionVotingStats
+  attachedTableCount: number
   onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
   onClose(): void
   onAuthError(): void
@@ -2490,6 +2593,9 @@ function ClusteringModal({
   const [loading,    setLoading]      = useState(false)
   const [error,      setError]        = useState<string | null>(null)
   const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
+
+  const expectedGroups = stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : 0
+  const notEnoughTables = expectedGroups > attachedTableCount
 
   async function handleConfirm() {
     setLoading(true)
@@ -2552,9 +2658,15 @@ function ClusteringModal({
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Environ {stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : '?'} table(s) seront créées
+                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s) · {attachedTableCount} rattachée(s)
                 </p>
               </div>
+
+              {notEnoughTables && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  ⚠️ Il faut {expectedGroups} table(s) rattachée(s) mais seulement {attachedTableCount} sont disponibles. Rattachez des tables à la séance avant de lancer le clustering.
+                </div>
+              )}
 
               {error && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -2575,7 +2687,7 @@ function ClusteringModal({
           {!result && (
             <button
               onClick={handleConfirm}
-              disabled={loading}
+              disabled={loading || notEnoughTables}
               className="flex-1 py-2.5 text-sm font-medium bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl transition-colors"
             >
               {loading ? 'Clustering…' : 'Confirmer'}
