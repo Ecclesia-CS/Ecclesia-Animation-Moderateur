@@ -2628,7 +2628,6 @@ function ClusteringModal({
   onClose,
   onAuthError,
   title,
-  requirePhysicalTables = true,
 }: {
   stats: SessionVotingStats
   attachedTableCount: number
@@ -2636,7 +2635,6 @@ function ClusteringModal({
   onClose(): void
   onAuthError(): void
   title?: string
-  requirePhysicalTables?: boolean
 }) {
   const [targetSize, setTargetSize]   = useState(7)
   const [loading,    setLoading]      = useState(false)
@@ -2644,7 +2642,7 @@ function ClusteringModal({
   const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
 
   const expectedGroups = stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : 0
-  const notEnoughTables = requirePhysicalTables && expectedGroups > attachedTableCount
+  const notEnoughTables = expectedGroups > attachedTableCount
 
   async function handleConfirm() {
     setLoading(true)
@@ -2707,8 +2705,7 @@ function ClusteringModal({
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s)
-                  {requirePhysicalTables && ` · ${attachedTableCount} rattachée(s)`}
+                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s) · {attachedTableCount} rattachée(s)
                 </p>
               </div>
 
