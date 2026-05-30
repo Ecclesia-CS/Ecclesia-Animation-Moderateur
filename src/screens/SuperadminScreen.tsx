@@ -1144,7 +1144,16 @@ function SessionDetail({
     try {
       const result = await adminCreateTable(password, session.id)
       setNewTableCode(result.join_code)
-      await load()
+      const newRow: SessionTableRow = {
+        id: result.table_id,
+        join_code: result.join_code,
+        created_at: new Date().toISOString(),
+        moderator_pseudo: null,
+        participant_count: 0,
+        is_active: false,
+        questionnaire_forced_at: null,
+      }
+      setAttachedTables(prev => [...prev, newRow])
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
@@ -1419,7 +1428,12 @@ function SessionDetail({
     const password = getPwd()!
     try {
       await attachTableToSession(password, tableId, session.id)
-      await load()
+      const table = availableTables.find(t => t.id === tableId)
+      if (table) {
+        setAvailableTables(prev => prev.filter(t => t.id !== tableId))
+        setAttachedTables(prev => [...prev, table])
+        setIsQForced(prev => prev || table.questionnaire_forced_at != null)
+      }
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1440,7 +1454,7 @@ function SessionDetail({
       const nextAttached = attachedTables.filter(t => t.id !== target.id)
       setAttachedTables(nextAttached)
       setIsQForced(nextAttached.some(t => t.questionnaire_forced_at != null))
-      setAvailableTables(prev => [...prev, { ...target, session_id: null }])
+      setAvailableTables(prev => [...prev, target])
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
