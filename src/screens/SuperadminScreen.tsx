@@ -1437,7 +1437,10 @@ function SessionDetail({
     setDetachConfirm(null)
     try {
       await detachTableFromSession(password, target.id)
-      await load()
+      const nextAttached = attachedTables.filter(t => t.id !== target.id)
+      setAttachedTables(nextAttached)
+      setIsQForced(nextAttached.some(t => t.questionnaire_forced_at != null))
+      setAvailableTables(prev => [...prev, { ...target, session_id: null }])
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {

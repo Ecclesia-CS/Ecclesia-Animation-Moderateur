@@ -9,12 +9,12 @@ interface OnboardingFormProps {
 }
 
 interface Answers {
-  consentTranscript: boolean
+  consentTranscript: boolean | null
   ecclesiaExperience: 'never' | 'once_twice' | 'several_times' | null
-  groupSizePref: 'small' | 'medium' | 'large'
-  moderatorPref: boolean
-  opennessToDiff: number
-  participationStyle: 'listener' | 'active'
+  groupSizePref: 'small' | 'medium' | 'large' | null
+  moderatorPref: boolean | null
+  opennessToDiff: number | null
+  participationStyle: 'listener' | 'active' | null
 }
 
 const TOTAL_QUESTIONS = 6
@@ -22,12 +22,12 @@ const TOTAL_QUESTIONS = 6
 export default function OnboardingForm({ sessionId, member, onSuccess }: OnboardingFormProps) {
   const [currentQ, setCurrentQ] = useState(0)
   const [answers, setAnswers] = useState<Answers>({
-    consentTranscript: false,
+    consentTranscript: null,
     ecclesiaExperience: null,
-    groupSizePref: 'medium',
-    moderatorPref: true,
-    opennessToDiff: 3,
-    participationStyle: 'active',
+    groupSizePref: null,
+    moderatorPref: null,
+    opennessToDiff: null,
+    participationStyle: null,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,25 +37,33 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
   }
 
   function handleEcclesiaExperience(v: 'never' | 'once_twice' | 'several_times') {
-    setAnswers(prev => ({
-      ...prev,
-      ecclesiaExperience: v,
-      // First-timer → suggest moderated large-group; user can still override
-      ...(v === 'never' ? { moderatorPref: true, groupSizePref: 'large' } : {}),
-    }))
+    update('ecclesiaExperience', v)
+  }
+
+  function isCurrentAnswered(): boolean {
+    switch (currentQ) {
+      case 0: return answers.consentTranscript !== null
+      case 1: return answers.ecclesiaExperience !== null
+      case 2: return answers.groupSizePref !== null
+      case 3: return answers.moderatorPref !== null
+      case 4: return answers.opennessToDiff !== null
+      case 5: return answers.participationStyle !== null
+      default: return true
+    }
   }
 
   async function handleValidate() {
+    if (!isCurrentAnswered()) return
     setError(null)
     setLoading(true)
     try {
       const response = await submitEntryResponse(
         sessionId,
-        answers.consentTranscript,
-        answers.groupSizePref,
-        answers.moderatorPref,
-        answers.opennessToDiff,
-        answers.participationStyle,
+        answers.consentTranscript!,
+        answers.groupSizePref!,
+        answers.moderatorPref!,
+        answers.opennessToDiff!,
+        answers.participationStyle!,
         answers.ecclesiaExperience,
       )
       onSuccess(response)
@@ -143,15 +151,16 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
           {currentQ < TOTAL_QUESTIONS - 1 ? (
             <button
               onClick={() => setCurrentQ(q => q + 1)}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              disabled={!isCurrentAnswered()}
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors"
             >
               Suivant →
             </button>
           ) : (
             <button
               onClick={handleValidate}
-              disabled={loading}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+              disabled={loading || !isCurrentAnswered()}
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors"
             >
               {loading ? 'Enregistrement…' : 'Valider et voter ✓'}
             </button>
@@ -206,7 +215,7 @@ function QuestionEcclesia({
   )
 }
 
-function QuestionConsent({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+function QuestionConsent({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <div className="space-y-6">
       <div>
@@ -227,7 +236,7 @@ function QuestionGroupSize({
   value,
   onChange,
 }: {
-  value: 'small' | 'medium' | 'large'
+  value: 'small' | 'medium' | 'large' | null
   onChange: (v: 'small' | 'medium' | 'large') => void
 }) {
   return (
@@ -246,7 +255,7 @@ function QuestionGroupSize({
   )
 }
 
-function QuestionModerator({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+function QuestionModerator({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <div className="space-y-6">
       <div>
@@ -263,7 +272,7 @@ function QuestionModerator({ value, onChange }: { value: boolean; onChange: (v: 
   )
 }
 
-function QuestionOpenness({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function QuestionOpenness({ value, onChange }: { value: number | null; onChange: (v: number) => void }) {
   // On présente 3 niveaux, mappés sur les valeurs 1, 3, 5
   const levels = [
     { val: 1, emoji: '🤝', label: 'Similaires', sub: 'Des gens qui pensent comme moi' },
@@ -298,7 +307,7 @@ function QuestionStyle({
   value,
   onChange,
 }: {
-  value: 'listener' | 'active'
+  value: 'listener' | 'active' | null
   onChange: (v: 'listener' | 'active') => void
 }) {
   return (

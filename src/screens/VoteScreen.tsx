@@ -309,6 +309,25 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     }
   }, [])
 
+  // Polling fallback : récupère les assertions approuvées toutes les 10s
+  useEffect(() => {
+    if (step !== 'vote' || !session) return
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('assertions')
+        .select('*')
+        .eq('session_id', session.id)
+        .eq('status', 'approved')
+      if (!data) return
+      setAssertions(prev => {
+        const incoming = data as Assertion[]
+        const newOnes = incoming.filter(a => !prev.some(p => p.id === a.id))
+        return newOnes.length > 0 ? [...prev, ...newOnes] : prev
+      })
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [step, session])
+
   // ── Redirect vers SessionRouterScreen quand session clôturée ─────────────
   useEffect(() => {
     if (step === 'closed') {

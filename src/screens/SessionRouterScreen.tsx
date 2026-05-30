@@ -12,7 +12,6 @@ type Status =
   | 'loading'
   | 'redirecting'
   | 'not_found'
-  | 'draft'
   | 'debating_no_member'
   | 'questionnaire'
   | 'closed'
@@ -53,9 +52,6 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
       // 3. Branch per phase
       switch (s.phase) {
         case 'draft':
-          setStatus('draft')
-          return
-
         case 'voting':
         case 'allocating':
           setStatus('redirecting')
@@ -150,11 +146,6 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
       icon: '❓',
       title: 'Séance introuvable',
       subtitle: 'Vérifie le lien ou scanne à nouveau le QR code.',
-    },
-    draft: {
-      icon: '🕐',
-      title: 'Séance pas encore ouverte',
-      subtitle: "L'organisateur n'a pas encore lancé la séance.",
     },
     debating_no_member: {
       icon: '🗣️',
