@@ -304,5 +304,20 @@ export interface AssignmentWithJoinCode {
   tables: { join_code: string } | null
 }
 
+export async function moveMemberToGroup(
+  password: string,
+  sessionId: string,
+  memberId: string,
+  targetTableNumber: number,
+): Promise<void> {
+  const { error } = await supabase.rpc('move_member_to_group', {
+    p_password:            password,
+    p_session_id:          sessionId,
+    p_member_id:           memberId,
+    p_target_table_number: targetTableNumber,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 // Re-export types for convenience
 export type { SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment }
