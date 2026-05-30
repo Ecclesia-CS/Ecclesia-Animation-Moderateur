@@ -36,6 +36,7 @@ import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
+import AnalysisPanel from '../components/AnalysisPanel'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
 
@@ -1683,6 +1684,16 @@ function SessionDetail({
                   </div>
                 )}
               </section>
+            )}
+
+            {/* ── Analyse des camps ──────────────────────── */}
+            {showVotingSections && (
+              <AnalysisPanel
+                sessionId={session.id}
+                password={getPwd()!}
+                assertions={assertions}
+                onAuthError={onAuthError}
+              />
             )}
 
             {/* ── Participants inscrits ───────────────────── */}
