@@ -1059,9 +1059,8 @@ function SessionDetail({
   const [statsOpen,      setStatsOpen]      = useState(true)
 
   // ── C3 : clustering + timer + threshold ───────────────────
-  const [showClusteringModal,   setShowClusteringModal]   = useState(false)
-  const [showClusteringV2Modal, setShowClusteringV2Modal] = useState(false)
-  const [hasAnalysisDone,       setHasAnalysisDone]       = useState(false)
+  const [showClusteringModal, setShowClusteringModal] = useState(false)
+  const [hasAnalysisDone,     setHasAnalysisDone]     = useState(false)
   const [showTimerAlert,        setShowTimerAlert]        = useState(false)
   const [showThresholdAlert,   setShowThresholdAlert]   = useState(false)
   const thresholdAlertShownRef = useRef(false)
@@ -1626,8 +1625,6 @@ function SessionDetail({
                     session={currentSession}
                     onTimerExpired={() => setShowTimerAlert(true)}
                     onTriggerClustering={() => setShowClusteringModal(true)}
-                    onTriggerClusteringV2={() => setShowClusteringV2Modal(true)}
-                    canUseV2={hasAnalysisDone}
                   />
                 ) : null}
               </SectionAccordion>
@@ -2295,28 +2292,17 @@ function SessionDetail({
         <ClusteringModal
           stats={votingStats}
           attachedTableCount={attachedTables.length}
+          title={hasAnalysisDone ? '🎯 Répartition hétérogène' : '🔀 Répartition aléatoire'}
+          warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
           onConfirm={async (targetSize) => {
             const password = getPwd()!
-            const result = await runClusteringV1(password, currentSession.id, targetSize)
+            const result = hasAnalysisDone
+              ? await runClusteringV2(password, currentSession.id, targetSize)
+              : await runClusteringV1(password, currentSession.id, targetSize)
             setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
             return result
           }}
           onClose={() => setShowClusteringModal(false)}
-          onAuthError={onAuthError}
-        />
-      )}
-
-      {showClusteringV2Modal && votingStats && (
-        <ClusteringModal
-          stats={votingStats}
-          attachedTableCount={attachedTables.length}
-          title="🎯 Clustering hétérogène"
-          onConfirm={async (targetSize) => {
-            const result = await runClusteringV2(getPwd()!, currentSession.id, targetSize)
-            setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
-            return result
-          }}
-          onClose={() => setShowClusteringV2Modal(false)}
           onAuthError={onAuthError}
         />
       )}
@@ -2467,15 +2453,11 @@ function VotingStatsPanel({
   session,
   onTimerExpired,
   onTriggerClustering,
-  onTriggerClusteringV2,
-  canUseV2,
 }: {
   stats: SessionVotingStats
   session: SessionRow
   onTimerExpired(): void
   onTriggerClustering(): void
-  onTriggerClusteringV2(): void
-  canUseV2: boolean
 }) {
   const voterPct = stats.member_count > 0
     ? Math.round((stats.voter_count / stats.member_count) * 100)
@@ -2536,24 +2518,14 @@ function VotingStatsPanel({
         </div>
       )}
 
-      {/* Clustering triggers */}
+      {/* Clustering trigger */}
       {showClusterBtn && (
-        <div className="space-y-2">
-          <button
-            onClick={onTriggerClustering}
-            className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            🔀 Déclencher le clustering
-          </button>
-          <button
-            onClick={onTriggerClusteringV2}
-            disabled={!canUseV2}
-            title={canUseV2 ? undefined : "Lancez d'abord l'analyse des camps"}
-            className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-200 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            🎯 Clustering hétérogène
-          </button>
-        </div>
+        <button
+          onClick={onTriggerClustering}
+          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          🎯 Répartir en tables
+        </button>
       )}
     </div>
   )
@@ -2628,6 +2600,7 @@ function ClusteringModal({
   onClose,
   onAuthError,
   title,
+  warning,
 }: {
   stats: SessionVotingStats
   attachedTableCount: number
@@ -2635,6 +2608,7 @@ function ClusteringModal({
   onClose(): void
   onAuthError(): void
   title?: string
+  warning?: string
 }) {
   const [targetSize, setTargetSize]   = useState(7)
   const [loading,    setLoading]      = useState(false)
@@ -2670,6 +2644,11 @@ function ClusteringModal({
         </div>
 
         <div className="px-6 py-4 space-y-4">
+          {warning && (
+            <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-700">
+              ⚠️ {warning}
+            </div>
+          )}
           {/* Stats recap */}
           <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-sm">
             <div>
