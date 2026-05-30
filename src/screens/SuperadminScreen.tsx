@@ -28,7 +28,7 @@ import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, assignTableToGroup,
+  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
 } from '../lib/voting'
 import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
@@ -36,6 +36,7 @@ import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
+import AnalysisPanel from '../components/AnalysisPanel'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
 
@@ -974,7 +975,7 @@ function SessionDetail({
   }
 
   // ── Assertions (C2) ────────────────────────────────────────
-  const VOTE_PHASES: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire']
+  const VOTE_PHASES: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
   const [assertions,        setAssertions]        = useState<AssertionWithPseudo[]>([])
@@ -1058,8 +1059,9 @@ function SessionDetail({
   const [statsOpen,      setStatsOpen]      = useState(true)
 
   // ── C3 : clustering + timer + threshold ───────────────────
-  const [showClusteringModal,  setShowClusteringModal]  = useState(false)
-  const [showTimerAlert,       setShowTimerAlert]       = useState(false)
+  const [showClusteringModal, setShowClusteringModal] = useState(false)
+  const [hasAnalysisDone,     setHasAnalysisDone]     = useState(false)
+  const [showTimerAlert,        setShowTimerAlert]        = useState(false)
   const [showThresholdAlert,   setShowThresholdAlert]   = useState(false)
   const thresholdAlertShownRef = useRef(false)
 
@@ -1685,6 +1687,17 @@ function SessionDetail({
               </section>
             )}
 
+            {/* ── Analyse des camps ──────────────────────── */}
+            {showVotingSections && (
+              <AnalysisPanel
+                sessionId={session.id}
+                password={getPwd()!}
+                assertions={assertions}
+                onAuthError={onAuthError}
+                onAnalysisStatusChange={setHasAnalysisDone}
+              />
+            )}
+
             {/* ── Participants inscrits ───────────────────── */}
             {showVotingSections && (
               <SectionAccordion
@@ -2279,9 +2292,13 @@ function SessionDetail({
         <ClusteringModal
           stats={votingStats}
           attachedTableCount={attachedTables.length}
+          title={hasAnalysisDone ? '🎯 Répartition hétérogène' : '🔀 Répartition aléatoire'}
+          warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
           onConfirm={async (targetSize) => {
             const password = getPwd()!
-            const result = await runClusteringV1(password, currentSession.id, targetSize)
+            const result = hasAnalysisDone
+              ? await runClusteringV2(password, currentSession.id, targetSize)
+              : await runClusteringV1(password, currentSession.id, targetSize)
             setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
             return result
           }}
@@ -2505,9 +2522,9 @@ function VotingStatsPanel({
       {showClusterBtn && (
         <button
           onClick={onTriggerClustering}
-          className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors"
+          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
         >
-          🔀 Déclencher le clustering
+          🎯 Répartir en tables
         </button>
       )}
     </div>
@@ -2582,12 +2599,16 @@ function ClusteringModal({
   onConfirm,
   onClose,
   onAuthError,
+  title,
+  warning,
 }: {
   stats: SessionVotingStats
   attachedTableCount: number
   onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
   onClose(): void
   onAuthError(): void
+  title?: string
+  warning?: string
 }) {
   const [targetSize, setTargetSize]   = useState(7)
   const [loading,    setLoading]      = useState(false)
@@ -2618,11 +2639,16 @@ function ClusteringModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
         <div className="px-6 pt-6 pb-2">
-          <h2 className="text-base font-semibold text-gray-900">🔀 Déclencher le clustering</h2>
+          <h2 className="text-base font-semibold text-gray-900">{title ?? '🔀 Déclencher le clustering'}</h2>
           <p className="text-xs text-gray-500 mt-0.5">Répartit les participants en tables de discussion</p>
         </div>
 
         <div className="px-6 py-4 space-y-4">
+          {warning && (
+            <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-700">
+              ⚠️ {warning}
+            </div>
+          )}
           {/* Stats recap */}
           <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-sm">
             <div>

@@ -309,6 +309,13 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     }
   }, [])
 
+  // ── Redirect vers SessionRouterScreen quand session clôturée ─────────────
+  useEffect(() => {
+    if (step === 'closed') {
+      window.location.hash = '#session/' + sessionJoinCode
+    }
+  }, [step, sessionJoinCode])
+
   // ── Vote handler ──────────────────────────────────────────────────────────
   async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
     const voteRow = await castVote(assertionId, vote)
@@ -384,14 +391,16 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   }
 
   if (step === 'closed') {
+    // useEffect ci-dessus redirige vers #session/<code>
+    // Ce spinner s'affiche pendant la transition
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="text-5xl">🔒</div>
-          <h1 className="text-xl font-bold text-gray-900">Séance terminée</h1>
-          <p className="text-sm text-gray-500">
-            Cette séance est maintenant clôturée. Merci pour ta participation !
-          </p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          <p className="text-sm text-gray-500">Chargement des résultats…</p>
         </div>
       </div>
     )
