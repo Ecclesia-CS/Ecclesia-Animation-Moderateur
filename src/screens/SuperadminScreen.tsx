@@ -2311,7 +2311,6 @@ function SessionDetail({
           stats={votingStats}
           attachedTableCount={attachedTables.length}
           title="🎯 Clustering hétérogène"
-          requirePhysicalTables={false}
           onConfirm={async (targetSize) => {
             const result = await runClusteringV2(getPwd()!, currentSession.id, targetSize)
             setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
