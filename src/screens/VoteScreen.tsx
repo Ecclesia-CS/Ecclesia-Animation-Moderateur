@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { castVote } from '../lib/voting'
-import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember } from '../lib/types'
+import { castVote, getVoteResults } from '../lib/voting'
+import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
+import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import PseudoForm from '../components/voting/PseudoForm'
 import OnboardingForm from '../components/voting/OnboardingForm'
 import AssertionCard from '../components/voting/AssertionCard'
@@ -42,6 +43,21 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   const [proposedCount, setProposedCount] = useState(0)
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  // Résultats consensus/dissensus (chargés quand tout est voté)
+  const [voteResults,    setVoteResults]    = useState<VoteResult[]>([])
+  const [resultsLoading, setResultsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!session || assertions.length === 0) return
+    const allVoted = assertions.every(a => myVotes.has(a.id))
+    if (!allVoted) return
+    setResultsLoading(true)
+    getVoteResults(session.id)
+      .then(setVoteResults)
+      .catch(() => {})
+      .finally(() => setResultsLoading(false))
+  }, [assertions, myVotes, session])
 
   // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -473,10 +489,51 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
 
         {/* Vote area */}
         {allVoted ? (
-          <AllVotedMessage
-            proposedCount={proposedCount}
-            onPropose={() => setShowSubmitModal(true)}
-          />
+          <div className="flex-1 overflow-auto pb-6">
+            {/* Header compact */}
+            <div className="text-center py-5 px-6">
+              <div className="text-4xl mb-2">🏆</div>
+              <h2 className="text-lg font-bold text-gray-900">Tu as tout voté !</h2>
+              {proposedCount > 0 && (
+                <p className="text-xs text-indigo-600 mt-1">
+                  ✏️ Tu as proposé {proposedCount} assertion{proposedCount > 1 ? 's' : ''}
+                </p>
+              )}
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              >
+                ✏️ Proposer une assertion
+              </button>
+            </div>
+
+            {/* Résultats consensus / dissensus */}
+            <div className="px-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Ce que vous avez voté
+              </p>
+              <VoteResultsSummary results={voteResults} loading={resultsLoading} />
+            </div>
+
+            {/* Liste des assertions votées */}
+            <div className="px-4 mt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Tes votes ({assertions.length})
+              </p>
+              <div className="space-y-2">
+                {assertions.map(a => {
+                  const v = myVotes.get(a.id)
+                  const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : '⏭'
+                  return (
+                    <div key={a.id} className="flex items-start gap-3 bg-white rounded-xl border border-gray-200 p-3">
+                      <span className="text-lg shrink-0">{icon}</span>
+                      <p className="text-xs text-gray-700 leading-relaxed">{a.content}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         ) : assertions.length === 0 ? (
           <EmptyAssertions onPropose={() => setShowSubmitModal(true)} />
         ) : currentAssertion ? (
@@ -521,35 +578,6 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
 }
 
 // ── Helper screens ────────────────────────────────────────────────────────────
-
-function AllVotedMessage({
-  proposedCount,
-  onPropose,
-}: {
-  proposedCount: number
-  onPropose: () => void
-}) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
-      <div className="text-5xl">🏆</div>
-      <h2 className="text-xl font-bold text-gray-900">Tu as tout voté !</h2>
-      <p className="text-sm text-gray-500">
-        Tu peux proposer de nouvelles assertions ou attendre la suite de la séance.
-      </p>
-      {proposedCount > 0 && (
-        <p className="text-xs text-indigo-600">
-          ✏️ Tu as proposé {proposedCount} assertion{proposedCount > 1 ? 's' : ''}
-        </p>
-      )}
-      <button
-        onClick={onPropose}
-        className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-      >
-        ✏️ Proposer une assertion
-      </button>
-    </div>
-  )
-}
 
 function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
   return (
