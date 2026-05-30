@@ -95,19 +95,12 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
               .maybeSingle()
 
             if (member) {
-              const { data: analysis } = await supabase
-                .from('session_analysis')
-                .select('id')
-                .eq('session_id', s.id)
-                .eq('status', 'done')
-                .maybeSingle()
-
-              if (analysis) {
-                setFullSession(s)
-                setSelfMemberId(member.id)
-                setStatus('results_map')
-                return
-              }
+              // Afficher la carte pour tous les membres inscrits (l'analyse
+              // peut arriver plus tard — ResultsMapScreen gère le cas null)
+              setFullSession(s)
+              setSelfMemberId(member.id)
+              setStatus('results_map')
+              return
             }
           }
           setStatus('closed')

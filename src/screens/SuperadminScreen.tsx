@@ -975,7 +975,7 @@ function SessionDetail({
   }
 
   // ── Assertions (C2) ────────────────────────────────────────
-  const VOTE_PHASES: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire']
+  const VOTE_PHASES: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
   const [assertions,        setAssertions]        = useState<AssertionWithPseudo[]>([])

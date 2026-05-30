@@ -148,6 +148,17 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
           </div>
         )}
 
+        {!loading && !error && !data && (
+          <div className="bg-white rounded-2xl border border-gray-200 px-5 py-8 text-center">
+            <p className="text-sm text-gray-500">
+              Les résultats de cette séance ne sont pas encore disponibles.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Revenez plus tard — l'organisateur publie les résultats après analyse.
+            </p>
+          </div>
+        )}
+
         {!loading && !error && data && (
           <>
             {/* Scatter */}
