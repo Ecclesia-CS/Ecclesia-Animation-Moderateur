@@ -30,6 +30,7 @@ interface AnalysisPanelProps {
   password:    string
   assertions:  AssertionWithPseudo[]
   onAuthError(): void
+  onAnalysisStatusChange?(hasDone: boolean): void
 }
 
 // ── ScatterPlot ───────────────────────────────────────────────
@@ -108,6 +109,7 @@ export default function AnalysisPanel({
   password,
   assertions,
   onAuthError,
+  onAnalysisStatusChange,
 }: AnalysisPanelProps) {
   const [open,          setOpen]          = useState(false)
   const [analysis,      setAnalysis]      = useState<LoadedAnalysis | null>(null)
@@ -127,6 +129,7 @@ export default function AnalysisPanel({
       setAnalysis(data)
       if (data) setOpen(true)
       setLoadStatus('loaded')
+      onAnalysisStatusChange?.(data !== null)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {

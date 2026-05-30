@@ -160,6 +160,20 @@ export async function runClusteringV1(
   return data as { table_count: number; member_count: number }
 }
 
+export async function runClusteringV2(
+  password:   string,
+  sessionId:  string,
+  targetSize = 6,
+): Promise<{ table_count: number; member_count: number }> {
+  const { data, error } = await supabase.rpc('run_clustering_v2', {
+    p_password:    password,
+    p_session_id:  sessionId,
+    p_target_size: targetSize,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { table_count: number; member_count: number }
+}
+
 // --- Admin wrappers (C2) ---
 
 export interface AssertionWithPseudo extends Assertion {

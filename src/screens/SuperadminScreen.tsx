@@ -28,7 +28,7 @@ import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, assignTableToGroup,
+  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
 } from '../lib/voting'
 import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
@@ -1059,8 +1059,10 @@ function SessionDetail({
   const [statsOpen,      setStatsOpen]      = useState(true)
 
   // ── C3 : clustering + timer + threshold ───────────────────
-  const [showClusteringModal,  setShowClusteringModal]  = useState(false)
-  const [showTimerAlert,       setShowTimerAlert]       = useState(false)
+  const [showClusteringModal,   setShowClusteringModal]   = useState(false)
+  const [showClusteringV2Modal, setShowClusteringV2Modal] = useState(false)
+  const [hasAnalysisDone,       setHasAnalysisDone]       = useState(false)
+  const [showTimerAlert,        setShowTimerAlert]        = useState(false)
   const [showThresholdAlert,   setShowThresholdAlert]   = useState(false)
   const thresholdAlertShownRef = useRef(false)
 
@@ -1624,6 +1626,8 @@ function SessionDetail({
                     session={currentSession}
                     onTimerExpired={() => setShowTimerAlert(true)}
                     onTriggerClustering={() => setShowClusteringModal(true)}
+                    onTriggerClusteringV2={() => setShowClusteringV2Modal(true)}
+                    canUseV2={hasAnalysisDone}
                   />
                 ) : null}
               </SectionAccordion>
@@ -1693,6 +1697,7 @@ function SessionDetail({
                 password={getPwd()!}
                 assertions={assertions}
                 onAuthError={onAuthError}
+                onAnalysisStatusChange={setHasAnalysisDone}
               />
             )}
 
@@ -2300,6 +2305,22 @@ function SessionDetail({
           onAuthError={onAuthError}
         />
       )}
+
+      {showClusteringV2Modal && votingStats && (
+        <ClusteringModal
+          stats={votingStats}
+          attachedTableCount={attachedTables.length}
+          title="🎯 Clustering hétérogène"
+          requirePhysicalTables={false}
+          onConfirm={async (targetSize) => {
+            const result = await runClusteringV2(getPwd()!, currentSession.id, targetSize)
+            setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
+            return result
+          }}
+          onClose={() => setShowClusteringV2Modal(false)}
+          onAuthError={onAuthError}
+        />
+      )}
     </div>
   )
 }
@@ -2447,11 +2468,15 @@ function VotingStatsPanel({
   session,
   onTimerExpired,
   onTriggerClustering,
+  onTriggerClusteringV2,
+  canUseV2,
 }: {
   stats: SessionVotingStats
   session: SessionRow
   onTimerExpired(): void
   onTriggerClustering(): void
+  onTriggerClusteringV2(): void
+  canUseV2: boolean
 }) {
   const voterPct = stats.member_count > 0
     ? Math.round((stats.voter_count / stats.member_count) * 100)
@@ -2512,14 +2537,24 @@ function VotingStatsPanel({
         </div>
       )}
 
-      {/* Clustering trigger */}
+      {/* Clustering triggers */}
       {showClusterBtn && (
-        <button
-          onClick={onTriggerClustering}
-          className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors"
-        >
-          🔀 Déclencher le clustering
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={onTriggerClustering}
+            className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            🔀 Déclencher le clustering
+          </button>
+          <button
+            onClick={onTriggerClusteringV2}
+            disabled={!canUseV2}
+            title={canUseV2 ? undefined : "Lancez d'abord l'analyse des camps"}
+            className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-200 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            🎯 Clustering hétérogène
+          </button>
+        </div>
       )}
     </div>
   )
@@ -2593,12 +2628,16 @@ function ClusteringModal({
   onConfirm,
   onClose,
   onAuthError,
+  title,
+  requirePhysicalTables = true,
 }: {
   stats: SessionVotingStats
   attachedTableCount: number
   onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
   onClose(): void
   onAuthError(): void
+  title?: string
+  requirePhysicalTables?: boolean
 }) {
   const [targetSize, setTargetSize]   = useState(7)
   const [loading,    setLoading]      = useState(false)
@@ -2606,7 +2645,7 @@ function ClusteringModal({
   const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
 
   const expectedGroups = stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : 0
-  const notEnoughTables = expectedGroups > attachedTableCount
+  const notEnoughTables = requirePhysicalTables && expectedGroups > attachedTableCount
 
   async function handleConfirm() {
     setLoading(true)
@@ -2629,7 +2668,7 @@ function ClusteringModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
         <div className="px-6 pt-6 pb-2">
-          <h2 className="text-base font-semibold text-gray-900">🔀 Déclencher le clustering</h2>
+          <h2 className="text-base font-semibold text-gray-900">{title ?? '🔀 Déclencher le clustering'}</h2>
           <p className="text-xs text-gray-500 mt-0.5">Répartit les participants en tables de discussion</p>
         </div>
 
@@ -2669,7 +2708,8 @@ function ClusteringModal({
                   className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s) · {attachedTableCount} rattachée(s)
+                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s)
+                  {requirePhysicalTables && ` · ${attachedTableCount} rattachée(s)`}
                 </p>
               </div>
 
