@@ -340,6 +340,14 @@ export interface LoadedAnalysis {
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
 }
 
+// ── PublicResultsData ─────────────────────────────────────────
+
+export interface PublicResultsData {
+  k_chosen:  number
+  groups:    { group_id: number; top_assertions: { content: string; score: number }[] }[]
+  consensus: { content: string; score: number }[] | null
+}
+
 // ── ResultsMapData ────────────────────────────────────────────
 
 export interface ResultsMapData {
@@ -365,6 +373,22 @@ export async function loadVotesForAnalysis(
   })
   if (error) throw new Error(extractErr(error))
   return (data as VoteRow[]) ?? []
+}
+
+/**
+ * Charge le résumé public d'une session clôturée via RPC get_public_results.
+ * Accessible à tous (aucune auth requise), retourne null si pas d'analyse ou session non closed.
+ */
+export async function loadPublicResults(
+  supabase:  SupabaseClient,
+  sessionId: string,
+): Promise<PublicResultsData | null> {
+  const { data, error } = await supabase.rpc('get_public_results', {
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  if (!data) return null
+  return data as PublicResultsData
 }
 
 /**

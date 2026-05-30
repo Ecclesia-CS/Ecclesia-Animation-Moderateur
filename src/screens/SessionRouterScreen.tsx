@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Session } from '../lib/types'
 import ResultsMapScreen from './ResultsMapScreen'
+import PublicResultsScreen from './PublicResultsScreen'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -16,6 +17,7 @@ type Status =
   | 'questionnaire'
   | 'closed'
   | 'results_map'
+  | 'public_results'
 
 export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterScreenProps) {
   const [status,       setStatus]       = useState<Status>('loading')
@@ -95,15 +97,16 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
               .maybeSingle()
 
             if (member) {
-              // Afficher la carte pour tous les membres inscrits (l'analyse
-              // peut arriver plus tard — ResultsMapScreen gère le cas null)
+              // Participant inscrit → carte personnalisée (scatter + point self)
               setFullSession(s)
               setSelfMemberId(member.id)
               setStatus('results_map')
               return
             }
           }
-          setStatus('closed')
+          // Visiteur non inscrit → résumé public (groupes + assertions, sans scatter)
+          setFullSession(s)
+          setStatus('public_results')
           return
         }
 
@@ -120,6 +123,10 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     return <ResultsMapScreen session={fullSession} memberId={selfMemberId} />
   }
 
+  if (status === 'public_results' && fullSession) {
+    return <PublicResultsScreen session={fullSession} />
+  }
+
   if (status === 'loading' || status === 'redirecting') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -134,7 +141,7 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     )
   }
 
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map'>, {
+  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results'>, {
     icon: string
     title: string
     subtitle: string
@@ -166,7 +173,7 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     },
   }
 
-  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map'>]
+  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results'>]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

@@ -309,6 +309,13 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     }
   }, [])
 
+  // ── Redirect vers SessionRouterScreen quand session clôturée ─────────────
+  useEffect(() => {
+    if (step === 'closed') {
+      window.location.hash = '#session/' + sessionJoinCode
+    }
+  }, [step, sessionJoinCode])
+
   // ── Vote handler ──────────────────────────────────────────────────────────
   async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
     const voteRow = await castVote(assertionId, vote)
@@ -384,9 +391,8 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   }
 
   if (step === 'closed') {
-    // Rediriger vers SessionRouterScreen qui affichera ResultsMapScreen
-    // si le participant est inscrit et qu'une analyse existe
-    window.location.hash = '#session/' + sessionJoinCode
+    // useEffect ci-dessus redirige vers #session/<code>
+    // Ce spinner s'affiche pendant la transition
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
