@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Session } from '../lib/types'
+import ResultsMapScreen from './ResultsMapScreen'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -14,10 +15,13 @@ type Status =
   | 'debating_no_member'
   | 'questionnaire'
   | 'closed'
+  | 'results_map'
 
 export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterScreenProps) {
-  const [status, setStatus] = useState<Status>('loading')
+  const [status,       setStatus]       = useState<Status>('loading')
   const [sessionTitle, setSessionTitle] = useState<string | null>(null)
+  const [fullSession,  setFullSession]  = useState<Session | null>(null)
+  const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
 
   useEffect(() => {
     async function route() {
@@ -81,9 +85,34 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
           setStatus('questionnaire')
           return
 
-        case 'closed':
+        case 'closed': {
+          if (userId) {
+            const { data: member } = await supabase
+              .from('session_members')
+              .select('id')
+              .eq('session_id', s.id)
+              .eq('user_id', userId)
+              .maybeSingle()
+
+            if (member) {
+              const { data: analysis } = await supabase
+                .from('session_analysis')
+                .select('id')
+                .eq('session_id', s.id)
+                .eq('status', 'done')
+                .maybeSingle()
+
+              if (analysis) {
+                setFullSession(s)
+                setSelfMemberId(member.id)
+                setStatus('results_map')
+                return
+              }
+            }
+          }
           setStatus('closed')
           return
+        }
 
         default:
           setStatus('not_found')
@@ -94,6 +123,10 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
   }, [sessionJoinCode])
 
   // ── Render ────────────────────────────────────────────────────
+  if (status === 'results_map' && fullSession && selfMemberId) {
+    return <ResultsMapScreen session={fullSession} memberId={selfMemberId} />
+  }
+
   if (status === 'loading' || status === 'redirecting') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -108,7 +141,7 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     )
   }
 
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting'>, {
+  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map'>, {
     icon: string
     title: string
     subtitle: string
@@ -140,7 +173,7 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     },
   }
 
-  const cfg = CONFIG[status]
+  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map'>]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

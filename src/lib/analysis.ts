@@ -340,6 +340,14 @@ export interface LoadedAnalysis {
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
 }
 
+// ── ResultsMapData ────────────────────────────────────────────
+
+export interface ResultsMapData {
+  k_chosen:  number
+  points:    { pca_x: number; pca_y: number; group_id: number; is_self: boolean }[]
+  consensus: { content: string; score: number }[] | null
+}
+
 // ── Wrappers Supabase ─────────────────────────────────────────
 
 /**
@@ -357,6 +365,25 @@ export async function loadVotesForAnalysis(
   })
   if (error) throw new Error(extractErr(error))
   return (data as VoteRow[]) ?? []
+}
+
+/**
+ * Charge la carte d'opinion anonymisée d'une session closed via RPC get_results_map.
+ * Retourne null si la session n'est pas closed, si le membre ne correspond pas
+ * à auth.uid(), ou si aucune analyse n'existe.
+ */
+export async function loadResultsMap(
+  supabase:  SupabaseClient,
+  sessionId: string,
+  memberId:  string,
+): Promise<ResultsMapData | null> {
+  const { data, error } = await supabase.rpc('get_results_map', {
+    p_session_id: sessionId,
+    p_member_id:  memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+  if (!data) return null
+  return data as ResultsMapData
 }
 
 /**
