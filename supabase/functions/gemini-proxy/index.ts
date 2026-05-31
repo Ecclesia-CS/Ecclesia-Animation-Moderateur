@@ -197,8 +197,19 @@ Tu dois retourner une entrée pour chaque groupe reçu, avec le table_number exa
 
 // ── Appel Gemini ──────────────────────────────────────────────
 
-async function callGemini(prompt: string, apiKey: string): Promise<unknown[]> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+interface GeminiUsage {
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+}
+
+interface GeminiCallResult {
+  results: unknown[]
+  usage: GeminiUsage
+}
+
+async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallResult> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
 
   const geminiRes = await fetch(url, {
     method: 'POST',
@@ -215,6 +226,11 @@ async function callGemini(prompt: string, apiKey: string): Promise<unknown[]> {
 
   const geminiData = await geminiRes.json() as {
     candidates?: { content?: { parts?: { text?: string }[] } }[]
+    usageMetadata?: {
+      promptTokenCount?: number
+      candidatesTokenCount?: number
+      totalTokenCount?: number
+    }
   }
 
   const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
@@ -235,7 +251,13 @@ async function callGemini(prompt: string, apiKey: string): Promise<unknown[]> {
     throw new GeminiError('Gemini response is not an array', cleaned)
   }
 
-  return parsed
+  const usage: GeminiUsage = {
+    prompt_tokens:      geminiData.usageMetadata?.promptTokenCount      ?? 0,
+    completion_tokens:  geminiData.usageMetadata?.candidatesTokenCount   ?? 0,
+    total_tokens:       geminiData.usageMetadata?.totalTokenCount        ?? 0,
+  }
+
+  return { results: parsed, usage }
 }
 
 class GeminiError extends Error {
@@ -311,10 +333,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Appel Gemini + parsing ────────────────────────────────
-    const results = await callGemini(prompt, apiKey)
+    const { results, usage } = await callGemini(prompt, apiKey)
 
     return new Response(
-      JSON.stringify({ results }),
+      JSON.stringify({ results, usage }),
       { status: 200, headers: JSON_HEADERS },
     )
 
