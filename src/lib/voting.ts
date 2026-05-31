@@ -8,6 +8,7 @@ import type {
   AssertionVote,
   VoteResult,
   TableAssignment,
+  ModerationPolicy,
 } from './types'
 
 export async function registerSessionMember(
@@ -215,7 +216,7 @@ export async function getSessionVotingStats(
 export async function updateSessionConfig(
   password: string,
   sessionId: string,
-  moderationPolicy: 'open' | 'closed',
+  moderationPolicy: ModerationPolicy,
   voteTimerMinutes: number | null,
   voteThresholdPercent: number | null
 ): Promise<Session> {
