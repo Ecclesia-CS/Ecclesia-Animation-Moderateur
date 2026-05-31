@@ -24,7 +24,7 @@ import {
   adminCreateTable,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
-import type { Session, QuestionnaireExportRow, CollabSource } from '../lib/types'
+import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
@@ -37,6 +37,9 @@ import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
+import LLMModerationPanel from '../components/voting/LLMModerationPanel'
+import { nameIdeologicalGroups, mergeAssertions } from '../lib/gemini'
+import { loadVotesForAnalysis } from '../lib/analysis'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
 
@@ -617,7 +620,7 @@ function CreateModal({
   const [scheduledAt, setScheduledAt]   = useState('')
   const [docInfoUrl, setDocInfoUrl]     = useState('')
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
-  const [moderationPolicy, setModerationPolicy] = useState<'open' | 'closed'>('closed')
+  const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [voteTimerMinutes, setVoteTimerMinutes]     = useState('')
   const [voteThresholdPercent, setVoteThresholdPercent] = useState('')
   const [loading, setLoading]           = useState(false)
@@ -727,8 +730,8 @@ function CreateModal({
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['closed', 'open'] as const).map(val => (
+                <div className="grid grid-cols-3 gap-2">
+                  {(['closed', 'open', 'ai'] as const).map(val => (
                     <button
                       key={val}
                       type="button"
@@ -739,7 +742,7 @@ function CreateModal({
                           : 'border-gray-200 text-gray-600 hover:border-indigo-200'
                       }`}
                     >
-                      {val === 'closed' ? '🔒 Fermée (validation requise)' : '🔓 Ouverte (immédiat)'}
+                      {val === 'closed' ? '🔒 Fermée (validation requise)' : val === 'open' ? '🔓 Ouverte (immédiat)' : '🤖 Gérée par IA'}
                     </button>
                   ))}
                 </div>
@@ -1067,6 +1070,7 @@ function SessionDetail({
 
   // ── C5 : groupes et assignation ───────────────────────────
   const [groups,          setGroups]          = useState<GroupRow[]>([])
+  const [groupNames,      setGroupNames]      = useState<GroupNameResult[]>([])
   const [groupsLoading,   setGroupsLoading]   = useState(false)
   const [dropdownTables,  setDropdownTables]  = useState<SessionTableRow[]>([])
   const [assigningGroup,  setAssigningGroup]  = useState<number | null>(null)
@@ -1258,6 +1262,38 @@ function SessionDetail({
     const p = currentSession.phase
     if (p === 'allocating' || p === 'debating') loadGroups()
   }, [currentSession.phase, loadGroups])
+
+  // Nommage des camps via Gemini après chargement des groupes en phase allocating
+  useEffect(() => {
+    if (currentSession.phase !== 'allocating') return
+    if (!hasAnalysisDone) return
+    if (groups.length === 0) return
+
+    const pwd = getPwd()!
+    ;(async () => {
+      try {
+        const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
+        const approved = allAssertions.filter(a => a.status === 'approved')
+        const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
+        const { results: names } = await nameIdeologicalGroups({
+          session_id:          currentSession.id,
+          session_title:       currentSession.title,
+          session_description: currentSession.description ?? null,
+          groups: groups.map(g => ({
+            table_number: g.table_number,
+            member_ids:   g.members.map(m => m.member_id),
+          })),
+          assertions:          approved.map(a => ({ id: a.id, content: a.content })),
+          votes:               votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
+          divisive_assertions: undefined,
+        })
+        setGroupNames(names)
+        localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
+      } catch {
+        // silencieux — les groupes restent sans nom
+      }
+    })()
+  }, [groups, hasAnalysisDone, currentSession.phase, currentSession.id, currentSession.title, currentSession.description])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
     const password = getPwd()!
@@ -1619,6 +1655,20 @@ function SessionDetail({
           onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
         />
 
+        {/* ── Politique de modération ──────────────────────── */}
+        <ModerationPolicyEditor
+          currentPolicy={currentSession.moderation_policy}
+          onSave={async (policy) => {
+            const pwd = getPwd()!
+            await updateSessionConfig(
+              pwd, currentSession.id, policy,
+              currentSession.vote_timer_minutes,
+              currentSession.vote_threshold_percent,
+            )
+            setCurrentSession(prev => ({ ...prev, moderation_policy: policy }))
+          }}
+        />
+
         {/* ── Lien de partage ────────────────────────────── */}
         {session.join_code && <ShareLinkBanner joinCode={session.join_code} />}
 
@@ -1715,6 +1765,11 @@ function SessionDetail({
               />
             )}
 
+            {/* ── Modération IA ───────────────────────────── */}
+            {showVotingSections && (
+              <LLMModerationPanel session={currentSession} password={getPwd()!} />
+            )}
+
             {/* ── Participants inscrits ───────────────────── */}
             {showVotingSections && (
               <SectionAccordion
@@ -1785,6 +1840,15 @@ function SessionDetail({
                                 <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
                                 {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
                               </div>
+                              {(() => {
+                                const gn = groupNames.find(n => n.table_number === g.table_number)
+                                return gn ? (
+                                  <div className="mb-2">
+                                    <span className="text-xs font-semibold text-gray-700">{gn.name}</span>
+                                    <p className="text-xs text-gray-400">{gn.description}</p>
+                                  </div>
+                                ) : null
+                              })()}
                               <div className="flex flex-wrap gap-1.5 mb-3">
                                 {g.members.map(m => (
                                   <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
@@ -2313,6 +2377,27 @@ function SessionDetail({
           warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
           onConfirm={async (targetSize) => {
             const password = getPwd()!
+
+            // Auto-merge si activé dans localStorage
+            const autoMerge = localStorage.getItem(`ai_auto_merge_${currentSession.id}`) === 'true'
+            if (autoMerge) {
+              const allAssertions = await listAssertionsAdmin(password, currentSession.id)
+              const approved = allAssertions.filter(a => a.status === 'approved')
+              if (approved.length >= 2) {
+                const { results: merges } = await mergeAssertions({
+                  session_id:          currentSession.id,
+                  session_title:       currentSession.title,
+                  session_description: currentSession.description ?? null,
+                  assertions:          approved.map(a => ({ id: a.id, content: a.content })),
+                })
+                for (const merge of merges) {
+                  for (const rejectId of merge.reject_ids) {
+                    await rejectAssertion(password, rejectId)
+                  }
+                }
+              }
+            }
+
             const result = hasAnalysisDone
               ? await runClusteringV2(password, currentSession.id, targetSize)
               : await runClusteringV1(password, currentSession.id, targetSize)
@@ -2324,6 +2409,67 @@ function SessionDetail({
         />
       )}
     </div>
+  )
+}
+
+// ── ModerationPolicyEditor ────────────────────────────────────────
+
+function ModerationPolicyEditor({
+  currentPolicy,
+  onSave,
+}: {
+  currentPolicy: ModerationPolicy
+  onSave(policy: ModerationPolicy): Promise<void>
+}) {
+  const [selected, setSelected] = useState<ModerationPolicy>(currentPolicy)
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
+  const dirty = selected !== currentPolicy
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await onSave(selected)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // silencieux — l'erreur est gérée par le parent
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        Politique de modération
+      </p>
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {(['closed', 'open', 'ai'] as const).map(val => (
+          <button
+            key={val}
+            type="button"
+            onClick={() => setSelected(val)}
+            className={`py-2 px-3 rounded-xl border-2 text-xs font-medium transition-all ${
+              selected === val
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                : 'border-gray-200 text-gray-600 hover:border-indigo-200'
+            }`}
+          >
+            {val === 'closed' ? '🔒 Fermée' : val === 'open' ? '🔓 Ouverte' : '🤖 IA'}
+          </button>
+        ))}
+      </div>
+      {dirty && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+        >
+          {saving ? 'Enregistrement…' : saved ? '✅ Enregistré' : 'Enregistrer'}
+        </button>
+      )}
+    </section>
   )
 }
 
