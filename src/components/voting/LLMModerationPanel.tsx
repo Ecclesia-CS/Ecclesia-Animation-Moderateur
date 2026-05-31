@@ -8,7 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { listAssertionsAdmin, approveAssertion, rejectAssertion } from '../../lib/voting'
 import { moderateAssertions, mergeAssertions } from '../../lib/gemini'
 import type { AssertionWithPseudo } from '../../lib/voting'
-import type { Session, ModerationResult } from '../../lib/types'
+import type { Session } from '../../lib/types'
 
 // ── Types localStorage ────────────────────────────────────────
 
@@ -22,7 +22,6 @@ interface LogEntry {
 interface MergeLogEntry {
   keep_id: string
   reject_ids: string[]
-  reason: string
   timestamp: string
 }
 
@@ -67,13 +66,6 @@ function addLogEntry(sessionId: string, action: string, summary: string, tokensU
   localStorage.setItem(key, JSON.stringify(day))
 }
 
-function readLastModerate(sessionId: string): ModerationResult[] {
-  try {
-    return JSON.parse(localStorage.getItem(`ai_last_moderate_${sessionId}`) ?? '[]') as ModerationResult[]
-  } catch {
-    return []
-  }
-}
 
 // ── Composant principal ───────────────────────────────────────
 
@@ -160,8 +152,6 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         session_description: session.description,
         assertions: pending.map(a => ({ id: a.id, content: a.content })),
       })
-      // Stocker pour afficher les reasons dans la section Rejetées
-      localStorage.setItem(`ai_last_moderate_${session.id}`, JSON.stringify(results))
       let approved = 0, rejected = 0
       for (const r of results) {
         if (r.action === 'approve') { await approveAssertion(password, r.id); approved++ }
@@ -205,7 +195,6 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       const newEntries: MergeLogEntry[] = results.map(m => ({
         keep_id: m.keep_id,
         reject_ids: m.reject_ids,
-        reason: m.reason,
         timestamp: new Date().toISOString(),
       }))
       localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
@@ -236,7 +225,6 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           session_description: session.description,
           assertions: pending.map(a => ({ id: a.id, content: a.content })),
         })
-        localStorage.setItem(`ai_last_moderate_${session.id}`, JSON.stringify(results))
         let approved = 0, rejected = 0
         for (const r of results) {
           if (r.action === 'approve') { await approveAssertion(password, r.id); approved++ }
@@ -256,8 +244,6 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
   const log = readLog(session.id)
   const mergeLog = readMergeLog(session.id)
-  const lastModerate = readLastModerate(session.id)
-  const reasonMap = new Map(lastModerate.map(r => [r.id, r.reason]))
 
   const sessionTokens = log.reduce((s, e) => s + e.tokens_used, 0)
   const today = new Date().toISOString().slice(0, 10)
@@ -422,9 +408,6 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                     <div key={a.id} className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800">{a.content}</p>
-                        {reasonMap.has(a.id) && (
-                          <p className="text-xs text-gray-400 mt-0.5 italic">{reasonMap.get(a.id)}</p>
-                        )}
                       </div>
                       <button
                         onClick={async () => {
@@ -472,9 +455,6 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         <span className="font-medium">Rejetées :</span>{' '}
                         {m.reject_ids.map(id => id.slice(0, 8) + '…').join(', ')}
                       </p>
-                      {m.reason && (
-                        <p className="text-xs text-gray-400 italic">{m.reason}</p>
-                      )}
                     </div>
                     <button
                       onClick={async () => {

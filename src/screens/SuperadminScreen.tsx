@@ -1666,6 +1666,14 @@ function SessionDetail({
               currentSession.vote_threshold_percent,
             )
             setCurrentSession(prev => ({ ...prev, moderation_policy: policy }))
+            // Auto-approuver les assertions pending quand on bascule vers 'open'
+            if (policy === 'open') {
+              const pending = assertions.filter(a => a.status === 'pending')
+              for (const a of pending) {
+                try { await approveAssertion(pwd, a.id) } catch {}
+              }
+              await loadAssertions()
+            }
           }}
         />
 
@@ -2970,7 +2978,7 @@ function AssertionsPanel({
   const voteMap = new Map(voteResults.map(v => [v.id, v]))
 
   const tabs: { key: 'pending' | 'approved' | 'rejected'; label: string; count: number }[] = [
-    ...(session.moderation_policy === 'closed' ? [{ key: 'pending' as const, label: 'En attente', count: pending.length }] : []),
+    ...(session.moderation_policy !== 'open' ? [{ key: 'pending' as const, label: 'En attente', count: pending.length }] : []),
     { key: 'approved', label: 'Approuvées', count: approved.length },
     { key: 'rejected', label: 'Rejetées',   count: rejected.length },
   ]
@@ -3103,16 +3111,27 @@ function AssertionsPanel({
             <p className="text-sm text-gray-400 text-center py-4">Aucune assertion approuvée</p>
           )}
           {[...approved]
-            .sort((a, b) => (voteMap.get(b.id)?.consensus_score ?? 0) - (voteMap.get(a.id)?.consensus_score ?? 0))
+            .sort((a, b) => {
+              const scoreDiff = (voteMap.get(b.id)?.consensus_score ?? 0) - (voteMap.get(a.id)?.consensus_score ?? 0)
+              if (scoreDiff !== 0) return scoreDiff
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            })
             .map(a => {
               const v = voteMap.get(a.id)
               return (
-                <AssertionRow key={a.id} assertion={a} acting={false}>
-                  {v && v.total_votes > 0 ? (
-                    <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
-                  ) : (
-                    <span className="text-xs text-gray-400">Pas encore de votes</span>
-                  )}
+                <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {v && v.total_votes > 0 ? (
+                      <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
+                    ) : (
+                      <span className="text-xs text-gray-400">Pas encore de votes</span>
+                    )}
+                    <button
+                      onClick={() => onReject(a.id)}
+                      disabled={actingId !== null}
+                      className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >❌ Refuser</button>
+                  </div>
                 </AssertionRow>
               )
             })}

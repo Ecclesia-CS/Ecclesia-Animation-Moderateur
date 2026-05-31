@@ -3,13 +3,11 @@ export type ModerationPolicy = 'open' | 'closed' | 'ai'
 export interface ModerationResult {
   id: string
   action: 'approve' | 'reject'
-  reason: string
 }
 
 export interface MergeResult {
   keep_id: string
   reject_ids: string[]
-  reason: string
 }
 
 export interface GroupNameResult {

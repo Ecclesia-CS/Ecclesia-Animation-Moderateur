@@ -116,8 +116,8 @@ Sois permissif. En cas de doute, approuve. Le but n'est pas de censurer les opin
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, sans balises markdown :
 [
-  { "id": "<uuid exact>", "action": "approve", "reason": "<raison courte en français>" },
-  { "id": "<uuid exact>", "action": "reject", "reason": "<raison courte en français>" }
+  { "id": "<uuid exact>", "action": "approve" },
+  { "id": "<uuid exact>", "action": "reject" }
 ]
 
 Tu dois retourner une entrée pour chaque assertion reçue, avec l'uuid exact tel que fourni. Ne pas inventer d'UUIDs.`
@@ -146,8 +146,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, san
 [
   {
     "keep_id": "<uuid exact de l'assertion à conserver>",
-    "reject_ids": ["<uuid exact>", "<uuid exact>"],
-    "reason": "<explication courte en français de pourquoi ces assertions sont identiques>"
+    "reject_ids": ["<uuid exact>", "<uuid exact>"]
   }
 ]
 
