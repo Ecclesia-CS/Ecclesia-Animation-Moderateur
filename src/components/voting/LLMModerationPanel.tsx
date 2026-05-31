@@ -21,7 +21,9 @@ interface LogEntry {
 
 interface MergeLogEntry {
   keep_id: string
+  keep_content: string
   reject_ids: string[]
+  reject_contents: string[]
   timestamp: string
 }
 
@@ -193,9 +195,11 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       // Stocker dans merge_log
       const existing = readMergeLog(session.id)
       const newEntries: MergeLogEntry[] = results.map(m => ({
-        keep_id: m.keep_id,
-        reject_ids: m.reject_ids,
-        timestamp: new Date().toISOString(),
+        keep_id:         m.keep_id,
+        keep_content:    approved.find(a => a.id === m.keep_id)?.content ?? m.keep_id,
+        reject_ids:      m.reject_ids,
+        reject_contents: m.reject_ids.map(id => approved.find(a => a.id === id)?.content ?? id),
+        timestamp:       new Date().toISOString(),
       }))
       localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
       addLogEntry(session.id, 'merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
@@ -446,15 +450,24 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <div className="space-y-2">
                 {mergeLog.map((m, i) => (
                   <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-2">
-                    <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex-1 min-w-0 space-y-1">
                       <p className="text-xs text-gray-700">
-                        <span className="font-medium">Conservée :</span>{' '}
-                        <span className="font-mono text-gray-500">{m.keep_id.slice(0, 8)}…</span>
+                        <span className="font-medium text-green-700">✅ Conservée :</span>{' '}
+                        {m.keep_content || <span className="font-mono text-gray-400">{m.keep_id.slice(0, 8)}…</span>}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        <span className="font-medium">Rejetées :</span>{' '}
-                        {m.reject_ids.map(id => id.slice(0, 8) + '…').join(', ')}
-                      </p>
+                      {m.reject_contents?.length > 0 ? (
+                        <div className="space-y-0.5">
+                          <span className="font-medium text-red-600 text-xs">❌ Supprimées :</span>
+                          {m.reject_contents.map((content, ci) => (
+                            <p key={ci} className="text-xs text-gray-500 pl-3 border-l-2 border-red-100">{content}</p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          <span className="font-medium">Supprimées :</span>{' '}
+                          {m.reject_ids.map(id => id.slice(0, 8) + '…').join(', ')}
+                        </p>
+                      )}
                     </div>
                     <button
                       onClick={async () => {
