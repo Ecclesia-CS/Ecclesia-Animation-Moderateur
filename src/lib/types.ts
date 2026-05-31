@@ -1,3 +1,22 @@
+export type ModerationPolicy = 'open' | 'closed' | 'ai'
+
+export interface ModerationResult {
+  id: string
+  action: 'approve' | 'reject'
+}
+
+export interface MergeResult {
+  keep_id: string
+  reject_ids: string[]
+  reason: string
+}
+
+export interface GroupNameResult {
+  table_number: number
+  name: string
+  description: string
+}
+
 export interface Session {
   id: string
   title: string
@@ -9,7 +28,7 @@ export interface Session {
   doc_info_url: string | null
   doc_summary_url: string | null
   doc_collab_url: string | null
-  moderation_policy: 'open' | 'closed'
+  moderation_policy: ModerationPolicy
   vote_timer_minutes: number | null
   vote_threshold_percent: number | null
   phase_changed_at: string | null
