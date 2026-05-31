@@ -24,6 +24,7 @@ interface MergeLogEntry {
   keep_content: string
   reject_ids: string[]
   reject_contents: string[]
+  reason: string
   timestamp: string
 }
 
@@ -48,6 +49,21 @@ function readMergeLog(sessionId: string): MergeLogEntry[] {
   } catch {
     return []
   }
+}
+
+function readAiRejectedIds(sessionId: string): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(`ai_rejected_ids_${sessionId}`) ?? '[]') as string[]) }
+  catch { return new Set() }
+}
+function addAiRejectedIds(sessionId: string, ids: string[]) {
+  const existing = readAiRejectedIds(sessionId)
+  ids.forEach(id => existing.add(id))
+  localStorage.setItem(`ai_rejected_ids_${sessionId}`, JSON.stringify([...existing]))
+}
+function removeAiRejectedId(sessionId: string, id: string) {
+  const existing = readAiRejectedIds(sessionId)
+  existing.delete(id)
+  localStorage.setItem(`ai_rejected_ids_${sessionId}`, JSON.stringify([...existing]))
 }
 
 function addLogEntry(sessionId: string, action: string, summary: string, tokensUsed: number) {
@@ -119,7 +135,8 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   const loadRejected = useCallback(async () => {
     try {
       const all = await listAssertionsAdmin(password, session.id)
-      setRejectedAssertions(all.filter(a => a.status === 'rejected'))
+      const aiIds = readAiRejectedIds(session.id)
+      setRejectedAssertions(all.filter(a => a.status === 'rejected' && aiIds.has(a.id)))
     } catch {
       // silencieux — la section s'affichera vide
     }
@@ -159,6 +176,8 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         if (r.action === 'approve') { await approveAssertion(password, r.id); approved++ }
         else                        { await rejectAssertion(password, r.id); rejected++ }
       }
+      // Tracer les assertions rejetées par l'IA (pour filtrer la section "Rejetées par l'IA")
+      addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
       addLogEntry(session.id, 'moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
       showMsg(`✅ ${approved} approuvées, ${rejected} rejetées`)
       await loadRejected()
@@ -199,6 +218,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         keep_content:    approved.find(a => a.id === m.keep_id)?.content ?? m.keep_id,
         reject_ids:      m.reject_ids,
         reject_contents: m.reject_ids.map(id => approved.find(a => a.id === id)?.content ?? id),
+        reason:          m.reason ?? '',
         timestamp:       new Date().toISOString(),
       }))
       localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
@@ -234,6 +254,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           if (r.action === 'approve') { await approveAssertion(password, r.id); approved++ }
           else                        { await rejectAssertion(password, r.id); rejected++ }
         }
+        addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
         addLogEntry(session.id, 'auto-moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
       } catch {
         // Silencieux en mode auto — erreurs loggées dans la console uniquement
@@ -417,6 +438,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         onClick={async () => {
                           try {
                             await approveAssertion(password, a.id)
+                            removeAiRejectedId(session.id, a.id)
                             await loadRejected()
                           } catch (e) {
                             showMsg(e instanceof Error ? e.message : String(e), true)
@@ -467,6 +489,9 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           <span className="font-medium">Supprimées :</span>{' '}
                           {m.reject_ids.map(id => id.slice(0, 8) + '…').join(', ')}
                         </p>
+                      )}
+                      {m.reason && (
+                        <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-gray-200 pl-2">{m.reason}</p>
                       )}
                     </div>
                     <button

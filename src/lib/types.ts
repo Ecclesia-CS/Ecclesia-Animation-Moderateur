@@ -8,6 +8,7 @@ export interface ModerationResult {
 export interface MergeResult {
   keep_id: string
   reject_ids: string[]
+  reason: string
 }
 
 export interface GroupNameResult {

@@ -126,7 +126,7 @@ Tu dois retourner une entrée pour chaque assertion reçue, avec l'uuid exact te
 function buildMergePrompt(p: MergePayload): string {
   const desc = p.session_description ?? 'Aucune description fournie'
   const assertionsStr = serializeAssertions(p.assertions)
-  return `Tu es le modérateur de l'association Ecclesia, qui organise des débats délibératifs structurés. Ton rôle est d'identifier les assertions qui expriment la même idée et de proposer des fusions.
+  return `Tu es le modérateur de l'association Ecclesia, qui organise des débats délibératifs structurés. Ton rôle est d'identifier uniquement les assertions qui sont des reformulations quasi-identiques de la même idée.
 
 Thème de la séance : ${p.session_title}
 Description : ${desc}
@@ -134,19 +134,29 @@ Description : ${desc}
 Voici les assertions approuvées :
 ${assertionsStr}
 
-Identifie les groupes d'assertions qui expriment exactement la même idée, ou des idées si proches qu'elles produiraient le même résultat de vote.
+Tu ne dois fusionner que des assertions qui satisfont ces deux conditions simultanément :
+1. Elles proposent exactement la même action ou expriment exactement le même jugement
+2. Une personne rationnelle ne pourrait pas voter différemment sur l'une et sur l'autre
 
-Règles strictes :
-- Ne fusionne PAS des assertions qui expriment des nuances différentes, même si elles parlent du même sujet. Le désaccord sur les nuances est précieux pour le débat.
-- Ne fusionne PAS plus de 3 assertions ensemble.
-- Si aucune fusion n'est évidente, retourne un tableau vide [].
-- Pour chaque fusion, conserve l'assertion la mieux formulée (keep_id) et rejette les autres (reject_ids).
+Exemples de ce qu'il NE faut PAS fusionner :
+- Deux actions différentes sur le même sujet ("plus de pistes cyclables" ≠ "plus de vélos") — ce sont des leviers distincts
+- Une action concrète et une valeur générale ("construire des pistes" ≠ "favoriser le vélo en ville")
+- Deux degrés différents ("réduire la voiture" ≠ "supprimer la voiture")
+- Une cause et sa conséquence ("améliorer les transports" ≠ "réduire la pollution")
+
+Exemples de ce qu'il faut fusionner :
+- Reformulations avec des mots différents mais sens strictement identique ("Il faut plus de vélos en ville" = "Il faudrait davantage de vélos dans les zones urbaines")
+- Même affirmation avec ou sans précision géographique mineure
+
+En cas de doute, ne fusionne pas. La préservation des nuances est plus importante que l'élimination des doublons.
+Ne fusionne jamais plus de 2 assertions ensemble.
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, sans balises markdown :
 [
   {
     "keep_id": "<uuid exact de l'assertion à conserver>",
-    "reject_ids": ["<uuid exact>", "<uuid exact>"]
+    "reject_ids": ["<uuid exact>"],
+    "reason": "<citation des deux assertions + explication en 1 phrase de pourquoi elles sont strictement identiques>"
   }
 ]
 
