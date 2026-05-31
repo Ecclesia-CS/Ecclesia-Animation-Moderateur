@@ -14,6 +14,7 @@ import {
 } from '../lib/analysis'
 import type { LoadedAnalysis } from '../lib/analysis'
 import type { AssertionWithPseudo } from '../lib/voting'
+import type { GroupNameResult } from '../lib/types'
 
 
 // ── Constantes ────────────────────────────────────────────────
@@ -31,6 +32,7 @@ interface AnalysisPanelProps {
   assertions:  AssertionWithPseudo[]
   onAuthError(): void
   onAnalysisStatusChange?(hasDone: boolean): void
+  groupNames?: GroupNameResult[]
 }
 
 // ── ScatterPlot ───────────────────────────────────────────────
@@ -39,11 +41,12 @@ const W   = 280
 const H   = 210
 
 interface ScatterProps {
-  members:  LoadedAnalysis['members']
-  kChosen:  number
+  members:    LoadedAnalysis['members']
+  kChosen:    number
+  groupNames?: GroupNameResult[]
 }
 
-function ScatterPlot({ members, kChosen }: ScatterProps) {
+function ScatterPlot({ members, kChosen, groupNames }: ScatterProps) {
   if (members.length === 0) return null
 
   const xs = members.map(m => m.pca_x)
@@ -88,16 +91,23 @@ function ScatterPlot({ members, kChosen }: ScatterProps) {
       </svg>
       {/* Légende */}
       <div className="flex flex-wrap gap-3 mt-2 justify-center">
-        {groups.map(g => (
-          <div key={g} className="flex items-center gap-1.5 text-xs text-gray-600">
-            <span
-              className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
-              style={{ backgroundColor: groupColor(g) }}
-            />
-            Groupe {g + 1}
-            <span className="text-gray-400">({groupCounts[g] ?? 0})</span>
-          </div>
-        ))}
+        {groups.map(g => {
+          const geminiName = groupNames?.find(n => n.table_number === g + 1)?.name
+          return (
+            <div key={g} className="flex items-center gap-1.5 text-xs text-gray-600">
+              <span
+                className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: groupColor(g) }}
+              />
+              {geminiName ? (
+                <span className="font-medium">{geminiName}</span>
+              ) : (
+                <span>Groupe {g + 1}</span>
+              )}
+              <span className="text-gray-400">({groupCounts[g] ?? 0})</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -110,6 +120,7 @@ export default function AnalysisPanel({
   assertions,
   onAuthError,
   onAnalysisStatusChange,
+  groupNames,
 }: AnalysisPanelProps) {
   const [open,          setOpen]          = useState(false)
   const [analysis,      setAnalysis]      = useState<LoadedAnalysis | null>(null)
@@ -295,7 +306,7 @@ export default function AnalysisPanel({
               </div>
 
               {/* Scatter plot */}
-              <ScatterPlot members={analysis.members} kChosen={analysis.k_chosen} />
+              <ScatterPlot members={analysis.members} kChosen={analysis.k_chosen} groupNames={groupNames} />
 
               {/* Assertions clivantes */}
               <div>
@@ -311,7 +322,9 @@ export default function AnalysisPanel({
                           className="text-xs font-semibold mb-1.5"
                           style={{ color: groupColor(g) }}
                         >
-                          Groupe {g + 1}
+                          {groupNames?.find(n => n.table_number === g + 1)?.name
+                            ? `${groupNames.find(n => n.table_number === g + 1)!.name} (Groupe ${g + 1})`
+                            : `Groupe ${g + 1}`}
                         </p>
                         {items.length === 0 ? (
                           <p className="text-xs text-gray-400">Aucune assertion disponible</p>

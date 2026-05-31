@@ -1070,7 +1070,10 @@ function SessionDetail({
 
   // ── C5 : groupes et assignation ───────────────────────────
   const [groups,          setGroups]          = useState<GroupRow[]>([])
-  const [groupNames,      setGroupNames]      = useState<GroupNameResult[]>([])
+  const [groupNames,      setGroupNames]      = useState<GroupNameResult[]>(() => {
+    try { return JSON.parse(localStorage.getItem(`group_names_${session.id}`) ?? '[]') as GroupNameResult[] }
+    catch { return [] }
+  })
   const [groupsLoading,   setGroupsLoading]   = useState(false)
   const [dropdownTables,  setDropdownTables]  = useState<SessionTableRow[]>([])
   const [assigningGroup,  setAssigningGroup]  = useState<number | null>(null)
@@ -1770,6 +1773,7 @@ function SessionDetail({
                 assertions={assertions}
                 onAuthError={onAuthError}
                 onAnalysisStatusChange={setHasAnalysisDone}
+                groupNames={groupNames}
               />
             )}
 
