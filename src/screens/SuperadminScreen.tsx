@@ -1272,6 +1272,17 @@ function SessionDetail({
     if (!hasAnalysisDone) return
     if (groups.length === 0) return
 
+    // Empreinte des groupes actuels (composition des membres)
+    const fp = JSON.stringify(
+      groups
+        .map(g => ({ t: g.table_number, m: g.members.map(m => m.member_id).sort() }))
+        .sort((a, b) => a.t - b.t)
+    )
+    const storedFp = localStorage.getItem(`group_names_fp_${currentSession.id}`)
+
+    // Si les noms existent déjà ET les groupes n'ont pas changé → on garde
+    if (groupNames.length > 0 && storedFp === fp) return
+
     const pwd = getPwd()!
     ;(async () => {
       try {
@@ -1292,11 +1303,13 @@ function SessionDetail({
         })
         setGroupNames(names)
         localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
+        // Stocker l'empreinte après succès — évite le re-appel au prochain render
+        localStorage.setItem(`group_names_fp_${currentSession.id}`, fp)
       } catch {
         // silencieux — les groupes restent sans nom
       }
     })()
-  }, [groups, hasAnalysisDone, currentSession.phase, currentSession.id, currentSession.title, currentSession.description])
+  }, [groups, groupNames.length, hasAnalysisDone, currentSession.phase, currentSession.id, currentSession.title, currentSession.description])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
     const password = getPwd()!

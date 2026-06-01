@@ -191,6 +191,8 @@ Règles strictes :
 - Évite les étiquettes politiques préexistantes ("les progressistes", "les conservateurs", etc.) — décris les positions concrètes sur ce débat.
 - Si les profils de vote sont trop similaires pour distinguer les groupes, indique-le dans la description.
 - Base-toi uniquement sur les patterns de vote, pas sur des suppositions démographiques.
+- Si un groupe a peu ou aucun vote (tous les compteurs à 0), donne-lui quand même un nom tel que "Groupe peu actif" et indique dans la description que ce groupe n'a pas suffisamment participé au vote pour être caractérisé.
+- RÈGLE ABSOLUE : tu dois retourner EXACTEMENT autant d'entrées qu'il y a de groupes reçus. Chaque table_number doit apparaître exactement une fois dans ta réponse, sans exception.
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, sans balises markdown :
 [
@@ -201,7 +203,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, san
   }
 ]
 
-Tu dois retourner une entrée pour chaque groupe reçu, avec le table_number exact tel que fourni.`
+Tu dois retourner une entrée pour CHAQUE groupe reçu, avec le table_number exact tel que fourni. Si tu reçois 3 groupes, tu dois retourner 3 entrées. Si tu reçois 5 groupes, tu dois retourner 5 entrées.`
 }
 
 // ── Appel Gemini ──────────────────────────────────────────────
