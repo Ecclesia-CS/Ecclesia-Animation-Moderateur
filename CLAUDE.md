@@ -160,7 +160,7 @@ src/
     │   ├── TableAssignmentCard.tsx   Carte groupe + nom camp (prop groupName) + join_code + bouton rejoindre
     │   ├── VoteResultsSummary.tsx    Résumé des votes (assertions + consensus_score)
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
-    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Prop groupNames?: GroupNameResult[] pour afficher les noms Gemini
+    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number (affiche warning si des participants ont été exclus de l'analyse)
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
     ├── ReadOnlyQueuePanel.tsx    File lecture seule (participants)
@@ -256,6 +256,8 @@ Stocké en localStorage au moment du create/join. Ne pas dériver de `table.crea
 - **Oublier `broadcast()` après une action** — sinon 5s de délai pour les autres clients
 - **`prev => [...prev, n]` sans déduplication Realtime** — upsert SQL déclenche parfois INSERT. Toujours vérifier `prev.some(p => p.id === n.id)` avant d'ajouter
 - **`WHERE user_id = auth.uid()` sans `LIMIT 1`** — un user_id peut avoir plusieurs participants depuis migration 005
+- **`votedCount = myVotes.size` dans VoteScreen** — `myVotes` accumule tous les votes posés, y compris sur des assertions rejetées/supprimées depuis. Toujours intersecter : `assertions.filter(a => myVotes.has(a.id)).length` pour éviter un numérateur > dénominateur.
+- **`MIN_VOTES_PER_MEMBER` trop élevé dans `analysis.ts`** — `get_all_votes_for_analysis` ne retourne que les votes sur assertions `approved`. Si des assertions sont rejetées après que des participants ont voté dessus, ces participants n'ont plus assez de votes et sont exclus du scatter PCA. Valeur actuelle : 1 (abaissée de 2).
 
 ---
 

@@ -33,6 +33,7 @@ interface AnalysisPanelProps {
   onAuthError(): void
   onAnalysisStatusChange?(hasDone: boolean): void
   groupNames?: GroupNameResult[]
+  totalMembers?: number
 }
 
 // ── ScatterPlot ───────────────────────────────────────────────
@@ -121,6 +122,7 @@ export default function AnalysisPanel({
   onAuthError,
   onAnalysisStatusChange,
   groupNames,
+  totalMembers,
 }: AnalysisPanelProps) {
   const [open,          setOpen]          = useState(false)
   const [analysis,      setAnalysis]      = useState<LoadedAnalysis | null>(null)
@@ -307,6 +309,11 @@ export default function AnalysisPanel({
 
               {/* Scatter plot */}
               <ScatterPlot members={analysis.members} kChosen={analysis.k_chosen} groupNames={groupNames} />
+              {totalMembers != null && totalMembers > analysis.members.length && (
+                <p className="text-xs text-amber-600 mt-1 text-center">
+                  ⚠ {totalMembers - analysis.members.length} participant(s) exclus de l&apos;analyse (aucun vote sur assertions approuvées)
+                </p>
+              )}
 
               {/* Assertions clivantes */}
               <div>

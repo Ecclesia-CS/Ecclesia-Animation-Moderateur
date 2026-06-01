@@ -542,7 +542,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   if (step === 'vote' && session && member) {
-    const votedCount = myVotes.size
+    const votedCount = assertions.filter(a => myVotes.has(a.id)).length
     // Only show assertions that haven't been voted on yet
     const unvotedAssertions = assertions.filter(a => !myVotes.has(a.id))
     const allVoted = assertions.length > 0 && unvotedAssertions.length === 0

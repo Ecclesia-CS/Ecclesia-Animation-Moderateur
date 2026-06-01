@@ -13,7 +13,7 @@ import { extractErr } from './utils'
 const MIN_VOTERS              = 6
 const MIN_ASSERTIONS          = 5
 const MIN_VOTES_PER_ASSERTION = 3  // assertions avec moins de N votes réels exclues
-const MIN_VOTES_PER_MEMBER    = 2  // membres avec moins de N votes après filtrage exclus
+const MIN_VOTES_PER_MEMBER    = 1  // membres avec moins de N votes après filtrage exclus
 
 // ── Erreur typée ─────────────────────────────────────────────
 export class AnalysisError extends Error {
