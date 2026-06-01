@@ -23,7 +23,7 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int)
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int)
 
 ### `tables`
 `id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL)
@@ -107,7 +107,10 @@ Contrainte : `UNIQUE(session_id, member_id)`.
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |
 | `set_session_phase(password, session_id, phase)` | Change la phase de la séance |
 | `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire des membres → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
+| `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène basée sur l'analyse PCA (si analyse existe) → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
+| `update_session_config(password, session_id, moderation_policy, vote_timer_minutes, vote_threshold_percent)` | Met à jour la configuration de vote. `moderation_policy` ∈ `('open','closed','ai')` |
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
+| `get_all_votes_for_analysis(password, session_id)` | Retourne tous les votes de la séance (bypass RLS — superadmin uniquement) |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les 4 tables de données — obligatoire pour que les DELETE filtrés arrivent aux subscribers.
 Les tables Bloc C (`session_members`, `assertions`, `assertion_votes`, `table_assignments`) sont dans la publication Realtime — pas de broadcast custom, Realtime natif uniquement.
@@ -121,16 +124,20 @@ Les tables Bloc C (`session_members`, `assertions`, `assertion_votes`, `table_as
 src/
 ├── lib/
 │   ├── supabase.ts       Client Supabase
-│   ├── types.ts          Session, Table, Participant, QueueEntry, SpeakingTurn, QuestionnaireResponse + SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment
+│   ├── types.ts          Session, Table, Participant, QueueEntry, SpeakingTurn, QuestionnaireResponse
+│   │                     + SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment
+│   │                     + ModerationPolicy, ModerationResult, MergeResult, GroupNameResult (sprint IA)
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
-│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, assignTableToGroup)
+│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
+│   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups) — jamais d'appel direct à api.google.com
+│   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult)
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
 │   ├── EntryScreen.tsx         Section "Séances en cours" (fetch public) + tabs Rejoindre/Reprendre/Créer + lien Administration
-│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, section "Tables et assignations" (clustering → groupes + rattachement tables physiques + bouton Ouvrir le débat)
+│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini
 │   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
 │   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
 │   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, bouton rejoindre (join_table RPC + tableStore + reload)
@@ -140,9 +147,11 @@ src/
 │   └── ParticipantView.tsx     Vue mobile
 └── components/
     ├── voting/
+    │   ├── LLMModerationPanel.tsx    Panneau IA superadmin : modération/fusion manuelle+auto, log tokens, fusions effectuées
     │   ├── TableAssignmentCard.tsx   Carte groupe + join_code + bouton rejoindre (2 états : join / arrived)
     │   ├── VoteResultsSummary.tsx    Résumé des votes (assertions + consensus_score)
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
+    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Prop groupNames?: GroupNameResult[] pour afficher les noms Gemini
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
     ├── ReadOnlyQueuePanel.tsx    File lecture seule (participants)
@@ -153,6 +162,16 @@ src/
     ├── QuestionnaireModal.tsx    6 questions, 26 thèmes aléatoires, upsert RPC
     ├── QuestionnaireFab.tsx      Bouton header → QuestionnaireModal
     └── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL
+```
+
+### Edge Functions Supabase
+
+```
+supabase/functions/
+└── gemini-proxy/index.ts   Proxy Gemini Flash (gemini-2.5-flash-lite)
+                             Actions : moderate | merge | name_groups
+                             Auth : JWT Supabase via getUser()
+                             Clé : GEMINI_API_KEY (secret Supabase)
 ```
 
 ### Hash routes (App.tsx)
@@ -240,7 +259,7 @@ Flux complet :
 3. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` NULL, `table_number` logique attribué). Superadmin rattache chaque groupe à une table physique via `assign_table_to_group`. Participants voient leur numéro de groupe dans AllocatingScreen (polling 5s + Realtime).
 4. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` de leur table et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → `window.location.reload()` → TableView.
 
-`moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`.
+`moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`. `= 'ai'` : `pending`, modération automatique par Gemini via `LLMModerationPanel` (setInterval configurable).
 
 `vote_timer_minutes` / `vote_threshold_percent` : configurés à la création ou via update, NULL = désactivé.
 
@@ -255,6 +274,37 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 
 ---
 
+## Modération IA (sprint Gemini Flash)
+
+### Architecture
+Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-proxy` — jamais d'appel direct à `api.google.com` depuis le frontend.
+
+`src/lib/gemini.ts` → `supabase.functions.invoke('gemini-proxy')` → Gemini API
+
+### Clés localStorage IA (par session.id)
+| Clé | Contenu |
+|---|---|
+| `ai_log_<id>` | `LogEntry[]` max 50 FIFO — historique appels Gemini |
+| `ai_tokens_day_<YYYY-MM-DD>` | `{ total_tokens, request_count }` — compteurs journaliers |
+| `merge_log_<id>` | `MergeLogEntry[]` max 100 FIFO — fusions effectuées |
+| `ai_rejected_ids_<id>` | `string[]` — UUIDs rejetés par l'IA (distinct des rejets manuels) |
+| `ai_auto_moderate_<id>` | `'true'/'false'` — toggle auto-modération |
+| `ai_auto_interval_<id>` | nombre (minutes) — intervalle setInterval |
+| `ai_auto_merge_<id>` | `'true'/'false'` — fusion automatique avant clustering |
+| `group_names_<id>` | `GroupNameResult[]` — noms Gemini des groupes |
+| `group_names_fp_<id>` | string JSON — empreinte groupes pour éviter re-appel Gemini |
+
+### Règles critiques IA
+- **`group_names_fp_<id>`** : ne rappeler Gemini pour le nommage que si l'empreinte des groupes a changé (nouveau clustering) ou si aucun nom n'est stocké
+- **Fallback nommage** : si Gemini retourne moins d'entrées que de groupes, compléter côté frontend avec `{ name: "Groupe N", description: "..." }` avant de stocker
+- **`ai_rejected_ids_<id>`** : seules les assertions dans ce set s'affichent dans "Assertions rejetées par l'IA" — les rejets manuels n'y apparaissent pas
+- **Ne pas appeler `supabase.functions.invoke` sans vérifier `error` ET `data?.error`**
+
+### Mapping group_id ↔ table_number
+`AnalysisPanel` utilise `group_id` 0-indexé. Les `table_number` de `table_assignments` et de Gemini sont 1-indexés. Mapping : `table_number = group_id + 1`.
+
+---
+
 ## Reste à faire (éventuel)
 - Toast notifications
 - Page 404 / table expirée élégante
@@ -262,3 +312,5 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
 - Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant
 - Génération de QR code dans l'UI superadmin (actuellement : site externe)
+- Migrer `group_names` de localStorage vers la base de données
+- Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameIdeologicalGroups` comme `divisive_assertions`
