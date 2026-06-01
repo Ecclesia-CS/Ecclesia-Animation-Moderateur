@@ -26,7 +26,7 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 `id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int)
 
 ### `tables`
-`id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL)
+`id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`)
 
 ### `participants`
 `id`, `table_id` (CASCADE), `user_id`, `pseudo`, `created_at`
@@ -85,13 +85,14 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | Fonction | Rôle |
 |---|---|
 | `is_table_participant(uuid)` | Helper RLS anti-récursion |
-| `create_table(pseudo, creation_code, session_id?)` | Crée table + participant |
+| `create_table(pseudo, creation_code, session_id?, leaderless?)` | Crée table + participant. Si `leaderless=true`, le code Ecclesia n'est pas vérifié et la table n'a pas d'animateur |
 | `join_table(join_code, pseudo)` | ON CONFLICT → transfère user_id (retour autre appareil) |
 | `reclaim_moderator(join_code, creation_code)` | Reprend la modération |
 | `grant_floor(table_id, participant_id, source)` | Clôt tour ouvert + ouvre nouveau |
 | `end_turn(table_id)` | Pose ended_at, vide current_speaker_id |
 | `end_turn_and_advance(table_id)` | Clôt + accorde au suivant (interactive > long) en 1 transaction. Retourne `{current_speaker_id, current_turn_started_at, removed_queue_entry_id}` |
 | `end_turn_as_speaker(table_id)` | Comme end_turn mais par l'orateur lui-même (JOIN via current_speaker_id) |
+| `claim_floor(table_id)` | Tables leaderless uniquement — accorde la parole au premier en file si personne ne parle. Atomique (FOR UPDATE). Retourne `{current_speaker_id, current_turn_started_at, removed_queue_entry_id}` |
 | `add_to_queue(table_id, participant_id, queue_type, position?)` | Idempotent. Si position fournie, décale les existants |
 | `reorder_queue_entry(entry_id, new_position)` | Déplace atomiquement |
 | `kick_participant(table_id, participant_id)` | Exclut + cascade |
@@ -100,8 +101,8 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `attach_table_to_session(password, table_id, session_id)` | Rattache |
 | `detach_table_from_session(password, table_id)` | Détache |
 | `close_session(password, session_id)` | phase → 'closed' |
-| `list_session_tables(password, session_id)` | Tables rattachées (bypass RLS) |
-| `list_available_tables(password)` | Tables sans séance (48h) |
+| `list_session_tables(password, session_id)` | Tables rattachées (bypass RLS) — inclut `leaderless` |
+| `list_available_tables(password, since?)` | Tables sans séance (48h) — inclut `leaderless` |
 | `submit_questionnaire(table_id, ...)` | Upsert questionnaire_responses |
 | `update_session_docs(password, session_id, doc_*?)` | Met à jour les 3 URLs docs |
 | `register_session_member(session_id, pseudo)` | Inscrit l'utilisateur (ON CONFLICT user → retourne existant ; pseudo pris → exception) |
@@ -203,7 +204,7 @@ URL locale : `http://localhost:5173/Ecclesia-Animation-Moderateur/#session/<join
 ```typescript
 table, participants, queueLong, queueInteractive, speakingTurns, myParticipant, isModerator
 leaveTable, endTable
-grantFloor, endTurn, endTurnAsSpeaker, endTurnAndAdvance
+grantFloor, endTurn, endTurnAsSpeaker, endTurnAndAdvance, claimFloor
 addToQueue, removeFromQueue, moveQueueEntry, reorderQueueEntry, changeQueueType
 correctTurn, kickParticipant
 ```
@@ -225,6 +226,15 @@ Réelle en DB : `endTurn()` → stocker `pausedSpeakerId`. Reprise : `grantFloor
 
 ### isModerator
 Stocké en localStorage au moment du create/join. Ne pas dériver de `table.created_by === userId` (incorrect si 2 onglets même userId).
+Pour les tables `leaderless`, `isModerator` est toujours `false` — le créateur rejoint en tant que participant normal. Le listener Realtime skipppe la mise à jour de `isModerator` si `row.leaderless`.
+
+### Tables leaderless (`table.leaderless = true`)
+Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
+1. Participant appuie "Demander la parole" → entre en file
+2. `useEffect` dans `ParticipantView` détecte : leaderless + personne ne parle + je suis premier → appelle `claimFloor()` (RPC atomique, silencieux si race condition)
+3. Quand on a la parole, bouton "J'ai fini de parler" visible → appelle `endTurnAndAdvance` → donne la parole au suivant
+4. Création via EntryScreen (checkbox "Table sans animateur", pas de code Ecclesia requis) ou bouton "+ Sans admin" dans le superadmin
+5. Badge jaune "Sans animateur" dans la vue superadmin
 
 ### Realtime latence — 4 couches
 1. Mise à jour locale immédiate après RPC
