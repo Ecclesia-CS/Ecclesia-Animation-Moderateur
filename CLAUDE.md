@@ -118,9 +118,12 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
 | `get_all_votes_for_analysis(password, session_id)` | Retourne tous les votes de la séance (bypass RLS — superadmin uniquement) |
 
-**RLS Realtime** : `REPLICA IDENTITY FULL` sur les 4 tables de données — obligatoire pour que les DELETE filtrés arrivent aux subscribers.
+**RLS Realtime** : `REPLICA IDENTITY FULL` sur les tables suivantes — obligatoire pour que les événements filtrés (DELETE et UPDATE avec RLS) arrivent aux subscribers :
+- `tables`, `participants`, `queue_entries`, `speaking_turns` (migration `core_functions`)
+- `table_assignments` (migration `20260530`) : sans ça, un UPDATE de `table_id` seul ne transmet pas `session_id` dans le WAL → le filtre Realtime `session_id=eq.<id>` ne peut pas matcher
+- `sessions` (migration `20260615`) : sans ça, les UPDATE de phase (draft→voting, allocating→debating) ne sont pas livrés aux participants → les transitions de phase nécessitaient un reload manuel
+
 Les tables Bloc C (`session_members`, `assertions`, `assertion_votes`, `table_assignments`) sont dans la publication Realtime — pas de broadcast custom, Realtime natif uniquement.
-`table_assignments` a aussi `REPLICA IDENTITY FULL` (migration `20260530`) : sans ça, un UPDATE de `table_id` seul ne transmet pas `session_id` dans le WAL → le filtre Realtime `session_id=eq.<id>` ne peut pas matcher → les participants ne reçoivent pas le join_code en temps réel.
 
 ---
 
@@ -280,9 +283,11 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 - **Compatibilité Messenger** : plus de `window.location.href` / `window.location.reload()`. Le fallback `href` reste si `onTableJoined` n'est pas fourni (usage standalone).
 - **Pas d'étape intermédiaire "J'arrive"** : `TableAssignmentCard` ne prend plus de props `joined`/`onArrived` — le join et la navigation sont fusionnés en une seule action.
 
-### Polling de secours phase (VoteScreen — Messenger/WebSocket indisponible)
+### Polling de secours phase (VoteScreen + AllocatingScreen — Messenger/WebSocket indisponible)
 
-`VoteScreen` ajoute un polling 15 s sur la phase de la séance pendant les étapes `waiting` et `vote`. Si le WebSocket Realtime est coupé (in-app browsers), la transition de phase est détectée dans les 15 s sans rechargement. Les étapes `pseudo` et `onboarding` bénéficient aussi d'une protection : `handleOnboardingSuccess` re-fetch la phase courante avant de décider la prochaine étape (évite une session périmée).
+`VoteScreen` ajoute un polling 10 s sur la phase de la séance pendant les étapes `waiting` et `vote`. Si le WebSocket Realtime est coupé (in-app browsers), la transition de phase est détectée dans les 10 s sans rechargement. Les étapes `pseudo` et `onboarding` bénéficient aussi d'une protection : `handleOnboardingSuccess` re-fetch la phase courante avant de décider la prochaine étape (évite une session périmée).
+
+`AllocatingScreen` ajoute un polling 10 s sur la phase de la séance pendant l'étape `allocating`. Couvre la transition `allocating → debating` quand Realtime est indisponible — sans ça, le participant resterait bloqué sans voir le bouton "Rejoindre".
 
 ### Nom du camp dans AllocatingScreen
 
@@ -318,6 +323,7 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 - **`responseMimeType: 'application/json'`** : passé dans `generationConfig` de l'appel Gemini pour forcer la sortie JSON native (évite les enrobages markdown)
 - **`ai_rejected_ids_<id>`** : seules les assertions dans ce set s'affichent dans "Assertions rejetées par l'IA" — les rejets manuels n'y apparaissent pas
 - **Ne pas appeler `supabase.functions.invoke` sans vérifier `error` ET `data?.error`**
+- **Sanitisation UUID merge** : `gemini-proxy` filtre les résultats `merge` avant retour — Gemini peut halluciner un UUID légèrement altéré (ex : premier tiret manquant). La validation côté Edge Function (regex UUID + présence dans les IDs d'entrée) est la première ligne de défense ; `LLMModerationPanel` ajoute un guard avant `rejectAssertion`. Ne pas supprimer ces validations.
 
 ### ⚠️ Bug connu — nommage Gemini incomplet pour k=3+
 Sur un appel batch avec 3 groupes ou plus, Gemini 2.5 Flash Lite retourne **systématiquement moins d'entrées** que demandé (typiquement 2/3), malgré :
