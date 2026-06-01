@@ -15,6 +15,7 @@ import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireF
 
 interface VoteScreenProps {
   sessionJoinCode: string
+  onTableJoined?: (tableId: string, participantId: string, isModerator: boolean) => void
 }
 
 type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended'
@@ -29,7 +30,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
+export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScreenProps) {
   const [step, setStep] = useState<Step>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -342,6 +343,40 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     return () => clearInterval(interval)
   }, [step, session])
 
+  // ── Polling de secours phase (fallback Realtime — Messenger / WebSocket indisponible) ──
+  useEffect(() => {
+    if (step !== 'waiting' && step !== 'vote') return
+    if (!session || !member) return
+
+    const sessionId  = session.id
+    const knownPhase = session.phase
+    const m = member
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .maybeSingle()
+      if (!data) return
+      const s = data as Session
+      if (s.phase === knownPhase) return
+
+      setSession(s)
+      if (s.phase === 'voting' || s.phase === 'allocating') {
+        if (step === 'waiting') loadVoteData(s, m)
+      } else if (s.phase === 'debating') {
+        setStep('allocating')
+      } else if (s.phase === 'questionnaire') {
+        setStep('questionnaire')
+      } else if (s.phase === 'closed') {
+        setStep('closed')
+      }
+    }, 15_000)
+
+    return () => clearInterval(interval)
+  }, [step, session?.id, session?.phase, member?.id])
+
   // ── Nudge "Proposer" toutes les 10 assertions votées ─────────────────────
   useEffect(() => {
     if (step !== 'vote') return
@@ -378,13 +413,24 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     setStep('onboarding')
   }
 
-  function handleOnboardingSuccess(_response: EntryResponse) {
+  async function handleOnboardingSuccess(_response: EntryResponse) {
     if (!session || !member) return
-    if (session.phase === 'draft') {
+    // Re-fetch phase courante — peut avoir changé pendant l'onboarding
+    const { data } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', session.id)
+      .maybeSingle()
+    const current = (data as Session | null) ?? session
+    setSession(current)
+
+    if (current.phase === 'draft') {
       setStep('waiting')
-      subscribeForWaiting(session, member)
+      subscribeForWaiting(current, member)
+    } else if (current.phase === 'debating') {
+      setStep('allocating')
     } else {
-      loadVoteData(session, member)
+      loadVoteData(current, member)
     }
   }
 
@@ -422,7 +468,7 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   }
 
   if (step === 'allocating' && session && member) {
-    return <AllocatingScreen session={session} member={member} />
+    return <AllocatingScreen session={session} member={member} onTableJoined={onTableJoined} />
   }
 
   if (step === 'questionnaire' && session) {

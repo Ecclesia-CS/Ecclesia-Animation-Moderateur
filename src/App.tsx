@@ -85,6 +85,13 @@ export default function App() {
     }
   }
 
+  function handleTableJoined(tableId: string, participantId: string, isModerator: boolean) {
+    const userId = phase.type !== 'loading' ? (phase as { userId: string }).userId : ''
+    setPhase({ type: 'table', tableId, participantId, userId, isModerator })
+    // Nettoyer le hash sans déclencher hashchange (history.replaceState n'émet pas d'événement)
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+  }
+
   function handleTableEnd() {
     tableStore.clear()
     const userId = phase.type === 'table' ? phase.userId : ''
@@ -109,9 +116,10 @@ export default function App() {
   }
 
   // Route #vote/<join_code> — interface de vote participant
-  if (hash.startsWith('#vote/')) {
+  // Guard: si l'utilisateur vient de rejoindre une table (phase 'table'), on passe en TableView
+  if (hash.startsWith('#vote/') && phase.type !== 'table') {
     const joinCode = hash.slice('#vote/'.length)
-    return <VoteScreen sessionJoinCode={joinCode} />
+    return <VoteScreen sessionJoinCode={joinCode} onTableJoined={handleTableJoined} />
   }
 
   if (phase.type === 'loading') {

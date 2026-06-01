@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getVoteResults, getMyTableAssignment } from '../lib/voting'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
-import type { Session, SessionMember, VoteResult } from '../lib/types'
+import type { GroupNameResult, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
@@ -13,9 +13,10 @@ import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireF
 interface AllocatingScreenProps {
   session: Session
   member: SessionMember
+  onTableJoined?: (tableId: string, participantId: string, isModerator: boolean) => void
 }
 
-export default function AllocatingScreen({ session, member }: AllocatingScreenProps) {
+export default function AllocatingScreen({ session, member, onTableJoined }: AllocatingScreenProps) {
   const [currentSession,    setCurrentSession]    = useState<Session>(session)
   const [voteResults,       setVoteResults]       = useState<VoteResult[]>([])
   const [resultsLoading,    setResultsLoading]    = useState(true)
@@ -115,18 +116,36 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
       .catch(() => { /* ignore */ })
   }, [currentSession.phase, session.id])
 
-  // ── Polling de secours quand debating + pas encore de join_code ──
+  // ── Polling de secours — allocating ou debating sans join_code/assignment ──
   useEffect(() => {
-    if (currentSession.phase !== 'debating') return
-    if (assignment?.tables?.join_code) return
+    const phase = currentSession.phase
+    if (phase !== 'allocating' && phase !== 'debating') return
+    // Arrêter dès qu'on a un join_code (le cas debating+join_code est résolu)
+    if (phase === 'debating' && assignment?.tables?.join_code) return
+    // En allocating : arrêter dès qu'on a l'assignment (même sans join_code)
+    if (phase === 'allocating' && assignment !== null) return
 
     const interval = setInterval(async () => {
       const data = await getMyTableAssignment(session.id).catch(() => null)
       if (data) setAssignment(data as AssignmentWithTable)
-    }, 5000)
+    }, 5_000)
 
     return () => clearInterval(interval)
-  }, [currentSession.phase, assignment?.tables?.join_code, session.id])
+  }, [currentSession.phase, assignment, session.id])
+
+  // ── Nom du camp idéologique (localStorage superadmin) ─────────────
+  const groupName = useMemo(() => {
+    if (!assignment) return null
+    try {
+      const names = JSON.parse(
+        localStorage.getItem(`group_names_${session.id}`) ?? '[]',
+      ) as GroupNameResult[]
+      const found = names.find(n => n.table_number === assignment.table_number)
+      return found ?? null
+    } catch {
+      return null
+    }
+  }, [assignment, session.id])
 
   // ── Join table (bouton cliquable) ─────────────────────────────────
   async function handleJoin() {
@@ -148,7 +167,11 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
         isModerator:   false,
         pseudo:        member.pseudo,
       })
-      window.location.href = window.location.pathname + window.location.search
+      if (onTableJoined) {
+        onTableJoined(r.id, r.participant_id, false)
+      } else {
+        window.location.href = window.location.pathname + window.location.search
+      }
     } catch (err) {
       setJoinError(extractErr(err))
     } finally {
@@ -157,20 +180,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   }
 
   // ── Render ────────────────────────────────────────────────────────
-
-  if (sessionClosed) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="text-5xl">🔒</div>
-          <h1 className="text-xl font-bold text-gray-900">Séance terminée</h1>
-          <p className="text-sm text-gray-500">
-            Cette séance est maintenant clôturée. Merci pour ta participation !
-          </p>
-        </div>
-      </div>
-    )
-  }
 
   if (showQuestionnaire) {
     return (
@@ -205,8 +214,16 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
             onJoin={handleJoin}
             joinLoading={joinLoading}
             joinError={joinError}
+            groupName={groupName}
           />
         </div>
+
+        {/* Bannière clôture — affichée en-dessous de la carte */}
+        {sessionClosed && (
+          <div className="bg-gray-100 rounded-xl px-4 py-3 text-center text-sm text-gray-500">
+            🔒 Cette séance est maintenant clôturée. Merci pour ta participation !
+          </div>
+        )}
 
         {/* Vote results summary */}
         <div>

@@ -12,9 +12,10 @@ interface TableAssignmentCardProps {
   onJoin?: () => Promise<void>
   joinLoading?: boolean
   joinError?: string | null
+  groupName?: { name: string; description: string } | null
 }
 
-export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError }: TableAssignmentCardProps) {
+export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError, groupName }: TableAssignmentCardProps) {
   if (loading || assignment === null) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
@@ -40,6 +41,13 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
           Table {assignment.table_number}
         </p>
       </div>
+
+      {groupName && (
+        <div className="px-6 pt-4 pb-0 text-center space-y-0.5">
+          <p className="text-sm font-semibold text-indigo-700">{groupName.name}</p>
+          <p className="text-xs text-gray-500">{groupName.description}</p>
+        </div>
+      )}
 
       <div className="px-6 py-5 space-y-4">
         {/* Join code */}

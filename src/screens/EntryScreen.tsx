@@ -54,12 +54,17 @@ export default function EntryScreen({ onJoined }: Props) {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
 
   useEffect(() => {
-    supabase
-      .from('sessions')
-      .select('id, title, phase, join_code')
-      .in('phase', ['voting', 'allocating', 'debating', 'questionnaire'])
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setActiveSessions(data as ActiveSession[]) })
+    function fetchActiveSessions() {
+      supabase
+        .from('sessions')
+        .select('id, title, phase, join_code')
+        .in('phase', ['voting', 'allocating', 'debating', 'questionnaire'])
+        .order('created_at', { ascending: false })
+        .then(({ data }) => { if (data) setActiveSessions(data as ActiveSession[]) })
+    }
+    fetchActiveSessions()
+    const interval = setInterval(fetchActiveSessions, 30_000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
