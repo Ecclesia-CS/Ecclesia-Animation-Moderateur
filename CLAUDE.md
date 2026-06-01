@@ -142,18 +142,18 @@ src/
 │   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups) — jamais d'appel direct à api.google.com
 │   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult)
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
-│   └── utils.ts          formatDuration, extractErr, generateTableCSV
+│   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
 │   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s) + tabs Rejoindre/Reprendre/Créer + lien Administration
-│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini
+│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. Dropdown "Téléchargement" : Questionnaire CSV, Temps de parole CSV (toutes tables), Historique CSV (toutes tables)
 │   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
 │   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
 │   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (localStorage), bouton rejoindre (join_table RPC + tableStore + callback onTableJoined). Affiche VoteResultsSummary + accordéon "Voir toutes les assertions" (VoteResultsList, données déjà chargées, pas de fetch supplémentaire)
 │   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
 │   ├── TableView.tsx           Routage isModerator
-│   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause)
+│   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause). Pas de bouton "Terminer session" ni "Exporter" — ces actions sont réservées au superadmin
 │   └── ParticipantView.tsx     Vue mobile
 └── components/
     ├── voting/

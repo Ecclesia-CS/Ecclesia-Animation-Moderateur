@@ -16,7 +16,7 @@ import {
 import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { useTranscription } from '../hooks/useTranscription'
-import { formatDuration, extractErr, generateTableCSV } from '../lib/utils'
+import { formatDuration, extractErr } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import type { QueueEntry, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
@@ -24,7 +24,6 @@ import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import CorrectTurnModal from '../components/CorrectTurnModal'
-import ConfirmModal from '../components/ConfirmModal'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
 import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
@@ -45,7 +44,6 @@ export default function ModeratorView() {
     addToQueue,
     reorderQueueEntry,
     changeQueueType,
-    endTable,
     leaveTable,
     forceQuestionnaire,
     cancelForceQuestionnaire,
@@ -100,7 +98,6 @@ export default function ModeratorView() {
   }, [queueLong, queueInteractive, isDragging])
 
   const [showCorrect, setShowCorrect] = useState(false)
-  const [confirmEnd, setConfirmEnd]   = useState(false)
   const [showOutils,  setShowOutils]  = useState(false)
   const [err, setErr]               = useState<string | null>(null)
 
@@ -465,17 +462,6 @@ export default function ModeratorView() {
     safe(() => grantFloor(id, 'manual'))
   }
 
-  function handleExport() {
-    const csv = generateTableCSV(table, participants, speakingTurns)
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ecclesia_${table.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   return (
     <div className="min-h-screen bg-slate-900 text-white">
 
@@ -624,15 +610,6 @@ export default function ModeratorView() {
 
                       <div className="my-1 border-t border-slate-700" />
 
-                      {/* Export */}
-                      <button
-                        onClick={() => { setShowOutils(false); handleExport() }}
-                        className="w-full px-4 py-2 text-sm text-slate-200 hover:bg-slate-700
-                          text-left whitespace-nowrap"
-                      >
-                        Exporter
-                      </button>
-
                       {/* Historique */}
                       <button
                         onClick={() => { setShowOutils(false); setShowCorrect(true) }}
@@ -676,14 +653,6 @@ export default function ModeratorView() {
               Quitter
             </button>
 
-            <button
-              onClick={() => setConfirmEnd(true)}
-              className="text-xs px-3 py-1.5 bg-red-600/10 border border-red-700/50
-                text-red-400 rounded-lg hover:bg-red-600/20 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-red-500"
-            >
-              Terminer session
-            </button>
           </div>
         </div>
       </header>
@@ -871,16 +840,6 @@ export default function ModeratorView() {
 
       {/* ── Modals ────────────────────────────────────────────── */}
       {showCorrect && <CorrectTurnModal onClose={() => setShowCorrect(false)} />}
-
-      {confirmEnd && (
-        <ConfirmModal
-          title="Terminer la session ?"
-          body="Cette action est irréversible. Tous les participants seront déconnectés et les données de la session supprimées."
-          confirmLabel="Terminer"
-          onConfirm={() => safe(endTable)}
-          onCancel={() => setConfirmEnd(false)}
-        />
-      )}
 
       {/* Séance terminée */}
       {session?.phase === 'closed' && (

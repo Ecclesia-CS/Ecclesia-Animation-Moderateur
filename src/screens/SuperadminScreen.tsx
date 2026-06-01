@@ -23,7 +23,7 @@ import {
   getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
   adminCreateTable,
 } from '../lib/sessions'
-import type { SessionTableRow, TableParticipantRow } from '../lib/sessions'
+import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
   setSessionPhase, approveAssertion, rejectAssertion,
@@ -914,7 +914,8 @@ function SessionDetail({
   const [error,           setError]           = useState<string | null>(null)
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
-  const [exporting,          setExporting]          = useState(false)
+  const [exportingType,      setExportingType]      = useState<null | 'questionnaire' | 'speaking' | 'history'>(null)
+  const [showDownloadMenu,   setShowDownloadMenu]   = useState(false)
   const [isQForced,    setIsQForced]    = useState(false)
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
@@ -1603,9 +1604,15 @@ function SessionDetail({
     }
   }
 
+  function csvCell(v: string | number | null | undefined): string {
+    if (v === null || v === undefined || v === '') return ''
+    if (typeof v === 'number') return String(v)
+    return `"${String(v).replace(/"/g, '""')}"`
+  }
+
   async function handleExportQuestionnaires() {
     const password = getPwd()!
-    setExporting(true)
+    setExportingType('questionnaire')
     setError(null)
     try {
       const rows = await getQuestionnaireResponses(password, session.id)
@@ -1626,7 +1633,115 @@ function SessionDetail({
       }
       setError(msg)
     } finally {
-      setExporting(false)
+      setExportingType(null)
+    }
+  }
+
+  async function handleExportSpeakingTimes() {
+    const password = getPwd()!
+    setExportingType('speaking')
+    setError(null)
+    try {
+      const results = await Promise.all(
+        attachedTables.map(t =>
+          getTableParticipants(password, t.id).then(parts => ({ table: t, parts }))
+        )
+      )
+      const rows: string[] = [
+        '﻿',
+        [csvCell('Table'), csvCell('Code'), csvCell('Participant'), csvCell('Tours'), csvCell('Temps total (s)')].join(','),
+      ]
+      for (const { table: t, parts } of results) {
+        for (const p of parts) {
+          rows.push([
+            csvCell(t.moderator_pseudo ?? `Table ${t.join_code}`),
+            csvCell(t.join_code),
+            csvCell(p.pseudo),
+            p.turn_count,
+            Math.round(p.total_ms / 1000),
+          ].join(','))
+        }
+      }
+      const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      const slug = session.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)
+      a.download = `ecclesia_temps_parole_${slug}_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setError(msg)
+    } finally {
+      setExportingType(null)
+    }
+  }
+
+  async function handleExportHistory() {
+    const password = getPwd()!
+    setExportingType('history')
+    setError(null)
+    try {
+      const sourceLabel: Record<string, string> = {
+        long: 'File longue',
+        interactive: 'Coupe file',
+        manual: 'Manuel',
+      }
+      const results = await Promise.all(
+        attachedTables.map(t =>
+          Promise.all([
+            getTableSpeakingTurnsAdmin(password, t.id),
+            getTableParticipants(password, t.id),
+          ]).then(([turns, parts]) => ({ table: t, turns, parts }))
+        )
+      )
+      const rows: string[] = [
+        '﻿',
+        [csvCell('Table'), csvCell('Code'), csvCell('Tour'), csvCell('Participant'), csvCell('File'), csvCell('Démarré à'), csvCell('Terminé à'), csvCell('Durée (s)')].join(','),
+      ]
+      for (const { table: t, turns, parts } of results) {
+        const sorted = [...turns].sort(
+          (a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
+        )
+        sorted.forEach((turn: TableSpeakingTurnRow, i: number) => {
+          const pseudo = parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '—'
+          const durSec = turn.ended_at
+            ? Math.round((new Date(turn.ended_at).getTime() - new Date(turn.started_at).getTime()) / 1000)
+            : ''
+          rows.push([
+            csvCell(t.moderator_pseudo ?? `Table ${t.join_code}`),
+            csvCell(t.join_code),
+            i + 1,
+            csvCell(pseudo),
+            csvCell(sourceLabel[turn.source] ?? turn.source),
+            csvCell(turn.started_at),
+            turn.ended_at ? csvCell(turn.ended_at) : '',
+            durSec,
+          ].join(','))
+        })
+      }
+      const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      const slug = session.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)
+      a.download = `ecclesia_historique_${slug}_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setError(msg)
+    } finally {
+      setExportingType(null)
     }
   }
 
@@ -1689,26 +1804,54 @@ function SessionDetail({
           >
             {qActing ? '…' : isQForced ? 'Annuler forçage questionnaire' : 'Forcer questionnaire'}
           </button>
-          <button
-            onClick={handleExportQuestionnaires}
-            disabled={exporting}
-            className="shrink-0 flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium
-              border border-teal-200 rounded-lg text-teal-700 hover:bg-teal-50
-              transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Télécharger les réponses au questionnaire (CSV)"
-          >
-            {exporting ? (
-              <Spinner />
-            ) : (
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setShowDownloadMenu(v => !v)}
+              disabled={exportingType !== null}
+              className="flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium
+                border border-teal-200 rounded-lg text-teal-700 hover:bg-teal-50
+                transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportingType !== null ? (
+                <Spinner />
+              ) : (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              )}
+              {exportingType !== null ? 'Export…' : 'Téléchargement'}
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
               </svg>
+            </button>
+            {showDownloadMenu && (
+              <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200
+                rounded-xl shadow-lg py-1 min-w-[180px]">
+                <button
+                  onClick={() => { setShowDownloadMenu(false); handleExportQuestionnaires() }}
+                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
+                >
+                  Questionnaire
+                </button>
+                <button
+                  onClick={() => { setShowDownloadMenu(false); handleExportSpeakingTimes() }}
+                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
+                >
+                  Temps de parole
+                </button>
+                <button
+                  onClick={() => { setShowDownloadMenu(false); handleExportHistory() }}
+                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
+                >
+                  Historique
+                </button>
+              </div>
             )}
-            {exporting ? 'Export…' : 'Questionnaires'}
-          </button>
+          </div>
         </div>
         {(session.description || session.scheduled_at) && (
           <div className="max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-gray-400 space-y-0.5">
