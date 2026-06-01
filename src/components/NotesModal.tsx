@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
 
 interface Props {
-  tableId: string
+  tableId?: string
+  sessionId?: string
   onClose: () => void
 }
 
@@ -13,7 +14,7 @@ const FONT_SIZES = [
   { label: 'Grand', value: '5' },
 ] as const
 
-export default function NotesModal({ tableId, onClose }: Props) {
+export default function NotesModal({ tableId, sessionId, onClose }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const userIdRef = useRef<string | null>(null)
@@ -32,12 +33,14 @@ export default function NotesModal({ tableId, onClose }: Props) {
       if (!session?.user) { setLoading(false); setSaveErr('Non connecté'); return }
       userIdRef.current = session.user.id
 
-      const { data } = await supabase
+      const query = supabase
         .from('private_notes')
         .select('id, content')
-        .eq('table_id', tableId)
         .eq('user_id', session.user.id)
-        .maybeSingle()
+
+      const { data } = sessionId
+        ? await query.eq('session_id', sessionId).maybeSingle()
+        : await query.eq('table_id', tableId!).maybeSingle()
 
       if (data) {
         noteIdRef.current = data.id
@@ -46,7 +49,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
       setLoading(false)
     }
     load()
-  }, [tableId])
+  }, [tableId, sessionId])
 
   // Applique le contenu initial après que l'éditeur est dans le DOM
   // (editorRef.current est null pendant loading=true car le div est conditionnellement rendu)
@@ -82,9 +85,17 @@ export default function NotesModal({ tableId, onClose }: Props) {
       dbErr = error
     } else {
       // Première sauvegarde → INSERT
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const row: any = {
+        user_id:    userId,
+        content:    html,
+        updated_at: new Date().toISOString(),
+        session_id: sessionId ?? null,
+        table_id:   sessionId ? null : (tableId ?? null),
+      }
       const { data: newNote, error } = await supabase
         .from('private_notes')
-        .insert({ table_id: tableId, user_id: userId, content: html, updated_at: new Date().toISOString() })
+        .insert(row)
         .select('id')
         .single()
       dbErr = error
@@ -92,7 +103,7 @@ export default function NotesModal({ tableId, onClose }: Props) {
     }
     if (dbErr) setSaveErr(extractErr(dbErr))
     setSaving(false)
-  }, [tableId])
+  }, [tableId, sessionId])
 
   function handleInput(e: React.FormEvent<HTMLDivElement>) {
     const html = (e.target as HTMLDivElement).innerHTML

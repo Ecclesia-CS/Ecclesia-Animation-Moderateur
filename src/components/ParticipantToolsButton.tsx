@@ -236,7 +236,11 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
       )}
 
       {notesOpen && (
-        <NotesModal tableId={table.id} onClose={() => setNotesOpen(false)} />
+        <NotesModal
+          sessionId={table.session_id ?? undefined}
+          tableId={table.session_id ? undefined : table.id}
+          onClose={() => setNotesOpen(false)}
+        />
       )}
 
       {questionnaireOpen && (

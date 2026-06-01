@@ -9,6 +9,7 @@ import AssertionCard from '../components/voting/AssertionCard'
 import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
 import VoteTimerBadge from '../components/voting/VoteTimerBadge'
+import NotesModal from '../components/NotesModal'
 import AllocatingScreen from './AllocatingScreen'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 
@@ -880,6 +881,8 @@ interface VoteToolsPanelProps {
 }
 
 function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps) {
+  const [notesOpen, setNotesOpen] = useState(false)
+
   const infoUrl    = normalizeUrl(session.doc_info_url)
   const summaryUrl = normalizeUrl(session.doc_summary_url)
   const collabUrl  = normalizeUrl(session.doc_collab_url)
@@ -888,6 +891,7 @@ function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps)
 
   function handleCollabClick() {
     onClose()
+    sessionStorage.setItem('ecclesia_collab_return', `#vote/${session.join_code}`)
     if (session.join_code) {
       sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
       window.location.hash = `#collab/${session.join_code}`
@@ -897,6 +901,7 @@ function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps)
   }
 
   const subLinkClass = 'flex items-center gap-3 px-5 py-2.5 w-full text-left text-sm text-gray-600 hover:bg-gray-50 transition-colors'
+  const linkClass    = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors'
   const ExternalIcon = () => (
     <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -906,59 +911,79 @@ function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps)
   )
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Outils</h2>
+    <>
+      <div
+        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+        onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
+      >
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900">Outils</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+              aria-label="Fermer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Documentation */}
+          <div className="pt-3 pb-1 px-5">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
+          </div>
+          {hasDocs ? (
+            <>
+              {infoUrl && (
+                <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+                  <ExternalIcon />
+                  Fiche information
+                </a>
+              )}
+              {summaryUrl && (
+                <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+                  <ExternalIcon />
+                  Résumé fiche information
+                </a>
+              )}
+              {hasCollab && (
+                <button onClick={handleCollabClick} className={subLinkClass}>
+                  <ExternalIcon />
+                  Sources collaboratives
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="px-5 py-3 text-sm text-gray-400 italic">
+              Aucune documentation disponible pour cette séance.
+            </p>
+          )}
+
+          <div className="mt-2 border-t border-gray-100" />
+
+          {/* Notes */}
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
-            aria-label="Fermer"
+            onClick={() => { onClose(); setNotesOpen(true) }}
+            className={linkClass}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
+            Mes notes
           </button>
-        </div>
 
-        {/* Documentation */}
-        <div className="pt-3 pb-1 px-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
+          <div className="pb-2" />
         </div>
-        {hasDocs ? (
-          <>
-            {infoUrl && (
-              <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
-                <ExternalIcon />
-                Fiche information
-              </a>
-            )}
-            {summaryUrl && (
-              <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
-                <ExternalIcon />
-                Résumé fiche information
-              </a>
-            )}
-            {hasCollab && (
-              <button onClick={handleCollabClick} className={subLinkClass}>
-                <ExternalIcon />
-                Sources collaboratives
-              </button>
-            )}
-          </>
-        ) : (
-          <p className="px-5 py-3 text-sm text-gray-400 italic">
-            Aucune documentation disponible pour cette séance.
-          </p>
-        )}
-
-        <div className="pb-3" />
       </div>
-    </div>
+
+      {notesOpen && (
+        <NotesModal sessionId={session.id} onClose={() => setNotesOpen(false)} />
+      )}
+    </>
   )
 }
 
@@ -976,6 +1001,7 @@ function DocNudge({ session, memberPseudo }: DocNudgeProps) {
   const hasDocs    = !!(infoUrl || summaryUrl || collabUrl || session.join_code)
 
   function handleCollabClick() {
+    sessionStorage.setItem('ecclesia_collab_return', `#vote/${session.join_code}`)
     if (session.join_code) {
       sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
       window.location.hash = `#collab/${session.join_code}`

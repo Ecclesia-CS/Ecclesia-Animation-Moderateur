@@ -48,6 +48,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   // ── Delete confirm state ───────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState<CollabSource | null>(null)
   const [deleting,      setDeleting]      = useState<string | null>(null)
+  const [returnHash,    setReturnHash]    = useState('')
 
   // ── Init : load session + user + sources ───────────────────────
   useEffect(() => {
@@ -88,6 +89,13 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
           setMyPseudo((regData as { pseudo: string }).pseudo)
           alreadyRegistered = true
         }
+      }
+
+      // Destination de retour transmise par l'écran appelant
+      const storedReturn = sessionStorage.getItem('ecclesia_collab_return')
+      if (storedReturn) {
+        sessionStorage.removeItem('ecclesia_collab_return')
+        setReturnHash(storedReturn)
       }
 
       // Lire le table_join_code transmis via sessionStorage (si navigation depuis une vue table)
@@ -257,7 +265,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
-            onClick={() => { window.location.hash = '' }}
+            onClick={() => { window.location.hash = returnHash || '' }}
             className="text-gray-400 hover:text-gray-600 transition-colors p-1 -ml-1 shrink-0"
             title="Retour"
           >
