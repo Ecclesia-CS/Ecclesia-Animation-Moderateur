@@ -334,6 +334,14 @@ Affiché une seule fois par table via `localStorage` (clé `debate_welcome_<tabl
 ### Voir toutes les assertions (`VoteScreen`)
 Bouton "📋 Voir toutes" visible dès qu'il y a des assertions, que le participant ait tout voté ou non. Charge `getVoteResults` à la demande. Sur l'écran "Tu as tout voté", les barres de votes collectifs sont aussi affichées inline dans la liste "Tes votes" (depuis `voteResults` déjà chargé).
 
+### Modal Outils en phase vote (`VoteScreen`)
+Bouton "Outils" dans le header (à côté de "Proposer"). Ouvre `VoteToolsPanel` : documentation (fiche info, résumé, sources collaboratives), notes (`NotesModal` avec `sessionId`). Sans dépendance à `TableContext`. Quand tout est voté, `DocNudge` apparaît entre "Proposer" et `VoteResultsSummary`. Toutes les 10 assertions votées, un nudge propose de soumettre une assertion (`showProposalNudge` + `nextNudgeAt`).
+
+### Polling assertions + Realtime (`VoteScreen`)
+Réception des nouvelles assertions via deux mécanismes :
+- **Realtime** : channel `vote:<session.id>`, écoute `postgres_changes` sur `assertions` filtré par `session_id`. Nécessite `REPLICA IDENTITY FULL` sur `assertions` (migration `assertions_replica_identity_full`) — sans ça, les UPDATE (`pending → approved`) ne transmettent pas `session_id` dans le WAL et le filtre Realtime ne matche pas.
+- **Polling REST 10s** : fallback via `setInterval` quand `step === 'vote'`, append des nouvelles assertions uniquement.
+
 ### Forçage questionnaire — expiration 1h (`ParticipantView`)
 `forcedTimerRef` (useRef) stocke l'ID du `setTimeout`. **Ne jamais mettre le setTimeout dans un `.then()` en espérant que le `return () => clearTimeout()` remonte au useEffect** — il est ignoré. Le timer doit être posé dans le `.then()` mais stocké dans le ref, et nettoyé dans le useEffect d'annulation. Durée : `questionnaire_forced_at + 3 600 000 ms`. Quand expiré, `forced={false}` → la croix réapparaît.
 

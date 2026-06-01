@@ -46,6 +46,13 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   const [allAssertionResults, setAllAssertionResults] = useState<VoteResult[]>([])
   const [allResultsLoading,  setAllResultsLoading]  = useState(false)
 
+  // Outils panel
+  const [showToolsPanel, setShowToolsPanel] = useState(false)
+
+  // Proposition nudge every 10 votes
+  const [nextNudgeAt,      setNextNudgeAt]      = useState(10)
+  const [showProposalNudge, setShowProposalNudge] = useState(false)
+
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   // Résultats consensus/dissensus (chargés quand tout est voté)
@@ -333,6 +340,17 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     return () => clearInterval(interval)
   }, [step, session])
 
+  // ── Nudge "Proposer" toutes les 10 assertions votées ─────────────────────
+  useEffect(() => {
+    if (step !== 'vote') return
+    const votedCount = myVotes.size
+    const allVoted = assertions.length > 0 && votedCount === assertions.length
+    if (votedCount > 0 && votedCount >= nextNudgeAt && !allVoted) {
+      setShowProposalNudge(true)
+      setNextNudgeAt(n => n + 10)
+    }
+  }, [myVotes.size, nextNudgeAt, assertions.length, step])
+
   // ── Redirect vers SessionRouterScreen quand session clôturée ─────────────
   useEffect(() => {
     if (step === 'closed') {
@@ -502,12 +520,20 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
               timerMinutes={session.vote_timer_minutes}
             />
           )}
-          <button
-            onClick={() => setShowSubmitModal(true)}
-            className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
-          >
-            ✏️ Proposer
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowToolsPanel(true)}
+              className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              Outils
+            </button>
+            <button
+              onClick={() => setShowSubmitModal(true)}
+              className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+            >
+              ✏️ Proposer
+            </button>
+          </div>
         </div>
 
         {/* Allocating banner */}
@@ -538,6 +564,11 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
               >
                 ✏️ Proposer une assertion
               </button>
+            </div>
+
+            {/* Nudge documentaire */}
+            <div className="px-4 mb-4">
+              <DocNudge session={session} memberPseudo={member.pseudo} />
             </div>
 
             {/* Résultats consensus / dissensus */}
@@ -763,6 +794,44 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             </div>
           </div>
         )}
+
+        {/* Panel Outils */}
+        {showToolsPanel && (
+          <VoteToolsPanel
+            session={session}
+            memberPseudo={member.pseudo}
+            onClose={() => setShowToolsPanel(false)}
+          />
+        )}
+
+        {/* Nudge proposition toutes les 10 assertions */}
+        {showProposalNudge && (
+          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+            onClick={() => setShowProposalNudge(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="px-6 pt-6 pb-2 text-center">
+                <p className="text-3xl mb-2">✏️</p>
+                <h2 className="text-base font-bold text-gray-900">Tu as voté sur {myVotes.size} assertions !</h2>
+                <p className="text-sm text-gray-500 mt-1">Veux-tu en proposer une à ton tour ?</p>
+              </div>
+              <div className="px-6 pb-6 pt-4 flex flex-col gap-2">
+                <button
+                  onClick={() => { setShowProposalNudge(false); setShowSubmitModal(true) }}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  ✏️ Proposer une assertion
+                </button>
+                <button
+                  onClick={() => setShowProposalNudge(false)}
+                  className="w-full py-2.5 px-4 text-gray-500 text-sm hover:text-gray-700 transition-colors"
+                >
+                  Continuer à voter
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -786,6 +855,178 @@ function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
       >
         ✏️ Proposer une assertion
       </button>
+    </div>
+  )
+}
+
+// ── VoteToolsPanel ────────────────────────────────────────────────────────────
+
+const DOCS_PATH = '/Ecclesia-Animation-Moderateur/docs/'
+const BASE_DOCS = 'https://ecclesia-cs.github.io/docs/'
+
+function normalizeUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.includes(DOCS_PATH)) {
+    const filename = url.split(DOCS_PATH)[1] ?? ''
+    return filename ? BASE_DOCS + filename : null
+  }
+  return url
+}
+
+interface VoteToolsPanelProps {
+  session: Session
+  memberPseudo: string
+  onClose: () => void
+}
+
+function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps) {
+  const infoUrl    = normalizeUrl(session.doc_info_url)
+  const summaryUrl = normalizeUrl(session.doc_summary_url)
+  const collabUrl  = normalizeUrl(session.doc_collab_url)
+  const hasCollab  = !!(session.join_code || collabUrl)
+  const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
+
+  function handleCollabClick() {
+    onClose()
+    if (session.join_code) {
+      sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
+      window.location.hash = `#collab/${session.join_code}`
+    } else if (collabUrl) {
+      window.open(collabUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const subLinkClass = 'flex items-center gap-3 px-5 py-2.5 w-full text-left text-sm text-gray-600 hover:bg-gray-50 transition-colors'
+  const ExternalIcon = () => (
+    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+    </svg>
+  )
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Outils</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+            aria-label="Fermer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Documentation */}
+        <div className="pt-3 pb-1 px-5">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
+        </div>
+        {hasDocs ? (
+          <>
+            {infoUrl && (
+              <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+                <ExternalIcon />
+                Fiche information
+              </a>
+            )}
+            {summaryUrl && (
+              <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+                <ExternalIcon />
+                Résumé fiche information
+              </a>
+            )}
+            {hasCollab && (
+              <button onClick={handleCollabClick} className={subLinkClass}>
+                <ExternalIcon />
+                Sources collaboratives
+              </button>
+            )}
+          </>
+        ) : (
+          <p className="px-5 py-3 text-sm text-gray-400 italic">
+            Aucune documentation disponible pour cette séance.
+          </p>
+        )}
+
+        <div className="pb-3" />
+      </div>
+    </div>
+  )
+}
+
+// ── DocNudge ──────────────────────────────────────────────────────────────────
+
+interface DocNudgeProps {
+  session: Session
+  memberPseudo: string
+}
+
+function DocNudge({ session, memberPseudo }: DocNudgeProps) {
+  const infoUrl    = normalizeUrl(session.doc_info_url)
+  const summaryUrl = normalizeUrl(session.doc_summary_url)
+  const collabUrl  = normalizeUrl(session.doc_collab_url)
+  const hasDocs    = !!(infoUrl || summaryUrl || collabUrl || session.join_code)
+
+  function handleCollabClick() {
+    if (session.join_code) {
+      sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
+      window.location.hash = `#collab/${session.join_code}`
+    } else if (collabUrl) {
+      window.open(collabUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const linkClass = 'flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors'
+
+  return (
+    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+      <p className="text-xs font-semibold text-indigo-700 mb-2">📄 Profites-en pour lire la documentation</p>
+      {hasDocs ? (
+        <div className="space-y-1.5">
+          {infoUrl && (
+            <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+              </svg>
+              Fiche information
+            </a>
+          )}
+          {summaryUrl && (
+            <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+              </svg>
+              Résumé fiche information
+            </a>
+          )}
+          {(collabUrl || session.join_code) && (
+            <button onClick={handleCollabClick} className={linkClass}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+              </svg>
+              Sources collaboratives
+            </button>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-indigo-400 italic">
+          Aucune fiche d'information n'est disponible pour cette séance.
+        </p>
+      )}
     </div>
   )
 }
