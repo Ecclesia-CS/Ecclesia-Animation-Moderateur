@@ -142,11 +142,11 @@ src/
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
-│   ├── EntryScreen.tsx         Section "Séances en cours" (fetch public) + tabs Rejoindre/Reprendre/Créer + lien Administration
+│   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s) + tabs Rejoindre/Reprendre/Créer + lien Administration
 │   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini
 │   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
 │   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
-│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, bouton rejoindre (join_table RPC + tableStore + reload)
+│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (localStorage), bouton rejoindre (join_table RPC + tableStore + callback onTableJoined)
 │   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
 │   ├── TableView.tsx           Routage isModerator
 │   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause)
@@ -154,7 +154,7 @@ src/
 └── components/
     ├── voting/
     │   ├── LLMModerationPanel.tsx    Panneau IA superadmin : modération/fusion manuelle+auto, log tokens, fusions effectuées
-    │   ├── TableAssignmentCard.tsx   Carte groupe + join_code + bouton rejoindre (2 états : join / arrived)
+    │   ├── TableAssignmentCard.tsx   Carte groupe + nom camp (prop groupName) + join_code + bouton rejoindre
     │   ├── VoteResultsSummary.tsx    Résumé des votes (assertions + consensus_score)
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
     ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Prop groupNames?: GroupNameResult[] pour afficher les noms Gemini
@@ -262,8 +262,8 @@ Flux complet :
 
 1. **`draft`** → séance créée, pas encore ouverte
 2. **`voting`** → participants s'inscrivent (`register_session_member`) + soumettent/votent des assertions. VoteScreen géré via `#vote/<join_code>`.
-3. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` NULL, `table_number` logique attribué). Superadmin rattache chaque groupe à une table physique via `assign_table_to_group`. Participants voient leur numéro de groupe dans AllocatingScreen (polling 5s + Realtime).
-4. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` de leur table et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → `window.location.reload()` → TableView.
+3. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` auto-assigné si tables physiques rattachées). Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
+4. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → callback `onTableJoined` → `App.handleTableJoined` met à jour `phase` en `table` → TableView (sans reload).
 
 `moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`. `= 'ai'` : `pending`, modération automatique par Gemini via `LLMModerationPanel` (setInterval configurable).
 
@@ -275,9 +275,18 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 
 - `join_table(join_code, pseudo)` → `TableResult`
 - `tableStore.set({ tableId, participantId, joinCode, isModerator: false, pseudo })`
-- Navigation directe : `window.location.href = window.location.pathname + window.location.search` → App.tsx relit le `tableStore` dans `init()` → monte `TableView`
-- **Ne pas faire** `window.location.hash = ''` directement : App.tsx a déjà `phase={type:'entry'}` en mémoire, il afficherait EntryScreen au lieu de TableView.
+- Appel du callback `onTableJoined(tableId, participantId, false)` → `App.handleTableJoined` → `setPhase({ type:'table', ... })` + `history.replaceState` (nettoyage URL sans hashchange)
+- Guard dans App.tsx : `hash.startsWith('#vote/') && phase.type !== 'table'` — dès que `phase` passe à `table`, le routing hash n'a plus priorité → TableView s'affiche sans reload
+- **Compatibilité Messenger** : plus de `window.location.href` / `window.location.reload()`. Le fallback `href` reste si `onTableJoined` n'est pas fourni (usage standalone).
 - **Pas d'étape intermédiaire "J'arrive"** : `TableAssignmentCard` ne prend plus de props `joined`/`onArrived` — le join et la navigation sont fusionnés en une seule action.
+
+### Polling de secours phase (VoteScreen — Messenger/WebSocket indisponible)
+
+`VoteScreen` ajoute un polling 15 s sur la phase de la séance pendant les étapes `waiting` et `vote`. Si le WebSocket Realtime est coupé (in-app browsers), la transition de phase est détectée dans les 15 s sans rechargement. Les étapes `pseudo` et `onboarding` bénéficient aussi d'une protection : `handleOnboardingSuccess` re-fetch la phase courante avant de décider la prochaine étape (évite une session périmée).
+
+### Nom du camp dans AllocatingScreen
+
+`AllocatingScreen` lit `localStorage.getItem('group_names_<session.id>')` (tableau `GroupNameResult[]` généré par le superadmin via Gemini) et extrait l'entrée dont `table_number === assignment.table_number`. Passé à `TableAssignmentCard` via prop `groupName?: { name, description }`. Affiché entre le header "Table N" et le code de table. Absent si aucun nom Gemini disponible — aucun fallback affiché.
 
 ---
 
