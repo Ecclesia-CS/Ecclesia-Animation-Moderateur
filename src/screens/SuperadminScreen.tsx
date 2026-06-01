@@ -1289,7 +1289,7 @@ function SessionDetail({
         const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
         const approved = allAssertions.filter(a => a.status === 'approved')
         const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
-        const { results: names } = await nameIdeologicalGroups({
+        const { results: rawNames } = await nameIdeologicalGroups({
           session_id:          currentSession.id,
           session_title:       currentSession.title,
           session_description: currentSession.description ?? null,
@@ -1301,6 +1301,18 @@ function SessionDetail({
           votes:               votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
           divisive_assertions: undefined,
         })
+        // Compléter les groupes manquants si Gemini n'a pas tout nommé
+        const namedNumbers = new Set(rawNames.map(n => n.table_number))
+        const names = [
+          ...rawNames,
+          ...groups
+            .filter(g => !namedNumbers.has(g.table_number))
+            .map(g => ({
+              table_number: g.table_number,
+              name:         `Groupe ${g.table_number}`,
+              description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
+            })),
+        ].sort((a, b) => a.table_number - b.table_number)
         setGroupNames(names)
         localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
         // Stocker l'empreinte après succès — évite le re-appel au prochain render
