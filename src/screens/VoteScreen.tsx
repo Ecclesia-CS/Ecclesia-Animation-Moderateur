@@ -48,7 +48,8 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   const [allResultsLoading,  setAllResultsLoading]  = useState(false)
 
   // Outils panel
-  const [showToolsPanel, setShowToolsPanel] = useState(false)
+  const [showToolsPanel,  setShowToolsPanel]  = useState(false)
+  const [showNotesModal,  setShowNotesModal]  = useState(false)
 
   // Proposition nudge every 10 votes
   const [nextNudgeAt,      setNextNudgeAt]      = useState(10)
@@ -802,7 +803,13 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             session={session}
             memberPseudo={member.pseudo}
             onClose={() => setShowToolsPanel(false)}
+            onOpenNotes={() => setShowNotesModal(true)}
           />
+        )}
+
+        {/* Notes modal (ouvert depuis VoteToolsPanel) */}
+        {showNotesModal && session && (
+          <NotesModal sessionId={session.id} onClose={() => setShowNotesModal(false)} />
         )}
 
         {/* Nudge proposition toutes les 10 assertions */}
@@ -878,10 +885,10 @@ interface VoteToolsPanelProps {
   session: Session
   memberPseudo: string
   onClose: () => void
+  onOpenNotes: () => void
 }
 
-function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps) {
-  const [notesOpen, setNotesOpen] = useState(false)
+function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes }: VoteToolsPanelProps) {
 
   const infoUrl    = normalizeUrl(session.doc_info_url)
   const summaryUrl = normalizeUrl(session.doc_summary_url)
@@ -966,7 +973,7 @@ function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps)
 
           {/* Notes */}
           <button
-            onClick={() => { onClose(); setNotesOpen(true) }}
+            onClick={() => { onClose(); onOpenNotes() }}
             className={linkClass}
           >
             <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -980,9 +987,6 @@ function VoteToolsPanel({ session, memberPseudo, onClose }: VoteToolsPanelProps)
         </div>
       </div>
 
-      {notesOpen && (
-        <NotesModal sessionId={session.id} onClose={() => setNotesOpen(false)} />
-      )}
     </>
   )
 }
