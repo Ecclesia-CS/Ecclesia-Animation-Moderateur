@@ -6,6 +6,7 @@ import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
 import type { GroupNameResult, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
+import VoteResultsList from '../components/voting/VoteResultsList'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
@@ -22,6 +23,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [resultsLoading,    setResultsLoading]    = useState(true)
   const [assignment,        setAssignment]        = useState<AssignmentWithTable | null>(null)
   const [assignmentLoading, setAssignmentLoading] = useState(true)
+  const [showAllResults,    setShowAllResults]    = useState(false)
   const [joinLoading,       setJoinLoading]       = useState(false)
   const [joinError,         setJoinError]         = useState<string | null>(null)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
@@ -246,10 +248,27 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
           </div>
         )}
 
-        {/* Vote results summary */}
+        {/* Vote results */}
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ce que vous avez voté</p>
           <VoteResultsSummary results={voteResults} loading={resultsLoading} />
+          {!resultsLoading && voteResults.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowAllResults(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200
+                  rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <span>Voir toutes les assertions ({voteResults.length})</span>
+                <span className="text-gray-400">{showAllResults ? '▲' : '▼'}</span>
+              </button>
+              {showAllResults && (
+                <div className="mt-2 bg-white border border-gray-200 rounded-xl p-4">
+                  <VoteResultsList results={voteResults} loading={false} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>

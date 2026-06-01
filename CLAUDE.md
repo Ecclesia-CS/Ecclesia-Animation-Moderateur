@@ -113,7 +113,7 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |
 | `set_session_phase(password, session_id, phase)` | Change la phase de la séance |
 | `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire des membres → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
-| `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène basée sur l'analyse PCA (si analyse existe) → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
+| `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène basée sur l'analyse PCA (si analyse existe) → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. Les membres sans votes (`session_members` absents de `analysis_members`) sont distribués aléatoirement sur les mêmes tables. Le nombre de tables est calculé sur le total des membres (votants + non-votants). |
 | `update_session_config(password, session_id, moderation_policy, vote_timer_minutes, vote_threshold_percent)` | Met à jour la configuration de vote. `moderation_policy` ∈ `('open','closed','ai')` |
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
 | `get_all_votes_for_analysis(password, session_id)` | Retourne tous les votes de la séance (bypass RLS — superadmin uniquement) |
@@ -149,7 +149,7 @@ src/
 │   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini
 │   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
 │   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
-│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (localStorage), bouton rejoindre (join_table RPC + tableStore + callback onTableJoined)
+│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (localStorage), bouton rejoindre (join_table RPC + tableStore + callback onTableJoined). Affiche VoteResultsSummary + accordéon "Voir toutes les assertions" (VoteResultsList, données déjà chargées, pas de fetch supplémentaire)
 │   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
 │   ├── TableView.tsx           Routage isModerator
 │   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause)
@@ -158,7 +158,8 @@ src/
     ├── voting/
     │   ├── LLMModerationPanel.tsx    Panneau IA superadmin : modération/fusion manuelle+auto, log tokens, fusions effectuées
     │   ├── TableAssignmentCard.tsx   Carte groupe + nom camp (prop groupName) + join_code + bouton rejoindre
-    │   ├── VoteResultsSummary.tsx    Résumé des votes (assertions + consensus_score)
+    │   ├── VoteResultsSummary.tsx    Résumé des votes — top 3 consensus + 2 dissensus (assertions + consensus_score)
+    │   ├── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
     ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number (affiche warning si des participants ont été exclus de l'analyse)
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
@@ -170,6 +171,7 @@ src/
     ├── ConfirmModal.tsx          Confirmation générique
     ├── QuestionnaireModal.tsx    6 questions, 26 thèmes aléatoires, upsert RPC
     ├── QuestionnaireFab.tsx      Bouton header → QuestionnaireModal
+    ├── ParticipantToolsButton.tsx Panneau Outils (débat) : documentation, résultats du vote (modal VoteResultsList, lazy-loaded, visible si table.session_id non-null), notes, questionnaire
     └── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL
 ```
 

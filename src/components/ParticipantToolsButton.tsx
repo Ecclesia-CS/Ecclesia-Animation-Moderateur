@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTable } from '../context/TableContext'
+import { getVoteResults } from '../lib/voting'
 import { QUESTIONNAIRE_THEMES } from '../lib/utils'
-import type { QuestionnaireResponse } from '../lib/types'
+import type { QuestionnaireResponse, VoteResult } from '../lib/types'
 import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
+import VoteResultsList from './voting/VoteResultsList'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -36,6 +38,9 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const [panelOpen,          setPanelOpen]          = useState(false)
   const [notesOpen,          setNotesOpen]          = useState(false)
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
+  const [voteResultsOpen,    setVoteResultsOpen]    = useState(false)
+  const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
+  const [voteResultsLoading, setVoteResultsLoading] = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
   const [checkDone,          setCheckDone]          = useState(false)
 
@@ -50,6 +55,19 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
         setCheckDone(true)
       })
   }, [table.id])
+
+  function openVoteResults() {
+    setPanelOpen(false)
+    setVoteResultsOpen(true)
+    if (voteResults.length > 0 || voteResultsLoading) return
+    const sessionId = table.session_id
+    if (!sessionId) return
+    setVoteResultsLoading(true)
+    getVoteResults(sessionId)
+      .then(setVoteResults)
+      .catch(() => {})
+      .finally(() => setVoteResultsLoading(false))
+  }
 
   function refetchQuestionnaire() {
     supabase
@@ -198,6 +216,18 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </>
             )}
 
+            {/* Résultats du vote */}
+            {!!table.session_id && (
+              <button onClick={openVoteResults} className={linkClass}>
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Résultats du vote
+              </button>
+            )}
+
             {/* Notes */}
             <button
               onClick={() => { setPanelOpen(false); setNotesOpen(true) }}
@@ -248,6 +278,32 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           savedResponse={savedResponse}
           onClose={() => { setQuestionnaireOpen(false); refetchQuestionnaire() }}
         />
+      )}
+
+      {voteResultsOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setVoteResultsOpen(false) }}
+        >
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <h2 className="text-sm font-semibold text-gray-900">Résultats du vote</h2>
+              <button
+                onClick={() => setVoteResultsOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                aria-label="Fermer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <VoteResultsList results={voteResults} loading={voteResultsLoading} />
+            </div>
+          </div>
+        </div>
       )}
     </>
   )
