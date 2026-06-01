@@ -35,6 +35,7 @@ interface TableCtxValue {
   endTurn(): Promise<void>
   endTurnAsSpeaker(): Promise<void>
   endTurnAndAdvance(): Promise<void>
+  claimFloor(): Promise<void>
   addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive', position?: number): Promise<void>
@@ -165,7 +166,7 @@ export function TableProvider({
       { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
       ({ new: row, old: prev }) => {
         setTable(row as Table)
-        if ((prev as Table).created_by !== (row as Table).created_by) {
+        if (!(row as Table).leaderless && (prev as Table).created_by !== (row as Table).created_by) {
           setIsModerator((row as Table).created_by === userId)
         }
       },
@@ -332,6 +333,28 @@ export function TableProvider({
     [rpc, tableId, broadcast],
   )
 
+  const claimFloor = useCallback(
+    async () => {
+      const { data, error } = await supabase.rpc('claim_floor', { p_table_id: tableId })
+      if (error) throw error
+      const result = data as {
+        current_speaker_id: string
+        current_turn_started_at: string
+        removed_queue_entry_id: string
+      }
+      setTable(prev => prev
+        ? { ...prev,
+            current_speaker_id: result.current_speaker_id,
+            current_turn_started_at: result.current_turn_started_at }
+        : prev)
+      if (result.removed_queue_entry_id) {
+        setQueueEntries(prev => prev.filter(e => e.id !== result.removed_queue_entry_id))
+      }
+      broadcast(['tables', 'speaking_turns', 'queue_entries'])
+    },
+    [tableId, broadcast],
+  )
+
   const endTurnAndAdvance = useCallback(
     async () => {
       const { data, error } = await supabase.rpc('end_turn_and_advance', {
@@ -472,6 +495,7 @@ export function TableProvider({
         reorderQueueEntry,
         correctTurn,
         kickParticipant,
+        claimFloor,
         endTable,
         forceQuestionnaire,
         cancelForceQuestionnaire,

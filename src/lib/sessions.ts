@@ -10,6 +10,7 @@ export type SessionTableRow = {
   participant_count: number
   is_active: boolean
   questionnaire_forced_at: string | null
+  leaderless?: boolean
 }
 
 export type TableParticipantRow = {
@@ -325,10 +326,12 @@ export async function getTableSpeakingTurnsAdmin(
 export async function adminCreateTable(
   password: string,
   sessionId?: string,
+  leaderless = false,
 ): Promise<{ table_id: string; join_code: string }> {
   const { data, error } = await supabase.rpc('admin_create_table', {
-    p_password: password,
+    p_password:   password,
     p_session_id: sessionId ?? null,
+    p_leaderless: leaderless,
   })
   if (error) throw new Error(extractErr(error))
   return data as { table_id: string; join_code: string }

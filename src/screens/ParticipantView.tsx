@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
@@ -19,6 +19,8 @@ export default function ParticipantView() {
     addToQueue,
     removeFromQueue,
     leaveTable,
+    endTurnAndAdvance,
+    claimFloor,
   } = useTable()
 
   const [showWelcome,        setShowWelcome]        = useState(() => !localStorage.getItem('debate_welcome_' + table.id))
@@ -106,6 +108,23 @@ export default function ParticipantView() {
   useEffect(() => { if (myLong)        setPendingLong(false)        }, [myLong])
   useEffect(() => { if (myInteractive) setPendingInteractive(false) }, [myInteractive])
 
+  // Auto-claim : table leaderless, personne ne parle, je suis premier en file
+  const isClaimingRef = useRef(false)
+  const handleClaimFloor = useCallback(async () => {
+    if (isClaimingRef.current) return
+    isClaimingRef.current = true
+    try { await claimFloor() } catch { /* race condition silencieuse */ }
+    finally { isClaimingRef.current = false }
+  }, [claimFloor])
+
+  useEffect(() => {
+    if (!table.leaderless) return
+    if (table.current_speaker_id !== null) return
+    const next = queueInteractive[0] ?? queueLong[0]
+    if (next?.participant_id !== myParticipant.id) return
+    handleClaimFloor()
+  }, [table.leaderless, table.current_speaker_id, queueInteractive, queueLong, myParticipant.id, handleClaimFloor])
+
   async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
     setErr(null)
     if (type === 'long'        && !existing) setPendingLong(true)
@@ -155,6 +174,14 @@ export default function ParticipantView() {
       {iAmSpeaking && (
         <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center">
           <p className="text-xl font-bold text-amber-700">Vous avez la parole !</p>
+          {table.leaderless && (
+            <button
+              onClick={() => endTurnAndAdvance().catch(() => {})}
+              className="mt-3 py-2 px-5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              J'ai fini de parler
+            </button>
+          )}
         </div>
       )}
 
@@ -262,13 +289,23 @@ export default function ParticipantView() {
                   <p className="text-gray-500 text-xs mt-0.5">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🧑‍⚖️</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Rôle du modérateur</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
+              {table.leaderless ? (
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">🤝</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Groupe auto-géré</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant.</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">🧑‍⚖️</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Rôle du modérateur</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="px-6 pb-6">
               <button

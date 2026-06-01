@@ -45,6 +45,7 @@ export default function EntryScreen({ onJoined }: Props) {
   const [reclaimCode, setReclaimCode] = useState('')
   const [reclaimPseudo, setReclaimPseudo] = useState('')
   const [selectedSessionId, setSelectedSessionId] = useState('')
+  const [leaderless, setLeaderless] = useState(false)
   const [availableSessions, setAvailableSessions] = useState<{
     id: string
     title: string
@@ -111,13 +112,14 @@ export default function EntryScreen({ onJoined }: Props) {
     setLoading(true)
     try {
       const { data, error: err } = await supabase.rpc('create_table', {
-        p_pseudo: pseudo,
-        p_creation_code: creationCode,
-        p_session_id: selectedSessionId,
+        p_pseudo:        pseudo,
+        p_creation_code: leaderless ? '' : creationCode,
+        p_session_id:    selectedSessionId,
+        p_leaderless:    leaderless,
       })
       if (err) throw err
       const r = data as TableResult
-      store(r.id, r.participant_id, r.join_code, true)
+      store(r.id, r.participant_id, r.join_code, !leaderless)
     } catch (err) {
       setError(extractErr(err))
     } finally {
@@ -258,10 +260,12 @@ export default function EntryScreen({ onJoined }: Props) {
 
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field label="Pseudo (modérateur)" value={pseudo} onChange={setPseudo}
+              <Field label={leaderless ? 'Votre pseudo' : 'Pseudo (animateur)'} value={pseudo} onChange={setPseudo}
                 placeholder="Alice" />
-              <Field label="Code Ecclesia" value={creationCode}
-                onChange={setCreationCode} type="password" placeholder="••••••••" />
+              {!leaderless && (
+                <Field label="Code Ecclesia" value={creationCode}
+                  onChange={setCreationCode} type="password" placeholder="••••••••" />
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Séance <span className="text-red-500">*</span>
@@ -307,6 +311,15 @@ export default function EntryScreen({ onJoined }: Props) {
                   </>
                 )}
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={leaderless}
+                  onChange={e => setLeaderless(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-sm text-gray-700">Table sans animateur</span>
+              </label>
               <Btn
                 loading={loading}
                 label="Créer la session"

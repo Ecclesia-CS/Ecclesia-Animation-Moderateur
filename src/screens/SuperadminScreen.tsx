@@ -588,9 +588,15 @@ function SessionCard({
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.is_active ? 'bg-teal-400' : 'bg-gray-300'}`} />
                     {/* Join code */}
                     <span className="font-mono tracking-widest text-gray-700 w-14 shrink-0">{t.join_code}</span>
+                    {/* Leaderless badge */}
+                    {t.leaderless && (
+                      <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
+                        Sans animateur
+                      </span>
+                    )}
                     {/* Moderator */}
                     <span className="text-gray-500 truncate flex-1">
-                      {t.moderator_pseudo ?? <span className="italic text-gray-300">—</span>}
+                      {t.leaderless ? null : (t.moderator_pseudo ?? <span className="italic text-gray-300">—</span>)}
                     </span>
                     {/* Participants */}
                     <span className="text-gray-400 shrink-0">
@@ -1158,12 +1164,12 @@ function SessionDetail({
   const [creatingTable, setCreatingTable] = useState(false)
   const [newTableCode,  setNewTableCode]  = useState<string | null>(null)
 
-  async function handleCreateTable() {
+  async function handleCreateTable(leaderless = false) {
     const password = getPwd()!
     setCreatingTable(true)
     setError(null)
     try {
-      const result = await adminCreateTable(password, session.id)
+      const result = await adminCreateTable(password, session.id, leaderless)
       setNewTableCode(result.join_code)
       const newRow: SessionTableRow = {
         id: result.table_id,
@@ -1173,6 +1179,7 @@ function SessionDetail({
         participant_count: 0,
         is_active: false,
         questionnaire_forced_at: null,
+        leaderless,
       }
       setAttachedTables(prev => [...prev, newRow])
     } catch (e) {
@@ -2202,13 +2209,22 @@ function SessionDetail({
                       </span>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={e => { e.stopPropagation(); handleCreateTable() }}
+                          onClick={e => { e.stopPropagation(); handleCreateTable(false) }}
                           disabled={creatingTable}
                           className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
                             text-indigo-600 hover:bg-indigo-50 transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {creatingTable ? '…' : '+ Créer une table'}
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleCreateTable(true) }}
+                          disabled={creatingTable}
+                          className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
+                            text-gray-600 hover:bg-gray-50 transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {creatingTable ? '…' : '+ Sans admin'}
                         </button>
                         <svg
                           className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${rattacheesOpen ? 'rotate-180' : ''}`}
@@ -4010,6 +4026,11 @@ function ExpandableTableRow({
         {/* Table info */}
         <div className="flex-1 min-w-0 flex items-center gap-4 flex-wrap text-sm">
           <span className="font-mono font-bold text-indigo-600 tracking-widest">{table.join_code}</span>
+          {table.leaderless && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
+              Sans animateur
+            </span>
+          )}
           {table.moderator_pseudo && (
             <span className="text-gray-600 truncate">{table.moderator_pseudo}</span>
           )}
