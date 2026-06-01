@@ -21,6 +21,7 @@ export default function ParticipantView() {
     leaveTable,
   } = useTable()
 
+  const [showWelcome,        setShowWelcome]        = useState(() => !localStorage.getItem('debate_welcome_' + table.id))
   const [err,                setErr]                = useState<string | null>(null)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
@@ -34,8 +35,10 @@ export default function ParticipantView() {
 
   // Forçage du questionnaire par le modérateur
   const [forcedQOpen,     setForcedQOpen]     = useState(false)
+  const [forcedExpired,   setForcedExpired]   = useState(false)
   const [forcedQResponse, setForcedQResponse] = useState<QuestionnaireResponse | null>(null)
-  const lastForcedRef = useRef<string | null>(null)
+  const lastForcedRef  = useRef<string | null>(null)
+  const forcedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Ouvrir le modal quand le forçage est activé
   useEffect(() => {
@@ -49,7 +52,16 @@ export default function ParticipantView() {
       .maybeSingle()
       .then(({ data }) => {
         setForcedQResponse(data as QuestionnaireResponse | null)
+        setForcedExpired(false)
         setForcedQOpen(true)
+        // Armer le timer d'expiration (1h en prod, 10s pour test)
+        if (forcedTimerRef.current) clearTimeout(forcedTimerRef.current)
+        const remaining = new Date(forced).getTime() + 3600000 - Date.now()
+        if (remaining <= 0) {
+          setForcedExpired(true)
+        } else {
+          forcedTimerRef.current = setTimeout(() => setForcedExpired(true), remaining)
+        }
       })
   }, [table.questionnaire_forced_at, table.id])
 
@@ -57,6 +69,11 @@ export default function ParticipantView() {
   useEffect(() => {
     if (!table.questionnaire_forced_at) {
       setForcedQOpen(false)
+      setForcedExpired(false)
+      if (forcedTimerRef.current) {
+        clearTimeout(forcedTimerRef.current)
+        forcedTimerRef.current = null
+      }
       lastForcedRef.current = null
     }
   }, [table.questionnaire_forced_at])
@@ -215,10 +232,63 @@ export default function ParticipantView() {
       </div>{/* end body flex */}
 
       {/* Questionnaire forcé par le modérateur — modal verrouillé */}
+      {/* ── Panorama d'accueil — affiché une seule fois par table ── */}
+      {showWelcome && (
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-indigo-600 px-6 py-5 text-center">
+              <p className="text-2xl mb-1">👋</p>
+              <h2 className="text-lg font-bold text-white">Bienvenue dans le débat</h2>
+            </div>
+            <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🙋</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Demander la parole</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Pour introduire un nouveau point ou des informations complémentaires.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">⚡</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Coupe file</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🔧</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Bouton Outils</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🧑‍⚖️</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Rôle du modérateur</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => {
+                  localStorage.setItem('debate_welcome_' + table.id, '1')
+                  setShowWelcome(false)
+                }}
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                C'est parti ! →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {forcedQOpen && (
         <QuestionnaireModal
           savedResponse={forcedQResponse}
-          forced={true}
+          forced={!forcedExpired}
           onClose={() => setForcedQOpen(false)}
         />
       )}

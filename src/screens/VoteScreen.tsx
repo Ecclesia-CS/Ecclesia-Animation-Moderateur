@@ -39,8 +39,12 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
   const [assertions, setAssertions] = useState<Assertion[]>([]) // shuffled order
   const [myVotes, setMyVotes] = useState<Map<string, AssertionVote>>(new Map())
   const [assertionIndex, setAssertionIndex] = useState(0)
-  const [showSubmitModal, setShowSubmitModal] = useState(false)
-  const [proposedCount, setProposedCount] = useState(0)
+  const [showSubmitModal,    setShowSubmitModal]    = useState(false)
+  const [proposedCount,      setProposedCount]      = useState(0)
+  const [showVoteIntro,      setShowVoteIntro]      = useState(false)
+  const [showAllAssertions,  setShowAllAssertions]  = useState(false)
+  const [allAssertionResults, setAllAssertionResults] = useState<VoteResult[]>([])
+  const [allResultsLoading,  setAllResultsLoading]  = useState(false)
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
@@ -223,6 +227,7 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
     setMyVotes(voteMap)
     setProposedCount((myAssertions ?? []).length)
     setAssertionIndex(0)
+    setShowVoteIntro(true)
     setStep('vote')
 
     // Subscribe Realtime
@@ -543,7 +548,7 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
               <VoteResultsSummary results={voteResults} loading={resultsLoading} />
             </div>
 
-            {/* Liste des assertions votées */}
+            {/* Liste des assertions votées + positions collectives */}
             <div className="px-4 mt-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Tes votes ({assertions.length})
@@ -552,10 +557,31 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
                 {assertions.map(a => {
                   const v = myVotes.get(a.id)
                   const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : '⏭'
+                  const r = voteResults.find(x => x.id === a.id)
+                  const total = r ? r.agree_count + r.disagree_count + r.pass_count : 0
                   return (
-                    <div key={a.id} className="flex items-start gap-3 bg-white rounded-xl border border-gray-200 p-3">
-                      <span className="text-lg shrink-0">{icon}</span>
-                      <p className="text-xs text-gray-700 leading-relaxed">{a.content}</p>
+                    <div key={a.id} className="bg-white rounded-xl border border-gray-200 p-3 space-y-2">
+                      <div className="flex items-start gap-3">
+                        <span className="text-lg shrink-0">{icon}</span>
+                        <p className="text-xs text-gray-700 leading-relaxed">{a.content}</p>
+                      </div>
+                      {r && total > 0 && (() => {
+                        const agreePct    = Math.round((r.agree_count    / total) * 100)
+                        const disagreePct = Math.round((r.disagree_count / total) * 100)
+                        const passPct     = Math.round((r.pass_count     / total) * 100)
+                        return (
+                          <div className="space-y-1 pl-8">
+                            <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                              {agreePct    > 0 && <div className="bg-green-400" style={{ width: `${agreePct}%` }} />}
+                              {disagreePct > 0 && <div className="bg-red-400"   style={{ width: `${disagreePct}%` }} />}
+                              {passPct     > 0 && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
+                            </div>
+                            <p className="text-[10px] text-gray-400">
+                              ✓ {r.agree_count} pour · ✗ {r.disagree_count} contre · → {r.pass_count} neutre
+                            </p>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })}
@@ -590,6 +616,29 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
           </div>
         )}
 
+        {/* Bouton "Voir toutes les assertions" */}
+        {assertions.length > 0 && (
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={async () => {
+                setAllResultsLoading(true)
+                try {
+                  const results = await getVoteResults(session.id)
+                  setAllAssertionResults(results)
+                } catch {
+                  setAllAssertionResults([])
+                } finally {
+                  setAllResultsLoading(false)
+                }
+                setShowAllAssertions(true)
+              }}
+              className="text-xs text-indigo-500 hover:text-indigo-700 underline underline-offset-2"
+            >
+              📋 Voir toutes les assertions ({assertions.length})
+            </button>
+          </div>
+        )}
+
         {/* Submit assertion modal */}
         {showSubmitModal && (
           <SubmitAssertionModal
@@ -597,6 +646,122 @@ export default function VoteScreen({ sessionJoinCode }: VoteScreenProps) {
             onClose={() => setShowSubmitModal(false)}
             onSubmitted={handleAssertionSubmitted}
           />
+        )}
+
+        {/* Modal intro vote */}
+        {showVoteIntro && (
+          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+            onClick={() => setShowVoteIntro(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="bg-indigo-600 px-6 py-5 text-center">
+                <p className="text-2xl mb-1">🗳️</p>
+                <h2 className="text-lg font-bold text-white">Comment fonctionne le vote ?</h2>
+              </div>
+              <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">👍</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Voter sur chaque assertion</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Pour chaque affirmation, indique si tu es d'accord, en désaccord, ou si tu préfères passer.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">✏️</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Proposer une assertion</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">🔄</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Tu peux changer d'avis</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Reviens sur une assertion déjà votée en la retrouvant dans la liste des assertions.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 pb-6">
+                <button
+                  onClick={() => setShowVoteIntro(false)}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  Commencer →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal "Voir toutes les assertions" */}
+        {showAllAssertions && (
+          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+            onClick={() => setShowAllAssertions(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+                <h2 className="text-sm font-bold text-gray-900">Toutes les assertions ({assertions.length})</h2>
+                <button
+                  onClick={() => setShowAllAssertions(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  aria-label="Fermer"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+                {allResultsLoading ? (
+                  <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+                ) : assertions.map(a => {
+                  const myVote = myVotes.get(a.id)
+                  const result = allAssertionResults.find(r => r.id === a.id)
+                  const voteIcon = myVote?.vote === 'agree' ? '✅' : myVote?.vote === 'disagree' ? '❌' : myVote ? '⏭' : null
+                  const unvotedIdx = unvotedAssertions.findIndex(u => u.id === a.id)
+                  return (
+                    <div key={a.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        {voteIcon
+                          ? <span className="text-base shrink-0">{voteIcon}</span>
+                          : (
+                            <button
+                              onClick={() => {
+                                if (unvotedIdx >= 0) setAssertionIndex(unvotedIdx)
+                                setShowAllAssertions(false)
+                              }}
+                              className="shrink-0 text-[10px] font-medium text-indigo-600 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-50 transition-colors"
+                            >
+                              Voter
+                            </button>
+                          )
+                        }
+                        <p className="text-sm text-gray-800 leading-snug flex-1">{a.content}</p>
+                      </div>
+                      {result && result.total_votes > 0 && (() => {
+                        const total = result.total_votes
+                        const agreePct    = Math.round((result.agree_count    / total) * 100)
+                        const disagreePct = Math.round((result.disagree_count / total) * 100)
+                        const passPct     = Math.round((result.pass_count     / total) * 100)
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                              {agreePct > 0    && <div className="bg-green-400" style={{ width: `${agreePct}%` }} />}
+                              {disagreePct > 0 && <div className="bg-red-400"   style={{ width: `${disagreePct}%` }} />}
+                              {passPct > 0     && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
+                            </div>
+                            <p className="text-[10px] text-gray-400">
+                              ✓ {result.agree_count} · ✗ {result.disagree_count} · → {result.pass_count}
+                            </p>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     )

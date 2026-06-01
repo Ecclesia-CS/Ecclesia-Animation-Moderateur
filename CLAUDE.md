@@ -269,8 +269,9 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 
 - `join_table(join_code, pseudo)` → `TableResult`
 - `tableStore.set({ tableId, participantId, joinCode, isModerator: false, pseudo })`
-- `window.location.reload()` → App.tsx relit le `tableStore` dans `init()` → monte `TableView`
+- Navigation directe : `window.location.href = window.location.pathname + window.location.search` → App.tsx relit le `tableStore` dans `init()` → monte `TableView`
 - **Ne pas faire** `window.location.hash = ''` directement : App.tsx a déjà `phase={type:'entry'}` en mémoire, il afficherait EntryScreen au lieu de TableView.
+- **Pas d'étape intermédiaire "J'arrive"** : `TableAssignmentCard` ne prend plus de props `joined`/`onArrived` — le join et la navigation sont fusionnés en une seule action.
 
 ---
 
@@ -319,6 +320,25 @@ Sur un appel batch avec 3 groupes ou plus, Gemini 2.5 Flash Lite retourne **syst
 
 ### Mapping group_id ↔ table_number
 `AnalysisPanel` utilise `group_id` 0-indexé. Les `table_number` de `table_assignments` et de Gemini sont 1-indexés. Mapping : `table_number = group_id + 1`.
+
+---
+
+## UX Participant — règles importantes
+
+### Modal d'accueil débat (`ParticipantView`)
+Affiché une seule fois par table via `localStorage` (clé `debate_welcome_<tableId>`). Explique les deux files, les outils, le modérateur. Ne pas utiliser `useEffect` pour l'initialisation — lire `localStorage` directement dans `useState(() => ...)`.
+
+### Modal intro vote (`VoteScreen`)
+`showVoteIntro` mis à `true` dans `loadVoteData()` juste avant `setStep('vote')`. Affiché à chaque nouvelle session de vote (pas de persistance localStorage — intentionnel).
+
+### Voir toutes les assertions (`VoteScreen`)
+Bouton "📋 Voir toutes" visible dès qu'il y a des assertions, que le participant ait tout voté ou non. Charge `getVoteResults` à la demande. Sur l'écran "Tu as tout voté", les barres de votes collectifs sont aussi affichées inline dans la liste "Tes votes" (depuis `voteResults` déjà chargé).
+
+### Forçage questionnaire — expiration 1h (`ParticipantView`)
+`forcedTimerRef` (useRef) stocke l'ID du `setTimeout`. **Ne jamais mettre le setTimeout dans un `.then()` en espérant que le `return () => clearTimeout()` remonte au useEffect** — il est ignoré. Le timer doit être posé dans le `.then()` mais stocké dans le ref, et nettoyé dans le useEffect d'annulation. Durée : `questionnaire_forced_at + 3 600 000 ms`. Quand expiré, `forced={false}` → la croix réapparaît.
+
+### Synthèse des votes admin — enrichissement content (`SuperadminScreen`)
+`get_vote_counts_admin` RPC ne retourne pas le champ `content`. Dans `loadAssertions`, après `Promise.allSettled`, construire une `Map<id, content>` depuis `assertions` et l'appliquer sur `voteResults` avant `setVoteResults`.
 
 ---
 

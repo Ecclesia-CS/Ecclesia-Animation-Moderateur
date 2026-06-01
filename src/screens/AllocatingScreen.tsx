@@ -23,7 +23,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
   const [assignmentLoading, setAssignmentLoading] = useState(true)
   const [joinLoading,       setJoinLoading]       = useState(false)
   const [joinError,         setJoinError]         = useState<string | null>(null)
-  const [joined,            setJoined]            = useState(false)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
 
@@ -149,17 +148,12 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
         isModerator:   false,
         pseudo:        member.pseudo,
       })
-      setJoined(true)
+      window.location.href = window.location.pathname + window.location.search
     } catch (err) {
       setJoinError(extractErr(err))
     } finally {
       setJoinLoading(false)
     }
-  }
-
-  function handleArrived() {
-    // Naviguer vers la base URL (sans hash) → App.tsx relit tableStore → TableView
-    window.location.href = window.location.pathname + window.location.search
   }
 
   // ── Render ────────────────────────────────────────────────────────
@@ -211,8 +205,6 @@ export default function AllocatingScreen({ session, member }: AllocatingScreenPr
             onJoin={handleJoin}
             joinLoading={joinLoading}
             joinError={joinError}
-            joined={joined}
-            onArrived={handleArrived}
           />
         </div>
 

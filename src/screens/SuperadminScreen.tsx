@@ -1006,7 +1006,13 @@ function SessionDetail({
         setAssertionsErr(msg)
       }
       if (resultsResult.status === 'fulfilled') {
-        setVoteResults(resultsResult.value)
+        const assertionMap = rowsResult.status === 'fulfilled'
+          ? new Map(rowsResult.value.map(a => [a.id, a.content]))
+          : new Map<string, string>()
+        setVoteResults(resultsResult.value.map(vr => ({
+          ...vr,
+          content: assertionMap.get(vr.id) ?? vr.content ?? '',
+        })))
       }
       // getVoteCountsAdmin failure is non-blocking — assertions still display without vote bars
     } finally {

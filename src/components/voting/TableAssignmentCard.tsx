@@ -12,11 +12,9 @@ interface TableAssignmentCardProps {
   onJoin?: () => Promise<void>
   joinLoading?: boolean
   joinError?: string | null
-  joined?: boolean
-  onArrived?: () => void
 }
 
-export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError, joined, onArrived }: TableAssignmentCardProps) {
+export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError }: TableAssignmentCardProps) {
   if (loading || assignment === null) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
@@ -60,46 +58,27 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
         {isDebating && (
           <div className="pt-1">
             {joinCode ? (
-              joined ? (
-                // Post-join : attente confirmation arrivée
-                <div className="space-y-3">
-                  <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-center">
-                    <p className="text-sm font-semibold text-green-800">✓ Connecté à la Table {assignment.table_number}</p>
-                    <p className="text-xs text-green-700 mt-1">
-                      Rends-toi en salle à la <strong>Table {assignment.table_number}</strong>,<br />
-                      puis appuie sur le bouton quand tu es arrivé.
-                    </p>
-                  </div>
-                  <button
-                    onClick={onArrived}
-                    className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
-                  >
-                    J'arrive ! →
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={onJoin}
-                    disabled={joinLoading}
-                    className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                      text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    {joinLoading ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        Connexion…
-                      </>
-                    ) : 'Accéder à la table →'}
-                  </button>
-                  {joinError && (
-                    <p className="text-xs text-red-600 text-center mt-2">{joinError}</p>
-                  )}
-                </>
-              )
+              <>
+                <button
+                  onClick={onJoin}
+                  disabled={joinLoading}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                    text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {joinLoading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      Connexion…
+                    </>
+                  ) : 'Accéder à la table →'}
+                </button>
+                {joinError && (
+                  <p className="text-xs text-red-600 text-center mt-2">{joinError}</p>
+                )}
+              </>
             ) : (
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                 <p className="text-sm text-amber-700 text-center">
