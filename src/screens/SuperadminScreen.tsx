@@ -910,6 +910,14 @@ interface GroupRow {
   join_code: string | null
 }
 
+type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
+
+function defaultTab(phase: Session['phase']): AdminTab {
+  if (phase === 'draft') return 'prep'
+  if (phase === 'voting' || phase === 'allocating' || phase === 'debating') return 'live'
+  return 'analysis'
+}
+
 // ── SessionDetail ─────────────────────────────────────────────────
 
 function SessionDetail({
@@ -928,15 +936,21 @@ function SessionDetail({
   const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
   const [exportingType,      setExportingType]      = useState<null | 'questionnaire' | 'speaking' | 'history'>(null)
-  const [showDownloadMenu,   setShowDownloadMenu]   = useState(false)
   const [isQForced,    setIsQForced]    = useState(false)
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
 
-  const [tablesOpen,      setTablesOpen]      = useState(true)
   const [rattacheesOpen,  setRattacheesOpen]  = useState(true)
   const [disponiblesOpen, setDisponiblesOpen] = useState(false)
   const [docsOpen,        setDocsOpen]        = useState(false)
+
+  const adminTabKey = `ecclesia_admin_tab_${session.id}`
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const stored = sessionStorage.getItem(`ecclesia_admin_tab_${session.id}`)
+    if (stored === 'live' || stored === 'tables' || stored === 'prep' || stored === 'analysis') return stored
+    return defaultTab(session.phase)
+  })
+  const [postSessionOpen, setPostSessionOpen] = useState(false)
   const [synthOpen,       setSynthOpen]       = useState(false)
 
   // ── Filtre "Tables disponibles" ────────────────────────────
@@ -1806,66 +1820,6 @@ function SessionDetail({
               <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
             )}
           </div>
-          <button
-            onClick={() => setShowQConfirm(true)}
-            disabled={qActing}
-            className="shrink-0 py-1.5 px-3 text-xs font-medium border rounded-lg
-              transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-              border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-            title={isQForced
-              ? 'Réinitialiser le forçage du questionnaire pour toutes les tables'
-              : 'Forcer l\'affichage du questionnaire chez tous les participants'}
-          >
-            {qActing ? '…' : isQForced ? 'Annuler forçage questionnaire' : 'Forcer questionnaire'}
-          </button>
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setShowDownloadMenu(v => !v)}
-              disabled={exportingType !== null}
-              className="flex items-center gap-1.5 py-1.5 px-3 text-xs font-medium
-                border border-teal-200 rounded-lg text-teal-700 hover:bg-teal-50
-                transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exportingType !== null ? (
-                <Spinner />
-              ) : (
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-              )}
-              {exportingType !== null ? 'Export…' : 'Téléchargement'}
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </button>
-            {showDownloadMenu && (
-              <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200
-                rounded-xl shadow-lg py-1 min-w-[180px]">
-                <button
-                  onClick={() => { setShowDownloadMenu(false); handleExportQuestionnaires() }}
-                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
-                >
-                  Questionnaire
-                </button>
-                <button
-                  onClick={() => { setShowDownloadMenu(false); handleExportSpeakingTimes() }}
-                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
-                >
-                  Temps de parole
-                </button>
-                <button
-                  onClick={() => { setShowDownloadMenu(false); handleExportHistory() }}
-                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
-                >
-                  Historique
-                </button>
-              </div>
-            )}
-          </div>
         </div>
         {(session.description || session.scheduled_at) && (
           <div className="max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-gray-400 space-y-0.5">
@@ -1895,642 +1849,745 @@ function SessionDetail({
           onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
         />
 
-        {/* ── Politique de modération ──────────────────────── */}
-        <ModerationPolicyEditor
-          currentPolicy={currentSession.moderation_policy}
-          onSave={async (policy) => {
-            const pwd = getPwd()!
-            await updateSessionConfig(
-              pwd, currentSession.id, policy,
-              currentSession.vote_timer_minutes,
-              currentSession.vote_threshold_percent,
-            )
-            setCurrentSession(prev => ({ ...prev, moderation_policy: policy }))
-            // Auto-approuver les assertions pending quand on bascule vers 'open'
-            if (policy === 'open') {
-              const pending = assertions.filter(a => a.status === 'pending')
-              for (const a of pending) {
-                try { await approveAssertion(pwd, a.id) } catch {}
-              }
-              await loadAssertions()
-            }
-          }}
-        />
-
-        {/* ── Lien de partage ────────────────────────────── */}
-        {session.join_code && <ShareLinkBanner joinCode={session.join_code} />}
+        {/* ── Barre d'onglets ─────────────────────────────── */}
+        <div className="flex gap-1 bg-white rounded-2xl border border-gray-200 p-1">
+          {([
+            { id: 'live',     label: '🟢 En direct' },
+            { id: 'tables',   label: '🪑 Tables' },
+            { id: 'prep',     label: '⚙️ Préparation' },
+            { id: 'analysis', label: '📊 Analyse' },
+          ] as { id: AdminTab; label: string }[]).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16 text-sm text-gray-400">Chargement…</div>
         ) : (
           <>
-            {/* ── Stats de vote ────────────────────────────── */}
-            {showVotingSections && (
-              <SectionAccordion
-                title="Statistiques de vote"
-                open={statsOpen}
-                onToggle={() => setStatsOpen(o => !o)}
-                badge={votingStats ? `${votingStats.voter_count}/${votingStats.member_count} ont voté` : undefined}
-              >
-                {statsLoading && !votingStats ? (
-                  <p className="text-sm text-gray-400 py-2">Chargement…</p>
-                ) : votingStats ? (
-                  <VotingStatsPanel
-                    stats={votingStats}
-                    session={currentSession}
-                    onTimerExpired={() => setShowTimerAlert(true)}
-                    onTriggerClustering={() => setShowClusteringModal(true)}
-                  />
-                ) : null}
-              </SectionAccordion>
-            )}
-
-            {/* ── Assertions ──────────────────────────────── */}
-            {showVotingSections && (
-              <SectionAccordion
-                title="Assertions"
-                open={assertionsOpen}
-                onToggle={() => setAssertionsOpen(o => !o)}
-                badge={assertionsLoading ? '…' : `${assertions.filter(a => a.status === 'pending').length} en attente`}
-                onRefresh={loadAssertions}
-              >
-                {assertionsErr && (
-                  <p className="text-sm text-red-600 mb-2">{assertionsErr}</p>
-                )}
-                <AssertionsPanel
-                  assertions={assertions}
-                  voteResults={voteResults}
-                  tab={assertionsTab}
-                  onTabChange={setAssertionsTab}
-                  session={currentSession}
-                  actingId={actingAssertionId}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  onApproveAll={handleApproveAll}
-                  onReapprove={handleApprove}
-                  onAdminSubmit={handleAdminSubmitAssertion}
+            {/* ── Onglet En direct ─────────────────────────── */}
+            {activeTab === 'live' && (
+              <div className="space-y-6">
+                <ModerationPolicyEditor
+                  currentPolicy={currentSession.moderation_policy}
+                  onSave={async (policy) => {
+                    const pwd = getPwd()!
+                    await updateSessionConfig(
+                      pwd, currentSession.id, policy,
+                      currentSession.vote_timer_minutes,
+                      currentSession.vote_threshold_percent,
+                    )
+                    setCurrentSession(prev => ({ ...prev, moderation_policy: policy }))
+                    if (policy === 'open') {
+                      const pending = assertions.filter(a => a.status === 'pending')
+                      for (const a of pending) {
+                        try { await approveAssertion(pwd, a.id) } catch {}
+                      }
+                      await loadAssertions()
+                    }
+                  }}
                 />
-              </SectionAccordion>
-            )}
 
-            {/* ── Synthèse des votes ───────────────────────── */}
-            {showVotingSections && voteResults.length > 0 && (
-              <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <button
-                  onClick={() => setSynthOpen(o => !o)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-                >
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Synthèse des votes
-                    <span className="ml-2 font-normal normal-case text-gray-400">
-                      ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
-                    </span>
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                {showVotingSections && (
+                  <SectionAccordion
+                    title="Assertions"
+                    open={assertionsOpen}
+                    onToggle={() => setAssertionsOpen(o => !o)}
+                    badge={assertionsLoading ? '…' : `${assertions.filter(a => a.status === 'pending').length} en attente`}
+                    onRefresh={loadAssertions}
                   >
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                </button>
-                {synthOpen && (
-                  <div className="border-t border-gray-100 px-5 py-4">
-                    <VoteResultsSummary results={voteResults} loading={false} />
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* ── Analyse des camps ──────────────────────── */}
-            {showVotingSections && (
-              <AnalysisPanel
-                sessionId={session.id}
-                password={getPwd()!}
-                assertions={assertions}
-                onAuthError={onAuthError}
-                onAnalysisStatusChange={setHasAnalysisDone}
-                groupNames={groupNames}
-                totalMembers={members.length > 0 ? members.length : undefined}
-                sessionPhase={session.phase}
-              />
-            )}
-
-            {/* ── Modération IA ───────────────────────────── */}
-            {showVotingSections && (
-              <LLMModerationPanel session={currentSession} password={getPwd()!} />
-            )}
-
-            {/* ── Participants inscrits ───────────────────── */}
-            {showVotingSections && (
-              <SectionAccordion
-                title="Participants inscrits"
-                open={membersOpen}
-                onToggle={() => setMembersOpen(o => !o)}
-                badge={membersLoading ? '…' : `${members.length}`}
-                onRefresh={loadMembers}
-              >
-                <MembersPanel members={members} loading={membersLoading} />
-              </SectionAccordion>
-            )}
-
-            {/* ── Tables et assignations (parent accordion) ── */}
-            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setTablesOpen(o => !o)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Tables et assignations
-                  {attachedTables.length > 0 && (
-                    <span className="ml-2 font-normal normal-case text-gray-400">
-                      ({attachedTables.length} table{attachedTables.length !== 1 ? 's' : ''})
-                    </span>
-                  )}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${tablesOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              {tablesOpen && (
-                <div className="border-t border-gray-100 divide-y divide-gray-100">
-                  {/* Groupes (allocating/debating) */}
-                  {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-                    <div className="px-5 py-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
-                        {groupsLoading && <Spinner />}
-                      </div>
-                      {assignError && (
-                        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
-                          <span>{assignError}</span>
-                          <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
-                        </div>
-                      )}
-                      {groups.length === 0 && !groupsLoading ? (
-                        <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
-                      ) : (
-                        <DndContext
-                          sensors={dndSensors}
-                          onDragStart={(e: DragStartEvent) => {
-                            const member = groups.flatMap(g => g.members).find(m => m.member_id === e.active.id)
-                            if (member) setDraggingMember(member)
-                          }}
-                          onDragEnd={handleGroupDragEnd}
-                          onDragCancel={() => setDraggingMember(null)}
-                        >
-                        <div className="space-y-3">
-                          {groups.map(g => (
-                            <DroppableGroupCard key={g.table_number} tableNumber={g.table_number}>
-                              <div className="flex items-center gap-2 mb-1.5">
-                                <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
-                                <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
-                                {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
-                              </div>
-                              {(() => {
-                                const gn = groupNames.find(n => n.table_number === g.table_number)
-                                return gn ? (
-                                  <div className="mb-2">
-                                    <span className="text-xs font-semibold text-gray-700">{gn.name}</span>
-                                    <p className="text-xs text-gray-400">{gn.description}</p>
-                                  </div>
-                                ) : null
-                              })()}
-                              <div className="flex flex-wrap gap-1.5 mb-3">
-                                {g.members.map(m => (
-                                  <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
-                                ))}
-                              </div>
-                              <div className="border-t border-gray-100 pt-3">
-                                {g.join_code ? (
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                                        <span className="font-mono tracking-widest">{g.join_code}</span>
-                                      </span>
-                                      <span className="text-xs text-gray-400">rattachée</span>
-                                    </div>
-                                    <button
-                                      onClick={() => handleAssignGroup(g.table_number, null)}
-                                      disabled={assigningGroup === g.table_number}
-                                      className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-500
-                                        hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
-                                        disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {assigningGroup === g.table_number ? '…' : 'Détacher'}
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2">
-                                    <select
-                                      value={selectedTableId[g.table_number] ?? ''}
-                                      onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
-                                      className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
-                                        focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
-                                    >
-                                      <option value="">— Sélectionner une table —</option>
-                                      {dropdownTables.map(t => (
-                                        <option key={t.id} value={t.id}>
-                                          {t.join_code}{t.moderator_pseudo ? ` (${t.moderator_pseudo})` : ''}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <button
-                                      onClick={() => {
-                                        const tableId = selectedTableId[g.table_number]
-                                        if (tableId) handleAssignGroup(g.table_number, tableId)
-                                      }}
-                                      disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
-                                      className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                                        text-indigo-600 hover:bg-indigo-50 transition-colors
-                                        disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {assigningGroup === g.table_number ? '…' : 'Rattacher'}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </DroppableGroupCard>
-                          ))}
-                        </div>
-                        <DragOverlay dropAnimation={null}>
-                          {draggingMember && (
-                            <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg opacity-90">
-                              {draggingMember.pseudo}
-                            </div>
-                          )}
-                        </DragOverlay>
-                        </DndContext>
-                      )}
-                      {currentSession.phase === 'allocating' && (
-                        <div className="space-y-2">
-                          {groups.some(g => !g.join_code) && (
-                            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                              ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
-                              les participants concernés ne pourront pas rejoindre directement.
-                            </p>
-                          )}
-                          <button
-                            onClick={() => setShowDebateConfirm(true)}
-                            className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
-                              text-sm font-semibold rounded-xl transition-colors"
-                          >
-                            Ouvrir le débat →
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Notification table créée */}
-                  {newTableCode && (
-                    <div className="px-5 py-3 bg-green-50 flex items-center justify-between gap-2 text-sm text-green-800">
-                      <span>Table créée ! Code : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
-                      <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
-                    </div>
-                  )}
-
-                  {/* Tables rattachées (sous-accordion) */}
-                  <div>
-                    <button
-                      onClick={() => setRattacheesOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        Tables rattachées
-                        {attachedTables.length > 0 && (
-                          <span className="ml-2 font-normal normal-case">({attachedTables.length})</span>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleCreateTable(false) }}
-                          disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
-                            text-indigo-600 hover:bg-indigo-50 transition-colors
-                            disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {creatingTable ? '…' : '+ Créer une table'}
-                        </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleCreateTable(true) }}
-                          disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
-                            text-gray-600 hover:bg-gray-50 transition-colors
-                            disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {creatingTable ? '…' : '+ Sans admin'}
-                        </button>
-                        <svg
-                          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${rattacheesOpen ? 'rotate-180' : ''}`}
-                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                      </div>
-                    </button>
-                    {rattacheesOpen && (
-                      <div className="border-t border-gray-50 px-5 py-3">
-                        {attachedTables.length === 0 ? (
-                          <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {attachedTables.map(t => (
-                              <ExpandableTableRow
-                                key={t.id}
-                                table={t}
-                                onDelete={() => setDeleteTableConfirm(t)}
-                                otherTables={attachedTables.filter(ot => ot.id !== t.id)}
-                                onParticipantMoved={load}
-                                action={
-                                  <button
-                                    onClick={() => setDetachConfirm(t)}
-                                    className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
-                                      text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                  >
-                                    Détacher
-                                  </button>
-                                }
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    {assertionsErr && (
+                      <p className="text-sm text-red-600 mb-2">{assertionsErr}</p>
                     )}
-                  </div>
+                    <AssertionsPanel
+                      assertions={assertions}
+                      voteResults={voteResults}
+                      tab={assertionsTab}
+                      onTabChange={setAssertionsTab}
+                      session={currentSession}
+                      actingId={actingAssertionId}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      onApproveAll={handleApproveAll}
+                      onReapprove={handleApprove}
+                      onAdminSubmit={handleAdminSubmitAssertion}
+                    />
+                  </SectionAccordion>
+                )}
 
-                  {/* Tables disponibles à rattacher (sous-accordion) */}
-                  <div>
+                {showVotingSections && (
+                  <LLMModerationPanel session={currentSession} password={getPwd()!} />
+                )}
+
+                {showVotingSections && (
+                  <AnalysisPanel
+                    sessionId={session.id}
+                    password={getPwd()!}
+                    assertions={assertions}
+                    onAuthError={onAuthError}
+                    onAnalysisStatusChange={setHasAnalysisDone}
+                    groupNames={groupNames}
+                    totalMembers={members.length > 0 ? members.length : undefined}
+                    sessionPhase={session.phase}
+                  />
+                )}
+
+                {showVotingSections && (
+                  <SectionAccordion
+                    title="Statistiques de vote"
+                    open={statsOpen}
+                    onToggle={() => setStatsOpen(o => !o)}
+                    badge={votingStats ? `${votingStats.voter_count}/${votingStats.member_count} ont voté` : undefined}
+                  >
+                    {statsLoading && !votingStats ? (
+                      <p className="text-sm text-gray-400 py-2">Chargement…</p>
+                    ) : votingStats ? (
+                      <VotingStatsPanel
+                        stats={votingStats}
+                        session={currentSession}
+                        onTimerExpired={() => setShowTimerAlert(true)}
+                        onTriggerClustering={() => setShowClusteringModal(true)}
+                      />
+                    ) : null}
+                  </SectionAccordion>
+                )}
+
+                {showVotingSections && (
+                  <SectionAccordion
+                    title="Participants inscrits"
+                    open={membersOpen}
+                    onToggle={() => setMembersOpen(o => !o)}
+                    badge={membersLoading ? '…' : `${members.length}`}
+                    onRefresh={loadMembers}
+                  >
+                    <MembersPanel members={members} loading={membersLoading} />
+                  </SectionAccordion>
+                )}
+
+                {showVotingSections && voteResults.length > 0 && (
+                  <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <button
-                      onClick={() => setDisponiblesOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                      onClick={() => setSynthOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
                     >
-                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        Tables disponibles à rattacher
-                        {availableTables.length > 0 && (
-                          <span className="ml-2 font-normal normal-case">({availableTables.length})</span>
-                        )}
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Synthèse des votes
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
+                        </span>
                       </span>
                       <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${disponiblesOpen ? 'rotate-180' : ''}`}
+                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                       >
                         <polyline points="6 9 12 15 18 9"/>
                       </svg>
                     </button>
-                    {disponiblesOpen && (
-                      <div className="border-t border-gray-50 px-5 py-3">
-                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                          {(['48h', 'all', 'custom'] as const).map(f => (
-                            <button
-                              key={f}
-                              onClick={() => {
-                                setTableFilter(f)
-                                load(f, customSince)
-                              }}
-                              className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
-                                tableFilter === f
-                                  ? 'bg-indigo-600 text-white border-indigo-600'
-                                  : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
-                              }`}
-                            >
-                              {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
-                            </button>
-                          ))}
-                          {tableFilter === 'custom' && (
-                            <input
-                              type="datetime-local"
-                              value={customSince}
-                              onChange={e => {
-                                setCustomSince(e.target.value)
-                                if (e.target.value) load('custom', e.target.value)
-                              }}
-                              className="px-2 py-1 text-xs border border-gray-300 rounded-lg
-                                focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            />
-                          )}
-                        </div>
-                        {availableTables.length === 0 ? (
-                          <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {availableTables.map(t => (
-                              <ExpandableTableRow
-                                key={t.id}
-                                table={t}
-                                onDelete={() => setDeleteTableConfirm(t)}
-                                otherTables={[]}
-                                onParticipantMoved={() => {}}
-                                action={
+                    {synthOpen && (
+                      <div className="border-t border-gray-100 px-5 py-4">
+                        <VoteResultsSummary results={voteResults} loading={false} />
+                      </div>
+                    )}
+                  </section>
+                )}
+              </div>
+            )}
+
+            {/* ── Onglet Tables ────────────────────────────── */}
+            {activeTab === 'tables' && (
+              <div className="space-y-4">
+                {/* Groupes (allocating/debating) */}
+                {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
+                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden px-5 py-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
+                      {groupsLoading && <Spinner />}
+                    </div>
+                    {assignError && (
+                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+                        <span>{assignError}</span>
+                        <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                      </div>
+                    )}
+                    {groups.length === 0 && !groupsLoading ? (
+                      <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
+                    ) : (
+                      <DndContext
+                        sensors={dndSensors}
+                        onDragStart={(e: DragStartEvent) => {
+                          const member = groups.flatMap(g => g.members).find(m => m.member_id === e.active.id)
+                          if (member) setDraggingMember(member)
+                        }}
+                        onDragEnd={handleGroupDragEnd}
+                        onDragCancel={() => setDraggingMember(null)}
+                      >
+                      <div className="space-y-3">
+                        {groups.map(g => (
+                          <DroppableGroupCard key={g.table_number} tableNumber={g.table_number}>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
+                              <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
+                            </div>
+                            {(() => {
+                              const gn = groupNames.find(n => n.table_number === g.table_number)
+                              return gn ? (
+                                <div className="mb-2">
+                                  <span className="text-xs font-semibold text-gray-700">{gn.name}</span>
+                                  <p className="text-xs text-gray-400">{gn.description}</p>
+                                </div>
+                              ) : null
+                            })()}
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              {g.members.map(m => (
+                                <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
+                              ))}
+                            </div>
+                            <div className="border-t border-gray-100 pt-3">
+                              {g.join_code ? (
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                                      <span className="font-mono tracking-widest">{g.join_code}</span>
+                                    </span>
+                                    <span className="text-xs text-gray-400">rattachée</span>
+                                  </div>
                                   <button
-                                    onClick={() => handleAttach(t.id)}
-                                    className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                                      text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                    onClick={() => handleAssignGroup(g.table_number, null)}
+                                    disabled={assigningGroup === g.table_number}
+                                    className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-500
+                                      hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
+                                      disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    Rattacher
+                                    {assigningGroup === g.table_number ? '…' : 'Détacher'}
                                   </button>
-                                }
-                              />
-                            ))}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <select
+                                    value={selectedTableId[g.table_number] ?? ''}
+                                    onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
+                                    className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+                                      focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                  >
+                                    <option value="">— Sélectionner une table —</option>
+                                    {dropdownTables.map(t => (
+                                      <option key={t.id} value={t.id}>
+                                        {t.join_code}{t.moderator_pseudo ? ` (${t.moderator_pseudo})` : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={() => {
+                                      const tableId = selectedTableId[g.table_number]
+                                      if (tableId) handleAssignGroup(g.table_number, tableId)
+                                    }}
+                                    disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
+                                    className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                                      text-indigo-600 hover:bg-indigo-50 transition-colors
+                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {assigningGroup === g.table_number ? '…' : 'Rattacher'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </DroppableGroupCard>
+                        ))}
+                      </div>
+                      <DragOverlay dropAnimation={null}>
+                        {draggingMember && (
+                          <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg opacity-90">
+                            {draggingMember.pseudo}
                           </div>
                         )}
+                      </DragOverlay>
+                      </DndContext>
+                    )}
+                    {currentSession.phase === 'allocating' && (
+                      <div className="space-y-2">
+                        {groups.some(g => !g.join_code) && (
+                          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                            ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
+                            les participants concernés ne pourront pas rejoindre directement.
+                          </p>
+                        )}
+                        <button
+                          onClick={() => setShowDebateConfirm(true)}
+                          className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
+                            text-sm font-semibold rounded-xl transition-colors"
+                        >
+                          Ouvrir le débat →
+                        </button>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-            </section>
+                )}
 
-            {/* ── Documentation (accordion) ─────────────────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setDocsOpen(o => !o)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Documentation
-                </span>
-                <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${docsOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              {docsOpen && (
-                <div className="border-t border-gray-100 px-5 py-4">
-                  <div className="flex items-center justify-between mb-3">
-                    {!editingDocs && (
-                      <button
-                        onClick={() => {
-                          setDocInfoUrl(normalizeDocUrl(sessionDocs.doc_info_url ?? ''))
-                          setDocSummaryUrl(normalizeDocUrl(sessionDocs.doc_summary_url ?? ''))
-                          setDocsErr(null)
-                          setEditingDocs(true)
-                        }}
-                        className="text-xs text-indigo-600 hover:underline"
-                      >
-                        Modifier
-                      </button>
-                    )}
+                {/* Notification table créée */}
+                {newTableCode && (
+                  <div className="px-5 py-3 bg-green-50 rounded-2xl border border-green-200 flex items-center justify-between gap-2 text-sm text-green-800">
+                    <span>Table créée ! Code : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
+                    <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
                   </div>
-                  {editingDocs ? (
-                    <form onSubmit={handleSaveDocs} className="space-y-3">
-                      <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
-                      <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
-                      {docsErr && (
-                        <p className="text-xs text-red-600">{docsErr}</p>
+                )}
+
+                {/* Tables rattachées (sous-accordion) */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setRattacheesOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      Tables rattachées
+                      {attachedTables.length > 0 && (
+                        <span className="ml-2 font-normal normal-case">({attachedTables.length})</span>
                       )}
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setEditingDocs(false)}
-                          className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
-                        >
-                          Annuler
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={docsLoading}
-                          className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                            text-white rounded-xl transition-colors"
-                        >
-                          {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="space-y-2 text-sm">
-                      <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
-                      <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
-                      {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
-                        <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
-                      )}
-                      {session.join_code && (
-                        <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
-                          <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
-                          <a
-                            href={`#collab/${session.join_code}`}
-                            className="text-indigo-600 hover:underline text-xs"
-                          >
-                            Ouvrir le document →
-                          </a>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={e => { e.stopPropagation(); handleCreateTable(false) }}
+                        disabled={creatingTable}
+                        className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+                          text-indigo-600 hover:bg-indigo-50 transition-colors
+                          disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {creatingTable ? '…' : '+ Créer une table'}
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleCreateTable(true) }}
+                        disabled={creatingTable}
+                        className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
+                          text-gray-600 hover:bg-gray-50 transition-colors
+                          disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {creatingTable ? '…' : '+ Sans admin'}
+                      </button>
+                      <svg
+                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${rattacheesOpen ? 'rotate-180' : ''}`}
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </div>
+                  </button>
+                  {rattacheesOpen && (
+                    <div className="border-t border-gray-50 px-5 py-3">
+                      {attachedTables.length === 0 ? (
+                        <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {attachedTables.map(t => (
+                            <ExpandableTableRow
+                              key={t.id}
+                              table={t}
+                              onDelete={() => setDeleteTableConfirm(t)}
+                              otherTables={attachedTables.filter(ot => ot.id !== t.id)}
+                              onParticipantMoved={load}
+                              action={
+                                <button
+                                  onClick={() => setDetachConfirm(t)}
+                                  className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
+                                    text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  Détacher
+                                </button>
+                              }
+                            />
+                          ))}
                         </div>
                       )}
                     </div>
                   )}
-                </div>
-              )}
-            </section>
-            {/* ── Tableau de bord thèmes (accordéon) ─────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setThemesOpen(o => !o)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left
-                  hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Thèmes — classement par moyenne
-                  {responses.length > 0 && (
-                    <span className="ml-2 font-normal normal-case text-gray-400">
-                      ({responses.length} réponse{responses.length > 1 ? 's' : ''})
-                    </span>
-                  )}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${themesOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              {themesOpen && (
-                <div className="px-5 pb-5 border-t border-gray-100">
-                  <ThemeDashboard responses={responses} loading={responsesLoading} />
-                </div>
-              )}
-            </section>
+                </section>
 
-            {/* ── Liste des réponses (accordéon) ──────────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setResponsesOpen(o => !o)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left
-                  hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Réponses au questionnaire
-                  {responses.length > 0 && (
-                    <span className="ml-2 font-normal normal-case text-gray-400">
-                      ({responses.length})
+                {/* Tables disponibles à rattacher (sous-accordion) */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setDisponiblesOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      Tables disponibles à rattacher
+                      {availableTables.length > 0 && (
+                        <span className="ml-2 font-normal normal-case">({availableTables.length})</span>
+                      )}
                     </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${disponiblesOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {disponiblesOpen && (
+                    <div className="border-t border-gray-50 px-5 py-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {(['48h', 'all', 'custom'] as const).map(f => (
+                          <button
+                            key={f}
+                            onClick={() => {
+                              setTableFilter(f)
+                              load(f, customSince)
+                            }}
+                            className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                              tableFilter === f
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
+                            }`}
+                          >
+                            {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
+                          </button>
+                        ))}
+                        {tableFilter === 'custom' && (
+                          <input
+                            type="datetime-local"
+                            value={customSince}
+                            onChange={e => {
+                              setCustomSince(e.target.value)
+                              if (e.target.value) load('custom', e.target.value)
+                            }}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded-lg
+                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        )}
+                      </div>
+                      {availableTables.length === 0 ? (
+                        <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {availableTables.map(t => (
+                            <ExpandableTableRow
+                              key={t.id}
+                              table={t}
+                              onDelete={() => setDeleteTableConfirm(t)}
+                              otherTables={[]}
+                              onParticipantMoved={() => {}}
+                              action={
+                                <button
+                                  onClick={() => handleAttach(t.id)}
+                                  className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                                    text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                >
+                                  Rattacher
+                                </button>
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${responsesOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              {responsesOpen && (
-                <div className="border-t border-gray-100">
-                  <ResponsesList
-                    responses={responses}
-                    loading={responsesLoading}
-                    expandedId={expandedResponseId}
-                    deletingId={deletingRespId}
-                    onToggle={id => setExpandedResponseId(prev => prev === id ? null : id)}
-                    onDeleteRequest={r => setDeleteRespConfirm(r)}
-                  />
-                </div>
-              )}
-            </section>
+                </section>
+              </div>
+            )}
 
-            {/* ── Sources collaboratives (accordéon) ──────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setSourcesOpen(o => !o)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left
-                  hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Sources collaboratives
-                  {sources.length > 0 && (
-                    <span className="ml-2 font-normal normal-case text-gray-400">
-                      ({sources.length} source{sources.length > 1 ? 's' : ''})
+            {/* ── Onglet Préparation ───────────────────────── */}
+            {activeTab === 'prep' && (
+              <div className="space-y-6">
+                {session.join_code && <ShareLinkBanner joinCode={session.join_code} />}
+
+                {/* Documentation (accordion) */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setDocsOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Documentation
                     </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${docsOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {docsOpen && (
+                    <div className="border-t border-gray-100 px-5 py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        {!editingDocs && (
+                          <button
+                            onClick={() => {
+                              setDocInfoUrl(normalizeDocUrl(sessionDocs.doc_info_url ?? ''))
+                              setDocSummaryUrl(normalizeDocUrl(sessionDocs.doc_summary_url ?? ''))
+                              setDocsErr(null)
+                              setEditingDocs(true)
+                            }}
+                            className="text-xs text-indigo-600 hover:underline"
+                          >
+                            Modifier
+                          </button>
+                        )}
+                      </div>
+                      {editingDocs ? (
+                        <form onSubmit={handleSaveDocs} className="space-y-3">
+                          <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
+                          <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                          {docsErr && (
+                            <p className="text-xs text-red-600">{docsErr}</p>
+                          )}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingDocs(false)}
+                              className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={docsLoading}
+                              className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                                text-white rounded-xl transition-colors"
+                            >
+                              {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-2 text-sm">
+                          <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
+                          <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                          {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
+                            <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
+                          )}
+                          {session.join_code && (
+                            <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
+                              <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
+                              <a
+                                href={`#collab/${session.join_code}`}
+                                className="text-indigo-600 hover:underline text-xs"
+                              >
+                                Ouvrir le document →
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${sourcesOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              {sourcesOpen && (
-                <div className="border-t border-gray-100 px-5 py-4">
-                  <CollabSourcesList
-                    sources={sources}
-                    loading={sourcesLoading}
-                    deletingId={deletingSourceId}
-                    onDeleteRequest={s => setDeleteSourceConfirm(s)}
-                  />
-                </div>
-              )}
-            </section>
+                </section>
+              </div>
+            )}
+
+            {/* ── Onglet Analyse ───────────────────────────── */}
+            {activeTab === 'analysis' && (
+              <div className="space-y-6">
+                {/* Synthèse des votes */}
+                {showVotingSections && voteResults.length > 0 && (
+                  <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => setSynthOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Synthèse des votes
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
+                        </span>
+                      </span>
+                      <svg
+                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {synthOpen && (
+                      <div className="border-t border-gray-100 px-5 py-4">
+                        <VoteResultsSummary results={voteResults} loading={false} />
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {/* Thèmes */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setThemesOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left
+                      hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Thèmes — classement par moyenne
+                      {responses.length > 0 && (
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({responses.length} réponse{responses.length > 1 ? 's' : ''})
+                        </span>
+                      )}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${themesOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {themesOpen && (
+                    <div className="px-5 pb-5 border-t border-gray-100">
+                      <ThemeDashboard responses={responses} loading={responsesLoading} />
+                    </div>
+                  )}
+                </section>
+
+                {/* Réponses au questionnaire */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setResponsesOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left
+                      hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Réponses au questionnaire
+                      {responses.length > 0 && (
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({responses.length})
+                        </span>
+                      )}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${responsesOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {responsesOpen && (
+                    <div className="border-t border-gray-100">
+                      <ResponsesList
+                        responses={responses}
+                        loading={responsesLoading}
+                        expandedId={expandedResponseId}
+                        deletingId={deletingRespId}
+                        onToggle={id => setExpandedResponseId(prev => prev === id ? null : id)}
+                        onDeleteRequest={r => setDeleteRespConfirm(r)}
+                      />
+                    </div>
+                  )}
+                </section>
+
+                {/* Sources collaboratives */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setSourcesOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left
+                      hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Sources collaboratives
+                      {sources.length > 0 && (
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({sources.length} source{sources.length > 1 ? 's' : ''})
+                        </span>
+                      )}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${sourcesOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {sourcesOpen && (
+                    <div className="border-t border-gray-100 px-5 py-4">
+                      <CollabSourcesList
+                        sources={sources}
+                        loading={sourcesLoading}
+                        deletingId={deletingSourceId}
+                        onDeleteRequest={s => setDeleteSourceConfirm(s)}
+                      />
+                    </div>
+                  )}
+                </section>
+
+                {/* Actions post-séance */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setPostSessionOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Actions post-séance
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${postSessionOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {postSessionOpen && (
+                    <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">Questionnaire forcé</span>
+                        <button
+                          onClick={() => setShowQConfirm(true)}
+                          disabled={qActing}
+                          className="py-1.5 px-3 text-xs font-medium border rounded-lg transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                            border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                        >
+                          {qActing ? '…' : isQForced ? 'Annuler forçage' : 'Forcer questionnaire'}
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                        <span className="text-xs font-medium text-gray-500">Exports CSV</span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={handleExportQuestionnaires}
+                            disabled={exportingType !== null}
+                            className="py-1.5 px-3 text-xs font-medium border border-teal-200 rounded-lg
+                              text-teal-700 hover:bg-teal-50 transition-colors
+                              disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {exportingType === 'questionnaire' ? <><Spinner /> Export…</> : 'Questionnaire'}
+                          </button>
+                          <button
+                            onClick={handleExportSpeakingTimes}
+                            disabled={exportingType !== null}
+                            className="py-1.5 px-3 text-xs font-medium border border-teal-200 rounded-lg
+                              text-teal-700 hover:bg-teal-50 transition-colors
+                              disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {exportingType === 'speaking' ? <><Spinner /> Export…</> : 'Temps de parole'}
+                          </button>
+                          <button
+                            onClick={handleExportHistory}
+                            disabled={exportingType !== null}
+                            className="py-1.5 px-3 text-xs font-medium border border-teal-200 rounded-lg
+                              text-teal-700 hover:bg-teal-50 transition-colors
+                              disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {exportingType === 'history' ? <><Spinner /> Export…</> : 'Historique'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
           </>
         )}
       </main>
