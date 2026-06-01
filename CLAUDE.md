@@ -62,6 +62,12 @@ Contrainte : `UNIQUE(assertion_id, member_id)`.
 `id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `table_number` (int), `table_id?` (FK→tables ON DELETE SET NULL), `created_at`
 Contrainte : `UNIQUE(session_id, member_id)`.
 
+### `private_notes`
+`id`, `user_id` (NOT NULL), `content` (text), `updated_at`, `table_id?` (FK→tables ON DELETE CASCADE), `session_id?` (FK→sessions ON DELETE CASCADE)
+Index partiels : `UNIQUE(session_id, user_id) WHERE session_id IS NOT NULL` ; `UNIQUE(table_id, user_id) WHERE table_id IS NOT NULL AND session_id IS NULL`.
+RLS : owner-only (`user_id = auth.uid()`).
+Usage : notes privées par participant. En phase vote → keyed par `session_id`. En phase débat avec table rattachée à une séance → aussi keyed par `session_id` (notes persistantes vote→débat). Table seule sans séance → keyed par `table_id`.
+
 ---
 
 ## Sécurité
@@ -336,6 +342,14 @@ Bouton "📋 Voir toutes" visible dès qu'il y a des assertions, que le particip
 
 ### Modal Outils en phase vote (`VoteScreen`)
 Bouton "Outils" dans le header (à côté de "Proposer"). Ouvre `VoteToolsPanel` : documentation (fiche info, résumé, sources collaboratives), notes (`NotesModal` avec `sessionId`). Sans dépendance à `TableContext`. Quand tout est voté, `DocNudge` apparaît entre "Proposer" et `VoteResultsSummary`. Toutes les 10 assertions votées, un nudge propose de soumettre une assertion (`showProposalNudge` + `nextNudgeAt`).
+
+**Piège `VoteToolsPanel` + `NotesModal`** : `showNotesModal` doit être dans le parent (`step === 'vote'`), pas dans `VoteToolsPanel`. Si `NotesModal` est rendu à l'intérieur de `VoteToolsPanel`, appeler `onClose()` démonte le panneau avant que `notesOpen=true` prenne effet → modal jamais affiché. Pattern correct : `VoteToolsPanel` reçoit `onOpenNotes: () => void` en prop et l'appelle après `onClose()` ; le parent rend `{showNotesModal && <NotesModal .../>}` indépendamment.
+
+### Notes `NotesModal` — props flexibles
+`NotesModal` accepte `tableId?: string` OU `sessionId?: string` (au moins un requis). Si `sessionId` fourni → requête `eq('session_id', sessionId)` ; sinon → `eq('table_id', tableId)`. Insert : champ correspondant + l'autre à `null`. `ParticipantToolsButton` (débat) passe `sessionId={table.session_id}` quand la table est rattachée à une séance — les notes sont ainsi partagées entre vote et débat.
+
+### Retour depuis `CollabDocScreen`
+Avant de naviguer vers `#collab/<join_code>`, l'écran appelant stocke `sessionStorage.setItem('ecclesia_collab_return', '#vote/<join_code>')` (ou tout autre hash). `CollabDocScreen` lit et supprime cette clé au démarrage ; le bouton ← utilise ce hash au lieu de `''`. Générique : n'importe quel écran peut définir ce retour.
 
 ### Polling assertions + Realtime (`VoteScreen`)
 Réception des nouvelles assertions via deux mécanismes :
