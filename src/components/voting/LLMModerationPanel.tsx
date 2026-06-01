@@ -5,7 +5,7 @@
 // =============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { listAssertionsAdmin, approveAssertion, rejectAssertion } from '../../lib/voting'
+import { listAssertionsAdmin, approveAssertion, rejectAssertion, mergeAssertionVotes } from '../../lib/voting'
 import { moderateAssertions, mergeAssertions } from '../../lib/gemini'
 import type { AssertionWithPseudo } from '../../lib/voting'
 import type { Session } from '../../lib/types'
@@ -210,6 +210,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       for (const m of results) {
         for (const rid of (Array.isArray(m.reject_ids) ? m.reject_ids : [])) {
           if (!UUID_RE.test(rid)) continue
+          await mergeAssertionVotes(password, m.keep_id, rid)
           await rejectAssertion(password, rid)
         }
       }

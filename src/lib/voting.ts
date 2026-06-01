@@ -57,6 +57,19 @@ export async function submitAssertion(
   return data as Assertion
 }
 
+export async function mergeAssertionVotes(
+  password: string,
+  keepId: string,
+  rejectId: string
+): Promise<void> {
+  const { error } = await supabase.rpc('merge_assertion_votes', {
+    p_password:  password,
+    p_keep_id:   keepId,
+    p_reject_id: rejectId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 export async function castVote(
   assertionId: string,
   vote: 'agree' | 'disagree' | 'pass'
