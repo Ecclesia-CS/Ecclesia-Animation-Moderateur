@@ -21,7 +21,7 @@ import {
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
   getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
-  adminCreateTable,
+  adminCreateTable, updateGroupNames,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
@@ -1335,6 +1335,7 @@ function SessionDetail({
       ].sort((a, b) => a.table_number - b.table_number)
       setGroupNames(completed)
       localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(completed))
+      updateGroupNames(getPwd()!, currentSession.id, completed).catch(() => {})
       return
     }
 
@@ -1401,6 +1402,7 @@ function SessionDetail({
         setGroupNames(names)
         localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
         localStorage.setItem(`group_names_fp_${currentSession.id}`, fp)
+        updateGroupNames(getPwd()!, currentSession.id, names).catch(() => {})
       } catch {
         // silencieux — les groupes restent sans nom
       }

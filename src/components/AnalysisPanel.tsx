@@ -94,19 +94,22 @@ function ScatterPlot({ members, kChosen, groupNames }: ScatterProps) {
       {/* Légende */}
       <div className="flex flex-wrap gap-3 mt-2 justify-center">
         {groups.map(g => {
-          const geminiName = groupNames?.find(n => n.table_number === g + 1)?.name
+          const gn = groupNames?.find(n => n.table_number === g + 1)
           return (
-            <div key={g} className="flex items-center gap-1.5 text-xs text-gray-600">
+            <div key={g} className="flex items-start gap-1.5 text-xs text-gray-600">
               <span
-                className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+                className="inline-block w-3 h-3 rounded-sm flex-shrink-0 mt-0.5"
                 style={{ backgroundColor: groupColor(g) }}
               />
-              {geminiName ? (
-                <span className="font-medium">{geminiName}</span>
-              ) : (
-                <span>Groupe {g + 1}</span>
-              )}
-              <span className="text-gray-400">({groupCounts[g] ?? 0})</span>
+              <div>
+                <span className={gn?.name ? 'font-medium' : ''}>
+                  {gn?.name ?? `Groupe ${g + 1}`}
+                </span>
+                <span className="text-gray-400 ml-1">({groupCounts[g] ?? 0})</span>
+                {gn?.description && (
+                  <p className="text-gray-400 italic leading-tight mt-0.5">{gn.description}</p>
+                )}
+              </div>
             </div>
           )
         })}
@@ -372,14 +375,23 @@ export default function AnalysisPanel({
                     const items = topClivantes(g)
                     return (
                       <div key={g}>
-                        <p
-                          className="text-xs font-semibold mb-1.5"
-                          style={{ color: groupColor(g) }}
-                        >
-                          {groupNames?.find(n => n.table_number === g + 1)?.name
-                            ? `${groupNames.find(n => n.table_number === g + 1)!.name} (Groupe ${g + 1})`
-                            : `Groupe ${g + 1}`}
-                        </p>
+                        {(() => {
+                          const gn = groupNames?.find(n => n.table_number === g + 1)
+                          return (
+                            <>
+                              <p
+                                className="text-xs font-semibold mb-0.5"
+                                style={{ color: groupColor(g) }}
+                              >
+                                {gn?.name ? `${gn.name} (Groupe ${g + 1})` : `Groupe ${g + 1}`}
+                              </p>
+                              {gn?.description && (
+                                <p className="text-xs text-gray-400 mb-1.5">{gn.description}</p>
+                              )}
+                              {!gn?.description && <div className="mb-1.5" />}
+                            </>
+                          )
+                        })()}
                         {items.length === 0 ? (
                           <p className="text-xs text-gray-400">Aucune assertion disponible</p>
                         ) : (

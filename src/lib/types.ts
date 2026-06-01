@@ -32,6 +32,7 @@ export interface Session {
   vote_timer_minutes: number | null
   vote_threshold_percent: number | null
   phase_changed_at: string | null
+  group_names?: GroupNameResult[] | null
 }
 
 export interface Table {

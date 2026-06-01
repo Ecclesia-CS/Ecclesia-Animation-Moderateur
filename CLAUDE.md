@@ -23,7 +23,7 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int)
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int), `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
 
 ### `tables`
 `id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`)
@@ -116,6 +116,7 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire des membres → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
 | `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène basée sur l'analyse PCA (si analyse existe) → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. Les membres sans votes (`session_members` absents de `analysis_members`) sont distribués aléatoirement sur les mêmes tables. Le nombre de tables est calculé sur le total des membres (votants + non-votants). |
 | `update_session_config(password, session_id, moderation_policy, vote_timer_minutes, vote_threshold_percent)` | Met à jour la configuration de vote. `moderation_policy` ∈ `('open','closed','ai')` |
+| `update_group_names(password, session_id, group_names)` | Persiste les noms de groupes Gemini en DB (`sessions.group_names`). Appelé par `SuperadminScreen` après chaque génération Gemini (en parallèle du localStorage). |
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
 | `get_all_votes_for_analysis(password, session_id)` | Retourne tous les votes de la séance (bypass RLS — superadmin uniquement) |
 | `merge_assertion_votes(password, keep_id, reject_id)` | Transfère les votes de `reject_id` vers `keep_id` : nouveaux votants insérés, conflits résolus (agree prime). Appelé avant `reject_assertion` dans `LLMModerationPanel.handleMerge`. |
@@ -141,7 +142,7 @@ src/
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
 │   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
 │   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups) — jamais d'appel direct à api.google.com
-│   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult)
+│   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`.
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
@@ -149,13 +150,14 @@ src/
 ├── screens/
 │   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s) + tabs Rejoindre/Reprendre/Créer + lien Administration
 │   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. `SessionDetail` organisé en 4 onglets (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse). Persistance séance ouverte via `sessionStorage` (clé `ecclesia_superadmin_session`). Persistance onglet actif via `sessionStorage` (clé `ecclesia_admin_tab_<session.id>`, fallback `defaultTab(phase)`). Exports CSV + toggle questionnaire dans l'accordéon "Actions post-séance" (onglet Analyse)
-│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
+│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message) ; phase=closed → ResultsMapScreen (membre) ou PublicResultsScreen (visiteur)
 │   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
-│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (localStorage), bouton rejoindre (join_table RPC + tableStore + callback onTableJoined). Affiche VoteResultsSummary + accordéon "Voir toutes les assertions" (VoteResultsList, données déjà chargées, pas de fetch supplémentaire)
+│   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (DB via session.group_names en priorité, localStorage fallback), bouton rejoindre. Affiche VoteResultsSummary + accordéon "Voir toutes les assertions"
+│   ├── ResultsMapScreen.tsx    Écran résultats post-clôture (participant inscrit). Charge en parallèle : scatter PCA (`loadResultsMap`), affectation groupe (`getMyTableAssignment`), assertions (`getVoteResults`). Affiche : carte groupe (couleur du groupe, nom+description depuis session.group_names), section "Ce qui vous caractérise" (top repness du groupe), scatter avec légende nommée, "Les autres camps" (top repness par groupe), "Points de clivage" (spread repness inter-groupes), "Points de consensus". Fallback sans analyse PCA : dissensus via consensus_score.
 │   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
 │   ├── TableView.tsx           Routage isModerator
-│   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause). Pas de bouton "Terminer session" ni "Exporter" — ces actions sont réservées au superadmin
-│   └── ParticipantView.tsx     Vue mobile
+│   ├── ModeratorView.tsx       Vue projetable (DndContext, auto-avancement, pause). Overlay "Séance terminée" + bouton "Voir les résultats →" (#session/<join_code>) quand session.phase=closed
+│   └── ParticipantView.tsx     Vue mobile. Overlay "Séance terminée" + bouton "Voir vos résultats →" (#session/<join_code>) quand session.phase=closed
 └── components/
     ├── voting/
     │   ├── LLMModerationPanel.tsx    Panneau IA superadmin : modération/fusion manuelle+auto, log tokens, fusions effectuées
@@ -163,7 +165,7 @@ src/
     │   ├── VoteResultsSummary.tsx    Résumé des votes — top 3 consensus + 2 dissensus (assertions + consensus_score)
     │   ├── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
-    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number, sessionPhase?: string. Section Automatisation : toggle auto-analyse + slider 1-15 min (actif si phase=voting)
+    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number, sessionPhase?: string. Section Automatisation : toggle auto-analyse + slider 1-15 min (actif si phase=voting). Légende scatter : nom + description du groupe (depuis groupNames). En-têtes "Assertions clivantes" : nom + description en gris sous le nom coloré.
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
     ├── ReadOnlyQueuePanel.tsx    File lecture seule (participants)
@@ -359,7 +361,7 @@ Sur un appel batch avec 3 groupes ou plus, Gemini 2.5 Flash Lite retourne **syst
 - Découper le batch en N appels solo dès le départ (au lieu de batch + retry)
 
 ### Mapping group_id ↔ table_number
-`AnalysisPanel` utilise `group_id` 0-indexé. Les `table_number` de `table_assignments` et de Gemini sont 1-indexés. Mapping : `table_number = group_id + 1`.
+`AnalysisPanel` et `ResultsMapScreen` utilisent `group_id` 0-indexé. Les `table_number` de `table_assignments` et de Gemini sont 1-indexés. Mapping : `table_number = group_id + 1`. **Ne pas utiliser `ring-1` Tailwind sans `ring-[color]`** pour les highlights de groupe — Tailwind applique son bleu par défaut. Toujours utiliser `outline` inline : `style={{ outline: \`1px solid ${color}60\` }}`.
 
 ---
 
@@ -405,5 +407,4 @@ Réception des nouvelles assertions via deux mécanismes :
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
 - Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant
 - Génération de QR code dans l'UI superadmin (actuellement : site externe)
-- Migrer `group_names` de localStorage vers la base de données
 - Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameIdeologicalGroups` comme `divisive_assertions`

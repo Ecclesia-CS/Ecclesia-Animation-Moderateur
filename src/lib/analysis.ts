@@ -351,9 +351,12 @@ export interface PublicResultsData {
 // ── ResultsMapData ────────────────────────────────────────────
 
 export interface ResultsMapData {
-  k_chosen:  number
-  points:    { pca_x: number; pca_y: number; group_id: number; is_self: boolean }[]
-  consensus: { content: string; score: number }[] | null
+  k_chosen:       number
+  points:         { pca_x: number; pca_y: number; group_id: number; is_self: boolean }[]
+  consensus:      { content: string; score: number }[] | null
+  repness?:        Record<string, Record<string, number>>  // assertion_id → {group_id → score}
+  group_consensus?: Record<string, number>                 // assertion_id → score
+  all_assertions?: Record<string, string>                  // assertion_id → content
 }
 
 // ── Wrappers Supabase ─────────────────────────────────────────

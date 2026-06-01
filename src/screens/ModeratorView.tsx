@@ -843,9 +843,18 @@ export default function ModeratorView() {
 
       {/* Séance terminée */}
       {session?.phase === 'closed' && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
-          <p className="text-gray-500 mt-2">La séance a été clôturée par le superadmin.</p>
+          <p className="text-gray-500">La séance a été clôturée par le superadmin.</p>
+          {session.join_code && (
+            <a
+              href={`#session/${session.join_code}`}
+              className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
+                text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              Voir les résultats →
+            </a>
+          )}
         </div>
       )}
 

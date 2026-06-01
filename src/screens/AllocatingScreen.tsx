@@ -156,19 +156,23 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     return () => clearInterval(interval)
   }, [currentSession.phase, session.id])
 
-  // ── Nom du camp idéologique (localStorage superadmin) ─────────────
+  // ── Nom du camp idéologique ────────────────────────────────────────
+  // Priorité 1 : DB via session.group_names (mis à jour en temps réel par Realtime)
+  // Priorité 2 : localStorage superadmin (compatibilité / sessions passées)
   const groupName = useMemo(() => {
     if (!assignment) return null
+    const fromDB = (currentSession.group_names as GroupNameResult[] | undefined)
+      ?.find(n => n.table_number === assignment.table_number)
+    if (fromDB) return fromDB
     try {
       const names = JSON.parse(
         localStorage.getItem(`group_names_${session.id}`) ?? '[]',
       ) as GroupNameResult[]
-      const found = names.find(n => n.table_number === assignment.table_number)
-      return found ?? null
+      return names.find(n => n.table_number === assignment.table_number) ?? null
     } catch {
       return null
     }
-  }, [assignment, session.id])
+  }, [assignment, session.id, currentSession])
 
   // ── Join table (bouton cliquable) ─────────────────────────────────
   async function handleJoin() {

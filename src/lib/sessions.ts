@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { Session, Table, QuestionnaireExportRow, CollabSource } from './types'
+import { Session, Table, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
 import { extractErr } from './utils'
 
 export type SessionTableRow = {
@@ -335,6 +335,19 @@ export async function adminCreateTable(
   })
   if (error) throw new Error(extractErr(error))
   return data as { table_id: string; join_code: string }
+}
+
+export async function updateGroupNames(
+  password: string,
+  sessionId: string,
+  groupNames: GroupNameResult[],
+): Promise<void> {
+  const { error } = await supabase.rpc('update_group_names', {
+    p_password:    password,
+    p_session_id:  sessionId,
+    p_group_names: groupNames,
+  })
+  if (error) throw new Error(extractErr(error))
 }
 
 export async function listSessionSources(sessionId: string): Promise<CollabSource[]> {
