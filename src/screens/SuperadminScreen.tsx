@@ -131,9 +131,16 @@ export default function SuperadminScreen() {
         memberCounts[row.session_id] = row.cnt
       }
 
-      setSessions(sortSessions(
+      const sorted = sortSessions(
         (sessData ?? []).map(s => ({ ...s, tableCount: counts[s.id] ?? 0, memberCount: memberCounts[s.id] ?? 0 }))
-      ))
+      )
+      setSessions(sorted)
+
+      const storedSessionId = sessionStorage.getItem('ecclesia_superadmin_session')
+      if (storedSessionId) {
+        const found = sorted.find(s => s.id === storedSessionId)
+        if (found) setView({ type: 'detail', session: found })
+      }
 
       setAllVotesLoading(true)
       setAllVotesErr(null)
@@ -229,7 +236,7 @@ export default function SuperadminScreen() {
     return (
       <SessionDetail
         session={view.session}
-        onBack={() => { setView({ type: 'list' }); loadSessions() }}
+        onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
         onAuthError={handleAuthError}
       />
     )
@@ -410,7 +417,7 @@ export default function SuperadminScreen() {
                 session={s}
                 onClose={() => setToClose(s)}
                 onDelete={() => setToDelete(s)}
-                onClick={() => setView({ type: 'detail', session: s })}
+                onClick={() => { sessionStorage.setItem('ecclesia_superadmin_session', s.id); setView({ type: 'detail', session: s }) }}
               />
             ))}
           </div>

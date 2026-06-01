@@ -147,7 +147,7 @@ src/
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
 │   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s) + tabs Rejoindre/Reprendre/Créer + lien Administration
-│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. Dropdown "Téléchargement" : Questionnaire CSV, Temps de parole CSV (toutes tables), Historique CSV (toutes tables)
+│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. Dropdown "Téléchargement" : Questionnaire CSV, Temps de parole CSV (toutes tables), Historique CSV (toutes tables). Persistance de la séance ouverte via `sessionStorage` (clé `ecclesia_superadmin_session`) — rechargement de page restaure la vue détail sans repasser par la liste
 │   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message)
 │   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
 │   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (localStorage), bouton rejoindre (join_table RPC + tableStore + callback onTableJoined). Affiche VoteResultsSummary + accordéon "Voir toutes les assertions" (VoteResultsList, données déjà chargées, pas de fetch supplémentaire)
