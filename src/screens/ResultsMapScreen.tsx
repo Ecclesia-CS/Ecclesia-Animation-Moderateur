@@ -211,11 +211,12 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
     } catch { return [] }
   }, [session.group_names, session.id])
 
-  // Nom du groupe du participant
+  // Nom du groupe du participant — indexé par cluster k-means (selfGroupId + 1),
+  // pas par table physique de débat (assignment.table_number)
   const groupName = useMemo((): GroupNameResult | null => {
-    if (assignment == null) return null
-    return allGroupNames.find(g => g.table_number === assignment.table_number) ?? null
-  }, [assignment, allGroupNames])
+    if (selfGroupId === null) return null
+    return allGroupNames.find(g => g.table_number === selfGroupId + 1) ?? null
+  }, [selfGroupId, allGroupNames])
 
   // Assertions caractéristiques du groupe du participant
   const myGroupTop = useMemo(() => {
