@@ -1998,6 +1998,7 @@ function SessionDetail({
                 onAnalysisStatusChange={setHasAnalysisDone}
                 groupNames={groupNames}
                 totalMembers={members.length > 0 ? members.length : undefined}
+                sessionPhase={session.phase}
               />
             )}
 

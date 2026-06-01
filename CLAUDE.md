@@ -162,7 +162,7 @@ src/
     │   ├── VoteResultsSummary.tsx    Résumé des votes — top 3 consensus + 2 dissensus (assertions + consensus_score)
     │   ├── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
-    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number (affiche warning si des participants ont été exclus de l'analyse)
+    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number, sessionPhase?: string. Section Automatisation : toggle auto-analyse + slider 1-15 min (actif si phase=voting)
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
     ├── ReadOnlyQueuePanel.tsx    File lecture seule (participants)
@@ -315,8 +315,12 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 | `merge_log_<id>` | `MergeLogEntry[]` max 100 FIFO — fusions effectuées |
 | `ai_rejected_ids_<id>` | `string[]` — UUIDs rejetés par l'IA (distinct des rejets manuels) |
 | `ai_auto_moderate_<id>` | `'true'/'false'` — toggle auto-modération |
-| `ai_auto_interval_<id>` | nombre (minutes) — intervalle setInterval |
+| `ai_auto_interval_<id>` | nombre (minutes) — intervalle auto-modération (1-10) |
 | `ai_auto_merge_<id>` | `'true'/'false'` — fusion automatique avant clustering |
+| `ai_auto_merge_periodic_<id>` | `'true'/'false'` — toggle fusion périodique (setInterval) |
+| `ai_auto_merge_interval_<id>` | nombre (minutes) — intervalle auto-fusion (1-30) |
+| `analysis_auto_<id>` | `'true'/'false'` — toggle auto-analyse des camps |
+| `analysis_auto_interval_<id>` | nombre (minutes) — intervalle auto-analyse (1-15) |
 | `group_names_<id>` | `GroupNameResult[]` — noms Gemini des groupes |
 | `group_names_fp_<id>` | string JSON — empreinte groupes pour éviter re-appel Gemini |
 

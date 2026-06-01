@@ -3,7 +3,7 @@
 // Affiche scatter PCA, assertions clivantes, assertions consensuelles.
 // =============================================================
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   loadVotesForAnalysis,
@@ -27,13 +27,14 @@ function groupColor(groupId: number): string {
 
 // ── Props ─────────────────────────────────────────────────────
 interface AnalysisPanelProps {
-  sessionId:   string
-  password:    string
-  assertions:  AssertionWithPseudo[]
+  sessionId:    string
+  password:     string
+  assertions:   AssertionWithPseudo[]
   onAuthError(): void
   onAnalysisStatusChange?(hasDone: boolean): void
-  groupNames?: GroupNameResult[]
+  groupNames?:  GroupNameResult[]
   totalMembers?: number
+  sessionPhase?: string
 }
 
 // ── ScatterPlot ───────────────────────────────────────────────
@@ -123,12 +124,31 @@ export default function AnalysisPanel({
   onAnalysisStatusChange,
   groupNames,
   totalMembers,
+  sessionPhase,
 }: AnalysisPanelProps) {
   const [open,          setOpen]          = useState(false)
   const [analysis,      setAnalysis]      = useState<LoadedAnalysis | null>(null)
   const [loadStatus,    setLoadStatus]    = useState<'loading' | 'loaded' | 'error'>('loading')
   const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null)
+
+  // Auto-analyse périodique
+  const [autoAnalyze, setAutoAnalyzeState] = useState(
+    () => localStorage.getItem(`analysis_auto_${sessionId}`) === 'true'
+  )
+  const [autoAnalyzeInterval, setAutoAnalyzeIntervalState] = useState(
+    () => parseInt(localStorage.getItem(`analysis_auto_interval_${sessionId}`) ?? '5', 10)
+  )
+  const isAutoAnalyzingRef = useRef<boolean>(false)
+
+  function setAutoAnalyze(v: boolean) {
+    setAutoAnalyzeState(v)
+    localStorage.setItem(`analysis_auto_${sessionId}`, String(v))
+  }
+  function setAutoAnalyzeInterval(v: number) {
+    setAutoAnalyzeIntervalState(v)
+    localStorage.setItem(`analysis_auto_interval_${sessionId}`, String(v))
+  }
 
   // Map assertion_id → content pour les affichages
   const assertionMap = new Map<string, string>(
@@ -157,6 +177,30 @@ export default function AnalysisPanel({
   useEffect(() => {
     loadExisting()
   }, [loadExisting])
+
+  // ── setInterval auto-analyse ──────────────────────────────
+  useEffect(() => {
+    if (!autoAnalyze || sessionPhase !== 'voting') return
+    const intervalMs = autoAnalyzeInterval * 60 * 1000
+    const id = setInterval(async () => {
+      if (isAutoAnalyzingRef.current) return
+      isAutoAnalyzingRef.current = true
+      try {
+        const votes = await loadVotesForAnalysis(supabase, password, sessionId)
+        const memberIds    = [...new Set(votes.map(v => v.member_id))]
+        const assertionIds = [...new Set(votes.map(v => v.assertion_id))]
+        const result = runOpinionAnalysis(votes, memberIds, assertionIds)
+        await saveAnalysisResult(supabase, password, sessionId, result)
+        await loadExisting()
+      } catch (e) {
+        if (e instanceof AnalysisError) return // données insuffisantes — normal en début de vote
+        console.error('[auto-analyse]', e)
+      } finally {
+        isAutoAnalyzingRef.current = false
+      }
+    }, intervalMs)
+    return () => clearInterval(id)
+  }, [autoAnalyze, autoAnalyzeInterval, sessionPhase, sessionId, password, loadExisting])
 
   // ── Lancer une nouvelle analyse ───────────────────────────
   async function handleAnalyze() {
@@ -245,6 +289,9 @@ export default function AnalysisPanel({
           <span className="ml-2 font-normal normal-case text-gray-400">
             ({badge()})
           </span>
+          {autoAnalyze && sessionPhase === 'voting' && (
+            <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
+          )}
         </span>
 
         <div className="flex items-center gap-3">
@@ -395,6 +442,58 @@ export default function AnalysisPanel({
               Aucune analyse disponible. Cliquez sur "Analyser les camps" pour lancer le calcul.
             </p>
           )}
+
+          {/* ── Section Automatisation ─── */}
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Automatisation
+            </h4>
+
+            {/* Toggle Auto-analyser */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Auto-analyser</span>
+              <button
+                onClick={() => setAutoAnalyze(!autoAnalyze)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  autoAnalyze ? 'bg-indigo-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    autoAnalyze ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Slider intervalle */}
+            <div className={autoAnalyze ? '' : 'opacity-40 pointer-events-none'}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-700">Intervalle</span>
+                <span className="text-sm font-medium text-gray-700">{autoAnalyzeInterval} min</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={15}
+                step={1}
+                value={autoAnalyzeInterval}
+                onChange={e => setAutoAnalyzeInterval(Number(e.target.value))}
+                disabled={!autoAnalyze}
+                className="w-full accent-indigo-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                <span>1 min</span>
+                <span>15 min</span>
+              </div>
+            </div>
+
+            {sessionPhase !== 'voting' && autoAnalyze && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                L'auto-analyse est active mais la séance n'est pas en phase "vote".
+              </p>
+            )}
+          </div>
         </div>
       )}
     </section>

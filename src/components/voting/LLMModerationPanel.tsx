@@ -115,6 +115,15 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
   const isAutoModeratingRef = useRef<boolean>(false)
 
+  // Toggles auto-fusion périodique (initialisés depuis localStorage)
+  const [autoMergePeriodic, setAutoMergePeriodicState] = useState(
+    () => localStorage.getItem(`ai_auto_merge_periodic_${session.id}`) === 'true'
+  )
+  const [mergeIntervalMinutes, setMergeIntervalMinutesState] = useState(
+    () => parseInt(localStorage.getItem(`ai_auto_merge_interval_${session.id}`) ?? '10', 10)
+  )
+  const isAutoMergingRef = useRef<boolean>(false)
+
   // ── Persistance toggles ─────────────────────────────────────
 
   function setAutoModerate(v: boolean) {
@@ -128,6 +137,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   function setAutoMerge(v: boolean) {
     setAutoMergeState(v)
     localStorage.setItem(`ai_auto_merge_${session.id}`, String(v))
+  }
+  function setAutoMergePeriodic(v: boolean) {
+    setAutoMergePeriodicState(v)
+    localStorage.setItem(`ai_auto_merge_periodic_${session.id}`, String(v))
+  }
+  function setMergeIntervalMinutes(v: number) {
+    setMergeIntervalMinutesState(v)
+    localStorage.setItem(`ai_auto_merge_interval_${session.id}`, String(v))
   }
 
   // ── Chargement assertions rejetées ──────────────────────────
@@ -268,6 +285,52 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
     return () => clearInterval(id)
   }, [autoModerate, intervalMinutes, session.phase, session.id, session.title, session.description, password])
 
+  // ── setInterval auto-fusion périodique ────────────────────
+
+  useEffect(() => {
+    if (!autoMergePeriodic || session.phase !== 'voting') return
+    const intervalMs = mergeIntervalMinutes * 60 * 1000
+    const id = setInterval(async () => {
+      if (isAutoMergingRef.current) return
+      isAutoMergingRef.current = true
+      try {
+        const all = await listAssertionsAdmin(password, session.id)
+        const approved = all.filter(a => a.status === 'approved')
+        if (approved.length < 2) return
+        const { results, tokens_used } = await mergeAssertions({
+          session_id: session.id,
+          session_title: session.title,
+          session_description: session.description,
+          assertions: approved.map(a => ({ id: a.id, content: a.content })),
+        })
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        for (const m of results) {
+          for (const rid of (Array.isArray(m.reject_ids) ? m.reject_ids : [])) {
+            if (!UUID_RE.test(rid)) continue
+            await mergeAssertionVotes(password, m.keep_id, rid)
+            await rejectAssertion(password, rid)
+          }
+        }
+        const existing = readMergeLog(session.id)
+        const newEntries: MergeLogEntry[] = results.map(m => ({
+          keep_id:         m.keep_id,
+          keep_content:    approved.find(a => a.id === m.keep_id)?.content ?? m.keep_id,
+          reject_ids:      m.reject_ids,
+          reject_contents: m.reject_ids.map(id => approved.find(a => a.id === id)?.content ?? id),
+          reason:          m.reason ?? '',
+          timestamp:       new Date().toISOString(),
+        }))
+        localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
+        addLogEntry(session.id, 'auto-merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
+      } catch {
+        // Silencieux en mode auto
+      } finally {
+        isAutoMergingRef.current = false
+      }
+    }, intervalMs)
+    return () => clearInterval(id)
+  }, [autoMergePeriodic, mergeIntervalMinutes, session.phase, session.id, session.title, session.description, password])
+
   // ── Données rapport (calculées au render) ───────────────────
 
   const log = readLog(session.id)
@@ -294,7 +357,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       >
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
           🤖 Modération IA
-          {autoModerate && session.phase === 'voting' && (
+          {(autoModerate || autoMergePeriodic) && session.phase === 'voting' && (
             <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
           )}
         </span>
@@ -587,9 +650,48 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                 </button>
               </div>
 
-              {session.phase !== 'voting' && autoModerate && (
+              {/* Toggle Fusionner périodiquement */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Fusionner périodiquement</span>
+                <button
+                  onClick={() => setAutoMergePeriodic(!autoMergePeriodic)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    autoMergePeriodic ? 'bg-purple-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      autoMergePeriodic ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Slider intervalle fusion */}
+              <div className={autoMergePeriodic ? '' : 'opacity-40 pointer-events-none'}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm text-gray-700">Intervalle fusion</span>
+                  <span className="text-sm font-medium text-gray-700">{mergeIntervalMinutes} min</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={30}
+                  step={1}
+                  value={mergeIntervalMinutes}
+                  onChange={e => setMergeIntervalMinutes(Number(e.target.value))}
+                  disabled={!autoMergePeriodic}
+                  className="w-full accent-purple-600"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                  <span>1 min</span>
+                  <span>30 min</span>
+                </div>
+              </div>
+
+              {session.phase !== 'voting' && (autoModerate || autoMergePeriodic) && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  L'auto-modération est active mais la séance n'est pas en phase "vote".
+                  L'automatisation est active mais la séance n'est pas en phase "vote".
                 </p>
               )}
             </div>
