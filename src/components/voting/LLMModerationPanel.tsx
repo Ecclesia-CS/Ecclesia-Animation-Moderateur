@@ -206,8 +206,10 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         session_description: session.description,
         assertions: approved.map(a => ({ id: a.id, content: a.content })),
       })
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       for (const m of results) {
-        for (const rid of m.reject_ids) {
+        for (const rid of (Array.isArray(m.reject_ids) ? m.reject_ids : [])) {
+          if (!UUID_RE.test(rid)) continue
           await rejectAssertion(password, rid)
         }
       }

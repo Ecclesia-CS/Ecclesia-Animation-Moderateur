@@ -133,6 +133,27 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     return () => clearInterval(interval)
   }, [currentSession.phase, assignment, session.id])
 
+  // ── Polling de secours — phase de séance (allocating → debating) ──
+  useEffect(() => {
+    if (currentSession.phase !== 'allocating') return
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', session.id)
+        .maybeSingle()
+      if (!data) return
+      const s = data as Session
+      if (s.phase === currentSession.phase) return
+      setCurrentSession(s)
+      if (s.phase === 'questionnaire') setShowQuestionnaire(true)
+      if (s.phase === 'closed')        setSessionClosed(true)
+    }, 10_000)
+
+    return () => clearInterval(interval)
+  }, [currentSession.phase, session.id])
+
   // ── Nom du camp idéologique (localStorage superadmin) ─────────────
   const groupName = useMemo(() => {
     if (!assignment) return null

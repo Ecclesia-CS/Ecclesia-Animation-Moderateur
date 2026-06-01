@@ -372,7 +372,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       } else if (s.phase === 'closed') {
         setStep('closed')
       }
-    }, 15_000)
+    }, 10_000)
 
     return () => clearInterval(interval)
   }, [step, session?.id, session?.phase, member?.id])

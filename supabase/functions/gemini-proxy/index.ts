@@ -347,6 +347,25 @@ Deno.serve(async (req: Request) => {
     // ── Appel Gemini + parsing ────────────────────────────────
     const { results, usage } = await callGemini(prompt, apiKey)
 
+    // Sanitisation des résultats merge : Gemini peut halluciner des UUIDs légèrement
+    // altérés (ex : premier tiret manquant) ou retourner reject_ids comme une chaîne.
+    if (action === 'merge') {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const inputIds = new Set((payload as MergePayload).assertions.map(a => a.id))
+      const sanitized = (results as Record<string, unknown>[])
+        .filter(r => typeof r.keep_id === 'string' && UUID_RE.test(r.keep_id as string) && inputIds.has(r.keep_id as string))
+        .map(r => ({
+          ...r,
+          reject_ids: (Array.isArray(r.reject_ids) ? r.reject_ids as unknown[] : [])
+            .filter(id => typeof id === 'string' && UUID_RE.test(id as string) && inputIds.has(id as string)),
+        }))
+        .filter(r => (r.reject_ids as string[]).length > 0)
+      return new Response(
+        JSON.stringify({ results: sanitized, usage }),
+        { status: 200, headers: JSON_HEADERS },
+      )
+    }
+
     return new Response(
       JSON.stringify({ results, usage }),
       { status: 200, headers: JSON_HEADERS },
