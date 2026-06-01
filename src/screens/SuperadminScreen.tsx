@@ -1280,42 +1280,91 @@ function SessionDetail({
     )
     const storedFp = localStorage.getItem(`group_names_fp_${currentSession.id}`)
 
-    // Si les noms existent déjà ET les groupes n'ont pas changé → on garde
-    if (groupNames.length > 0 && storedFp === fp) return
+    const allNamed = groups.every(g => groupNames.some(n => n.table_number === g.table_number))
 
+    // Cas 1 : groupes inchangés ET tous nommés → rien à faire
+    if (allNamed && storedFp === fp) return
+
+    // Cas 2 : mêmes groupes mais cache incomplet → fallback local sans appel Gemini
+    if (storedFp === fp && !allNamed) {
+      const namedNums = new Set(groupNames.map(n => n.table_number))
+      const completed = [
+        ...groupNames,
+        ...groups
+          .filter(g => !namedNums.has(g.table_number))
+          .map(g => ({
+            table_number: g.table_number,
+            name:         `Groupe ${g.table_number}`,
+            description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
+          })),
+      ].sort((a, b) => a.table_number - b.table_number)
+      setGroupNames(completed)
+      localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(completed))
+      return
+    }
+
+    // Cas 3 : nouveau clustering → appeler Gemini puis appliquer le fallback
     const pwd = getPwd()!
     ;(async () => {
       try {
         const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
         const approved = allAssertions.filter(a => a.status === 'approved')
         const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
-        const { results: rawNames } = await nameIdeologicalGroups({
+
+        const payloadCommun = {
           session_id:          currentSession.id,
           session_title:       currentSession.title,
           session_description: currentSession.description ?? null,
+          assertions:          approved.map(a => ({ id: a.id, content: a.content })),
+          votes:               votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
+          divisive_assertions: undefined,
+        }
+
+        // 1. Appel batch initial avec tous les groupes
+        const { results: rawNames } = await nameIdeologicalGroups({
+          ...payloadCommun,
           groups: groups.map(g => ({
             table_number: g.table_number,
             member_ids:   g.members.map(m => m.member_id),
           })),
-          assertions:          approved.map(a => ({ id: a.id, content: a.content })),
-          votes:               votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
-          divisive_assertions: undefined,
         })
-        // Compléter les groupes manquants si Gemini n'a pas tout nommé
-        const namedNumbers = new Set(rawNames.map(n => n.table_number))
-        const names = [
-          ...rawNames,
-          ...groups
-            .filter(g => !namedNumbers.has(g.table_number))
-            .map(g => ({
+
+        const allNames: GroupNameResult[] = [...rawNames]
+        const got = new Set(allNames.map(n => n.table_number))
+        const missing = groups.filter(g => !got.has(g.table_number))
+
+        // 2. Retry individuel pour chaque groupe manquant (séquentiel)
+        for (const g of missing) {
+          try {
+            const { results: oneResult } = await nameIdeologicalGroups({
+              ...payloadCommun,
+              groups: [{
+                table_number: g.table_number,
+                member_ids:   g.members.map(m => m.member_id),
+              }],
+            })
+            const valid = oneResult.find(r => r.table_number === g.table_number)
+            if (valid) allNames.push(valid)
+          } catch {
+            // silencieux — le fallback ci-dessous comblera
+          }
+        }
+
+        // 3. Fallback générique pour les groupes toujours absents (échec retry)
+        const stillNamed = new Set(allNames.map(n => n.table_number))
+        for (const g of groups) {
+          if (!stillNamed.has(g.table_number)) {
+            allNames.push({
               table_number: g.table_number,
               name:         `Groupe ${g.table_number}`,
               description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
-            })),
-        ].sort((a, b) => a.table_number - b.table_number)
+            })
+          }
+        }
+
+        const names = allNames.sort((a, b) => a.table_number - b.table_number)
         setGroupNames(names)
         localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
-        // Stocker l'empreinte après succès — évite le re-appel au prochain render
         localStorage.setItem(`group_names_fp_${currentSession.id}`, fp)
       } catch {
         // silencieux — les groupes restent sans nom

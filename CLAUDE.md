@@ -297,8 +297,25 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 ### Règles critiques IA
 - **`group_names_fp_<id>`** : ne rappeler Gemini pour le nommage que si l'empreinte des groupes a changé (nouveau clustering) ou si aucun nom n'est stocké
 - **Fallback nommage** : si Gemini retourne moins d'entrées que de groupes, compléter côté frontend avec `{ name: "Groupe N", description: "..." }` avant de stocker
+- **Cache incomplet** : si l'empreinte correspond mais des noms manquent, appliquer le fallback localement sans rappeler Gemini (cas du retour sur une session existante avec cache stale)
+- **Retry individuel** : après l'appel batch, pour chaque groupe non nommé, faire un appel Gemini avec un payload `groups` de longueur 1. Réutilise `nameIdeologicalGroups` sans changement de signature. Le fallback générique ne reste qu'après échec du retry.
+- **`responseMimeType: 'application/json'`** : passé dans `generationConfig` de l'appel Gemini pour forcer la sortie JSON native (évite les enrobages markdown)
 - **`ai_rejected_ids_<id>`** : seules les assertions dans ce set s'affichent dans "Assertions rejetées par l'IA" — les rejets manuels n'y apparaissent pas
 - **Ne pas appeler `supabase.functions.invoke` sans vérifier `error` ET `data?.error`**
+
+### ⚠️ Bug connu — nommage Gemini incomplet pour k=3+
+Sur un appel batch avec 3 groupes ou plus, Gemini 2.5 Flash Lite retourne **systématiquement moins d'entrées** que demandé (typiquement 2/3), malgré :
+- La "RÈGLE ABSOLUE" du prompt (`buildNameGroupsPrompt` dans `supabase/functions/gemini-proxy/index.ts`)
+- `responseMimeType: 'application/json'` dans `generationConfig`
+- Le retry individuel par groupe manquant (un appel solo retourne aussi un tableau vide ou skip le groupe)
+
+**Symptôme observé** : sur la session test mobilité urbaine (3 camps bien séparés pro-voiture / pro-vélo / pro-TC), seuls 2 camps reçoivent un nom Gemini, le 3ᵉ tombe sur le fallback générique `"Groupe 3"`.
+
+**Hypothèses non testées** :
+- Utiliser `responseSchema` avec `minItems`/`maxItems` (Gemini structured outputs) pour contraindre le compte d'entrées
+- Reformuler le prompt en JSON-mode strict (one-shot exemple complet)
+- Tester avec `gemini-2.5-flash` (non lite) ou `gemini-2.5-pro`
+- Découper le batch en N appels solo dès le départ (au lieu de batch + retry)
 
 ### Mapping group_id ↔ table_number
 `AnalysisPanel` utilise `group_id` 0-indexé. Les `table_number` de `table_assignments` et de Gemini sont 1-indexés. Mapping : `table_number = group_id + 1`.

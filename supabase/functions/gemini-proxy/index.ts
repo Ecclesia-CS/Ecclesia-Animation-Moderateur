@@ -227,6 +227,7 @@ async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallRes
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json' },
     }),
   })
 
