@@ -914,7 +914,7 @@ type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
 
 function defaultTab(phase: Session['phase']): AdminTab {
   if (phase === 'draft') return 'prep'
-  if (phase === 'voting' || phase === 'allocating' || phase === 'debating') return 'live'
+  if (phase === 'pre_voting' || phase === 'voting' || phase === 'allocating' || phase === 'debating') return 'live'
   return 'analysis'
 }
 
@@ -978,7 +978,7 @@ function SessionDetail({
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
 
   // ── Phase transitions ──────────────────────────────────────
-  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
+  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
   const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
   const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
   const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
@@ -1865,7 +1865,11 @@ function SessionDetail({
                     title="Statistiques de vote"
                     open={statsOpen}
                     onToggle={() => setStatsOpen(o => !o)}
-                    badge={votingStats ? `${votingStats.voter_count}/${votingStats.member_count} ont voté` : undefined}
+                    badge={votingStats ? (
+                      votingStats.remote_count > 0
+                        ? `${votingStats.voter_count}/${votingStats.member_count} ont voté · ${votingStats.attending_count} présentiels / ${votingStats.remote_count} à distance`
+                        : `${votingStats.voter_count}/${votingStats.member_count} ont voté`
+                    ) : undefined}
                   >
                     {statsLoading && !votingStats ? (
                       <p className="text-sm text-gray-400 py-2">Chargement…</p>
@@ -2776,7 +2780,8 @@ function ModerationPolicyEditor({
 
 const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
   { phase: 'draft',         short: 'Brouillon' },
-  { phase: 'voting',        short: 'Vote' },
+  { phase: 'pre_voting',    short: 'Pré-vote' },
+  { phase: 'voting',        short: 'Vote présentiel' },
   { phase: 'allocating',    short: 'Allocation' },
   { phase: 'debating',      short: 'Débat' },
   { phase: 'questionnaire', short: 'Questionnaire' },
@@ -2961,6 +2966,20 @@ function VotingStatsPanel({
           </div>
         ))}
       </div>
+
+      {/* Répartition présentiel / distance (si des votants à distance existent) */}
+      {stats.remote_count > 0 && (
+        <div className="flex gap-2">
+          <div className="flex-1 bg-indigo-50 rounded-xl px-3 py-2 text-center">
+            <p className="text-lg font-bold text-indigo-700">{stats.attending_count}</p>
+            <p className="text-xs text-indigo-500">Présentiels</p>
+          </div>
+          <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
+            <p className="text-lg font-bold text-gray-700">{stats.remote_count}</p>
+            <p className="text-xs text-gray-500">À distance</p>
+          </div>
+        </div>
+      )}
 
       {threshold != null && (
         <div className="space-y-1">

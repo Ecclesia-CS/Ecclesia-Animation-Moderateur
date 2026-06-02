@@ -52,6 +52,7 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
       // 3. Branch per phase
       switch (s.phase) {
         case 'draft':
+        case 'pre_voting':
         case 'voting':
         case 'allocating':
           setStatus('redirecting')

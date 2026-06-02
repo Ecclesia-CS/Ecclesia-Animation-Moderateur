@@ -13,11 +13,27 @@ import type {
 
 export async function registerSessionMember(
   sessionId: string,
-  pseudo: string
+  pseudo: string,
+  reclaimCode?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('register_session_member', {
     p_session_id: sessionId,
     p_pseudo: pseudo,
+    p_reclaim_code: reclaimCode ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as SessionMember
+}
+
+export async function confirmAttendance(
+  sessionId: string,
+  pseudo: string,
+  reclaimCode?: string
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('confirm_attendance', {
+    p_session_id: sessionId,
+    p_pseudo: pseudo,
+    p_reclaim_code: reclaimCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember
@@ -196,6 +212,8 @@ export interface AssertionWithPseudo extends Assertion {
 
 export interface SessionVotingStats {
   member_count: number
+  attending_count: number
+  remote_count: number
   onboarded_count: number
   voter_count: number
   approved_assertion_count: number

@@ -28,9 +28,10 @@ export class AnalysisError extends Error {
 // ── Types publics ────────────────────────────────────────────
 
 export interface VoteRow {
-  member_id:    string
-  assertion_id: string
-  vote:         'agree' | 'disagree' | 'pass'
+  member_id:           string
+  assertion_id:        string
+  vote:                'agree' | 'disagree' | 'pass'
+  attending_in_person?: boolean
 }
 
 export interface VoteMatrix {
@@ -366,13 +367,15 @@ export interface ResultsMapData {
  * Contourne la RLS (vérification mot de passe superadmin côté SQL).
  */
 export async function loadVotesForAnalysis(
-  supabase:  SupabaseClient,
-  password:  string,
-  sessionId: string,
+  supabase:      SupabaseClient,
+  password:      string,
+  sessionId:     string,
+  attendingOnly: boolean = false,
 ): Promise<VoteRow[]> {
   const { data, error } = await supabase.rpc('get_all_votes_for_analysis', {
-    p_password:   password,
-    p_session_id: sessionId,
+    p_password:       password,
+    p_session_id:     sessionId,
+    p_attending_only: attendingOnly,
   })
   if (error) throw new Error(extractErr(error))
   return (data as VoteRow[]) ?? []
