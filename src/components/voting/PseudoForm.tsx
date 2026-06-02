@@ -60,6 +60,14 @@ export default function PseudoForm({ session, onSuccess, reclaimCode, onPseudoTa
           </div>
         )}
 
+        {/* Contexte vote présentiel */}
+        {session.phase === 'voting' && (
+          <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
+            <strong>Vote présentiel ouvert.</strong>{' '}
+            Tu as voté à distance avant le débat ? <strong>Entre ton pseudo pré-vote</strong> pour retrouver tes votes et confirmer ta présence.
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

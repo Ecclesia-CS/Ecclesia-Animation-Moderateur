@@ -55,7 +55,8 @@ type AdminView = { type: 'list' } | { type: 'detail'; session: SessionRow }
 
 const PHASE_LABEL: Record<string, string> = {
   draft:         'Brouillon',
-  voting:        'Vote',
+  pre_voting:    'Pré-vote',
+  voting:        'Vote présentiel',
   allocating:    'Allocation',
   debating:      'Débat',
   questionnaire: 'Questionnaire',
@@ -64,6 +65,7 @@ const PHASE_LABEL: Record<string, string> = {
 
 const PHASE_CLASS: Record<string, string> = {
   draft:         'bg-gray-100 text-gray-600',
+  pre_voting:    'bg-amber-100 text-amber-700',
   voting:        'bg-purple-100 text-purple-700',
   allocating:    'bg-orange-100 text-orange-700',
   debating:      'bg-indigo-100 text-indigo-700',
@@ -1006,7 +1008,7 @@ function SessionDetail({
   }
 
   // ── Assertions (C2) ────────────────────────────────────────
-  const VOTE_PHASES: Session['phase'][] = ['draft', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
+  const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
   const [assertions,        setAssertions]        = useState<AssertionWithPseudo[]>([])

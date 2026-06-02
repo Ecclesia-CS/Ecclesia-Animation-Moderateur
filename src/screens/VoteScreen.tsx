@@ -36,6 +36,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   const [session, setSession] = useState<Session | null>(null)
   const [member, setMember] = useState<SessionMember | null>(null)
+  const memberRef = useRef<SessionMember | null>(null)
 
   // Pré-vote : code de rappel généré côté client (montré une seule fois)
   const [reclaimCode, setReclaimCode] = useState<string | null>(null)
@@ -77,6 +78,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       .catch(() => {})
       .finally(() => setResultsLoading(false))
   }, [assertions, myVotes, session])
+
+  // Garde memberRef synchronisé pour les closures Realtime
+  useEffect(() => { memberRef.current = member }, [member])
 
   // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -207,8 +211,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         payload => {
           const updated = payload.new as Session
           setSession(updated)
-          if (updated.phase === 'pre_voting' || updated.phase === 'voting' || updated.phase === 'allocating') {
+          if (updated.phase === 'pre_voting' || updated.phase === 'allocating') {
             loadVoteData(updated, m)
+          } else if (updated.phase === 'voting') {
+            // Transition pré-vote → vote : si le membre n'a pas confirmé sa présence,
+            // lui demander avant de charger les votes
+            if (!m.attending_in_person) {
+              setConfirmPseudo(m.pseudo)
+              setStep('confirm_attendance')
+            } else {
+              loadVoteData(updated, m)
+            }
           } else if (updated.phase === 'debating') {
             setStep('allocating')
           } else if (updated.phase === 'questionnaire') {
@@ -325,7 +338,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             // Admin reverted to draft — go back to waiting
             setStep('waiting')
             subscribeForWaiting(updated, m)
-          } else if (updated.phase !== 'voting' && updated.phase !== 'allocating') {
+          } else if (updated.phase === 'voting') {
+            // Transition pré-vote → vote en cours de session
+            const currentMember = memberRef.current
+            if (currentMember && !currentMember.attending_in_person) {
+              setConfirmPseudo(currentMember.pseudo)
+              setStep('confirm_attendance')
+            }
+            // Si already attending : rester sur le step vote
+          } else if (updated.phase !== 'allocating' && updated.phase !== 'pre_voting') {
             setStep('ended')
           }
         },
@@ -387,8 +408,22 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       if (s.phase === knownPhase) return
 
       setSession(s)
-      if (s.phase === 'pre_voting' || s.phase === 'voting' || s.phase === 'allocating') {
+      if (s.phase === 'pre_voting' || s.phase === 'allocating') {
         if (step === 'waiting') loadVoteData(s, m)
+      } else if (s.phase === 'voting') {
+        if (step === 'waiting') {
+          // Transition pré-vote → vote : vérifier si confirmation présentielle requise
+          if (!m.attending_in_person) {
+            setConfirmPseudo(m.pseudo)
+            setStep('confirm_attendance')
+          } else {
+            loadVoteData(s, m)
+          }
+        } else if (step === 'vote' && !m.attending_in_person) {
+          // Déjà en train de voter mais attending = false → demander confirmation
+          setConfirmPseudo(m.pseudo)
+          setStep('confirm_attendance')
+        }
       } else if (s.phase === 'debating') {
         setStep('allocating')
       } else if (s.phase === 'questionnaire') {
