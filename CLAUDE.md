@@ -141,7 +141,7 @@ src/
 │   │                     + ModerationPolicy, ModerationResult, MergeResult, GroupNameResult (sprint IA)
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
 │   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
-│   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups) — jamais d'appel direct à api.google.com
+│   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups, nameSingleGroup) — jamais d'appel direct à api.google.com
 │   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`.
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
@@ -341,25 +341,32 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 - **`group_names_fp_<id>`** : ne rappeler Gemini pour le nommage que si l'empreinte des groupes a changé (nouveau clustering) ou si aucun nom n'est stocké
 - **Fallback nommage** : si Gemini retourne moins d'entrées que de groupes, compléter côté frontend avec `{ name: "Groupe N", description: "..." }` avant de stocker
 - **Cache incomplet** : si l'empreinte correspond mais des noms manquent, appliquer le fallback localement sans rappeler Gemini (cas du retour sur une session existante avec cache stale)
-- **Retry individuel** : après l'appel batch, pour chaque groupe non nommé, faire un appel Gemini avec un payload `groups` de longueur 1. Réutilise `nameIdeologicalGroups` sans changement de signature. Le fallback générique ne reste qu'après échec du retry.
+- **Nommage par appels séquentiels** : `nameSingleGroup` est appelé une fois par groupe, séquentiellement (boucle `for...of` avec retry ×2). Chaque appel utilise l'action `name_single_group` de la Edge Function, qui retourne un **objet unique** `{ name, description }` via `responseSchema` — pas un tableau. Le fallback générique reste si les 2 tentatives échouent. La validation côté client rejette les noms du type `"Groupe N"` (regex `/^groupe\s*\d+$/i`) et déclenche le retry.
 - **`responseMimeType: 'application/json'`** : passé dans `generationConfig` de l'appel Gemini pour forcer la sortie JSON native (évite les enrobages markdown)
 - **`ai_rejected_ids_<id>`** : seules les assertions dans ce set s'affichent dans "Assertions rejetées par l'IA" — les rejets manuels n'y apparaissent pas
 - **Ne pas appeler `supabase.functions.invoke` sans vérifier `error` ET `data?.error`**
 - **Sanitisation UUID merge** : `gemini-proxy` filtre les résultats `merge` avant retour — Gemini peut halluciner un UUID légèrement altéré (ex : premier tiret manquant). La validation côté Edge Function (regex UUID + présence dans les IDs d'entrée) est la première ligne de défense ; `LLMModerationPanel` ajoute un guard avant `rejectAssertion`. Ne pas supprimer ces validations.
 
-### ⚠️ Bug connu — nommage Gemini incomplet pour k=3+
-Sur un appel batch avec 3 groupes ou plus, Gemini 2.5 Flash Lite retourne **systématiquement moins d'entrées** que demandé (typiquement 2/3), malgré :
-- La "RÈGLE ABSOLUE" du prompt (`buildNameGroupsPrompt` dans `supabase/functions/gemini-proxy/index.ts`)
-- `responseMimeType: 'application/json'` dans `generationConfig`
-- Le retry individuel par groupe manquant (un appel solo retourne aussi un tableau vide ou skip le groupe)
+### ⚠️ Bug connu — nommage Gemini : groupe N toujours nommé "Groupe N"
 
-**Symptôme observé** : sur la session test mobilité urbaine (3 camps bien séparés pro-voiture / pro-vélo / pro-TC), seuls 2 camps reçoivent un nom Gemini, le 3ᵉ tombe sur le fallback générique `"Groupe 3"`.
+Avec k=3+ groupes, Gemini 2.5 Flash Lite retourne systématiquement `"Groupe 3"` (ou `"Groupe N"`) comme nom pour le dernier groupe, même avec :
+- L'action `name_single_group` (objet unique, pas tableau)
+- `responseSchema: { type: 'object', required: ['name','description'] }`
+- L'instruction explicite INTERDIT dans le prompt
+- La validation client qui rejette `"Groupe N"` et déclenche un retry
+- Le retry (2ème appel) produit le même résultat
+
+**Ce qui a été tenté et éliminé** :
+1. Batch `name_groups` (array) → Gemini retourne moins d'entrées que demandé
+2. Solo retry via `name_groups` (array d'1 élément) → Gemini retourne `[]`
+3. Transport : 3 appels parallèles → le 3ème n'atteignait pas le serveur (bug client Supabase)
+4. Transport : 3 appels séquentiels → tous atteignent Gemini, mais le 3ème retourne `"Groupe 3"`
+5. Prompt avec règle INTERDIT + validation/retry côté client → Gemini retourne quand même `"Groupe 3"`
 
 **Hypothèses non testées** :
-- Utiliser `responseSchema` avec `minItems`/`maxItems` (Gemini structured outputs) pour contraindre le compte d'entrées
-- Reformuler le prompt en JSON-mode strict (one-shot exemple complet)
-- Tester avec `gemini-2.5-flash` (non lite) ou `gemini-2.5-pro`
-- Découper le batch en N appels solo dès le départ (au lieu de batch + retry)
+- Utiliser `gemini-2.5-flash` (non lite) ou `gemini-2.5-pro`
+- Remplacer les labels "Groupe 1/2/3" dans le contexte par des lettres neutres "A/B/C" pour que le modèle ne puisse pas les recopier
+- Passer les données groupe par groupe sans contexte des autres groupes (prompt encore plus court)
 
 ### Mapping group_id ↔ table_number
 `AnalysisPanel` et `ResultsMapScreen` utilisent `group_id` 0-indexé. Les `table_number` de `table_assignments` et de Gemini sont 1-indexés. Mapping : `table_number = group_id + 1`. **Ne pas utiliser `ring-1` Tailwind sans `ring-[color]`** pour les highlights de groupe — Tailwind applique son bleu par défaut. Toujours utiliser `outline` inline : `style={{ outline: \`1px solid ${color}60\` }}`.
@@ -408,4 +415,4 @@ Réception des nouvelles assertions via deux mécanismes :
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
 - Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant
 - Génération de QR code dans l'UI superadmin (actuellement : site externe)
-- Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameIdeologicalGroups` comme `divisive_assertions`
+- Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameSingleGroup` comme `divisive_assertions`

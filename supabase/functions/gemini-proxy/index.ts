@@ -48,7 +48,16 @@ interface NameGroupsPayload {
   divisive_assertions?: AssertionItem[]
 }
 
-type Action = 'moderate' | 'merge' | 'name_groups'
+interface NameSingleGroupPayload {
+  session_title: string
+  session_description: string | null
+  assertions: AssertionItem[]
+  groups: GroupItem[]
+  target_table_number: number
+  divisive_assertions?: AssertionItem[]
+}
+
+type Action = 'moderate' | 'merge' | 'name_groups' | 'name_single_group'
 
 // ── CORS headers ──────────────────────────────────────────────
 
@@ -206,6 +215,46 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, san
 Tu dois retourner une entrée pour CHAQUE groupe reçu, avec le table_number exact tel que fourni. Si tu reçois 3 groupes, tu dois retourner 3 entrées. Si tu reçois 5 groupes, tu dois retourner 5 entrées.`
 }
 
+function buildNameSingleGroupPrompt(p: NameSingleGroupPayload): string {
+  const desc = p.session_description ?? 'Aucune description fournie'
+  const assertionsStr = serializeAssertions(p.assertions)
+  const groupsStr = serializeGroups(p.groups)
+  const divisiveBlock = buildDivisiveBlock(p.divisive_assertions)
+  const target = p.groups.find(g => g.table_number === p.target_table_number)
+  const memberCount = target?.member_count ?? '?'
+  return `Tu es l'animateur de l'association Ecclesia, qui organise des débats délibératifs structurés. Après un vote sur des assertions, un algorithme a réparti les participants en groupes selon leurs profils de vote.
+
+Thème de la séance : ${p.session_title}
+Description : ${desc}
+
+Voici les assertions soumises au vote :
+${assertionsStr}
+
+${divisiveBlock}
+
+Voici les profils de vote agrégés pour TOUS les groupes (contexte de comparaison) :
+${groupsStr}
+
+Chaque profil indique, pour chaque assertion, combien de membres du groupe ont voté "agree", "disagree", ou "pass".
+
+Ta tâche : nommer UNIQUEMENT le Groupe ${p.target_table_number} (${memberCount} membres).
+
+Donne à ce groupe un nom court (3 mots maximum) et une description neutre (1-2 phrases) qui reflète objectivement leur positionnement sur les assertions, en le distinguant des autres groupes.
+
+Règles strictes :
+- Sois descriptif, pas normatif. Ne juge pas quel groupe a "raison".
+- Évite les étiquettes politiques préexistantes — décris les positions concrètes sur ce débat.
+- Base-toi uniquement sur les patterns de vote, pas sur des suppositions démographiques.
+- Si ce groupe a peu ou aucun vote (tous les compteurs à 0), nomme-le "Groupe peu actif" et indique dans la description qu'il n'a pas suffisamment participé.
+- INTERDIT : le nom ne peut PAS être "Groupe N", "Camp N" ou tout identifiant contenant un numéro (ex : "Groupe 3", "Camp 2"). Ces labels sont les identifiants techniques du système. Trouve toujours un nom descriptif basé sur les positions exprimées, même vague (ex : "Positionnement modéré", "Profil nuancé").
+
+Réponds UNIQUEMENT avec un objet JSON, sans texte avant ni après, sans balises markdown :
+{
+  "name": "<nom court du Groupe ${p.target_table_number}>",
+  "description": "<description neutre en français>"
+}`
+}
+
 // ── Appel Gemini ──────────────────────────────────────────────
 
 interface GeminiUsage {
@@ -270,6 +319,79 @@ async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallRes
   }
 
   return { results: parsed, usage }
+}
+
+interface GeminiSingleResult {
+  result: { name: string; description: string }
+  usage: GeminiUsage
+}
+
+async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiSingleResult> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
+
+  const geminiRes = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            name:        { type: 'string' },
+            description: { type: 'string' },
+          },
+          required: ['name', 'description'],
+        },
+      },
+    }),
+  })
+
+  if (!geminiRes.ok) {
+    const errBody = await geminiRes.text()
+    throw new GeminiError(`Gemini error: ${geminiRes.status} ${errBody}`, null)
+  }
+
+  const geminiData = await geminiRes.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[]
+    usageMetadata?: {
+      promptTokenCount?: number
+      candidatesTokenCount?: number
+      totalTokenCount?: number
+    }
+  }
+
+  const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+  if (typeof raw !== 'string') {
+    throw new GeminiError('Gemini returned no text content', null)
+  }
+
+  const cleaned = raw.replace(/```json/g, '').replace(/```/g, '').trim()
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    throw new GeminiError('JSON parse failed', cleaned)
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new GeminiError('Gemini response is not an object', cleaned)
+  }
+
+  const obj = parsed as Record<string, unknown>
+  if (typeof obj.name !== 'string' || typeof obj.description !== 'string') {
+    throw new GeminiError('Gemini response missing name or description', cleaned)
+  }
+
+  const usage: GeminiUsage = {
+    prompt_tokens:     geminiData.usageMetadata?.promptTokenCount     ?? 0,
+    completion_tokens: geminiData.usageMetadata?.candidatesTokenCount ?? 0,
+    total_tokens:      geminiData.usageMetadata?.totalTokenCount      ?? 0,
+  }
+
+  return { result: { name: obj.name as string, description: obj.description as string }, usage }
 }
 
 class GeminiError extends Error {
@@ -337,6 +459,15 @@ Deno.serve(async (req: Request) => {
       case 'name_groups':
         prompt = buildNameGroupsPrompt(payload as NameGroupsPayload)
         break
+      case 'name_single_group': {
+        const p = payload as NameSingleGroupPayload
+        const singlePrompt = buildNameSingleGroupPrompt(p)
+        const { result, usage: singleUsage } = await callGeminiSingle(singlePrompt, apiKey)
+        return new Response(
+          JSON.stringify({ result, usage: singleUsage }),
+          { status: 200, headers: JSON_HEADERS },
+        )
+      }
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),

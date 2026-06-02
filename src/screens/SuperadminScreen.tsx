@@ -38,7 +38,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
-import { nameIdeologicalGroups, mergeAssertions } from '../lib/gemini'
+import { nameSingleGroup, mergeAssertions } from '../lib/gemini'
 import { loadVotesForAnalysis } from '../lib/analysis'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
@@ -1339,7 +1339,7 @@ function SessionDetail({
       return
     }
 
-    // Cas 3 : nouveau clustering → appeler Gemini puis appliquer le fallback
+    // Cas 3 : nouveau clustering → N appels parallèles, un par groupe
     const pwd = getPwd()!
     ;(async () => {
       try {
@@ -1347,55 +1347,35 @@ function SessionDetail({
         const approved = allAssertions.filter(a => a.status === 'approved')
         const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
 
-        const payloadCommun = {
+        const commonPayload = {
           session_id:          currentSession.id,
           session_title:       currentSession.title,
           session_description: currentSession.description ?? null,
           assertions:          approved.map(a => ({ id: a.id, content: a.content })),
           votes:               votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
+          groups:              groups.map(g => ({ table_number: g.table_number, member_ids: g.members.map(m => m.member_id) })),
           divisive_assertions: undefined,
         }
 
-        // 1. Appel batch initial avec tous les groupes
-        const { results: rawNames } = await nameIdeologicalGroups({
-          ...payloadCommun,
-          groups: groups.map(g => ({
-            table_number: g.table_number,
-            member_ids:   g.members.map(m => m.member_id),
-          })),
-        })
-
-        const allNames: GroupNameResult[] = [...rawNames]
-        const got = new Set(allNames.map(n => n.table_number))
-        const missing = groups.filter(g => !got.has(g.table_number))
-
-        // 2. Retry individuel pour chaque groupe manquant (séquentiel)
-        for (const g of missing) {
-          try {
-            const { results: oneResult } = await nameIdeologicalGroups({
-              ...payloadCommun,
-              groups: [{
-                table_number: g.table_number,
-                member_ids:   g.members.map(m => m.member_id),
-              }],
-            })
-            const valid = oneResult.find(r => r.table_number === g.table_number)
-            if (valid) allNames.push(valid)
-          } catch {
-            // silencieux — le fallback ci-dessous comblera
-          }
-        }
-
-        // 3. Fallback générique pour les groupes toujours absents (échec retry)
-        const stillNamed = new Set(allNames.map(n => n.table_number))
+        // Appels séquentiels (pas parallèles) : le client Supabase peut silencieusement
+        // annuler l'un des appels simultanés, ce qui cause la perte d'un groupe.
+        // Chaque groupe est nommé l'un après l'autre, avec retry avant fallback.
+        const allNames: GroupNameResult[] = []
         for (const g of groups) {
-          if (!stillNamed.has(g.table_number)) {
-            allNames.push({
-              table_number: g.table_number,
-              name:         `Groupe ${g.table_number}`,
-              description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
-            })
+          let named: GroupNameResult | null = null
+          for (let attempt = 0; attempt < 2 && !named; attempt++) {
+            try {
+              const { result } = await nameSingleGroup({ ...commonPayload, target_table_number: g.table_number })
+              named = result
+            } catch {
+              // retry silencieux
+            }
           }
+          allNames.push(named ?? {
+            table_number: g.table_number,
+            name:         `Groupe ${g.table_number}`,
+            description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
+          })
         }
 
         const names = allNames.sort((a, b) => a.table_number - b.table_number)
@@ -1880,6 +1860,26 @@ function SessionDetail({
             {/* ── Onglet En direct ─────────────────────────── */}
             {activeTab === 'live' && (
               <div className="space-y-6">
+                {showVotingSections && (
+                  <SectionAccordion
+                    title="Statistiques de vote"
+                    open={statsOpen}
+                    onToggle={() => setStatsOpen(o => !o)}
+                    badge={votingStats ? `${votingStats.voter_count}/${votingStats.member_count} ont voté` : undefined}
+                  >
+                    {statsLoading && !votingStats ? (
+                      <p className="text-sm text-gray-400 py-2">Chargement…</p>
+                    ) : votingStats ? (
+                      <VotingStatsPanel
+                        stats={votingStats}
+                        session={currentSession}
+                        onTimerExpired={() => setShowTimerAlert(true)}
+                        onTriggerClustering={() => setShowClusteringModal(true)}
+                      />
+                    ) : null}
+                  </SectionAccordion>
+                )}
+
                 <ModerationPolicyEditor
                   currentPolicy={currentSession.moderation_policy}
                   onSave={async (policy) => {
@@ -1942,26 +1942,6 @@ function SessionDetail({
                     totalMembers={members.length > 0 ? members.length : undefined}
                     sessionPhase={session.phase}
                   />
-                )}
-
-                {showVotingSections && (
-                  <SectionAccordion
-                    title="Statistiques de vote"
-                    open={statsOpen}
-                    onToggle={() => setStatsOpen(o => !o)}
-                    badge={votingStats ? `${votingStats.voter_count}/${votingStats.member_count} ont voté` : undefined}
-                  >
-                    {statsLoading && !votingStats ? (
-                      <p className="text-sm text-gray-400 py-2">Chargement…</p>
-                    ) : votingStats ? (
-                      <VotingStatsPanel
-                        stats={votingStats}
-                        session={currentSession}
-                        onTimerExpired={() => setShowTimerAlert(true)}
-                        onTriggerClustering={() => setShowClusteringModal(true)}
-                      />
-                    ) : null}
-                  </SectionAccordion>
                 )}
 
                 {showVotingSections && (
