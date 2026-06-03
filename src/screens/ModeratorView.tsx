@@ -855,6 +855,13 @@ export default function ModeratorView() {
               Voir les résultats →
             </a>
           )}
+          <button
+            onClick={() => { window.location.hash = '' }}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
+              text-gray-700 text-sm font-semibold rounded-xl transition-colors"
+          >
+            ← Retour au menu
+          </button>
         </div>
       )}
 
