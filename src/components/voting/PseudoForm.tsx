@@ -5,9 +5,11 @@ import type { Session, SessionMember } from '../../lib/types'
 interface PseudoFormProps {
   session: Session
   onSuccess: (member: SessionMember) => void
+  /** Code de rappel pré-généré (phase pre_voting). Passé à registerSessionMember. */
+  reclaimCode?: string
 }
 
-export default function PseudoForm({ session, onSuccess }: PseudoFormProps) {
+export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFormProps) {
   const [pseudo, setPseudo] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -19,7 +21,7 @@ export default function PseudoForm({ session, onSuccess }: PseudoFormProps) {
     setError(null)
     setLoading(true)
     try {
-      const member = await registerSessionMember(session.id, trimmed)
+      const member = await registerSessionMember(session.id, trimmed, reclaimCode)
       onSuccess(member)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
@@ -41,6 +43,22 @@ export default function PseudoForm({ session, onSuccess }: PseudoFormProps) {
             <p className="mt-1 text-sm text-gray-500">{session.description}</p>
           )}
         </div>
+
+        {/* Contexte pré-vote */}
+        {session.phase === 'pre_voting' && (
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 text-left">
+            <strong>Vote à distance ouvert.</strong> Tu peux voter dès maintenant depuis chez toi.
+            Si tu comptes venir au débat, <strong>retiens bien ton pseudo</strong> — il te permettra de retrouver tes votes.
+          </div>
+        )}
+
+        {/* Contexte vote présentiel */}
+        {session.phase === 'voting' && (
+          <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
+            <strong>Vote présentiel ouvert.</strong>{' '}
+            Tu as voté à distance avant le débat ? <strong>Entre ton pseudo pré-vote</strong> pour retrouver tes votes et confirmer ta présence.
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">

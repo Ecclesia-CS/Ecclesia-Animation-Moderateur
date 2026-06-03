@@ -7,18 +7,21 @@ import type { Session } from '../lib/types'
 
 // ── Séances en cours ────────────────────────────────────────────
 const PHASE_BADGE: Record<string, string> = {
+  pre_voting:    'bg-amber-100 text-amber-700',
   voting:        'bg-indigo-100 text-indigo-700',
   allocating:    'bg-amber-100 text-amber-700',
   debating:      'bg-green-100 text-green-700',
   questionnaire: 'bg-purple-100 text-purple-700',
 }
 const PHASE_LABEL: Record<string, string> = {
-  voting:        'Vote en cours',
+  pre_voting:    'Vote à distance ouvert',
+  voting:        'Vote présentiel en cours',
   allocating:    'Formation des groupes',
   debating:      'Débat en cours',
   questionnaire: 'Questionnaire',
 }
 const PHASE_ACTION: Record<string, string> = {
+  pre_voting:    'Voter →',
   voting:        'Participer →',
   allocating:    'Mon affectation →',
   debating:      'Rejoindre →',
@@ -59,7 +62,7 @@ export default function EntryScreen({ onJoined }: Props) {
       supabase
         .from('sessions')
         .select('id, title, phase, join_code')
-        .in('phase', ['voting', 'allocating', 'debating', 'questionnaire'])
+        .in('phase', ['pre_voting', 'voting', 'allocating', 'debating', 'questionnaire'])
         .order('created_at', { ascending: false })
         .then(({ data }) => { if (data) setActiveSessions(data as ActiveSession[]) })
     }

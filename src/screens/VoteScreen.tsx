@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { castVote, getVoteResults } from '../lib/voting'
+import { castVote, getVoteResults, confirmAttendance, registerSessionMember } from '../lib/voting'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import PseudoForm from '../components/voting/PseudoForm'
@@ -18,7 +18,7 @@ interface VoteScreenProps {
   onTableJoined?: (tableId: string, participantId: string, isModerator: boolean) => void
 }
 
-type Step = 'loading' | 'error' | 'pseudo' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended'
+type Step = 'loading' | 'error' | 'pseudo' | 'reclaim_code' | 'confirm_attendance' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended'
 
 /** Fisher-Yates shuffle — immutable */
 function shuffle<T>(arr: T[]): T[] {
@@ -36,6 +36,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   const [session, setSession] = useState<Session | null>(null)
   const [member, setMember] = useState<SessionMember | null>(null)
+  const memberRef = useRef<SessionMember | null>(null)
+
+  // Pré-vote : code de rappel généré côté client (montré une seule fois)
+  const [reclaimCode, setReclaimCode] = useState<string | null>(null)
+  // Confirmation présentielle
+  const [confirmPseudo, setConfirmPseudo] = useState<string>('')
+  // 'known_user' = membre identifié par user_id (même appareil, attending=false)
+  // 'reclaim'    = nouvel appareil, reclaim par pseudo ou code
+  const [confirmMode, setConfirmMode] = useState<'known_user' | 'reclaim'>('reclaim')
 
   // Vote step state
   const [assertions, setAssertions] = useState<Assertion[]>([]) // shuffled order
@@ -72,6 +81,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       .catch(() => {})
       .finally(() => setResultsLoading(false))
   }, [assertions, myVotes, session])
+
+  // Garde memberRef synchronisé pour les closures Realtime
+  useEffect(() => { memberRef.current = member }, [member])
 
   // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -113,10 +125,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
       if (!existingMember) {
         // Can't join if the vote phase is already over
-        if (s.phase !== 'draft' && s.phase !== 'voting' && s.phase !== 'allocating') {
+        if (s.phase !== 'draft' && s.phase !== 'pre_voting' && s.phase !== 'voting' && s.phase !== 'allocating') {
           setErrorMsg('Le vote est terminé, tu ne peux plus rejoindre cette séance.')
           setStep('ended')
           return
+        }
+        // En pré-vote : générer un code de rappel à afficher après inscription
+        if (s.phase === 'pre_voting') {
+          setReclaimCode(String(Math.floor(Math.random() * 10000)).padStart(4, '0'))
         }
         setStep('pseudo')
         return
@@ -138,6 +154,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         return
       }
 
+      // 3c. En phase voting : si le membre n'a pas confirmé sa présence → confirmation
+      if (s.phase === 'voting' && !m.attending_in_person) {
+        setConfirmPseudo(m.pseudo)
+        setConfirmMode('known_user')   // identifié par user_id, même appareil
+        setStep('confirm_attendance')
+        return
+      }
+
       // 4. Check if already answered onboarding
       const { data: existingResponse } = await supabase
         .from('entry_responses')
@@ -147,15 +171,23 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         .maybeSingle()
 
       if (!existingResponse) {
+        // En pré-vote : pas d'onboarding — aller directement au vote
+        if (s.phase === 'pre_voting') {
+          await loadVoteData(s, m)
+          return
+        }
         setStep('onboarding')
         return
       }
 
-      // 5. If session is in draft, show waiting screen
+      // 5. If session is in draft or pre_voting, show waiting screen
       if (s.phase === 'draft') {
         setStep('waiting')
         subscribeForWaiting(s, m)
         return
+      }
+      if (s.phase === 'pre_voting') {
+        // Déjà inscrit et déjà onboardé (ou pré-vote) → vote
       }
 
       // 6. Load vote data
@@ -183,8 +215,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         payload => {
           const updated = payload.new as Session
           setSession(updated)
-          if (updated.phase === 'voting' || updated.phase === 'allocating') {
+          if (updated.phase === 'pre_voting' || updated.phase === 'allocating') {
             loadVoteData(updated, m)
+          } else if (updated.phase === 'voting') {
+            // Transition pré-vote → vote : si le membre n'a pas confirmé sa présence,
+            // lui demander avant de charger les votes
+            if (!m.attending_in_person) {
+              setConfirmPseudo(m.pseudo)
+              setStep('confirm_attendance')
+            } else {
+              loadVoteData(updated, m)
+            }
           } else if (updated.phase === 'debating') {
             setStep('allocating')
           } else if (updated.phase === 'questionnaire') {
@@ -301,7 +342,16 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             // Admin reverted to draft — go back to waiting
             setStep('waiting')
             subscribeForWaiting(updated, m)
-          } else if (updated.phase !== 'voting' && updated.phase !== 'allocating') {
+          } else if (updated.phase === 'voting') {
+            // Transition pré-vote → vote en cours de session
+            const currentMember = memberRef.current
+            if (currentMember && !currentMember.attending_in_person) {
+              setConfirmPseudo(currentMember.pseudo)
+              setConfirmMode('known_user')
+              setStep('confirm_attendance')
+            }
+            // Si already attending : rester sur le step vote
+          } else if (updated.phase !== 'allocating' && updated.phase !== 'pre_voting') {
             setStep('ended')
           }
         },
@@ -363,8 +413,24 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       if (s.phase === knownPhase) return
 
       setSession(s)
-      if (s.phase === 'voting' || s.phase === 'allocating') {
+      if (s.phase === 'pre_voting' || s.phase === 'allocating') {
         if (step === 'waiting') loadVoteData(s, m)
+      } else if (s.phase === 'voting') {
+        if (step === 'waiting') {
+          // Transition pré-vote → vote : vérifier si confirmation présentielle requise
+          if (!m.attending_in_person) {
+            setConfirmPseudo(m.pseudo)
+            setConfirmMode('known_user')
+            setStep('confirm_attendance')
+          } else {
+            loadVoteData(s, m)
+          }
+        } else if (step === 'vote' && !m.attending_in_person) {
+          // Déjà en train de voter mais attending = false → demander confirmation
+          setConfirmPseudo(m.pseudo)
+          setConfirmMode('known_user')
+          setStep('confirm_attendance')
+        }
       } else if (s.phase === 'debating') {
         setStep('allocating')
       } else if (s.phase === 'questionnaire') {
@@ -410,7 +476,29 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // ── Callbacks from children ───────────────────────────────────────────────
   function handlePseudoSuccess(m: SessionMember) {
     setMember(m)
-    setStep('onboarding')
+    if (session?.phase === 'pre_voting') {
+      // Montrer le code de rappel, puis voter directement (pas d'onboarding)
+      setStep('reclaim_code')
+    } else {
+      setStep('onboarding')
+    }
+  }
+
+  async function handleConfirmAttendanceSuccess(m: SessionMember) {
+    if (!session) return
+    setMember(m)
+    // Vérifier si l'onboarding est déjà fait
+    const { data: existingResponse } = await supabase
+      .from('entry_responses')
+      .select('id')
+      .eq('session_id', session.id)
+      .eq('member_id', m.id)
+      .maybeSingle()
+    if (existingResponse) {
+      await loadVoteData(session, m)
+    } else {
+      setStep('onboarding')
+    }
   }
 
   async function handleOnboardingSuccess(_response: EntryResponse) {
@@ -532,7 +620,47 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   if (step === 'pseudo' && session) {
-    return <PseudoForm session={session} onSuccess={handlePseudoSuccess} />
+    // En phase voting : formulaire combiné pseudo OU code (pas de double écran)
+    if (session.phase === 'voting') {
+      return (
+        <VotingEntryForm
+          session={session}
+          onNewMember={handlePseudoSuccess}
+          onConfirmed={handleConfirmAttendanceSuccess}
+        />
+      )
+    }
+    return (
+      <PseudoForm
+        session={session}
+        onSuccess={handlePseudoSuccess}
+        reclaimCode={session.phase === 'pre_voting' ? (reclaimCode ?? undefined) : undefined}
+      />
+    )
+  }
+
+  if (step === 'reclaim_code' && session && member && reclaimCode) {
+    return <ReclaimCodeDisplay
+      pseudo={member.pseudo}
+      code={reclaimCode}
+      onContinue={() => loadVoteData(session, member)}
+    />
+  }
+
+  if (step === 'confirm_attendance' && session) {
+    return (
+      <AttendanceConfirmScreen
+        session={session}
+        pseudo={confirmPseudo}
+        mode={confirmMode}
+        onConfirmed={handleConfirmAttendanceSuccess}
+        onSwitchToReclaim={() => setConfirmMode('reclaim')}
+        onChangePseudo={() => {
+          setConfirmPseudo('')
+          setStep('pseudo')
+        }}
+      />
+    )
   }
 
   if (step === 'onboarding' && session && member) {
@@ -1103,6 +1231,415 @@ function DocNudge({ session, memberPseudo }: DocNudgeProps) {
           Aucune fiche d'information n'est disponible pour cette séance.
         </p>
       )}
+    </div>
+  )
+}
+
+// ── VotingEntryForm ───────────────────────────────────────────────────────────
+// Formulaire unique pour la phase voting : pseudo OU code, en un seul écran.
+// Si le pseudo est déjà pris → reclaim automatique sans étape supplémentaire.
+
+interface VotingEntryFormProps {
+  session: Session
+  onNewMember:  (member: SessionMember) => void  // nouveau membre → onboarding
+  onConfirmed:  (member: SessionMember) => void  // reclaim → vérif onboarding → vote
+}
+
+function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormProps) {
+  const [tab,          setTab]          = useState<'pseudo' | 'code'>('pseudo')
+  const [input,        setInput]        = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+  const [reclaimDone,  setReclaimDone]  = useState<SessionMember | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const val = input.trim()
+    if (!val) return
+    setError(null)
+    setLoading(true)
+    try {
+      if (tab === 'code') {
+        // Reclaim par code
+        const member = await confirmAttendance(session.id, undefined, val)
+        setReclaimDone(member)
+      } else {
+        // Pseudo : d'abord tenter l'inscription normale
+        try {
+          const member = await registerSessionMember(session.id, val)
+          onNewMember(member)
+        } catch (regErr: unknown) {
+          const msg = regErr instanceof Error ? regErr.message : ''
+          if (msg.includes('Pseudo déjà pris')) {
+            // Reclaim automatique par pseudo — pas de deuxième écran
+            const member = await confirmAttendance(session.id, val)
+            setReclaimDone(member)
+          } else {
+            throw regErr
+          }
+        }
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur inattendue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Écran de succès du reclaim — s'affiche 1,5s avant de continuer
+  if (reclaimDone) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center space-y-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
+            <span className="text-3xl">✅</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Bienvenue {reclaimDone.pseudo} !</h1>
+            <p className="mt-2 text-sm text-gray-500">Tes votes ont bien été récupérés.</p>
+          </div>
+          <button
+            onClick={() => onConfirmed(reclaimDone)}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            Continuer →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-100 mb-4">
+            <span className="text-2xl">🏛️</span>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Vote présentiel</h1>
+          <p className="mt-1 text-sm text-gray-500">{session.title}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Onglets pseudo / code */}
+          <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+            {(['pseudo', 'code'] as const).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { setTab(t); setInput(''); setError(null) }}
+                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                  tab === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {t === 'pseudo' ? 'Mon pseudo' : 'Mon code de rappel'}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'pseudo' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Pseudo
+              </label>
+              <input
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Ton prénom ou pseudonyme…"
+                maxLength={40}
+                required
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">
+                Tu avais voté à distance ? Entre le même pseudo pour récupérer tes votes.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Code de rappel (4 chiffres)
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={input}
+                onChange={e => setInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="_ _ _ _"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">
+                Le code à 4 chiffres affiché lors de ton inscription au vote à distance.
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            {loading ? 'Connexion…' : 'Continuer →'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ── ReclaimCodeDisplay ────────────────────────────────────────────────────────
+
+interface ReclaimCodeDisplayProps {
+  pseudo: string
+  code: string
+  onContinue: () => void
+}
+
+function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProps) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    navigator.clipboard?.writeText(`Pseudo : ${pseudo} | Code : ${code}`).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6 text-center">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100">
+          <span className="text-2xl">🔑</span>
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Note ton code de rappel</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Si tu viens au débat et changes d'appareil, entre ton pseudo <strong>ou</strong> ce code pour retrouver tes votes.
+            <br />
+            <span className="text-amber-600 font-medium">📸 Fais un screen de cet écran !</span>
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Pseudo</p>
+            <p className="text-lg font-bold text-gray-900">{pseudo}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Code de rappel</p>
+            <p className="text-4xl font-mono font-bold tracking-widest text-amber-600">{code}</p>
+          </div>
+          <button
+            onClick={handleCopy}
+            className="w-full py-2 text-sm text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-colors"
+          >
+            {copied ? '✓ Copié !' : 'Copier pseudo + code'}
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400">
+          Il suffit de l'un ou de l'autre pour retrouver tes votes.
+        </p>
+
+        <button
+          onClick={onContinue}
+          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          Continuer vers le vote →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── AttendanceConfirmScreen ───────────────────────────────────────────────────
+
+interface AttendanceConfirmScreenProps {
+  session: Session
+  pseudo: string
+  mode: 'known_user' | 'reclaim'
+  onConfirmed: (member: SessionMember) => void
+  onSwitchToReclaim: () => void
+  onChangePseudo: () => void
+}
+
+function AttendanceConfirmScreen({
+  session,
+  pseudo,
+  mode,
+  onConfirmed,
+  onSwitchToReclaim,
+  onChangePseudo,
+}: AttendanceConfirmScreenProps) {
+  const [reclaimTab, setReclaimTab] = useState<'pseudo' | 'code'>('pseudo')
+  const [reclaimInput, setReclaimInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleKnownUserConfirm() {
+    setError(null)
+    setLoading(true)
+    try {
+      // L'identité est connue par user_id — pas besoin de pseudo ni code
+      const member = await confirmAttendance(session.id)
+      onConfirmed(member)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur inattendue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleReclaimConfirm() {
+    const val = reclaimInput.trim()
+    if (!val) return
+    setError(null)
+    setLoading(true)
+    try {
+      const member = reclaimTab === 'code'
+        ? await confirmAttendance(session.id, undefined, val)
+        : await confirmAttendance(session.id, val)
+      onConfirmed(member)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur inattendue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const header = (
+    <div className="text-center">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-100 mb-4">
+        <span className="text-2xl">🏛️</span>
+      </div>
+      <h1 className="text-xl font-bold text-gray-900">Vote présentiel</h1>
+      <p className="mt-1 text-sm text-gray-500">{session.title}</p>
+    </div>
+  )
+
+  // ── Mode known_user : identité connue sur cet appareil ───────────
+  if (mode === 'known_user') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm space-y-6">
+          {header}
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3 text-center">
+            <p className="text-sm text-gray-500">Tu avais voté à distance sous le pseudo</p>
+            <p className="text-xl font-bold text-gray-900">{pseudo}</p>
+            <p className="text-sm text-gray-600 font-medium">Es-tu présent(e) au débat aujourd'hui ?</p>
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+          )}
+
+          <div className="space-y-2">
+            <button
+              onClick={handleKnownUserConfirm}
+              disabled={loading}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              {loading ? 'Confirmation…' : '✓ Oui, je suis présent(e)'}
+            </button>
+            <button
+              onClick={onSwitchToReclaim}
+              className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Ce n'est pas moi / utiliser un autre compte
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Mode reclaim : nouvel appareil, pseudo ou code ────────────────
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6">
+        {header}
+
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-sm text-indigo-800 text-center">
+          Retrouve ton profil pré-vote avec <strong>ton pseudo</strong> ou <strong>ton code de rappel</strong> — l'un ou l'autre suffit.
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+          {/* Onglets pseudo / code */}
+          <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+            {(['pseudo', 'code'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => { setReclaimTab(tab); setReclaimInput('') }}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  reclaimTab === tab
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {tab === 'pseudo' ? 'Mon pseudo' : 'Mon code de rappel'}
+              </button>
+            ))}
+          </div>
+
+          {reclaimTab === 'pseudo' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pseudo pré-vote</label>
+              <input
+                type="text"
+                value={reclaimInput}
+                onChange={e => setReclaimInput(e.target.value)}
+                placeholder="Ton pseudo…"
+                maxLength={40}
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Code de rappel (4 chiffres)</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={reclaimInput}
+                onChange={e => setReclaimInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="_ _ _ _"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={handleReclaimConfirm}
+            disabled={loading || !reclaimInput.trim()}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            {loading ? 'Recherche…' : 'Retrouver mes votes →'}
+          </button>
+          <button
+            onClick={onChangePseudo}
+            className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Je n'ai ni l'un ni l'autre — créer un nouveau profil
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -23,7 +23,11 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int), `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int), `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
+
+Phase order : `draft → pre_voting → voting → allocating → debating → questionnaire → closed`
+- `pre_voting` : vote ouvert à distance, `attending_in_person = false` par défaut. Pas d'onboarding.
+- `voting` : vote présentiel uniquement — confirmation présentielle requise. Clustering filtre `attending_in_person = true`.
 
 ### `tables`
 `id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`)
@@ -44,8 +48,10 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 `id`, `table_id` (CASCADE), `participant_id` (CASCADE), `started_at` (NOT NULL, posé par serveur), `ended_at?` (NULL = en cours), `source` (`'long'`|`'interactive'`|`'manual'`)
 
 ### `session_members` — Bloc C
-`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`
+`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`)
 Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
+- `attending_in_person = false` → inscrit en pré-vote depuis chez soi. Exclu du clustering.
+- `attending_in_person = true` → a confirmé sa présence physique (`confirm_attendance`). Inclus dans le clustering.
 
 ### `entry_responses` — Bloc C
 `id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `consent_transcript`, `group_size_pref` (`small`|`medium`|`large`), `moderator_pref`, `openness_to_diff` (1-5), `participation_style` (`listener`|`active`), `created_at`
@@ -105,20 +111,22 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `list_available_tables(password, since?)` | Tables sans séance (48h) — inclut `leaderless` |
 | `submit_questionnaire(table_id, ...)` | Upsert questionnaire_responses |
 | `update_session_docs(password, session_id, doc_*?)` | Met à jour les 3 URLs docs |
-| `register_session_member(session_id, pseudo)` | Inscrit l'utilisateur (ON CONFLICT user → retourne existant ; pseudo pris → exception) |
+| `register_session_member(session_id, pseudo, reclaim_code?)` | Inscrit l'utilisateur. En `pre_voting` : `attending_in_person=false` + stocke le code en clair. ON CONFLICT user → retourne existant ; pseudo pris → exception |
+| `confirm_attendance(session_id, pseudo?, code?)` | Confirme présence présentielle. Cas 1 : caller déjà membre → marking attending. Cas 2 : code fourni → reclaim par `reclaim_code`. Cas 3 : pseudo fourni → reclaim ou création. L'un ou l'autre suffit. |
 | `submit_entry_response(session_id, ...)` | Upsert entry_responses |
 | `submit_assertion(session_id, content)` | Insère assertion (status auto selon moderation_policy) |
 | `cast_vote(assertion_id, vote)` | Upsert assertion_votes |
 | `get_vote_results(session_id)` | Retourne assertions approved avec consensus_score |
 | `approve_assertion(password, assertion_id)` | status → 'approved' |
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |
-| `set_session_phase(password, session_id, phase)` | Change la phase de la séance |
-| `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire des membres → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
-| `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène basée sur l'analyse PCA (si analyse existe) → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. Les membres sans votes (`session_members` absents de `analysis_members`) sont distribués aléatoirement sur les mêmes tables. Le nombre de tables est calculé sur le total des membres (votants + non-votants). |
+| `set_session_phase(password, session_id, phase)` | Change la phase (inclut `pre_voting`) |
+| `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire — **filtre `attending_in_person = true`** → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
+| `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène PCA — **filtre `attending_in_person = true`** → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. Les membres présents sans votes sont distribués aléatoirement. |
 | `update_session_config(password, session_id, moderation_policy, vote_timer_minutes, vote_threshold_percent)` | Met à jour la configuration de vote. `moderation_policy` ∈ `('open','closed','ai')` |
 | `update_group_names(password, session_id, group_names)` | Persiste les noms de groupes Gemini en DB (`sessions.group_names`). Appelé par `SuperadminScreen` après chaque génération Gemini (en parallèle du localStorage). |
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
-| `get_all_votes_for_analysis(password, session_id)` | Retourne tous les votes de la séance (bypass RLS — superadmin uniquement) |
+| `get_all_votes_for_analysis(password, session_id, attending_only?)` | Retourne tous les votes avec `attending_in_person` par vote. Si `attending_only=true` : filtre présentiels uniquement. |
+| `get_session_voting_stats(password, session_id)` | Retourne `{member_count, attending_count, remote_count, onboarded_count, voter_count, approved_assertion_count, total_votes}` |
 | `merge_assertion_votes(password, keep_id, reject_id)` | Transfère les votes de `reject_id` vers `keep_id` : nouveaux votants insérés, conflits résolus (agree prime). Appelé avant `reject_assertion` dans `LLMModerationPanel.handleMerge`. |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les tables suivantes — obligatoire pour que les événements filtrés (DELETE et UPDATE avec RLS) arrivent aux subscribers :
@@ -140,18 +148,18 @@ src/
 │   │                     + SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment
 │   │                     + ModerationPolicy, ModerationResult, MergeResult, GroupNameResult (sprint IA)
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
-│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
+│   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, confirmAttendance, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
 │   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups, nameSingleGroup) — jamais d'appel direct à api.google.com
-│   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`.
+│   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`. `loadVotesForAnalysis` accepte `attendingOnly?: boolean`.
 │   ├── storage.ts        tableStore.get/set/clear (localStorage)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
 ├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
-│   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s) + tabs Rejoindre/Reprendre/Créer + lien Administration
-│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. `SessionDetail` organisé en 4 onglets (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse). Persistance séance ouverte via `sessionStorage` (clé `ecclesia_superadmin_session`). Persistance onglet actif via `sessionStorage` (clé `ecclesia_admin_tab_<session.id>`, fallback `defaultTab(phase)`). Exports CSV + toggle questionnaire dans l'accordéon "Actions post-séance" (onglet Analyse)
-│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (voting/allocating → #vote/, debating → check member → #vote/ ou message) ; phase=closed → ResultsMapScreen (membre) ou PublicResultsScreen (visiteur)
-│   ├── VoteScreen.tsx          Flow vote participant : pseudo → onboarding → vote → AllocatingScreen
+│   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s, phases pre_voting/voting/allocating/debating/questionnaire) + tabs Rejoindre/Reprendre/Créer + lien Administration
+│   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. `SessionDetail` organisé en 4 onglets (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse). Persistance séance ouverte via `sessionStorage` (clé `ecclesia_superadmin_session`). Persistance onglet actif via `sessionStorage` (clé `ecclesia_admin_tab_<session.id>`, fallback `defaultTab(phase)`). Exports CSV + toggle questionnaire dans l'accordéon "Actions post-séance" (onglet Analyse). Stats présentiels/distance dans `VotingStatsPanel`.
+│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (pre_voting/voting/allocating → #vote/, debating → check member → #vote/ ou message) ; phase=closed → ResultsMapScreen (membre) ou PublicResultsScreen (visiteur)
+│   ├── VoteScreen.tsx          Flow vote participant. En `pre_voting` : pseudo → ReclaimCodeDisplay → vote (pas d'onboarding). En `voting` : VotingEntryForm (pseudo OU code, reclaim auto si pseudo pris) → onboarding → vote → AllocatingScreen. Confirmation présentielle (known_user, même appareil) via AttendanceConfirmScreen.
 │   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (DB via session.group_names en priorité, localStorage fallback), bouton rejoindre. Affiche VoteResultsSummary + accordéon "Voir toutes les assertions"
 │   ├── ResultsMapScreen.tsx    Écran résultats post-clôture (participant inscrit). Charge en parallèle : scatter PCA (`loadResultsMap`), affectation groupe (`getMyTableAssignment`), assertions (`getVoteResults`). Affiche : carte groupe (couleur du groupe, nom+description depuis session.group_names), section "Ce qui vous caractérise" (top repness du groupe), scatter avec légende nommée, "Les autres camps" (top repness par groupe), "Points de clivage" (spread repness inter-groupes), "Points de consensus". Fallback sans analyse PCA : dissensus via consensus_score. Couleur et nom du camp du participant basés sur `selfGroupId` (cluster k-means 0-indexé depuis `data.points`) — **NE PAS** utiliser `assignment.table_number` pour la recherche du nom Gemini car `table_number` est la table physique de débat, sans correspondance garantie avec le cluster k-means.
 │   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
@@ -165,7 +173,7 @@ src/
     │   ├── VoteResultsSummary.tsx    Résumé des votes — top 3 consensus + 2 dissensus (assertions + consensus_score)
     │   ├── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
     │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
-    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number, sessionPhase?: string. Section Automatisation : toggle auto-analyse + slider 1-15 min (actif si phase=voting). Légende scatter : nom + description du groupe (depuis groupNames). En-têtes "Assertions clivantes" : nom + description en gris sous le nom coloré.
+    ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number, sessionPhase?: string. Section Automatisation : toggle auto-analyse + slider 1-15 min (actif si phase=voting). Légende scatter : nom + description du groupe (depuis groupNames). En-têtes "Assertions clivantes" : nom + description en gris sous le nom coloré. Toggle "Tous les votants / Présentiels uniquement" : recharge les votes avec `attendingOnly=true`, recalcule repness/consensus localement sans sauvegarder.
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
     ├── ReadOnlyQueuePanel.tsx    File lecture seule (participants)
@@ -282,9 +290,10 @@ Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
 Flux complet :
 
 1. **`draft`** → séance créée, pas encore ouverte
-2. **`voting`** → participants s'inscrivent (`register_session_member`) + soumettent/votent des assertions. VoteScreen géré via `#vote/<join_code>`.
-3. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` auto-assigné si tables physiques rattachées). Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
-4. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → callback `onTableJoined` → `App.handleTableJoined` met à jour `phase` en `table` → TableView (sans reload).
+2. **`pre_voting`** *(optionnel)* → vote ouvert à distance avant l'événement. Participants s'inscrivent avec `attending_in_person=false`. Un code de rappel 4 chiffres leur est affiché (à screenshoter). Pas d'onboarding. VoteScreen géré via `#vote/<join_code>`. EntryScreen affiche la séance comme "en cours".
+3. **`voting`** → vote présentiel. Nouveaux arrivants : `VotingEntryForm` (pseudo OU code), reclaim auto si pseudo déjà pris. Pré-votants sur même appareil : `AttendanceConfirmScreen` (mode `known_user`). Clustering et analyse filtrés sur `attending_in_person = true`.
+4. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` auto-assigné si tables physiques rattachées). Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
+5. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → callback `onTableJoined` → `App.handleTableJoined` met à jour `phase` en `table` → TableView (sans reload).
 
 `moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`. `= 'ai'` : `pending`, modération automatique par Gemini via `LLMModerationPanel` (setInterval configurable).
 

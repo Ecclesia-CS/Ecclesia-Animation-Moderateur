@@ -12,7 +12,7 @@ import {
   runOpinionAnalysis,
   AnalysisError,
 } from '../lib/analysis'
-import type { LoadedAnalysis } from '../lib/analysis'
+import type { LoadedAnalysis, AnalysisResult } from '../lib/analysis'
 import type { AssertionWithPseudo } from '../lib/voting'
 import type { GroupNameResult } from '../lib/types'
 
@@ -135,6 +135,11 @@ export default function AnalysisPanel({
   const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null)
 
+  // Toggle présentiels uniquement
+  const [attendingOnly,         setAttendingOnly]         = useState(false)
+  const [attendingOnlyAnalysis, setAttendingOnlyAnalysis] = useState<LoadedAnalysis | null>(null)
+  const [attendingOnlyLoading,  setAttendingOnlyLoading]  = useState(false)
+
   // Auto-analyse périodique
   const [autoAnalyze, setAutoAnalyzeState] = useState(
     () => localStorage.getItem(`analysis_auto_${sessionId}`) === 'true'
@@ -242,17 +247,64 @@ export default function AnalysisPanel({
     }
   }
 
+  // ── Conversion AnalysisResult → LoadedAnalysis (pour vue locale) ─
+  function resultToLoaded(r: AnalysisResult): LoadedAnalysis {
+    return {
+      id: 'local',
+      k_chosen: r.kChosen,
+      silhouette_score: r.silhouette,
+      pca_variance_explained: r.pcaVariance,
+      repness: r.repness,
+      group_consensus: r.groupConsensus,
+      created_at: new Date().toISOString(),
+      members: r.members,
+    }
+  }
+
+  // ── Toggle présentiels uniquement ─────────────────────────
+  async function handleAttendingToggle(val: boolean) {
+    setAttendingOnly(val)
+    if (!val) return
+    if (attendingOnlyAnalysis !== null) return
+    setAttendingOnlyLoading(true)
+    setErrorMsg(null)
+    try {
+      const votes = await loadVotesForAnalysis(supabase, password, sessionId, true)
+      const memberIds    = [...new Set(votes.map(v => v.member_id))]
+      const assertionIds = [...new Set(votes.map(v => v.assertion_id))]
+      const result = runOpinionAnalysis(votes, memberIds, assertionIds)
+      setAttendingOnlyAnalysis(resultToLoaded(result))
+    } catch (e) {
+      if (e instanceof AnalysisError) {
+        setErrorMsg('Données insuffisantes pour analyser uniquement les participants présentiels.')
+      } else {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+          onAuthError()
+        } else {
+          setErrorMsg(msg)
+        }
+      }
+      setAttendingOnly(false)
+    } finally {
+      setAttendingOnlyLoading(false)
+    }
+  }
+
   // ── Badge titre ───────────────────────────────────────────
   function badge() {
     if (loadStatus === 'loading') return '…'
-    if (analysis)                 return `k = ${analysis.k_chosen}`
+    if (displayAnalysis)         return `k = ${displayAnalysis.k_chosen}${attendingOnly ? ' (présentiels)' : ''}`
+    if (analysis)                return `k = ${analysis.k_chosen}`
     return 'Aucune'
   }
 
+  const displayAnalysis = attendingOnly ? attendingOnlyAnalysis : analysis
+
   // ── Assertions clivantes (top 3 par groupe) ────────────────
   function topClivantes(groupId: number): { aid: string; score: number; content: string }[] {
-    if (!analysis) return []
-    return Object.entries(analysis.repness)
+    if (!displayAnalysis) return []
+    return Object.entries(displayAnalysis.repness)
       .map(([aid, scores]) => ({
         aid,
         score:   scores[String(groupId)] ?? 0,
@@ -265,8 +317,8 @@ export default function AnalysisPanel({
 
   // ── Assertions consensuelles ──────────────────────────────
   function consensuelles(): { aid: string; score: number; content: string }[] {
-    if (!analysis) return []
-    return Object.entries(analysis.group_consensus)
+    if (!displayAnalysis) return []
+    return Object.entries(displayAnalysis.group_consensus)
       .filter(([, score]) => score > CONSENSUS_THRESHOLD)
       .sort(([, a], [, b]) => b - a)
       .map(([aid, score]) => ({
@@ -332,36 +384,69 @@ export default function AnalysisPanel({
             </div>
           )}
 
-          {analysis ? (
+          {/* Toggle présentiels / tous (visible si une analyse existe) */}
+          {analysis && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500">Vue :</span>
+              <button
+                onClick={() => handleAttendingToggle(false)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                  !attendingOnly
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                }`}
+              >
+                Tous les votants
+              </button>
+              <button
+                onClick={() => handleAttendingToggle(true)}
+                disabled={attendingOnlyLoading}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors disabled:opacity-50 ${
+                  attendingOnly
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                }`}
+              >
+                {attendingOnlyLoading ? 'Calcul…' : 'Présentiels uniquement'}
+              </button>
+            </div>
+          )}
+
+          {displayAnalysis ? (
             <>
               {/* Métadonnées */}
               <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                 <span>
                   <span className="font-medium text-gray-700">Groupes :</span>{' '}
-                  {analysis.k_chosen}
+                  {displayAnalysis.k_chosen}
                 </span>
                 <span>
                   <span className="font-medium text-gray-700">Silhouette :</span>{' '}
-                  {analysis.silhouette_score.toFixed(3)}
+                  {displayAnalysis.silhouette_score.toFixed(3)}
                 </span>
                 <span>
                   <span className="font-medium text-gray-700">Variance PCA :</span>{' '}
-                  {(analysis.pca_variance_explained[0] * 100).toFixed(1)} % +{' '}
-                  {(analysis.pca_variance_explained[1] * 100).toFixed(1)} %
+                  {(displayAnalysis.pca_variance_explained[0] * 100).toFixed(1)} % +{' '}
+                  {(displayAnalysis.pca_variance_explained[1] * 100).toFixed(1)} %
                 </span>
-                <span className="text-gray-400">
-                  {new Date(analysis.created_at).toLocaleString('fr-FR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit',
-                  })}
-                </span>
+                {!attendingOnly && (
+                  <span className="text-gray-400">
+                    {new Date(displayAnalysis.created_at).toLocaleString('fr-FR', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                )}
+                {attendingOnly && (
+                  <span className="text-indigo-500 font-medium">Présentiels uniquement</span>
+                )}
               </div>
 
               {/* Scatter plot */}
-              <ScatterPlot members={analysis.members} kChosen={analysis.k_chosen} groupNames={groupNames} />
-              {totalMembers != null && totalMembers > analysis.members.length && (
+              <ScatterPlot members={displayAnalysis.members} kChosen={displayAnalysis.k_chosen} groupNames={groupNames} />
+              {totalMembers != null && totalMembers > displayAnalysis.members.length && (
                 <p className="text-xs text-amber-600 mt-1 text-center">
-                  ⚠ {totalMembers - analysis.members.length} participant(s) exclus de l&apos;analyse (aucun vote sur assertions approuvées)
+                  ⚠ {totalMembers - displayAnalysis.members.length} participant(s) exclus de l&apos;analyse (aucun vote sur assertions approuvées)
                 </p>
               )}
 
@@ -371,7 +456,7 @@ export default function AnalysisPanel({
                   Assertions clivantes
                 </h4>
                 <div className="space-y-4">
-                  {Array.from({ length: analysis.k_chosen }, (_, g) => {
+                  {Array.from({ length: displayAnalysis.k_chosen }, (_, g) => {
                     const items = topClivantes(g)
                     return (
                       <div key={g}>
@@ -445,6 +530,8 @@ export default function AnalysisPanel({
                 })()}
               </div>
             </>
+          ) : attendingOnly && attendingOnlyLoading ? (
+            <p className="text-sm text-gray-400">Calcul de l'analyse présentiels…</p>
           ) : loadStatus === 'loading' ? (
             <p className="text-sm text-gray-400">Chargement…</p>
           ) : loadStatus === 'error' && !errorMsg ? (
