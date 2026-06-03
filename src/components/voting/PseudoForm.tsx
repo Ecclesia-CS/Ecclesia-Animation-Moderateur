@@ -7,11 +7,9 @@ interface PseudoFormProps {
   onSuccess: (member: SessionMember) => void
   /** Code de rappel pré-généré (phase pre_voting). Passé à registerSessionMember. */
   reclaimCode?: string
-  /** Appelé quand le pseudo est déjà pris en phase voting (offre le reclaim). */
-  onPseudoTaken?: (pseudo: string) => void
 }
 
-export default function PseudoForm({ session, onSuccess, reclaimCode, onPseudoTaken }: PseudoFormProps) {
+export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFormProps) {
   const [pseudo, setPseudo] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,13 +24,7 @@ export default function PseudoForm({ session, onSuccess, reclaimCode, onPseudoTa
       const member = await registerSessionMember(session.id, trimmed, reclaimCode)
       onSuccess(member)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur inattendue'
-      // En phase voting, si le pseudo est pris → proposer le reclaim
-      if (msg.includes('Pseudo déjà pris') && session.phase === 'voting' && onPseudoTaken) {
-        onPseudoTaken(trimmed)
-      } else {
-        setError(msg)
-      }
+      setError(err instanceof Error ? err.message : 'Erreur inattendue')
     } finally {
       setLoading(false)
     }
