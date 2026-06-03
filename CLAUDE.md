@@ -336,6 +336,7 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 | `ai_tokens_day_<YYYY-MM-DD>` | `{ total_tokens, request_count }` — compteurs journaliers |
 | `merge_log_<id>` | `MergeLogEntry[]` max 100 FIFO — fusions effectuées |
 | `ai_rejected_ids_<id>` | `string[]` — UUIDs rejetés par l'IA (distinct des rejets manuels) |
+| `ai_approved_ids_<id>` | `string[]` — UUIDs approuvés par l'IA (modération manuelle + auto). Badge "acceptée par IA" dans la vue Approuvées |
 | `ai_auto_moderate_<id>` | `'true'/'false'` — toggle auto-modération |
 | `ai_auto_interval_<id>` | nombre (minutes) — intervalle auto-modération (1-10) |
 | `ai_auto_merge_<id>` | `'true'/'false'` — fusion automatique avant clustering |
@@ -353,6 +354,9 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 - **Nommage par appels séquentiels** : `nameSingleGroup` est appelé une fois par groupe, séquentiellement (boucle `for...of` avec retry ×2). Chaque appel utilise l'action `name_single_group` de la Edge Function, qui retourne un **objet unique** `{ name, description }` via `responseSchema` — pas un tableau. Le fallback générique reste si les 2 tentatives échouent. La validation côté client rejette les noms du type `"Groupe N"` (regex `/^groupe\s*\d+$/i`) et déclenche le retry.
 - **`responseMimeType: 'application/json'`** : passé dans `generationConfig` de l'appel Gemini pour forcer la sortie JSON native (évite les enrobages markdown)
 - **`ai_rejected_ids_<id>`** : seules les assertions dans ce set s'affichent dans "Assertions rejetées par l'IA" — les rejets manuels n'y apparaissent pas
+- **`ai_approved_ids_<id>`** : symétrique à `ai_rejected_ids`. Populé lors de `handleModerate` et de l'auto-modération (`addAiApprovedIds`). Utilisé par `AssertionsPanel` (via `aiLabelMap`) pour afficher le badge "acceptée par IA"
+- **`LLMModerationPanel` — accordéon auto-ouvert** : `open` s'initialise à `true` si `readLog(session.id).length > 0` — l'historique est donc visible immédiatement au retour sur la page sans avoir à déplier manuellement
+- **`PhaseBar` — navigation directe** : chaque cercle d'étape non-courant est un `<button>` qui appelle `onPhaseSelect(phase)`. La modal de confirmation existante gère l'affichage (titre "← Revenir" si `isBack`, "Passer en phase X" sinon). Les badges "fusionnée" / "modérée par IA" / "acceptée par IA" dans `AssertionRow` sont calculés par `aiLabelMap` (useMemo dans `AssertionsPanel`, lecture directe de localStorage)
 - **Ne pas appeler `supabase.functions.invoke` sans vérifier `error` ET `data?.error`**
 - **Sanitisation UUID merge** : `gemini-proxy` filtre les résultats `merge` avant retour — Gemini peut halluciner un UUID légèrement altéré (ex : premier tiret manquant). La validation côté Edge Function (regex UUID + présence dans les IDs d'entrée) est la première ligne de défense ; `LLMModerationPanel` ajoute un guard avant `rejectAssertion`. Ne pas supprimer ces validations.
 

@@ -66,6 +66,16 @@ function removeAiRejectedId(sessionId: string, id: string) {
   localStorage.setItem(`ai_rejected_ids_${sessionId}`, JSON.stringify([...existing]))
 }
 
+function readAiApprovedIds(sessionId: string): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(`ai_approved_ids_${sessionId}`) ?? '[]') as string[]) }
+  catch { return new Set() }
+}
+function addAiApprovedIds(sessionId: string, ids: string[]) {
+  const existing = readAiApprovedIds(sessionId)
+  ids.forEach(id => existing.add(id))
+  localStorage.setItem(`ai_approved_ids_${sessionId}`, JSON.stringify([...existing]))
+}
+
 function addLogEntry(sessionId: string, action: string, summary: string, tokensUsed: number) {
   const entry: LogEntry = { timestamp: new Date().toISOString(), action, summary, tokens_used: tokensUsed }
   const existing = readLog(sessionId)
@@ -93,7 +103,7 @@ interface LLMModerationPanelProps {
 }
 
 export default function LLMModerationPanel({ session, password }: LLMModerationPanelProps) {
-  const [open, setOpen]           = useState(false)
+  const [open, setOpen]           = useState(() => readLog(session.id).length > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [isError, setIsError]     = useState(false)
@@ -193,8 +203,8 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         if (r.action === 'approve') { await approveAssertion(password, r.id); approved++ }
         else                        { await rejectAssertion(password, r.id); rejected++ }
       }
-      // Tracer les assertions rejetées par l'IA (pour filtrer la section "Rejetées par l'IA")
       addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
+      addAiApprovedIds(session.id, results.filter(r => r.action === 'approve').map(r => r.id))
       addLogEntry(session.id, 'moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
       showMsg(`✅ ${approved} approuvées, ${rejected} rejetées`)
       await loadRejected()
@@ -275,6 +285,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           else                        { await rejectAssertion(password, r.id); rejected++ }
         }
         addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
+        addAiApprovedIds(session.id, results.filter(r => r.action === 'approve').map(r => r.id))
         addLogEntry(session.id, 'auto-moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
       } catch {
         // Silencieux en mode auto — erreurs loggées dans la console uniquement

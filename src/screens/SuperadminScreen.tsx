@@ -1831,6 +1831,10 @@ function SessionDetail({
           acting={phaseActing}
           onNext={() => nextPhase && setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })}
           onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
+          onPhaseSelect={(phase) => {
+            const isBack = PHASE_SEQUENCE.indexOf(phase) < phaseIdx
+            setPhaseConfirm({ phase, label: PHASE_LABEL[phase] ?? phase, isBack })
+          }}
         />
 
         {/* ── Barre d'onglets ─────────────────────────────── */}
@@ -2797,6 +2801,7 @@ function PhaseBar({
   acting,
   onNext,
   onPrev,
+  onPhaseSelect,
 }: {
   currentPhase: Session['phase']
   nextPhase: Session['phase'] | null
@@ -2804,6 +2809,7 @@ function PhaseBar({
   acting: boolean
   onNext(): void
   onPrev(): void
+  onPhaseSelect(phase: Session['phase']): void
 }) {
   const currentIdx = PHASE_SEQUENCE_LABELS.findIndex(p => p.phase === currentPhase)
 
@@ -2818,13 +2824,24 @@ function PhaseBar({
           return (
             <div key={p.phase} className="flex items-center flex-1 min-w-0">
               <div className="flex flex-col items-center flex-shrink-0">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                  isCurrent ? 'bg-indigo-600 text-white ring-2 ring-indigo-200' :
-                  isPast    ? 'bg-indigo-200 text-indigo-700' :
-                              'bg-gray-100 text-gray-400'
-                }`}>
-                  {isPast ? '✓' : i + 1}
-                </div>
+                {isCurrent ? (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-600 text-white ring-2 ring-indigo-200">
+                    {i + 1}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onPhaseSelect(p.phase)}
+                    disabled={acting}
+                    title={`Aller en ${p.short}`}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors disabled:cursor-not-allowed ${
+                      isPast
+                        ? 'bg-indigo-200 text-indigo-700 hover:bg-indigo-300 hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
+                    }`}
+                  >
+                    {isPast ? '✓' : i + 1}
+                  </button>
+                )}
                 <span className={`mt-1 text-[10px] font-medium text-center leading-tight hidden sm:block ${
                   isCurrent ? 'text-indigo-700' : isFuture ? 'text-gray-400' : 'text-indigo-400'
                 }`}>
@@ -3235,6 +3252,14 @@ function AssertionsPanel({
   onReapprove(id: string): void
   onAdminSubmit?: (content: string) => Promise<void>
 }) {
+  const aiLabelMap = React.useMemo(() => {
+    const rejIds     = new Set<string>(JSON.parse(localStorage.getItem(`ai_rejected_ids_${session.id}`) ?? '[]'))
+    const approvedIds = new Set<string>(JSON.parse(localStorage.getItem(`ai_approved_ids_${session.id}`) ?? '[]'))
+    const mergeLog   = JSON.parse(localStorage.getItem(`merge_log_${session.id}`) ?? '[]') as Array<{ reject_ids: string[] }>
+    const mergedIds  = new Set<string>(mergeLog.flatMap(m => m.reject_ids))
+    return { rejIds, approvedIds, mergedIds }
+  }, [session.id])
+
   const [adminText,      setAdminText]      = useState('')
   const [adminAdding,    setAdminAdding]    = useState(false)
   const [csvImporting,   setCsvImporting]   = useState(false)
@@ -3431,7 +3456,11 @@ function AssertionsPanel({
             .map(a => {
               const v = voteMap.get(a.id)
               return (
-                <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
+                <AssertionRow key={a.id} assertion={a} acting={actingId === a.id} aiLabels={{
+                  isMerged: false,
+                  isAiRejected: false,
+                  isAiApproved: aiLabelMap.approvedIds.has(a.id),
+                }}>
                   <div className="flex items-center gap-2 flex-wrap">
                     {v && v.total_votes > 0 ? (
                       <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
@@ -3457,7 +3486,11 @@ function AssertionsPanel({
             <p className="text-sm text-gray-400 text-center py-4">Aucune assertion rejetée</p>
           )}
           {rejected.map(a => (
-            <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
+            <AssertionRow key={a.id} assertion={a} acting={actingId === a.id} aiLabels={{
+              isMerged:    aiLabelMap.mergedIds.has(a.id),
+              isAiRejected: aiLabelMap.rejIds.has(a.id),
+              isAiApproved: false,
+            }}>
               <button
                 onClick={() => onReapprove(a.id)}
                 disabled={actingId !== null}
@@ -3574,15 +3607,24 @@ function MembersPanel({
 function AssertionRow({
   assertion,
   acting,
+  aiLabels,
   children,
 }: {
   assertion: AssertionWithPseudo
   acting: boolean
+  aiLabels?: { isMerged: boolean; isAiRejected: boolean; isAiApproved: boolean }
   children: React.ReactNode
 }) {
   return (
     <div className={`border border-gray-200 rounded-xl p-3 space-y-2 ${acting ? 'opacity-50' : ''}`}>
       <p className="text-sm text-gray-900">{assertion.content}</p>
+      {aiLabels && (aiLabels.isMerged || aiLabels.isAiRejected || aiLabels.isAiApproved) && (
+        <div className="flex gap-1.5 flex-wrap">
+          {aiLabels.isMerged    && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">fusionnée</span>}
+          {aiLabels.isAiRejected && !aiLabels.isMerged && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium">modérée par IA</span>}
+          {aiLabels.isAiApproved && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">acceptée par IA</span>}
+        </div>
+      )}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs text-gray-400">{assertion.member_pseudo} · {new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
         <div className="flex gap-2 flex-wrap">{children}</div>
