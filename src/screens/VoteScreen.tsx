@@ -474,31 +474,20 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   // ── Callbacks from children ───────────────────────────────────────────────
-  function handlePseudoSuccess(m: SessionMember) {
+  async function handlePseudoSuccess(m: SessionMember) {
     setMember(m)
     if (session?.phase === 'pre_voting') {
       // Montrer le code de rappel, puis voter directement (pas d'onboarding)
       setStep('reclaim_code')
     } else {
-      setStep('onboarding')
+      await loadVoteData(session!, m)
     }
   }
 
   async function handleConfirmAttendanceSuccess(m: SessionMember) {
     if (!session) return
     setMember(m)
-    // Vérifier si l'onboarding est déjà fait
-    const { data: existingResponse } = await supabase
-      .from('entry_responses')
-      .select('id')
-      .eq('session_id', session.id)
-      .eq('member_id', m.id)
-      .maybeSingle()
-    if (existingResponse) {
-      await loadVoteData(session, m)
-    } else {
-      setStep('onboarding')
-    }
+    await loadVoteData(session, m)
   }
 
   async function handleOnboardingSuccess(_response: EntryResponse) {
