@@ -27,13 +27,13 @@ export async function registerSessionMember(
 
 export async function confirmAttendance(
   sessionId: string,
-  pseudo: string,
-  reclaimCode?: string
+  pseudo?: string,
+  code?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('confirm_attendance', {
     p_session_id: sessionId,
-    p_pseudo: pseudo,
-    p_reclaim_code: reclaimCode ?? null,
+    p_pseudo:     pseudo ?? null,
+    p_code:       code   ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember
