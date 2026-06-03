@@ -1246,10 +1246,11 @@ interface VotingEntryFormProps {
 }
 
 function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormProps) {
-  const [tab,     setTab]     = useState<'pseudo' | 'code'>('pseudo')
-  const [input,   setInput]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
+  const [tab,          setTab]          = useState<'pseudo' | 'code'>('pseudo')
+  const [input,        setInput]        = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+  const [reclaimDone,  setReclaimDone]  = useState<SessionMember | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -1261,7 +1262,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
       if (tab === 'code') {
         // Reclaim par code
         const member = await confirmAttendance(session.id, undefined, val)
-        onConfirmed(member)
+        setReclaimDone(member)
       } else {
         // Pseudo : d'abord tenter l'inscription normale
         try {
@@ -1272,7 +1273,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           if (msg.includes('Pseudo déjà pris')) {
             // Reclaim automatique par pseudo — pas de deuxième écran
             const member = await confirmAttendance(session.id, val)
-            onConfirmed(member)
+            setReclaimDone(member)
           } else {
             throw regErr
           }
@@ -1283,6 +1284,29 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
     } finally {
       setLoading(false)
     }
+  }
+
+  // Écran de succès du reclaim — s'affiche 1,5s avant de continuer
+  if (reclaimDone) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center space-y-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
+            <span className="text-3xl">✅</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Bienvenue {reclaimDone.pseudo} !</h1>
+            <p className="mt-2 text-sm text-gray-500">Tes votes ont bien été récupérés.</p>
+          </div>
+          <button
+            onClick={() => onConfirmed(reclaimDone)}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            Continuer →
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
