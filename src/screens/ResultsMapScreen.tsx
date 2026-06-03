@@ -66,8 +66,19 @@ function ScatterSVG({
             fill={groupColor(p.group_id)} opacity={0.6} />
         ))}
         {self && (
-          <circle cx={cx(self.pca_x)} cy={cy(self.pca_y)} r={9}
-            fill={groupColor(self.group_id)} stroke="white" strokeWidth={2.5} opacity={1} />
+          <>
+            <circle cx={cx(self.pca_x)} cy={cy(self.pca_y)} r={9}
+              fill={groupColor(self.group_id)} stroke="white" strokeWidth={2.5} opacity={1} />
+            <text
+              x={cx(self.pca_x) + 13}
+              y={cy(self.pca_y) + 4}
+              fontSize={11}
+              fontWeight="700"
+              fill={groupColor(self.group_id)}
+            >
+              Vous
+            </text>
+          </>
         )}
       </svg>
 
@@ -259,6 +270,12 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
         <div>
           <h1 className="text-xl font-bold text-gray-900">Votre position dans le débat</h1>
           <p className="text-sm text-gray-500 mt-1">{session.title}</p>
+          <button
+            onClick={() => { window.location.hash = '' }}
+            className="mt-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+          >
+            ← Retour au menu
+          </button>
         </div>
 
         {loading && (
@@ -471,15 +488,6 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
           </>
         )}
 
-        <div className="flex justify-center pb-2">
-          <button
-            onClick={() => { window.location.hash = '' }}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
-              text-gray-700 text-sm font-semibold rounded-xl transition-colors"
-          >
-            ← Retour au menu
-          </button>
-        </div>
         <p className="text-center text-sm text-gray-400 pb-4">
           Merci pour votre participation à cette séance Ecclesia.
         </p>
