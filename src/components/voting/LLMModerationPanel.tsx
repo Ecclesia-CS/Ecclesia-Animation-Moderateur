@@ -264,7 +264,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   // ── setInterval auto-modération ────────────────────────────
 
   useEffect(() => {
-    if (!autoModerate || session.phase !== 'voting') return
+    if (!autoModerate || !['voting', 'pre_voting'].includes(session.phase)) return
     const intervalMs = intervalMinutes * 60 * 1000
     const id = setInterval(async () => {
       if (isAutoModeratingRef.current) return
@@ -299,7 +299,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   // ── setInterval auto-fusion périodique ────────────────────
 
   useEffect(() => {
-    if (!autoMergePeriodic || session.phase !== 'voting') return
+    if (!autoMergePeriodic || !['voting', 'pre_voting'].includes(session.phase)) return
     const intervalMs = mergeIntervalMinutes * 60 * 1000
     const id = setInterval(async () => {
       if (isAutoMergingRef.current) return
@@ -368,7 +368,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       >
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
           🤖 Modération IA
-          {(autoModerate || autoMergePeriodic) && session.phase === 'voting' && (
+          {(autoModerate || autoMergePeriodic) && ['voting', 'pre_voting'].includes(session.phase) && (
             <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
           )}
         </span>
@@ -700,9 +700,9 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                 </div>
               </div>
 
-              {session.phase !== 'voting' && (autoModerate || autoMergePeriodic) && (
+              {!['voting', 'pre_voting'].includes(session.phase) && (autoModerate || autoMergePeriodic) && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  L'automatisation est active mais la séance n'est pas en phase "vote".
+                  L'automatisation est active mais la séance n'est pas en phase "vote" ou "pré-vote".
                 </p>
               )}
             </div>

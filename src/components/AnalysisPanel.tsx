@@ -188,7 +188,7 @@ export default function AnalysisPanel({
 
   // ── setInterval auto-analyse ──────────────────────────────
   useEffect(() => {
-    if (!autoAnalyze || sessionPhase !== 'voting') return
+    if (!autoAnalyze || !['voting', 'pre_voting'].includes(sessionPhase ?? '')) return
     const intervalMs = autoAnalyzeInterval * 60 * 1000
     const id = setInterval(async () => {
       if (isAutoAnalyzingRef.current) return
@@ -344,7 +344,7 @@ export default function AnalysisPanel({
           <span className="ml-2 font-normal normal-case text-gray-400">
             ({badge()})
           </span>
-          {autoAnalyze && sessionPhase === 'voting' && (
+          {autoAnalyze && ['voting', 'pre_voting'].includes(sessionPhase ?? '') && (
             <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
           )}
         </span>
@@ -587,9 +587,9 @@ export default function AnalysisPanel({
               </div>
             </div>
 
-            {sessionPhase !== 'voting' && autoAnalyze && (
+            {!['voting', 'pre_voting'].includes(sessionPhase ?? '') && autoAnalyze && (
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                L'auto-analyse est active mais la séance n'est pas en phase "vote".
+                L'auto-analyse est active mais la séance n'est pas en phase "vote" ou "pré-vote".
               </p>
             )}
           </div>
