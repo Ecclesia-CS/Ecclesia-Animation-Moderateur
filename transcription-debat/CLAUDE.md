@@ -14,9 +14,10 @@ transcription-debat/
 │   ├── diarizer.py              Wrapper pyannote (live uniquement)
 │   ├── speaker_tracker.py       Suivi locuteurs cross-chunks (live uniquement)
 │   ├── anonymize_log.py         Script CLI — anonymise le CSV Ecclesia
-│   ├── transcribe_offline.py    Script CLI — transcription à posteriori
+│   ├── transcribe_offline.py    Script CLI — transcription à posteriori (appelle correct_transcript en fin)
+│   ├── correct_transcript.py    Script CLI — correction Gemini post-Whisper (aussi standalone)
 │   ├── requirements.txt
-│   ├── .env                     HF_TOKEN (requis pour pyannote)
+│   ├── .env                     HF_TOKEN (pyannote live) + GEMINI_API_KEY (correction offline)
 │   ├── transcripts/             Fichiers .txt et .json produits
 │   └── Débats/                  Dossier des débats archivés
 │       └── <Thème>/<CODE>/
@@ -164,11 +165,20 @@ Sans ce paramètre, le script suppose que l'audio commence au moment du premier 
 ### Fichiers produits
 
 ```
-backend/transcripts/<CODE>_<DATE>.txt    Lecture humaine
-backend/transcripts/<CODE>_<DATE>.json   Données structurées (start, end, speaker, text, refused)
+backend/transcripts/<CODE>_<DATE>.txt              Whisper brut — lecture humaine
+backend/transcripts/<CODE>_<DATE>.json             Whisper brut — données structurées
+backend/transcripts/<CODE>_<DATE>_corrected.txt    Corrigé par Gemini (si GEMINI_API_KEY présente)
+backend/transcripts/<CODE>_<DATE>_corrected.json   Corrigé par Gemini (si GEMINI_API_KEY présente)
 ```
 
-Format `.txt` :
+La correction Gemini est automatique à la fin de `transcribe_offline.py`. Si `GEMINI_API_KEY` est absente ou si Gemini échoue, les fichiers bruts sont produits normalement sans erreur.
+
+Pour relancer uniquement la correction sans retranscrire (ex : après avoir renseigné la clé API) :
+```
+.venv\Scripts\python correct_transcript.py "transcripts\<CODE>_<DATE>.json"
+```
+
+Format `.txt` (brut et corrigé) :
 ```
 [00:00:00] Interlocuteur 1: Donc en 1960, le ratio actifs sur retraités...
 [00:23:44] [REFUS]: [N'a pas souhaité être enregistré(e)]
@@ -211,9 +221,10 @@ L'export CSV produit par Ecclesia (`Outils Modo > Export CSV`) a deux sections :
 
 Tout tourne dans le venv `.venv` du dossier `backend/`. Toujours préfixer les commandes Python par `.venv\Scripts\python`.
 
-Fichier `.env` (backend/) requis pour le mode live :
+Fichier `.env` (backend/) :
 ```
-HF_TOKEN=hf_xxxxx    # Token Hugging Face pour pyannote (diarisation live)
+HF_TOKEN=hf_xxxxx       # Token Hugging Face pour pyannote (diarisation live)
+GEMINI_API_KEY=AIza...  # Clé API Gemini pour la correction offline (optionnelle)
 ```
 
 Premier lancement offline : téléchargement automatique de Whisper large-v3 (~3.1 Go) dans le cache Hugging Face. Les fois suivantes : démarrage immédiat.
@@ -226,4 +237,4 @@ Depuis `backend/` :
 ```
 python -m pytest tests/ -v
 ```
-18 tests (7 anonymize_log + 11 transcribe_offline). Le pytest tourne avec le Python système (pas le venv) car le venv n'a pas pytest installé.
+27 tests (7 anonymize_log + 12 transcribe_offline + 8 correct_transcript). Le pytest tourne avec le Python système (pas le venv) car le venv n'a pas pytest installé.
