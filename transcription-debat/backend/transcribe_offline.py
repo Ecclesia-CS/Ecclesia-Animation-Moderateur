@@ -168,6 +168,12 @@ def main() -> None:
 
     print(f"Transcript ecrit :\n  {base}.txt\n  {base}.json")
 
+    try:
+        from correct_transcript import correct
+        correct(segments, base)
+    except ImportError as exc:
+        print(f"Module correct_transcript indisponible : {exc}", file=__import__('sys').stderr)
+
 
 if __name__ == "__main__":
     main()

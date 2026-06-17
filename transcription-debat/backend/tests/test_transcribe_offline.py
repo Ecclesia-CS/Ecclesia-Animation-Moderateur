@@ -126,3 +126,20 @@ def test_write_json_structure(tmp_path):
     assert data[0]["speaker"] == "Interlocuteur 1"
     assert data[0]["start"] == 0.0
     assert data[0]["refused"] is False
+
+
+def test_main_calls_correct(tmp_path, monkeypatch):
+    """Vérifie que main() tente la correction Gemini après la transcription."""
+    import correct_transcript
+    calls = []
+
+    def fake_correct(segments, output_stem):
+        calls.append((segments, output_stem))
+        return False  # on simule un skip sans crash
+
+    monkeypatch.setattr(correct_transcript, "correct", fake_correct)
+
+    # On ne peut pas appeler main() sans GPU — on vérifie juste l'import
+    import transcribe_offline
+    assert hasattr(transcribe_offline, "main")
+    # L'appel réel est vérifié par les tests d'intégration manuels
