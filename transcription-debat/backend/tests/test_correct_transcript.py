@@ -97,10 +97,9 @@ def test_cli_standalone(tmp_path):
     import subprocess, sys
     json_path = tmp_path / "debat.json"
     json_path.write_text(json.dumps(SAMPLE_SEGMENTS), encoding="utf-8")
-    corrected_response = json.dumps(CORRECTED_SEGMENTS)
 
     # On ne peut pas mocker proprement en subprocess — on vérifie juste que le script
-    # ne crashe pas quand la clé est absente (retourne False silencieusement)
+    # exit 1 quand la clé est absente (retourne False)
     result = subprocess.run(
         [sys.executable, "correct_transcript.py", str(json_path)],
         capture_output=True,
@@ -108,4 +107,4 @@ def test_cli_standalone(tmp_path):
         cwd=str(Path(__file__).parent.parent),
         env={**__import__("os").environ, "GEMINI_API_KEY": ""},
     )
-    assert result.returncode == 0  # ne doit pas crasher
+    assert result.returncode == 1  # exit 1 quand correction échoue

@@ -104,7 +104,7 @@ def main() -> None:
     segments = json.loads(json_path.read_text(encoding="utf-8"))
     output_stem = json_path.with_suffix("")
     result = correct(segments, output_stem)
-    sys.exit(0 if result else 0)  # toujours 0 (ne pas crasher)
+    sys.exit(0 if result else 1)
 
 
 if __name__ == "__main__":
