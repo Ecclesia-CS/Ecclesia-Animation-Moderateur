@@ -129,17 +129,38 @@ def test_write_json_structure(tmp_path):
 
 
 def test_main_calls_correct(tmp_path, monkeypatch):
-    """Vérifie que main() tente la correction Gemini après la transcription."""
+    """Vérifie que main() appelle correct() avec les segments et le chemin de base."""
+    import sys
     import correct_transcript
-    calls = []
+    from unittest.mock import MagicMock, patch
+    import transcribe_offline
+
+    # Préparer un CSV log minimal
+    log_file = tmp_path / "log_anon.csv"
+    log_file.write_text(FIXTURE_LOG, encoding="utf-8")
+
+    # Mock WhisperModel — retourne un segment factice
+    fake_segment = MagicMock()
+    fake_segment.start = 0.0
+    fake_segment.end = 5.0
+    fake_segment.text = "Bonjour."
+
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = ([fake_segment], None)
+
+    correct_calls = []
 
     def fake_correct(segments, output_stem):
-        calls.append((segments, output_stem))
-        return False  # on simule un skip sans crash
+        correct_calls.append((segments, output_stem))
+        return True
 
     monkeypatch.setattr(correct_transcript, "correct", fake_correct)
 
-    # On ne peut pas appeler main() sans GPU — on vérifie juste l'import
-    import transcribe_offline
-    assert hasattr(transcribe_offline, "main")
-    # L'appel réel est vérifié par les tests d'intégration manuels
+    with patch("transcribe_offline.WhisperModel", return_value=mock_model), \
+         patch("sys.argv", ["transcribe_offline.py", "fake_audio.mp3", str(log_file), "--group", "TEST"]):
+        transcribe_offline.main()
+
+    assert len(correct_calls) == 1
+    segments, output_stem = correct_calls[0]
+    assert isinstance(segments, list)
+    assert "TEST" in str(output_stem)

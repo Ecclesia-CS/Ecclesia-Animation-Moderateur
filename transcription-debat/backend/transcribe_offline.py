@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+import sys
 import datetime
 from pathlib import Path
 
@@ -127,8 +128,8 @@ def main() -> None:
     args = parser.parse_args()
 
     if WhisperModel is None:
-        print("Erreur : faster-whisper n'est pas installe. Installer avec: pip install faster-whisper", file=__import__('sys').stderr)
-        __import__('sys').exit(1)
+        print("Erreur : faster-whisper n'est pas installe. Installer avec: pip install faster-whisper", file=sys.stderr)
+        sys.exit(1)
 
     # 1. Charger le log et calculer les offsets
     turns = load_anon_log(args.log)
@@ -172,7 +173,7 @@ def main() -> None:
         from correct_transcript import correct
         correct(segments, base)
     except ImportError as exc:
-        print(f"Module correct_transcript indisponible : {exc}", file=__import__('sys').stderr)
+        print(f"Module correct_transcript indisponible : {exc}", file=sys.stderr)
 
 
 if __name__ == "__main__":
