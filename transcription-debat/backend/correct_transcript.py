@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = "gemini-3.5-flash"
+BATCH_SIZE = 200  # segments par appel Gemini (limite tokens output)
 
 SYSTEM_PROMPT = """Tu es un correcteur de transcription de débat oral.
 Corrige uniquement les erreurs évidentes de transcription Whisper :
@@ -55,27 +56,42 @@ def _write_txt(segments: list[dict], path: Path) -> None:
             f.write(f"[{h:02d}:{m:02d}:{s:02d}] {seg['speaker']}: {seg['text']}\n")
 
 
+def _correct_batch(client, batch: list[dict]) -> list[dict] | None:
+    """Envoie un batch à Gemini et retourne les segments corrigés, ou None si échec."""
+    try:
+        prompt = SYSTEM_PROMPT + "\n\n" + json.dumps(batch, ensure_ascii=False)
+        response = client.models.generate_content(model=MODEL, contents=prompt)
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        corrected = json.loads(raw)
+    except Exception as exc:
+        print(f"Correction Gemini échouée (batch) : {exc}", file=sys.stderr)
+        return None
+    if not _validate(batch, corrected):
+        print("Correction Gemini rejetée : structure invalide dans un batch.", file=sys.stderr)
+        return None
+    return corrected
+
+
 def correct(segments: list[dict], output_stem: Path) -> bool:
     api_key = _load_api_key()
     if not api_key:
         print("GEMINI_API_KEY absent — correction Gemini skippée.", file=sys.stderr)
         return False
 
-    try:
-        client = _make_client(api_key)
-        prompt = SYSTEM_PROMPT + "\n\n" + json.dumps(segments, ensure_ascii=False)
-        response = client.models.generate_content(model=MODEL, contents=prompt)
-        raw = response.text.strip()
+    client = _make_client(api_key)
+    batches = [segments[i:i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
+    corrected_segments = []
 
-        # Nettoyer si Gemini enveloppe dans un bloc ```json ... ```
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    for i, batch in enumerate(batches, 1):
+        print(f"Correction Gemini batch {i}/{len(batches)} ({len(batch)} segments)...")
+        result = _correct_batch(client, batch)
+        if result is None:
+            return False
+        corrected_segments.extend(result)
 
-        corrected = json.loads(raw)
-    except Exception as exc:
-        print(f"Correction Gemini échouée : {exc}", file=sys.stderr)
-        return False
-
+    corrected = corrected_segments
     if not _validate(segments, corrected):
         print("Correction Gemini rejetée : structure invalide (segments manquants ou champs modifiés).", file=sys.stderr)
         return False
