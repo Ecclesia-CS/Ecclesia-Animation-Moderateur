@@ -7,10 +7,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODEL = "gemini-3.5-flash"
-BATCH_SIZE = 200  # segments par appel Gemini (limite tokens output)
+MODEL = "gemini-2.5-flash"
+BATCH_SIZE = 25  # segments par appel Gemini (limite tokens output)
 
-SYSTEM_PROMPT = """Tu es un correcteur de transcription de débat oral.
+BASE_SYSTEM_PROMPT = """Tu es un correcteur de transcription de débat oral.
 Corrige uniquement les erreurs évidentes de transcription Whisper :
 - mots mal reconnus (homophonie, confusion lexicale)
 - ponctuation manquante ou absurde
@@ -22,6 +22,18 @@ Les segments avec "refused": true : ne pas toucher, laisser tels quels.
 Les segments avec speaker "[?]" : corriger le texte normalement.
 
 Réponds UNIQUEMENT avec le JSON corrigé, même structure exacte, aucun commentaire."""
+
+
+def _build_system_prompt(topic: str | None, participants: list[str] | None) -> str:
+    if not topic and not participants:
+        return BASE_SYSTEM_PROMPT
+    context_lines = []
+    if topic:
+        context_lines.append(f"Thème du débat : {topic}.")
+    if participants:
+        context_lines.append(f"Participants : {', '.join(participants)}.")
+    context_lines.append("Corrige les noms propres en priorité en t'appuyant sur cette liste.")
+    return "\n".join(context_lines) + "\n\n" + BASE_SYSTEM_PROMPT
 
 
 def _load_api_key() -> str | None:
@@ -56,10 +68,10 @@ def _write_txt(segments: list[dict], path: Path) -> None:
             f.write(f"[{h:02d}:{m:02d}:{s:02d}] {seg['speaker']}: {seg['text']}\n")
 
 
-def _correct_batch(client, batch: list[dict]) -> list[dict] | None:
+def _correct_batch(client, system_prompt: str, batch: list[dict]) -> list[dict] | None:
     """Envoie un batch à Gemini et retourne les segments corrigés, ou None si échec."""
     try:
-        prompt = SYSTEM_PROMPT + "\n\n" + json.dumps(batch, ensure_ascii=False)
+        prompt = system_prompt + "\n\n" + json.dumps(batch, ensure_ascii=False)
         response = client.models.generate_content(model=MODEL, contents=prompt)
         raw = response.text.strip()
         if raw.startswith("```"):
@@ -74,19 +86,25 @@ def _correct_batch(client, batch: list[dict]) -> list[dict] | None:
     return corrected
 
 
-def correct(segments: list[dict], output_stem: Path) -> bool:
+def correct(
+    segments: list[dict],
+    output_stem: Path,
+    topic: str | None = None,
+    participants: list[str] | None = None,
+) -> bool:
     api_key = _load_api_key()
     if not api_key:
         print("GEMINI_API_KEY absent — correction Gemini skippée.", file=sys.stderr)
         return False
 
     client = _make_client(api_key)
+    system_prompt = _build_system_prompt(topic, participants)
     batches = [segments[i:i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     corrected_segments = []
 
     for i, batch in enumerate(batches, 1):
         print(f"Correction Gemini batch {i}/{len(batches)} ({len(batch)} segments)...")
-        result = _correct_batch(client, batch)
+        result = _correct_batch(client, system_prompt, batch)
         if result is None:
             return False
         corrected_segments.extend(result)

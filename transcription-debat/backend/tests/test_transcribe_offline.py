@@ -150,7 +150,7 @@ def test_main_calls_correct(tmp_path, monkeypatch):
 
     correct_calls = []
 
-    def fake_correct(segments, output_stem):
+    def fake_correct(segments, output_stem, topic=None, participants=None):
         correct_calls.append((segments, output_stem))
         return True
 
