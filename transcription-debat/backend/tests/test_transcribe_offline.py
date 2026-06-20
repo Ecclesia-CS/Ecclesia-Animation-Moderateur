@@ -164,3 +164,50 @@ def test_main_calls_correct(tmp_path, monkeypatch):
     segments, output_stem = correct_calls[0]
     assert isinstance(segments, list)
     assert "TEST" in str(output_stem)
+
+
+def test_main_deduplicates_before_correct(tmp_path, monkeypatch):
+    """Vérifie que deduplicate() est appelé avant correct() dans main()."""
+    import sys
+    import correct_transcript
+    import deduplicate as dedup_module
+    from unittest.mock import MagicMock, patch
+    import transcribe_offline
+
+    log_file = tmp_path / "log_anon.csv"
+    log_file.write_text(FIXTURE_LOG, encoding="utf-8")
+
+    fake_segment = MagicMock()
+    fake_segment.start = 0.0
+    fake_segment.end = 5.0
+    fake_segment.text = "Bonjour. Bonjour. Bonjour."  # sera dédupliqué
+
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = ([fake_segment], None)
+
+    dedup_calls = []
+    original_dedup = dedup_module.deduplicate
+
+    def tracking_dedup(segments):
+        result = original_dedup(segments)
+        dedup_calls.append(result)
+        return result
+
+    correct_calls = []
+
+    def fake_correct(segments, output_stem, topic=None, participants=None):
+        correct_calls.append(segments)
+        return True
+
+    monkeypatch.setattr(correct_transcript, "correct", fake_correct)
+    monkeypatch.setattr(dedup_module, "deduplicate", tracking_dedup)
+
+    with patch("transcribe_offline.WhisperModel", return_value=mock_model), \
+         patch("transcribe_offline.deduplicate", tracking_dedup), \
+         patch("sys.argv", ["transcribe_offline.py", "fake_audio.mp3", str(log_file), "--group", "TEST"]):
+        transcribe_offline.main()
+
+    assert len(dedup_calls) == 1
+    assert len(correct_calls) == 1
+    # Le texte passé à correct() est le résultat de deduplicate()
+    assert correct_calls[0] is dedup_calls[0]

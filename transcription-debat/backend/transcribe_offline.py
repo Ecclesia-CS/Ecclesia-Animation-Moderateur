@@ -5,6 +5,8 @@ import sys
 import datetime
 from pathlib import Path
 
+from deduplicate import deduplicate
+
 try:
     from faster_whisper import WhisperModel
 except ImportError:  # pragma: no cover — optionnel, non requis pour les tests
@@ -214,9 +216,10 @@ def main() -> None:
         print("Détection automatique de l'offset audio_start...")
         audio_start = detect_audio_start(whisper_segs_raw, turns)
     turns = compute_offsets(turns, audio_start)
-    # 4. Aligner, fusionner, ecrire
+    # 4. Aligner, fusionner, deduplicater, ecrire
     segments = assign_speakers(whisper_segs_raw, turns)
     segments = merge_same_speaker(segments)
+    segments = deduplicate(segments)
 
     base_dir = Path(__file__).parent / "transcripts"
     if args.topic:
