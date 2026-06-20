@@ -47,6 +47,14 @@ def test_noise_removes_four_identical_short_words():
     assert result.lower().count("non") == 1
 
 
+def test_noise_collapses_double_spaces_after_removal():
+    # "na na na na bonjour" → after token removal → "na  bonjour" (double space)
+    # The cleanup should collapse it to "na bonjour"
+    result = _dedup_noise("na na na na bonjour")
+    assert "  " not in result  # no double spaces
+    assert result.strip() != ""
+
+
 # --- _dedup_inter ---
 
 def test_inter_removes_exact_duplicate_consecutive_segments():
