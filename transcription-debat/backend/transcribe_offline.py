@@ -218,7 +218,11 @@ def main() -> None:
     segments = assign_speakers(whisper_segs_raw, turns)
     segments = merge_same_speaker(segments)
 
-    output_dir = Path(__file__).parent / "transcripts"
+    base_dir = Path(__file__).parent / "transcripts"
+    if args.topic:
+        output_dir = base_dir / args.topic / args.group
+    else:
+        output_dir = base_dir / args.group
     output_dir.mkdir(parents=True, exist_ok=True)
     date_str = datetime.date.today().isoformat()
     base = output_dir / f"{args.group}_{date_str}"
