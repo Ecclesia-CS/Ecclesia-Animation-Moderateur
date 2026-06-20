@@ -50,8 +50,8 @@ def _validate(original: list[dict], corrected: list[dict]) -> bool:
         return False
     for orig, corr in zip(original, corrected):
         if (
-            corr.get("start") != orig["start"]
-            or corr.get("end") != orig["end"]
+            abs(corr.get("start", -1) - orig["start"]) > 0.1
+            or abs(corr.get("end", -1) - orig["end"]) > 0.1
             or corr.get("speaker") != orig["speaker"]
             or corr.get("refused") != orig["refused"]
         ):
@@ -104,10 +104,17 @@ def correct(
 
     for i, batch in enumerate(batches, 1):
         print(f"Correction Gemini batch {i}/{len(batches)} ({len(batch)} segments)...")
-        result = _correct_batch(client, system_prompt, batch)
+        result = None
+        for attempt in range(1, 3):
+            result = _correct_batch(client, system_prompt, batch)
+            if result is not None:
+                break
+            print(f"  Retry {attempt}/2...")
         if result is None:
-            return False
-        corrected_segments.extend(result)
+            print(f"Batch {i} abandonné après 2 tentatives — segments bruts conservés.", file=sys.stderr)
+            corrected_segments.extend(batch)
+        else:
+            corrected_segments.extend(result)
 
     corrected = corrected_segments
     if not _validate(segments, corrected):

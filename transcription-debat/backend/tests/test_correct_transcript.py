@@ -54,33 +54,40 @@ def test_correct_txt_format(tmp_path):
     assert "[REFUS]" in txt
 
 
-def test_correct_returns_false_on_invalid_json(tmp_path):
+def test_correct_falls_back_to_raw_on_invalid_json(tmp_path):
+    """Si Gemini retourne du JSON invalide, le batch brut est conservé et le fichier est quand même écrit."""
     from correct_transcript import correct
     stem = tmp_path / "debat"
     with patch("correct_transcript._make_client", return_value=_mock_client("ce n'est pas du JSON")):
         result = correct(SAMPLE_SEGMENTS, stem)
-    assert result is False
-    assert not (tmp_path / "debat_corrected.json").exists()
+    assert result is True
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    assert data[0]["text"] == SAMPLE_SEGMENTS[0]["text"]  # brut conservé
 
 
-def test_correct_returns_false_on_wrong_segment_count(tmp_path):
+def test_correct_falls_back_to_raw_on_wrong_segment_count(tmp_path):
+    """Si Gemini retourne un nombre incorrect de segments, le batch brut est conservé."""
     from correct_transcript import correct
     stem = tmp_path / "debat"
     too_few = CORRECTED_SEGMENTS[:2]
     with patch("correct_transcript._make_client", return_value=_mock_client(json.dumps(too_few))):
         result = correct(SAMPLE_SEGMENTS, stem)
-    assert result is False
-    assert not (tmp_path / "debat_corrected.json").exists()
+    assert result is True
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    assert data[0]["text"] == SAMPLE_SEGMENTS[0]["text"]
 
 
-def test_correct_returns_false_on_modified_structural_fields(tmp_path):
+def test_correct_rejects_grossly_modified_timestamps(tmp_path):
+    """Un timestamp modifié de plus de 0.1s est rejeté et le batch brut est conservé."""
     from correct_transcript import correct
     stem = tmp_path / "debat"
     tampered = json.loads(json.dumps(CORRECTED_SEGMENTS))
-    tampered[0]["start"] = 99.0  # start modifié
+    tampered[0]["start"] = 99.0  # décalage de 99s — clairement invalide
     with patch("correct_transcript._make_client", return_value=_mock_client(json.dumps(tampered))):
         result = correct(SAMPLE_SEGMENTS, stem)
-    assert result is False
+    assert result is True
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    assert data[0]["text"] == SAMPLE_SEGMENTS[0]["text"]  # brut conservé car batch rejeté
 
 
 def test_correct_returns_false_when_api_key_missing(tmp_path, monkeypatch):
