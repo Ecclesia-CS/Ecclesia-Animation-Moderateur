@@ -9,19 +9,40 @@ load_dotenv()
 
 MODEL = "gemini-2.5-flash"
 BATCH_SIZE = 25  # segments par appel Gemini (limite tokens output)
+CONTEXT_WINDOW = 3  # segments de contexte avant/après chaque batch
 
 BASE_SYSTEM_PROMPT = """Tu es un correcteur de transcription de débat oral.
-Corrige uniquement les erreurs évidentes de transcription Whisper :
+
+Format d'entrée : JSON avec trois clés :
+- "context_avant" : segments précédents (lecture seule, ne pas retourner)
+- "segments" : segments à corriger
+- "context_apres" : segments suivants (lecture seule, ne pas retourner)
+
+Réponds UNIQUEMENT avec la liste JSON des "segments" corrigés — pas d'objet englobant, juste le tableau.
+
+Corrections autorisées :
 - mots mal reconnus (homophonie, confusion lexicale)
 - ponctuation manquante ou absurde
 - noms propres déformés
 
-Ne reformule PAS. Ne supprime PAS les "euh", hésitations, répétitions.
-Ne modifie PAS le sens ni le style de chaque interlocuteur.
-Les segments avec "refused": true : ne pas toucher, laisser tels quels.
-Les segments avec speaker "[?]" : corriger le texte normalement.
+Attribution [?] : si context_avant ou context_apres permet d'identifier le locuteur
+avec confiance (interpellation directe, continuité de phrase, réponse explicite),
+remplace speaker "[?]" par le label approprié parmi les participants connus.
+Si incertain, laisse "[?]".
 
-Réponds UNIQUEMENT avec le JSON corrigé, même structure exacte, aucun commentaire."""
+Correction sémantique : si un segment contient une assertion qui contredit directement
+une affirmation du même segment (même phrase avec sujet substitué), corrige la version
+manifestement erronée en t'appuyant sur la logique du propos.
+
+Répétitions résiduelles : si des phrases quasi-identiques subsistent dans un segment,
+n'en garde qu'une.
+
+Ne reformule PAS. Ne supprime PAS les "euh", hésitations, répétitions naturelles.
+Ne modifie PAS le sens ni le style.
+Les segments "refused": true : ne pas toucher.
+Les segments speaker "[?]" : corriger le texte normalement ET tenter l'attribution.
+
+Aucun commentaire, aucune clé supplémentaire."""
 
 
 def _build_system_prompt(topic: str | None, participants: list[str] | None) -> str:
@@ -49,10 +70,14 @@ def _validate(original: list[dict], corrected: list[dict]) -> bool:
     if len(corrected) != len(original):
         return False
     for orig, corr in zip(original, corrected):
+        speaker_ok = (
+            corr.get("speaker") == orig["speaker"]
+            or orig["speaker"] == "[?]"
+        )
         if (
             abs(corr.get("start", -1) - orig["start"]) > 0.1
             or abs(corr.get("end", -1) - orig["end"]) > 0.1
-            or corr.get("speaker") != orig["speaker"]
+            or not speaker_ok
             or corr.get("refused") != orig["refused"]
         ):
             return False
@@ -68,15 +93,33 @@ def _write_txt(segments: list[dict], path: Path) -> None:
             f.write(f"[{h:02d}:{m:02d}:{s:02d}] {seg['speaker']}: {seg['text']}\n")
 
 
-def _correct_batch(client, system_prompt: str, batch: list[dict]) -> list[dict] | None:
-    """Envoie un batch à Gemini et retourne les segments corrigés, ou None si échec."""
+def _correct_batch(
+    client,
+    system_prompt: str,
+    batch: list[dict],
+    context_before: list[dict] | None = None,
+    context_after: list[dict] | None = None,
+) -> list[dict] | None:
+    """Envoie un batch à Gemini avec contexte et retourne les segments corrigés, ou None si échec."""
+    payload = {
+        "context_avant": context_before or [],
+        "segments": batch,
+        "context_apres": context_after or [],
+    }
     try:
-        prompt = system_prompt + "\n\n" + json.dumps(batch, ensure_ascii=False)
+        prompt = system_prompt + "\n\n" + json.dumps(payload, ensure_ascii=False)
         response = client.models.generate_content(model=MODEL, contents=prompt)
         raw = response.text.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        corrected = json.loads(raw)
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict) and "segments" in parsed:
+            corrected = parsed["segments"]
+        elif isinstance(parsed, list):
+            corrected = parsed
+        else:
+            print("Correction Gemini : format de réponse inattendu.", file=sys.stderr)
+            return None
         for orig, corr in zip(batch, corrected):
             if "refused" not in corr:
                 corr["refused"] = orig["refused"]
@@ -95,6 +138,9 @@ def correct(
     topic: str | None = None,
     participants: list[str] | None = None,
 ) -> bool:
+    from deduplicate import deduplicate as _dedup
+    segments = _dedup(segments)
+
     api_key = _load_api_key()
     if not api_key:
         print("GEMINI_API_KEY absent — correction Gemini skippée.", file=sys.stderr)
@@ -105,16 +151,18 @@ def correct(
     batches = [segments[i:i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     corrected_segments = []
 
-    for i, batch in enumerate(batches, 1):
-        print(f"Correction Gemini batch {i}/{len(batches)} ({len(batch)} segments)...")
+    for i, batch in enumerate(batches):
+        context_before = corrected_segments[-CONTEXT_WINDOW:] if corrected_segments else []
+        context_after = batches[i + 1][:CONTEXT_WINDOW] if i + 1 < len(batches) else []
+        print(f"Correction Gemini batch {i + 1}/{len(batches)} ({len(batch)} segments)...")
         result = None
         for attempt in range(1, 3):
-            result = _correct_batch(client, system_prompt, batch)
+            result = _correct_batch(client, system_prompt, batch, context_before, context_after)
             if result is not None:
                 break
             print(f"  Retry {attempt}/2...")
         if result is None:
-            print(f"Batch {i} abandonné après 2 tentatives — segments bruts conservés.", file=sys.stderr)
+            print(f"Batch {i + 1} abandonné après 2 tentatives — segments bruts conservés.", file=sys.stderr)
             corrected_segments.extend(batch)
         else:
             corrected_segments.extend(result)

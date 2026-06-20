@@ -100,6 +100,34 @@ def test_correct_returns_false_when_api_key_missing(tmp_path, monkeypatch):
     assert not (tmp_path / "debat_corrected.json").exists()
 
 
+def test_validate_allows_speaker_attribution_for_unknown():
+    """_validate accepte qu'un segment [?] reçoive un speaker identifié."""
+    from correct_transcript import _validate
+    original = [{"start": 0.0, "end": 5.0, "speaker": "[?]", "text": "Bonjour", "refused": False}]
+    corrected = [{"start": 0.0, "end": 5.0, "speaker": "Interlocuteur 1", "text": "Bonjour", "refused": False}]
+    assert _validate(original, corrected) is True
+
+
+def test_validate_rejects_speaker_change_for_known_speaker():
+    """_validate rejette le changement de speaker d'un segment déjà attribué."""
+    from correct_transcript import _validate
+    original = [{"start": 0.0, "end": 5.0, "speaker": "Interlocuteur 1", "text": "Bonjour", "refused": False}]
+    corrected = [{"start": 0.0, "end": 5.0, "speaker": "Interlocuteur 2", "text": "Bonjour", "refused": False}]
+    assert _validate(original, corrected) is False
+
+
+def test_correct_batch_handles_segments_key_response(tmp_path):
+    """_correct_batch accepte une réponse Gemini { segments: [...] } en plus d'une liste brute."""
+    from correct_transcript import correct
+    stem = tmp_path / "debat"
+    wrapped = {"segments": CORRECTED_SEGMENTS}
+    with patch("correct_transcript._make_client", return_value=_mock_client(json.dumps(wrapped))):
+        result = correct(SAMPLE_SEGMENTS, stem)
+    assert result is True
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    assert data[0]["text"] == CORRECTED_SEGMENTS[0]["text"]
+
+
 def test_cli_standalone(tmp_path):
     import subprocess, sys
     json_path = tmp_path / "debat.json"
