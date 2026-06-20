@@ -65,13 +65,15 @@ def test_inter_keeps_distinct_segments():
 
 
 def test_inter_keeps_longer_text_when_merging():
+    # Whisper sometimes outputs the same question twice with minor extension
+    # Verified similarity: 0.9451 (well above 0.90 threshold)
     segs = [
-        _seg("Bonjour à tous.", start=0.0, end=2.0),
-        _seg("Bonjour à tous, merci d'être là.", start=2.0, end=4.0),
+        _seg("Est-ce que c'est viable sur le long terme ?", start=0.0, end=2.0),
+        _seg("Est-ce que c'est viable sur le long terme ? Oui.", start=2.0, end=4.0),
     ]
     result = _dedup_inter(segs)
     assert len(result) == 1
-    assert "merci" in result[0]["text"]
+    assert "Oui" in result[0]["text"]
     assert result[0]["end"] == 4.0
 
 

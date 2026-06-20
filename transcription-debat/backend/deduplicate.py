@@ -2,7 +2,7 @@ import re
 from difflib import SequenceMatcher
 
 INTRA_THRESHOLD = 0.85
-INTER_THRESHOLD = 0.60
+INTER_THRESHOLD = 0.90
 NOISE_MIN_REPS = 3
 NOISE_MAX_TOKEN_LEN = 5
 
