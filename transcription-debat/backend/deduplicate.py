@@ -30,7 +30,7 @@ def _dedup_intra(text: str) -> str:
 
 def _dedup_noise(text: str) -> str:
     """Supprime les tokens courts répétés >= 3 fois (ex : 'ta ta ta ta ta')."""
-    pattern = rf'\b(\S{{1,{NOISE_MAX_TOKEN_LEN}}}[.!?]?)\s+(?:\1\s+){{{NOISE_MIN_REPS - 1},}}\1?'
+    pattern = rf'\b(\S{{1,{NOISE_MAX_TOKEN_LEN}}}[.!?]?)(?:\s+\1){{{NOISE_MIN_REPS - 1},}}'
     cleaned = re.sub(pattern, r'\1', text, flags=re.IGNORECASE)
     return re.sub(r'\s{2,}', ' ', cleaned).strip()
 

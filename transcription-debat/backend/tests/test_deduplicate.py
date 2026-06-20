@@ -55,6 +55,18 @@ def test_noise_collapses_double_spaces_after_removal():
     assert result.strip() != ""
 
 
+def test_noise_collapses_exactly_three_reps():
+    # NOISE_MIN_REPS=3: "ta ta ta" must be collapsed
+    result = _dedup_noise("ta ta ta")
+    assert result == "ta"
+
+
+def test_noise_keeps_two_reps():
+    # fewer than NOISE_MIN_REPS: "ta ta" must not be touched
+    result = _dedup_noise("ta ta")
+    assert result == "ta ta"
+
+
 # --- _dedup_inter ---
 
 def test_inter_removes_exact_duplicate_consecutive_segments():
