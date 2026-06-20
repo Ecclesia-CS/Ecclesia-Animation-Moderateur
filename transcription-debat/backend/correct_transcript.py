@@ -77,6 +77,9 @@ def _correct_batch(client, system_prompt: str, batch: list[dict]) -> list[dict] 
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         corrected = json.loads(raw)
+        for orig, corr in zip(batch, corrected):
+            if "refused" not in corr:
+                corr["refused"] = orig["refused"]
     except Exception as exc:
         print(f"Correction Gemini échouée (batch) : {exc}", file=sys.stderr)
         return None
