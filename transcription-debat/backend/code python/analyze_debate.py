@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from correct_transcript import _load_api_key, _make_client
 
 load_dotenv()
 
@@ -20,6 +21,42 @@ MAX_KF_AMP = 4.0
 MAX_KF_GAP = 10.0
 
 _INTERLOCUTEUR_RE = re.compile(r"^Interlocuteur\s+(\d+)$")
+
+
+def _parse_json(raw: str):
+    """Strip JSON fences, parse, return None on error."""
+    try:
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        return json.loads(raw)
+    except (json.JSONDecodeError, IndexError, AttributeError):
+        return None
+
+
+def _call_validated(client, prompt: str, validator, retries: int = 2):
+    """Call Gemini, parse response, validate, retry on failure."""
+    for attempt in range(retries):
+        try:
+            response = client.models.generate_content(model=MODEL, contents=prompt)
+            parsed = _parse_json(response.text)
+            if parsed is not None and validator(parsed):
+                return parsed
+        except Exception as exc:
+            print(f"  Appel Gemini échoué (tentative {attempt + 1}/{retries}) : {exc}", file=sys.stderr)
+            continue
+        print(f"  Réponse Gemini rejetée (tentative {attempt + 1}/{retries}).", file=sys.stderr)
+    return None
+
+
+def _segments_to_text(segments: list[dict]) -> str:
+    """Compact transcript format: '[mm:ss] speaker: text' per line."""
+    lines = []
+    for s in segments:
+        m, sec = int(s["start"] // 60), int(s["start"] % 60)
+        prefix = "[non enregistré] " if s.get("refused") else ""
+        lines.append(f"[{m:02d}:{sec:02d}] {s['speaker']}: {prefix}{s['text']}")
+    return "\n".join(lines)
 
 
 def _speaker_id(speaker: str) -> str | None:

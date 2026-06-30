@@ -157,3 +157,39 @@ def test_validate_kf_rejects_malformed_keyframe():
     from analyze_debate import validate_kf
     assert validate_kf([[8]], entry=8, final_xy=[0, 0]) is False
     assert validate_kf([[8, 0, 0], [40, 7]], entry=8, final_xy=[0, 0]) is False
+
+
+# Task 3: Helper Gemini tests
+
+def test_parse_json_strips_fences():
+    from analyze_debate import _parse_json
+    assert _parse_json('```json\n{"a": 1}\n```') == {"a": 1}
+    assert _parse_json('{"b": 2}') == {"b": 2}
+    assert _parse_json('pas du json') is None
+
+
+def test_call_validated_retries_then_succeeds():
+    from analyze_debate import _call_validated
+    client = MagicMock()
+    bad = MagicMock(); bad.text = "oops"
+    good = MagicMock(); good.text = '{"ok": true}'
+    client.models.generate_content.side_effect = [bad, good]
+    result = _call_validated(client, "prompt", validator=lambda o: o.get("ok") is True)
+    assert result == {"ok": True}
+    assert client.models.generate_content.call_count == 2
+
+
+def test_call_validated_gives_up_after_retries():
+    from analyze_debate import _call_validated
+    client = MagicMock()
+    resp = MagicMock(); resp.text = '{"ok": false}'
+    client.models.generate_content.return_value = resp
+    result = _call_validated(client, "prompt", validator=lambda o: o.get("ok") is True, retries=2)
+    assert result is None
+
+
+def test_segments_to_text():
+    from analyze_debate import _segments_to_text
+    txt = _segments_to_text(SEGMENTS[:2])
+    assert "[00:00] Modérateur:" in txt
+    assert "[01:00] Interlocuteur 1:" in txt
