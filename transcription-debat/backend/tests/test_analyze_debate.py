@@ -237,3 +237,36 @@ def test_run_frame_rejects_invented_voice():
     resp = MagicMock(); resp.text = bad
     client.models.generate_content.return_value = resp
     assert run_frame(client, "transcript", voices, {"topic": "X"}) is None
+
+
+# Task 5: Passe 2 — Events + tension
+
+TIMELINE_RESPONSE = json.dumps({
+    "events": [
+        {"t": 1, "type": "cadrage", "magnitude": 2, "title": "Doxa", "desc": "Énoncé initial."},
+        {"t": 16, "type": "dissensus", "magnitude": 3, "title": "Conflit", "desc": "Liberté vs égalité."},
+    ],
+    "tension": [[0, 40], [16, 75], [10, 50]],  # volontairement non trié pour tester le tri
+})
+
+
+def test_run_timeline_ok_and_sorts_tension():
+    from analyze_debate import run_timeline
+    client = MagicMock()
+    resp = MagicMock(); resp.text = TIMELINE_RESPONSE
+    client.models.generate_content.return_value = resp
+    out = run_timeline(client, "transcript", {"totalDurationMinutes": 85})
+    assert len(out["events"]) == 2
+    # la tension doit être triée par t croissant avant validation/sortie
+    ts = [p[0] for p in out["tension"]]
+    assert ts == sorted(ts)
+
+
+def test_run_timeline_rejects_bad_event_type():
+    from analyze_debate import run_timeline
+    bad = json.dumps({"events": [{"t": 1, "type": "zzz", "magnitude": 1, "title": "T", "desc": "D"}],
+                      "tension": [[0, 40], [85, 30]]})
+    client = MagicMock()
+    resp = MagicMock(); resp.text = bad
+    client.models.generate_content.return_value = resp
+    assert run_timeline(client, "transcript", {"totalDurationMinutes": 85}) is None

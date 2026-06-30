@@ -294,3 +294,44 @@ def run_frame(client, transcript: str, voices: list[dict], meta: dict) -> dict |
     voice_ids = {v["id"] for v in voices}
     prompt = build_frame_prompt(transcript, voices, meta)
     return _call_validated(client, prompt, lambda o: validate_frame(o, voice_ids))
+
+
+# Task 5: Passe 2 — Events + tension
+
+def build_timeline_prompt(transcript: str, meta: dict) -> str:
+    duration = meta.get("totalDurationMinutes", 0)
+    return f"""Tu analyses la dynamique temporelle d'un débat oral de {duration} minutes sur « {meta.get("topic", "")} ».
+
+Produis deux choses :
+
+1. "events" : les points de bascule du débat, horodatés. Pour chacun :
+   - t : minute (entre 0 et {duration})
+   - type : un parmi "cadrage", "technique", "dissensus", "consensus", "concession", "meta"
+   - magnitude : 1, 2 ou 3 (importance)
+   - title : titre court
+   - desc : une phrase de description
+   Vise 8 à 15 events bien répartis.
+
+2. "tension" : une courbe d'intensité conflictuelle, liste de [minute, valeur] avec valeur de 0
+   (apaisement/consensus) à 100 (dissensus fort), échantillonnée régulièrement, t croissant,
+   du début (0) à la fin ({duration}).
+
+Réponds UNIQUEMENT avec ce JSON :
+{{"events": [{{"t": 0, "type": "...", "magnitude": 1, "title": "...", "desc": "..."}}],
+  "tension": [[0, 40], [{duration}, 30]]}}
+
+Transcription :
+{transcript}"""
+
+
+def run_timeline(client, transcript: str, meta: dict) -> dict | None:
+    duration = meta.get("totalDurationMinutes", 0) or 1e9
+
+    def _validate(o):
+        if not isinstance(o, dict) or "events" not in o or "tension" not in o:
+            return False
+        o["tension"] = sorted(o["tension"], key=lambda p: p[0])
+        return validate_events(o["events"], duration) and validate_tension(o["tension"], duration)
+
+    prompt = build_timeline_prompt(transcript, meta)
+    return _call_validated(client, prompt, _validate)
