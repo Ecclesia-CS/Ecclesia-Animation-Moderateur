@@ -270,3 +270,50 @@ def test_run_timeline_rejects_bad_event_type():
     resp = MagicMock(); resp.text = bad
     client.models.generate_content.return_value = resp
     assert run_timeline(client, "transcript", {"totalDurationMinutes": 85}) is None
+
+
+# Task 6: Passe 3 — Trajectoires (kf)
+
+def _traj_setup():
+    from analyze_debate import compute_voices
+    voices = compute_voices(SEGMENTS)
+    personas_interp = {
+        "i1": {"camp": "Libéral", "note": "x", "pos": [-8, 6]},
+        "i2": {"camp": "Solidariste", "note": "y", "pos": [7, 1.5]},
+        "anim": {"camp": "Méta", "note": "z", "pos": [0, 4]},
+    }
+    events = [{"t": 16, "type": "dissensus", "magnitude": 2, "title": "T", "desc": "D"}]
+    return voices, personas_interp, events
+
+
+def test_run_trajectories_keeps_valid_kf():
+    from analyze_debate import run_trajectories
+    voices, personas_interp, events = _traj_setup()
+    # i1 entre à 1.0 min, finale [-8,6] ; i2 entre à 3.0, finale [7,1.5] ; anim entre à 0.0, finale [0,4]
+    response = json.dumps({
+        "i1":   [[1.0, -8, 6], [5.0, -7, 6], [10.0, -8, 6]],
+        "i2":   [[3.0, 7, 3], [5.0, 7, 2], [10.0, 7, 1.5]],
+        "anim": [[0.0, 0, 4], [10.0, 0, 4]],
+    })
+    client = MagicMock()
+    resp = MagicMock(); resp.text = response
+    client.models.generate_content.return_value = resp
+    out = run_trajectories(client, "transcript", voices, personas_interp, events, {"totalDurationMinutes": 10})
+    assert set(out.keys()) == {"i1", "i2", "anim"}
+    # les kf sont triées par t et finissent à la position finale
+    assert out["i1"][0][0] <= out["i1"][-1][0]
+
+
+def test_run_trajectories_omits_bad_kf():
+    from analyze_debate import run_trajectories
+    voices, personas_interp, events = _traj_setup()
+    response = json.dumps({
+        "i1":   [[1.0, -8, 6], [3, 8, -8], [10.0, -8, 6]],  # saut énorme → rejeté
+        "anim": [[0.0, 0, 4], [10.0, 0, 4]],                # ok
+    })
+    client = MagicMock()
+    resp = MagicMock(); resp.text = response
+    client.models.generate_content.return_value = resp
+    out = run_trajectories(client, "transcript", voices, personas_interp, events, {"totalDurationMinutes": 10})
+    assert "i1" not in out
+    assert "anim" in out

@@ -335,3 +335,60 @@ def run_timeline(client, transcript: str, meta: dict) -> dict | None:
 
     prompt = build_timeline_prompt(transcript, meta)
     return _call_validated(client, prompt, _validate)
+
+
+# Task 6: Passe 3 — Trajectoires (kf)
+
+def build_traj_prompt(transcript, voices, personas_interp, events, meta) -> str:
+    duration = meta.get("totalDurationMinutes", 0)
+    voice_lines = "\n".join(
+        f'- {v["id"]} : entre à {v["entry"]} min, position FINALE = {personas_interp[v["id"]]["pos"]}'
+        for v in voices if v["id"] in personas_interp
+    )
+    event_lines = "\n".join(f'- {e["t"]} min : {e["title"]} ({e["type"]})' for e in events)
+    return f"""Tu traces la trajectoire d'opinion de chaque voix au fil d'un débat de {duration} minutes.
+
+IMPORTANT — c'est un débat de CRISTALLISATION : les positions de fond bougent PEU.
+Ne fabrique PAS de grands mouvements. Rends lisibles de PETITS glissements ancrés sur les
+moments de bascule. Un déplacement de plus de {MAX_KF_AMP} points entre deux instants proches
+sera rejeté.
+
+Voix (commence chaque trajectoire à la minute d'entrée, termine EXACTEMENT à la position finale donnée) :
+{voice_lines}
+
+Moments de bascule à utiliser comme ancrages temporels :
+{event_lines}
+
+Pour chaque voix, donne une liste de keyframes [minute, x, y], minute croissante, de l'entrée
+jusqu'à {duration}, x et y entre -10 et +10. Le premier point est à la minute d'entrée, le
+dernier est la position finale.
+
+Réponds UNIQUEMENT avec ce JSON : {{ "<id>": [[minute, x, y], ...] }}
+
+Transcription :
+{transcript}"""
+
+
+def run_trajectories(client, transcript, voices, personas_interp, events, meta) -> dict | None:
+    entries = {v["id"]: v["entry"] for v in voices}
+    finals = {vid: p["pos"] for vid, p in personas_interp.items()}
+
+    def _validate(o):
+        # On accepte tant que c'est un dict ; le filtrage par voix se fait après.
+        return isinstance(o, dict) and len(o) > 0
+
+    prompt = build_traj_prompt(transcript, voices, personas_interp, events, meta)
+    raw = _call_validated(client, prompt, _validate)
+    if raw is None:
+        return None
+    kept = {}
+    for vid, kf in raw.items():
+        if vid not in entries or vid not in finals:
+            continue
+        try:
+            kf = sorted(kf, key=lambda p: p[0])
+        except (TypeError, IndexError):
+            continue
+        if validate_kf(kf, entries[vid], finals[vid]):
+            kept[vid] = kf
+    return kept or None
