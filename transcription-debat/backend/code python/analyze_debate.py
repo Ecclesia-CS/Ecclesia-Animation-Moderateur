@@ -392,3 +392,35 @@ def run_trajectories(client, transcript, voices, personas_interp, events, meta) 
         if validate_kf(kf, entries[vid], finals[vid]):
             kept[vid] = kf
     return kept or None
+
+
+# Task 7: Passe 4 — Réseau conceptuel
+
+def build_concepts_prompt(transcript, schools, voices, meta) -> str:
+    school_lines = "\n".join(f'- {s["id"]} = {s["label"]}' for s in schools)
+    return f"""Tu cartographies la structure conceptuelle d'un débat sur « {meta.get("topic", "")} ».
+
+Camps/écoles disponibles (utilise EXACTEMENT ces id, aucun autre) :
+{school_lines}
+
+Produis un objet "concepts" avec :
+- "regular" : liste de concepts simples mobilisés (juste des noms).
+- "fauxConsensus" : les mots que tout le monde emploie mais avec des sens INCOMPATIBLES.
+  Pour chacun : concept, senseA, campA (un id d'école), senseB, campB (un id d'école).
+- "gordian" : les blocages irréconciliables. Pour chacun : concept, poleA, campA, poleB, campB, why.
+- "consensus" : points stabilisés. Pour chacun : label, t (minute), scope (texte court).
+- "concessions" : reculs datés. Pour chacun : by (un id d'école OU de voix), t (minute),
+  label, targetConcept (DOIT être un concept cité plus haut dans regular/fauxConsensus/gordian).
+
+Réponds UNIQUEMENT avec ce JSON :
+{{"regular": [], "fauxConsensus": [], "gordian": [], "consensus": [], "concessions": []}}
+
+Transcription :
+{transcript}"""
+
+
+def run_concepts(client, transcript, schools, voices, meta) -> dict | None:
+    school_ids = {s["id"] for s in schools}
+    voice_ids = {v["id"] for v in voices}
+    prompt = build_concepts_prompt(transcript, schools, voices, meta)
+    return _call_validated(client, prompt, lambda o: validate_concepts(o, school_ids, voice_ids))

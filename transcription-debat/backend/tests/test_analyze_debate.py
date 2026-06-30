@@ -317,3 +317,41 @@ def test_run_trajectories_omits_bad_kf():
     out = run_trajectories(client, "transcript", voices, personas_interp, events, {"totalDurationMinutes": 10})
     assert "i1" not in out
     assert "anim" in out
+
+
+# Task 7: Passe 4 — Réseau conceptuel
+
+CONCEPTS_RESPONSE = json.dumps({
+    "regular": ["Mérite", "Démographie"],
+    "fauxConsensus": [{"concept": "Liberté", "senseA": "négative", "campA": "lib", "senseB": "positive", "campB": "sol"}],
+    "gordian": [{"concept": "Redistribution", "poleA": "vol", "campA": "lib", "poleB": "assurance", "campB": "sol", "why": "définition"}],
+    "consensus": [{"label": "Choc démographique", "t": 6, "scope": "tous"}],
+    "concessions": [{"by": "lib", "t": 23, "label": "minimum privé", "targetConcept": "Liberté"}],
+})
+
+SCHOOLS_FIXT = [
+    {"id": "lib", "label": "Libéraux", "cx": -8, "cy": 6, "rx": 2, "ry": 2, "members": ["i1"]},
+    {"id": "sol", "label": "Solidaristes", "cx": 7, "cy": 2, "rx": 2, "ry": 2, "members": ["i2"]},
+]
+
+
+def test_run_concepts_ok():
+    from analyze_debate import run_concepts, compute_voices
+    voices = compute_voices(SEGMENTS)
+    client = MagicMock()
+    resp = MagicMock(); resp.text = CONCEPTS_RESPONSE
+    client.models.generate_content.return_value = resp
+    out = run_concepts(client, "transcript", SCHOOLS_FIXT, voices, {"topic": "X"})
+    assert out["fauxConsensus"][0]["campA"] == "lib"
+
+
+def test_run_concepts_rejects_unknown_camp():
+    from analyze_debate import run_concepts, compute_voices
+    voices = compute_voices(SEGMENTS)
+    bad = json.dumps({"regular": [], "fauxConsensus": [
+        {"concept": "X", "senseA": "a", "campA": "ZZZ", "senseB": "b", "campB": "sol"}],
+        "gordian": [], "consensus": [], "concessions": []})
+    client = MagicMock()
+    resp = MagicMock(); resp.text = bad
+    client.models.generate_content.return_value = resp
+    assert run_concepts(client, "transcript", SCHOOLS_FIXT, voices, {"topic": "X"}) is None
