@@ -208,7 +208,10 @@ FRAME_RESPONSE = json.dumps({
         "i2": {"camp": "Solidariste", "note": "Égalité", "pos": [7, 2]},
         "anim": {"camp": "Méta", "note": "Protocole", "pos": [0, 4]},
     },
-    "schools": [{"id": "lib", "label": "Libéraux", "cx": -8, "cy": 6, "rx": 2, "ry": 2, "members": ["i1"]}],
+    "schools": [
+        {"id": "lib", "label": "Libéraux", "cx": -8, "cy": 6, "rx": 2, "ry": 2, "members": ["i1"]},
+        {"id": "sol", "label": "Solidaristes", "cx": 7, "cy": 2, "rx": 2, "ry": 2, "members": ["i2"]},
+    ],
 })
 
 
@@ -244,9 +247,9 @@ def test_run_frame_rejects_invented_voice():
 TIMELINE_RESPONSE = json.dumps({
     "events": [
         {"t": 1, "type": "cadrage", "magnitude": 2, "title": "Doxa", "desc": "Énoncé initial."},
-        {"t": 16, "type": "dissensus", "magnitude": 3, "title": "Conflit", "desc": "Liberté vs égalité."},
+        {"t": 6, "type": "dissensus", "magnitude": 3, "title": "Conflit", "desc": "Liberté vs égalité."},
     ],
-    "tension": [[0, 40], [16, 75], [10, 50]],  # volontairement non trié pour tester le tri
+    "tension": [[0, 40], [10, 50], [6, 75]],  # volontairement non trié pour tester le tri
 })
 
 
@@ -408,3 +411,57 @@ def test_viz_template_exists_and_generalized():
     assert 'id="hdr-title"' in html
     assert "__VIZ_PRESENT" in html
     assert "Débat sur les retraites" not in html  # plus de titre en dur
+
+
+# Task 10: Orchestration analyze() + CLI + écriture viz/
+
+def test_analyze_end_to_end_writes_viz(tmp_path):
+    from analyze_debate import analyze
+    debate_dir = tmp_path / "Retraites" / "0F6A9E"
+    debate_dir.mkdir(parents=True)
+    json_path = debate_dir / "0F6A9E_2026-05-28_corrected.json"
+    json_path.write_text(json.dumps(SEGMENTS), encoding="utf-8")
+
+    # Client mocké : retourne tour à tour frame, timeline, trajectoires, concepts.
+    client = MagicMock()
+    frame_r = MagicMock(); frame_r.text = FRAME_RESPONSE
+    timeline_r = MagicMock(); timeline_r.text = TIMELINE_RESPONSE
+    traj_r = MagicMock(); traj_r.text = json.dumps({
+        "i1": [[1.0, -8, 6], [10.0, -8, 6]],
+        "i2": [[3.0, 7, 1.5], [10.0, 7, 1.5]],
+        "anim": [[0.0, 0, 4], [10.0, 0, 4]],
+    })
+    concepts_r = MagicMock(); concepts_r.text = CONCEPTS_RESPONSE
+    client.models.generate_content.side_effect = [frame_r, timeline_r, traj_r, concepts_r]
+
+    ok = analyze(json_path, "Retraites", "0F6A9E", "2026-05-28", client=client)
+    assert ok is True
+    viz = debate_dir / "viz"
+    assert (viz / "data.js").exists()
+    assert (viz / "index.html").exists()
+    content = (viz / "data.js").read_text(encoding="utf-8")
+    assert "const DEBATE_DATA" in content
+    assert "Liberté" in content      # passe 1
+    assert "Démographie" in content  # passe 4
+
+
+def test_analyze_degrades_when_a_pass_fails(tmp_path):
+    from analyze_debate import analyze
+    debate_dir = tmp_path / "Retraites" / "0F6A9E"
+    debate_dir.mkdir(parents=True)
+    json_path = debate_dir / "0F6A9E_2026-05-28_corrected.json"
+    json_path.write_text(json.dumps(SEGMENTS), encoding="utf-8")
+
+    client = MagicMock()
+    frame_r = MagicMock(); frame_r.text = FRAME_RESPONSE
+    bad = MagicMock(); bad.text = "pas du json"  # timeline KO (2 tentatives)
+    traj_r = MagicMock(); traj_r.text = json.dumps({"i1": [[1.0, -8, 6], [10.0, -8, 6]]})
+    concepts_r = MagicMock(); concepts_r.text = CONCEPTS_RESPONSE
+    # frame(1), timeline(2 essais), trajectoires(1), concepts(1)
+    client.models.generate_content.side_effect = [frame_r, bad, bad, traj_r, concepts_r]
+
+    ok = analyze(json_path, "Retraites", "0F6A9E", "2026-05-28", client=client)
+    assert ok is True
+    content = (debate_dir / "viz" / "data.js").read_text(encoding="utf-8")
+    assert '"events"' not in content   # timeline omise
+    assert '"axes"' in content         # frame présente

@@ -481,3 +481,85 @@ def write_data_js(data: dict, path: Path) -> None:
     )
     body = json.dumps(data, ensure_ascii=False, indent=2)
     path.write_text(f"{header}const DEBATE_DATA = {body};\n", encoding="utf-8")
+
+
+# Task 10: Orchestration + CLI
+
+_TEMPLATE = Path(__file__).parent / "viz_template" / "index.html"
+
+
+def write_viz(data: dict, viz_dir: Path) -> None:
+    viz_dir.mkdir(parents=True, exist_ok=True)
+    write_data_js(data, viz_dir / "data.js")
+    shutil.copyfile(_TEMPLATE, viz_dir / "index.html")
+
+
+def analyze(json_path: Path, topic: str, code: str, date: str, client=None) -> bool:
+    segments = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    voices = compute_voices(segments)
+    if not voices:
+        print("Aucune voix plaçable dans le transcript.", file=sys.stderr)
+        return False
+    refus, redacted, duration = compute_refus(segments)
+    meta = build_meta(segments, topic, code, date, redacted, duration)
+    transcript = _segments_to_text(segments)
+
+    if client is None:
+        api_key = _load_api_key()
+        if not api_key:
+            print("GEMINI_API_KEY absent — analyse impossible.", file=sys.stderr)
+            return False
+        client = _make_client(api_key)
+
+    print("Passe 1/4 — cadre + voix...")
+    frame = run_frame(client, transcript, voices, meta)
+    print("Passe 2/4 — events + tension...")
+    timeline = run_timeline(client, transcript, meta)
+
+    kf_map = {}
+    personas = []
+    if frame is not None:
+        interp = frame["personas_interp"]
+        events = timeline["events"] if timeline else []
+        print("Passe 3/4 — trajectoires...")
+        kf_map = run_trajectories(client, transcript, voices, interp, events, meta) or {}
+        personas = merge_personas(voices, interp, kf_map, duration)
+        print("Passe 4/4 — réseau conceptuel...")
+        concepts = run_concepts(client, transcript, frame["schools"], voices, meta)
+    else:
+        print("Passe 1 échouée — carte/réseau indisponibles, on garde ce qui peut l'être.", file=sys.stderr)
+        concepts = None
+
+    data = assemble_data(meta, frame, personas, timeline, refus, concepts)
+    viz_dir = Path(json_path).parent / "viz"
+    write_viz(data, viz_dir)
+    print(f"Visualisation écrite : {viz_dir / 'index.html'}")
+    return True
+
+
+def main() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+    if len(sys.argv) != 2:
+        print("Usage: python analyze_debate.py <corrected_json_path>", file=sys.stderr)
+        sys.exit(1)
+
+    json_path = Path(sys.argv[1])
+    if not json_path.exists():
+        print(f"Fichier introuvable : {json_path}", file=sys.stderr)
+        sys.exit(1)
+
+    topic = json_path.parent.parent.name
+    code = json_path.parent.name
+    stem = json_path.name.replace("_corrected.json", "").replace(".json", "")
+    date = stem.rsplit("_", 1)[-1] if "_" in stem else ""
+    result = analyze(json_path, topic, code, date)
+    sys.exit(0 if result else 1)
+
+
+if __name__ == "__main__":
+    main()
