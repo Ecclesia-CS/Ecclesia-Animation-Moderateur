@@ -145,3 +145,15 @@ def test_validate_concepts():
     assert validate_concepts(net, SCHOOL_IDS, VOICE_IDS) is True
     bad = dict(net, concessions=[{"by": "zzz", "t": 1, "label": "x", "targetConcept": "Liberté"}])
     assert validate_concepts(bad, SCHOOL_IDS, VOICE_IDS) is False
+
+
+def test_validate_tension_rejects_nonnumeric():
+    from analyze_debate import validate_tension
+    assert validate_tension([[0, 40], ["x", 50]], 85) is False
+    assert validate_tension([[0, 40], [10, None]], 85) is False
+
+
+def test_validate_kf_rejects_malformed_keyframe():
+    from analyze_debate import validate_kf
+    assert validate_kf([[8]], entry=8, final_xy=[0, 0]) is False
+    assert validate_kf([[8, 0, 0], [40, 7]], entry=8, final_xy=[0, 0]) is False

@@ -155,9 +155,9 @@ def validate_tension(tension: list, duration: float) -> bool:
     for pt in tension:
         try:
             t, v = pt[0], pt[1]
+            if not (0 <= t <= duration) or t < prev_t or not (0 <= v <= 100):
+                return False
         except (IndexError, TypeError):
-            return False
-        if not (0 <= t <= duration) or t < prev_t or not (0 <= v <= 100):
             return False
         prev_t = t
     return True
@@ -166,10 +166,13 @@ def validate_tension(tension: list, duration: float) -> bool:
 def validate_kf(kf: list, entry: float, final_xy: list[float]) -> bool:
     if not isinstance(kf, list) or len(kf) < 1:
         return False
-    if abs(kf[0][0] - entry) > 0.5:
-        return False
-    last = kf[-1]
-    if abs(last[1] - final_xy[0]) > 0.5 or abs(last[2] - final_xy[1]) > 0.5:
+    try:
+        if abs(kf[0][0] - entry) > 0.5:
+            return False
+        last = kf[-1]
+        if abs(last[1] - final_xy[0]) > 0.5 or abs(last[2] - final_xy[1]) > 0.5:
+            return False
+    except (IndexError, TypeError):
         return False
     prev_t = None
     prev_xy = None
