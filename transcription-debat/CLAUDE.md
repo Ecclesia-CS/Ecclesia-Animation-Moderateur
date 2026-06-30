@@ -43,14 +43,16 @@ transcription-debat/
     │   ├── anonymize_log.py        anonymise le CSV Ecclesia → log_anon.csv + name_map.json
     │   ├── transcribe_offline.py   Whisper large-v3 + alignement + attribution (appelle correct_transcript)
     │   ├── correct_transcript.py   correction Gemini post-Whisper (aussi standalone)
-    │   └── deduplicate.py          supprime répétitions / hallucinations Whisper (3 passes)
-    ├── tests/                      70 tests (anonymize 8 + transcribe_offline 27 + correct 14 + deduplicate 21)
+    │   ├── deduplicate.py          supprime répétitions / hallucinations Whisper (3 passes)
+    │   ├── analyze_debate.py        génère viz/ (data.js + index.html) par analyse Gemini étagée
+    │   └── viz_template/index.html  template HTML généralisé (header/onglets pilotés par data.js)
+    ├── tests/                      104 tests (anonymize 8 + transcribe_offline 27 + correct 14 + deduplicate 21 + analyze_debate 34)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
     ├── requirements.txt
     ├── .env                        HF_TOKEN + GEMINI_API_KEY
     ├── Débats/<Thème>/<CODE>/      entrées (audio.mp3, ecclesia_*.csv) — non versionné
-    └── transcripts/<Thème>/<CODE>/ sorties — non versionné
+    └── transcripts/<Thème>/<CODE>/ sorties — non versionné (viz/ = dashboard autonome)
 ```
 
 `Débats/` et `transcripts/` ne sont **pas versionnés** (données personnelles + audio volumineux).
@@ -66,6 +68,7 @@ transcription-debat/
   ```
   GEMINI_API_KEY=AIza...     # correction Gemini (optionnelle, dégradation gracieuse si absente)
   HF_TOKEN=hf_...            # diarisation pyannote (option --diarize uniquement)
+  GEMINI_ANALYSIS_MODEL=...  # modèle de l'étape visualisation (défaut gemini-3.1-flash-lite)
   ```
 - **1er lancement** : Whisper large-v3 (~3,1 Go) se télécharge automatiquement (reprise auto si coupure).
 
@@ -130,6 +133,18 @@ Options : `--audio-start "<ISO>"`, `--diarize`.
 $env:GEMINI_MODEL = "gemini-2.5-flash"
 ```
 
+### Générer la visualisation (option)
+Via le pipeline complet :
+```powershell
+.\run_transcription.ps1 -Csv ... -Audio ... -Code <CODE> -Topic "<Thème>" -Visualize
+```
+Ou seule, sur un transcript déjà corrigé :
+```powershell
+.venv\Scripts\python "code python\analyze_debate.py" "transcripts\<Thème>\<CODE>\<CODE>_<DATE>_corrected.json"
+# modèle ponctuel : $env:GEMINI_ANALYSIS_MODEL = "gemini-flash"
+```
+Produit `transcripts\<Thème>\<CODE>\viz\{index.html, data.js}`. Ré-exécutable seul si une passe a échoué (quota).
+
 ---
 
 ## Anonymisation (RGPD) — important
@@ -168,6 +183,7 @@ Deux niveaux :
 | Rédaction | `redact_names` | Masque les prénoms réels dans le texte via `name_map.json`. |
 | Déduplication | `deduplicate.py` | Supprime répétitions / hallucinations Whisper (3 passes). |
 | Correction | `correct_transcript.py` | Gemini par lots de 25 (+contexte ±3) : corrige mots/ponctuation, attribue les `[?]` (whitelist), marque `[HORS-DÉBAT]`, masque les noms. `_validate` rejette toute triche → retry ×2, sinon brut conservé. |
+| Visualisation (option) | `analyze_debate.py` | Analyse Gemini étagée (4 passes : cadre+voix, events+tension, trajectoires, réseau conceptuel) → `viz/data.js` + dashboard. Champs mesurables (poids, entrée, refus) calculés sans LLM. Dégradation gracieuse par passe. |
 
 ### Labels du transcript
 - `Interlocuteur N` — participant anonymisé · `Modérateur` — meneur de séance.
@@ -195,7 +211,7 @@ Depuis `backend/`, avec le **Python système** (pas le venv) :
 ```
 python -m pytest tests/ -v
 ```
-70 tests : `anonymize_log` (8) + `transcribe_offline` (27) + `correct_transcript` (14) + `deduplicate` (21). `conftest.py` (racine backend) ajoute `transcription/` au `sys.path`.
+104 tests : `anonymize_log` (8) + `transcribe_offline` (27) + `correct_transcript` (14) + `deduplicate` (21) + `analyze_debate` (34). `conftest.py` (racine backend) ajoute `transcription/` au `sys.path`.
 
 ---
 
@@ -207,6 +223,7 @@ python -m pytest tests/ -v
 - **`MIN_OVERLAP_RATIO` / plafonds de fusion** : constantes de `transcribe_offline.py` ; les modifier change la lisibilité ET la proportion de `[?]`.
 - **Gemini** : vérifier `error` ET `data?.error`. Ne jamais lever le garde-fou anti-invention de prénoms dans le prompt de `correct_transcript.py`.
 - **Pas de mode live.** `main.py`/`transcriber.py`/`diarizer.py`/`speaker_tracker.py` et le frontend ont été supprimés : tout est offline.
+- **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/durée sont calculés depuis le JSON, jamais demandés au LLM. Ne jamais lever le garde-fou anti-invention (le LLM ne référence que les `id` de voix calculés). `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` doit rester piloté par `data.js` (header + masquage d'onglets).
 
 ---
 
