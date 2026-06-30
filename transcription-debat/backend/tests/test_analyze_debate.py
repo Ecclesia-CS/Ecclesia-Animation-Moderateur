@@ -53,3 +53,95 @@ def test_build_meta():
     assert meta["topic"] == "Retraites"
     assert meta["code"] == "0F6A9E"
     assert meta["totalDurationMinutes"] == pytest.approx(10.0)
+
+
+# Validators tests (Task 2)
+
+VOICE_IDS = {"i1", "i2", "anim"}
+SCHOOL_IDS = {"lib", "sol"}
+
+
+def test_validate_frame_ok():
+    from analyze_debate import validate_frame
+    frame = {
+        "axes": {
+            "x": {"leftLabel": "Liberté", "rightLabel": "Égalité"},
+            "y": {"bottomLabel": "Technique", "topLabel": "Principes"},
+            "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"},
+        },
+        "personas_interp": {"i1": {"camp": "Libéral", "note": "x", "pos": [-8, 6]}},
+        "schools": [{"id": "lib", "label": "Libéraux", "cx": -8, "cy": 6, "rx": 2, "ry": 2, "members": ["i1"]}],
+    }
+    assert validate_frame(frame, VOICE_IDS) is True
+
+
+def test_validate_frame_rejects_unknown_voice():
+    from analyze_debate import validate_frame
+    frame = {
+        "axes": {"x": {"leftLabel": "a", "rightLabel": "b"},
+                 "y": {"bottomLabel": "c", "topLabel": "d"},
+                 "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"}},
+        "personas_interp": {"i99": {"camp": "X", "note": "y", "pos": [0, 0]}},
+        "schools": [],
+    }
+    assert validate_frame(frame, VOICE_IDS) is False
+
+
+def test_validate_frame_rejects_out_of_bounds():
+    from analyze_debate import validate_frame
+    frame = {
+        "axes": {"x": {"leftLabel": "a", "rightLabel": "b"},
+                 "y": {"bottomLabel": "c", "topLabel": "d"},
+                 "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"}},
+        "personas_interp": {"i1": {"camp": "X", "note": "y", "pos": [99, 0]}},
+        "schools": [],
+    }
+    assert validate_frame(frame, VOICE_IDS) is False
+
+
+def test_validate_events():
+    from analyze_debate import validate_events
+    ok = [{"t": 5, "type": "dissensus", "magnitude": 2, "title": "T", "desc": "D"}]
+    assert validate_events(ok, 85) is True
+    assert validate_events([{"t": 5, "type": "bogus", "magnitude": 2, "title": "T", "desc": "D"}], 85) is False
+    assert validate_events([{"t": 999, "type": "meta", "magnitude": 1, "title": "T", "desc": "D"}], 85) is False
+
+
+def test_validate_tension():
+    from analyze_debate import validate_tension
+    assert validate_tension([[0, 40], [10, 60], [85, 30]], 85) is True
+    assert validate_tension([[0, 40], [10, 200]], 85) is False   # v hors borne
+    assert validate_tension([[10, 40], [5, 60]], 85) is False    # t non croissant
+
+
+def test_validate_kf_ok():
+    from analyze_debate import validate_kf
+    kf = [[8, 7, 3], [40, 7, 2], [85, 7, 1.5]]
+    assert validate_kf(kf, entry=8, final_xy=[7, 1.5]) is True
+
+
+def test_validate_kf_rejects_big_jump():
+    from analyze_debate import validate_kf
+    # saut de 8 points en 2 min (> MAX_KF_AMP sur Δt < MAX_KF_GAP)
+    kf = [[8, -8, 0], [10, 0, 0], [85, 0, 0]]
+    assert validate_kf(kf, entry=8, final_xy=[0, 0]) is False
+
+
+def test_validate_kf_rejects_wrong_endpoints():
+    from analyze_debate import validate_kf
+    kf = [[20, 0, 0], [85, 5, 5]]  # entry attendue 8, finale [0,0]
+    assert validate_kf(kf, entry=8, final_xy=[0, 0]) is False
+
+
+def test_validate_concepts():
+    from analyze_debate import validate_concepts
+    net = {
+        "regular": ["Mérite"],
+        "fauxConsensus": [{"concept": "Liberté", "senseA": "x", "campA": "lib", "senseB": "y", "campB": "sol"}],
+        "gordian": [{"concept": "Redistribution", "poleA": "x", "campA": "lib", "poleB": "y", "campB": "sol", "why": "z"}],
+        "consensus": [{"label": "Démographie", "t": 6, "scope": "tous"}],
+        "concessions": [{"by": "lib", "t": 23, "label": "x", "targetConcept": "Liberté"}],
+    }
+    assert validate_concepts(net, SCHOOL_IDS, VOICE_IDS) is True
+    bad = dict(net, concessions=[{"by": "zzz", "t": 1, "label": "x", "targetConcept": "Liberté"}])
+    assert validate_concepts(bad, SCHOOL_IDS, VOICE_IDS) is False
