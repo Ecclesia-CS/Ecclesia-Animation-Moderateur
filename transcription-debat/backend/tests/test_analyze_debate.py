@@ -399,3 +399,12 @@ def test_write_data_js(tmp_path):
     assert content.startswith("//")
     assert "const DEBATE_DATA =" in content
     assert content.rstrip().endswith(";")
+
+
+def test_viz_template_exists_and_generalized():
+    template = Path(__file__).parent.parent / "code python" / "viz_template" / "index.html"
+    assert template.exists()
+    html = template.read_text(encoding="utf-8")
+    assert 'id="hdr-title"' in html
+    assert "__VIZ_PRESENT" in html
+    assert "Débat sur les retraites" not in html  # plus de titre en dur
