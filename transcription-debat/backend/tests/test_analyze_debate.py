@@ -193,3 +193,47 @@ def test_segments_to_text():
     txt = _segments_to_text(SEGMENTS[:2])
     assert "[00:00] Modérateur:" in txt
     assert "[01:00] Interlocuteur 1:" in txt
+
+
+# Task 4: Passe 1 — Cadre + voix
+
+FRAME_RESPONSE = json.dumps({
+    "axes": {
+        "x": {"leftLabel": "Liberté", "rightLabel": "Égalité"},
+        "y": {"bottomLabel": "Technique", "topLabel": "Principes"},
+        "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"},
+    },
+    "personas_interp": {
+        "i1": {"camp": "Libéral", "note": "Constance", "pos": [-8, 6]},
+        "i2": {"camp": "Solidariste", "note": "Égalité", "pos": [7, 2]},
+        "anim": {"camp": "Méta", "note": "Protocole", "pos": [0, 4]},
+    },
+    "schools": [{"id": "lib", "label": "Libéraux", "cx": -8, "cy": 6, "rx": 2, "ry": 2, "members": ["i1"]}],
+})
+
+
+def test_run_frame_ok():
+    from analyze_debate import run_frame, compute_voices
+    voices = compute_voices(SEGMENTS)
+    client = MagicMock()
+    resp = MagicMock(); resp.text = FRAME_RESPONSE
+    client.models.generate_content.return_value = resp
+    frame = run_frame(client, "transcript", voices, {"topic": "Retraites"})
+    assert frame["axes"]["x"]["leftLabel"] == "Liberté"
+    assert "i1" in frame["personas_interp"]
+
+
+def test_run_frame_rejects_invented_voice():
+    from analyze_debate import run_frame, compute_voices
+    voices = compute_voices(SEGMENTS)
+    bad = json.dumps({
+        "axes": {"x": {"leftLabel": "a", "rightLabel": "b"},
+                 "y": {"bottomLabel": "c", "topLabel": "d"},
+                 "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"}},
+        "personas_interp": {"i77": {"camp": "X", "note": "y", "pos": [0, 0]}},
+        "schools": [],
+    })
+    client = MagicMock()
+    resp = MagicMock(); resp.text = bad
+    client.models.generate_content.return_value = resp
+    assert run_frame(client, "transcript", voices, {"topic": "X"}) is None

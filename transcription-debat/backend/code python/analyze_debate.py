@@ -251,3 +251,46 @@ def validate_concepts(net: dict, school_ids: set[str], voice_ids: set[str]) -> b
     except (KeyError, TypeError):
         return False
     return True
+
+
+# Task 4: Passe 1 — Cadre + voix
+
+def build_frame_prompt(transcript: str, voices: list[dict], meta: dict) -> str:
+    voice_lines = "\n".join(
+        f'- {v["id"]} = {v["label"]} (poids parole {v["weight"]}, entre à {v["entry"]} min)'
+        for v in voices
+    )
+    return f"""Tu es un analyste politique. Voici la transcription d'un débat oral sur « {meta.get("topic", "")} ».
+
+Voix identifiées (utilise EXACTEMENT ces id, n'en invente AUCUN autre, n'écris JAMAIS de prénom réel) :
+{voice_lines}
+
+Ta tâche : poser le CADRE idéologique propre à CE débat et y placer chaque voix.
+
+1. Trouve les DEUX axes qui structurent le mieux ce débat précis. Axe x et axe y, échelle -10 à +10.
+   Donne un label court à chaque extrémité (leftLabel/rightLabel pour x, bottomLabel/topLabel pour y),
+   et un descripteur court à chacun des 4 quadrants.
+2. Place chaque voix à sa position de FIN de débat : pos = [x, y], x et y entre -10 et +10.
+   Donne aussi un "camp" (étiquette courte de sa posture) et une "note" (1 phrase d'analyse).
+3. Regroupe les voix proches en "écoles" : pour chaque école un id court (ex. "lib", "sol"),
+   un label, un centre cx/cy (entre -10 et 10), des demi-axes rx/ry (1 à 3), et la liste members (des id de voix).
+
+Réponds UNIQUEMENT avec ce JSON, sans commentaire :
+{{
+  "axes": {{
+    "x": {{"leftLabel": "...", "rightLabel": "..."}},
+    "y": {{"bottomLabel": "...", "topLabel": "..."}},
+    "quadrants": {{"topLeft": "...", "topRight": "...", "bottomLeft": "...", "bottomRight": "..."}}
+  }},
+  "personas_interp": {{ "<id>": {{"camp": "...", "note": "...", "pos": [x, y]}} }},
+  "schools": [ {{"id": "...", "label": "...", "cx": 0, "cy": 0, "rx": 2, "ry": 2, "members": ["<id>"]}} ]
+}}
+
+Transcription :
+{transcript}"""
+
+
+def run_frame(client, transcript: str, voices: list[dict], meta: dict) -> dict | None:
+    voice_ids = {v["id"] for v in voices}
+    prompt = build_frame_prompt(transcript, voices, meta)
+    return _call_validated(client, prompt, lambda o: validate_frame(o, voice_ids))
