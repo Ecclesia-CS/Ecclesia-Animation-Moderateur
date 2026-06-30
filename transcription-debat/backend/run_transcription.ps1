@@ -30,6 +30,7 @@ param(
     [string]$GeminiModel = "",                             # override du modèle (défaut : gemini-3.1-flash-lite)
     [switch]$Diarize,                                      # diarisation pyannote (HF_TOKEN requis)
     [switch]$EditNameMap,                                  # pause après anonymisation pour éditer name_map.json
+    [switch]$Visualize,                                   # génère viz/ (analyze_debate.py) après correction
     [switch]$SkipAnonymize,                                # réutiliser un log_anon.csv existant
     [switch]$DryRun                                        # afficher les commandes sans exécuter
 )
@@ -94,10 +95,27 @@ try {
     if ($Diarize)      { $txArgs += "--diarize" }
     Invoke-Step "Étape 2/2 — Transcription Whisper + correction Gemini" $txArgs
 
+    # --- Étape optionnelle : visualisation ---
+    if ($Visualize) {
+        $vizDir = Join-Path $Backend "transcripts\$Topic\$Code"
+        if ($DryRun) {
+            Write-Host "=== Visualisation (DryRun) : analyze_debate.py sur le corrected.json le plus récent de $vizDir ===" -ForegroundColor Cyan
+        } else {
+            $corrected = Get-ChildItem -Path $vizDir -Filter "*_corrected.json" -ErrorAction SilentlyContinue |
+                         Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($null -eq $corrected) {
+                Write-Host "Aucun *_corrected.json trouvé dans $vizDir — visualisation ignorée." -ForegroundColor Yellow
+            } else {
+                Invoke-Step "Étape 3 — Visualisation (analyze_debate.py)" @("code python\analyze_debate.py", $corrected.FullName)
+            }
+        }
+    }
+
     if (-not $DryRun) {
         Write-Host ""
         Write-Host "✅ Terminé. Fichiers dans : transcripts\$Topic\$Code\" -ForegroundColor Green
         Write-Host "   $($Code)_<date>_corrected.txt / .json  ← à utiliser" -ForegroundColor Green
+        if ($Visualize) { Write-Host "   viz\index.html  ← dashboard de visualisation" -ForegroundColor Green }
     }
 }
 finally {
