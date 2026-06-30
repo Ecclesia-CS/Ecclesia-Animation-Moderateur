@@ -355,3 +355,47 @@ def test_run_concepts_rejects_unknown_camp():
     resp = MagicMock(); resp.text = bad
     client.models.generate_content.return_value = resp
     assert run_concepts(client, "transcript", SCHOOLS_FIXT, voices, {"topic": "X"}) is None
+
+
+# Task 8: Assemblage + écriture data.js
+
+
+def test_merge_personas_static_fallback_when_no_kf():
+    from analyze_debate import compute_voices, merge_personas
+    voices = compute_voices(SEGMENTS)
+    interp = {"i1": {"camp": "Lib", "note": "n", "pos": [-8, 6]}}
+    personas = merge_personas(voices, interp, kf_map={}, duration=10.0)
+    p = {x["id"]: x for x in personas}
+    assert "i1" in p
+    assert "i2" not in p  # pas de position → omise
+    # kf statique : début à entry, fin à durée, même position
+    assert p["i1"]["kf"][0] == [p["i1"]["entry"], -8, 6]
+    assert p["i1"]["kf"][-1] == [10.0, -8, 6]
+    assert p["i1"]["camp"] == "Lib"
+
+
+def test_assemble_data_omits_failed_passes():
+    from analyze_debate import assemble_data
+    data = assemble_data(
+        meta={"topic": "X", "totalDurationMinutes": 10, "totalRedactedMinutes": 1},
+        frame={"axes": {"x": {}}, "schools": [], "personas_interp": {}},
+        personas=[{"id": "i1", "kf": [[0, 0, 0]]}],
+        timeline=None,          # passe 2 échouée
+        refus=[[4.0, 5.3]],
+        concepts=None,          # passe 4 échouée
+    )
+    assert "axes" in data
+    assert "events" not in data and "tension" not in data
+    assert "concepts" not in data
+    assert data["refus"] == [[4.0, 5.3]]
+    assert data["meta"]["topic"] == "X"
+
+
+def test_write_data_js(tmp_path):
+    from analyze_debate import write_data_js
+    path = tmp_path / "data.js"
+    write_data_js({"meta": {"topic": "X"}}, path)
+    content = path.read_text(encoding="utf-8")
+    assert content.startswith("//")
+    assert "const DEBATE_DATA =" in content
+    assert content.rstrip().endswith(";")

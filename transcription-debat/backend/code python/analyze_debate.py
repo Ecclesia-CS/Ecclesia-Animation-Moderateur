@@ -424,3 +424,60 @@ def run_concepts(client, transcript, schools, voices, meta) -> dict | None:
     voice_ids = {v["id"] for v in voices}
     prompt = build_concepts_prompt(transcript, schools, voices, meta)
     return _call_validated(client, prompt, lambda o: validate_concepts(o, school_ids, voice_ids))
+
+
+# Task 8: Assemblage + écriture data.js
+
+
+def merge_personas(voices, personas_interp, kf_map, duration) -> list[dict]:
+    """Merge computed voices with interpolation (camp/note/color) + keyframes.
+
+    If a voice has no kf in kf_map, use static fallback: entry to duration at same position.
+    Omit voices absent from personas_interp (no position → unplaceable).
+    """
+    personas = []
+    for v in voices:
+        interp = personas_interp.get(v["id"])
+        if interp is None:
+            continue  # pas de position → non plaçable
+        x, y = interp["pos"]
+        kf = kf_map.get(v["id"]) or [[v["entry"], x, y], [duration, x, y]]
+        personas.append({
+            "id": v["id"], "label": v["label"], "camp": interp["camp"],
+            "color": v["color"], "weight": v["weight"], "entry": v["entry"],
+            "kf": kf, "note": interp["note"],
+        })
+    return personas
+
+
+def assemble_data(meta, frame, personas, timeline, refus, concepts) -> dict:
+    """Build DEBATE_DATA dict. frame/timeline/concepts may be None → omit those sections.
+
+    Graceful degradation: if a pass failed (None), skip that key entirely.
+    """
+    data = {
+        "meta": meta,
+        "personas": personas,
+        "refus": refus,
+        "totalRedactedMinutes": meta["totalRedactedMinutes"],
+        "totalDurationMinutes": meta["totalDurationMinutes"],
+    }
+    if frame is not None:
+        data["axes"] = frame["axes"]
+        data["schools"] = frame["schools"]
+    if timeline is not None:
+        data["events"] = timeline["events"]
+        data["tension"] = timeline["tension"]
+    if concepts is not None:
+        data["concepts"] = concepts
+    return data
+
+
+def write_data_js(data: dict, path: Path) -> None:
+    """Write const DEBATE_DATA = <json>; with header comment."""
+    header = (
+        "// data.js — généré par analyze_debate.py (analyse Gemini)\n"
+        "// Coordonnées interprétatives, pas des mesures objectives.\n\n"
+    )
+    body = json.dumps(data, ensure_ascii=False, indent=2)
+    path.write_text(f"{header}const DEBATE_DATA = {body};\n", encoding="utf-8")
