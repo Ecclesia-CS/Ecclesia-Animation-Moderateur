@@ -1,7 +1,11 @@
 import textwrap, csv, json
 from pathlib import Path
 from datetime import datetime, timezone
-from transcribe_offline import load_anon_log, compute_offsets, assign_speakers, merge_same_speaker, write_txt, write_json
+from transcribe_offline import (
+    load_anon_log, compute_offsets, assign_speakers, merge_same_speaker, write_txt, write_json,
+    assign_speakers_words, _speaker_at, coverage_report, load_name_map, redact_names,
+    split_turns_by_diarization,
+)
 
 FIXTURE_LOG = textwrap.dedent("""\
     interlocuteur,debut_iso,fin_iso,refuse
@@ -76,6 +80,153 @@ def test_assign_segment_spanning_two_turns_takes_majority():
     segs = [{"start": 50.0, "end": 80.0, "text": "Chevauchement"}]
     result = assign_speakers(segs, _turns_with_offsets())
     assert result[0]["speaker"] == "[REFUS]"
+
+
+# ---- Attribution par confiance (§5) ----
+
+def test_assign_low_overlap_falls_back_to_unknown():
+    """Un segment ne chevauchant un tour qu'à <30% de sa durée → [?]."""
+    # seg 0-100 (100s), seul tour Interlocuteur 1 0-60 mais segment commence à 90 ?
+    turns = [{"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0, "fin_sec": 20.0, "refuse": False}]
+    segs = [{"start": 0.0, "end": 100.0, "text": "long brouhaha"}]  # overlap 20 / 100 = 0.2 < 0.3
+    result = assign_speakers(segs, turns)
+    assert result[0]["speaker"] == "[?]"
+
+
+# ---- Attribution au mot (§1, §3) ----
+
+def _wordturns():
+    return [
+        {"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0,  "fin_sec": 10.0, "refuse": False},
+        {"interlocuteur": "Interlocuteur 2", "debut_sec": 10.0, "fin_sec": 20.0, "refuse": False},
+    ]
+
+
+def test_speaker_at_basic():
+    turns = _wordturns()
+    assert _speaker_at(5.0, turns) == ("Interlocuteur 1", False)
+    assert _speaker_at(15.0, turns) == ("Interlocuteur 2", False)
+    assert _speaker_at(50.0, turns) == ("[?]", False)
+
+
+def test_assign_words_splits_at_speaker_change():
+    words = [
+        {"start": 1.0, "end": 2.0, "text": "Bonjour"},
+        {"start": 2.0, "end": 3.0, "text": "tous"},
+        {"start": 11.0, "end": 12.0, "text": "Merci"},
+    ]
+    result = assign_speakers_words(words, _wordturns())
+    assert len(result) == 2
+    assert result[0]["speaker"] == "Interlocuteur 1"
+    assert result[0]["text"] == "Bonjour tous"
+    assert result[1]["speaker"] == "Interlocuteur 2"
+    assert result[1]["text"] == "Merci"
+
+
+def test_assign_words_caps_long_monologue():
+    """Un long monologue mono-locuteur est découpé (plafond de durée)."""
+    words = [{"start": float(i), "end": i + 0.9, "text": "mot"} for i in range(300)]
+    turns = [{"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0, "fin_sec": 400.0, "refuse": False}]
+    result = assign_speakers_words(words, turns, max_duration=120.0)
+    assert len(result) >= 2  # pas un seul mur de 300s
+    assert all(s["speaker"] == "Interlocuteur 1" for s in result)
+
+
+def test_assign_words_refused_placeholder():
+    words = [{"start": 1.0, "end": 2.0, "text": "secret"}]
+    turns = [{"interlocuteur": "[REFUS]", "debut_sec": 0.0, "fin_sec": 10.0, "refuse": True}]
+    result = assign_speakers_words(words, turns)
+    assert result[0]["speaker"] == "[REFUS]"
+    assert result[0]["text"] == "[N'a pas souhaité être enregistré(e)]"
+    assert "secret" not in result[0]["text"]
+
+
+# ---- Plafond de fusion (§4) ----
+
+def test_merge_caps_at_max_duration():
+    segs = [
+        {"start": 0.0,   "end": 130.0, "speaker": "A", "text": "x" * 50, "refused": False},
+        {"start": 130.0, "end": 200.0, "speaker": "A", "text": "y" * 50, "refused": False},
+    ]
+    result = merge_same_speaker(segs, max_duration=120.0)
+    assert len(result) == 2  # le 1er dépasse déjà 120s → pas de fusion
+
+
+def test_merge_caps_at_gap():
+    segs = [
+        {"start": 0.0,  "end": 5.0,  "speaker": "A", "text": "Oui", "refused": False},
+        {"start": 30.0, "end": 35.0, "speaker": "A", "text": "Non", "refused": False},  # gap 25s
+    ]
+    result = merge_same_speaker(segs, max_gap=3.0)
+    assert len(result) == 2
+
+
+# ---- Couverture (§6) ----
+
+def test_coverage_report():
+    segs = [
+        {"start": 0.0,  "end": 60.0,  "speaker": "Interlocuteur 1", "text": "a", "refused": False},
+        {"start": 60.0, "end": 100.0, "speaker": "[?]",             "text": "b", "refused": False},
+    ]
+    cov = coverage_report(segs, audio_end=100.0)
+    assert cov["unknown_sec"] == 40.0
+    assert abs(cov["unknown_ratio"] - 0.4) < 1e-9
+
+
+# ---- Rédaction des prénoms (§4) ----
+
+def test_load_name_map_reads_sidecar(tmp_path):
+    (tmp_path / "name_map.json").write_text(json.dumps({"Sarah": "Interlocuteur 4"}), encoding="utf-8")
+    log = tmp_path / "log_anon.csv"
+    log.write_text("x", encoding="utf-8")
+    m = load_name_map(str(log))
+    assert m["Sarah"] == "Interlocuteur 4"
+
+
+def test_load_name_map_extra_names(tmp_path):
+    log = tmp_path / "log_anon.csv"
+    log.write_text("x", encoding="utf-8")
+    m = load_name_map(str(log), extra_names=["Lysandre"])
+    assert m["Lysandre"] == "[prénom]"
+
+
+def test_redact_names_replaces_in_text():
+    segs = [{"start": 0.0, "end": 1.0, "speaker": "Interlocuteur 1", "text": "Merci Sarah, dit Lysandre.", "refused": False}]
+    result = redact_names(segs, {"Sarah": "Interlocuteur 4", "Lysandre": "[prénom]"})
+    assert "Sarah" not in result[0]["text"]
+    assert "Lysandre" not in result[0]["text"]
+    assert "Interlocuteur 4" in result[0]["text"]
+
+
+def test_redact_names_word_boundary_and_refused():
+    segs = [
+        {"start": 0.0, "end": 1.0, "speaker": "I1", "text": "Sarahisme", "refused": False},
+        {"start": 1.0, "end": 2.0, "speaker": "[REFUS]", "text": "[N'a pas souhaité être enregistré(e)]", "refused": True},
+    ]
+    result = redact_names(segs, {"Sarah": "I4"})
+    assert result[0]["text"] == "Sarahisme"  # pas de remplacement partiel
+    assert result[1]["text"] == "[N'a pas souhaité être enregistré(e)]"  # refused intact
+
+
+# ---- Diarisation croisée (§2) ----
+
+def test_split_turns_by_diarization_marks_crosstalk():
+    turns = [{"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0, "fin_sec": 10.0, "refuse": False}]
+    # Le détenteur officiel parle 0-7 (locuteur A), mais B parle 7-10 (interruption)
+    diar = [
+        {"start": 0.0, "end": 7.0, "speaker": "A"},
+        {"start": 7.0, "end": 10.0, "speaker": "B"},
+    ]
+    refined = split_turns_by_diarization(turns, diar)
+    # le sous-intervalle 7-10 (B) ≠ dominant (A) → [?]
+    labels = [(round(t["debut_sec"]), round(t["fin_sec"]), t["interlocuteur"]) for t in refined]
+    assert (0, 7, "Interlocuteur 1") in labels
+    assert (7, 10, "[?]") in labels
+
+
+def test_split_turns_no_diar_is_identity():
+    turns = [{"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0, "fin_sec": 10.0, "refuse": False}]
+    assert split_turns_by_diarization(turns, []) == turns
 
 
 def test_merge_same_speaker_consecutive():

@@ -41,7 +41,7 @@ def test_parse_order_preserved(tmp_path):
     assert [t["participant"] for t in tours] == ["Alice", "Bob", "Alice"]
 
 
-from anonymize_log import anonymize, write_anon_log
+from anonymize_log import anonymize, write_anon_log, write_name_map
 
 
 def _make_tours():
@@ -73,6 +73,18 @@ def test_anonymize_refused_flag_in_output():
     assert all(t["refuse"] is True for t in bob_tours)
     alice_tours = [t for t in anon if t["interlocuteur"] == "Interlocuteur 1"]
     assert all(t["refuse"] is False for t in alice_tours)
+
+
+def test_write_name_map_sidecar(tmp_path):
+    import json
+    out = tmp_path / "log_anon.csv"
+    _, mapping = anonymize(_make_tours(), refused=["Bob"])
+    write_name_map(mapping, str(out))
+    sidecar = tmp_path / "name_map.json"
+    assert sidecar.exists()
+    data = json.loads(sidecar.read_text(encoding="utf-8"))
+    assert data["Alice"] == "Interlocuteur 1"
+    assert data["Bob"] == "[REFUS]"
 
 
 def test_write_anon_log_produces_valid_csv(tmp_path):

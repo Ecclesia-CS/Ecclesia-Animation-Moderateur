@@ -1,4 +1,5 @@
 import csv
+import json
 import argparse
 import sys
 from pathlib import Path
@@ -67,6 +68,17 @@ def write_anon_log(tours: list[dict], output_path: str) -> None:
             writer.writerow({**t, "refuse": "true" if t["refuse"] else "false"})
 
 
+def write_name_map(mapping: dict[str, str], output_path: str) -> None:
+    """Écrit la correspondance nom réel → label en JSON, à côté du log anonymisé.
+
+    Consommé par transcribe_offline pour masquer les prénoms réels prononcés dans le
+    corps du texte (l'anonymisation des labels ne couvre pas les mentions parlées).
+    """
+    path = Path(output_path).parent / "name_map.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(mapping, f, ensure_ascii=False, indent=2)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Anonymise un export CSV Ecclesia.")
     parser.add_argument("csv", help="Chemin vers le fichier CSV Ecclesia")
@@ -89,6 +101,7 @@ def main() -> None:
     output_path = args.output or str(Path(args.csv).parent / "log_anon.csv")
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     write_anon_log(anon, output_path)
+    write_name_map(mapping, output_path)
 
     print("Correspondance nom -> label (a conserver) :")
     for name, label in mapping.items():

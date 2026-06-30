@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODEL = "gemini-2.5-flash"
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")  # quota free tier plus large que 2.5-flash
 BATCH_SIZE = 25  # segments par appel Gemini (limite tokens output)
 CONTEXT_WINDOW = 3  # segments de contexte avant/après chaque batch
 
@@ -27,8 +27,15 @@ Corrections autorisées :
 
 Attribution [?] : si context_avant ou context_apres permet d'identifier le locuteur
 avec confiance (interpellation directe, continuité de phrase, réponse explicite),
-remplace speaker "[?]" par le label approprié parmi les participants connus.
-Si incertain, laisse "[?]".
+remplace speaker "[?]" par un label EXACTEMENT pris dans la liste des labels autorisés
+fournie ci-dessus. N'invente JAMAIS un nouveau label ni un prénom réel. Pour le meneur
+de séance / animateur, utilise "Modérateur". Si incertain, laisse "[?]".
+
+Anonymat : ne JAMAIS écrire de prénom ou nom réel d'un participant dans le texte. Si un
+prénom réel apparaît (mal masqué par Whisper), remplace-le par "[prénom]".
+
+Hors-débat : si un segment est manifestement logistique ou hors-sujet (réglages d'appli,
+chahut, interlude sans rapport avec le thème), préfixe son texte par "[HORS-DÉBAT] ".
 
 Correction sémantique : si un segment contient une assertion qui contredit directement
 une affirmation du même segment (même phrase avec sujet substitué), corrige la version
@@ -45,15 +52,23 @@ Les segments speaker "[?]" : corriger le texte normalement ET tenter l'attributi
 Aucun commentaire, aucune clé supplémentaire."""
 
 
-def _build_system_prompt(topic: str | None, participants: list[str] | None) -> str:
-    if not topic and not participants:
-        return BASE_SYSTEM_PROMPT
+def _build_system_prompt(
+    topic: str | None,
+    participants: list[str] | None,
+    allowed_labels: set[str] | None = None,
+) -> str:
     context_lines = []
     if topic:
         context_lines.append(f"Thème du débat : {topic}.")
     if participants:
         context_lines.append(f"Participants : {', '.join(participants)}.")
-    context_lines.append("Corrige les noms propres en priorité en t'appuyant sur cette liste.")
+    if allowed_labels:
+        labels = ", ".join(sorted(allowed_labels))
+        context_lines.append(f"Labels de locuteur autorisés (n'en utilise aucun autre) : {labels}.")
+    if participants:
+        context_lines.append("Corrige les noms propres en priorité en t'appuyant sur cette liste.")
+    if not context_lines:
+        return BASE_SYSTEM_PROMPT
     return "\n".join(context_lines) + "\n\n" + BASE_SYSTEM_PROMPT
 
 
@@ -66,7 +81,11 @@ def _make_client(api_key: str):
     return genai.Client(api_key=api_key)
 
 
-def _validate(original: list[dict], corrected: list[dict]) -> bool:
+def _validate(
+    original: list[dict],
+    corrected: list[dict],
+    allowed_labels: set[str] | None = None,
+) -> bool:
     if len(corrected) != len(original):
         return False
     for orig, corr in zip(original, corrected):
@@ -74,6 +93,15 @@ def _validate(original: list[dict], corrected: list[dict]) -> bool:
             corr.get("speaker") == orig["speaker"]
             or orig["speaker"] == "[?]"
         )
+        # Si le segment était [?] et qu'on a une whitelist, le nouveau label doit en faire partie
+        # (empêche Gemini d'inventer un prénom réel ou un label inconnu).
+        if (
+            allowed_labels is not None
+            and orig["speaker"] == "[?]"
+            and corr.get("speaker") != "[?]"
+            and corr.get("speaker") not in allowed_labels
+        ):
+            return False
         if (
             abs(corr.get("start", -1) - orig["start"]) > 0.1
             or abs(corr.get("end", -1) - orig["end"]) > 0.1
@@ -99,6 +127,7 @@ def _correct_batch(
     batch: list[dict],
     context_before: list[dict] | None = None,
     context_after: list[dict] | None = None,
+    allowed_labels: set[str] | None = None,
 ) -> list[dict] | None:
     """Envoie un batch à Gemini avec contexte et retourne les segments corrigés, ou None si échec."""
     payload = {
@@ -126,7 +155,7 @@ def _correct_batch(
     except Exception as exc:
         print(f"Correction Gemini échouée (batch) : {exc}", file=sys.stderr)
         return None
-    if not _validate(batch, corrected):
+    if not _validate(batch, corrected, allowed_labels):
         print("Correction Gemini rejetée : structure invalide dans un batch.", file=sys.stderr)
         return None
     return corrected
@@ -146,8 +175,11 @@ def correct(
         print("GEMINI_API_KEY absent — correction Gemini skippée.", file=sys.stderr)
         return False
 
+    # Labels autorisés : ceux déjà présents + Modérateur (jamais de prénom réel inventé).
+    allowed_labels = {s["speaker"] for s in segments} | {"Modérateur", "[?]", "[REFUS]"}
+
     client = _make_client(api_key)
-    system_prompt = _build_system_prompt(topic, participants)
+    system_prompt = _build_system_prompt(topic, participants, allowed_labels)
     batches = [segments[i:i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     corrected_segments = []
 
@@ -157,7 +189,7 @@ def correct(
         print(f"Correction Gemini batch {i + 1}/{len(batches)} ({len(batch)} segments)...")
         result = None
         for attempt in range(1, 3):
-            result = _correct_batch(client, system_prompt, batch, context_before, context_after)
+            result = _correct_batch(client, system_prompt, batch, context_before, context_after, allowed_labels)
             if result is not None:
                 break
             print(f"  Retry {attempt}/2...")
@@ -168,7 +200,7 @@ def correct(
             corrected_segments.extend(result)
 
     corrected = corrected_segments
-    if not _validate(segments, corrected):
+    if not _validate(segments, corrected, allowed_labels):
         print("Correction Gemini rejetée : structure invalide (segments manquants ou champs modifiés).", file=sys.stderr)
         return False
 
@@ -184,6 +216,12 @@ def correct(
 
 
 def main() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
     if len(sys.argv) != 2:
         print("Usage: python correct_transcript.py <json_path>", file=sys.stderr)
         sys.exit(1)

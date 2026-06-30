@@ -116,6 +116,37 @@ def test_validate_rejects_speaker_change_for_known_speaker():
     assert _validate(original, corrected) is False
 
 
+def test_validate_rejects_invented_label_for_unknown():
+    """Avec whitelist, un [?] réattribué à un label hors-liste (prénom inventé) est rejeté."""
+    from correct_transcript import _validate
+    original = [{"start": 0.0, "end": 5.0, "speaker": "[?]", "text": "Bonjour", "refused": False}]
+    corrected = [{"start": 0.0, "end": 5.0, "speaker": "Claude", "text": "Bonjour", "refused": False}]
+    allowed = {"Interlocuteur 1", "Modérateur", "[?]", "[REFUS]"}
+    assert _validate(original, corrected, allowed) is False
+    assert _validate(original, corrected, None) is True  # sans whitelist : permissif
+
+
+def test_validate_allows_moderateur_label():
+    from correct_transcript import _validate
+    original = [{"start": 0.0, "end": 5.0, "speaker": "[?]", "text": "Bonjour", "refused": False}]
+    corrected = [{"start": 0.0, "end": 5.0, "speaker": "Modérateur", "text": "Bonjour", "refused": False}]
+    allowed = {"Interlocuteur 1", "Modérateur", "[?]", "[REFUS]"}
+    assert _validate(original, corrected, allowed) is True
+
+
+def test_correct_rejects_invented_name_keeps_raw(tmp_path):
+    """Bout en bout : Gemini invente 'Claude' sur un [?] → batch rejeté, brut conservé."""
+    from correct_transcript import correct
+    segs = [{"start": 0.0, "end": 5.0, "speaker": "[?]", "text": "Bonjour", "refused": False}]
+    tampered = [{"start": 0.0, "end": 5.0, "speaker": "Claude", "text": "Bonjour", "refused": False}]
+    stem = tmp_path / "debat"
+    with patch("correct_transcript._make_client", return_value=_mock_client(json.dumps(tampered))):
+        result = correct(segs, stem)
+    assert result is True
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    assert data[0]["speaker"] == "[?]"  # attribution inventée rejetée
+
+
 def test_correct_batch_handles_segments_key_response(tmp_path):
     """_correct_batch accepte une réponse Gemini { segments: [...] } en plus d'une liste brute."""
     from correct_transcript import correct
@@ -139,7 +170,7 @@ def test_cli_standalone(tmp_path):
         [sys.executable, "correct_transcript.py", str(json_path)],
         capture_output=True,
         text=True,
-        cwd=str(Path(__file__).parent.parent),
+        cwd=str(Path(__file__).parent.parent / "code python"),
         env={**__import__("os").environ, "GEMINI_API_KEY": ""},
     )
     assert result.returncode == 1  # exit 1 quand correction échoue
