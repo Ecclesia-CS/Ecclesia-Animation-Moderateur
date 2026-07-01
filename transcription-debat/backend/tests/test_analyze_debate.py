@@ -6,11 +6,11 @@ from unittest.mock import patch, MagicMock
 
 SEGMENTS = [
     {"start": 0.0,   "end": 60.0,  "speaker": "Modérateur",      "text": "Bonjour, on commence.", "refused": False},
-    {"start": 60.0,  "end": 180.0, "speaker": "Interlocuteur 1", "text": "Je pense que la liberté prime.", "refused": False},
-    {"start": 180.0, "end": 240.0, "speaker": "Interlocuteur 2", "text": "Pas d'accord, l'égalité d'abord.", "refused": False},
+    {"start": 60.0,  "end": 180.0, "speaker": "Interlocuteur 1", "text": "Je pense que la liberté prime sur tout le reste parce que sans elle aucune égalité réelle n'est jamais possible dans la durée.", "refused": False},
+    {"start": 180.0, "end": 240.0, "speaker": "Interlocuteur 2", "text": "Pas d'accord du tout, l'égalité vient d'abord car la liberté sans conditions matérielles reste un privilège réservé à quelques-uns seulement.", "refused": False},
     {"start": 240.0, "end": 300.0, "speaker": "[REFUS]",         "text": "[N'a pas souhaité être enregistré(e)]", "refused": True},
     {"start": 300.0, "end": 320.0, "speaker": "[REFUS]",         "text": "[N'a pas souhaité être enregistré(e)]", "refused": True},
-    {"start": 320.0, "end": 600.0, "speaker": "Interlocuteur 1", "text": "Je maintiens ma position.", "refused": False},
+    {"start": 320.0, "end": 600.0, "speaker": "Interlocuteur 1", "text": "Je maintiens ma position initiale malgré vos objections, car aucun argument avancé ici ne me semble remettre en cause ce principe fondamental.", "refused": False},
 ]
 
 
@@ -465,3 +465,40 @@ def test_analyze_degrades_when_a_pass_fails(tmp_path):
     content = (debate_dir / "viz" / "data.js").read_text(encoding="utf-8")
     assert '"events"' not in content   # timeline omise
     assert '"axes"' in content         # frame présente
+
+
+# Mesures sans LLM : speech + blocs scorables
+
+def test_compute_speech_per_voice():
+    from analyze_debate import compute_speech
+    speech = compute_speech(SEGMENTS)
+    # i1 parle 60-180 s et 320-600 s → deux intervalles disjoints (en minutes)
+    assert speech["i1"] == [[1.0, 3.0], [5.33, 10.0]]
+    assert speech["anim"] == [[0.0, 1.0]]
+    assert "[REFUS]" not in speech and None not in speech
+
+
+def test_compute_speech_merges_consecutive():
+    from analyze_debate import compute_speech
+    segs = [
+        {"start": 0.0,  "end": 60.0,  "speaker": "Interlocuteur 1", "text": "a", "refused": False},
+        {"start": 61.0, "end": 120.0, "speaker": "Interlocuteur 1", "text": "b", "refused": False},
+    ]
+    # écart 1 s ≤ 2 s → fusion en un seul intervalle
+    assert compute_speech(segs) == {"i1": [[0.0, 2.0]]}
+
+
+def test_select_scorable_blocks_filters_short_and_special():
+    from analyze_debate import select_scorable_blocks
+    blocks = select_scorable_blocks(SEGMENTS)
+    # Modérateur (3 mots) exclu, [REFUS] exclus, les 3 blocs longs gardés
+    assert [b["i"] for b in blocks] == [1, 2, 5]
+    assert all(b["vid"] in ("i1", "i2") for b in blocks)
+
+
+def test_select_scorable_blocks_index_and_time():
+    from analyze_debate import select_scorable_blocks
+    blocks = {b["i"]: b for b in select_scorable_blocks(SEGMENTS)}
+    assert blocks[1]["t"] == 1.0
+    assert blocks[5]["t"] == 5.33
+    assert blocks[1]["label"] == "Interlocuteur 1"

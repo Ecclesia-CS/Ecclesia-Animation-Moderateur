@@ -19,6 +19,7 @@ PALETTE = ["#D64545", "#0F8A6A", "#E09020", "#D85A30", "#639922",
 EVENT_TYPES = {"cadrage", "technique", "dissensus", "consensus", "concession", "meta"}
 MAX_KF_AMP = 4.0
 MAX_KF_GAP = 10.0
+MIN_BLOCK_WORDS = 15
 
 _INTERLOCUTEUR_RE = re.compile(r"^Interlocuteur\s+(\d+)$")
 
@@ -131,6 +132,38 @@ def build_meta(segments, topic, code, date, total_redacted_min, total_duration_m
         "totalDurationMinutes": total_duration_min,
         "totalRedactedMinutes": total_redacted_min,
     }
+
+
+def compute_speech(segments: list[dict]) -> dict[str, list[list[float]]]:
+    """Intervalles de parole mesurés par voix (minutes), fusionnés si écart <= 2 s."""
+    speech: dict[str, list[list[float]]] = {}
+    for seg in segments:
+        vid = _speaker_id(seg["speaker"])
+        if vid is None:
+            continue
+        a, b = seg["start"] / 60.0, seg["end"] / 60.0
+        iv = speech.setdefault(vid, [])
+        if iv and a - iv[-1][1] <= 2.0 / 60.0:
+            iv[-1][1] = b
+        else:
+            iv.append([a, b])
+    return {vid: [[round(a, 2), round(b, 2)] for a, b in ivs] for vid, ivs in speech.items()}
+
+
+def select_scorable_blocks(segments: list[dict]) -> list[dict]:
+    """Blocs de parole substantiels à scorer (passe 3). Index = position dans segments."""
+    blocks = []
+    for i, seg in enumerate(segments):
+        if seg.get("refused"):
+            continue
+        vid = _speaker_id(seg["speaker"])
+        if vid is None:
+            continue
+        if len(seg["text"].split()) < MIN_BLOCK_WORDS:
+            continue
+        blocks.append({"i": i, "vid": vid, "label": seg["speaker"],
+                       "t": round(seg["start"] / 60.0, 2), "text": seg["text"]})
+    return blocks
 
 
 # Validators (Task 2)
