@@ -22,6 +22,7 @@ MAX_KF_GAP = 10.0
 MIN_BLOCK_WORDS = 15
 SCORE_BATCH_SIZE = 25
 SCORE_CONTEXT = 3
+EWMA_ALPHA = 0.35
 
 _INTERLOCUTEUR_RE = re.compile(r"^Interlocuteur\s+(\d+)$")
 
@@ -348,6 +349,38 @@ def run_scoring(client, blocks, axes, meta) -> dict[int, dict]:
                                      "stance": item["stance"].strip(),
                                      "salience": item["salience"]}
     return scores
+
+
+def compute_trajectories(blocks, scores, entries) -> dict[str, dict]:
+    """Trajectoire lissée (EWMA pondérée par la saillance) par voix — pur calcul, zéro LLM."""
+    by_voice: dict[str, list[dict]] = {}
+    for b in blocks:
+        sc = scores.get(b["i"])
+        if sc is None:
+            continue
+        by_voice.setdefault(b["vid"], []).append({
+            "t": b["t"], "x": sc["x"], "y": sc["y"],
+            "stance": sc["stance"], "salience": sc["salience"],
+        })
+    out: dict[str, dict] = {}
+    for vid, pts in by_voice.items():
+        pts.sort(key=lambda p: p["t"])
+        entry = entries.get(vid, pts[0]["t"])
+        sx, sy = float(pts[0]["x"]), float(pts[0]["y"])
+        kf: list[list[float]] = []
+        if entry < pts[0]["t"]:
+            kf.append([round(entry, 2), round(sx, 2), round(sy, 2)])
+        for i, p in enumerate(pts):
+            if i > 0:
+                a = EWMA_ALPHA * p["salience"]
+                sx += a * (p["x"] - sx)
+                sy += a * (p["y"] - sy)
+            t = round(p["t"], 2)
+            if kf and t <= kf[-1][0]:
+                continue
+            kf.append([t, round(sx, 2), round(sy, 2)])
+        out[vid] = {"points": pts, "kf": kf}
+    return out
 
 
 def validate_concepts(net: dict, school_ids: set[str], voice_ids: set[str]) -> bool:

@@ -605,3 +605,66 @@ def test_run_scoring_empty_blocks_no_call():
     client = MagicMock()
     assert run_scoring(client, [], AXES_FIXT, {"topic": "X"}) == {}
     client.models.generate_content.assert_not_called()
+
+
+# Trajectoires calculées (EWMA)
+
+def _blocks_and_scores(specs):
+    """specs: liste de (i, vid, t, x, y, salience). Retourne (blocks, scores)."""
+    blocks, scores = [], {}
+    for (i, vid, t, x, y, sal) in specs:
+        blocks.append({"i": i, "vid": vid, "label": vid, "t": t, "text": "x " * 20})
+        scores[i] = {"x": x, "y": y, "stance": f"Position {i}.", "salience": sal}
+    return blocks, scores
+
+
+def test_compute_trajectories_smooths_toward_new_score():
+    from analyze_debate import compute_trajectories
+    blocks, scores = _blocks_and_scores([
+        (1, "i1", 2.0, 0, 0, 1.0),
+        (2, "i1", 10.0, 10, 0, 1.0),
+    ])
+    out = compute_trajectories(blocks, scores, {"i1": 1.0})
+    # EWMA : 0 + 0.35*1.0*(10-0) = 3.5 — pas un saut à 10
+    assert out["i1"]["kf"] == [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [10.0, 3.5, 0.0]]
+
+
+def test_compute_trajectories_salience_zero_keeps_position():
+    from analyze_debate import compute_trajectories
+    blocks, scores = _blocks_and_scores([
+        (1, "i1", 2.0, 0, 0, 1.0),
+        (2, "i1", 10.0, 10, 10, 0.0),   # saillance nulle → ne bouge pas
+    ])
+    out = compute_trajectories(blocks, scores, {"i1": 1.0})
+    assert out["i1"]["kf"][-1] == [10.0, 0.0, 0.0]
+
+
+def test_compute_trajectories_single_block_fixed():
+    from analyze_debate import compute_trajectories
+    blocks, scores = _blocks_and_scores([(1, "i1", 2.0, -4, 5, 0.8)])
+    out = compute_trajectories(blocks, scores, {"i1": 1.0})
+    assert out["i1"]["kf"] == [[1.0, -4.0, 5.0], [2.0, -4.0, 5.0]]
+    assert len(out["i1"]["points"]) == 1
+    assert out["i1"]["points"][0]["stance"] == "Position 1."
+
+
+def test_compute_trajectories_voice_without_scores_absent():
+    from analyze_debate import compute_trajectories
+    blocks, scores = _blocks_and_scores([(1, "i1", 2.0, 0, 0, 1.0)])
+    # i2 a un bloc mais aucun score (lot échoué, ou "none")
+    blocks.append({"i": 2, "vid": "i2", "label": "Interlocuteur 2", "t": 3.0, "text": "x " * 20})
+    out = compute_trajectories(blocks, scores, {"i1": 1.0, "i2": 3.0})
+    assert "i2" not in out
+
+
+def test_compute_trajectories_kf_monotonic_and_entry_not_duplicated():
+    from analyze_debate import compute_trajectories
+    # premier bloc exactement à l'entrée → pas de doublon [entry, ...]
+    blocks, scores = _blocks_and_scores([
+        (1, "i1", 1.0, 2, 2, 1.0),
+        (2, "i1", 5.0, 4, 4, 1.0),
+    ])
+    out = compute_trajectories(blocks, scores, {"i1": 1.0})
+    ts = [p[0] for p in out["i1"]["kf"]]
+    assert ts == sorted(ts) and len(ts) == len(set(ts))
+    assert out["i1"]["kf"][0] == [1.0, 2.0, 2.0]
