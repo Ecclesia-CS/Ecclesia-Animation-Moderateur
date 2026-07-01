@@ -17,8 +17,6 @@ MODERATOR_COLOR = "#534AB7"
 PALETTE = ["#D64545", "#0F8A6A", "#E09020", "#D85A30", "#639922",
            "#8FBF4B", "#6E6D68", "#9A9992", "#4A90D9", "#C0507A", "#3FA7A0"]
 EVENT_TYPES = {"cadrage", "technique", "dissensus", "consensus", "concession", "meta"}
-MAX_KF_AMP = 4.0
-MAX_KF_GAP = 10.0
 MIN_BLOCK_WORDS = 15
 SCORE_BATCH_SIZE = 25
 SCORE_CONTEXT = 3
@@ -244,37 +242,6 @@ def validate_tension(tension: list, duration: float) -> bool:
     return True
 
 
-def validate_kf(kf: list, entry: float, final_xy: list[float]) -> bool:
-    if not isinstance(kf, list) or len(kf) < 1:
-        return False
-    try:
-        if abs(kf[0][0] - entry) > 0.5:
-            return False
-        last = kf[-1]
-        if abs(last[1] - final_xy[0]) > 0.5 or abs(last[2] - final_xy[1]) > 0.5:
-            return False
-    except (IndexError, TypeError):
-        return False
-    prev_t = None
-    prev_xy = None
-    for point in kf:
-        try:
-            t, x, y = point[0], point[1], point[2]
-        except (IndexError, TypeError):
-            return False
-        if not (_in_bounds(x) and _in_bounds(y)):
-            return False
-        if prev_t is not None:
-            if t <= prev_t:
-                return False
-            if t - prev_t <= MAX_KF_GAP:
-                dist = ((x - prev_xy[0]) ** 2 + (y - prev_xy[1]) ** 2) ** 0.5
-                if dist > MAX_KF_AMP:
-                    return False
-        prev_t, prev_xy = t, (x, y)
-    return True
-
-
 _FORBIDDEN_STANCE_CHARS = ('"', "«", "»")
 
 
@@ -391,28 +358,6 @@ def compute_trajectories(blocks, scores, entries) -> dict[str, dict]:
     return out
 
 
-def validate_concepts(net: dict, school_ids: set[str], voice_ids: set[str]) -> bool:
-    try:
-        concept_names = set(net.get("regular", []))
-        for fc in net.get("fauxConsensus", []):
-            concept_names.add(fc["concept"])
-            if fc["campA"] not in school_ids or fc["campB"] not in school_ids:
-                return False
-        for g in net.get("gordian", []):
-            concept_names.add(g["concept"])
-            if g["campA"] not in school_ids or g["campB"] not in school_ids:
-                return False
-        allowed_by = school_ids | voice_ids
-        for c in net.get("concessions", []):
-            if c["by"] not in allowed_by:
-                return False
-            if c["targetConcept"] not in concept_names:
-                return False
-    except (KeyError, TypeError):
-        return False
-    return True
-
-
 # Task 4: Passe 1 — Cadre + voix
 
 def build_frame_prompt(transcript: str, voices: list[dict], meta: dict) -> str:
@@ -500,124 +445,34 @@ def run_timeline(client, transcript: str, meta: dict) -> dict | None:
     return _call_validated(client, prompt, _validate)
 
 
-# Task 6: Passe 3 — Trajectoires (kf)
+def merge_personas(voices, personas_interp, traj_map, speech_map, duration) -> list[dict]:
+    """Fusionne mesures (voices/speech) + interprétation passe 1 + trajectoires calculées.
 
-def build_traj_prompt(transcript, voices, personas_interp, events, meta) -> str:
-    duration = meta.get("totalDurationMinutes", 0)
-    voice_lines = "\n".join(
-        f'- {v["id"]} : entre à {v["entry"]} min, position FINALE = {personas_interp[v["id"]]["pos"]}'
-        for v in voices if v["id"] in personas_interp
-    )
-    event_lines = "\n".join(f'- {e["t"]} min : {e["title"]} ({e["type"]})' for e in events)
-    return f"""Tu traces la trajectoire d'opinion de chaque voix au fil d'un débat de {duration} minutes.
-
-IMPORTANT — c'est un débat de CRISTALLISATION : les positions de fond bougent PEU.
-Ne fabrique PAS de grands mouvements. Rends lisibles de PETITS glissements ancrés sur les
-moments de bascule. Un déplacement de plus de {MAX_KF_AMP} points entre deux instants proches
-sera rejeté.
-
-Voix (commence chaque trajectoire à la minute d'entrée, termine EXACTEMENT à la position finale donnée) :
-{voice_lines}
-
-Moments de bascule à utiliser comme ancrages temporels :
-{event_lines}
-
-Pour chaque voix, donne une liste de keyframes [minute, x, y], minute croissante, de l'entrée
-jusqu'à {duration}, x et y entre -10 et +10. Le premier point est à la minute d'entrée, le
-dernier est la position finale.
-
-Réponds UNIQUEMENT avec ce JSON : {{ "<id>": [[minute, x, y], ...] }}
-
-Transcription :
-{transcript}"""
-
-
-def run_trajectories(client, transcript, voices, personas_interp, events, meta) -> dict | None:
-    entries = {v["id"]: v["entry"] for v in voices}
-    finals = {vid: p["pos"] for vid, p in personas_interp.items()}
-
-    def _validate(o):
-        # On accepte tant que c'est un dict ; le filtrage par voix se fait après.
-        return isinstance(o, dict) and len(o) > 0
-
-    prompt = build_traj_prompt(transcript, voices, personas_interp, events, meta)
-    raw = _call_validated(client, prompt, _validate)
-    if raw is None:
-        return None
-    kept = {}
-    for vid, kf in raw.items():
-        if vid not in entries or vid not in finals:
-            continue
-        try:
-            kf = sorted(kf, key=lambda p: p[0])
-        except (TypeError, IndexError):
-            continue
-        if validate_kf(kf, entries[vid], finals[vid]):
-            kept[vid] = kf
-    return kept or None
-
-
-# Task 7: Passe 4 — Réseau conceptuel
-
-def build_concepts_prompt(transcript, schools, voices, meta) -> str:
-    school_lines = "\n".join(f'- {s["id"]} = {s["label"]}' for s in schools)
-    return f"""Tu cartographies la structure conceptuelle d'un débat sur « {meta.get("topic", "")} ».
-
-Camps/écoles disponibles (utilise EXACTEMENT ces id, aucun autre) :
-{school_lines}
-
-Produis un objet "concepts" avec :
-- "regular" : liste de concepts simples mobilisés (juste des noms).
-- "fauxConsensus" : les mots que tout le monde emploie mais avec des sens INCOMPATIBLES.
-  Pour chacun : concept, senseA, campA (un id d'école), senseB, campB (un id d'école).
-- "gordian" : les blocages irréconciliables. Pour chacun : concept, poleA, campA, poleB, campB, why.
-- "consensus" : points stabilisés. Pour chacun : label, t (minute), scope (texte court).
-- "concessions" : reculs datés. Pour chacun : by (un id d'école OU de voix), t (minute),
-  label, targetConcept (DOIT être un concept cité plus haut dans regular/fauxConsensus/gordian).
-
-Réponds UNIQUEMENT avec ce JSON :
-{{"regular": [], "fauxConsensus": [], "gordian": [], "consensus": [], "concessions": []}}
-
-Transcription :
-{transcript}"""
-
-
-def run_concepts(client, transcript, schools, voices, meta) -> dict | None:
-    school_ids = {s["id"] for s in schools}
-    voice_ids = {v["id"] for v in voices}
-    prompt = build_concepts_prompt(transcript, schools, voices, meta)
-    return _call_validated(client, prompt, lambda o: validate_concepts(o, school_ids, voice_ids))
-
-
-# Task 8: Assemblage + écriture data.js
-
-
-def merge_personas(voices, personas_interp, kf_map, duration) -> list[dict]:
-    """Merge computed voices with interpolation (camp/note/color) + keyframes.
-
-    If a voice has no kf in kf_map, use static fallback: entry to duration at same position.
-    Omit voices absent from personas_interp (no position → unplaceable).
+    Voix sans trajectoire mais positionnée par la passe 1 → kf statique (fallback).
+    Voix absente de personas_interp → non plaçable, omise.
     """
     personas = []
     for v in voices:
         interp = personas_interp.get(v["id"])
         if interp is None:
-            continue  # pas de position → non plaçable
-        x, y = interp["pos"]
-        kf = kf_map.get(v["id"]) or [[v["entry"], x, y], [duration, x, y]]
+            continue
+        traj = traj_map.get(v["id"])
+        if traj:
+            kf, points = traj["kf"], traj["points"]
+        else:
+            x, y = interp["pos"]
+            kf, points = [[v["entry"], x, y], [duration, x, y]], []
         personas.append({
             "id": v["id"], "label": v["label"], "camp": interp["camp"],
             "color": v["color"], "weight": v["weight"], "entry": v["entry"],
-            "kf": kf, "note": interp["note"],
+            "note": interp["note"], "speech": speech_map.get(v["id"], []),
+            "points": points, "kf": kf,
         })
     return personas
 
 
-def assemble_data(meta, frame, personas, timeline, refus, concepts) -> dict:
-    """Build DEBATE_DATA dict. frame/timeline/concepts may be None → omit those sections.
-
-    Graceful degradation: if a pass failed (None), skip that key entirely.
-    """
+def assemble_data(meta, frame, personas, timeline, refus) -> dict:
+    """Build DEBATE_DATA dict. frame/timeline may be None → omit those sections."""
     data = {
         "meta": meta,
         "personas": personas,
@@ -631,8 +486,6 @@ def assemble_data(meta, frame, personas, timeline, refus, concepts) -> dict:
     if timeline is not None:
         data["events"] = timeline["events"]
         data["tension"] = timeline["tension"]
-    if concepts is not None:
-        data["concepts"] = concepts
     return data
 
 
@@ -674,26 +527,27 @@ def analyze(json_path: Path, topic: str, code: str, date: str, client=None) -> b
             return False
         client = _make_client(api_key)
 
-    print("Passe 1/4 — cadre + voix...")
+    print("Passe 1/3 — cadre + voix...")
     frame = run_frame(client, transcript, voices, meta)
-    print("Passe 2/4 — events + tension...")
+    print("Passe 2/3 — events + tension...")
     timeline = run_timeline(client, transcript, meta)
 
-    kf_map = {}
     personas = []
     if frame is not None:
-        interp = frame["personas_interp"]
-        events = timeline["events"] if timeline else []
-        print("Passe 3/4 — trajectoires...")
-        kf_map = run_trajectories(client, transcript, voices, interp, events, meta) or {}
-        personas = merge_personas(voices, interp, kf_map, duration)
-        print("Passe 4/4 — réseau conceptuel...")
-        concepts = run_concepts(client, transcript, frame["schools"], voices, meta)
+        print("Passe 3/3 — scoring des prises de parole...")
+        blocks = select_scorable_blocks(segments)
+        scores = run_scoring(client, blocks, frame["axes"], meta)
+        traj_map = compute_trajectories(blocks, scores,
+                                        {v["id"]: v["entry"] for v in voices})
+        if traj_map:
+            personas = merge_personas(voices, frame["personas_interp"], traj_map,
+                                      compute_speech(segments), duration)
+        else:
+            print("Passe 3 entièrement échouée — carte masquée, frise seule.", file=sys.stderr)
     else:
-        print("Passe 1 échouée — carte/réseau indisponibles, on garde ce qui peut l'être.", file=sys.stderr)
-        concepts = None
+        print("Passe 1 échouée — carte indisponible, on garde ce qui peut l'être.", file=sys.stderr)
 
-    data = assemble_data(meta, frame, personas, timeline, refus, concepts)
+    data = assemble_data(meta, frame, personas, timeline, refus)
     viz_dir = Path(json_path).parent / "viz"
     write_viz(data, viz_dir)
     print(f"Visualisation écrite : {viz_dir / 'index.html'}")

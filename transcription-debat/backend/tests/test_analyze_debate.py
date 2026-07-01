@@ -142,49 +142,10 @@ def test_validate_tension():
     assert validate_tension([[10, 40], [5, 60]], 85) is False    # t non croissant
 
 
-def test_validate_kf_ok():
-    from analyze_debate import validate_kf
-    kf = [[8, 7, 3], [40, 7, 2], [85, 7, 1.5]]
-    assert validate_kf(kf, entry=8, final_xy=[7, 1.5]) is True
-
-
-def test_validate_kf_rejects_big_jump():
-    from analyze_debate import validate_kf
-    # saut de 8 points en 2 min (> MAX_KF_AMP sur Δt < MAX_KF_GAP)
-    kf = [[8, -8, 0], [10, 0, 0], [85, 0, 0]]
-    assert validate_kf(kf, entry=8, final_xy=[0, 0]) is False
-
-
-def test_validate_kf_rejects_wrong_endpoints():
-    from analyze_debate import validate_kf
-    kf = [[20, 0, 0], [85, 5, 5]]  # entry attendue 8, finale [0,0]
-    assert validate_kf(kf, entry=8, final_xy=[0, 0]) is False
-
-
-def test_validate_concepts():
-    from analyze_debate import validate_concepts
-    net = {
-        "regular": ["Mérite"],
-        "fauxConsensus": [{"concept": "Liberté", "senseA": "x", "campA": "lib", "senseB": "y", "campB": "sol"}],
-        "gordian": [{"concept": "Redistribution", "poleA": "x", "campA": "lib", "poleB": "y", "campB": "sol", "why": "z"}],
-        "consensus": [{"label": "Démographie", "t": 6, "scope": "tous"}],
-        "concessions": [{"by": "lib", "t": 23, "label": "x", "targetConcept": "Liberté"}],
-    }
-    assert validate_concepts(net, SCHOOL_IDS, VOICE_IDS) is True
-    bad = dict(net, concessions=[{"by": "zzz", "t": 1, "label": "x", "targetConcept": "Liberté"}])
-    assert validate_concepts(bad, SCHOOL_IDS, VOICE_IDS) is False
-
-
 def test_validate_tension_rejects_nonnumeric():
     from analyze_debate import validate_tension
     assert validate_tension([[0, 40], ["x", 50]], 85) is False
     assert validate_tension([[0, 40], [10, None]], 85) is False
-
-
-def test_validate_kf_rejects_malformed_keyframe():
-    from analyze_debate import validate_kf
-    assert validate_kf([[8]], entry=8, final_xy=[0, 0]) is False
-    assert validate_kf([[8, 0, 0], [40, 7]], entry=8, final_xy=[0, 0]) is False
 
 
 # Task 3: Helper Gemini tests
@@ -303,106 +264,39 @@ def test_run_timeline_rejects_bad_event_type():
     assert run_timeline(client, "transcript", {"totalDurationMinutes": 85}) is None
 
 
-# Task 6: Passe 3 — Trajectoires (kf)
+# Assemblage + orchestration (3 passes)
 
-def _traj_setup():
-    from analyze_debate import compute_voices
-    voices = compute_voices(SEGMENTS)
-    personas_interp = {
-        "i1": {"camp": "Libéral", "note": "x", "pos": [-8, 6]},
-        "i2": {"camp": "Solidariste", "note": "y", "pos": [7, 1.5]},
-        "anim": {"camp": "Méta", "note": "z", "pos": [0, 4]},
-    }
-    events = [{"t": 16, "type": "dissensus", "magnitude": 2, "title": "T", "desc": "D"}]
-    return voices, personas_interp, events
+SCORING_RESPONSE = json.dumps([
+    {"i": 1, "x": -8, "y": 6, "stance": "Défend la primauté de la liberté individuelle.", "salience": 0.9},
+    {"i": 2, "x": 7, "y": 2, "stance": "Oppose que l'égalité doit primer.", "salience": 0.8},
+    {"i": 5, "x": -8, "y": 5, "stance": "Réaffirme sa position initiale.", "salience": 0.6},
+])
 
 
-def test_run_trajectories_keeps_valid_kf():
-    from analyze_debate import run_trajectories
-    voices, personas_interp, events = _traj_setup()
-    # i1 entre à 1.0 min, finale [-8,6] ; i2 entre à 3.0, finale [7,1.5] ; anim entre à 0.0, finale [0,4]
-    response = json.dumps({
-        "i1":   [[1.0, -8, 6], [5.0, -7, 6], [10.0, -8, 6]],
-        "i2":   [[3.0, 7, 3], [5.0, 7, 2], [10.0, 7, 1.5]],
-        "anim": [[0.0, 0, 4], [10.0, 0, 4]],
-    })
-    client = MagicMock()
-    resp = MagicMock(); resp.text = response
-    client.models.generate_content.return_value = resp
-    out = run_trajectories(client, "transcript", voices, personas_interp, events, {"totalDurationMinutes": 10})
-    assert set(out.keys()) == {"i1", "i2", "anim"}
-    # les kf sont triées par t et finissent à la position finale
-    assert out["i1"][0][0] <= out["i1"][-1][0]
-
-
-def test_run_trajectories_omits_bad_kf():
-    from analyze_debate import run_trajectories
-    voices, personas_interp, events = _traj_setup()
-    response = json.dumps({
-        "i1":   [[1.0, -8, 6], [3, 8, -8], [10.0, -8, 6]],  # saut énorme → rejeté
-        "anim": [[0.0, 0, 4], [10.0, 0, 4]],                # ok
-    })
-    client = MagicMock()
-    resp = MagicMock(); resp.text = response
-    client.models.generate_content.return_value = resp
-    out = run_trajectories(client, "transcript", voices, personas_interp, events, {"totalDurationMinutes": 10})
-    assert "i1" not in out
-    assert "anim" in out
-
-
-# Task 7: Passe 4 — Réseau conceptuel
-
-CONCEPTS_RESPONSE = json.dumps({
-    "regular": ["Mérite", "Démographie"],
-    "fauxConsensus": [{"concept": "Liberté", "senseA": "négative", "campA": "lib", "senseB": "positive", "campB": "sol"}],
-    "gordian": [{"concept": "Redistribution", "poleA": "vol", "campA": "lib", "poleB": "assurance", "campB": "sol", "why": "définition"}],
-    "consensus": [{"label": "Choc démographique", "t": 6, "scope": "tous"}],
-    "concessions": [{"by": "lib", "t": 23, "label": "minimum privé", "targetConcept": "Liberté"}],
-})
-
-SCHOOLS_FIXT = [
-    {"id": "lib", "label": "Libéraux", "cx": -8, "cy": 6, "rx": 2, "ry": 2, "members": ["i1"]},
-    {"id": "sol", "label": "Solidaristes", "cx": 7, "cy": 2, "rx": 2, "ry": 2, "members": ["i2"]},
-]
-
-
-def test_run_concepts_ok():
-    from analyze_debate import run_concepts, compute_voices
-    voices = compute_voices(SEGMENTS)
-    client = MagicMock()
-    resp = MagicMock(); resp.text = CONCEPTS_RESPONSE
-    client.models.generate_content.return_value = resp
-    out = run_concepts(client, "transcript", SCHOOLS_FIXT, voices, {"topic": "X"})
-    assert out["fauxConsensus"][0]["campA"] == "lib"
-
-
-def test_run_concepts_rejects_unknown_camp():
-    from analyze_debate import run_concepts, compute_voices
-    voices = compute_voices(SEGMENTS)
-    bad = json.dumps({"regular": [], "fauxConsensus": [
-        {"concept": "X", "senseA": "a", "campA": "ZZZ", "senseB": "b", "campB": "sol"}],
-        "gordian": [], "consensus": [], "concessions": []})
-    client = MagicMock()
-    resp = MagicMock(); resp.text = bad
-    client.models.generate_content.return_value = resp
-    assert run_concepts(client, "transcript", SCHOOLS_FIXT, voices, {"topic": "X"}) is None
-
-
-# Task 8: Assemblage + écriture data.js
-
-
-def test_merge_personas_static_fallback_when_no_kf():
+def test_merge_personas_static_fallback_when_no_traj():
     from analyze_debate import compute_voices, merge_personas
     voices = compute_voices(SEGMENTS)
     interp = {"i1": {"camp": "Lib", "note": "n", "pos": [-8, 6]}}
-    personas = merge_personas(voices, interp, kf_map={}, duration=10.0)
+    personas = merge_personas(voices, interp, traj_map={}, speech_map={}, duration=10.0)
     p = {x["id"]: x for x in personas}
-    assert "i1" in p
-    assert "i2" not in p  # pas de position → omise
-    # kf statique : début à entry, fin à durée, même position
-    assert p["i1"]["kf"][0] == [p["i1"]["entry"], -8, 6]
-    assert p["i1"]["kf"][-1] == [10.0, -8, 6]
+    assert "i1" in p and "i2" not in p          # pas de position passe 1 → omise
+    assert p["i1"]["kf"] == [[p["i1"]["entry"], -8, 6], [10.0, -8, 6]]
+    assert p["i1"]["points"] == []
     assert p["i1"]["camp"] == "Lib"
+
+
+def test_merge_personas_includes_points_and_speech():
+    from analyze_debate import compute_voices, merge_personas
+    voices = compute_voices(SEGMENTS)
+    interp = {"i1": {"camp": "Lib", "note": "n", "pos": [-8, 6]}}
+    traj = {"i1": {"points": [{"t": 2.0, "x": 0, "y": 0, "stance": "s", "salience": 1.0}],
+                   "kf": [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0]]}}
+    speech = {"i1": [[1.0, 3.0], [5.33, 10.0]]}
+    personas = merge_personas(voices, interp, traj, speech, 10.0)
+    p = {x["id"]: x for x in personas}
+    assert p["i1"]["points"][0]["stance"] == "s"
+    assert p["i1"]["speech"] == [[1.0, 3.0], [5.33, 10.0]]
+    assert p["i1"]["kf"][0] == [1.0, 0.0, 0.0]
 
 
 def test_assemble_data_omits_failed_passes():
@@ -413,13 +307,11 @@ def test_assemble_data_omits_failed_passes():
         personas=[{"id": "i1", "kf": [[0, 0, 0]]}],
         timeline=None,          # passe 2 échouée
         refus=[[4.0, 5.3]],
-        concepts=None,          # passe 4 échouée
     )
     assert "axes" in data
     assert "events" not in data and "tension" not in data
     assert "concepts" not in data
     assert data["refus"] == [[4.0, 5.3]]
-    assert data["meta"]["topic"] == "X"
 
 
 def test_write_data_js(tmp_path):
@@ -441,8 +333,6 @@ def test_viz_template_exists_and_generalized():
     assert "Débat sur les retraites" not in html  # plus de titre en dur
 
 
-# Task 10: Orchestration analyze() + CLI + écriture viz/
-
 def test_analyze_end_to_end_writes_viz(tmp_path):
     from analyze_debate import analyze
     debate_dir = tmp_path / "Retraites" / "0F6A9E"
@@ -450,27 +340,22 @@ def test_analyze_end_to_end_writes_viz(tmp_path):
     json_path = debate_dir / "0F6A9E_2026-05-28_corrected.json"
     json_path.write_text(json.dumps(SEGMENTS), encoding="utf-8")
 
-    # Client mocké : retourne tour à tour frame, timeline, trajectoires, concepts.
     client = MagicMock()
     frame_r = MagicMock(); frame_r.text = FRAME_RESPONSE
     timeline_r = MagicMock(); timeline_r.text = TIMELINE_RESPONSE
-    traj_r = MagicMock(); traj_r.text = json.dumps({
-        "i1": [[1.0, -8, 6], [10.0, -8, 6]],
-        "i2": [[3.0, 7, 1.5], [10.0, 7, 1.5]],
-        "anim": [[0.0, 0, 4], [10.0, 0, 4]],
-    })
-    concepts_r = MagicMock(); concepts_r.text = CONCEPTS_RESPONSE
-    client.models.generate_content.side_effect = [frame_r, timeline_r, traj_r, concepts_r]
+    scoring_r = MagicMock(); scoring_r.text = SCORING_RESPONSE
+    client.models.generate_content.side_effect = [frame_r, timeline_r, scoring_r]
 
     ok = analyze(json_path, "Retraites", "0F6A9E", "2026-05-28", client=client)
     assert ok is True
     viz = debate_dir / "viz"
-    assert (viz / "data.js").exists()
-    assert (viz / "index.html").exists()
+    assert (viz / "data.js").exists() and (viz / "index.html").exists()
     content = (viz / "data.js").read_text(encoding="utf-8")
     assert "const DEBATE_DATA" in content
-    assert "Liberté" in content      # passe 1
-    assert "Démographie" in content  # passe 4
+    assert '"anchors"' in content        # passe 1 enrichie
+    assert '"points"' in content and '"speech"' in content
+    assert '"stance"' in content
+    assert '"concepts"' not in content   # passe supprimée
 
 
 def test_analyze_degrades_when_a_pass_fails(tmp_path):
@@ -482,17 +367,37 @@ def test_analyze_degrades_when_a_pass_fails(tmp_path):
 
     client = MagicMock()
     frame_r = MagicMock(); frame_r.text = FRAME_RESPONSE
-    bad = MagicMock(); bad.text = "pas du json"  # timeline KO (2 tentatives)
-    traj_r = MagicMock(); traj_r.text = json.dumps({"i1": [[1.0, -8, 6], [10.0, -8, 6]]})
-    concepts_r = MagicMock(); concepts_r.text = CONCEPTS_RESPONSE
-    # frame(1), timeline(2 essais), trajectoires(1), concepts(1)
-    client.models.generate_content.side_effect = [frame_r, bad, bad, traj_r, concepts_r]
+    bad = MagicMock(); bad.text = "pas du json"     # timeline KO (2 tentatives)
+    scoring_r = MagicMock(); scoring_r.text = SCORING_RESPONSE
+    # frame(1), timeline(2 essais), scoring(1)
+    client.models.generate_content.side_effect = [frame_r, bad, bad, scoring_r]
 
     ok = analyze(json_path, "Retraites", "0F6A9E", "2026-05-28", client=client)
     assert ok is True
     content = (debate_dir / "viz" / "data.js").read_text(encoding="utf-8")
-    assert '"events"' not in content   # timeline omise
-    assert '"axes"' in content         # frame présente
+    assert '"events"' not in content    # timeline omise
+    assert '"axes"' in content          # frame présente
+    assert '"points"' in content        # scoring OK malgré timeline KO
+
+
+def test_analyze_hides_map_when_scoring_fully_fails(tmp_path):
+    from analyze_debate import analyze
+    debate_dir = tmp_path / "Retraites" / "0F6A9E"
+    debate_dir.mkdir(parents=True)
+    json_path = debate_dir / "0F6A9E_2026-05-28_corrected.json"
+    json_path.write_text(json.dumps(SEGMENTS), encoding="utf-8")
+
+    client = MagicMock()
+    frame_r = MagicMock(); frame_r.text = FRAME_RESPONSE
+    timeline_r = MagicMock(); timeline_r.text = TIMELINE_RESPONSE
+    bad = MagicMock(); bad.text = "pas du json"     # scoring KO (2 tentatives, 1 seul lot)
+    client.models.generate_content.side_effect = [frame_r, timeline_r, bad, bad]
+
+    ok = analyze(json_path, "Retraites", "0F6A9E", "2026-05-28", client=client)
+    assert ok is True
+    content = (debate_dir / "viz" / "data.js").read_text(encoding="utf-8")
+    assert '"personas": []' in content  # carte masquée
+    assert '"tension"' in content       # frise seule
 
 
 # Mesures sans LLM : speech + blocs scorables
