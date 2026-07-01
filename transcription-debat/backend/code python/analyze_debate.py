@@ -264,6 +264,37 @@ def validate_kf(kf: list, entry: float, final_xy: list[float]) -> bool:
     return True
 
 
+_FORBIDDEN_STANCE_CHARS = ('"', "«", "»")
+
+
+def validate_scores(scores, allowed: set[int]) -> bool:
+    """Valide la réponse LLM d'un lot de scoring (passe 3)."""
+    if not isinstance(scores, list):
+        return False
+    seen: set[int] = set()
+    for item in scores:
+        try:
+            i = item["i"]
+            if not isinstance(i, int) or i not in allowed or i in seen:
+                return False
+            seen.add(i)
+            if item.get("none") is True:
+                continue
+            if not (_in_bounds(item["x"]) and _in_bounds(item["y"])):
+                return False
+            stance = item["stance"]
+            if not isinstance(stance, str) or not stance.strip():
+                return False
+            if any(c in stance for c in _FORBIDDEN_STANCE_CHARS):
+                return False
+            sal = item["salience"]
+            if not isinstance(sal, (int, float)) or not (0 <= sal <= 1):
+                return False
+        except (KeyError, TypeError):
+            return False
+    return seen == allowed
+
+
 def validate_concepts(net: dict, school_ids: set[str], voice_ids: set[str]) -> bool:
     try:
         concept_names = set(net.get("regular", []))

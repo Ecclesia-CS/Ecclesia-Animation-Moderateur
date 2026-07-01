@@ -502,3 +502,48 @@ def test_select_scorable_blocks_index_and_time():
     assert blocks[1]["t"] == 1.0
     assert blocks[5]["t"] == 5.33
     assert blocks[1]["label"] == "Interlocuteur 1"
+
+
+# Validateur de la passe scoring
+
+def test_validate_scores_ok():
+    from analyze_debate import validate_scores
+    scores = [
+        {"i": 1, "x": -8, "y": 6, "stance": "Défend la primauté de la liberté.", "salience": 0.9},
+        {"i": 2, "none": True},
+    ]
+    assert validate_scores(scores, {1, 2}) is True
+
+
+def test_validate_scores_rejects_unknown_index():
+    from analyze_debate import validate_scores
+    scores = [{"i": 99, "x": 0, "y": 0, "stance": "s", "salience": 0.5},
+              {"i": 1, "none": True}, {"i": 2, "none": True}]
+    assert validate_scores(scores, {1, 2}) is False
+
+
+def test_validate_scores_requires_all_indices():
+    from analyze_debate import validate_scores
+    scores = [{"i": 1, "none": True}]  # 2 manquant
+    assert validate_scores(scores, {1, 2}) is False
+
+
+def test_validate_scores_rejects_out_of_bounds():
+    from analyze_debate import validate_scores
+    scores = [{"i": 1, "x": 99, "y": 0, "stance": "s", "salience": 0.5}]
+    assert validate_scores(scores, {1}) is False
+
+
+def test_validate_scores_rejects_empty_or_quoted_stance():
+    from analyze_debate import validate_scores
+    empty = [{"i": 1, "x": 0, "y": 0, "stance": "  ", "salience": 0.5}]
+    quoted = [{"i": 1, "x": 0, "y": 0, "stance": "Il dit « je refuse »", "salience": 0.5}]
+    assert validate_scores(empty, {1}) is False
+    assert validate_scores(quoted, {1}) is False
+
+
+def test_validate_scores_rejects_bad_salience_and_malformed():
+    from analyze_debate import validate_scores
+    assert validate_scores([{"i": 1, "x": 0, "y": 0, "stance": "s", "salience": 2}], {1}) is False
+    assert validate_scores("pas une liste", {1}) is False
+    assert validate_scores([{"x": 0}], {1}) is False
