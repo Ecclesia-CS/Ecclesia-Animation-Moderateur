@@ -547,3 +547,61 @@ def test_validate_scores_rejects_bad_salience_and_malformed():
     assert validate_scores([{"i": 1, "x": 0, "y": 0, "stance": "s", "salience": 2}], {1}) is False
     assert validate_scores("pas une liste", {1}) is False
     assert validate_scores([{"x": 0}], {1}) is False
+
+
+# Passe 3 — scoring par bloc
+
+AXES_FIXT = {
+    "x": {"leftLabel": "Liberté", "rightLabel": "Égalité"},
+    "y": {"bottomLabel": "Technique", "topLabel": "Principes"},
+}
+
+
+def test_build_scoring_prompt_includes_axes_and_payload():
+    from analyze_debate import build_scoring_prompt
+    batch = [{"i": 1, "vid": "i1", "label": "Interlocuteur 1", "t": 1.0, "text": "Texte du bloc."}]
+    prompt = build_scoring_prompt(batch, [], [], AXES_FIXT, {"topic": "Retraites"})
+    assert "Liberté" in prompt and "Égalité" in prompt
+    assert "Texte du bloc." in prompt
+    assert "reformulation" in prompt.lower()
+    assert "prénom" in prompt.lower()
+
+
+def test_run_scoring_merges_batches():
+    from analyze_debate import run_scoring
+    import analyze_debate
+    # 26 blocs → 2 lots (25 + 1)
+    blocks = [{"i": n, "vid": "i1", "label": "Interlocuteur 1", "t": float(n), "text": "x " * 20}
+              for n in range(26)]
+    lot1 = json.dumps([{"i": n, "x": 0, "y": 0, "stance": "Position.", "salience": 0.5}
+                       for n in range(25)])
+    lot2 = json.dumps([{"i": 25, "none": True}])
+    client = MagicMock()
+    r1 = MagicMock(); r1.text = lot1
+    r2 = MagicMock(); r2.text = lot2
+    client.models.generate_content.side_effect = [r1, r2]
+    out = run_scoring(client, blocks, AXES_FIXT, {"topic": "X"})
+    assert client.models.generate_content.call_count == 2
+    assert set(out.keys()) == set(range(25))          # le "none" (i=25) est exclu
+    assert out[0]["stance"] == "Position."
+
+
+def test_run_scoring_skips_failed_batch():
+    from analyze_debate import run_scoring
+    blocks = [{"i": n, "vid": "i1", "label": "Interlocuteur 1", "t": float(n), "text": "x " * 20}
+              for n in range(26)]
+    bad = MagicMock(); bad.text = "pas du json"
+    lot2 = MagicMock(); lot2.text = json.dumps(
+        [{"i": 25, "x": 1, "y": 1, "stance": "Position.", "salience": 0.7}])
+    client = MagicMock()
+    # lot 1 : 2 tentatives échouées ; lot 2 : OK
+    client.models.generate_content.side_effect = [bad, bad, lot2]
+    out = run_scoring(client, blocks, AXES_FIXT, {"topic": "X"})
+    assert set(out.keys()) == {25}
+
+
+def test_run_scoring_empty_blocks_no_call():
+    from analyze_debate import run_scoring
+    client = MagicMock()
+    assert run_scoring(client, [], AXES_FIXT, {"topic": "X"}) == {}
+    client.models.generate_content.assert_not_called()

@@ -20,6 +20,8 @@ EVENT_TYPES = {"cadrage", "technique", "dissensus", "consensus", "concession", "
 MAX_KF_AMP = 4.0
 MAX_KF_GAP = 10.0
 MIN_BLOCK_WORDS = 15
+SCORE_BATCH_SIZE = 25
+SCORE_CONTEXT = 3
 
 _INTERLOCUTEUR_RE = re.compile(r"^Interlocuteur\s+(\d+)$")
 
@@ -293,6 +295,59 @@ def validate_scores(scores, allowed: set[int]) -> bool:
         except (KeyError, TypeError):
             return False
     return seen == allowed
+
+
+# Passe 3 — Scoring par bloc de parole
+
+def build_scoring_prompt(batch, ctx_before, ctx_after, axes, meta) -> str:
+    payload = json.dumps({
+        "context_avant": [{"locuteur": b["label"], "texte": b["text"]} for b in ctx_before],
+        "blocs": [{"i": b["i"], "locuteur": b["label"], "texte": b["text"]} for b in batch],
+        "context_apres": [{"locuteur": b["label"], "texte": b["text"]} for b in ctx_after],
+    }, ensure_ascii=False)
+    return f"""Tu analyses des prises de parole d'un débat sur « {meta.get("topic", "")} ».
+
+Le cadre d'analyse est un plan à deux axes (échelle -10 à +10) :
+- Axe x : {axes["x"]["leftLabel"]} (-10) ⟷ {axes["x"]["rightLabel"]} (+10)
+- Axe y : {axes["y"]["bottomLabel"]} (-10) ⟷ {axes["y"]["topLabel"]} (+10)
+
+On te donne un JSON : "context_avant" (lecture seule), "blocs" (à scorer), "context_apres" (lecture seule).
+
+Pour CHAQUE élément de "blocs", réponds :
+- s'il exprime une position sur le sujet : {{"i": <même i>, "x": <-10..10>, "y": <-10..10>,
+  "stance": "<reformulation élégante en 1-2 phrases du point de vue exprimé, à la 3e personne>",
+  "salience": <0..1, force avec laquelle la position est affirmée>}}
+- sinon (logistique, question neutre, relance, plaisanterie) : {{"i": <même i>, "none": true}}
+
+Règles STRICTES :
+- "stance" est une REFORMULATION, jamais une citation. N'utilise AUCUN guillemet.
+- N'introduis AUCUN prénom ni nom propre de personne. Désigne les personnes par leur label
+  (Interlocuteur N, Modérateur).
+- Ne score que le contenu réellement présent dans le bloc. N'invente rien.
+- Réponds UNIQUEMENT avec un tableau JSON, un objet par bloc, tous les "i" de "blocs" présents.
+
+{payload}"""
+
+
+def run_scoring(client, blocks, axes, meta) -> dict[int, dict]:
+    """Score chaque bloc par lots ; les lots invalides sont ignorés (dégradation)."""
+    scores: dict[int, dict] = {}
+    for k in range(0, len(blocks), SCORE_BATCH_SIZE):
+        batch = blocks[k:k + SCORE_BATCH_SIZE]
+        ctx_before = blocks[max(0, k - SCORE_CONTEXT):k]
+        ctx_after = blocks[k + SCORE_BATCH_SIZE:k + SCORE_BATCH_SIZE + SCORE_CONTEXT]
+        allowed = {b["i"] for b in batch}
+        prompt = build_scoring_prompt(batch, ctx_before, ctx_after, axes, meta)
+        out = _call_validated(client, prompt, lambda o, a=allowed: validate_scores(o, a))
+        if out is None:
+            print(f"  Lot de scoring ignoré ({len(batch)} blocs).", file=sys.stderr)
+            continue
+        for item in out:
+            if not item.get("none"):
+                scores[item["i"]] = {"x": item["x"], "y": item["y"],
+                                     "stance": item["stance"].strip(),
+                                     "salience": item["salience"]}
+    return scores
 
 
 def validate_concepts(net: dict, school_ids: set[str], voice_ids: set[str]) -> bool:
