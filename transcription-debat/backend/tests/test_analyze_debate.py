@@ -61,12 +61,22 @@ VOICE_IDS = {"i1", "i2", "anim"}
 SCHOOL_IDS = {"lib", "sol"}
 
 
+ANCHORS_X = {"left": ["La liberté individuelle passe avant tout.",
+                      "Toute contrainte collective doit rester exceptionnelle."],
+             "right": ["Sans conditions matérielles partagées, la liberté est un privilège.",
+                       "L'égalité réelle précède la liberté formelle."]}
+ANCHORS_Y = {"bottom": ["Le débat doit rester sur les mécanismes concrets.",
+                        "Les chiffres tranchent mieux que les principes."],
+             "top": ["C'est une question de principes avant tout.",
+                     "Les valeurs priment sur la faisabilité."]}
+
+
 def test_validate_frame_ok():
     from analyze_debate import validate_frame
     frame = {
         "axes": {
-            "x": {"leftLabel": "Liberté", "rightLabel": "Égalité"},
-            "y": {"bottomLabel": "Technique", "topLabel": "Principes"},
+            "x": {"leftLabel": "Liberté", "rightLabel": "Égalité", "anchors": ANCHORS_X},
+            "y": {"bottomLabel": "Technique", "topLabel": "Principes", "anchors": ANCHORS_Y},
             "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"},
         },
         "personas_interp": {"i1": {"camp": "Libéral", "note": "x", "pos": [-8, 6]}},
@@ -78,8 +88,8 @@ def test_validate_frame_ok():
 def test_validate_frame_rejects_unknown_voice():
     from analyze_debate import validate_frame
     frame = {
-        "axes": {"x": {"leftLabel": "a", "rightLabel": "b"},
-                 "y": {"bottomLabel": "c", "topLabel": "d"},
+        "axes": {"x": {"leftLabel": "a", "rightLabel": "b", "anchors": ANCHORS_X},
+                 "y": {"bottomLabel": "c", "topLabel": "d", "anchors": ANCHORS_Y},
                  "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"}},
         "personas_interp": {"i99": {"camp": "X", "note": "y", "pos": [0, 0]}},
         "schools": [],
@@ -90,12 +100,30 @@ def test_validate_frame_rejects_unknown_voice():
 def test_validate_frame_rejects_out_of_bounds():
     from analyze_debate import validate_frame
     frame = {
-        "axes": {"x": {"leftLabel": "a", "rightLabel": "b"},
-                 "y": {"bottomLabel": "c", "topLabel": "d"},
+        "axes": {"x": {"leftLabel": "a", "rightLabel": "b", "anchors": ANCHORS_X},
+                 "y": {"bottomLabel": "c", "topLabel": "d", "anchors": ANCHORS_Y},
                  "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"}},
         "personas_interp": {"i1": {"camp": "X", "note": "y", "pos": [99, 0]}},
         "schools": [],
     }
+    assert validate_frame(frame, VOICE_IDS) is False
+
+
+def test_validate_frame_rejects_missing_anchors():
+    from analyze_debate import validate_frame
+    frame = {
+        "axes": {
+            "x": {"leftLabel": "a", "rightLabel": "b"},   # pas d'anchors
+            "y": {"bottomLabel": "c", "topLabel": "d", "anchors": ANCHORS_Y},
+            "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"},
+        },
+        "personas_interp": {},
+        "schools": [],
+    }
+    assert validate_frame(frame, VOICE_IDS) is False
+    # ancre vide → rejet aussi
+    bad = {"left": ["ok", "  "], "right": ["a", "b"]}
+    frame["axes"]["x"] = {"leftLabel": "a", "rightLabel": "b", "anchors": bad}
     assert validate_frame(frame, VOICE_IDS) is False
 
 
@@ -199,8 +227,8 @@ def test_segments_to_text():
 
 FRAME_RESPONSE = json.dumps({
     "axes": {
-        "x": {"leftLabel": "Liberté", "rightLabel": "Égalité"},
-        "y": {"bottomLabel": "Technique", "topLabel": "Principes"},
+        "x": {"leftLabel": "Liberté", "rightLabel": "Égalité", "anchors": ANCHORS_X},
+        "y": {"bottomLabel": "Technique", "topLabel": "Principes", "anchors": ANCHORS_Y},
         "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"},
     },
     "personas_interp": {

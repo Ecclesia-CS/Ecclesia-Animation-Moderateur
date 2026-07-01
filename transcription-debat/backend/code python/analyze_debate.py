@@ -182,6 +182,14 @@ def validate_frame(frame: dict, voice_ids: set[str]) -> bool:
             return False
         if not all(k in ax["y"] for k in ("bottomLabel", "topLabel")):
             return False
+        for axis, poles in (("x", ("left", "right")), ("y", ("bottom", "top"))):
+            anchors = ax[axis]["anchors"]
+            for pole in poles:
+                vals = anchors[pole]
+                if not isinstance(vals, list) or not (2 <= len(vals) <= 3):
+                    return False
+                if not all(isinstance(s, str) and s.strip() for s in vals):
+                    return False
         if set(ax["quadrants"]) != {"topLeft", "topRight", "bottomLeft", "bottomRight"}:
             return False
         for vid, p in frame["personas_interp"].items():
@@ -422,6 +430,9 @@ Ta tâche : poser le CADRE idéologique propre à CE débat et y placer chaque v
 1. Trouve les DEUX axes qui structurent le mieux ce débat précis. Axe x et axe y, échelle -10 à +10.
    Donne un label court à chaque extrémité (leftLabel/rightLabel pour x, bottomLabel/topLabel pour y),
    et un descripteur court à chacun des 4 quadrants.
+   Pour chaque pôle, donne aussi "anchors" : 2 à 3 positions-types RÉELLEMENT entendues dans ce débat
+   qui incarnent ce pôle, REFORMULÉES en une phrase chacune — jamais de citation exacte, aucun guillemet,
+   aucun prénom.
 2. Place chaque voix à sa position de FIN de débat : pos = [x, y], x et y entre -10 et +10.
    Donne aussi un "camp" (étiquette courte de sa posture) et une "note" (1 phrase d'analyse).
 3. Regroupe les voix proches en "écoles" : pour chaque école un id court (ex. "lib", "sol"),
@@ -430,8 +441,8 @@ Ta tâche : poser le CADRE idéologique propre à CE débat et y placer chaque v
 Réponds UNIQUEMENT avec ce JSON, sans commentaire :
 {{
   "axes": {{
-    "x": {{"leftLabel": "...", "rightLabel": "..."}},
-    "y": {{"bottomLabel": "...", "topLabel": "..."}},
+    "x": {{"leftLabel": "...", "rightLabel": "...", "anchors": {{"left": ["...", "..."], "right": ["...", "..."]}}}},
+    "y": {{"bottomLabel": "...", "topLabel": "...", "anchors": {{"bottom": ["...", "..."], "top": ["...", "..."]}}}},
     "quadrants": {{"topLeft": "...", "topRight": "...", "bottomLeft": "...", "bottomRight": "..."}}
   }},
   "personas_interp": {{ "<id>": {{"camp": "...", "note": "...", "pos": [x, y]}} }},
