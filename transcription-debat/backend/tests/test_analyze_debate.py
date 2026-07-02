@@ -618,8 +618,10 @@ def test_compute_trajectories_smooths_toward_new_score():
         (2, "i1", 10.0, 10, 0, 1.0),
     ])
     out = compute_trajectories(blocks, scores, {"i1": 1.0})
-    # EWMA : 0 + 0.35*1.0*(10-0) = 3.5 — pas un saut à 10
-    assert out["i1"]["kf"] == [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [10.0, 3.5, 0.0]]
+    # EWMA : 0 + 0.35*1.0*(10-0) = 3.5 — pas un saut à 10.
+    # Gap de 8 min > TRAJ_HOLD_GAP → keyframe de maintien à t-1.
+    assert out["i1"]["kf"] == [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0],
+                               [9.0, 0.0, 0.0], [10.0, 3.5, 0.0]]
 
 
 def test_compute_trajectories_salience_is_floored():
@@ -631,6 +633,29 @@ def test_compute_trajectories_salience_is_floored():
     out = compute_trajectories(blocks, scores, {"i1": 1.0})
     # 0 + 0.35*max(0.3, 0)*(10-0) = 1.05 : un bloc réellement scoré pèse toujours un minimum
     assert out["i1"]["kf"][-1] == [10.0, 1.05, 0.0]
+
+
+def test_compute_trajectories_holds_position_during_long_silence():
+    from analyze_debate import compute_trajectories
+    blocks, scores = _blocks_and_scores([
+        (1, "i1", 2.0, 0, 0, 1.0),
+        (2, "i1", 30.0, 10, 0, 1.0),   # 28 min de silence
+    ])
+    out = compute_trajectories(blocks, scores, {"i1": 1.0})
+    # maintien à l'ancienne position jusqu'à 1 min avant la nouvelle prise de parole :
+    # pas de glissement sur la carte sans prise de parole réelle
+    assert [29.0, 0.0, 0.0] in out["i1"]["kf"]
+    assert out["i1"]["kf"][-1] == [30.0, 3.5, 0.0]
+
+
+def test_compute_trajectories_no_hold_for_short_gap():
+    from analyze_debate import compute_trajectories
+    blocks, scores = _blocks_and_scores([
+        (1, "i1", 2.0, 0, 0, 1.0),
+        (2, "i1", 4.5, 10, 0, 1.0),    # 2.5 min ≤ TRAJ_HOLD_GAP → interpolation directe
+    ])
+    out = compute_trajectories(blocks, scores, {"i1": 1.0})
+    assert out["i1"]["kf"] == [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [4.5, 3.5, 0.0]]
 
 
 def test_compute_trajectories_single_block_fixed():

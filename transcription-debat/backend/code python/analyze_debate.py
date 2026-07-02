@@ -32,6 +32,11 @@ EWMA_ALPHA = 0.35
 # Plancher (recherche §8.3.4) : la salience LLM n'est pas validée comme pondération ;
 # la borner évite qu'elle écrase l'influence d'un bloc réellement scoré.
 SALIENCE_FLOOR = 0.3
+# Maintien pendant les silences (recherche §8.3.3, audit « silences longs interpolés ») :
+# une voix qui ne parle pas ne glisse pas sur la carte — le déplacement est ancré au
+# moment réel de la prise de parole suivante.
+TRAJ_HOLD_GAP = 3.0      # minutes de silence au-delà desquelles la position est figée
+TRAJ_TRANSITION = 1.0    # le déplacement s'anime sur la minute précédant la prise de parole
 
 _INTERLOCUTEUR_RE = re.compile(r"^Interlocuteur\s+(\d+)$")
 
@@ -389,6 +394,9 @@ def compute_trajectories(blocks, scores, entries) -> dict[str, dict]:
             kf.append([round(entry, 2), round(sx, 2), round(sy, 2)])
         for i, p in enumerate(pts):
             if i > 0:
+                if kf and p["t"] - kf[-1][0] > TRAJ_HOLD_GAP:
+                    kf.append([round(p["t"] - TRAJ_TRANSITION, 2),
+                               round(sx, 2), round(sy, 2)])
                 a = EWMA_ALPHA * max(SALIENCE_FLOOR, p["salience"])
                 sx += a * (p["x"] - sx)
                 sy += a * (p["y"] - sy)
