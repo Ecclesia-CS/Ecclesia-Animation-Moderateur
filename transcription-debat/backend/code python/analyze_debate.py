@@ -12,6 +12,9 @@ from correct_transcript import _load_api_key, _make_client
 load_dotenv()
 
 MODEL = os.getenv("GEMINI_ANALYSIS_MODEL", "gemini-3.1-flash-lite")
+# Reproductibilité (recherche §5.2) : T=0 fait passer l'accord inter-exécutions ~91→97 %
+# (Gilardi et al. 2023). Dict brut : pas d'import google.genai au chargement du module.
+GEN_CONFIG = {"temperature": 0.0, "seed": 71}
 AXIS_MIN, AXIS_MAX = -10, 10
 MODERATOR_COLOR = "#534AB7"
 PALETTE = ["#D64545", "#0F8A6A", "#E09020", "#D85A30", "#639922",
@@ -40,7 +43,8 @@ def _call_validated(client, prompt: str, validator, retries: int = 2):
     """Call Gemini, parse response, validate, retry on failure."""
     for attempt in range(retries):
         try:
-            response = client.models.generate_content(model=MODEL, contents=prompt)
+            response = client.models.generate_content(model=MODEL, contents=prompt,
+                                                       config=GEN_CONFIG)
             parsed = _parse_json(response.text)
             if parsed is not None and validator(parsed):
                 return parsed

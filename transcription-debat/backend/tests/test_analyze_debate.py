@@ -167,6 +167,18 @@ def test_call_validated_retries_then_succeeds():
     assert client.models.generate_content.call_count == 2
 
 
+def test_call_validated_uses_deterministic_config():
+    from analyze_debate import _call_validated, GEN_CONFIG
+    client = MagicMock()
+    resp = MagicMock(); resp.text = '{"ok": true}'
+    client.models.generate_content.return_value = resp
+    _call_validated(client, "prompt", validator=lambda o: True)
+    kwargs = client.models.generate_content.call_args.kwargs
+    assert kwargs["config"]["temperature"] == 0.0
+    assert "seed" in kwargs["config"]
+    assert GEN_CONFIG["temperature"] == 0.0
+
+
 def test_call_validated_gives_up_after_retries():
     from analyze_debate import _call_validated
     client = MagicMock()
