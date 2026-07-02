@@ -41,6 +41,17 @@ section h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-tran
   .main-grid { grid-template-columns: 1fr !important; }
 }
 
+/* Polarisation (indice 0-100 par axe) */
+#polar-block { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+#polar-block h3 { font-size: 0.85rem; margin-bottom: 8px; }
+.polar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.polar-label { font-size: 0.78rem; color: var(--fg2); width: 220px; flex-shrink: 0; }
+.polar-meter { flex: 1; height: 8px; border-radius: 4px; background: var(--bg3); }
+.polar-fill { height: 100%; border-radius: 4px; background: var(--fg2); }
+.polar-val { font-size: 0.8rem; font-weight: 600; width: 56px; text-align: right; }
+.polar-note { font-size: 0.72rem; color: var(--fg3); margin-top: 6px; line-height: 1.5; }
+@media (max-width: 820px) { .polar-label { width: 130px; } }
+
 /* Contrôles de lecture */
 .controls { display: flex; align-items: center; gap: 12px; padding: 10px 0 10px; flex-wrap: wrap; }
 #slider-wrap { flex: 1; min-width: 200px; position: relative; }
@@ -86,6 +97,7 @@ footer p + p { margin-top: 4px; }
 #tooltip b { font-weight: 600; }
 #tooltip .tip-camp { color: var(--fg2); font-size: 0.75rem; margin-bottom: 4px; }
 #tooltip .tip-note { font-style: italic; color: var(--fg2); }
+#tooltip .tip-evidence { color: var(--fg3); font-size: 0.72rem; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -100,6 +112,20 @@ footer p + p { margin-top: 4px; }
 <section id="sec-axes" class="wrap">
   <h2>Comment lire cette carte</h2>
   <div id="axes-guide"></div>
+  <div id="polar-block" class="hidden">
+    <h3>Polarisation des positions finales</h3>
+    <div class="polar-row">
+      <span class="polar-label" id="polar-x-label"></span>
+      <div class="polar-meter"><div class="polar-fill" id="polar-x-fill"></div></div>
+      <span class="polar-val" id="polar-x-val"></span>
+    </div>
+    <div class="polar-row">
+      <span class="polar-label" id="polar-y-label"></span>
+      <div class="polar-meter"><div class="polar-fill" id="polar-y-fill"></div></div>
+      <span class="polar-val" id="polar-y-val"></span>
+    </div>
+    <p class="polar-note" id="polar-note"></p>
+  </div>
 </section>
 
 <section id="sec-map" class="wrap">
@@ -123,7 +149,7 @@ footer p + p { margin-top: 4px; }
   <div class="main-grid">
     <div>
       <div id="map-container"></div>
-      <p class="map-caption">Chaque inflexion d'une trajectoire correspond à une prise de parole scorée — cliquez un point pour l'ensemble de ses positions. Le point de la voix qui parle est mis en évidence.</p>
+      <p class="map-caption">Chaque inflexion d'une trajectoire correspond à une prise de parole scorée — cliquez un point pour l'ensemble de ses positions. Le point de la voix qui parle est mis en évidence. Pendant un long silence, la position reste figée : un déplacement n'a lieu qu'à une prise de parole réelle. Un cercle en pointillé signale une position globale estimée, sans prise de parole scorée individuellement.</p>
     </div>
     <aside id="now-panel">
       <h3>En ce moment</h3>
@@ -153,9 +179,10 @@ footer p + p { margin-top: 4px; }
 </section>
 
 <footer>
-  <p>⚠ Les coordonnées, trajectoires et la courbe de tension sont interprétatives — construites par analyse de la transcription anonymisée, pas des mesures objectives. Les trajectoires sont calculées (lissage) à partir de prises de parole scorées individuellement.</p>
+  <p>⚠ Les coordonnées, trajectoires et la courbe de tension sont interprétatives — construites par analyse de la transcription anonymisée, pas des mesures objectives. Les trajectoires sont calculées (lissage) à partir de prises de parole scorées individuellement sur une échelle ordinale courte.</p>
   <p>⚠ Les résumés de points de vue sont des reformulations, jamais des citations. Aucun prénom réel n'apparaît.</p>
   <p>⚠ Les zones hachurées signalent des passages non enregistrés (refus de participants) : mesure absente, pas un silence.</p>
+  <p id="footer-reliability" class="hidden"></p>
 </footer>
 
 <div id="tooltip"></div>
@@ -279,6 +306,26 @@ function renderAxesGuide() {
           <ul>${p.anchors.map(a => `<li>${a}</li>`).join('')}</ul>
         </div>`).join('')}
     </div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// POLARISATION PAR AXE (indice d'Esteban-Ray, calculé — pas d'interprétation LLM)
+// ─────────────────────────────────────────────
+function renderPolarization() {
+  const pol = D.polarization;
+  document.getElementById('polar-block').classList.remove('hidden');
+  const rows = [
+    ['x', `${D.axes.x.leftLabel} ⟷ ${D.axes.x.rightLabel}`],
+    ['y', `${D.axes.y.bottomLabel} ⟷ ${D.axes.y.topLabel}`]
+  ];
+  rows.forEach(([k, label]) => {
+    document.getElementById(`polar-${k}-label`).textContent = label;
+    document.getElementById(`polar-${k}-fill`).style.width = `${Math.max(0, Math.min(100, pol[k]))}%`;
+    document.getElementById(`polar-${k}-val`).textContent = `${pol[k]}/100`;
+  });
+  document.getElementById('polar-note').textContent =
+    `Indice d'Esteban-Ray (0 = consensus, 100 = deux camps opposés aux extrêmes), calculé sur les ` +
+    `positions de fin de débat pondérées par le temps de parole, modérateur exclu (${pol.n} voix).`;
 }
 
 // ─────────────────────────────────────────────
@@ -461,15 +508,27 @@ function drawMap() {
   });
 
   const rScale = p => 5 + p.weight * 8;
+  // Preuve de trajectoire : nombre de prises de parole réellement scorées pour cette voix.
+  // 0 = position globale estimée par la passe 1 seule → cercle pointillé, opacité réduite.
+  const evidenceCount = p => (p.points || []).length;
+  const evidenceText = p => {
+    const n = evidenceCount(p);
+    if (!n) return 'Position globale estimée — aucune prise de parole scorée individuellement';
+    return n > 1 ? `Trajectoire fondée sur ${n} prises de parole scorées`
+                 : 'Trajectoire fondée sur 1 prise de parole scorée';
+  };
   D.personas.forEach(p => {
     const grp = g.append('g').attr('opacity', 0);
     circles[p.id] = grp.append('circle')
       .attr('r', rScale(p))
-      .attr('fill', p.color).attr('fill-opacity', 0.9)
-      .attr('stroke', 'var(--bg)').attr('stroke-width', 1.5)
+      .attr('fill', p.color).attr('fill-opacity', evidenceCount(p) ? 0.9 : 0.45)
+      .attr('stroke', evidenceCount(p) ? 'var(--bg)' : 'var(--fg3)')
+      .attr('stroke-dasharray', evidenceCount(p) ? null : '3,3')
+      .attr('stroke-width', 1.5)
       .style('cursor', 'pointer')
       .on('mousemove', evt => showTip(
-        `<b>${p.label}</b><div class="tip-camp">${p.camp}</div><div class="tip-note">${p.note}</div>`, evt))
+        `<b>${p.label}</b><div class="tip-camp">${p.camp}</div><div class="tip-note">${p.note}</div>` +
+        `<div class="tip-evidence">${evidenceText(p)}</div>`, evt))
       .on('mouseleave', hideTip)
       .on('click', () => showVoiceDetail(p));
     grp.append('text')
@@ -636,9 +695,21 @@ function drawTimeline() {
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
+function renderReliability() {
+  const rel = D.meta && D.meta.reliability;
+  if (!rel || rel.type !== 'axisInversion') return;
+  const el = document.getElementById('footer-reliability');
+  el.classList.remove('hidden');
+  el.textContent = `Contrôle de fiabilité : ${rel.n} prises de parole re-scorées avec les axes ` +
+    `inversés — la corrélation entre les deux passages (attendue proche de 1) est de ` +
+    `rX=${rel.rX ?? 'n/a'} et rY=${rel.rY ?? 'n/a'}. Une valeur faible signale des placements instables.`;
+}
+
 if (present.axes) renderAxesGuide();
+if (present.axes && D.polarization) renderPolarization();
 if (present.map) mapApi = drawMap();
 if (present.tension) { tlApi = drawTimeline(); renderSliderMarks(); }
+renderReliability();
 if (DUR) setT(0, true);
 </script>
 </body>

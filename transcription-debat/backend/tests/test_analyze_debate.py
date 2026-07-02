@@ -349,6 +349,11 @@ def test_viz_template_single_page():
     assert 'id="now-list"' in html
     assert "totalDurationMinutes" in html
     assert 'max="85"' not in html        # plus de durée en dur
+    # provenance + incertitude + polarisation (sections conditionnelles)
+    assert "polarization" in html
+    assert "reliability" in html
+    assert "prises de parole scorées" in html
+    assert "stroke-dasharray" in html    # voix sans preuve = cercle pointillé
 
 
 def test_analyze_end_to_end_writes_viz(tmp_path):
