@@ -408,6 +408,53 @@ def compute_trajectories(blocks, scores, entries) -> dict[str, dict]:
     return out
 
 
+# Audit de symétrie (recherche §5.3, §8.4.3) : les LLM alignés ont un biais politique
+# mesuré ; re-scorer un échantillon avec les axes INVERSÉS doit donner x → -x. La
+# corrélation de Pearson entre -x_inversé et x_original est publiée dans meta.reliability.
+AUDIT_SAMPLE = 30
+AUDIT_MIN_PAIRS = 8
+
+
+def _invert_axes(axes: dict) -> dict:
+    def _swap(ax, lo_lab, hi_lab, lo, hi):
+        an = ax.get("anchors") or {}
+        return {lo_lab: ax[hi_lab], hi_lab: ax[lo_lab],
+                "anchors": {lo: an.get(hi, []), hi: an.get(lo, [])}}
+    return {"x": _swap(axes["x"], "leftLabel", "rightLabel", "left", "right"),
+            "y": _swap(axes["y"], "bottomLabel", "topLabel", "bottom", "top")}
+
+
+def _pearson(xs: list[float], ys: list[float]) -> float | None:
+    n = len(xs)
+    mx, my = sum(xs) / n, sum(ys) / n
+    cov = sum((a - mx) * (b - my) for a, b in zip(xs, ys))
+    vx = sum((a - mx) ** 2 for a in xs)
+    vy = sum((b - my) ** 2 for b in ys)
+    if vx <= 0 or vy <= 0:
+        return None
+    return cov / ((vx * vy) ** 0.5)
+
+
+def run_symmetry_audit(client, blocks, scores, axes, meta) -> dict | None:
+    """Re-score un échantillon avec axes inversés ; r(-x_inv, x_orig) attendu proche de 1."""
+    scored = [b for b in blocks if b["i"] in scores]
+    if len(scored) < AUDIT_MIN_PAIRS:
+        return None
+    step = max(1, len(scored) // AUDIT_SAMPLE)
+    sample = scored[::step][:AUDIT_SAMPLE]
+    inverted = run_scoring(client, sample, _invert_axes(axes), meta)
+    pairs = [(scores[b["i"]], inverted[b["i"]]) for b in sample if b["i"] in inverted]
+    if len(pairs) < AUDIT_MIN_PAIRS:
+        return None
+    r_x = _pearson([o["x"] for o, _ in pairs], [-v["x"] for _, v in pairs])
+    r_y = _pearson([o["y"] for o, _ in pairs], [-v["y"] for _, v in pairs])
+    if r_x is None and r_y is None:
+        return None
+    return {"type": "axisInversion", "n": len(pairs),
+            "rX": None if r_x is None else round(r_x, 2),
+            "rY": None if r_y is None else round(r_y, 2)}
+
+
 # Polarisation d'opinion (recherche axe 6 §6.2) : famille Esteban-Ray (Econometrica 1994)
 # sur les positions finales pondérées par temps de parole, modérateur exclu. α=1.6
 # (borne canonique). Normalisée par le maximum théorique (deux masses égales aux pôles)
@@ -594,7 +641,8 @@ def write_viz(data: dict, viz_dir: Path) -> None:
     shutil.copyfile(_TEMPLATE, viz_dir / "index.html")
 
 
-def analyze(json_path: Path, topic: str, code: str, date: str, client=None) -> bool:
+def analyze(json_path: Path, topic: str, code: str, date: str,
+            client=None, audit: bool = True) -> bool:
     segments = json.loads(Path(json_path).read_text(encoding="utf-8"))
     voices = compute_voices(segments)
     if not voices:
@@ -623,6 +671,14 @@ def analyze(json_path: Path, topic: str, code: str, date: str, client=None) -> b
         scores = run_scoring(client, blocks, frame["axes"], meta)
         traj_map = compute_trajectories(blocks, scores,
                                         {v["id"]: v["entry"] for v in voices})
+        if audit and scores:
+            print("Audit de fiabilité — re-scoring d'un échantillon avec axes inversés...")
+            reliability = run_symmetry_audit(client, blocks, scores, frame["axes"], meta)
+            if reliability:
+                meta["reliability"] = reliability
+                print(f"  n={reliability['n']}, rX={reliability['rX']}, rY={reliability['rY']}")
+            else:
+                print("  Échantillon insuffisant ou audit échoué — ignoré.", file=sys.stderr)
         if traj_map:
             personas = merge_personas(voices, frame["personas_interp"], traj_map,
                                       compute_speech(segments), duration)

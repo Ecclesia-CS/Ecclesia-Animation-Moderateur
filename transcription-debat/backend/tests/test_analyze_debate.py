@@ -676,6 +676,48 @@ def test_compute_trajectories_voice_without_scores_absent():
     assert "i2" not in out
 
 
+# Audit de symétrie — inversion d'axes (recherche §8.4.3)
+
+def test_invert_axes_swaps_poles_and_anchors():
+    from analyze_debate import _invert_axes
+    inv = _invert_axes({
+        "x": {"leftLabel": "Liberté", "rightLabel": "Égalité", "anchors": ANCHORS_X},
+        "y": {"bottomLabel": "Technique", "topLabel": "Principes", "anchors": ANCHORS_Y}})
+    assert inv["x"]["leftLabel"] == "Égalité" and inv["x"]["rightLabel"] == "Liberté"
+    assert inv["x"]["anchors"]["left"] == ANCHORS_X["right"]
+    assert inv["y"]["topLabel"] == "Technique"
+    assert inv["y"]["anchors"]["bottom"] == ANCHORS_Y["top"]
+
+
+def test_symmetry_audit_perfect_inversion_gives_r1():
+    from analyze_debate import run_symmetry_audit
+    blocks, ords = [], {}
+    for n in range(10):
+        blocks.append({"i": n, "vid": "i1", "label": "Interlocuteur 1", "t": float(n), "text": "x " * 20})
+        ords[n] = (n % 5) - 2                     # valeurs ordinales variées -2..2
+    scores = {n: {"x": v * 5, "y": v * 5, "stance": "s", "salience": 0.5} for n, v in ords.items()}
+    inv_resp = MagicMock()
+    inv_resp.text = json.dumps([{"i": n, "x": -v, "y": -v, "stance": "Position.", "salience": 0.5}
+                                for n, v in ords.items()])
+    client = MagicMock(); client.models.generate_content.return_value = inv_resp
+    axes = {"x": {"leftLabel": "A", "rightLabel": "B", "anchors": ANCHORS_X},
+            "y": {"bottomLabel": "C", "topLabel": "D", "anchors": ANCHORS_Y}}
+    rel = run_symmetry_audit(client, blocks, scores, axes, {"topic": "X"})
+    assert rel["type"] == "axisInversion"
+    assert rel["n"] == 10
+    assert rel["rX"] == 1.0 and rel["rY"] == 1.0
+    # le prompt envoyé doit porter les axes inversés
+    sent = client.models.generate_content.call_args.kwargs["contents"]
+    assert "Axe x : B" in sent
+
+
+def test_symmetry_audit_too_few_blocks_returns_none_without_call():
+    from analyze_debate import run_symmetry_audit
+    client = MagicMock()
+    assert run_symmetry_audit(client, [], {}, {}, {}) is None
+    client.models.generate_content.assert_not_called()
+
+
 # Polarisation d'opinion (Esteban-Ray) — pur calcul, zéro LLM
 
 def _mk_persona(pid, x, y, weight):
