@@ -324,13 +324,20 @@ def test_write_data_js(tmp_path):
     assert content.rstrip().endswith(";")
 
 
-def test_viz_template_exists_and_generalized():
+def test_viz_template_single_page():
     template = Path(__file__).parent.parent / "code python" / "viz_template" / "index.html"
     assert template.exists()
     html = template.read_text(encoding="utf-8")
     assert 'id="hdr-title"' in html
-    assert "__VIZ_PRESENT" in html
-    assert "Débat sur les retraites" not in html  # plus de titre en dur
+    # plus d'onglets ni de vues V1/V4/V5
+    assert "nav.tabs" not in html and "data-tab" not in html
+    assert "sankey" not in html.lower()
+    assert "drawV1" not in html and "drawV4" not in html and "drawV5" not in html
+    # page unique pilotée par les données
+    assert "Comment lire cette carte" in html
+    assert 'id="now-list"' in html
+    assert "totalDurationMinutes" in html
+    assert 'max="85"' not in html        # plus de durée en dur
 
 
 def test_analyze_end_to_end_writes_viz(tmp_path):
