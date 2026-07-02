@@ -319,7 +319,7 @@ def test_write_data_js(tmp_path):
     write_data_js({"meta": {"topic": "X"}}, path)
     content = path.read_text(encoding="utf-8")
     assert content.startswith("//")
-    assert "const DEBATE_DATA =" in content
+    assert "window.DEBATE_DATA =" in content
     assert content.rstrip().endswith(";")
 
 
@@ -357,7 +357,7 @@ def test_analyze_end_to_end_writes_viz(tmp_path):
     viz = debate_dir / "viz"
     assert (viz / "data.js").exists() and (viz / "index.html").exists()
     content = (viz / "data.js").read_text(encoding="utf-8")
-    assert "const DEBATE_DATA" in content
+    assert "window.DEBATE_DATA" in content
     assert '"anchors"' in content        # passe 1 enrichie
     assert '"points"' in content and '"speech"' in content
     assert '"stance"' in content

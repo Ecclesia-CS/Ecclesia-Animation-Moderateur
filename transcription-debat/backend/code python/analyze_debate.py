@@ -490,13 +490,19 @@ def assemble_data(meta, frame, personas, timeline, refus) -> dict:
 
 
 def write_data_js(data: dict, path: Path) -> None:
-    """Write const DEBATE_DATA = <json>; with header comment."""
+    """Write window.DEBATE_DATA = <json>; with header comment.
+
+    Must assign via `window.` (not `const`/`let`): data.js and index.html
+    load as separate classic <script> tags, and a top-level const/let never
+    attaches to `window` — the template's `window.DEBATE_DATA || {}` read
+    would silently see an empty object otherwise.
+    """
     header = (
         "// data.js — généré par analyze_debate.py (analyse Gemini)\n"
         "// Coordonnées interprétatives, pas des mesures objectives.\n\n"
     )
     body = json.dumps(data, ensure_ascii=False, indent=2)
-    path.write_text(f"{header}const DEBATE_DATA = {body};\n", encoding="utf-8")
+    path.write_text(f"{header}window.DEBATE_DATA = {body};\n", encoding="utf-8")
 
 
 # Task 10: Orchestration + CLI
