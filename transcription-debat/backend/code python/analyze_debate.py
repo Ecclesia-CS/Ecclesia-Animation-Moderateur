@@ -279,6 +279,25 @@ def validate_scores(scores, allowed: set[int]) -> bool:
 
 # Passe 3 — Scoring par bloc de parole
 
+def _anchor_lines(axes: dict) -> str:
+    """Repères de scoring (recherche §5.3) : injecter les ancres des pôles dans la passe 3
+    réduit le biais d'axe — sans elles, seuls les labels guident le placement."""
+    lines = []
+    for axis, poles in (("x", (("left", "leftLabel"), ("right", "rightLabel"))),
+                        ("y", (("bottom", "bottomLabel"), ("top", "topLabel")))):
+        anchors = axes.get(axis, {}).get("anchors")
+        if not anchors:
+            continue
+        for pole, label_key in poles:
+            vals = anchors.get(pole) or []
+            if vals:
+                lines.append(f'- {axes[axis][label_key]} : ' + " · ".join(vals))
+    if not lines:
+        return ""
+    return ("Positions-types entendues dans ce débat, incarnant chaque pôle "
+            "(repères de scoring) :\n" + "\n".join(lines) + "\n\n")
+
+
 def build_scoring_prompt(batch, ctx_before, ctx_after, axes, meta) -> str:
     payload = json.dumps({
         "context_avant": [{"locuteur": b["label"], "texte": b["text"]} for b in ctx_before],
@@ -291,7 +310,7 @@ Le cadre d'analyse est un plan à deux axes (échelle -10 à +10) :
 - Axe x : {axes["x"]["leftLabel"]} (-10) ⟷ {axes["x"]["rightLabel"]} (+10)
 - Axe y : {axes["y"]["bottomLabel"]} (-10) ⟷ {axes["y"]["topLabel"]} (+10)
 
-On te donne un JSON : "context_avant" (lecture seule), "blocs" (à scorer), "context_apres" (lecture seule).
+{_anchor_lines(axes)}On te donne un JSON : "context_avant" (lecture seule), "blocs" (à scorer), "context_apres" (lecture seule).
 
 Pour CHAQUE élément de "blocs", réponds :
 - s'il exprime une position sur le sujet : {{"i": <même i>, "x": <-10..10>, "y": <-10..10>,
@@ -304,6 +323,8 @@ Règles STRICTES :
 - N'introduis AUCUN prénom ni nom propre de personne. Désigne les personnes par leur label
   (Interlocuteur N, Modérateur).
 - Ne score que le contenu réellement présent dans le bloc. N'invente rien.
+- En cas de doute sur la position, ou si elle est hors de ces axes : {{"i": <même i>, "none": true}}.
+  Ne devine JAMAIS.
 - Réponds UNIQUEMENT avec un tableau JSON, un objet par bloc, tous les "i" de "blocs" présents.
 
 {payload}"""

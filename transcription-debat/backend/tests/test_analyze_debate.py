@@ -507,6 +507,11 @@ AXES_FIXT = {
     "y": {"bottomLabel": "Technique", "topLabel": "Principes"},
 }
 
+AXES_ANCHORED_FIXT = {
+    "x": {"leftLabel": "Liberté", "rightLabel": "Égalité", "anchors": ANCHORS_X},
+    "y": {"bottomLabel": "Technique", "topLabel": "Principes", "anchors": ANCHORS_Y},
+}
+
 
 def test_build_scoring_prompt_includes_axes_and_payload():
     from analyze_debate import build_scoring_prompt
@@ -516,6 +521,15 @@ def test_build_scoring_prompt_includes_axes_and_payload():
     assert "Texte du bloc." in prompt
     assert "reformulation" in prompt.lower()
     assert "prénom" in prompt.lower()
+
+
+def test_build_scoring_prompt_includes_anchors_and_doubt_rule():
+    from analyze_debate import build_scoring_prompt
+    batch = [{"i": 1, "vid": "i1", "label": "Interlocuteur 1", "t": 1.0, "text": "Texte."}]
+    prompt = build_scoring_prompt(batch, [], [], AXES_ANCHORED_FIXT, {"topic": "Retraites"})
+    assert "La liberté individuelle passe avant tout." in prompt   # ancre gauche
+    assert "positions-types" in prompt.lower()
+    assert "none" in prompt and "doute" in prompt.lower()
 
 
 def test_run_scoring_merges_batches():
