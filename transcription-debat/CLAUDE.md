@@ -45,7 +45,7 @@ transcription-debat/
     │   ├── correct_transcript.py   correction Gemini post-Whisper (aussi standalone)
     │   ├── deduplicate.py          supprime répétitions / hallucinations Whisper (3 passes)
     │   ├── analyze_debate.py        génère viz/ (data.js + index.html) par analyse Gemini étagée
-    │   └── viz_template/index.html  template HTML généralisé (header/onglets pilotés par data.js)
+    │   └── viz_template/index.html  template page unique piloté par data.js (sections conditionnelles)
     ├── tests/                      117 tests (anonymize 8 + transcribe_offline 27 + correct 14 + deduplicate 21 + analyze_debate 47)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)

@@ -58,7 +58,6 @@ def test_build_meta():
 # Validators tests (Task 2)
 
 VOICE_IDS = {"i1", "i2", "anim"}
-SCHOOL_IDS = {"lib", "sol"}
 
 
 ANCHORS_X = {"left": ["La liberté individuelle passe avant tout.",
@@ -219,8 +218,8 @@ def test_run_frame_rejects_invented_voice():
     from analyze_debate import run_frame, compute_voices
     voices = compute_voices(SEGMENTS)
     bad = json.dumps({
-        "axes": {"x": {"leftLabel": "a", "rightLabel": "b"},
-                 "y": {"bottomLabel": "c", "topLabel": "d"},
+        "axes": {"x": {"leftLabel": "a", "rightLabel": "b", "anchors": ANCHORS_X},
+                 "y": {"bottomLabel": "c", "topLabel": "d", "anchors": ANCHORS_Y},
                  "quadrants": {"topLeft": "a", "topRight": "b", "bottomLeft": "c", "bottomRight": "d"}},
         "personas_interp": {"i77": {"camp": "X", "note": "y", "pos": [0, 0]}},
         "schools": [],
