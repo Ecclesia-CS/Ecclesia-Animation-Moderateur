@@ -278,9 +278,9 @@ def test_run_timeline_rejects_bad_event_type():
 # Assemblage + orchestration (3 passes)
 
 SCORING_RESPONSE = json.dumps([
-    {"i": 1, "x": -8, "y": 6, "stance": "Défend la primauté de la liberté individuelle.", "salience": 0.9},
-    {"i": 2, "x": 7, "y": 2, "stance": "Oppose que l'égalité doit primer.", "salience": 0.8},
-    {"i": 5, "x": -8, "y": 5, "stance": "Réaffirme sa position initiale.", "salience": 0.6},
+    {"i": 1, "x": -2, "y": 1, "stance": "Défend la primauté de la liberté individuelle.", "salience": 0.9},
+    {"i": 2, "x": 2, "y": 0, "stance": "Oppose que l'égalité doit primer.", "salience": 0.8},
+    {"i": 5, "x": -2, "y": 1, "stance": "Réaffirme sa position initiale.", "salience": 0.6},
 ])
 
 
@@ -460,7 +460,7 @@ def test_select_scorable_blocks_index_and_time():
 def test_validate_scores_ok():
     from analyze_debate import validate_scores
     scores = [
-        {"i": 1, "x": -8, "y": 6, "stance": "Défend la primauté de la liberté.", "salience": 0.9},
+        {"i": 1, "x": -2, "y": 1, "stance": "Défend la primauté de la liberté.", "salience": 0.9},
         {"i": 2, "none": True},
     ]
     assert validate_scores(scores, {1, 2}) is True
@@ -491,6 +491,34 @@ def test_validate_scores_rejects_empty_or_quoted_stance():
     quoted = [{"i": 1, "x": 0, "y": 0, "stance": "Il dit « je refuse »", "salience": 0.5}]
     assert validate_scores(empty, {1}) is False
     assert validate_scores(quoted, {1}) is False
+
+
+def test_validate_scores_ordinal_bounds():
+    from analyze_debate import validate_scores
+    ok = [{"i": 1, "x": -2, "y": 2, "stance": "Position.", "salience": 0.5}]
+    too_big = [{"i": 1, "x": 5, "y": 0, "stance": "Position.", "salience": 0.5}]
+    assert validate_scores(ok, {1}) is True
+    assert validate_scores(too_big, {1}) is False
+
+
+def test_run_scoring_remaps_ordinal_to_display_scale():
+    from analyze_debate import run_scoring
+    blocks = [{"i": 0, "vid": "i1", "label": "Interlocuteur 1", "t": 1.0, "text": "x " * 20}]
+    resp = MagicMock(); resp.text = json.dumps(
+        [{"i": 0, "x": -2, "y": 1.2, "stance": "Position.", "salience": 0.9}])
+    client = MagicMock(); client.models.generate_content.return_value = resp
+    out = run_scoring(client, blocks, AXES_ANCHORED_FIXT, {"topic": "X"})
+    assert out[0]["x"] == -10      # -2 × 5
+    assert out[0]["y"] == 5        # round(1.2)=1 × 5
+
+
+def test_build_scoring_prompt_uses_ordinal_scale():
+    from analyze_debate import build_scoring_prompt
+    batch = [{"i": 1, "vid": "i1", "label": "Interlocuteur 1", "t": 1.0, "text": "Texte."}]
+    prompt = build_scoring_prompt(batch, [], [], AXES_ANCHORED_FIXT, {"topic": "X"})
+    assert "-2..2" in prompt or "entre -2 et 2" in prompt
+    assert "nettement" in prompt          # échelle verbalisée
+    assert "<-10..10>" not in prompt      # plus d'échelle continue demandée au LLM
 
 
 def test_validate_scores_rejects_bad_salience_and_malformed():

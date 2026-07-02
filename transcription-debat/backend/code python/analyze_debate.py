@@ -16,6 +16,11 @@ MODEL = os.getenv("GEMINI_ANALYSIS_MODEL", "gemini-3.1-flash-lite")
 # (Gilardi et al. 2023). Dict brut : pas d'import google.genai au chargement du module.
 GEN_CONFIG = {"temperature": 0.0, "seed": 71}
 AXIS_MIN, AXIS_MAX = -10, 10
+# Échelle ordinale courte (recherche §8.3.1) : la stance ordinale est validée par la
+# littérature (SemEval, P-Stance), le placement continu -10..+10 par LLM ne l'est pas.
+# Le LLM répond en -2..+2, remappé ×5 vers l'échelle d'affichage.
+ORD_MIN, ORD_MAX = -2, 2
+ORD_SCALE = 5
 MODERATOR_COLOR = "#534AB7"
 PALETTE = ["#D64545", "#0F8A6A", "#E09020", "#D85A30", "#639922",
            "#8FBF4B", "#6E6D68", "#9A9992", "#4A90D9", "#C0507A", "#3FA7A0"]
@@ -177,6 +182,10 @@ def _in_bounds(v) -> bool:
     return isinstance(v, (int, float)) and AXIS_MIN <= v <= AXIS_MAX
 
 
+def _in_ord_bounds(v) -> bool:
+    return isinstance(v, (int, float)) and ORD_MIN <= v <= ORD_MAX
+
+
 def validate_frame(frame: dict, voice_ids: set[str]) -> bool:
     try:
         ax = frame["axes"]
@@ -262,7 +271,7 @@ def validate_scores(scores, allowed: set[int]) -> bool:
             seen.add(i)
             if item.get("none") is True:
                 continue
-            if not (_in_bounds(item["x"]) and _in_bounds(item["y"])):
+            if not (_in_ord_bounds(item["x"]) and _in_ord_bounds(item["y"])):
                 return False
             stance = item["stance"]
             if not isinstance(stance, str) or not stance.strip():
@@ -306,16 +315,20 @@ def build_scoring_prompt(batch, ctx_before, ctx_after, axes, meta) -> str:
     }, ensure_ascii=False)
     return f"""Tu analyses des prises de parole d'un débat sur « {meta.get("topic", "")} ».
 
-Le cadre d'analyse est un plan à deux axes (échelle -10 à +10) :
-- Axe x : {axes["x"]["leftLabel"]} (-10) ⟷ {axes["x"]["rightLabel"]} (+10)
-- Axe y : {axes["y"]["bottomLabel"]} (-10) ⟷ {axes["y"]["topLabel"]} (+10)
+Le cadre d'analyse est un plan à deux axes :
+- Axe x : {axes["x"]["leftLabel"]} (-2) ⟷ {axes["x"]["rightLabel"]} (+2)
+- Axe y : {axes["y"]["bottomLabel"]} (-2) ⟷ {axes["y"]["topLabel"]} (+2)
 
 {_anchor_lines(axes)}On te donne un JSON : "context_avant" (lecture seule), "blocs" (à scorer), "context_apres" (lecture seule).
 
 Pour CHAQUE élément de "blocs", réponds :
-- s'il exprime une position sur le sujet : {{"i": <même i>, "x": <-10..10>, "y": <-10..10>,
+- s'il exprime une position claire par rapport à ces axes :
+  {{"i": <même i>, "x": <entier entre -2 et 2>, "y": <entier entre -2 et 2>,
   "stance": "<reformulation élégante en 1-2 phrases du point de vue exprimé, à la 3e personne>",
   "salience": <0..1, force avec laquelle la position est affirmée>}}
+  Échelle x : -2 = nettement {axes["x"]["leftLabel"]} · -1 = plutôt {axes["x"]["leftLabel"]} ·
+  0 = mitoyen/équilibré · +1 = plutôt {axes["x"]["rightLabel"]} · +2 = nettement {axes["x"]["rightLabel"]}.
+  Échelle y identique, de {axes["y"]["bottomLabel"]} (-2) vers {axes["y"]["topLabel"]} (+2).
 - sinon (logistique, question neutre, relance, plaisanterie) : {{"i": <même i>, "none": true}}
 
 Règles STRICTES :
@@ -345,7 +358,8 @@ def run_scoring(client, blocks, axes, meta) -> dict[int, dict]:
             continue
         for item in out:
             if not item.get("none"):
-                scores[item["i"]] = {"x": item["x"], "y": item["y"],
+                scores[item["i"]] = {"x": int(round(item["x"])) * ORD_SCALE,
+                                     "y": int(round(item["y"])) * ORD_SCALE,
                                      "stance": item["stance"].strip(),
                                      "salience": item["salience"]}
     return scores
