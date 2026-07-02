@@ -622,14 +622,15 @@ def test_compute_trajectories_smooths_toward_new_score():
     assert out["i1"]["kf"] == [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [10.0, 3.5, 0.0]]
 
 
-def test_compute_trajectories_salience_zero_keeps_position():
+def test_compute_trajectories_salience_is_floored():
     from analyze_debate import compute_trajectories
     blocks, scores = _blocks_and_scores([
         (1, "i1", 2.0, 0, 0, 1.0),
-        (2, "i1", 10.0, 10, 10, 0.0),   # saillance nulle → ne bouge pas
+        (2, "i1", 10.0, 10, 0, 0.0),   # salience 0 → plancher 0.3 s'applique
     ])
     out = compute_trajectories(blocks, scores, {"i1": 1.0})
-    assert out["i1"]["kf"][-1] == [10.0, 0.0, 0.0]
+    # 0 + 0.35*max(0.3, 0)*(10-0) = 1.05 : un bloc réellement scoré pèse toujours un minimum
+    assert out["i1"]["kf"][-1] == [10.0, 1.05, 0.0]
 
 
 def test_compute_trajectories_single_block_fixed():

@@ -29,6 +29,9 @@ MIN_BLOCK_WORDS = 15
 SCORE_BATCH_SIZE = 25
 SCORE_CONTEXT = 3
 EWMA_ALPHA = 0.35
+# Plancher (recherche §8.3.4) : la salience LLM n'est pas validée comme pondération ;
+# la borner évite qu'elle écrase l'influence d'un bloc réellement scoré.
+SALIENCE_FLOOR = 0.3
 
 _INTERLOCUTEUR_RE = re.compile(r"^Interlocuteur\s+(\d+)$")
 
@@ -386,7 +389,7 @@ def compute_trajectories(blocks, scores, entries) -> dict[str, dict]:
             kf.append([round(entry, 2), round(sx, 2), round(sy, 2)])
         for i, p in enumerate(pts):
             if i > 0:
-                a = EWMA_ALPHA * p["salience"]
+                a = EWMA_ALPHA * max(SALIENCE_FLOOR, p["salience"])
                 sx += a * (p["x"] - sx)
                 sy += a * (p["y"] - sy)
             t = round(p["t"], 2)
