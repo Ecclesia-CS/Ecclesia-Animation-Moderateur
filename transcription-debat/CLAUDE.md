@@ -46,7 +46,7 @@ transcription-debat/
     │   ├── deduplicate.py          supprime répétitions / hallucinations Whisper (3 passes)
     │   ├── analyze_debate.py        génère viz/ (data.js + index.html) par analyse Gemini étagée
     │   └── viz_template/index.html  template page unique piloté par data.js (sections conditionnelles)
-    ├── tests/                      117 tests (anonymize 8 + transcribe_offline 27 + correct 14 + deduplicate 21 + analyze_debate 47)
+    ├── tests/                      131 tests (anonymize 8 + transcribe_offline 27 + correct 14 + deduplicate 21 + analyze_debate 61)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
     ├── requirements.txt
@@ -183,7 +183,7 @@ Deux niveaux :
 | Rédaction | `redact_names` | Masque les prénoms réels dans le texte via `name_map.json`. |
 | Déduplication | `deduplicate.py` | Supprime répétitions / hallucinations Whisper (3 passes). |
 | Correction | `correct_transcript.py` | Gemini par lots de 25 (+contexte ±3) : corrige mots/ponctuation, attribue les `[?]` (whitelist), marque `[HORS-DÉBAT]`, masque les noms. `_validate` rejette toute triche → retry ×2, sinon brut conservé. |
-| Visualisation (option) | `analyze_debate.py` | Analyse Gemini étagée (3 passes : cadre+ancres d'axes, events+tension, scoring par bloc de parole) → trajectoires **calculées** (EWMA pondérée saillance) → `viz/data.js` + dashboard **page unique** (carte animée + frise synchronisées). Champs mesurables (poids, entrée, refus, `speech`) calculés sans LLM. Dégradation gracieuse par passe et par lot. |
+| Visualisation (option) | `analyze_debate.py` | Analyse Gemini étagée (3 passes : cadre+ancres d'axes, events+tension, scoring par bloc de parole sur **échelle ordinale -2..+2** remappée ×5, ancres injectées dans le prompt, T=0+seed) → trajectoires **calculées** (EWMA pondérée saillance plancher 0,3, position **figée pendant les silences > 3 min**) → `viz/data.js` + dashboard **page unique** (carte animée + frise synchronisées, polarisation Esteban-Ray par axe, preuve de trajectoire par voix). **Audit de symétrie** automatique (re-scoring d'un échantillon avec axes inversés → `meta.reliability`). Champs mesurables (poids, entrée, refus, `speech`, polarisation) calculés sans LLM. Dégradation gracieuse par passe et par lot. |
 
 ### Labels du transcript
 - `Interlocuteur N` — participant anonymisé · `Modérateur` — meneur de séance.
@@ -211,7 +211,7 @@ Depuis `backend/`, avec le **Python système** (pas le venv) :
 ```
 python -m pytest tests/ -v
 ```
-117 tests : `anonymize_log` (8) + `transcribe_offline` (27) + `correct_transcript` (14) + `deduplicate` (21) + `analyze_debate` (47). `conftest.py` (racine backend) ajoute `transcription/` au `sys.path`.
+131 tests : `anonymize_log` (8) + `transcribe_offline` (27) + `correct_transcript` (14) + `deduplicate` (21) + `analyze_debate` (61). `conftest.py` (racine backend) ajoute `transcription/` au `sys.path`.
 
 ---
 
@@ -223,7 +223,8 @@ python -m pytest tests/ -v
 - **`MIN_OVERLAP_RATIO` / plafonds de fusion** : constantes de `transcribe_offline.py` ; les modifier change la lisibilité ET la proportion de `[?]`.
 - **Gemini** : vérifier `error` ET `data?.error`. Ne jamais lever le garde-fou anti-invention de prénoms dans le prompt de `correct_transcript.py`.
 - **Pas de mode live.** `main.py`/`transcriber.py`/`diarizer.py`/`speaker_tracker.py` et le frontend ont été supprimés : tout est offline.
-- **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/`speech`/durée ET les trajectoires (`kf`, lissage EWMA des scores par bloc) sont calculés depuis le JSON, jamais demandés au LLM. Les `stance`/ancres sont des REFORMULATIONS — `validate_scores` rejette les guillemets ; ne jamais lever ce garde-fou ni l'anti-invention de prénoms. `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` est une page unique pilotée par `data.js` (sections conditionnelles, durée via `meta.totalDurationMinutes` — jamais en dur).
+- **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/`speech`/durée, les trajectoires (`kf`, lissage EWMA des scores par bloc) ET la polarisation (Esteban-Ray) sont calculés depuis le JSON, jamais demandés au LLM. Les `stance`/ancres sont des REFORMULATIONS — `validate_scores` rejette les guillemets ; ne jamais lever ce garde-fou ni l'anti-invention de prénoms. `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` est une page unique pilotée par `data.js` (sections conditionnelles, durée via `meta.totalDurationMinutes` — jamais en dur).
+- **Fondations scientifiques de l'analyse** (voir `Visualisation prises de positions/recherche_classification_opinions_2026-07.md`) — ne pas défaire sans lire le doc : appels Gemini d'analyse en `GEN_CONFIG` (temperature 0 + seed, §5.2) ; scoring sur échelle **ordinale** -2..+2 (`ORD_MIN/ORD_MAX`), remappée `×ORD_SCALE` à l'ingestion (§8.3.1) ; ancres des pôles injectées dans le prompt de scoring (`_anchor_lines`, §5.3) ; salience bornée par `SALIENCE_FLOOR=0.3` (§8.3.4) ; keyframes de maintien `TRAJ_HOLD_GAP=3 min`/`TRAJ_TRANSITION=1 min` — une voix silencieuse ne glisse pas sur la carte (§8.3.3) ; audit de symétrie `run_symmetry_audit` (inversion d'axes, ≥ 8 blocs, → `meta.reliability`, §8.4.3) désactivable via `analyze(..., audit=False)`.
 
 ---
 
