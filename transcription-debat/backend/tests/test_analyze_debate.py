@@ -676,6 +676,43 @@ def test_compute_trajectories_voice_without_scores_absent():
     assert "i2" not in out
 
 
+# Polarisation d'opinion (Esteban-Ray) — pur calcul, zéro LLM
+
+def _mk_persona(pid, x, y, weight):
+    return {"id": pid, "weight": weight, "kf": [[0.0, x, y], [10.0, x, y]]}
+
+
+def test_compute_polarization_two_poles_is_max():
+    from analyze_debate import compute_polarization
+    pol = compute_polarization([_mk_persona("i1", -10, 0, 1.0), _mk_persona("i2", 10, 0, 1.0)])
+    assert pol["x"] == 100.0
+    assert pol["y"] == 0.0
+    assert pol["n"] == 2
+    assert pol["method"] == "esteban_ray"
+
+
+def test_compute_polarization_consensus_is_zero():
+    from analyze_debate import compute_polarization
+    pol = compute_polarization([_mk_persona("i1", 4, 4, 1.0), _mk_persona("i2", 4, 4, 0.5)])
+    assert pol["x"] == 0.0 and pol["y"] == 0.0
+
+
+def test_compute_polarization_excludes_moderator_and_needs_two():
+    from analyze_debate import compute_polarization
+    pol = compute_polarization([_mk_persona("i1", -10, 0, 1.0), _mk_persona("anim", 10, 0, 1.0)])
+    assert pol is None
+
+
+def test_assemble_data_includes_polarization():
+    from analyze_debate import assemble_data
+    data = assemble_data(
+        meta={"topic": "X", "totalDurationMinutes": 10, "totalRedactedMinutes": 0},
+        frame=None, personas=[], timeline=None, refus=[],
+        polarization={"x": 50.0, "y": 10.0, "n": 3, "method": "esteban_ray", "alpha": 1.6},
+    )
+    assert data["polarization"]["x"] == 50.0
+
+
 def test_compute_trajectories_kf_monotonic_and_entry_not_duplicated():
     from analyze_debate import compute_trajectories
     # premier bloc exactement à l'entrée → pas de doublon [entry, ...]

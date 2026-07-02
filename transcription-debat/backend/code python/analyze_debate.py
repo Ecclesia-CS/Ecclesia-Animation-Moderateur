@@ -408,6 +408,32 @@ def compute_trajectories(blocks, scores, entries) -> dict[str, dict]:
     return out
 
 
+# Polarisation d'opinion (recherche axe 6 §6.2) : famille Esteban-Ray (Econometrica 1994)
+# sur les positions finales pondérées par temps de parole, modérateur exclu. α=1.6
+# (borne canonique). Normalisée par le maximum théorique (deux masses égales aux pôles)
+# → indice 0-100 par axe. Pur calcul, zéro LLM.
+POLARIZATION_ALPHA = 1.6
+
+
+def compute_polarization(personas) -> dict | None:
+    pts = [(p["kf"][-1][1], p["kf"][-1][2], p["weight"])
+           for p in personas
+           if p["id"] != "anim" and p.get("kf") and p.get("weight", 0) > 0]
+    if len(pts) < 2:
+        return None
+    total_w = sum(w for _, _, w in pts)
+    a = POLARIZATION_ALPHA
+    out = {}
+    for key, idx in (("x", 0), ("y", 1)):
+        vals = [((pt[idx] - AXIS_MIN) / (AXIS_MAX - AXIS_MIN), pt[2] / total_w)
+                for pt in pts]
+        er = sum((pi ** (1 + a)) * pj * abs(yi - yj)
+                 for yi, pi in vals for yj, pj in vals)
+        out[key] = round(min(100.0, 100.0 * er / (2 ** -(1 + a))), 1)
+    return {"x": out["x"], "y": out["y"], "n": len(pts),
+            "method": "esteban_ray", "alpha": a}
+
+
 # Task 4: Passe 1 — Cadre + voix
 
 def build_frame_prompt(transcript: str, voices: list[dict], meta: dict) -> str:
@@ -521,8 +547,8 @@ def merge_personas(voices, personas_interp, traj_map, speech_map, duration) -> l
     return personas
 
 
-def assemble_data(meta, frame, personas, timeline, refus) -> dict:
-    """Build DEBATE_DATA dict. frame/timeline may be None → omit those sections."""
+def assemble_data(meta, frame, personas, timeline, refus, polarization=None) -> dict:
+    """Build DEBATE_DATA dict. frame/timeline/polarization may be None → omit."""
     data = {
         "meta": meta,
         "personas": personas,
@@ -536,6 +562,8 @@ def assemble_data(meta, frame, personas, timeline, refus) -> dict:
     if timeline is not None:
         data["events"] = timeline["events"]
         data["tension"] = timeline["tension"]
+    if polarization is not None:
+        data["polarization"] = polarization
     return data
 
 
@@ -603,7 +631,8 @@ def analyze(json_path: Path, topic: str, code: str, date: str, client=None) -> b
     else:
         print("Passe 1 échouée — carte indisponible, on garde ce qui peut l'être.", file=sys.stderr)
 
-    data = assemble_data(meta, frame, personas, timeline, refus)
+    polarization = compute_polarization(personas) if personas else None
+    data = assemble_data(meta, frame, personas, timeline, refus, polarization)
     viz_dir = Path(json_path).parent / "viz"
     write_viz(data, viz_dir)
     print(f"Visualisation écrite : {viz_dir / 'index.html'}")
