@@ -2,6 +2,8 @@
 
 > **Terminologie** : "table" = cercle de débat modéré. "session"/"séance" (`sessions`) = conteneur optionnel regroupant plusieurs tables.
 
+Voir [PROJECT_STATUS.md](./PROJECT_STATUS.md) pour l'état courant des chantiers (statut, contributeur, dépendances) et `ecclesia_plan_chantiers.md` pour le détail des tâches. À tenir à jour au fil des PR — sert de point de synchronisation entre contributeurs.
+
 ---
 
 ## Stack & Déploiement
@@ -12,6 +14,10 @@ React 18 + Vite + TypeScript · Tailwind CSS v3 · Supabase (PostgreSQL + Auth a
 VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<clé publique anon>
 ```
+
+### Accès MCP Supabase
+
+Claude dispose d'un accès MCP direct au projet Supabase (migrations, SQL, logs, advisors, edge functions, etc.). **Ne pas demander à l'utilisateur d'appliquer les migrations manuellement** — utiliser directement les outils MCP (`apply_migration`, `execute_sql`, `list_tables`, `get_advisors`, `get_logs`...) pour lire l'état de la base et appliquer les changements de schéma.
 
 `vite.config.ts` a `base: '/Ecclesia-Animation-Moderateur/'` — **ne pas supprimer**.
 
