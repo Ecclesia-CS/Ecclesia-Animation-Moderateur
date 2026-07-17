@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Débat Retraites — Visualisation idéologique</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg2: #f4f4f4;
+  --bg3: #e8e8e8;
+  --fg: #111111;
+  --fg2: #666666;
+  --fg3: #999999;
+  --border: #dddddd;
+  --axis: #aaaaaa;
+  --tab-active: #111111;
+  --tab-inactive: #888888;
+  --tab-bg-active: #ffffff;
+  --tab-border: #dddddd;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #1a1a1a;
+    --bg3: #242424;
+    --fg: #eeeeee;
+    --fg2: #999999;
+    --fg3: #666666;
+    --border: #333333;
+    --axis: #555555;
+    --tab-active: #eeeeee;
+    --tab-inactive: #666666;
+    --tab-bg-active: #0f0f0f;
+    --tab-border: #333333;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+}
+header {
+  padding: 14px 24px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+header h1 { font-size: 1rem; font-weight: 600; }
+header p  { font-size: 0.8rem; color: var(--fg2); }
+nav.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  overflow-x: auto;
+  gap: 0;
+}
+nav.tabs button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--tab-inactive);
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+nav.tabs button.active {
+  color: var(--tab-active);
+  border-bottom-color: var(--tab-active);
+  font-weight: 600;
+}
+nav.tabs button:hover { color: var(--fg); }
+section.tab-panel { display: none; }
+section.tab-panel.active { display: block; }
+.viz-wrap {
+  padding: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.viz-wrap svg { display: block; width: 100%; height: auto; }
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 6px;
+  flex-wrap: wrap;
+}
+.controls input[type=range] { flex: 1; min-width: 200px; accent-color: var(--fg); }
+.controls button {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--fg);
+}
+.controls button:hover { background: var(--bg3); }
+.controls span { font-size: 0.82rem; color: var(--fg2); white-space: nowrap; }
+.tension-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+.tension-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+.phase-text {
+  font-size: 0.8rem;
+  color: var(--fg2);
+  font-style: italic;
+  padding: 2px 0 8px;
+  min-height: 1.4em;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding: 8px 0;
+  font-size: 0.78rem;
+  color: var(--fg2);
+}
+.legend-item {
+  display: flex; align-items: center; gap: 5px;
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.legend-split {
+  width: 16px; height: 10px;
+  background: linear-gradient(to right, var(--c1) 50%, var(--c2) 50%);
+  border-radius: 3px; flex-shrink: 0;
+}
+footer {
+  margin-top: 32px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--fg3);
+  line-height: 1.6;
+}
+footer p + p { margin-top: 4px; }
+#tooltip {
+  position: fixed;
+  display: none;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--fg);
+  max-width: 280px;
+  pointer-events: none;
+  z-index: 9999;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+#tooltip b { font-weight: 600; }
+#tooltip .tip-camp { color: var(--fg2); font-size: 0.75rem; margin-bottom: 4px; }
+#tooltip .tip-note { font-style: italic; color: var(--fg2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Débat sur les retraites — Cartographie idéologique</h1>
+  <p>Données interprétatives · Reconstruction par analyse de transcription</p>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="v1">Carte statique</button>
+  <button data-tab="v2">Trajectoires animées</button>
+  <button data-tab="v3">Frise de tension</button>
+  <button data-tab="v4">Réseau conceptuel</button>
+  <button data-tab="v5">Flux thématique</button>
+</nav>
+
+<section class="tab-panel active" id="tab-v1">
+  <div class="viz-wrap">
+    <div id="v1-container"></div>
+    <div class="legend" id="v1-legend"></div>
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-v2">
+  <div class="viz-wrap">
+    <div class="controls">
+      <button id="v2-play">▶ Lecture</button>
+      <input type="range" id="v2-slider" min="0" max="85" step="0.5" value="0">
+      <span id="v2-time">00:00</span>
+      <span class="tension-badge">
+        <span class="tension-dot" id="v2-tdot"></span>
+        <span id="v2-tension-val">—</span>
+      </span>
+    </div>
+    <div class="phase-text" id="v2-phase"></div>
+    <div id="v2-container"></div>
+    <div id="v3-mini-container" style="margin-top:8px;"></div>
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-v3">
+  <div class="viz-wrap">
+    <div id="v3-container"></div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#D64545"></span>Dissensus</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#0F8A6A"></span>Consensus</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#E09020"></span>Concession</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#888888"></span>Technique</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#534AB7"></span>Méta</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#999999"></span>Cadrage</span>
+    </div>
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-v4">
+  <div class="viz-wrap">
+    <div id="v4-container"></div>
+    <div class="legend">
+      <span class="legend-item">
+        <span style="display:inline-block;width:16px;height:10px;border-radius:3px;background:linear-gradient(to right,#D64545 50%,#0F8A6A 50%);"></span>
+        Faux consensus (deux sens)
+      </span>
+      <span class="legend-item">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2.5px solid #cc2222;background:transparent;"></span>
+        Nœud gordien (irréconciliable)
+      </span>
+      <span class="legend-item">
+        <span class="legend-dot" style="background:#22aa55;"></span>
+        Point de consensus
+      </span>
+      <span class="legend-item">
+        <span style="display:inline-block;width:16px;height:2px;border-top:2px dashed var(--fg2);"></span>
+        Concession
+      </span>
+    </div>
+  </div>
+</section>
+
+<section class="tab-panel" id="tab-v5">
+  <div class="viz-wrap">
+    <div id="v5-container"></div>
+  </div>
+</section>
+
+<footer>
+  <p>⚠ Les coordonnées, seuils de tension et poids sont interprétatifs — construits à partir d'une analyse de la transcription, pas des mesures objectives. Le placement encode un jugement argumenté.</p>
+  <p>⚠ L'attribution des voix repose sur une reconstruction par le contenu et les prénoms d'adresse. La diarisation automatique ayant échoué sur le cœur du débat, les attributions sont des hypothèses.</p>
+  <p>⚠ Environ 19 % du débat (≈ 16 min sur 85) sont non enregistrés par refus de participants. Les zones grisées signalent une mesure absente, pas un silence. Toute lecture de tension dans ces fenêtres est indéterminée.</p>
+</footer>
+
+<div id="tooltip"></div>
+
+<script src="data.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+
+const EVENT_COLORS = {
+  dissensus:  '#D64545',
+  consensus:  '#0F8A6A',
+  concession: '#E09020',
+  technique:  '#888888',
+  meta:       '#534AB7',
+  cadrage:    '#999999'
+};
+
+function lerp(kf, t) {
+  if (t <= kf[0][0]) return [kf[0][1], kf[0][2]];
+  const last = kf[kf.length - 1];
+  if (t >= last[0]) return [last[1], last[2]];
+  for (let i = 0; i < kf.length - 1; i++) {
+    if (t >= kf[i][0] && t <= kf[i + 1][0]) {
+      const r = (t - kf[i][0]) / (kf[i + 1][0] - kf[i][0]);
+      return [
+        kf[i][1] + r * (kf[i + 1][1] - kf[i][1]),
+        kf[i][2] + r * (kf[i + 1][2] - kf[i][2])
+      ];
+    }
+  }
+}
+
+function getTension(t) {
+  const ts = DEBATE_DATA.tension;
+  if (t <= ts[0][0]) return ts[0][1];
+  if (t >= ts[ts.length - 1][0]) return ts[ts.length - 1][1];
+  for (let i = 0; i < ts.length - 1; i++) {
+    if (t >= ts[i][0] && t <= ts[i + 1][0]) {
+      const r = (t - ts[i][0]) / (ts[i + 1][0] - ts[i][0]);
+      return ts[i][1] + r * (ts[i + 1][1] - ts[i][1]);
+    }
+  }
+}
+
+function isInRefus(t) {
+  return DEBATE_DATA.refus.some(([a, b]) => t >= a && t <= b);
+}
+
+function tensionColor(val, inRefus) {
+  if (inRefus) return '#888888';
+  if (val <= 45) return '#22aa55';
+  if (val >= 72) return '#dd3322';
+  return '#ddaa22';
+}
+
+function formatTime(minutes) {
+  const m = Math.floor(minutes);
+  const s = Math.round((minutes - m) * 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function campColor(campId) {
+  const s = DEBATE_DATA.schools.find(x => x.id === campId);
+  if (s) return s.color;
+  const p = DEBATE_DATA.personas.find(x => x.id === campId);
+  if (p) return p.color;
+  return '#888888';
+}
+
+function campLabel(campId) {
+  const s = DEBATE_DATA.schools.find(x => x.id === campId);
+  if (s) return s.label.split(' ').slice(0, 2).join(' ');
+  const p = DEBATE_DATA.personas.find(x => x.id === campId);
+  if (p) return p.label;
+  return campId;
+}
+
+function getCurrentEvent(t) {
+  const evs = DEBATE_DATA.events;
+  let current = null;
+  for (const ev of evs) {
+    if (ev.t <= t) current = ev;
+    else break;
+  }
+  return current;
+}
+
+// Tooltip
+const tooltip = document.getElementById('tooltip');
+function showTip(html, evt) {
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const x = evt.clientX + 14, y = evt.clientY - 10;
+  const rect = tooltip.getBoundingClientRect();
+  tooltip.style.left = Math.min(x, window.innerWidth - rect.width - 10) + 'px';
+  tooltip.style.top  = Math.max(y, 10) + 'px';
+}
+function hideTip() { tooltip.style.display = 'none'; }
+
+// ─────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────
+
+const tabBtns  = document.querySelectorAll('nav.tabs button');
+const tabPanels = document.querySelectorAll('section.tab-panel');
+let initializedTabs = new Set(['v1']);
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+    tabPanels.forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+    if (!initializedTabs.has(tab)) {
+      initializedTabs.add(tab);
+      if (tab === 'v3') drawV3(document.getElementById('v3-container'), 480);
+      if (tab === 'v4') drawV4();
+      if (tab === 'v5') drawV5();
+    }
+  });
+});
+
+// ─────────────────────────────────────────────
+// SHARED MAP BUILDER (V1 + V2)
+// ─────────────────────────────────────────────
+
+function buildMapSVG(container, w, h) {
+  const mg = { top: 40, right: 30, bottom: 40, left: 50 };
+  const pw = w - mg.left - mg.right;
+  const ph = h - mg.top - mg.bottom;
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${w} ${h}`)
+    .style('width', '100%').style('height', 'auto');
+
+  const g = svg.append('g').attr('transform', `translate(${mg.left},${mg.top})`);
+
+  const xSc = d3.scaleLinear().domain([-10, 10]).range([0, pw]);
+  const ySc = d3.scaleLinear().domain([-10, 10]).range([ph, 0]);
+
+  // Quadrant shading
+  const quadrants = [
+    { x1: -10, y1:  0, x2:  0, y2: 10, label: DEBATE_DATA.axes.quadrants.topLeft,     anchor: 'start'  },
+    { x1:   0, y1:  0, x2: 10, y2: 10, label: DEBATE_DATA.axes.quadrants.topRight,    anchor: 'end'    },
+    { x1: -10, y1:-10, x2:  0, y2:  0, label: DEBATE_DATA.axes.quadrants.bottomLeft,  anchor: 'start'  },
+    { x1:   0, y1:-10, x2: 10, y2:  0, label: DEBATE_DATA.axes.quadrants.bottomRight, anchor: 'end'    }
+  ];
+  quadrants.forEach(q => {
+    g.append('rect')
+      .attr('x', xSc(q.x1)).attr('y', ySc(q.y2))
+      .attr('width', xSc(q.x2) - xSc(q.x1))
+      .attr('height', ySc(q.y1) - ySc(q.y2))
+      .attr('fill', 'var(--bg2)').attr('opacity', 0.6);
+    const lx = q.anchor === 'start' ? xSc(q.x1) + 6 : xSc(q.x2) - 6;
+    const ly = q.y2 > 0 ? ySc(q.y2) + 14 : ySc(q.y1) - 6;
+    g.append('text')
+      .attr('x', lx).attr('y', ly)
+      .attr('text-anchor', q.anchor)
+      .attr('font-size', '9.5px')
+      .attr('fill', 'var(--fg3)')
+      .attr('pointer-events', 'none')
+      .selectAll('tspan')
+      .data(q.label.split('\n'))
+      .join('tspan')
+        .attr('x', lx)
+        .attr('dy', (_, i) => i * 12)
+        .text(d => d);
+  });
+
+  // Axes
+  g.append('line').attr('x1', xSc(-10)).attr('x2', xSc(10))
+    .attr('y1', ySc(0)).attr('y2', ySc(0))
+    .attr('stroke', 'var(--axis)').attr('stroke-width', 1);
+  g.append('line').attr('x1', xSc(0)).attr('x2', xSc(0))
+    .attr('y1', ySc(-10)).attr('y2', ySc(10))
+    .attr('stroke', 'var(--axis)').attr('stroke-width', 1);
+
+  // Axis labels
+  const axLabelStyle = { fill: 'var(--fg2)', fontSize: '10px', fontWeight: '600' };
+  g.append('text').attr('x', xSc(-10)).attr('y', ySc(0) - 6).attr('text-anchor', 'start').attr('fill', axLabelStyle.fill).attr('font-size', axLabelStyle.fontSize).text(DEBATE_DATA.axes.x.leftLabel);
+  g.append('text').attr('x', xSc(10)).attr('y', ySc(0) - 6).attr('text-anchor', 'end').attr('fill', axLabelStyle.fill).attr('font-size', axLabelStyle.fontSize).text(DEBATE_DATA.axes.x.rightLabel);
+  g.append('text').attr('x', xSc(0) + 4).attr('y', ySc(10) + 2).attr('text-anchor', 'start').attr('fill', axLabelStyle.fill).attr('font-size', axLabelStyle.fontSize).text(DEBATE_DATA.axes.y.topLabel);
+  g.append('text').attr('x', xSc(0) + 4).attr('y', ySc(-10) + 12).attr('text-anchor', 'start').attr('fill', axLabelStyle.fill).attr('font-size', axLabelStyle.fontSize).text(DEBATE_DATA.axes.y.bottomLabel);
+
+  return { svg, g, xSc, ySc, pw, ph };
+}
+
+// ─────────────────────────────────────────────
+// V1 — CARTE STATIQUE
+// ─────────────────────────────────────────────
+
+function drawV1() {
+  const container = document.getElementById('v1-container');
+  const W = 880, H = 560;
+  const { svg, g, xSc, ySc } = buildMapSVG(container, W, H);
+
+  // Schools ellipses
+  DEBATE_DATA.schools.forEach(sch => {
+    const cx = xSc(sch.cx), cy = ySc(sch.cy);
+    const rxPx = Math.abs(xSc(sch.cx + sch.rx) - xSc(sch.cx));
+    const ryPx = Math.abs(ySc(sch.cy + sch.ry) - ySc(sch.cy));
+
+    g.append('ellipse')
+      .attr('cx', cx).attr('cy', cy)
+      .attr('rx', rxPx).attr('ry', ryPx)
+      .attr('fill', sch.color).attr('fill-opacity', 0.09)
+      .attr('stroke', sch.color).attr('stroke-opacity', 0.4)
+      .attr('stroke-width', 1.5)
+      .style('cursor', 'default')
+      .on('mousemove', (evt) => showTip(`<b>${sch.label}</b><br><span class="tip-note">Membres : ${sch.members.map(id => DEBATE_DATA.personas.find(p => p.id === id)?.label).join(', ')}</span>`, evt))
+      .on('mouseleave', hideTip);
+
+    // School label inside ellipse
+    g.append('text')
+      .attr('x', cx).attr('y', cy - ryPx + 14)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '9px')
+      .attr('fill', sch.color)
+      .attr('opacity', 0.85)
+      .attr('pointer-events', 'none')
+      .text(sch.label.length > 26 ? sch.label.slice(0, 24) + '…' : sch.label);
+  });
+
+  // Personas at final position (t=85)
+  const rScale = d => 5 + d.weight * 8;
+
+  // Label offset map to avoid overlaps
+  const labelOffsets = {
+    i1: [12, -6], i2: [10, 4], i3: [10, -6], i4: [10, 6],
+    i5: [10, -8], i6: [10, 4], i7: [-90, 8], i8: [10, 4], anim: [10, -6]
+  };
+
+  DEBATE_DATA.personas.forEach(p => {
+    const finalKf = p.kf[p.kf.length - 1];
+    const px = xSc(finalKf[1]);
+    const py = ySc(finalKf[2]);
+    const r  = rScale(p);
+    const [lox, loy] = labelOffsets[p.id] || [12, -4];
+
+    const pGroup = g.append('g').style('cursor', 'pointer');
+
+    pGroup.append('circle')
+      .attr('cx', px).attr('cy', py).attr('r', r)
+      .attr('fill', p.color).attr('fill-opacity', 0.85)
+      .attr('stroke', 'var(--bg)').attr('stroke-width', 1.5);
+
+    pGroup.append('text')
+      .attr('x', px + lox).attr('y', py + loy)
+      .attr('font-size', '10px').attr('font-weight', '600')
+      .attr('fill', 'var(--fg)')
+      .attr('pointer-events', 'none')
+      .text(p.label);
+
+    pGroup
+      .on('mousemove', (evt) => showTip(`
+        <b>${p.label}</b>
+        <div class="tip-camp">${p.camp}</div>
+        <div class="tip-note">${p.note}</div>
+      `, evt))
+      .on('mouseleave', hideTip);
+  });
+
+  // Legend
+  const legendEl = document.getElementById('v1-legend');
+  legendEl.innerHTML = DEBATE_DATA.personas.map(p =>
+    `<span class="legend-item"><span class="legend-dot" style="background:${p.color}"></span>${p.label}</span>`
+  ).join('');
+}
+
+// ─────────────────────────────────────────────
+// V2 — CARTE ANIMÉE
+// ─────────────────────────────────────────────
+
+const v2State = {
+  t: 0, playing: false,
+  raf: null, lastTs: null,
+  trailSamples: {}   // id → [[x,y], ...]
+};
+
+const PLAY_SPEED = 0.5 / 55; // debate-min per real-ms
+
+function drawV2() {
+  const container = document.getElementById('v2-container');
+  const W = 880, H = 520;
+  const { svg, g, xSc, ySc } = buildMapSVG(container, W, H);
+
+  // School ellipses (lighter)
+  DEBATE_DATA.schools.forEach(sch => {
+    const cx = xSc(sch.cx), cy = ySc(sch.cy);
+    const rxPx = Math.abs(xSc(sch.cx + sch.rx) - xSc(sch.cx));
+    const ryPx = Math.abs(ySc(sch.cy + sch.ry) - ySc(sch.cy));
+    g.append('ellipse')
+      .attr('cx', cx).attr('cy', cy)
+      .attr('rx', rxPx).attr('ry', ryPx)
+      .attr('fill', sch.color).attr('fill-opacity', 0.05)
+      .attr('stroke', sch.color).attr('stroke-opacity', 0.25).attr('stroke-width', 1);
+  });
+
+  // Trail polylines (one per persona)
+  const trailLines = {};
+  DEBATE_DATA.personas.forEach(p => {
+    trailLines[p.id] = g.append('polyline')
+      .attr('fill', 'none')
+      .attr('stroke', p.color).attr('stroke-opacity', 0.35)
+      .attr('stroke-width', 1.5)
+      .attr('stroke-linejoin', 'round');
+    v2State.trailSamples[p.id] = [];
+  });
+
+  // Persona circles
+  const personaCircles = {};
+  const personaLabels  = {};
+  const rScale = p => 5 + p.weight * 8;
+
+  const labelOffsets = {
+    i1: [12, -6], i2: [10, 4], i3: [10, -6], i4: [10, 6],
+    i5: [10, -8], i6: [10, 4], i7: [-90, 8], i8: [10, 4], anim: [10, -6]
+  };
+
+  DEBATE_DATA.personas.forEach(p => {
+    const pGroup = g.append('g').attr('opacity', 0);
+
+    personaCircles[p.id] = pGroup.append('circle')
+      .attr('r', rScale(p))
+      .attr('fill', p.color).attr('fill-opacity', 0.9)
+      .attr('stroke', 'var(--bg)').attr('stroke-width', 1.5)
+      .style('cursor', 'pointer')
+      .on('mousemove', (evt) => showTip(`<b>${p.label}</b><div class="tip-camp">${p.camp}</div><div class="tip-note">${p.note}</div>`, evt))
+      .on('mouseleave', hideTip);
+
+    const [lox, loy] = labelOffsets[p.id] || [12, -4];
+    personaLabels[p.id] = pGroup.append('text')
+      .attr('dx', lox).attr('dy', loy)
+      .attr('font-size', '10px').attr('font-weight', '600')
+      .attr('fill', 'var(--fg)').attr('pointer-events', 'none')
+      .text(p.label);
+
+    // Store group ref
+    personaCircles[p.id]._group = pGroup;
+  });
+
+  // Event markers on the map (at their x,y position)
+  // We draw them as subtle tick on the timeline readhead
+
+  function updateV2Display() {
+    const t = v2State.t;
+
+    // Update slider
+    document.getElementById('v2-slider').value = t;
+    document.getElementById('v2-time').textContent = formatTime(t);
+
+    // Tension
+    const tval = getTension(t);
+    const inRef = isInRefus(t);
+    const tc = tensionColor(tval, inRef);
+    document.getElementById('v2-tdot').style.background = tc;
+    document.getElementById('v2-tension-val').textContent = inRef ? 'Indéterminé (zone non enreg.)' : `Tension ${Math.round(tval)}/100`;
+
+    // Phase text
+    const ev = getCurrentEvent(t);
+    document.getElementById('v2-phase').textContent = ev ? `${ev.title} — ${ev.desc}` : '';
+
+    // Move personas
+    DEBATE_DATA.personas.forEach(p => {
+      const grp = personaCircles[p.id]._group;
+      if (t < p.entry) {
+        grp.attr('opacity', 0);
+        v2State.trailSamples[p.id] = [];
+        trailLines[p.id].attr('points', '');
+        return;
+      }
+      grp.attr('opacity', 1);
+
+      const [dx, dy] = lerp(p.kf, t);
+      const px = xSc(dx), py = ySc(dy);
+      grp.attr('transform', `translate(${px},${py})`);
+
+      // Trail: add sample every 0.5 min of debate time
+      const samples = v2State.trailSamples[p.id];
+      const lastSample = samples.length ? samples[samples.length - 1] : null;
+      if (!lastSample || Math.abs(t - lastSample[2]) >= 0.5) {
+        samples.push([px, py, t]);
+        // Keep last 200 points to avoid unbounded growth
+        if (samples.length > 200) samples.shift();
+      }
+
+      trailLines[p.id].attr('points', samples.map(s => `${s[0]},${s[1]}`).join(' '));
+    });
+
+    // Update mini V3
+    updateV3Mini(t);
+  }
+
+  // Store updateFn globally so slider can call it
+  v2State.updateDisplay = updateV2Display;
+  updateV2Display();
+
+  // Slider
+  document.getElementById('v2-slider').addEventListener('input', e => {
+    v2State.t = +e.target.value;
+    if (v2State.playing) {
+      stopV2();
+    }
+    v2State.trailSamples = {};
+    DEBATE_DATA.personas.forEach(p => { v2State.trailSamples[p.id] = []; });
+    // Rebuild trail to current t
+    for (let st = 0; st <= v2State.t; st += 0.5) {
+      DEBATE_DATA.personas.forEach(p => {
+        if (st < p.entry) return;
+        const [dx, dy] = lerp(p.kf, st);
+        const px = xSc(dx), py = ySc(dy);
+        v2State.trailSamples[p.id].push([px, py, st]);
+      });
+    }
+    updateV2Display();
+  });
+
+  function animV2(ts) {
+    if (!v2State.playing) return;
+    if (v2State.lastTs !== null) {
+      const dt = ts - v2State.lastTs;
+      v2State.t = Math.min(85, v2State.t + dt * PLAY_SPEED);
+    }
+    v2State.lastTs = ts;
+    updateV2Display();
+    if (v2State.t >= 85) {
+      stopV2();
+    } else {
+      v2State.raf = requestAnimationFrame(animV2);
+    }
+  }
+
+  function stopV2() {
+    v2State.playing = false;
+    v2State.lastTs = null;
+    if (v2State.raf) cancelAnimationFrame(v2State.raf);
+    document.getElementById('v2-play').textContent = '▶ Lecture';
+  }
+
+  // Play/pause button
+  document.getElementById('v2-play').addEventListener('click', () => {
+    if (v2State.playing) {
+      stopV2();
+    } else {
+      if (v2State.t >= 85) {
+        v2State.t = 0;
+        v2State.trailSamples = {};
+        DEBATE_DATA.personas.forEach(p => { v2State.trailSamples[p.id] = []; });
+      }
+      v2State.playing = true;
+      v2State.lastTs = null;
+      document.getElementById('v2-play').textContent = '⏸ Pause';
+      v2State.raf = requestAnimationFrame(animV2);
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// V3 — FRISE DE TENSION (shared function for full + mini)
+// ─────────────────────────────────────────────
+
+let v3MiniReadhead = null;
+
+function drawV3(container, svgH) {
+  const isMini = svgH < 350;
+  const W = 880;
+  const mg = { top: isMini ? 14 : 20, right: 20, bottom: isMini ? 60 : 90, left: 46 };
+  const pw = W - mg.left - mg.right;
+  const chartH = (isMini ? 80 : 180);
+  const markerY = chartH + (isMini ? 10 : 16);
+  const totalH = mg.top + chartH + (isMini ? 60 : 90);
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${W} ${totalH}`)
+    .style('width', '100%').style('height', 'auto');
+
+  // Hatch pattern for refus zones
+  const defs = svg.append('defs');
+  defs.append('pattern')
+    .attr('id', `hatch-${isMini ? 'mini' : 'full'}`)
+    .attr('patternUnits', 'userSpaceOnUse')
+    .attr('width', 6).attr('height', 6)
+    .attr('patternTransform', 'rotate(45)')
+    .append('line')
+      .attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 6)
+      .attr('stroke', 'var(--fg3)').attr('stroke-width', 1.5);
+
+  const g = svg.append('g').attr('transform', `translate(${mg.left},${mg.top})`);
+
+  const xSc = d3.scaleLinear().domain([0, 85]).range([0, pw]);
+  const ySc = d3.scaleLinear().domain([0, 100]).range([chartH, 0]);
+
+  // X axis ticks (every 10 min)
+  for (let m = 0; m <= 85; m += 10) {
+    g.append('line')
+      .attr('x1', xSc(m)).attr('x2', xSc(m))
+      .attr('y1', chartH).attr('y2', chartH + 4)
+      .attr('stroke', 'var(--axis)').attr('stroke-width', 1);
+    g.append('text')
+      .attr('x', xSc(m)).attr('y', chartH + 14)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '9px').attr('fill', 'var(--fg3)')
+      .text(`${m}'`);
+  }
+
+  // Y axis (0, 50, 100)
+  if (!isMini) {
+    [0, 50, 100].forEach(v => {
+      g.append('line')
+        .attr('x1', 0).attr('x2', pw)
+        .attr('y1', ySc(v)).attr('y2', ySc(v))
+        .attr('stroke', 'var(--border)').attr('stroke-width', 0.5);
+      g.append('text')
+        .attr('x', -6).attr('y', ySc(v) + 4)
+        .attr('text-anchor', 'end').attr('font-size', '9px').attr('fill', 'var(--fg3)')
+        .text(v);
+    });
+    g.append('text')
+      .attr('x', -30).attr('y', chartH / 2)
+      .attr('text-anchor', 'middle').attr('font-size', '9px').attr('fill', 'var(--fg3)')
+      .attr('transform', `rotate(-90,-30,${chartH/2})`)
+      .text('Tension');
+  }
+
+  // Tension area
+  const area = d3.area()
+    .x(d => xSc(d[0]))
+    .y0(chartH)
+    .y1(d => ySc(d[1]))
+    .curve(d3.curveMonotoneX);
+
+  g.append('path')
+    .datum(DEBATE_DATA.tension)
+    .attr('d', area)
+    .attr('fill', '#E8673A').attr('fill-opacity', 0.35);
+
+  // Tension line
+  const line = d3.line()
+    .x(d => xSc(d[0])).y(d => ySc(d[1]))
+    .curve(d3.curveMonotoneX);
+
+  g.append('path')
+    .datum(DEBATE_DATA.tension)
+    .attr('d', line)
+    .attr('fill', 'none')
+    .attr('stroke', '#E8673A').attr('stroke-width', 2);
+
+  // Refus zones
+  DEBATE_DATA.refus.forEach(([a, b]) => {
+    const bw = xSc(b) - xSc(a);
+    g.append('rect')
+      .attr('x', xSc(a)).attr('y', 0)
+      .attr('width', Math.max(bw, 2)).attr('height', chartH)
+      .attr('fill', `url(#hatch-${isMini ? 'mini' : 'full'})`)
+      .attr('opacity', 0.45);
+    if (bw > 20) {
+      g.append('text')
+        .attr('x', xSc((a + b) / 2)).attr('y', chartH / 2)
+        .attr('text-anchor', 'middle').attr('font-size', '11px')
+        .attr('fill', 'var(--fg3)').attr('pointer-events', 'none')
+        .text('?');
+    }
+  });
+
+  // Event markers
+  DEBATE_DATA.events.forEach(ev => {
+    const mx = xSc(ev.t);
+    const mr = 4 + ev.magnitude * 1.8;
+    const ec = EVENT_COLORS[ev.type] || '#999';
+
+    const mkGrp = g.append('g')
+      .attr('transform', `translate(${mx}, ${chartH + markerY})`)
+      .style('cursor', 'pointer');
+
+    // Line from top of marker area up to chart bottom
+    g.append('line')
+      .attr('x1', mx).attr('x2', mx)
+      .attr('y1', chartH).attr('y2', chartH + markerY - mr - 1)
+      .attr('stroke', ec).attr('stroke-opacity', 0.35).attr('stroke-width', 1);
+
+    if (ev.type === 'concession') {
+      // Diamond shape for concessions
+      mkGrp.append('polygon')
+        .attr('points', `0,${-mr} ${mr},0 0,${mr} ${-mr},0`)
+        .attr('fill', ec);
+    } else {
+      mkGrp.append('circle').attr('r', mr).attr('fill', ec);
+    }
+
+    mkGrp
+      .on('mousemove', (evt) => showTip(`<b>${ev.title}</b><br><span style="color:${ec};font-size:0.75rem;">${ev.type}</span><br>${ev.desc}`, evt))
+      .on('mouseleave', hideTip);
+  });
+
+  // Readhead line (for V3 mini in V2 tab)
+  const readhead = g.append('line')
+    .attr('x1', 0).attr('x2', 0)
+    .attr('y1', 0).attr('y2', chartH + markerY + 8)
+    .attr('stroke', 'var(--fg)').attr('stroke-width', 1.5)
+    .attr('stroke-dasharray', '3,2')
+    .attr('opacity', isMini ? 1 : 0);
+
+  if (isMini) {
+    v3MiniReadhead = { line: readhead, xSc };
+  }
+}
+
+function updateV3Mini(t) {
+  if (!v3MiniReadhead) return;
+  v3MiniReadhead.line.attr('x1', v3MiniReadhead.xSc(t)).attr('x2', v3MiniReadhead.xSc(t));
+}
+
+function drawV3Mini() {
+  drawV3(document.getElementById('v3-mini-container'), 160);
+}
+
+// ─────────────────────────────────────────────
+// V4 — RÉSEAU CONCEPTUEL
+// ─────────────────────────────────────────────
+
+const V4_POSITIONS = {
+  // fauxConsensus
+  'Liberté':        { x: 210, y: 180 },
+  'Solidarité':     { x: 365, y: 135 },
+  'Égalité':        { x: 500, y: 195 },
+  'Minimum vital':  { x: 255, y: 315 },
+  'État':           { x: 420, y: 305 },
+  // gordian
+  'Redistribution':         { x: 665, y: 185 },
+  'Hiérarchie des valeurs': { x: 720, y: 315 },
+  "Statut de l'inégalité":  { x: 650, y: 420 },
+  // consensus
+  'Réalité du choc démographique':         { x:  95, y: 500 },
+  "Intérêt d'un système mixte":            { x: 255, y: 515 },
+  "Espérance de vie — faille de répartition": { x: 425, y: 500 },
+  "EHPAD — sujet distinct de la retraite": { x: 575, y: 515 },
+  "Valeur du dissensus argumenté":         { x: 735, y: 500 },
+  // camp source nodes
+  '_lib': { x: 65, y: 185 },
+  '_sol': { x: 65, y: 315 },
+  '_i5':  { x: 65, y: 430 }
+};
+
+function drawV4() {
+  const container = document.getElementById('v4-container');
+  const W = 860, H = 590;
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .style('width', '100%').style('height', 'auto');
+
+  const defs = svg.append('defs');
+
+  // Arrowhead markers
+  const makeArrow = (id, color) => {
+    defs.append('marker')
+      .attr('id', id)
+      .attr('markerWidth', 8).attr('markerHeight', 6)
+      .attr('refX', 7).attr('refY', 3)
+      .attr('orient', 'auto')
+      .append('polygon')
+        .attr('points', '0 0, 8 3, 0 6')
+        .attr('fill', color);
+  };
+  makeArrow('arr-lib', '#D64545');
+  makeArrow('arr-sol', '#0F8A6A');
+  makeArrow('arr-i5',  '#639922');
+
+  const g = svg.append('g');
+
+  // ── Camp source nodes (for concession arrows)
+  const campSources = [
+    { key: '_lib', campId: 'lib', label: 'Camp libéral' },
+    { key: '_sol', campId: 'sol', label: 'Camp solidariste' },
+    { key: '_i5',  campId: 'i5',  label: 'Interlocuteur 5' }
+  ];
+
+  campSources.forEach(cs => {
+    const pos = V4_POSITIONS[cs.key];
+    const col = campColor(cs.campId);
+    g.append('rect')
+      .attr('x', pos.x - 12).attr('y', pos.y - 8)
+      .attr('width', 24).attr('height', 16).attr('rx', 3)
+      .attr('fill', col).attr('fill-opacity', 0.8);
+    g.append('text')
+      .attr('x', pos.x).attr('y', pos.y + 18)
+      .attr('text-anchor', 'middle').attr('font-size', '8px')
+      .attr('fill', 'var(--fg2)').text(cs.label);
+  });
+
+  // ── Concession arrows
+  DEBATE_DATA.concepts.concessions.forEach(con => {
+    const srcKey = con.by === 'lib' ? '_lib' : con.by === 'sol' ? '_sol' : '_i5';
+    const arrId  = con.by === 'lib' ? 'arr-lib' : con.by === 'sol' ? 'arr-sol' : 'arr-i5';
+    const col    = campColor(con.by);
+    const src    = V4_POSITIONS[srcKey];
+
+    // Find target concept pos
+    let tgtKey = con.targetConcept;
+    // Try to match shortened labels
+    let tgt = V4_POSITIONS[tgtKey];
+    if (!tgt) {
+      const found = Object.keys(V4_POSITIONS).find(k => k.startsWith(con.targetConcept.substring(0, 8)));
+      if (found) tgt = V4_POSITIONS[found];
+    }
+    if (!tgt) return;
+
+    const mx = (src.x + tgt.x) / 2 - 20;
+    const my = (src.y + tgt.y) / 2 - 40;
+    const pathD = `M ${src.x + 16},${src.y} Q ${mx},${my} ${tgt.x - 20},${tgt.y}`;
+
+    g.append('path').attr('d', pathD)
+      .attr('fill', 'none')
+      .attr('stroke', col).attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '4,3')
+      .attr('marker-end', `url(#${arrId})`)
+      .attr('opacity', 0.75)
+      .style('cursor', 'pointer')
+      .on('mousemove', (evt) => showTip(`<b>Concession — t=${con.t} min</b><br>${con.label}`, evt))
+      .on('mouseleave', hideTip);
+  });
+
+  // ── fauxConsensus split nodes
+  const fkRadius = 26;
+  const arcGen = d3.arc();
+  const leftArc  = arcGen({ startAngle: Math.PI, endAngle: 2 * Math.PI, innerRadius: 0, outerRadius: fkRadius });
+  const rightArc = arcGen({ startAngle: 0,       endAngle: Math.PI,     innerRadius: 0, outerRadius: fkRadius });
+
+  DEBATE_DATA.concepts.fauxConsensus.forEach(fc => {
+    const pos = V4_POSITIONS[fc.concept];
+    if (!pos) return;
+    const colA = campColor(fc.campA);
+    const colB = campColor(fc.campB);
+
+    const fkG = g.append('g')
+      .attr('transform', `translate(${pos.x},${pos.y})`)
+      .style('cursor', 'pointer')
+      .on('mousemove', (evt) => showTip(`
+        <b>${fc.concept}</b>
+        <div class="tip-camp">⚠ Faux consensus — même mot, deux sens</div>
+        <div style="color:${colA};font-size:0.78rem;margin-top:4px;">▸ ${campLabel(fc.campA)} : ${fc.senseA}</div>
+        <div style="color:${colB};font-size:0.78rem;margin-top:2px;">▸ ${campLabel(fc.campB)} : ${fc.senseB}</div>
+      `, evt))
+      .on('mouseleave', hideTip);
+
+    fkG.append('path').attr('d', leftArc)
+      .attr('fill', colA).attr('fill-opacity', 0.85)
+      .attr('stroke', 'var(--bg)').attr('stroke-width', 1.5);
+    fkG.append('path').attr('d', rightArc)
+      .attr('fill', colB).attr('fill-opacity', 0.85)
+      .attr('stroke', 'var(--bg)').attr('stroke-width', 1.5);
+
+    // Outer ring
+    fkG.append('circle').attr('r', fkRadius)
+      .attr('fill', 'none')
+      .attr('stroke', 'var(--fg3)').attr('stroke-width', 0.75)
+      .attr('stroke-dasharray', '3,2');
+
+    // Label below
+    fkG.append('text')
+      .attr('y', fkRadius + 13)
+      .attr('text-anchor', 'middle').attr('font-size', '10px')
+      .attr('font-weight', '600').attr('fill', 'var(--fg)')
+      .attr('pointer-events', 'none').text(fc.concept);
+    fkG.append('text')
+      .attr('y', fkRadius + 24)
+      .attr('text-anchor', 'middle').attr('font-size', '8px')
+      .attr('fill', 'var(--fg3)').attr('pointer-events', 'none')
+      .text('deux sens');
+  });
+
+  // ── Gordian nodes
+  const gkRadius = 22;
+  DEBATE_DATA.concepts.gordian.forEach(gn => {
+    const pos = V4_POSITIONS[gn.concept];
+    if (!pos) return;
+
+    const gnG = g.append('g')
+      .attr('transform', `translate(${pos.x},${pos.y})`)
+      .style('cursor', 'pointer')
+      .on('mousemove', (evt) => showTip(`
+        <b>⚡ ${gn.concept}</b>
+        <div class="tip-camp">Nœud gordien — irréconciliable</div>
+        <div style="color:${campColor(gn.campA)};font-size:0.78rem;margin-top:4px;">▸ ${campLabel(gn.campA)} : ${gn.poleA}</div>
+        <div style="color:${campColor(gn.campB)};font-size:0.78rem;margin-top:2px;">▸ ${campLabel(gn.campB)} : ${gn.poleB}</div>
+        <div class="tip-note" style="margin-top:4px;">${gn.why}</div>
+      `, evt))
+      .on('mouseleave', hideTip);
+
+    gnG.append('circle').attr('r', gkRadius)
+      .attr('fill', 'var(--bg2)')
+      .attr('stroke', '#cc2222').attr('stroke-width', 2.5);
+
+    gnG.append('text')
+      .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+      .attr('font-size', '13px').attr('fill', '#cc2222')
+      .attr('pointer-events', 'none').text('⚡');
+
+    const words = gn.concept.split(' ');
+    const line1 = words.slice(0, Math.ceil(words.length / 2)).join(' ');
+    const line2 = words.slice(Math.ceil(words.length / 2)).join(' ');
+    gnG.append('text')
+      .attr('y', gkRadius + 12)
+      .attr('text-anchor', 'middle').attr('font-size', '9.5px')
+      .attr('font-weight', '600').attr('fill', 'var(--fg)')
+      .attr('pointer-events', 'none').text(line1);
+    if (line2) {
+      gnG.append('text')
+        .attr('y', gkRadius + 23)
+        .attr('text-anchor', 'middle').attr('font-size', '9.5px')
+        .attr('fill', 'var(--fg)').attr('pointer-events', 'none').text(line2);
+    }
+  });
+
+  // ── Consensus nodes
+  const ckRadius = 14;
+  DEBATE_DATA.concepts.consensus.forEach(cn => {
+    const pos = V4_POSITIONS[cn.label];
+    if (!pos) return;
+
+    const cnG = g.append('g')
+      .attr('transform', `translate(${pos.x},${pos.y})`)
+      .style('cursor', 'pointer')
+      .on('mousemove', (evt) => showTip(`<b>✓ ${cn.label}</b><div class="tip-camp">Consensus — t=${cn.t} min, portée : ${cn.scope}</div>`, evt))
+      .on('mouseleave', hideTip);
+
+    cnG.append('circle').attr('r', ckRadius)
+      .attr('fill', '#22aa55').attr('fill-opacity', 0.8);
+
+    cnG.append('text')
+      .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+      .attr('font-size', '10px').attr('fill', '#fff')
+      .attr('pointer-events', 'none').text('✓');
+
+    const shortLabel = cn.label.length > 20 ? cn.label.slice(0, 18) + '…' : cn.label;
+    cnG.append('text')
+      .attr('y', ckRadius + 11)
+      .attr('text-anchor', 'middle').attr('font-size', '8px')
+      .attr('fill', 'var(--fg2)').attr('pointer-events', 'none')
+      .text(shortLabel);
+    cnG.append('text')
+      .attr('y', ckRadius + 20)
+      .attr('text-anchor', 'middle').attr('font-size', '8px')
+      .attr('fill', 'var(--fg3)').attr('pointer-events', 'none')
+      .text(`t=${cn.t} min`);
+  });
+
+  // Regular concepts note
+  g.append('text')
+    .attr('x', W - 10).attr('y', H - 10)
+    .attr('text-anchor', 'end').attr('font-size', '8px').attr('fill', 'var(--fg3)')
+    .text('Autres concepts mentionnés : Mérite · Capitalisation · Répartition · Croissance · Risque de l\'existence · Démographie');
+}
+
+// ─────────────────────────────────────────────
+// V5 — SANKEY
+// ─────────────────────────────────────────────
+
+function drawV5() {
+  const container = document.getElementById('v5-container');
+  const W = 860, H = 420;
+  const mg = { top: 20, right: 160, bottom: 20, left: 140 };
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .style('width', '100%').style('height', 'auto');
+
+  const { sankey } = DEBATE_DATA;
+
+  // Build index maps
+  const nodeById = {};
+  const nodes = sankey.nodes.map((n, i) => ({ ...n, index: i }));
+  nodes.forEach(n => nodeById[n.id] = n);
+
+  const links = sankey.links.map(l => ({
+    source: nodeById[l.source],
+    target: nodeById[l.target],
+    value:  l.value
+  }));
+
+  const sankeyLayout = d3Sankey.sankey()
+    .nodeId(d => d.id)
+    .nodeWidth(18)
+    .nodePadding(18)
+    .extent([[mg.left, mg.top], [W - mg.right, H - mg.bottom]]);
+
+  const { nodes: layoutNodes, links: layoutLinks } = sankeyLayout({ nodes, links });
+
+  const g = svg.append('g');
+
+  // Links
+  const linkGen = d3Sankey.sankeyLinkHorizontal();
+
+  g.append('g').selectAll('path')
+    .data(layoutLinks)
+    .join('path')
+      .attr('d', linkGen)
+      .attr('stroke-width', d => Math.max(1, d.width))
+      .attr('fill', 'none')
+      .attr('stroke', d => d.source.color || '#aaa')
+      .attr('stroke-opacity', 0.35)
+      .style('cursor', 'pointer')
+      .on('mousemove', (evt, d) => showTip(`<b>${d.source.label} → ${d.target.label}</b><br>Poids d'attention : ${d.value}`, evt))
+      .on('mouseleave', hideTip);
+
+  // Nodes
+  const nodeG = g.append('g').selectAll('g')
+    .data(layoutNodes)
+    .join('g');
+
+  nodeG.append('rect')
+    .attr('x', d => d.x0)
+    .attr('y', d => d.y0)
+    .attr('height', d => Math.max(1, d.y1 - d.y0))
+    .attr('width', d => d.x1 - d.x0)
+    .attr('fill', d => d.color || '#aaa')
+    .attr('opacity', d => d.id === 'ehpad' ? 0.45 : 0.85)
+    .attr('rx', 3)
+    .style('cursor', 'pointer')
+    .on('mousemove', (evt, d) => showTip(`<b>${d.label}</b>${d.id === 'ehpad' ? '<div class="tip-note">Écarté du sujet principal en cours de débat</div>' : ''}`, evt))
+    .on('mouseleave', hideTip);
+
+  // Node labels
+  nodeG.append('text')
+    .attr('x', d => d.x0 < W / 2 ? d.x1 + 8 : d.x0 - 8)
+    .attr('y', d => (d.y0 + d.y1) / 2)
+    .attr('text-anchor', d => d.x0 < W / 2 ? 'start' : 'end')
+    .attr('dominant-baseline', 'middle')
+    .attr('font-size', '11px')
+    .attr('fill', 'var(--fg)')
+    .text(d => d.label);
+
+  // Footnote
+  svg.append('text')
+    .attr('x', W / 2).attr('y', H - 4)
+    .attr('text-anchor', 'middle').attr('font-size', '8.5px').attr('fill', 'var(--fg3)')
+    .text('Le fractionnement intervient à la bascule de la 22e minute — pivot dramaturgique « l\'État comme abonnement »');
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+
+drawV1();
+drawV2();
+drawV3Mini();
+drawV3(document.getElementById('v3-container'), 480);
+initializedTabs.add('v3');
+</script>
+</body>
+</html>
