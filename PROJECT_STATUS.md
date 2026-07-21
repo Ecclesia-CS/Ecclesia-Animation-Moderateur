@@ -2,22 +2,22 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 17/07/2026
+Dernière mise à jour : 21/07/2026
 
 ## Chantier 1 — Navigation partout
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| C5 | Bouton « Quitter » dans toutes les phases | Backlog | | — |
-| D3 | Messages de reload en phase d'attente | Backlog | | — |
-| D5 | Message d'intro sur le fonctionnement de l'app | Backlog | | — |
-| D9 | Infos sur la phase « allocating » | Backlog | | — |
+| C5 | Bouton « Quitter » dans toutes les phases | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D3 | Messages de reload en phase d'attente | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D5 | Message d'intro sur le fonctionnement de l'app | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D9 | Infos sur la phase « allocating » | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 2 — Questionnaire & identité avant allocation
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| D18 | Question modérateur oui/non | Backlog | | — |
-| D4 | Renommer « pseudo » → « nom prénom » | Backlog | | — |
-| D7 | Préremplir le nom/pseudo | Backlog | | — |
+| D18 | Question modérateur oui/non | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D4 | Renommer « pseudo » → « nom prénom » | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D7 | Préremplir le nom/pseudo | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 3 — Débat sans admin
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -63,8 +63,8 @@ Dernière mise à jour : 17/07/2026
 ## Chantier 9 — Superadmin : gestion des données
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| E1 | Suppression groupée assertions poubelle | Backlog | | — |
-| E2 | Masquer qui a soumis quelle assertion | Backlog | | — |
+| E1 | Suppression groupée assertions poubelle | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| E2 | Masquer qui a soumis quelle assertion | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 10 — Petites tâches transverses
 | ID | Résumé | Statut | Contributeur | Dépend de |

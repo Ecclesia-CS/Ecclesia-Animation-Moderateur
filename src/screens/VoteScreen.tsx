@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { castVote, getVoteResults, confirmAttendance, registerSessionMember } from '../lib/voting'
+import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import PseudoForm from '../components/voting/PseudoForm'
@@ -12,6 +13,7 @@ import VoteTimerBadge from '../components/voting/VoteTimerBadge'
 import NotesModal from '../components/NotesModal'
 import AllocatingScreen from './AllocatingScreen'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
+import QuitLink from '../components/QuitLink'
 
 interface VoteScreenProps {
   sessionJoinCode: string
@@ -60,6 +62,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Outils panel
   const [showToolsPanel,  setShowToolsPanel]  = useState(false)
   const [showNotesModal,  setShowNotesModal]  = useState(false)
+
+  // Message d'intro affiché une fois par séance : explique les phases de l'app
+  const [showAppIntro, setShowAppIntro] = useState(false)
 
   // Proposition nudge every 10 votes
   const [nextNudgeAt,      setNextNudgeAt]      = useState(10)
@@ -114,6 +119,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       }
       const s = sess as Session
       setSession(s)
+
+      // Message d'intro "comment fonctionne l'app" — une fois par séance
+      if (!localStorage.getItem(`ecclesia_app_intro_${s.id}`)) {
+        setShowAppIntro(true)
+      }
 
       // 3. Check if already a member
       const { data: existingMember } = await supabase
@@ -248,7 +258,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     const [{ data: assertionRows }, { data: voteRows }, { data: myAssertions }] = await Promise.all([
       supabase
         .from('assertions')
-        .select('*')
+        .select('id, session_id, content, status, created_at') // pas member_id (E2 — anonymat des auteurs)
         .eq('session_id', s.id)
         .eq('status', 'approved'),
       supabase
@@ -380,7 +390,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     const interval = setInterval(async () => {
       const { data } = await supabase
         .from('assertions')
-        .select('*')
+        .select('id, session_id, content, status, created_at') // pas member_id (E2 — anonymat des auteurs)
         .eq('session_id', session.id)
         .eq('status', 'approved')
       if (!data) return
@@ -480,14 +490,26 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       // Montrer le code de rappel, puis voter directement (pas d'onboarding)
       setStep('reclaim_code')
     } else {
-      await loadVoteData(session!, m)
+      // Phase voting (nouveau membre) : questionnaire d'entrée avant le vote
+      setStep('onboarding')
     }
   }
 
   async function handleConfirmAttendanceSuccess(m: SessionMember) {
     if (!session) return
     setMember(m)
-    await loadVoteData(session, m)
+    // Vérifier si l'onboarding est déjà fait (ex : reclaim depuis un pré-vote)
+    const { data: existingResponse } = await supabase
+      .from('entry_responses')
+      .select('id')
+      .eq('session_id', session.id)
+      .eq('member_id', m.id)
+      .maybeSingle()
+    if (existingResponse) {
+      await loadVoteData(session, m)
+    } else {
+      setStep('onboarding')
+    }
   }
 
   async function handleOnboardingSuccess(_response: EntryResponse) {
@@ -550,10 +572,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   if (step === 'questionnaire' && session) {
     return (
-      <SessionQuestionnaireForm
-        sessionId={session.id}
-        onDone={() => setStep('ended')}
-      />
+      <>
+        <QuitLink />
+        <SessionQuestionnaireForm
+          sessionId={session.id}
+          onDone={() => setStep('ended')}
+        />
+      </>
     )
   }
 
@@ -575,86 +600,121 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   if (step === 'ended') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="text-5xl">🎉</div>
-          <h1 className="text-xl font-bold text-gray-900">Phase de vote terminée</h1>
-          <p className="text-sm text-gray-500">
-            Merci pour ta participation ! Les résultats vont être analysés pour former les groupes de débat.
-          </p>
-          <p className="text-xs text-gray-400">Attends les instructions de l'organisateur.</p>
+      <>
+        <QuitLink />
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+          <div className="text-center space-y-4 max-w-sm">
+            <div className="text-5xl">🎉</div>
+            <h1 className="text-xl font-bold text-gray-900">Phase de vote terminée</h1>
+            <p className="text-sm text-gray-500">
+              Merci pour ta participation ! Les résultats vont être analysés pour former les groupes de débat.
+            </p>
+            <p className="text-xs text-gray-400">Attends les instructions de l'organisateur.</p>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   if (step === 'waiting' && session && member) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="text-5xl">⏳</div>
-          <h1 className="text-xl font-bold text-gray-900">En attente de l'organisateur</h1>
-          <p className="text-sm text-gray-500">
-            Bienvenue <strong>{member.pseudo}</strong> ! L'organisateur va ouvrir le vote dans quelques instants.
-          </p>
-          <p className="text-xs text-gray-400">
-            Tu seras automatiquement redirigé(e) quand le vote commencera.
-          </p>
-          <div className="flex justify-center pt-2">
-            <span className="inline-block w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+      <>
+        <QuitLink />
+        {showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+          <div className="text-center space-y-4 max-w-sm">
+            <div className="text-5xl">⏳</div>
+            <h1 className="text-xl font-bold text-gray-900">En attente de l'organisateur</h1>
+            <p className="text-sm text-gray-500">
+              Bienvenue <strong>{member.pseudo}</strong> ! L'organisateur va ouvrir le vote dans quelques instants.
+            </p>
+            <p className="text-xs text-gray-400">
+              Tu seras automatiquement redirigé(e) quand le vote commencera.
+            </p>
+            <div className="flex justify-center pt-2">
+              <span className="inline-block w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="text-xs text-gray-400 pt-1">
+              Ça ne bouge pas ?{' '}
+              <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
+                Recharge la page
+              </button>{' '}
+              — c'est possible et parfois nécessaire pour voir les nouvelles infos.
+            </p>
           </div>
         </div>
-      </div>
+      </>
     )
   }
 
   if (step === 'pseudo' && session) {
+    const intro = showAppIntro ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} /> : null
     // En phase voting : formulaire combiné pseudo OU code (pas de double écran)
     if (session.phase === 'voting') {
       return (
-        <VotingEntryForm
-          session={session}
-          onNewMember={handlePseudoSuccess}
-          onConfirmed={handleConfirmAttendanceSuccess}
-        />
+        <>
+          <QuitLink />
+          {intro}
+          <VotingEntryForm
+            session={session}
+            onNewMember={handlePseudoSuccess}
+            onConfirmed={handleConfirmAttendanceSuccess}
+          />
+        </>
       )
     }
     return (
-      <PseudoForm
-        session={session}
-        onSuccess={handlePseudoSuccess}
-        reclaimCode={session.phase === 'pre_voting' ? (reclaimCode ?? undefined) : undefined}
-      />
+      <>
+        <QuitLink />
+        {intro}
+        <PseudoForm
+          session={session}
+          onSuccess={handlePseudoSuccess}
+          reclaimCode={session.phase === 'pre_voting' ? (reclaimCode ?? undefined) : undefined}
+        />
+      </>
     )
   }
 
   if (step === 'reclaim_code' && session && member && reclaimCode) {
-    return <ReclaimCodeDisplay
-      pseudo={member.pseudo}
-      code={reclaimCode}
-      onContinue={() => loadVoteData(session, member)}
-    />
+    return (
+      <>
+        <QuitLink />
+        <ReclaimCodeDisplay
+          pseudo={member.pseudo}
+          code={reclaimCode}
+          onContinue={() => loadVoteData(session, member)}
+        />
+      </>
+    )
   }
 
   if (step === 'confirm_attendance' && session) {
     return (
-      <AttendanceConfirmScreen
-        session={session}
-        pseudo={confirmPseudo}
-        mode={confirmMode}
-        onConfirmed={handleConfirmAttendanceSuccess}
-        onSwitchToReclaim={() => setConfirmMode('reclaim')}
-        onChangePseudo={() => {
-          setConfirmPseudo('')
-          setStep('pseudo')
-        }}
-      />
+      <>
+        <QuitLink />
+        {showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        <AttendanceConfirmScreen
+          session={session}
+          pseudo={confirmPseudo}
+          mode={confirmMode}
+          onConfirmed={handleConfirmAttendanceSuccess}
+          onSwitchToReclaim={() => setConfirmMode('reclaim')}
+          onChangePseudo={() => {
+            setConfirmPseudo('')
+            setStep('pseudo')
+          }}
+        />
+      </>
     )
   }
 
   if (step === 'onboarding' && session && member) {
     return (
-      <OnboardingForm sessionId={session.id} member={member} onSuccess={handleOnboardingSuccess} />
+      <>
+        <QuitLink />
+        <OnboardingForm sessionId={session.id} member={member} onSuccess={handleOnboardingSuccess} />
+      </>
     )
   }
 
@@ -687,6 +747,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           )}
           <div className="flex items-center gap-2">
             <button
+              onClick={() => { window.location.hash = '' }}
+              className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              Quitter
+            </button>
+            <button
               onClick={() => setShowToolsPanel(true)}
               className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
@@ -703,8 +769,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Allocating banner */}
         {session.phase === 'allocating' && (
-          <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-            ⏳ Le classement des groupes est en cours. Tu peux encore voter, mais ton vote n'influencera plus la répartition des tables.
+          <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
+            <p>⏳ L'organisateur forme les groupes de débat à partir des votes de tout le monde. Tu peux encore voter, mais ton vote n'influencera plus la répartition des tables.</p>
+            <p>
+              Si l'écran ne bouge pas quand ton groupe est prêt,{' '}
+              <button onClick={() => window.location.reload()} className="underline hover:text-amber-900">
+                recharge la page
+              </button>.
+            </p>
           </div>
         )}
 
@@ -1003,6 +1075,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             </div>
           </div>
         )}
+
+        {showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
       </div>
     )
   }
@@ -1011,6 +1085,77 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 }
 
 // ── Helper screens ────────────────────────────────────────────────────────────
+
+// ── AppIntroModal ────────────────────────────────────────────────────────────
+// Bref aperçu des phases de la séance, affiché une fois à la connexion (D5)
+
+interface AppIntroModalProps {
+  session: Session
+  onClose: () => void
+}
+
+function AppIntroModal({ session, onClose }: AppIntroModalProps) {
+  function handleClose() {
+    localStorage.setItem(`ecclesia_app_intro_${session.id}`, '1')
+    onClose()
+  }
+
+  const voteDuration = session.vote_timer_minutes
+    ? `Les ${session.vote_timer_minutes} premières minutes sont dédiées au vote.`
+    : "Prends le temps qu'il te faut pour voter sur les assertions."
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+      onClick={handleClose}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="bg-indigo-600 px-6 py-5 text-center">
+          <p className="text-2xl mb-1">🧭</p>
+          <h2 className="text-lg font-bold text-white">Comment se déroule la séance ?</h2>
+          <p className="text-indigo-100 text-xs mt-1">{session.title}</p>
+        </div>
+        <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">🗳️</span>
+            <div>
+              <p className="font-semibold text-gray-900">1. Vote</p>
+              <p className="text-gray-500 text-xs mt-0.5">{voteDuration}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">🧩</span>
+            <div>
+              <p className="font-semibold text-gray-900">2. Répartition en groupes</p>
+              <p className="text-gray-500 text-xs mt-0.5">L'app forme des groupes de débat variés à partir des votes de tout le monde.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">💬</span>
+            <div>
+              <p className="font-semibold text-gray-900">3. Débat</p>
+              <p className="text-gray-500 text-xs mt-0.5">Tu rejoins ta table et débats avec ton groupe.</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0">📋</span>
+            <div>
+              <p className="font-semibold text-gray-900">4. Questionnaire</p>
+              <p className="text-gray-500 text-xs mt-0.5">Un court retour sur la séance, à la fin.</p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 pb-6">
+          <button
+            onClick={handleClose}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Compris, c'est parti →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
   return (
@@ -1236,7 +1381,7 @@ interface VotingEntryFormProps {
 
 function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormProps) {
   const [tab,          setTab]          = useState<'pseudo' | 'code'>('pseudo')
-  const [input,        setInput]        = useState('')
+  const [input,        setInput]        = useState(() => lastNameStore.get())
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [reclaimDone,  setReclaimDone]  = useState<SessionMember | null>(null)
@@ -1256,6 +1401,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
         // Pseudo : d'abord tenter l'inscription normale
         try {
           const member = await registerSessionMember(session.id, val)
+          lastNameStore.set(val)
           onNewMember(member)
         } catch (regErr: unknown) {
           const msg = regErr instanceof Error ? regErr.message : ''
@@ -1321,7 +1467,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
                   tab === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                {t === 'pseudo' ? 'Mon pseudo' : 'Mon code de rappel'}
+                {t === 'pseudo' ? 'Mon nom' : 'Mon code de rappel'}
               </button>
             ))}
           </div>
@@ -1329,20 +1475,20 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           {tab === 'pseudo' ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pseudo
+                Nom Prénom
               </label>
               <input
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="Ton prénom ou pseudonyme…"
+                placeholder="Ex : Marie Dupont"
                 maxLength={40}
                 required
                 autoFocus
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <p className="text-xs text-gray-400 mt-1.5">
-                Tu avais voté à distance ? Entre le même pseudo pour récupérer tes votes.
+                Retiens bien ce que tu inscris ici. Tu avais voté à distance ? Entre le même nom et prénom pour récupérer tes votes.
               </p>
             </div>
           ) : (
@@ -1411,7 +1557,7 @@ function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProp
         <div>
           <h1 className="text-xl font-bold text-gray-900">Note ton code de rappel</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Si tu viens au débat et changes d'appareil, entre ton pseudo <strong>ou</strong> ce code pour retrouver tes votes.
+            Si tu viens au débat et changes d'appareil, entre ton nom et prénom <strong>ou</strong> ce code pour retrouver tes votes.
             <br />
             <span className="text-amber-600 font-medium">📸 Fais un screen de cet écran !</span>
           </p>
@@ -1419,7 +1565,7 @@ function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProp
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Pseudo</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Nom Prénom</p>
             <p className="text-lg font-bold text-gray-900">{pseudo}</p>
           </div>
           <div>
@@ -1469,7 +1615,7 @@ function AttendanceConfirmScreen({
   onChangePseudo,
 }: AttendanceConfirmScreenProps) {
   const [reclaimTab, setReclaimTab] = useState<'pseudo' | 'code'>('pseudo')
-  const [reclaimInput, setReclaimInput] = useState('')
+  const [reclaimInput, setReclaimInput] = useState(() => lastNameStore.get())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -1496,6 +1642,7 @@ function AttendanceConfirmScreen({
       const member = reclaimTab === 'code'
         ? await confirmAttendance(session.id, undefined, val)
         : await confirmAttendance(session.id, val)
+      if (reclaimTab === 'pseudo') lastNameStore.set(val)
       onConfirmed(member)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
@@ -1522,7 +1669,7 @@ function AttendanceConfirmScreen({
           {header}
 
           <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3 text-center">
-            <p className="text-sm text-gray-500">Tu avais voté à distance sous le pseudo</p>
+            <p className="text-sm text-gray-500">Tu avais voté à distance sous le nom</p>
             <p className="text-xl font-bold text-gray-900">{pseudo}</p>
             <p className="text-sm text-gray-600 font-medium">Es-tu présent(e) au débat aujourd'hui ?</p>
           </div>
@@ -1558,7 +1705,7 @@ function AttendanceConfirmScreen({
         {header}
 
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-sm text-indigo-800 text-center">
-          Retrouve ton profil pré-vote avec <strong>ton pseudo</strong> ou <strong>ton code de rappel</strong> — l'un ou l'autre suffit.
+          Retrouve ton profil pré-vote avec <strong>ton nom et prénom</strong> ou <strong>ton code de rappel</strong> — l'un ou l'autre suffit.
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
@@ -1567,26 +1714,26 @@ function AttendanceConfirmScreen({
             {(['pseudo', 'code'] as const).map(tab => (
               <button
                 key={tab}
-                onClick={() => { setReclaimTab(tab); setReclaimInput('') }}
+                onClick={() => { setReclaimTab(tab); setReclaimInput(tab === 'pseudo' ? lastNameStore.get() : '') }}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
                   reclaimTab === tab
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                {tab === 'pseudo' ? 'Mon pseudo' : 'Mon code de rappel'}
+                {tab === 'pseudo' ? 'Mon nom' : 'Mon code de rappel'}
               </button>
             ))}
           </div>
 
           {reclaimTab === 'pseudo' ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pseudo pré-vote</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nom Prénom pré-vote</label>
               <input
                 type="text"
                 value={reclaimInput}
                 onChange={e => setReclaimInput(e.target.value)}
-                placeholder="Ton pseudo…"
+                placeholder="Ton nom et prénom…"
                 maxLength={40}
                 autoFocus
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"

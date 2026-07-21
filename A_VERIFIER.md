@@ -1,0 +1,103 @@
+# À vérifier
+
+Liste des points nécessitant une validation humaine, générés lors des sessions Claude Code.
+Ne pas supprimer une entrée sans validation explicite de Jules — se contenter de la déplacer en section "Validé" une fois confirmée.
+
+## En attente
+
+- [ ] **2026-07-21** — Chantier 2 (D18/D4/D7) — `src/screens/EntryScreen.tsx`, `src/components/voting/PseudoForm.tsx`, `src/screens/VoteScreen.tsx` (`VotingEntryForm`, `AttendanceConfirmScreen`), `src/components/voting/OnboardingForm.tsx`, `src/lib/storage.ts`
+
+  **Contexte** : trois demandes du doc de réflexion de Jules — D18 (question modérateur strictement oui/non dans le questionnaire d'entrée), D4 (renommer "pseudo" → "nom prénom" partout où l'identité est saisie, avec une consigne "retiens bien ce que tu inscris"), D7 (préremplir ce champ la fois suivante, tout en restant modifiable).
+
+  **⚠️ Point important découvert pendant ce chantier** : l'onboarding (`OnboardingForm`, questionnaire de 6 questions dont celle du modérateur — D18) avait été **temporairement désactivé le 2026-06-04** pour un débat ponctuel (voir l'ancienne section "Changements temporaires" de CLAUDE.md, maintenant retirée). Comme D18 porte justement sur ce questionnaire, je l'ai **réactivé** en restaurant `handlePseudoSuccess`/`handleConfirmAttendanceSuccess` dans `VoteScreen.tsx` à leur comportement d'origine (`setStep('onboarding')` au lieu d'aller direct au vote). Concrètement : en phase `voting` (vote présentiel), tout nouveau participant (ou participant qui confirme sa présence sans avoir déjà répondu) verra maintenant le questionnaire de 6 questions avant de voter. **Décision prise sans confirmation de Jules faute de pouvoir demander en temps réel (session asynchrone)** — à valider : si ce n'est pas souhaité, il suffit de re-commenter ces deux fonctions vers `loadVoteData` direct, en gardant le changement de libellé "Oui/Non" dans `QuestionModerator` pour le chantier 5 (B1) qui refera le questionnaire.
+
+  **Ce qui a changé** :
+  - `OnboardingForm.tsx` → question modérateur : les boutons disent maintenant "Oui" / "Non" (au lieu de "Oui" / "Pas nécessaire"). La donnée stockée (`moderator_pref: boolean`) ne change pas.
+  - Tous les champs de saisie d'identité (rejoindre/reprendre/créer une table dans `EntryScreen`, formulaire pré-vote `PseudoForm`, formulaire vote présentiel `VotingEntryForm`, reclaim `AttendanceConfirmScreen`) affichent désormais "Nom Prénom" et un texte d'aide type "Retiens bien ce que tu inscris ici". Le champ DB reste `pseudo` (pas de migration — changement d'UI seulement).
+  - Nouveau `lastNameStore` dans `src/lib/storage.ts` (clé localStorage `ecclesia_last_name`) : mémorise le dernier nom/prénom saisi avec succès et préremplit (mais reste modifiable) tous les formulaires listés ci-dessus.
+
+  **Déjà vérifié par moi (Browser pane + anon key en lecture, sans rien créer en base)** : les 4 onglets d'`EntryScreen` (Voter/Rejoindre/Reprendre/Créer) affichent bien "Nom Prénom" / "Votre nom Prénom" / "Nom Prénom (animateur)" avec le texte d'aide. `npx tsc -b` compile sans erreur. J'ai aussi vérifié via l'API REST (anon key) qu'aucune séance n'est actuellement active en base (toutes `closed`) — donc rien d'observable plus loin que l'écran d'accueil sans données de test.
+
+  **(1) Parcours manuel à suivre** (une fois les données de test ci-dessous en place) :
+  1. Aller sur `#vote/<join_code>` de la séance de test, onglet "Mon nom" (phase `voting`) → vérifier le label **"Nom Prénom"**, le placeholder "Ex : Marie Dupont" et le texte "Retiens bien ce que tu inscris ici...". Entrer un nom, valider.
+  2. **Le questionnaire d'entrée doit apparaître** (6 questions) avant le vote — vérifier que l'écran "Modération" affiche bien seulement deux boutons **"Oui" / "Non"** (plus "Pas nécessaire"). Répondre "Non" et vérifier que ça n'empêche pas de continuer, et que `entry_responses.moderator_pref = false` est bien enregistré en base.
+  3. Revenir sur `#vote/<join_code>` (même séance ou une autre) depuis le **même navigateur** → le champ nom doit être **prérempli** avec le nom saisi à l'étape 1 (D7), tout en restant modifiable.
+  4. Tester le parcours "Reprendre mes votes" (onglet "Mon code de rappel" / écran de confirmation présentielle après un pré-vote) : label "Nom Prénom pré-vote", bannière "Retrouve ton profil pré-vote avec ton nom et prénom ou ton code de rappel", préremplissage du champ nom également attendu là.
+  5. Vérifier aussi les formulaires de `EntryScreen` (rejoindre/reprendre/créer une table hors séance) avec des données existantes : label "Nom Prénom", préremplissage.
+
+  **(2) Données de test nécessaires** (à créer par la conversation de vérification dédiée — je n'ai rien créé moi-même) :
+  - Une séance (`sessions`) en phase `voting`, avec `join_code` connu.
+  - Idéalement un `session_member` déjà inscrit en phase `pre_voting` au préalable (pour tester le reclaim "Reprendre mes votes" à l'étape 4) — sinon un simple nouveau membre en phase `voting` suffit pour les étapes 1-3.
+  - Au moins une `table` créée hors séance (ou une séance en phase `draft`/`voting`/`debating` listée) pour l'étape 5 (`EntryScreen` rejoindre/reprendre/créer).
+  - Aucune donnée de vote (`assertions`/`assertion_votes`) n'est nécessaire spécifiquement pour D18/D4/D7 — seuls `session_members` et `entry_responses` sont concernés.
+
+- [ ] **2026-07-21** — Chantier 1 (C5/D3/D5/D9) — `src/components/QuitLink.tsx` (nouveau), `src/screens/VoteScreen.tsx`, `src/screens/AllocatingScreen.tsx`, `src/components/voting/TableAssignmentCard.tsx`
+
+  **Contexte** : quatre demandes du doc de réflexion de Jules, toutes côté participant.
+  - **C5** : pouvoir quitter et revenir au menu (`EntryScreen`) depuis n'importe quelle phase, pas seulement pendant le débat.
+  - **D3** : des messages incitant à recharger la page pendant les phases d'attente asynchrones.
+  - **D5** : un bref aperçu du déroulé de la séance (vote → répartition → débat → questionnaire) affiché à la connexion.
+  - **D9** : expliquer ce qui se passe pendant la phase "allocating" (formation des groupes).
+
+  **Ce qui a changé** :
+  - Nouveau composant `QuitLink` (bouton flottant "← Menu" en haut à gauche, `window.location.hash = ''`) ajouté à tous les écrans de `VoteScreen.tsx` qui n'avaient encore aucun moyen de sortir : `waiting` (attente en phase `draft`), `pseudo` (`PseudoForm`/`VotingEntryForm`), `reclaim_code`, `confirm_attendance`, `onboarding`, `ended`, `questionnaire`. L'étape `vote` a un bouton "Quitter" explicite dans le header (même convention que `ModeratorView`/`ParticipantView`, qui avaient déjà ce bouton). `AllocatingScreen` a aussi `QuitLink` dans son header. **Ces écrans n'ont pas encore de table rejointe** (pas de `TableProvider`), donc "Quitter" ne fait qu'effacer le hash — aucun appel RPC, aucune perte de données. Le comportement existant en phase `debating` (`leaveTable()` via `TableContext`, ne supprime pas le participant) n'a pas été touché.
+  - Nouvelle modale `AppIntroModal` dans `VoteScreen.tsx` : affichée une seule fois par séance (clé localStorage `ecclesia_app_intro_<session.id>`), déclenchée dès que la séance est chargée (avant même l'inscription). Résume les 4 phases ; mentionne la durée du vote si `session.vote_timer_minutes` est configuré (sinon message générique).
+  - `TableAssignmentCard.tsx` : le message "Formation des groupes en cours…" (phase `allocating` sans assignation encore) est enrichi d'une explication (répartition en groupes aux avis variés à partir des votes) + un lien "Recharge la page". Idem pour l'état "ta table n'est pas encore créée" (phase `debating` sans `join_code`).
+  - `VoteScreen.tsx` : bannière de la phase `allocating` (déjà existante pendant qu'on peut encore voter) et écran `waiting` (phase `draft`) ont chacun reçu un lien "Recharge la page" en plus du texte existant.
+
+  **Déjà vérifié par moi** : `npx tsc -b` et `npm run build` passent sans erreur. Testé dans le Browser pane sur `http://localhost:5173` : lien invalide (`#vote/ZZZZZZ`) affiche toujours correctement "Séance introuvable" (non modifié), aucune erreur console sur l'écran d'accueil. **Je n'ai pas pu piloter le parcours participant complet** : aucune séance n'est active dans la base à l'heure où j'écris ceci, et je n'ai ni accès MCP Supabase dans cette session (aucun outil Supabase n'apparaît dans mon inventaire d'outils, malgré ce qu'indique CLAUDE.md — probablement à reconnecter côté configuration Claude Code) ni la possibilité de saisir moi-même le mot de passe superadmin (règle de sécurité stricte, non contournable même avec autorisation explicite). Je n'ai donc créé aucune donnée de test.
+
+  **(1) Parcours manuel à suivre** (une fois la séance de test ci-dessous en place) :
+  1. Depuis le superadmin, passer la séance en phase `pre_voting` (ou `voting`). Ouvrir `#vote/<join_code>` dans un nouvel onglet/navigation privée → **avant même de saisir un nom**, la modale "Comment se déroule la séance ?" doit apparaître (4 étapes : vote/répartition/débat/questionnaire), avec la mention de la durée si un timer de vote est configuré pour cette séance. La fermer.
+  2. Recharger la page (`#vote/<join_code>`) → la modale **ne doit plus réapparaître** (elle est mémorisée par séance).
+  3. Sur cet écran d'inscription (avant d'avoir un nom), vérifier la présence du bouton flottant **"← Menu"** en haut à gauche → cliquer dessus → doit revenir à `EntryScreen` (accueil), sans erreur console.
+  4. Repasser la séance en phase `draft` (ou utiliser une séance encore en `draft`) et rejoindre `#vote/<join_code>` avec un nom déjà inscrit → écran "En attente de l'organisateur" : vérifier le lien **"Recharge la page"** sous le spinner, et le bouton "← Menu".
+  5. Passer la séance en `voting`/`pre_voting`, voter sur au moins une assertion → dans le header de l'écran de vote, vérifier la présence des 3 boutons **Quitter / Outils / ✏️ Proposer**. Cliquer "Quitter" → retour à l'accueil.
+  6. Passer la séance en phase `allocating` **sans avoir lancé le clustering** (`run_clustering_v1`/`v2`) → recharger `#vote/<join_code>` en tant que participant déjà voté : la bannière ambre en haut de l'écran de vote doit expliquer que les groupes sont en formation, avec un lien "recharge la page".
+  7. Lancer le clustering (superadmin) puis passer en phase `debating` sans avoir rattaché de table physique au groupe du participant testé → sur `AllocatingScreen`, la carte doit afficher "Formation des groupes en cours…" (si assignation pas encore reçue) ou "Ta table n'est pas encore créée" (si assignation reçue mais pas de `join_code`), chacune avec le lien "Recharge la page". Vérifier aussi le bouton "← Menu" en haut à gauche du header `AllocatingScreen`.
+  8. Rattacher une table physique au groupe → le code de table doit apparaître (Realtime ou après le reload suggéré par le message).
+
+  **(2) Données de test nécessaires** (aucune créée par moi — MCP Supabase indisponible + je ne saisis pas le mot de passe superadmin) :
+  - Une séance de test pilotable à travers les phases `draft → pre_voting/voting → allocating → debating`, avec `vote_timer_minutes` renseigné sur au moins un cas (pour vérifier le texte dynamique de l'intro D5) et non renseigné sur un autre cas (texte générique).
+  - Au moins 2-3 `assertions` approuvées pour pouvoir voter et atteindre la bannière `allocating` à l'étape 6.
+  - Au moins un `session_member` inscrit, dont on peut suivre le parcours complet (idéalement avec des votes en attente au moment du passage en `allocating`).
+
+- [ ] **2026-07-21** — Chantier 9 (E1/E2) — `supabase/migrations/20260721_delete_assertions_admin.sql` (nouveau), `supabase/migrations/20260721_hide_assertion_author.sql` (nouveau), `src/lib/voting.ts`, `src/screens/SuperadminScreen.tsx`, `src/screens/VoteScreen.tsx`, `src/components/AnalysisPanel.tsx`, `src/components/voting/LLMModerationPanel.tsx`
+
+  **Contexte** : deux demandes du doc de réflexion de Jules, superadmin uniquement.
+  - **E1** : pouvoir supprimer définitivement des assertions de la corbeille (rejetées), en groupe, et pouvoir annuler un import CSV.
+  - **E2** : enlever la possibilité pour le superadmin de voir qui a soumis quelle assertion.
+
+  **⚠️ MCP Supabase confirmé indisponible dans cette session** (vérifié à plusieurs reprises pendant ce chantier, à la demande de Jules : aucun outil `mcp__supabase__*` chargeable via ToolSearch, `claude mcp list` → "No MCP servers configured", aucun `.mcp.json` dans le repo, aucun token d'accès Supabase dans `.env`/`.env.local` — seule la clé anon publique y est présente, insuffisante pour `claude mcp add`). Ce n'est pas un problème d'autorisation mais une vraie absence de configuration dans cette session précise ; Jules la corrigera lui-même via un terminal interactif. **Conséquence : je n'ai ni appliqué les 2 migrations ci-dessous, ni créé de données de test, ni pu me connecter en superadmin** (je ne saisis pas de mot de passe applicatif à la place de l'utilisateur, même avec autorisation — cf. règles de sécurité). Tant que les migrations ne sont pas appliquées, la corbeille et le masquage restent du code non déployé.
+
+  **Ce qui a changé** :
+  - Nouvelle RPC `delete_assertions_admin(password, session_id, assertion_ids[])` (SECURITY DEFINER) : supprime définitivement les assertions listées (cascade sur `assertion_votes` via la FK existante). Pas de restriction de statut côté SQL — la suppression est possible quel que soit le statut, mais l'UI ne l'expose que pour les assertions rejetées et pour annuler un import CSV.
+  - `AssertionsPanel` (onglet "Rejetées") : case à cocher par assertion, "Tout sélectionner/désélectionner", bouton "🗑 Supprimer la sélection (N)", bouton "🗑 Supprimer" par ligne — chacun ouvre une confirmation (`ConfirmModal`, action irréversible).
+  - Import CSV : après import, un bouton "↩ Annuler l'import (N)" apparaît et supprime (avec confirmation) exactement les assertions créées par ce lot, quel que soit leur statut ensuite (pending/approved/rejected).
+  - `list_assertions_admin` (RPC) ne renvoie plus `member_pseudo` ni `member_id` — seulement `id, session_id, content, status, created_at`. Le pseudo de l'auteur n'apparaît plus nulle part dans `AssertionsPanel`/`AssertionRow` côté superadmin. Type TS renommé `AssertionWithPseudo` → `AssertionAdmin` (plus de champ pseudo/member_id).
+  - `VoteScreen.tsx` (`loadVoteData` + polling 10s) : les deux lectures directes de la table `assertions` (`select('*')`) ont été restreintes à `id, session_id, content, status, created_at`, sans `member_id`. Changement de code pur, sans dépendance DB, qui réduit ce qui transite par REST vers le navigateur de chaque participant — mais ne couvre pas le canal Realtime (voir point ci-dessous).
+  - **Analyse approfondie de la fuite d'identité, et pourquoi je ne l'ai pas corrigée en profondeur** : `list_assertions_admin` n'était pas le seul chemin où l'auteur d'une assertion est identifiable. Deux policies RLS existantes (versionnées dans les migrations du repo, donc lisibles sans MCP) l'exposent plus largement :
+    - `assertions` : policy `assertions_select_approved` = `USING (status = 'approved')` — n'importe quel client authentifié (pas seulement le superadmin) peut lire `member_id` sur les assertions approuvées.
+    - `session_members` : policy `session_members_select` = `USING (true)` — n'importe qui peut lire la table entière, donc la correspondance `id ↔ pseudo`.
+    En combinant les deux (console navigateur, ou simplement en observant le canal Realtime `vote:<session_id>` que `VoteScreen` utilise déjà — celui-ci reçoit la ligne complète du WAL, `member_id` inclus, indépendamment des colonnes demandées par un `select()`), n'importe qui peut retrouver qui a soumis quoi. **J'ai vérifié avant d'agir que je ne pouvais pas simplement restreindre `session_members_select` à `user_id = auth.uid()`** : `SuperadminScreen.tsx` (`loadGroups`, l.1274-1306) fait une jointure PostgREST directe `table_assignments.select('..., session_members!member_id(pseudo)')` pour afficher les pseudos dans la vue de gestion des groupes (répartition par table, drag & drop entre groupes) — une fonctionnalité superadmin réelle et déjà utilisée, qui casserait immédiatement si cette policy était resserrée sans être d'abord remplacée par une RPC dédiée. Je n'ai donc **pas touché aux policies RLS** : le risque de régression (sur du code que je ne peux pas tester sans accès DB) dépassait le gain, pour un fix qui de toute façon ne fermerait pas le canal Realtime. Fermer complètement ce chemin demande une vraie décision d'architecture (RPC de remplacement pour `loadGroups`, puis policy resserrée, puis potentiellement retirer `member_id` du flux répliqué/Realtime) — hors périmètre de ce chantier tel que formulé, à traiter comme un chantier à part si Jules le souhaite.
+
+  **Déjà vérifié par moi** : `npx tsc -b` et `npm run build` passent sans erreur (aucune régression de typage après le renommage `AssertionWithPseudo` → `AssertionAdmin` ni après la restriction des colonnes dans `VoteScreen.tsx`). Testé dans le Browser pane : l'écran de connexion superadmin (`#superadmin`) s'affiche sans erreur console avant et après ces changements. **Je n'ai pas pu ouvrir une séance ni ses assertions** : pas d'accès MCP Supabase, et je ne saisis pas le mot de passe superadmin à la place de Jules.
+
+  **(1) Parcours manuel à suivre** (une fois les migrations appliquées et les données de test ci-dessous en place) :
+  1. Se connecter en `#superadmin`, ouvrir la séance de test, onglet assertions → onglet **"Rejetées"** : vérifier qu'aucun pseudo/nom n'apparaît plus sous chaque assertion (seulement la date), y compris pour les onglets "En attente" et "Approuvées".
+  2. Dans "Rejetées", cocher 2-3 assertions → un bouton **"🗑 Supprimer la sélection (N)"** doit apparaître → cliquer → confirmation → les assertions doivent disparaître de la liste et ne plus être comptées dans le badge "Rejetées".
+  3. Sur une assertion rejetée isolée, cliquer le bouton **"🗑 Supprimer"** de la ligne → confirmation → suppression individuelle.
+  4. Cliquer **"Tout sélectionner"** puis **"Tout désélectionner"** → vérifier le libellé du bouton change et la sélection se vide.
+  5. Ouvrir "+ Ajouter des assertions (animateur)" → **Importer CSV** un petit fichier de 3-4 lignes → une fois l'import terminé, un bouton **"↩ Annuler l'import (N)"** doit apparaître à côté de "Importer CSV" → cliquer → confirmation → les N assertions importées doivent disparaître (quel que soit l'onglet où elles étaient tombées : pending si modération fermée, approved si `moderation_policy = 'open'`).
+  6. Vérifier qu'après un rechargement de page (F5), le bouton "Annuler l'import" a disparu (il n'est pas censé survivre au rechargement — c'est un état local, pas persistant).
+  7. **Ce point-là nécessite un accès DB direct (SQL editor Supabase ou MCP), pas juste l'UI** : pour confirmer l'ampleur réelle de la fuite décrite ci-dessus, ouvrir la console du navigateur sur `#vote/<join_code>` d'une séance de test en tant que simple participant (pas superadmin) et exécuter `await window.supabase.from('session_members').select('*').eq('session_id', '<id>')` puis `await window.supabase.from('assertions').select('*').eq('session_id', '<id>').eq('status','approved')` — si les deux renvoient des lignes avec `pseudo`/`member_id` exploitables, la fuite est confirmée telle que décrite. (Le client Supabase n'est peut-être pas exposé sur `window` selon le build — sinon, reproduire avec les devtools réseau en observant les requêtes REST émises par l'app.)
+
+  **(2) Données de test nécessaires** (à créer par la conversation de vérification dédiée — je n'ai rien créé moi-même) :
+  - Une séance en phase `voting` (ou toute phase où l'onglet Assertions est visible), avec `moderation_policy = 'closed'` pour voir les 3 onglets (En attente/Approuvées/Rejetées).
+  - Au moins 4-5 assertions au statut `rejected` (soumises par 2-3 `session_members` différents, pour vérifier que le pseudo n'apparaît nulle part une fois qu'on sait qui a soumis quoi en interne).
+  - Au moins une assertion `pending` et une `approved` pour vérifier que ces onglets n'affichent pas non plus de pseudo.
+  - Pour le point (7) ci-dessus : au moins une assertion `approved` et son `session_member` associé connu, pour confirmer par requête directe que la corrélation reste possible.
+
+## Validé
+
+<!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->

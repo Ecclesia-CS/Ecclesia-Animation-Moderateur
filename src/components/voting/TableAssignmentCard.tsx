@@ -24,7 +24,16 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
         </svg>
         <p className="text-sm text-gray-500 text-center">Formation des groupes en cours…</p>
-        <p className="text-xs text-gray-400 text-center">Tu seras notifié(e) dès que ton groupe est prêt.</p>
+        <p className="text-xs text-gray-400 text-center max-w-[240px]">
+          L'organisateur répartit tous les participants en groupes aux avis variés à partir des votes.
+          Tu seras notifié(e) dès que ton groupe est prêt.
+        </p>
+        <p className="text-xs text-gray-400 text-center pt-1">
+          Ça ne bouge pas ?{' '}
+          <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
+            Recharge la page
+          </button>
+        </p>
       </div>
     )
   }
@@ -88,10 +97,16 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
                 )}
               </>
             ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-1">
                 <p className="text-sm text-amber-700 text-center">
                   Ta table n'est pas encore créée.<br />
                   Rends-toi à la <strong>Table {assignment.table_number}</strong> en salle.
+                </p>
+                <p className="text-xs text-amber-600 text-center">
+                  Le code apparaît ici automatiquement, mais tu peux aussi{' '}
+                  <button onClick={() => window.location.reload()} className="underline hover:text-amber-800">
+                    recharger la page
+                  </button>.
                 </p>
               </div>
             )}

@@ -10,6 +10,7 @@ import VoteResultsList from '../components/voting/VoteResultsList'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
+import QuitLink from '../components/QuitLink'
 
 interface AllocatingScreenProps {
   session: Session
@@ -210,15 +211,19 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
   if (showQuestionnaire) {
     return (
-      <SessionQuestionnaireForm
-        sessionId={currentSession.id}
-        onDone={() => setShowQuestionnaire(false)}
-      />
+      <>
+        <QuitLink />
+        <SessionQuestionnaireForm
+          sessionId={currentSession.id}
+          onDone={() => setShowQuestionnaire(false)}
+        />
+      </>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <QuitLink />
       {/* Header */}
       <header className="bg-white border-b border-gray-100 px-4 py-5 text-center">
         <div className="text-3xl mb-1">🎉</div>
