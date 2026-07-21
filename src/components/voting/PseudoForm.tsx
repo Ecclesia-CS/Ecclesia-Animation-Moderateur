@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { registerSessionMember } from '../../lib/voting'
+import { lastNameStore } from '../../lib/storage'
 import type { Session, SessionMember } from '../../lib/types'
 
 interface PseudoFormProps {
@@ -10,7 +11,7 @@ interface PseudoFormProps {
 }
 
 export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFormProps) {
-  const [pseudo, setPseudo] = useState('')
+  const [pseudo, setPseudo] = useState(() => lastNameStore.get())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,6 +23,7 @@ export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFo
     setLoading(true)
     try {
       const member = await registerSessionMember(session.id, trimmed, reclaimCode)
+      lastNameStore.set(trimmed)
       onSuccess(member)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
@@ -48,7 +50,7 @@ export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFo
         {session.phase === 'pre_voting' && (
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 text-left">
             <strong>Vote à distance ouvert.</strong> Tu peux voter dès maintenant depuis chez toi.
-            Si tu comptes venir au débat, <strong>retiens bien ton pseudo</strong> — il te permettra de retrouver tes votes.
+            Si tu comptes venir au débat, <strong>retiens bien ce que tu inscris ci-dessous</strong> — ça te permettra de retrouver tes votes.
           </div>
         )}
 
@@ -56,7 +58,7 @@ export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFo
         {session.phase === 'voting' && (
           <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
             <strong>Vote présentiel ouvert.</strong>{' '}
-            Tu as voté à distance avant le débat ? <strong>Entre ton pseudo pré-vote</strong> pour retrouver tes votes et confirmer ta présence.
+            Tu as voté à distance avant le débat ? <strong>Entre le même nom et prénom</strong> pour retrouver tes votes et confirmer ta présence.
           </div>
         )}
 
@@ -64,18 +66,21 @@ export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFo
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Choisis ton pseudo pour cette séance
+              Indique ton nom et prénom pour cette séance
             </label>
             <input
               type="text"
               value={pseudo}
               onChange={e => setPseudo(e.target.value)}
-              placeholder="Ton prénom ou un pseudonyme…"
+              placeholder="Ex : Marie Dupont"
               maxLength={40}
               required
               autoFocus
               className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Retiens bien ce que tu inscris ici : ça te permettra d'être reconnu·e et de retrouver tes votes.
+            </p>
           </div>
 
           {error && (

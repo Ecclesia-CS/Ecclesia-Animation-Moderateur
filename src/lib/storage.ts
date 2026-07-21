@@ -9,6 +9,26 @@ export interface StoredTable {
   pseudo?: string
 }
 
+const NAME_KEY = 'ecclesia_last_name'
+
+/** Dernier nom/prénom saisi par le participant — préremplit les formulaires d'identité suivants (D7). */
+export const lastNameStore = {
+  get(): string {
+    try {
+      return localStorage.getItem(NAME_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  },
+  set(name: string): void {
+    try {
+      if (name.trim()) localStorage.setItem(NAME_KEY, name.trim())
+    } catch {
+      // ignore
+    }
+  },
+}
+
 export const tableStore = {
   get(): StoredTable | null {
     try {

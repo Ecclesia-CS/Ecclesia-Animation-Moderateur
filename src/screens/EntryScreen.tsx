@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { tableStore } from '../lib/storage'
+import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
@@ -42,11 +42,11 @@ export default function EntryScreen({ onJoined }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [pseudo, setPseudo] = useState('')
+  const [pseudo, setPseudo] = useState(() => lastNameStore.get())
   const [joinCode, setJoinCode] = useState('')
   const [creationCode, setCreationCode] = useState('')
   const [reclaimCode, setReclaimCode] = useState('')
-  const [reclaimPseudo, setReclaimPseudo] = useState('')
+  const [reclaimPseudo, setReclaimPseudo] = useState(() => lastNameStore.get())
   const [selectedSessionId, setSelectedSessionId] = useState('')
   const [leaderless, setLeaderless] = useState(false)
   const [availableSessions, setAvailableSessions] = useState<{
@@ -83,6 +83,7 @@ export default function EntryScreen({ onJoined }: Props) {
 
   function store(tableId: string, participantId: string, jCode: string, isMod: boolean) {
     tableStore.set({ tableId, participantId, joinCode: jCode, isModerator: isMod, pseudo })
+    lastNameStore.set(pseudo)
     onJoined(tableId, participantId, isMod)
   }
 
@@ -147,6 +148,7 @@ export default function EntryScreen({ onJoined }: Props) {
       if (err) throw err
       const r = data as TableResult
       tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: true, pseudo: reclaimPseudo.trim() })
+      lastNameStore.set(reclaimPseudo)
       onJoined(r.id, r.participant_id, true)
     } catch (err) {
       setError(extractErr(err))
@@ -256,15 +258,17 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de session" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Pseudo" value={pseudo} onChange={setPseudo} placeholder="Alice" />
+              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Alice Dupont" />
+              <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               <Btn loading={loading} label="Rejoindre" />
             </form>
           )}
 
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field label={leaderless ? 'Votre pseudo' : 'Pseudo (animateur)'} value={pseudo} onChange={setPseudo}
-                placeholder="Alice" />
+              <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (animateur)'} value={pseudo} onChange={setPseudo}
+                placeholder="Alice Dupont" />
+              <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
                 <Field label="Code Ecclesia" value={creationCode}
                   onChange={setCreationCode} type="password" placeholder="••••••••" />
@@ -335,8 +339,8 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleReclaim} className="space-y-4">
               <Field label="Code de session" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Votre pseudo" value={reclaimPseudo}
-                onChange={setReclaimPseudo} placeholder="Alice" />
+              <Field label="Votre nom Prénom" value={reclaimPseudo}
+                onChange={setReclaimPseudo} placeholder="Alice Dupont" />
               <Field label="Code Ecclesia" value={reclaimCode}
                 onChange={setReclaimCode} type="password" placeholder="••••••••" />
               <Btn loading={loading} label="Reprendre la main" />

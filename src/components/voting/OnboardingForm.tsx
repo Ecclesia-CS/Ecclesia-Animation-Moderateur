@@ -261,12 +261,12 @@ function QuestionModerator({ value, onChange }: { value: boolean | null; onChang
       <div>
         <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Modération</p>
         <h2 className="text-xl font-bold text-gray-900 leading-snug">
-          Préfères-tu une table avec un modérateur ?
+          Tiens-tu à être avec un modérateur ?
         </h2>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <ChoiceButton selected={value === true} onClick={() => onChange(true)} emoji="🎙️" label="Oui" />
-        <ChoiceButton selected={value === false} onClick={() => onChange(false)} emoji="🤝" label="Pas nécessaire" />
+        <ChoiceButton selected={value === false} onClick={() => onChange(false)} emoji="🤝" label="Non" />
       </div>
     </div>
   )
