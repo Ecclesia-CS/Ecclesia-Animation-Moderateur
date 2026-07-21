@@ -171,6 +171,27 @@ export interface TableAssignment {
   created_at: string
 }
 
+/** Retour de get_moderator_responses (E4 — chantier 5) */
+export interface ModeratorResponses {
+  aggregate: {
+    want_count: number
+    dont_want_count: number
+    onboarded_count: number
+    attending_count: number
+  }
+  per_table: ModeratorTableDemand[]
+}
+
+/** Demande de modérateur pour une table allouée (E4 / B2) */
+export interface ModeratorTableDemand {
+  table_number: number
+  member_count: number
+  want_count: number
+  no_answer_count: number
+  table_leaderless: boolean | null
+  join_code: string | null
+}
+
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {
   id: string

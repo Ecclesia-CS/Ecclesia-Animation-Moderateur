@@ -34,9 +34,9 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 5 — Algo d'allocation & modérateurs
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| B1 | Refonte algo d'allocation + questionnaire | Backlog | | Chantier 2 |
-| B2 | Assignation des modérateurs | Backlog | | Chantier 2 |
-| E4 | Vue superadmin : retour des réponses modérateur | Backlog | | Chantier 2 |
+| B1 | Refonte algo d'allocation + questionnaire | Fait (à vérifier — voir A_VERIFIER.md) | Claude | Chantier 2 |
+| B2 | Assignation des modérateurs | Fait (à vérifier — voir A_VERIFIER.md) | Claude | Chantier 2 |
+| E4 | Vue superadmin : retour des réponses modérateur | Fait (à vérifier — voir A_VERIFIER.md) | Claude | Chantier 2 |
 
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |

@@ -28,12 +28,12 @@ import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, Mo
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
-  listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
+  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, runClusteringV3, assignTableToGroup,
+  listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup, getModeratorResponses,
 } from '../lib/voting'
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
-import type { VoteResult } from '../lib/types'
+import type { VoteResult, ModeratorResponses, ModeratorTableDemand } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
@@ -1114,6 +1114,9 @@ function SessionDetail({
   const [votingStats,    setVotingStats]    = useState<SessionVotingStats | null>(null)
   const [statsLoading,   setStatsLoading]   = useState(false)
   const [statsOpen,      setStatsOpen]      = useState(true)
+  // ── Réponses modérateur (E4 — chantier 5) ──────────────────
+  const [modResponses,   setModResponses]   = useState<ModeratorResponses | null>(null)
+  const [modOpen,        setModOpen]        = useState(false)
 
   // ── C3 : clustering + timer + threshold ───────────────────
   const [showClusteringModal, setShowClusteringModal] = useState(false)
@@ -1246,6 +1249,14 @@ function SessionDetail({
       // non-bloquant
     } finally {
       setStatsLoading(false)
+    }
+    // E4 — réponses modérateur (indépendant : ne bloque pas les stats)
+    try {
+      const mod = await getModeratorResponses(password, session.id)
+      setModResponses(mod)
+    } catch {
+      // RPC absente (migration non appliquée) ou erreur → on masque le panneau
+      setModResponses(null)
     }
   }, [session.id])
 
@@ -1909,6 +1920,18 @@ function SessionDetail({
                   </SectionAccordion>
                 )}
 
+                {/* E4 — Retour des réponses modérateur */}
+                {showVotingSections && modResponses && modResponses.aggregate.onboarded_count > 0 && (
+                  <SectionAccordion
+                    title="Réponses modérateur"
+                    open={modOpen}
+                    onToggle={() => setModOpen(o => !o)}
+                    badge={`${modResponses.aggregate.want_count}/${modResponses.aggregate.onboarded_count} veulent un modérateur`}
+                  >
+                    <ModeratorResponsesPanel data={modResponses} />
+                  </SectionAccordion>
+                )}
+
                 <ModerationPolicyEditor
                   currentPolicy={currentSession.moderation_policy}
                   onSave={async (policy) => {
@@ -2050,6 +2073,24 @@ function SessionDetail({
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
                               <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              {(() => {
+                                // B2 — demande de modérateur pour ce groupe
+                                const md = modResponses?.per_table.find(t => t.table_number === g.table_number)
+                                if (!md || md.want_count === 0) return null
+                                const unmet = md.table_leaderless === true
+                                return (
+                                  <span
+                                    title={unmet
+                                      ? `${md.want_count} membre(s) veulent un modérateur — table sans animateur`
+                                      : `${md.want_count} membre(s) veulent un modérateur`}
+                                    className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                                      unmet ? 'bg-amber-100 text-amber-700' : 'bg-indigo-50 text-indigo-600'
+                                    }`}
+                                  >
+                                    🎙️ {md.want_count}{unmet ? ' ⚠️' : ''}
+                                  </span>
+                                )
+                              })()}
                               {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
                             </div>
                             {(() => {
@@ -2704,7 +2745,8 @@ function SessionDetail({
           attachedTableCount={attachedTables.length}
           title={hasAnalysisDone ? '🎯 Répartition hétérogène' : '🔀 Répartition aléatoire'}
           warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
-          onConfirm={async (targetSize) => {
+          allowAdvanced={hasAnalysisDone}
+          onConfirm={async (targetSize, advanced) => {
             const password = getPwd()!
 
             // Auto-merge si activé dans localStorage
@@ -2727,9 +2769,11 @@ function SessionDetail({
               }
             }
 
-            const result = hasAnalysisDone
-              ? await runClusteringV2(password, currentSession.id, targetSize)
-              : await runClusteringV1(password, currentSession.id, targetSize)
+            const result = advanced
+              ? await runClusteringV3(password, currentSession.id, targetSize)
+              : hasAnalysisDone
+                ? await runClusteringV2(password, currentSession.id, targetSize)
+                : await runClusteringV1(password, currentSession.id, targetSize)
             setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
             return result
           }}
@@ -3051,6 +3095,84 @@ function VotingStatsPanel({
   )
 }
 
+// ── ModeratorResponsesPanel (E4 — chantier 5) ─────────────────────
+
+function ModeratorResponsesPanel({ data }: { data: ModeratorResponses }) {
+  const { want_count, dont_want_count, onboarded_count } = data.aggregate
+  const noAnswer = Math.max(0, onboarded_count - want_count - dont_want_count)
+  const wantPct = onboarded_count > 0 ? Math.round((want_count / onboarded_count) * 100) : 0
+
+  return (
+    <div className="space-y-4">
+      {/* Agrégat global */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="bg-indigo-50 rounded-xl px-2 py-3">
+          <p className="text-lg font-bold text-indigo-700">{want_count}</p>
+          <p className="text-xs text-indigo-500 leading-tight">🎙️ Veulent un modérateur</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl px-2 py-3">
+          <p className="text-lg font-bold text-gray-700">{dont_want_count}</p>
+          <p className="text-xs text-gray-500 leading-tight">🤝 Sans préférence</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl px-2 py-3">
+          <p className="text-lg font-bold text-gray-400">{noAnswer}</p>
+          <p className="text-xs text-gray-400 leading-tight">Non répondu</p>
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Demande de modérateur</span>
+          <span className="font-medium">{wantPct}% des répondants</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="h-2 rounded-full bg-indigo-500 transition-all" style={{ width: `${Math.min(wantPct, 100)}%` }} />
+        </div>
+      </div>
+
+      {/* Demande par table (une fois l'allocation faite) */}
+      {data.per_table.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Par table</p>
+          {data.per_table.map(t => (
+            <ModeratorTableRow key={t.table_number} row={t} />
+          ))}
+          <p className="text-xs text-gray-400 leading-snug pt-1">
+            💡 Rattachez une table <span className="font-medium">avec animateur</span> aux groupes en demande,
+            et une table « sans animateur » aux groupes sans demande (onglet Tables).
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ModeratorTableRow({ row }: { row: ModeratorTableDemand }) {
+  // B2 — alerte : le groupe veut un modérateur mais la table rattachée est sans animateur
+  const unmet = row.table_leaderless === true && row.want_count > 0
+  return (
+    <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm border ${
+      unmet ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'
+    }`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-semibold text-gray-700 shrink-0">Table N°{row.table_number}</span>
+        {row.join_code && (
+          <span className="font-mono text-xs text-gray-400 shrink-0">{row.join_code}</span>
+        )}
+        {row.table_leaderless === true && (
+          <span className="text-xs text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0">sans animateur</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xs text-gray-500">
+          <span className="font-bold text-indigo-700">{row.want_count}</span>/{row.member_count} veulent
+        </span>
+        {unmet && <span title="Groupe en demande de modérateur sans animateur rattaché">⚠️</span>}
+      </div>
+    </div>
+  )
+}
+
 // ── TimerCountdown (leaf — uses useLiveMs) ────────────────────────
 
 function TimerCountdown({ deadline, onExpired }: { deadline: number; onExpired(): void }) {
@@ -3121,16 +3243,19 @@ function ClusteringModal({
   onAuthError,
   title,
   warning,
+  allowAdvanced = false,
 }: {
   stats: SessionVotingStats
   attachedTableCount: number
-  onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
+  onConfirm(targetSize: number, advanced: boolean): Promise<{ table_count: number; member_count: number }>
   onClose(): void
   onAuthError(): void
   title?: string
   warning?: string
+  allowAdvanced?: boolean
 }) {
   const [targetSize, setTargetSize]   = useState(7)
+  const [advanced,   setAdvanced]     = useState(false)
   const [loading,    setLoading]      = useState(false)
   const [error,      setError]        = useState<string | null>(null)
   const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
@@ -3142,7 +3267,7 @@ function ClusteringModal({
     setLoading(true)
     setError(null)
     try {
-      const res = await onConfirm(targetSize)
+      const res = await onConfirm(targetSize, advanced)
       setResult(res)
     } catch (e) {
       const msg = extractErr(e)
@@ -3207,6 +3332,23 @@ function ClusteringModal({
                   {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s) · {attachedTableCount} rattachée(s)
                 </p>
               </div>
+
+              {/* B1 — allocation avancée (opt-in, nécessite l'analyse des camps) */}
+              {allowAdvanced && (
+                <label className="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={advanced}
+                    onChange={e => setAdvanced(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-xs text-gray-600 leading-snug">
+                    <span className="font-medium text-gray-800">Allocation avancée</span> — équilibre aussi le
+                    style de participation (écoute / actif) entre les tables, en plus des camps d'opinion.
+                    <span className="block text-gray-400 mt-0.5">Expérimental — à valider (voir A_VERIFIER.md).</span>
+                  </span>
+                </label>
+              )}
 
               {notEnoughTables && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
