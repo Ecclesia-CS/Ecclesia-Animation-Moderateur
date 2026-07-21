@@ -36,6 +36,7 @@ interface TableCtxValue {
   endTurnAsSpeaker(): Promise<void>
   endTurnAndAdvance(): Promise<void>
   claimFloor(): Promise<void>
+  designateModerator(): Promise<void>
   addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive', position?: number): Promise<void>
@@ -355,6 +356,17 @@ export function TableProvider({
     [tableId, broadcast],
   )
 
+  const designateModerator = useCallback(
+    async () => {
+      await rpc('designate_moderator', { p_table_id: tableId })
+      // Mise à jour locale immédiate — le rebond Realtime confirmera pour les autres clients
+      setTable(prev => prev ? { ...prev, leaderless: false, created_by: userId } : prev)
+      setIsModerator(true)
+      broadcast(['tables'])
+    },
+    [rpc, tableId, userId, broadcast],
+  )
+
   const endTurnAndAdvance = useCallback(
     async () => {
       const { data, error } = await supabase.rpc('end_turn_and_advance', {
@@ -496,6 +508,7 @@ export function TableProvider({
         correctTurn,
         kickParticipant,
         claimFloor,
+        designateModerator,
         endTable,
         forceQuestionnaire,
         cancelForceQuestionnaire,

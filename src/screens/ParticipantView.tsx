@@ -2,11 +2,14 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
+import { tableStore } from '../lib/storage'
 import type { QuestionnaireResponse } from '../lib/types'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
 import ParticipantToolsButton from '../components/ParticipantToolsButton'
 import QuestionnaireModal from '../components/QuestionnaireModal'
+import DebateRulesModal from '../components/DebateRulesModal'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function ParticipantView() {
   const {
@@ -21,10 +24,14 @@ export default function ParticipantView() {
     leaveTable,
     endTurnAndAdvance,
     claimFloor,
+    designateModerator,
   } = useTable()
 
+  const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
   const [showWelcome,        setShowWelcome]        = useState(() => !localStorage.getItem('debate_welcome_' + table.id))
   const [err,                setErr]                = useState<string | null>(null)
+  const [showBecomeModConfirm, setShowBecomeModConfirm] = useState(false)
+  const [becomingMod,          setBecomingMod]          = useState(false)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
   const [sessionTitle,       setSessionTitle]       = useState<string | null>(null)
@@ -125,6 +132,26 @@ export default function ParticipantView() {
     handleClaimFloor()
   }, [table.leaderless, table.current_speaker_id, queueInteractive, queueLong, myParticipant.id, handleClaimFloor])
 
+  async function handleBecomeModerator() {
+    setShowBecomeModConfirm(false)
+    setBecomingMod(true)
+    setErr(null)
+    try {
+      await designateModerator()
+      tableStore.set({
+        tableId:       table.id,
+        participantId: myParticipant.id,
+        joinCode:      table.join_code,
+        isModerator:   true,
+        pseudo:        myParticipant.pseudo,
+      })
+    } catch (e) {
+      setErr(extractErr(e))
+    } finally {
+      setBecomingMod(false)
+    }
+  }
+
   async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
     setErr(null)
     if (type === 'long'        && !existing) setPendingLong(true)
@@ -154,6 +181,17 @@ export default function ParticipantView() {
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
         <div className="flex items-center gap-2">
+          {table.leaderless && (
+            <button
+              onClick={() => setShowBecomeModConfirm(true)}
+              disabled={becomingMod}
+              className="text-xs px-3 py-1.5 border border-amber-300 text-amber-700 bg-amber-50 rounded-lg
+                hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300
+                disabled:opacity-50"
+            >
+              🎙️ Devenir animateur
+            </button>
+          )}
           <ParticipantToolsButton
             session={sessionDocs}
             userPseudo={myParticipant.pseudo}
@@ -258,9 +296,29 @@ export default function ParticipantView() {
 
       </div>{/* end body flex */}
 
+      {/* ── Règles du débat — lecture individuelle, sans attente des autres (D1) ── */}
+      {showRules && (
+        <DebateRulesModal
+          onConfirm={() => {
+            localStorage.setItem('debate_rules_read_' + table.id, '1')
+            setShowRules(false)
+          }}
+        />
+      )}
+
+      {showBecomeModConfirm && (
+        <ConfirmModal
+          title="Devenir animateur de cette table ?"
+          body="Vous serez responsable de donner la parole aux participants. Cette table n'aura plus besoin de l'auto-gestion par file."
+          confirmLabel="Devenir animateur"
+          onConfirm={handleBecomeModerator}
+          onCancel={() => setShowBecomeModConfirm(false)}
+        />
+      )}
+
       {/* Questionnaire forcé par le modérateur — modal verrouillé */}
       {/* ── Panorama d'accueil — affiché une seule fois par table ── */}
-      {showWelcome && (
+      {!showRules && showWelcome && (
         <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
             <div className="bg-indigo-600 px-6 py-5 text-center">

@@ -22,8 +22,8 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 3 — Débat sans admin
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| D1 | Lecture rapide des règles à l'entrée de table | Backlog | | Chantier 1 |
-| D2 | Désignation d'un admin en cours de débat | Backlog | | Chantier 1 |
+| D1 | Lecture rapide des règles à l'entrée de table | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D2 | Désignation d'un admin en cours de débat | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 4 — Rejoindre en cours de séance
 | ID | Résumé | Statut | Contributeur | Dépend de |
