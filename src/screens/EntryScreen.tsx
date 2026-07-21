@@ -279,7 +279,7 @@ export default function EntryScreen({ onJoined }: Props) {
 
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (animateur)'} value={pseudo} onChange={setPseudo}
+              <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (modérateur)'} value={pseudo} onChange={setPseudo}
                 placeholder="Alice Dupont" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
@@ -338,7 +338,7 @@ export default function EntryScreen({ onJoined }: Props) {
                   onChange={e => setLeaderless(e.target.checked)}
                   className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <span className="text-sm text-gray-700">Table sans animateur</span>
+                <span className="text-sm text-gray-700">Table sans modérateur</span>
               </label>
               <Btn
                 loading={loading}
