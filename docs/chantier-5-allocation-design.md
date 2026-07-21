@@ -5,6 +5,67 @@
 > intitulés courts de `PROJECT_STATUS.md` (le détail `ecclesia_plan_chantiers.md`
 > est absent du dépôt).
 
+---
+
+## 🚩 DÉCISIONS À VALIDER PAR JULES (algorithme d'allocation & modérateurs)
+
+> Sur consigne de Jules : les vrais choix d'architecture/algorithme ne sont **pas
+> tranchés seul**. Ci-dessous chaque décision non triviale, avec 2-3 options et leurs
+> avantages/inconvénients. **Le code mergé implémente à chaque fois l'Option A** — ce
+> n'est pas un choix définitif, juste la variante la plus sûre/rétrocompatible en
+> attendant l'arbitrage. E4 (panneau d'affichage) n'est pas listé ici : c'est de
+> l'affichage non ambigu.
+
+### Décision 1 — Quels critères du questionnaire l'algo doit-il utiliser, et avec quelle priorité ? (B1)
+
+- **Option A — hétérogénéité d'opinion (primaire) + équilibrage écoute/actif (secondaire)** ✅ *implémentée*
+  - ➕ Simple ; améliore la qualité délibérative (évite une table 100 % passive) ; ne dégrade pas l'hétérogénéité d'opinion ; rétrocompatible (opt-in).
+  - ➖ N'exploite pas `group_size_pref`, `openness_to_diff`, `moderator_pref` dans l'algo.
+- **Option B — A + appariement offre/demande de modérateur** (partitionner les demandeurs vers les tables modérées)
+  - ➕ Répond directement à la demande de modérateur.
+  - ➖ **En tension avec l'hétérogénéité** (un objectif au détriment de l'autre) ; plus complexe ; cf. Décision 3.
+- **Option C — A + modulation de l'hétérogénéité par `openness_to_diff`** (regrouper ceux qui veulent des avis proches, mixer ceux qui veulent de la diversité)
+  - ➕ Respecte la préférence individuelle de diversité.
+  - ➖ Crée des tables homogènes — potentiellement contraire à l'esprit délibératif Ecclesia ; complexifie la notion de « table cible ».
+
+### Décision 2 — Nouvel algo opt-in vs remplacement de l'algo par défaut (B1)
+
+- **Option A — `run_clustering_v3` séparée, activée par une case à cocher ; v1/v2 restent le défaut** ✅ *implémentée*
+  - ➕ Zéro risque de régression ; permet à Jules de valider avant d'en faire le défaut.
+  - ➖ Deux algos à maintenir ; la nouveauté n'est utilisée que si on coche.
+- **Option B — modifier `run_clustering_v2` en place** (le nouveau comportement devient le défaut dès l'application de la migration)
+  - ➕ Un seul algo ; tout le monde en bénéficie automatiquement.
+  - ➖ Change le comportement pour tous d'un coup, sans période de validation.
+
+### Décision 3 — Comment les modérateurs sont-ils assignés ? (B2)
+
+- **Option A — informatif : afficher la demande par groupe (+ alerte si table sans animateur sur groupe demandeur), rattachement manuel par le superadmin** ✅ *implémentée*
+  - ➕ Simple ; garde l'humain dans la boucle ; aucun nouveau signal requis.
+  - ➖ Entièrement manuel ; pas d'automatisation.
+- **Option B — semi-automatique : l'algo marque les K tables « à modérer » selon la demande agrégée et pré-remplit les rattachements ; le superadmin confirme**
+  - ➕ Gain de temps sur les grosses séances.
+  - ➖ Nécessite une règle « combien de modérateurs disponibles » ; logique DB supplémentaire.
+- **Option C — auto-désignation d'un participant-modérateur par table**
+  - ➕ Aucun modérateur staff requis.
+  - ➖ **Nécessite un signal « je veux bien modérer »** qui n'existe pas (cf. Décision 4) ; risque de désigner quelqu'un de non volontaire.
+
+### Décision 4 — Réutiliser `moderator_pref` ou ajouter une question « volonté de modérer » ? (B2/E4)
+
+- **Option A — réutiliser `moderator_pref`** (question D18 = « veux-tu être *avec* un modérateur ? »), sans toucher au questionnaire ✅ *implémentée*
+  - ➕ Aucun changement au questionnaire (respecte chantier-2) ; aligne offre/demande côté staff.
+  - ➖ Ne dit pas *qui* accepterait de modérer → auto-désignation (Décision 3-C) impossible.
+- **Option B — ajouter une 7ᵉ question « Accepterais-tu d'animer une table ? »**
+  - ➕ Débloque l'auto-désignation.
+  - ➖ Duplique le thème « modération » de chantier-2 (D18) ; rallonge l'onboarding ; nécessite une migration `entry_responses` + coordination avec chantier-2.
+
+### Décision 5 (mineure) — Cas limites (choix par défaut, à confirmer)
+
+- Membres sans onboarding (`participation_style` NULL) : triés en fin de groupe (`COALESCE 'zzz'`) puis répartis normalement — implémenté.
+- Non-votants présents : répartis aléatoirement à part, **comportement identique à v2** — implémenté.
+- Ces choix suivent l'existant ; signalés pour transparence, pas de tension architecturale.
+
+---
+
 ## Contrainte majeure de cette session
 
 **L'accès MCP Supabase était indisponible.** Impossible d'appliquer les migrations
@@ -58,17 +119,6 @@ d'être modérateur*. Plutôt que d'ajouter une 7ᵉ question (qui dupliquerait/
 le thème « modération » de chantier-2), B2/E4 exploitent le signal existant
 `moderator_pref` pour aligner offre (tables modérées) et demande (membres voulant un
 modérateur). Aucune modification du questionnaire n'est faite par ce chantier.
-
-## Point à trancher par Jules (décision produit, non tranchée ici)
-
-Faut-il que l'algorithme **partitionne** les membres selon `moderator_pref`
-(regrouper les « je veux un modérateur » sur les tables modérées, les autres sur des
-tables `leaderless`) ? Cela **entre en tension avec l'hétérogénéité d'opinion**
-(un objectif ne peut être maximal que si l'autre est relâché). Je n'ai **pas** tranché
-ce compromis unilatéralement : v3 conserve l'hétérogénéité comme objectif primaire et
-laisse l'appariement offre/demande au superadmin (couche B2). Si Jules veut un
-partitionnement algorithmique dur, c'est une évolution de `run_clustering_v3` à
-spécifier explicitement.
 
 ## Livrables
 
