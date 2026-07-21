@@ -32,6 +32,9 @@ interface AnalysisPanelProps {
   assertions:   AssertionAdmin[]
   onAuthError(): void
   onAnalysisStatusChange?(hasDone: boolean): void
+  /** E3 — appelé après un calcul d'analyse manuel réussi, avec l'analyse fraîche.
+   *  Permet au parent de déclencher le nommage systématique des camps. */
+  onAnalysisComplete?(analysis: LoadedAnalysis): void
   groupNames?:  GroupNameResult[]
   totalMembers?: number
   sessionPhase?: string
@@ -125,6 +128,7 @@ export default function AnalysisPanel({
   assertions,
   onAuthError,
   onAnalysisStatusChange,
+  onAnalysisComplete,
   groupNames,
   totalMembers,
   sessionPhase,
@@ -231,6 +235,9 @@ export default function AnalysisPanel({
       // 5. Recharger et afficher
       setAnalyzeStatus('done')
       await loadExisting()
+
+      // 6. E3 — déclencher le nommage systématique des camps sur l'analyse fraîche
+      onAnalysisComplete?.(resultToLoaded(result))
     } catch (e) {
       if (e instanceof AnalysisError) {
         setErrorMsg(e.message)
@@ -500,19 +507,25 @@ export default function AnalysisPanel({
                 </div>
               </div>
 
-              {/* Assertions consensuelles */}
+              {/* Assertions consensuelles inter-groupes (D10) */}
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                   Assertions consensuelles
                   <span className="ml-1.5 font-normal normal-case text-gray-400">
-                    (score &gt; {CONSENSUS_THRESHOLD})
+                    (tous les camps · score &gt; {CONSENSUS_THRESHOLD})
                   </span>
                 </h4>
+                <p className="text-xs text-gray-400 mb-3">
+                  Points de convergence : assertions que <strong>tous les camps approuvent en moyenne</strong>,
+                  malgré leurs désaccords. Le score est la moyenne du camp le moins favorable (0 = neutre, 1 = adhésion totale).
+                </p>
                 {(() => {
                   const items = consensuelles()
                   if (items.length === 0) {
                     return (
-                      <p className="text-xs text-gray-400">Aucune assertion consensuelle</p>
+                      <p className="text-xs text-gray-400">
+                        Aucune assertion ne fait consensus entre tous les camps pour l'instant.
+                      </p>
                     )
                   }
                   return (
