@@ -189,7 +189,7 @@ export default function ParticipantView() {
                 hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300
                 disabled:opacity-50"
             >
-              🎙️ Devenir animateur
+              🎙️ Devenir modérateur
             </button>
           )}
           <ParticipantToolsButton
@@ -308,9 +308,9 @@ export default function ParticipantView() {
 
       {showBecomeModConfirm && (
         <ConfirmModal
-          title="Devenir animateur de cette table ?"
+          title="Devenir modérateur de cette table ?"
           body="Vous serez responsable de donner la parole aux participants. Cette table n'aura plus besoin de l'auto-gestion par file."
-          confirmLabel="Devenir animateur"
+          confirmLabel="Devenir modérateur"
           onConfirm={handleBecomeModerator}
           onCancel={() => setShowBecomeModConfirm(false)}
         />
