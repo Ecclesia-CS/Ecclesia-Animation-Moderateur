@@ -28,6 +28,8 @@ import QuestionnaireBtn from '../components/QuestionnaireFab'
 import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
 import InviteFriendButton from '../components/InviteFriendButton'
+import AssertionsButton from '../components/AssertionsButton'
+import QrCodeButton from '../components/QrCodeButton'
 
 export default function ModeratorView() {
   const {
@@ -519,6 +521,17 @@ export default function ModeratorView() {
                     d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
                 </svg>
               }
+            />
+            <AssertionsButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+              focus:ring-2 focus:ring-slate-500" />
+            <QrCodeButton
+              value={`${window.location.origin}${window.location.pathname}#table/${table.join_code}`}
+              title={`Rejoindre la table ${table.join_code}`}
+              label="QR"
+              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+                text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+                focus:ring-2 focus:ring-slate-500"
             />
             <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none

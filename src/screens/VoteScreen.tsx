@@ -975,6 +975,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                     <p className="text-gray-500 text-xs mt-0.5">Reviens sur une assertion déjà votée en la retrouvant dans la liste des assertions.</p>
                   </div>
                 </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">🔒</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Ton vote est anonyme</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Ni les autres participants ni les organisateurs ne peuvent voir comment tu as voté. Un lien technique existe dans notre base de données pour te permettre de voter, mais il n'est jamais consulté.</p>
+                  </div>
+                </div>
               </div>
               <div className="px-6 pb-6">
                 <button

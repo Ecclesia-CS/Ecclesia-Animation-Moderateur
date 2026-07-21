@@ -593,7 +593,7 @@ function SessionCard({
                     {/* Leaderless badge */}
                     {t.leaderless && (
                       <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
-                        Sans animateur
+                        Sans modérateur
                       </span>
                     )}
                     {/* Moderator */}
@@ -4261,7 +4261,7 @@ function ExpandableTableRow({
           <span className="font-mono font-bold text-indigo-600 tracking-widest">{table.join_code}</span>
           {table.leaderless && (
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
-              Sans animateur
+              Sans modérateur
             </span>
           )}
           {table.moderator_pseudo && (

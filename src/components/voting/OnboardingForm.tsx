@@ -223,6 +223,9 @@ function QuestionConsent({ value, onChange }: { value: boolean | null; onChange:
         <h2 className="text-xl font-bold text-gray-900 leading-snug">
           Acceptes-tu que les conversations à ta table soient transcrites de manière anonyme pour produire un résumé ?
         </h2>
+        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+          Seul le texte transcrit et anonymisé est conservé. L'enregistrement audio n'est utilisé qu'en direct pour produire cette transcription et n'est jamais sauvegardé.
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <ChoiceButton selected={value === true} onClick={() => onChange(true)} emoji="✅" label="Oui" />

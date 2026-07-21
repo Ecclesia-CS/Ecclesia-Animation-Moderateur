@@ -1,0 +1,27 @@
+name: Supabase keep-alive ping
+
+# C1 — le plan gratuit Supabase met le projet en pause après ~7 jours sans
+# requête API. Ce ping quotidien évite la pause entre deux séances.
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # tous les jours à 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST endpoint
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${VITE_SUPABASE_URL}/rest/v1/" \
+            -H "apikey: ${VITE_SUPABASE_ANON_KEY}")
+          echo "Supabase REST endpoint responded with HTTP $status"
+          if [ "$status" -ge 500 ]; then
+            echo "::error::Supabase a répondu avec une erreur serveur ($status)"
+            exit 1
+          fi
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
