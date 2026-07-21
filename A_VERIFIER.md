@@ -98,6 +98,39 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   - Au moins une assertion `pending` et une `approved` pour vérifier que ces onglets n'affichent pas non plus de pseudo.
   - Pour le point (7) ci-dessus : au moins une assertion `approved` et son `session_member` associé connu, pour confirmer par requête directe que la corrélation reste possible.
 
+- [ ] **2026-07-21** — Chantier 4 (D14/D8) — `src/components/JoinTableForm.tsx` (nouveau), `src/components/InviteFriendButton.tsx` (nouveau), `src/screens/JoinTableScreen.tsx` (nouveau), `src/App.tsx`, `src/screens/SessionRouterScreen.tsx`, `src/screens/VoteScreen.tsx`, `src/screens/ParticipantView.tsx`, `src/screens/ModeratorView.tsx`
+
+  **Contexte** : deux demandes du plan de chantiers (`PROJECT_STATUS.md`, chantier 4 "Rejoindre en cours de séance"). Aucune description détaillée trouvée dans le repo au-delà du résumé d'une ligne (`ecclesia_plan_chantiers.md` référencé par `CLAUDE.md` n'existe pas dans ce dépôt) — interprétation ci-dessous construite en explorant le code existant, à valider par Jules.
+  - **D14 — "Rejoindre le débat en retard, quelle que soit la phase"** : gap identifié dans le code — un participant qui n'a jamais voté et arrive alors que la séance est déjà en phase `debating` tombait sur une impasse : `SessionRouterScreen` (`#session/<code>`) affichait juste "Rejoins ta table avec le code affiché en salle" sans aucun moyen de saisir ce code, et `VoteScreen` (`#vote/<code>` direct) affichait "Phase de vote terminée... attends les instructions" — un message trompeur pour quelqu'un qui n'a jamais participé. Dans les deux cas, aucun formulaire de rattrapage n'existait ; il fallait deviner qu'il fallait retourner à l'accueil puis utiliser l'onglet "Rejoindre".
+  - **D8 — "Rejoindre un ami via code distribué"** : le code d'une table (`table.join_code`) n'était partageable que verbalement/manuellement (l'onglet "Rejoindre" d'`EntryScreen` existait déjà et fonctionne). Il n'y avait aucun lien direct cliquable (contrairement à `#session/`, `#vote/`, `#collab/` déjà utilisés pour le partage) ni aucun bouton pour qu'un participant déjà en débat partage sa table à un ami.
+
+  **Ce qui a changé** :
+  - Nouveau composant partagé `JoinTableForm` (code de table + nom prénom, préempli via `lastNameStore`, appelle `join_table` RPC — même mécanique que l'onglet "Rejoindre" d'`EntryScreen`) — réutilisé dans les 3 écrans ci-dessous pour éviter de dupliquer la logique RPC.
+  - Nouvelle route `#table/<join_code>` → `JoinTableScreen` (D8) : écran dédié, code verrouillé/préempli depuis l'URL, juste le nom à saisir. Suit le même schéma que `#vote/`/`#session/` dans `App.tsx` (callback `onTableJoined`, guard `phase.type !== 'table'`).
+  - Nouveau bouton `InviteFriendButton` ("Inviter un ami") ajouté dans le header de `ParticipantView` et `ModeratorView`, à côté du code de table déjà affiché : copie `<origin>/<path>#table/<join_code>` dans le presse-papier (`navigator.clipboard.writeText`), confirmation inline "Copié !" pendant 2s (pas de système de toast existant dans le projet).
+  - `SessionRouterScreen` : l'état `debating_no_member` (arrivée tardive, jamais inscrit, séance en `debating`) affiche maintenant `JoinTableForm` inline au lieu du message impasse. `onTableJoined` remonté depuis `App.tsx` (nouveau prop optionnel).
+  - `VoteScreen` : le step `ended` (même cas, mais atteint via un lien `#vote/<code>` direct) distingue maintenant `session?.phase === 'debating'` (→ `JoinTableForm` inline) du cas générique `questionnaire`/`closed` (message existant conservé, mais qui affiche maintenant `errorMsg` réel au lieu d'un texte toujours identique — petite correction adjacente : le message "Le vote est terminé, tu ne peux plus rejoindre cette séance" était calculé mais jamais affiché).
+
+  **Déjà vérifié par moi** (Browser pane, `npm run dev` dans un *git worktree séparé* sur le port 5174 — la session concurrente chantier-10 tournait déjà sur le port 5173 dans le répertoire partagé, isolation stricte respectée) :
+  - `npx tsc -b` et `npm run build` passent sans erreur.
+  - `#table/ABC123` → `JoinTableScreen` affiche bien le code verrouillé "ABC123" et le champ nom. Soumission avec un code inexistant → RPC `join_table` répond correctement, erreur "Session introuvable" affichée proprement (testé contre la vraie base Supabase de dev, aucune donnée créée — juste une tentative de jointure avec un code invalide, rejetée côté serveur).
+  - `#session/ZZZZZZ` (code inexistant) → toujours "Séance introuvable" correctement affiché (non-régression sur mon refactor de `SessionRouterScreen`).
+  - Aucune erreur console sur les deux parcours ci-dessus.
+  - **Non vérifiable dans cette session** : aucune séance n'est active en base (`sessions` vide sur les phases pre_voting/voting/allocating/debating au moment du test, vérifié par requête REST anon en lecture seule) → impossible de dérouler le parcours complet avec de vraies données : succès de jointure via `#table/<code>` valide, rendu de `debating_no_member` sur `SessionRouterScreen`, rendu du step `ended`+`debating` sur `VoteScreen`, et affichage/clic du bouton "Inviter un ami" dans `ParticipantView`/`ModeratorView` (nécessite une table de débat active). Pas d'accès MCP Supabase dans cette session (revérifié : aucun outil `mcp__supabase__*` disponible), et je ne saisis pas le mot de passe superadmin à la place de Jules (règle de sécurité, non contournable).
+
+  **(1) Parcours manuel à suivre** (une fois les données de test ci-dessous en place) :
+  1. Superadmin : passer une séance en phase `debating` avec au moins une table physique rattachée à un groupe (clustering déjà lancé, `join_code` de table connu).
+  2. **D8** : depuis un onglet participant déjà dans le débat (`ParticipantView` ou `ModeratorView`), cliquer "Inviter un ami" dans le header → vérifier que le bouton passe à "Copié !" pendant ~2s, coller le presse-papier ailleurs pour vérifier le contenu (`.../#table/<code_de_la_table>`).
+  3. Ouvrir ce lien copié dans un nouvel onglet/navigation privée → `JoinTableScreen` doit afficher le code verrouillé et un champ nom → entrer un nom → "Rejoindre la table" → doit atterrir directement sur `ParticipantView` de cette table, sans passer par le vote.
+  4. **D14** : avec un compte/navigateur qui n'a jamais rejoint la séance, ouvrir `#session/<code_de_la_séance>` (lien type QR code) pendant que la séance est en `debating` → au lieu du message impasse, un formulaire "Débat en cours" avec code de table + nom doit apparaître → entrer le code de table (affiché en salle/sur `ModeratorView`) + un nom → doit rejoindre la table directement.
+  5. Même test que 4 mais via un lien `#vote/<code_de_la_séance>` direct (au lieu de `#session/`) → même comportement attendu sur l'écran "Débat en cours" (step `ended` de `VoteScreen`).
+  6. Vérifier la non-régression : `#session/<code>` pendant que la séance est en `questionnaire` ou `closed` doit toujours afficher le comportement existant (questionnaire / résultats), pas le formulaire de rattrapage (qui est spécifique à `debating`).
+
+  **(2) Données de test nécessaires** (aucune créée par moi) :
+  - Une séance en phase `debating`, avec au moins une table physique créée et rattachée à un groupe (pour avoir un `join_code` de table valide à distribuer).
+  - Au moins un participant déjà dans cette table (pour tester le bouton "Inviter un ami" depuis `ParticipantView`/`ModeratorView`).
+  - Un navigateur/compte "neuf" (jamais inscrit à cette séance) pour jouer le rôle du retardataire (D14) et de l'ami invité (D8).
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->

@@ -27,6 +27,7 @@ import CorrectTurnModal from '../components/CorrectTurnModal'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
 import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
+import InviteFriendButton from '../components/InviteFriendButton'
 
 export default function ModeratorView() {
   const {
@@ -497,6 +498,11 @@ export default function ModeratorView() {
 
           {/* Right: moderator badge + actions */}
           <div className="flex items-center gap-3 shrink-0">
+            <InviteFriendButton
+              joinCode={table.join_code}
+              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
+                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+            />
             <DocumentationButton
               session={sessionDocs}
               userPseudo={myParticipant?.pseudo}

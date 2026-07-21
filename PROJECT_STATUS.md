@@ -28,8 +28,8 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 4 — Rejoindre en cours de séance
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| D14 | Rejoindre le débat en retard, quelle que soit la phase | Backlog | | Chantier 1 |
-| D8 | Rejoindre un ami via code distribué | Backlog | | Chantier 1 |
+| D14 | Rejoindre le débat en retard, quelle que soit la phase | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D8 | Rejoindre un ami via code distribué | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 5 — Algo d'allocation & modérateurs
 | ID | Résumé | Statut | Contributeur | Dépend de |

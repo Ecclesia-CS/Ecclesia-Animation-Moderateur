@@ -9,6 +9,7 @@ import SuperadminScreen from './screens/SuperadminScreen'
 import CollabDocScreen from './screens/CollabDocScreen'
 import VoteScreen from './screens/VoteScreen'
 import SessionRouterScreen from './screens/SessionRouterScreen'
+import JoinTableScreen from './screens/JoinTableScreen'
 
 type AppPhase =
   | { type: 'loading' }
@@ -110,9 +111,10 @@ export default function App() {
   }
 
   // Route #session/<join_code> — routeur intelligent (QR code / lien WhatsApp)
-  if (hash.startsWith('#session/')) {
+  // Guard: si l'utilisateur vient de rejoindre une table en retard (phase 'table'), on passe en TableView
+  if (hash.startsWith('#session/') && phase.type !== 'table') {
     const joinCode = hash.slice('#session/'.length)
-    return <SessionRouterScreen sessionJoinCode={joinCode} />
+    return <SessionRouterScreen sessionJoinCode={joinCode} onTableJoined={handleTableJoined} />
   }
 
   // Route #vote/<join_code> — interface de vote participant
@@ -120,6 +122,12 @@ export default function App() {
   if (hash.startsWith('#vote/') && phase.type !== 'table') {
     const joinCode = hash.slice('#vote/'.length)
     return <VoteScreen sessionJoinCode={joinCode} onTableJoined={handleTableJoined} />
+  }
+
+  // Route #table/<join_code> — rejoindre directement une table de débat via un code distribué (D8/D14)
+  if (hash.startsWith('#table/') && phase.type !== 'table') {
+    const joinCode = hash.slice('#table/'.length)
+    return <JoinTableScreen tableJoinCode={joinCode} onTableJoined={handleTableJoined} />
   }
 
   if (phase.type === 'loading') {

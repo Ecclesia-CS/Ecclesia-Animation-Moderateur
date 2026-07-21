@@ -14,6 +14,7 @@ import NotesModal from '../components/NotesModal'
 import AllocatingScreen from './AllocatingScreen'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 import QuitLink from '../components/QuitLink'
+import JoinTableForm from '../components/JoinTableForm'
 
 interface VoteScreenProps {
   sessionJoinCode: string
@@ -599,6 +600,32 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   if (step === 'ended') {
+    // Arrivé en retard pendant le débat, jamais inscrit au vote (D14) — formulaire de
+    // rattrapage : rejoindre directement une table avec le code affiché en salle.
+    if (session?.phase === 'debating') {
+      return (
+        <>
+          <QuitLink />
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+              <div className="text-center mb-4">
+                <div className="text-5xl mb-4">🗣️</div>
+                <h1 className="text-lg font-bold text-gray-900">Débat en cours</h1>
+                <p className="text-sm text-gray-500 mt-1">{session.title}</p>
+                <p className="text-sm text-gray-400 mt-3">
+                  Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché en salle.
+                </p>
+              </div>
+              <JoinTableForm
+                onJoined={(tableId, participantId, isModerator) => {
+                  if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )
+    }
     return (
       <>
         <QuitLink />
@@ -607,7 +634,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             <div className="text-5xl">🎉</div>
             <h1 className="text-xl font-bold text-gray-900">Phase de vote terminée</h1>
             <p className="text-sm text-gray-500">
-              Merci pour ta participation ! Les résultats vont être analysés pour former les groupes de débat.
+              {errorMsg || 'Merci pour ta participation ! Les résultats vont être analysés pour former les groupes de débat.'}
             </p>
             <p className="text-xs text-gray-400">Attends les instructions de l'organisateur.</p>
           </div>

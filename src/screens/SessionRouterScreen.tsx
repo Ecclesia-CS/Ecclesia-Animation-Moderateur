@@ -3,9 +3,11 @@ import { supabase } from '../lib/supabase'
 import type { Session } from '../lib/types'
 import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
+import JoinTableForm from '../components/JoinTableForm'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
+  onTableJoined?: (tableId: string, participantId: string, isModerator: boolean) => void
 }
 
 type Status =
@@ -18,7 +20,7 @@ type Status =
   | 'results_map'
   | 'public_results'
 
-export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterScreenProps) {
+export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: SessionRouterScreenProps) {
   const [status,       setStatus]       = useState<Status>('loading')
   const [sessionTitle, setSessionTitle] = useState<string | null>(null)
   const [fullSession,  setFullSession]  = useState<Session | null>(null)
@@ -138,7 +140,37 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     )
   }
 
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results'>, {
+  // Arrivé en retard, séance déjà en débat, jamais inscrit au vote (D14) —
+  // formulaire de rattrapage : rejoindre directement la table avec le code affiché en salle.
+  if (status === 'debating_no_member') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+          <div className="text-center mb-4">
+            <div className="text-5xl mb-4">🗣️</div>
+            <h1 className="text-lg font-bold text-gray-900">Débat en cours</h1>
+            {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
+            <p className="text-sm text-gray-400 mt-3">
+              Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché en salle.
+            </p>
+          </div>
+          <JoinTableForm
+            onJoined={(tableId, participantId, isModerator) => {
+              if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
+            }}
+          />
+          <button
+            onClick={() => { window.location.hash = '' }}
+            className="mt-4 w-full text-xs text-indigo-600 hover:underline"
+          >
+            ← Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member'>, {
     icon: string
     title: string
     subtitle: string
@@ -147,11 +179,6 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
       icon: '❓',
       title: 'Séance introuvable',
       subtitle: 'Vérifie le lien ou scanne à nouveau le QR code.',
-    },
-    debating_no_member: {
-      icon: '🗣️',
-      title: 'Débat en cours',
-      subtitle: 'Rejoins ta table avec le code affiché en salle.',
     },
     questionnaire: {
       icon: '📋',
@@ -165,7 +192,7 @@ export default function SessionRouterScreen({ sessionJoinCode }: SessionRouterSc
     },
   }
 
-  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results'>]
+  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member'>]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
