@@ -206,8 +206,14 @@ export async function runClusteringV2(
 
 // --- Admin wrappers (C2) ---
 
-export interface AssertionWithPseudo extends Assertion {
-  member_pseudo: string
+// Note (E2) : pas de member_pseudo / member_id — l'identité de l'auteur
+// n'est jamais exposée au superadmin, cf. list_assertions_admin.
+export interface AssertionAdmin {
+  id: string
+  session_id: string
+  content: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
 }
 
 export interface SessionVotingStats {
@@ -223,13 +229,27 @@ export interface SessionVotingStats {
 export async function listAssertionsAdmin(
   password: string,
   sessionId: string
-): Promise<AssertionWithPseudo[]> {
+): Promise<AssertionAdmin[]> {
   const { data, error } = await supabase.rpc('list_assertions_admin', {
     p_password: password,
     p_session_id: sessionId,
   })
   if (error) throw new Error(extractErr(error))
-  return (data as AssertionWithPseudo[]) ?? []
+  return (data as AssertionAdmin[]) ?? []
+}
+
+export async function deleteAssertionsAdmin(
+  password: string,
+  sessionId: string,
+  assertionIds: string[]
+): Promise<number> {
+  const { data, error } = await supabase.rpc('delete_assertions_admin', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_assertion_ids: assertionIds,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as number
 }
 
 export async function getSessionVotingStats(

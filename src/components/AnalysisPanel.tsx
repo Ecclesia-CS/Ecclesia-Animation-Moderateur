@@ -13,7 +13,7 @@ import {
   AnalysisError,
 } from '../lib/analysis'
 import type { LoadedAnalysis, AnalysisResult } from '../lib/analysis'
-import type { AssertionWithPseudo } from '../lib/voting'
+import type { AssertionAdmin } from '../lib/voting'
 import type { GroupNameResult } from '../lib/types'
 
 
@@ -29,7 +29,7 @@ function groupColor(groupId: number): string {
 interface AnalysisPanelProps {
   sessionId:    string
   password:     string
-  assertions:   AssertionWithPseudo[]
+  assertions:   AssertionAdmin[]
   onAuthError(): void
   onAnalysisStatusChange?(hasDone: boolean): void
   groupNames?:  GroupNameResult[]

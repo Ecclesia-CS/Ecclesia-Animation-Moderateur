@@ -26,12 +26,12 @@ import {
 import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
-  setSessionPhase, approveAssertion, rejectAssertion,
+  setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
 } from '../lib/voting'
-import type { AssertionWithPseudo, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
+import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import ConfirmModal from '../components/ConfirmModal'
@@ -1011,7 +1011,7 @@ function SessionDetail({
   const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
-  const [assertions,        setAssertions]        = useState<AssertionWithPseudo[]>([])
+  const [assertions,        setAssertions]        = useState<AssertionAdmin[]>([])
   const [assertionsLoading, setAssertionsLoading] = useState(false)
   const [assertionsErr,     setAssertionsErr]     = useState<string | null>(null)
   const [assertionsTab,     setAssertionsTab]     = useState<'pending' | 'approved' | 'rejected'>('pending')
@@ -1090,6 +1090,24 @@ function SessionDetail({
   async function handleApproveAll() {
     const pending = assertions.filter(a => a.status === 'pending')
     for (const a of pending) await handleApprove(a.id)
+  }
+
+  async function handleDeleteAssertions(ids: string[]) {
+    if (ids.length === 0) return
+    const password = getPwd()!
+    setActingAssertionId(ids[0])
+    try {
+      await deleteAssertionsAdmin(password, session.id, ids)
+      const idSet = new Set(ids)
+      setAssertions(prev => prev.filter(a => !idSet.has(a.id)))
+      setVoteResults(prev => prev.filter(v => !idSet.has(v.id)))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setActingAssertionId(null)
+    }
   }
 
   // ── Voting stats (C2) ──────────────────────────────────────
@@ -1213,8 +1231,9 @@ function SessionDetail({
     const newAssertion = await adminSubmitAssertion(password, session.id, content)
     setAssertions(prev => {
       if (prev.some(a => a.id === newAssertion.id)) return prev
-      return [...prev, { ...newAssertion, member_pseudo: 'Animateur' }]
+      return [...prev, newAssertion]
     })
+    return newAssertion
   }
 
   const loadStats = useCallback(async () => {
@@ -1933,6 +1952,7 @@ function SessionDetail({
                       onApproveAll={handleApproveAll}
                       onReapprove={handleApprove}
                       onAdminSubmit={handleAdminSubmitAssertion}
+                      onDelete={handleDeleteAssertions}
                     />
                   </SectionAccordion>
                 )}
@@ -3239,8 +3259,9 @@ function AssertionsPanel({
   onApproveAll,
   onReapprove,
   onAdminSubmit,
+  onDelete,
 }: {
-  assertions: AssertionWithPseudo[]
+  assertions: AssertionAdmin[]
   voteResults: VoteResult[]
   tab: 'pending' | 'approved' | 'rejected'
   onTabChange(t: 'pending' | 'approved' | 'rejected'): void
@@ -3250,7 +3271,8 @@ function AssertionsPanel({
   onReject(id: string): void
   onApproveAll(): void
   onReapprove(id: string): void
-  onAdminSubmit?: (content: string) => Promise<void>
+  onAdminSubmit?: (content: string) => Promise<{ id: string }>
+  onDelete(ids: string[]): Promise<void>
 }) {
   const aiLabelMap = React.useMemo(() => {
     const rejIds     = new Set<string>(JSON.parse(localStorage.getItem(`ai_rejected_ids_${session.id}`) ?? '[]'))
@@ -3265,7 +3287,38 @@ function AssertionsPanel({
   const [csvImporting,   setCsvImporting]   = useState(false)
   const [csvProgress,    setCsvProgress]    = useState<{ done: number; total: number } | null>(null)
   const [adminFormOpen,  setAdminFormOpen]  = useState(false)
+  const [lastImportIds,  setLastImportIds]  = useState<string[] | null>(null)
+  const [selectedRejected, setSelectedRejected] = useState<Set<string>>(new Set())
+  const [deleteConfirm,  setDeleteConfirm]  = useState<{ ids: string[]; body: string } | null>(null)
+  const [deleting,       setDeleting]       = useState(false)
   const csvInputRef = useRef<HTMLInputElement>(null)
+
+  function toggleRejectedSelection(id: string) {
+    setSelectedRejected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteConfirm) return
+    setDeleting(true)
+    try {
+      await onDelete(deleteConfirm.ids)
+      const deletedIds = new Set(deleteConfirm.ids)
+      setSelectedRejected(prev => {
+        const next = new Set(prev)
+        deletedIds.forEach(id => next.delete(id))
+        return next
+      })
+      setLastImportIds(prev => (prev && prev.every(id => deletedIds.has(id))) ? null : prev)
+    } finally {
+      setDeleting(false)
+      setDeleteConfirm(null)
+    }
+  }
 
   async function handleAdminAdd() {
     if (!onAdminSubmit || !adminText.trim()) return
@@ -3294,10 +3347,13 @@ function AssertionsPanel({
 
     setCsvImporting(true)
     setCsvProgress({ done: 0, total: lines.length })
+    setLastImportIds(null)
+    const importedIds: string[] = []
     let done = 0
     for (const line of lines) {
       try {
-        await onAdminSubmit(line)
+        const created = await onAdminSubmit(line)
+        importedIds.push(created.id)
       } catch {
         // ignorer les erreurs individuelles
       }
@@ -3306,6 +3362,7 @@ function AssertionsPanel({
     }
     setCsvImporting(false)
     setCsvProgress(null)
+    if (importedIds.length > 0) setLastImportIds(importedIds)
   }
 
   const pending  = assertions.filter(a => a.status === 'pending')
@@ -3376,6 +3433,18 @@ function AssertionsPanel({
                   className="hidden"
                   onChange={handleCsvImport}
                 />
+                {lastImportIds && lastImportIds.length > 0 && (
+                  <button
+                    onClick={() => setDeleteConfirm({
+                      ids: lastImportIds,
+                      body: `Supprimer les ${lastImportIds.length} assertion${lastImportIds.length > 1 ? 's' : ''} du dernier import CSV ? Cette action est irréversible.`,
+                    })}
+                    className="py-1.5 px-4 text-xs font-medium border border-red-200 text-red-700 rounded-xl
+                      hover:bg-red-50 transition-colors"
+                  >
+                    ↩ Annuler l'import ({lastImportIds.length})
+                  </button>
+                )}
               </div>
               <p className="text-[10px] text-gray-400">
                 CSV : une assertion par ligne, colonne optionnelle <code>content</code> en en-tête.
@@ -3485,20 +3554,65 @@ function AssertionsPanel({
           {rejected.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-4">Aucune assertion rejetée</p>
           )}
+          {rejected.length > 0 && (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <button
+                onClick={() => setSelectedRejected(prev =>
+                  prev.size === rejected.length ? new Set() : new Set(rejected.map(a => a.id))
+                )}
+                className="text-xs font-medium text-gray-500 hover:text-gray-700"
+              >
+                {selectedRejected.size === rejected.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+              </button>
+              {selectedRejected.size > 0 && (
+                <button
+                  onClick={() => setDeleteConfirm({
+                    ids: [...selectedRejected],
+                    body: `Supprimer définitivement ${selectedRejected.size} assertion${selectedRejected.size > 1 ? 's' : ''} ? Cette action est irréversible.`,
+                  })}
+                  disabled={actingId !== null}
+                  className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                >🗑 Supprimer la sélection ({selectedRejected.size})</button>
+              )}
+            </div>
+          )}
           {rejected.map(a => (
-            <AssertionRow key={a.id} assertion={a} acting={actingId === a.id} aiLabels={{
-              isMerged:    aiLabelMap.mergedIds.has(a.id),
-              isAiRejected: aiLabelMap.rejIds.has(a.id),
-              isAiApproved: false,
-            }}>
+            <AssertionRow
+              key={a.id}
+              assertion={a}
+              acting={actingId === a.id}
+              selectable
+              selected={selectedRejected.has(a.id)}
+              onToggleSelect={() => toggleRejectedSelection(a.id)}
+              aiLabels={{
+                isMerged:    aiLabelMap.mergedIds.has(a.id),
+                isAiRejected: aiLabelMap.rejIds.has(a.id),
+                isAiApproved: false,
+              }}
+            >
               <button
                 onClick={() => onReapprove(a.id)}
                 disabled={actingId !== null}
                 className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
               >↩ Réapprouver</button>
+              <button
+                onClick={() => setDeleteConfirm({ ids: [a.id], body: 'Supprimer définitivement cette assertion ? Cette action est irréversible.' })}
+                disabled={actingId !== null}
+                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              >🗑 Supprimer</button>
             </AssertionRow>
           ))}
         </div>
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Suppression définitive"
+          body={deleteConfirm.body}
+          confirmLabel={deleting ? '…' : 'Supprimer'}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirm(null)}
+        />
       )}
     </div>
   )
@@ -3608,16 +3722,33 @@ function AssertionRow({
   assertion,
   acting,
   aiLabels,
+  selectable,
+  selected,
+  onToggleSelect,
   children,
 }: {
-  assertion: AssertionWithPseudo
+  assertion: AssertionAdmin
   acting: boolean
   aiLabels?: { isMerged: boolean; isAiRejected: boolean; isAiApproved: boolean }
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
   children: React.ReactNode
 }) {
   return (
-    <div className={`border border-gray-200 rounded-xl p-3 space-y-2 ${acting ? 'opacity-50' : ''}`}>
-      <p className="text-sm text-gray-900">{assertion.content}</p>
+    <div className={`border rounded-xl p-3 space-y-2 transition-colors ${acting ? 'opacity-50' : ''} ${selected ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
+      <div className="flex items-start gap-2">
+        {selectable && (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={onToggleSelect}
+            className="mt-0.5 shrink-0 w-3.5 h-3.5 accent-red-600"
+            aria-label="Sélectionner cette assertion"
+          />
+        )}
+        <p className="text-sm text-gray-900 flex-1">{assertion.content}</p>
+      </div>
       {aiLabels && (aiLabels.isMerged || aiLabels.isAiRejected || aiLabels.isAiApproved) && (
         <div className="flex gap-1.5 flex-wrap">
           {aiLabels.isMerged    && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">fusionnée</span>}
@@ -3626,7 +3757,7 @@ function AssertionRow({
         </div>
       )}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <span className="text-xs text-gray-400">{assertion.member_pseudo} · {new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        <span className="text-xs text-gray-400">{new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
         <div className="flex gap-2 flex-wrap">{children}</div>
       </div>
     </div>

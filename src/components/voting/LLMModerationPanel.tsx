@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { listAssertionsAdmin, approveAssertion, rejectAssertion, mergeAssertionVotes } from '../../lib/voting'
 import { moderateAssertions, mergeAssertions } from '../../lib/gemini'
-import type { AssertionWithPseudo } from '../../lib/voting'
+import type { AssertionAdmin } from '../../lib/voting'
 import type { Session } from '../../lib/types'
 
 // ── Types localStorage ────────────────────────────────────────
@@ -110,7 +110,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   const [showReport, setShowReport] = useState(false)
 
   // Assertions rejetées
-  const [rejectedAssertions, setRejectedAssertions] = useState<AssertionWithPseudo[]>([])
+  const [rejectedAssertions, setRejectedAssertions] = useState<AssertionAdmin[]>([])
 
   // Toggles auto-modération (initialisés depuis localStorage)
   const [autoModerate, setAutoModerateState] = useState(
