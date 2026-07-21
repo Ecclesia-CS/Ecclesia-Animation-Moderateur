@@ -9,6 +9,7 @@ import type {
   VoteResult,
   TableAssignment,
   ModerationPolicy,
+  ModeratorResponses,
 } from './types'
 
 export async function registerSessionMember(
@@ -202,6 +203,43 @@ export async function runClusteringV2(
   })
   if (error) throw new Error(extractErr(error))
   return data as { table_count: number; member_count: number }
+}
+
+/**
+ * B1 (chantier 5) — allocation « avancée » tenant compte du questionnaire.
+ * Comme v2 (hétérogène par camp d'opinion) mais équilibre en plus
+ * `participation_style` entre les tables. Opt-in : appelée uniquement si
+ * le superadmin coche l'option dans la modale de clustering.
+ * Nécessite l'analyse des camps (status='done') comme v2.
+ */
+export async function runClusteringV3(
+  password:   string,
+  sessionId:  string,
+  targetSize = 6,
+): Promise<{ table_count: number; member_count: number }> {
+  const { data, error } = await supabase.rpc('run_clustering_v3', {
+    p_password:    password,
+    p_session_id:  sessionId,
+    p_target_size: targetSize,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { table_count: number; member_count: number }
+}
+
+/**
+ * E4 (chantier 5) — agrégat des réponses à la question modérateur pour le
+ * superadmin (global + par table une fois l'allocation faite).
+ */
+export async function getModeratorResponses(
+  password:  string,
+  sessionId: string,
+): Promise<ModeratorResponses> {
+  const { data, error } = await supabase.rpc('get_moderator_responses', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as ModeratorResponses
 }
 
 // --- Admin wrappers (C2) ---
