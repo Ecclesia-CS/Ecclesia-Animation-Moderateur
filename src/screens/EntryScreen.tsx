@@ -71,6 +71,19 @@ export default function EntryScreen({ onJoined }: Props) {
     return () => clearInterval(interval)
   }, [])
 
+  // D15 — lien #join/<code> encodé en QR code par le modérateur pour les retardataires.
+  // Préremplit l'onglet "Rejoindre" avec le code de table et nettoie le hash.
+  useEffect(() => {
+    const h = window.location.hash
+    if (!h.startsWith('#join/')) return
+    const code = h.slice('#join/'.length).trim().toUpperCase()
+    if (code) {
+      setJoinCode(code)
+      setMode('join')
+    }
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+  }, [])
+
   useEffect(() => {
     if (mode !== 'create') return
     supabase

@@ -22,8 +22,8 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 3 — Débat sans admin
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| D1 | Lecture rapide des règles à l'entrée de table | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
-| D2 | Désignation d'un admin en cours de débat | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D1 | Lecture rapide des règles à l'entrée de table | Backlog | | Chantier 1 |
+| D2 | Désignation d'un admin en cours de débat | Backlog | | Chantier 1 |
 
 ## Chantier 4 — Rejoindre en cours de séance
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -69,16 +69,16 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 10 — Petites tâches transverses
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| C1 | Ping automatique Supabase | Backlog | | — |
+| C1 | Ping automatique Supabase | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | C2 | Identité visuelle / branding | Backlog | | Charte graphique (Jules) |
 | C3 | Affichage documents + backend de stockage | Backlog | | Décision infra |
 | C4 | Distinction vote pass/neutre + doc technique | Backlog | | Jules (doc pol.is) |
-| D6 | Mention non-conservation des audios | Backlog | | — |
-| D11 | Assertions visibles pendant le débat | Backlog | | — |
-| D12 | Mention anonymat des votes | Backlog | | — |
-| D13 | Ordre aléatoire des assertions | Backlog | | — |
-| D15 | QR code lien table (modérateurs) | Backlog | | — |
-| D16 | Pouvoir changer son vote | Backlog | | — |
+| D6 | Mention non-conservation des audios | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D11 | Assertions visibles pendant le débat | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D12 | Mention anonymat des votes | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D13 | Ordre aléatoire des assertions | Fait — déjà implémenté (shuffle Fisher-Yates dans VoteScreen), vérifié en lisant le code | Claude | — |
+| D15 | QR code lien table (modérateurs) | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D16 | Pouvoir changer son vote | En cours (fragment WIP non fonctionnel sur branche `chantier-10-revote-fragment-incomplet`, hors scope de cette itération) | Claude | — |
 
 ---
 
