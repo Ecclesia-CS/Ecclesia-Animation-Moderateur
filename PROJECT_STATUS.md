@@ -2,7 +2,7 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 22/07/2026 (chantier 6 réellement poussé sur `origin/main` = `986fea0` ; le merge du 21/07 n'avait pas atteint origin — rate-limit. ⚠️ Edge `gemini-proxy` reste à redéployer, cf. A_VERIFIER.md)
+Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **confirmé live sur GitHub Pages** (bundle `index-DosYKtsE.js`, sans erreur console). Reste 1 point ops non bloquant : redéployer l'Edge `gemini-proxy` — bloqué sur token Supabase, à faire par Jules, cf. A_VERIFIER.md. Symptôme A1 déjà corrigé en prod via fallback frontend.)
 
 ## Chantier 1 — Navigation partout
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -41,7 +41,7 @@ Dernière mise à jour : 22/07/2026 (chantier 6 réellement poussé sur `origin/
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| A1 | Bug de nommage des camps | Fait (à vérifier — voir A_VERIFIER.md ; fallback frontend actif, fix Edge à redéployer) | Claude | — |
+| A1 | Bug de nommage des camps | Fait & live — symptôme corrigé en prod (fallback frontend). Amélioration Edge (labels neutres) à redéployer par Jules : blocage token Supabase côté Claude, cf. A_VERIFIER.md | Claude | — |
 | E3 | Nommage Gemini systématique après analyse | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D10 | Assertions consensuelles inter-groupes | Fait — lisibilité (calcul inter-camps préexistant) ; à vérifier — voir A_VERIFIER.md | Claude | A1/E3 |
 | C6 | Tracking impact énergétique des appels LLM | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |

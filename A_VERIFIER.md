@@ -332,6 +332,21 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **Le parcours manuel (a) et les données de test (b) détaillés dans l'entrée chantier-6 du 21/07 ci-dessus restent valides** — ils nécessitent le mot de passe superadmin + une séance avec ≥6 votants présentiels / ≥5 assertions approuvées / ≥3 camps k-means. Non créés par moi (aucun accès DB).
 
+- [ ] **2026-07-22** — Chantier 6 (A1) — **CLÔTURE des 2 points ouverts (session 3)**
+
+  **(2) GitHub Pages — CONFIRMÉ ✅** : le bundle live est passé de `index-Dd0hQMQY.js` (build pré-chantier-6 = `eafeac0`) à **`index-DosYKtsE.js`** — le déploiement post-merge a abouti. `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/#superadmin` rend **sans erreur console**. Le code mergé (chantier-6 + suite mergée entre-temps, dont D16) est bien servi en production. **Ce point est clos.**
+
+  **(1) Edge Function `gemini-proxy` — TOUJOURS NON DÉPLOYÉE — BLOCAGE CREDENTIAL (ne peut PAS être fait par Claude)** : tentative faite cette session via `npx supabase functions deploy gemini-proxy --project-ref plpjiehqsxxakbuykmkm` → échec net `LegacyPlatformAuthRequiredError: Access token not provided`. Le déploiement exige un **token d'accès Supabase** absent de cet environnement (`SUPABASE_ACCESS_TOKEN` non défini, pas de token CLI global, pas de `supabase/config.toml` lié) ; les seules voies — `supabase login` (interactif) ou saisir/fournir un token — sont **impossibles/interdites** pour Claude (mêmes règles que le mot de passe superadmin). La CLI `npx supabase` (v2.109.1) est disponible mais inutilisable sans auth. **C'est un blocage matériel, pas un choix.**
+
+    → **Action pour Jules** (depuis un terminal authentifié Supabase) :
+    ```
+    npx supabase login          # ou : export SUPABASE_ACCESS_TOKEN=<ton_token>
+    npx supabase functions deploy gemini-proxy --project-ref plpjiehqsxxakbuykmkm
+    ```
+    (le `project-ref` `plpjiehqsxxakbuykmkm` provient de `VITE_SUPABASE_URL`, non secret.)
+
+    **Portée réelle de ce point** : le **symptôme visible de A1** (« Groupe N » affiché) est **déjà corrigé en production** par le fallback frontend `deriveFallbackName` (présent dans le bundle live `DosYKtsE`) — aucun camp n'affichera jamais « Groupe N ». Le redéploiement Edge n'est qu'une **amélioration qualité** (labels neutres « Camp A/B/C » → Gemini produit lui-même de meilleurs noms, donc moins de recours au fallback). Il **n'est pas requis pour la correction de A1**, seulement pour en réduire la fréquence de fallback. La validation empirique **A1 (Edge)** (point 4 du parcours du 21/07) ne pourra se faire qu'après ce déploiement.
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
