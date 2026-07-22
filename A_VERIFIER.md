@@ -254,6 +254,22 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   - Le **mot de passe superadmin** pour accéder à l'onglet Analyse et lancer modération/fusion/analyse/nommage.
   - Pour tester le fix Edge A1 : **redéployer `gemini-proxy`** au préalable.
 
+- [ ] **2026-07-22** — Chantier 6 (A1/E3/D10/C6) — **ADDENDUM merge (session 2)** — reprise après l'interruption par rate-limit de la session du 2026-07-21
+
+  **État du merge** : la session du 21/07 avait committé et poussé le commit feature (`c730fe4`) sur `origin/chantier-6-analyse-camps`, mergé `origin/main` dans la branche (`986fea0`) et fast-forward le main **local** — mais le rate-limit a coupé **avant tout push de la branche à jour ou de `main`**. Cette session (22/07) a vérifié l'état réel (rien de chantier-6 n'était sur `origin/main`) puis **complété le protocole de merge** :
+  - Tag de rollback `pre-merge-chantier-6-20260722` posé sur `eafeac0` (= vrai état pré-merge de `origin/main`, le main local étant déjà avancé) et poussé.
+  - `origin/chantier-6-analyse-camps` mis à jour `c730fe4 → 986fea0`.
+  - `origin/main` fast-forward `eafeac0 → 986fea0` (chantier-6 désormais publié).
+  - `npx tsc --noEmit` ✅ et `npx vite build` ✅ re-vérifiés dans ce répertoire de travail avant push. Aucun conflit avec le chantier-5 (onglet "Tables") : chantier-6 ne touche que l'onglet "Analyse" + `LLMModerationPanel`, et le build passe avec le chantier-5 déjà présent dans `origin/main`.
+
+  **⚠️ ACTION DB/BACKEND RESTANTE (bloquante pour le volet serveur de A1)** : l'**Edge Function `gemini-proxy` N'EST TOUJOURS PAS REDÉPLOYÉE**. Le MCP Supabase (serveur `bc4cebec-…`) est confirmé **indisponible dans cette session aussi** (aucun outil `mcp__supabase__*` chargeable via ToolSearch — vérifié comme demandé). Le fix A1 côté serveur (labels neutres « Camp A/B/C » dans le prompt `name_single_group`) est **présent dans le code source poussé mais inactif en production** tant que la fonction n'est pas redéployée. Jules doit lancer, depuis un terminal avec accès Supabase : `supabase functions deploy gemini-proxy` (ou via MCP `deploy_edge_function`). **En attendant, le symptôme A1 reste couvert côté frontend** par le fallback descriptif de `groupNaming.deriveFallbackName` (aucun camp n'affiche jamais « Groupe N »). → le check **A1 (Edge)** ci-dessus (point 4 du parcours) ne pourra se faire qu'après ce redéploiement.
+
+  **Vérif en direct faite cette session** :
+  - *localhost* : écran d'auth `#superadmin` rendu sans erreur console. **Non franchissable au-delà** : je ne saisis pas le mot de passe superadmin (règle de sécurité) → l'onglet Analyse (nommage/énergie/consensus) n'a pas pu être piloté. Le serveur `:5173` était de plus occupé par une session parallèle (collision connue) — best-effort seulement.
+  - *GitHub Pages* : au moment de la rédaction, le site servait encore le build précédent (`index-Dd0hQMQY.js` ≠ build local `index-CqUUAjwV.js`) — déploiement CI en cours (délai normal + cache CDN Fastly). **À re-vérifier** : recharger `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/#superadmin` après ~5 min, confirmer un nouveau hash de bundle et l'absence d'erreur console.
+
+  **Le parcours manuel (a) et les données de test (b) détaillés dans l'entrée chantier-6 du 21/07 ci-dessus restent valides** — ils nécessitent le mot de passe superadmin + une séance avec ≥6 votants présentiels / ≥5 assertions approuvées / ≥3 camps k-means. Non créés par moi (aucun accès DB).
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->

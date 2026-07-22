@@ -2,7 +2,7 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 21/07/2026 (chantier 6 mergé)
+Dernière mise à jour : 22/07/2026 (chantier 6 réellement poussé sur `origin/main` = `986fea0` ; le merge du 21/07 n'avait pas atteint origin — rate-limit. ⚠️ Edge `gemini-proxy` reste à redéployer, cf. A_VERIFIER.md)
 
 ## Chantier 1 — Navigation partout
 | ID | Résumé | Statut | Contributeur | Dépend de |
