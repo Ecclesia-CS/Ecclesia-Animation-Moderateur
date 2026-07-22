@@ -41,7 +41,7 @@ Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **con
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| A1 | Bug de nommage des camps | Fait & live — symptôme corrigé en prod (fallback frontend). Amélioration Edge (labels neutres) à redéployer par Jules : blocage token Supabase côté Claude, cf. A_VERIFIER.md | Claude | — |
+| A1 | Bug de nommage des camps | Fait & live — symptôme corrigé en prod (fallback frontend). Amélioration Edge (labels neutres) **non déployée** : à faire depuis une **nouvelle session** Claude Code (MCP Supabase connecté au compte mais absent de l'inventaire de la session en cours), cf. A_VERIFIER.md | Claude | — |
 | E3 | Nommage Gemini systématique après analyse | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D10 | Assertions consensuelles inter-groupes | Fait — lisibilité (calcul inter-camps préexistant) ; à vérifier — voir A_VERIFIER.md | Claude | A1/E3 |
 | C6 | Tracking impact énergétique des appels LLM | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |

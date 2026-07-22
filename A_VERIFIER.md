@@ -347,6 +347,20 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
     **Portée réelle de ce point** : le **symptôme visible de A1** (« Groupe N » affiché) est **déjà corrigé en production** par le fallback frontend `deriveFallbackName` (présent dans le bundle live `DosYKtsE`) — aucun camp n'affichera jamais « Groupe N ». Le redéploiement Edge n'est qu'une **amélioration qualité** (labels neutres « Camp A/B/C » → Gemini produit lui-même de meilleurs noms, donc moins de recours au fallback). Il **n'est pas requis pour la correction de A1**, seulement pour en réduire la fréquence de fallback. La validation empirique **A1 (Edge)** (point 4 du parcours du 21/07) ne pourra se faire qu'après ce déploiement.
 
+- [ ] **2026-07-22** — Chantier 6 (A1) — **Edge `gemini-proxy` : diagnostic affiné du blocage (session 4)**
+
+  Après réactivation du MCP Supabase annoncée côté Dispatch (projet `plpjiehqsxxakbuykmkm`, ACTIVE_HEALTHY), nouvelle tentative de déploiement : **toujours impossible depuis cette session**, mais **la cause n'est plus celle qu'on croyait**.
+
+  - `claude mcp list` → **`claude.ai Supabase: https://mcp.supabase.com/mcp - ✔ Connected`** : le serveur EST bien connecté au niveau du compte.
+  - **Mais ses outils ne sont pas exposés dans cette session** : `ToolSearch` sur `supabase`, `deploy_edge_function` et toutes les variantes de préfixe → « No matching deferred tools found ». L'inventaire d'outils d'une session est **figé à son démarrage** ; la réactivation ayant eu lieu après, elle n'est pas visible ici.
+  - Voie CLI re-testée : toujours `LegacyPlatformAuthRequiredError` (aucun `SUPABASE_ACCESS_TOKEN`, aucun token CLI global).
+
+  → **Remède : démarrer une NOUVELLE session Claude Code** (ou redémarrer celle-ci). Les outils MCP Supabase y seront chargés et `deploy_edge_function` sera appelable directement — sans avoir à fournir de token à Claude. Ce n'est donc **pas** un blocage credential comme initialement documenté (session 3), mais un simple **problème de cycle de vie de session**.
+
+  **Commande / action dans la nouvelle session** : déployer la fonction `gemini-proxy` depuis `supabase/functions/gemini-proxy/index.ts` (le code sur `main` contient déjà chantier 6 **et** chantier 7 — le déploiement couvre les deux). **Ne toucher à aucune migration DB** (chantier 7 s'en charge séparément).
+
+  **Rappel de portée** : le symptôme visible de A1 reste **déjà corrigé en production** par le fallback frontend. Ce déploiement n'est qu'une amélioration qualité (labels neutres → moins de recours au fallback) + l'activation du prompt de fusion durci du chantier 7.
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
