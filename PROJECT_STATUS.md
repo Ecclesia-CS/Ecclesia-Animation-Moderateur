@@ -78,7 +78,7 @@ Dernière mise à jour : 21/07/2026
 | D12 | Mention anonymat des votes | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D13 | Ordre aléatoire des assertions | Fait — déjà implémenté (shuffle Fisher-Yates dans VoteScreen), vérifié en lisant le code | Claude | — |
 | D15 | QR code lien table (modérateurs) | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
-| D16 | Pouvoir changer son vote | En cours (fragment WIP non fonctionnel sur branche `chantier-10-revote-fragment-incomplet`, hors scope de cette itération) | Claude | — |
+| D16 | Pouvoir changer son vote | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ---
 

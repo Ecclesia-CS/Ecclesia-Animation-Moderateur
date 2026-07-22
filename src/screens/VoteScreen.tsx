@@ -57,6 +57,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   const [proposedCount,      setProposedCount]      = useState(0)
   const [showVoteIntro,      setShowVoteIntro]      = useState(false)
   const [showAllAssertions,  setShowAllAssertions]  = useState(false)
+  // D16 — revoir/changer un vote déjà posé (assertion ouverte dans une carte dédiée)
+  const [revoteAssertion,    setRevoteAssertion]    = useState<Assertion | null>(null)
   const [allAssertionResults, setAllAssertionResults] = useState<VoteResult[]>([])
   const [allResultsLoading,  setAllResultsLoading]  = useState(false)
 
@@ -855,10 +857,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   const r = voteResults.find(x => x.id === a.id)
                   const total = r ? r.agree_count + r.disagree_count + r.pass_count : 0
                   return (
-                    <div key={a.id} className="bg-white rounded-xl border border-gray-200 p-3 space-y-2">
+                    <button
+                      key={a.id}
+                      onClick={() => setRevoteAssertion(a)}
+                      className="w-full text-left bg-white rounded-xl border border-gray-200 p-3 space-y-2 hover:border-indigo-300 transition-colors"
+                    >
                       <div className="flex items-start gap-3">
                         <span className="text-lg shrink-0">{icon}</span>
-                        <p className="text-xs text-gray-700 leading-relaxed">{a.content}</p>
+                        <p className="text-xs text-gray-700 leading-relaxed flex-1">{a.content}</p>
+                        <span className="text-[10px] text-indigo-500 shrink-0 self-center">Changer</span>
                       </div>
                       {r && total > 0 && (() => {
                         const agreePct    = Math.round((r.agree_count    / total) * 100)
@@ -877,7 +884,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                           </div>
                         )
                       })()}
-                    </div>
+                    </button>
                   )
                 })}
               </div>
@@ -1025,7 +1032,19 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                     <div key={a.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
                       <div className="flex items-start gap-2">
                         {voteIcon
-                          ? <span className="text-base shrink-0">{voteIcon}</span>
+                          ? (
+                            <button
+                              onClick={() => {
+                                setRevoteAssertion(a)
+                                setShowAllAssertions(false)
+                              }}
+                              className="shrink-0 text-base hover:opacity-70 transition-opacity"
+                              aria-label="Changer mon vote"
+                              title="Changer mon vote"
+                            >
+                              {voteIcon}
+                            </button>
+                          )
                           : (
                             <button
                               onClick={() => {
@@ -1062,6 +1081,38 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   )
                 })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal "Changer mon vote" (D16) */}
+        {revoteAssertion && (
+          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+            onClick={() => setRevoteAssertion(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 pt-5 pb-1 flex-shrink-0">
+                <h2 className="text-sm font-bold text-gray-900">Changer mon vote</h2>
+                <button
+                  onClick={() => setRevoteAssertion(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  aria-label="Fermer"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <AssertionCard
+                assertion={revoteAssertion}
+                existingVote={myVotes.get(revoteAssertion.id) ?? null}
+                onVote={async vote => {
+                  await handleVote(revoteAssertion.id, vote)
+                  setRevoteAssertion(null)
+                }}
+                index={0}
+                total={1}
+              />
             </div>
           </div>
         )}
