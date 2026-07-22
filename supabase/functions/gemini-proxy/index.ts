@@ -91,6 +91,33 @@ function serializeGroups(groups: GroupItem[]): string {
     .join('\n\n')
 }
 
+// Étiquettes NEUTRES (lettres A/B/C…) pour le nommage individuel — fix A1.
+// Le bug documenté : avec des labels "Groupe N" dans le contexte, Gemini
+// recopie systématiquement "Groupe N" comme nom du dernier camp. En ôtant
+// tout numéro du contexte (le modèle ne voit que "Camp A", "Camp B"…), il
+// ne peut plus recopier d'identifiant technique numéroté. La réponse
+// name_single_group ne contient que { name, description } (le table_number
+// est réattaché côté frontend) → ce renommage de contexte est sans risque
+// pour le mapping.
+function groupLetter(index: number): string {
+  return String.fromCharCode(65 + (index % 26))
+}
+
+function serializeGroupsNeutral(groups: GroupItem[]): { text: string; labelOf: Map<number, string> } {
+  const sorted = [...groups].sort((a, b) => a.table_number - b.table_number)
+  const labelOf = new Map<number, string>()
+  sorted.forEach((g, i) => labelOf.set(g.table_number, groupLetter(i)))
+  const text = sorted
+    .map(g => {
+      const profile = g.votes_by_assertion
+        .map(v => `  - "${v.assertion_content}": ${v.agree} pour, ${v.disagree} contre, ${v.pass} pass`)
+        .join('\n')
+      return `Camp ${labelOf.get(g.table_number)} (${g.member_count} membres) :\n${profile}`
+    })
+    .join('\n\n')
+  return { text, labelOf }
+}
+
 function buildDivisiveBlock(divisive?: AssertionItem[]): string {
   if (!divisive || divisive.length === 0) return ''
   const list = divisive
@@ -229,10 +256,12 @@ Tu dois retourner une entrée pour CHAQUE groupe reçu, avec le table_number exa
 function buildNameSingleGroupPrompt(p: NameSingleGroupPayload): string {
   const desc = p.session_description ?? 'Aucune description fournie'
   const assertionsStr = serializeAssertions(p.assertions)
-  const groupsStr = serializeGroups(p.groups)
+  // Contexte à étiquettes neutres (Camp A/B/C…) — voir serializeGroupsNeutral (fix A1)
+  const { text: groupsStr, labelOf } = serializeGroupsNeutral(p.groups)
   const divisiveBlock = buildDivisiveBlock(p.divisive_assertions)
   const target = p.groups.find(g => g.table_number === p.target_table_number)
   const memberCount = target?.member_count ?? '?'
+  const targetLabel = labelOf.get(p.target_table_number) ?? '?'
   return `Tu es l'animateur de l'association Ecclesia, qui organise des débats délibératifs structurés. Après un vote sur des assertions, un algorithme a réparti les participants en groupes selon leurs profils de vote.
 
 Thème de la séance : ${p.session_title}
@@ -243,25 +272,25 @@ ${assertionsStr}
 
 ${divisiveBlock}
 
-Voici les profils de vote agrégés pour TOUS les groupes (contexte de comparaison) :
+Voici les profils de vote agrégés pour TOUS les camps (contexte de comparaison) :
 ${groupsStr}
 
-Chaque profil indique, pour chaque assertion, combien de membres du groupe ont voté "agree", "disagree", ou "pass".
+Chaque profil indique, pour chaque assertion, combien de membres du camp ont voté "agree", "disagree", ou "pass".
 
-Ta tâche : nommer UNIQUEMENT le Groupe ${p.target_table_number} (${memberCount} membres).
+Ta tâche : nommer UNIQUEMENT le Camp ${targetLabel} (${memberCount} membres).
 
-Donne à ce groupe un nom court (3 mots maximum) et une description neutre (1-2 phrases) qui reflète objectivement leur positionnement sur les assertions, en le distinguant des autres groupes.
+Donne à ce camp un nom court (3 mots maximum) et une description neutre (1-2 phrases) qui reflète objectivement son positionnement sur les assertions, en le distinguant des autres camps.
 
 Règles strictes :
-- Sois descriptif, pas normatif. Ne juge pas quel groupe a "raison".
+- Sois descriptif, pas normatif. Ne juge pas quel camp a "raison".
 - Évite les étiquettes politiques préexistantes — décris les positions concrètes sur ce débat.
 - Base-toi uniquement sur les patterns de vote, pas sur des suppositions démographiques.
-- Si ce groupe a peu ou aucun vote (tous les compteurs à 0), nomme-le "Groupe peu actif" et indique dans la description qu'il n'a pas suffisamment participé.
-- INTERDIT : le nom ne peut PAS être "Groupe N", "Camp N" ou tout identifiant contenant un numéro (ex : "Groupe 3", "Camp 2"). Ces labels sont les identifiants techniques du système. Trouve toujours un nom descriptif basé sur les positions exprimées, même vague (ex : "Positionnement modéré", "Profil nuancé").
+- Si ce camp a peu ou aucun vote (tous les compteurs à 0), nomme-le "Camp peu actif" et indique dans la description qu'il n'a pas suffisamment participé.
+- INTERDIT : le nom ne peut PAS être "Camp A", "Camp B", "Groupe N" ni aucun identifiant réduit à une lettre ou un numéro. Ces labels sont les identifiants techniques du système. Trouve toujours un nom descriptif basé sur les positions exprimées, même vague (ex : "Positionnement modéré", "Profil nuancé").
 
 Réponds UNIQUEMENT avec un objet JSON, sans texte avant ni après, sans balises markdown :
 {
-  "name": "<nom court du Groupe ${p.target_table_number}>",
+  "name": "<nom court descriptif du Camp ${targetLabel}>",
   "description": "<description neutre en français>"
 }`
 }

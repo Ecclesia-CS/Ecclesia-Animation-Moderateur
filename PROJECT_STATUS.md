@@ -2,7 +2,7 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 21/07/2026
+Dernière mise à jour : 22/07/2026 (chantier 6 réellement poussé sur `origin/main` = `986fea0` ; le merge du 21/07 n'avait pas atteint origin — rate-limit. ⚠️ Edge `gemini-proxy` reste à redéployer, cf. A_VERIFIER.md)
 
 ## Chantier 1 — Navigation partout
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -41,10 +41,10 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| A1 | Bug de nommage des camps | Backlog | | — |
-| E3 | Nommage Gemini systématique après analyse | Backlog | | — |
-| D10 | Assertions consensuelles inter-groupes | Backlog | | A1/E3 |
-| C6 | Tracking impact énergétique des appels LLM | Backlog | | — |
+| A1 | Bug de nommage des camps | Fait (à vérifier — voir A_VERIFIER.md ; fallback frontend actif, fix Edge à redéployer) | Claude | — |
+| E3 | Nommage Gemini systématique après analyse | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D10 | Assertions consensuelles inter-groupes | Fait — lisibilité (calcul inter-camps préexistant) ; à vérifier — voir A_VERIFIER.md | Claude | A1/E3 |
+| C6 | Tracking impact énergétique des appels LLM | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 7 — Fusion des assertions
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -78,7 +78,7 @@ Dernière mise à jour : 21/07/2026
 | D12 | Mention anonymat des votes | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D13 | Ordre aléatoire des assertions | Fait — déjà implémenté (shuffle Fisher-Yates dans VoteScreen), vérifié en lisant le code | Claude | — |
 | D15 | QR code lien table (modérateurs) | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
-| D16 | Pouvoir changer son vote | En cours (fragment WIP non fonctionnel sur branche `chantier-10-revote-fragment-incomplet`, hors scope de cette itération) | Claude | — |
+| D16 | Pouvoir changer son vote | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ---
 

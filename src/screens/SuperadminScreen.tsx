@@ -38,8 +38,11 @@ import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
-import { nameSingleGroup, mergeAssertions } from '../lib/gemini'
+import { mergeAssertions } from '../lib/gemini'
 import { loadVotesForAnalysis } from '../lib/analysis'
+import type { LoadedAnalysis } from '../lib/analysis'
+import { generateGroupNames, groupsFingerprint } from '../lib/groupNaming'
+import type { NamingGroup } from '../lib/groupNaming'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
 
@@ -1333,93 +1336,82 @@ function SessionDetail({
     if (p === 'allocating' || p === 'debating') loadGroups()
   }, [currentSession.phase, loadGroups])
 
-  // Nommage des camps via Gemini après chargement des groupes en phase allocating
+  // Nommage des camps (Gemini + fallback descriptif) — logique partagée.
+  // Utilisée à la fois par la phase `allocating` (groupes = table_assignments)
+  // et par le nommage systématique après analyse en phase vote (E3).
+  const namingInFlightRef = useRef(false)
+  const runNaming = useCallback(async (namingGroups: NamingGroup[]) => {
+    if (namingGroups.length === 0) return
+    const pwd = getPwd()
+    if (!pwd) return
+
+    const fp       = groupsFingerprint(namingGroups)
+    const storedFp = localStorage.getItem(`group_names_fp_${currentSession.id}`)
+    let storedNames: GroupNameResult[] = []
+    try { storedNames = JSON.parse(localStorage.getItem(`group_names_${currentSession.id}`) ?? '[]') } catch { /* ignore */ }
+    const allNamed = namingGroups.every(g => storedNames.some(n => n.table_number === g.table_number))
+
+    // Répartition inchangée ET tous les camps déjà nommés → ne pas rappeler Gemini
+    if (allNamed && storedFp === fp) {
+      if (storedNames.length > 0) setGroupNames(storedNames)
+      return
+    }
+
+    if (namingInFlightRef.current) return
+    namingInFlightRef.current = true
+    try {
+      const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
+      const approved = allAssertions.filter(a => a.status === 'approved')
+      const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
+
+      const names = await generateGroupNames({
+        sessionId:          currentSession.id,
+        sessionTitle:       currentSession.title,
+        sessionDescription: currentSession.description ?? null,
+        groups:             namingGroups,
+        assertions:         approved.map(a => ({ id: a.id, content: a.content })),
+        votes:              votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
+      })
+
+      setGroupNames(names)
+      localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
+      localStorage.setItem(`group_names_fp_${currentSession.id}`, fp)
+      updateGroupNames(pwd, currentSession.id, names).catch(() => {})
+    } catch {
+      // silencieux — les camps restent sans nom
+    } finally {
+      namingInFlightRef.current = false
+    }
+  }, [currentSession.id, currentSession.title, currentSession.description])
+
+  // Phase `allocating` : nommer les camps une fois les groupes (table_assignments) chargés
   useEffect(() => {
     if (currentSession.phase !== 'allocating') return
     if (!hasAnalysisDone) return
     if (groups.length === 0) return
+    const namingGroups: NamingGroup[] = groups.map(g => ({
+      table_number: g.table_number,
+      member_ids:   g.members.map(m => m.member_id),
+    }))
+    runNaming(namingGroups)
+  }, [groups, hasAnalysisDone, currentSession.phase, runNaming])
 
-    // Empreinte des groupes actuels (composition des membres)
-    const fp = JSON.stringify(
-      groups
-        .map(g => ({ t: g.table_number, m: g.members.map(m => m.member_id).sort() }))
-        .sort((a, b) => a.t - b.t)
-    )
-    const storedFp = localStorage.getItem(`group_names_fp_${currentSession.id}`)
-
-    const allNamed = groups.every(g => groupNames.some(n => n.table_number === g.table_number))
-
-    // Cas 1 : groupes inchangés ET tous nommés → rien à faire
-    if (allNamed && storedFp === fp) return
-
-    // Cas 2 : mêmes groupes mais cache incomplet → fallback local sans appel Gemini
-    if (storedFp === fp && !allNamed) {
-      const namedNums = new Set(groupNames.map(n => n.table_number))
-      const completed = [
-        ...groupNames,
-        ...groups
-          .filter(g => !namedNums.has(g.table_number))
-          .map(g => ({
-            table_number: g.table_number,
-            name:         `Groupe ${g.table_number}`,
-            description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
-          })),
-      ].sort((a, b) => a.table_number - b.table_number)
-      setGroupNames(completed)
-      localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(completed))
-      updateGroupNames(getPwd()!, currentSession.id, completed).catch(() => {})
-      return
+  // E3 — Nommage systématique après une analyse en phase vote/pré-vote.
+  // Déclenché par AnalysisPanel après un calcul manuel : on dérive les groupes
+  // des clusters k-means (group_id 0-indexé → table_number = group_id + 1).
+  const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis) => {
+    if (!['voting', 'pre_voting'].includes(currentSession.phase)) return
+    const byGroup = new Map<number, string[]>()
+    for (const m of analysis.members) {
+      const tn = m.group_id + 1
+      if (!byGroup.has(tn)) byGroup.set(tn, [])
+      byGroup.get(tn)!.push(m.member_id)
     }
-
-    // Cas 3 : nouveau clustering → N appels parallèles, un par groupe
-    const pwd = getPwd()!
-    ;(async () => {
-      try {
-        const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
-        const approved = allAssertions.filter(a => a.status === 'approved')
-        const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
-
-        const commonPayload = {
-          session_id:          currentSession.id,
-          session_title:       currentSession.title,
-          session_description: currentSession.description ?? null,
-          assertions:          approved.map(a => ({ id: a.id, content: a.content })),
-          votes:               votes.map(v => ({ member_id: v.member_id, assertion_id: v.assertion_id, vote: v.vote })),
-          groups:              groups.map(g => ({ table_number: g.table_number, member_ids: g.members.map(m => m.member_id) })),
-          divisive_assertions: undefined,
-        }
-
-        // Appels séquentiels (pas parallèles) : le client Supabase peut silencieusement
-        // annuler l'un des appels simultanés, ce qui cause la perte d'un groupe.
-        // Chaque groupe est nommé l'un après l'autre, avec retry avant fallback.
-        const allNames: GroupNameResult[] = []
-        for (const g of groups) {
-          let named: GroupNameResult | null = null
-          for (let attempt = 0; attempt < 2 && !named; attempt++) {
-            try {
-              const { result } = await nameSingleGroup({ ...commonPayload, target_table_number: g.table_number })
-              named = result
-            } catch {
-              // retry silencieux
-            }
-          }
-          allNames.push(named ?? {
-            table_number: g.table_number,
-            name:         `Groupe ${g.table_number}`,
-            description:  `Ce groupe n'a pas pu être nommé automatiquement.`,
-          })
-        }
-
-        const names = allNames.sort((a, b) => a.table_number - b.table_number)
-        setGroupNames(names)
-        localStorage.setItem(`group_names_${currentSession.id}`, JSON.stringify(names))
-        localStorage.setItem(`group_names_fp_${currentSession.id}`, fp)
-        updateGroupNames(getPwd()!, currentSession.id, names).catch(() => {})
-      } catch {
-        // silencieux — les groupes restent sans nom
-      }
-    })()
-  }, [groups, groupNames.length, hasAnalysisDone, currentSession.phase, currentSession.id, currentSession.title, currentSession.description])
+    const namingGroups: NamingGroup[] = [...byGroup.entries()]
+      .map(([table_number, member_ids]) => ({ table_number, member_ids }))
+      .sort((a, b) => a.table_number - b.table_number)
+    runNaming(namingGroups)
+  }, [currentSession.phase, runNaming])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
     const password = getPwd()!
@@ -1991,6 +1983,7 @@ function SessionDetail({
                     assertions={assertions}
                     onAuthError={onAuthError}
                     onAnalysisStatusChange={setHasAnalysisDone}
+                    onAnalysisComplete={handleAnalysisNaming}
                     groupNames={groupNames}
                     totalMembers={members.length > 0 ? members.length : undefined}
                     sessionPhase={session.phase}
