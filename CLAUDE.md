@@ -4,6 +4,10 @@
 
 Voir [PROJECT_STATUS.md](./PROJECT_STATUS.md) pour l'état courant des chantiers (statut, contributeur, dépendances) et `ecclesia_plan_chantiers.md` pour le détail des tâches. À tenir à jour au fil des PR — sert de point de synchronisation entre contributeurs.
 
+Ce dépôt contient **deux projets** :
+1. **L'app web de modération** (racine `src/`) — le présent CLAUDE.md.
+2. **La transcription des débats** (`transcription-debat/`) — pipeline Python **offline** (Whisper + croisement log Ecclesia + anonymisation + correction Gemini). Doc dédiée : [transcription-debat/CLAUDE.md](./transcription-debat/CLAUDE.md). Voir la section [Sous-projet transcription](#sous-projet--transcription-des-débats) ci-dessous.
+
 ---
 
 ## Stack & Déploiement
@@ -20,6 +24,35 @@ VITE_SUPABASE_ANON_KEY=<clé publique anon>
 Claude dispose d'un accès MCP direct au projet Supabase (migrations, SQL, logs, advisors, edge functions, etc.). **Ne pas demander à l'utilisateur d'appliquer les migrations manuellement** — utiliser directement les outils MCP (`apply_migration`, `execute_sql`, `list_tables`, `get_advisors`, `get_logs`...) pour lire l'état de la base et appliquer les changements de schéma.
 
 `vite.config.ts` a `base: '/Ecclesia-Animation-Moderateur/'` — **ne pas supprimer**.
+
+---
+
+## Test navigateur automatisé
+
+**Solution retenue : le Browser pane intégré au harnais Claude Code** (outils `mcp__Claude_Browser__*` — `preview_start`, `navigate`, `read_page`, `find`, `computer`, `get_page_text`...), piloté via `.claude/launch.json` (commité, racine du repo).
+
+**Pourquoi ce choix plutôt que Playwright MCP ou Claude in Chrome** :
+- **Zéro installation** : contrairement à un plugin Playwright MCP (nouveau serveur MCP à ajouter et à faire approuver par chaque contributeur), le Browser pane est déjà disponible dans toute session Claude Code — rien à installer, rien à faire valider par l'utilisateur.
+- **Config versionnable** : `.claude/launch.json` (commité) décrit comment lancer `npm run dev` (port 5173) — identique pour tous les contributeurs et worktrees, contrairement à une configuration locale de navigateur.
+- **Auth anonyme sans friction** : Ecclesia utilise `signInAnonymously()` (participants) et un mot de passe superadmin en `sessionStorage` — aucun flux OAuth ni session utilisateur réelle à reproduire. L'avantage de Claude in Chrome (session Chrome réelle déjà authentifiée) ne s'applique donc pas ici ; Claude in Chrome reste pertinent uniquement si un test nécessite un vrai compte Google/service tiers.
+- **Pilotage par arbre d'accessibilité** : `read_page`/`find` donnent des références stables (`ref_N`) pour cliquer/typer sans dépendre de screenshots — reproductible d'une session à l'autre, comme le serait Playwright MCP, sans son coût d'installation.
+
+**Invocation type** :
+```
+preview_start { name: "ecclesia-dev" }                          → lance `npm run dev`, ouvre le Browser pane
+navigate { url: "http://localhost:5173/Ecclesia-Animation-Moderateur/#vote/<join_code>" }
+read_page { filter: "interactive" }                              → arbre d'accessibilité, refs cliquables
+computer { action: "left_click", ref: "ref_N" }                  → interaction
+get_page_text {}                                                 → vérifier le contenu affiché
+```
+
+**Règle pour les états asynchrones du cycle de séance** (`draft → pre_voting → voting → allocating → debating → questionnaire → closed`, et transitions Realtime en général) :
+
+Ne **jamais** enchaîner une action (clic, RPC déclenchant un changement de phase) avec une vérification immédiate. L'app elle-même n'attend jamais une transition instantanément — elle combine Realtime + polling de secours (5-10s selon l'écran, voir `AllocatingScreen`/`VoteScreen`). Le test navigateur doit reproduire cette tolérance : après une action qui déclenche un changement d'état (phase de séance, apparition d'un participant, mise à jour d'une file d'attente...), **relire l'état affiché en boucle bornée** (`read_page`/`get_page_text`, intervalle ~1-2s, jusqu'à ~15-20s de plafond) jusqu'à observer le résultat attendu, plutôt que de cliquer ou d'asserter juste après l'action. Un échec après le plafond est un vrai signal (bug ou régression Realtime) — ne pas l'ignorer en relançant indéfiniment.
+
+### Points à vérifier humainement — `A_VERIFIER.md`
+
+Après tout test navigateur, ou toute implémentation dont le comportement reste incertain (edge case non couvert, résultat visuel à confirmer, comportement ambigu sur peu de données), consigner une entrée dans [A_VERIFIER.md](./A_VERIFIER.md) avec la date, le fichier concerné, et une description courte du point à vérifier. Ne jamais supprimer une entrée de ce fichier sans confirmation explicite de l'utilisateur — se contenter de la déplacer en section "Validé" une fois la confirmation obtenue. Le fichier est commité avec les changements de code concernés (pas de `.gitignore`) pour rester visible par les autres contributeurs.
 
 ---
 
@@ -157,15 +190,17 @@ src/
 │   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, confirmAttendance, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
 │   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups, nameSingleGroup) — jamais d'appel direct à api.google.com
 │   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`. `loadVotesForAnalysis` accepte `attendingOnly?: boolean`.
-│   ├── storage.ts        tableStore.get/set/clear (localStorage)
+│   ├── storage.ts        tableStore.get/set/clear (localStorage) + lastNameStore.get/set (dernier nom prénom saisi, préremplit les formulaires d'identité — D7)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
-├── hooks/useLiveMs.ts    setInterval 500ms → Date.now()
+├── hooks/
+│   ├── useLiveMs.ts      setInterval 500ms → Date.now()
+│   └── useTranscription.ts  ⚠️ LEGACY — reliquat du mode transcription *live* (WebSocket → backend temps réel). Le backend live a été supprimé le 2026-06-30 (transcription 100% offline désormais). Le hook et son bouton dans ModeratorView.tsx (l.180-599) sont morts tant qu'aucun serveur live ne tourne — à retirer ou réactiver selon décision.
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
 │   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s, phases pre_voting/voting/allocating/debating/questionnaire) + tabs Rejoindre/Reprendre/Créer + lien Administration
 │   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. `SessionDetail` organisé en 4 onglets (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse). Persistance séance ouverte via `sessionStorage` (clé `ecclesia_superadmin_session`). Persistance onglet actif via `sessionStorage` (clé `ecclesia_admin_tab_<session.id>`, fallback `defaultTab(phase)`). Exports CSV + toggle questionnaire dans l'accordéon "Actions post-séance" (onglet Analyse). Stats présentiels/distance dans `VotingStatsPanel`.
 │   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (pre_voting/voting/allocating → #vote/, debating → check member → #vote/ ou message) ; phase=closed → ResultsMapScreen (membre) ou PublicResultsScreen (visiteur)
-│   ├── VoteScreen.tsx          Flow vote participant. En `pre_voting` : pseudo → ReclaimCodeDisplay → vote (pas d'onboarding). En `voting` : VotingEntryForm (pseudo OU code, reclaim auto si pseudo pris) → vote → AllocatingScreen. Confirmation présentielle (known_user, même appareil) via AttendanceConfirmScreen. **Onboarding (entry_responses) temporairement désactivé (2026-06-04) — `handlePseudoSuccess` et `handleConfirmAttendanceSuccess` vont directement à `loadVoteData`.**
+│   ├── VoteScreen.tsx          Flow vote participant. En `pre_voting` : pseudo → ReclaimCodeDisplay → vote (pas d'onboarding). En `voting` : VotingEntryForm (nom prénom OU code, reclaim auto si nom déjà pris) → **onboarding (entry_responses)** → vote → AllocatingScreen. Confirmation présentielle (known_user, même appareil) via AttendanceConfirmScreen, puis onboarding si pas déjà répondu. Champs identité (nom prénom) préremplis via `lastNameStore` (D7) — voir `lib/storage.ts`.
 │   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (DB via session.group_names en priorité, localStorage fallback), bouton rejoindre. Affiche VoteResultsSummary + accordéon "Voir toutes les assertions"
 │   ├── ResultsMapScreen.tsx    Écran résultats post-clôture (participant inscrit). Charge en parallèle : scatter PCA (`loadResultsMap`), affectation groupe (`getMyTableAssignment`), assertions (`getVoteResults`). Affiche : carte groupe (couleur du groupe, nom+description depuis session.group_names), section "Ce qui vous caractérise" (top repness du groupe), scatter avec légende nommée, "Les autres camps" (top repness par groupe), "Points de clivage" (spread repness inter-groupes), "Points de consensus". Fallback sans analyse PCA : dissensus via consensus_score. Couleur et nom du camp du participant basés sur `selfGroupId` (cluster k-means 0-indexé depuis `data.points`) — **NE PAS** utiliser `assignment.table_number` pour la recherche du nom Gemini car `table_number` est la table physique de débat, sans correspondance garantie avec le cluster k-means. Bouton "← Retour au menu" (hash='') en bas de page — permet de rejoindre une nouvelle séance depuis cet écran.
 │   ├── CollabDocScreen.tsx     Document collaboratif de sources (#collab/<join_code>)
@@ -297,7 +332,7 @@ Flux complet :
 
 1. **`draft`** → séance créée, pas encore ouverte
 2. **`pre_voting`** *(optionnel)* → vote ouvert à distance avant l'événement. Participants s'inscrivent avec `attending_in_person=false`. Un code de rappel 4 chiffres leur est affiché (à screenshoter). Pas d'onboarding. VoteScreen géré via `#vote/<join_code>`. EntryScreen affiche la séance comme "en cours".
-3. **`voting`** → vote présentiel. Nouveaux arrivants : `VotingEntryForm` (pseudo OU code), reclaim auto si pseudo déjà pris. Pré-votants sur même appareil : `AttendanceConfirmScreen` (mode `known_user`). Clustering et analyse filtrés sur `attending_in_person = true`. *(Onboarding temporairement désactivé — voir changements temporaires)*
+3. **`voting`** → vote présentiel. Nouveaux arrivants : `VotingEntryForm` (nom prénom OU code), reclaim auto si nom déjà pris → **onboarding** (`entry_responses`, dont la question modérateur oui/non — D18) avant le vote. Pré-votants sur même appareil : `AttendanceConfirmScreen` (mode `known_user`) → onboarding si pas déjà répondu. Clustering et analyse filtrés sur `attending_in_person = true`.
 4. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` auto-assigné si tables physiques rattachées). Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
 5. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → callback `onTableJoined` → `App.handleTableJoined` met à jour `phase` en `table` → TableView (sans reload).
 
@@ -318,7 +353,7 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 
 ### Polling de secours phase (VoteScreen + AllocatingScreen — Messenger/WebSocket indisponible)
 
-`VoteScreen` ajoute un polling 10 s sur la phase de la séance pendant les étapes `waiting` et `vote`. Si le WebSocket Realtime est coupé (in-app browsers), la transition de phase est détectée dans les 10 s sans rechargement. L'étape `pseudo` bénéficie aussi d'une protection : `handleOnboardingSuccess` re-fetch la phase courante avant de décider la prochaine étape (évite une session périmée). *(L'étape `onboarding` est temporairement désactivée.)*
+`VoteScreen` ajoute un polling 10 s sur la phase de la séance pendant les étapes `waiting` et `vote`. Si le WebSocket Realtime est coupé (in-app browsers), la transition de phase est détectée dans les 10 s sans rechargement. L'étape `onboarding` bénéficie aussi d'une protection : `handleOnboardingSuccess` re-fetch la phase courante avant de décider la prochaine étape (évite une session périmée).
 
 `AllocatingScreen` ajoute un polling 10 s sur la phase de la séance pendant l'étape `allocating`. Couvre la transition `allocating → debating` quand Realtime est indisponible — sans ça, le participant resterait bloqué sans voir le bouton "Rejoindre".
 
@@ -429,17 +464,22 @@ Réception des nouvelles assertions via deux mécanismes :
 
 ## Changements temporaires (à remettre)
 
-### Onboarding (questionnaire d'entrée) — désactivé le 2026-06-04
-Le formulaire `OnboardingForm` (entry_responses : group_size_pref, moderator_pref, openness_to_diff, participation_style) a été temporairement contourné pour le débat du 2026-06-05.
-
-**Ce qui a changé dans `VoteScreen.tsx`** :
-- `handlePseudoSuccess` : au lieu de `setStep('onboarding')`, appelle directement `await loadVoteData(session!, m)`
-- `handleConfirmAttendanceSuccess` : plus de vérification `entry_responses` existant → appelle directement `await loadVoteData(session, m)`
-
-**Pour le remettre** : restaurer ces deux fonctions à leur état précédent (voir git `HEAD~1`).
-
 ### GitHub Pages — `cancel-in-progress: false` (2026-06-03)
 Le workflow `.github/workflows/deploy.yml` a `cancel-in-progress: false` (anciennement `true`). Ce changement évite qu'un déploiement en cours soit annulé par un commit suivant, ce qui causait une fenêtre de 404 pendant le redéploiement. Le CDN Fastly de GitHub Pages met en cache les 404 (`Cache-Control: max-age=600`), rendant le site inaccessible jusqu'à expiration du cache. **Ne pas repasser à `true`.**
+
+---
+
+## Sous-projet : Transcription des débats
+
+Dossier `transcription-debat/` — **outil offline autonome**, indépendant de l'app web. Transforme un enregistrement audio + le log CSV des tours de parole Ecclesia en un transcript horodaté, attribué par locuteur, anonymisé et corrigé.
+
+> **Doc complète et à jour** : [transcription-debat/CLAUDE.md](./transcription-debat/CLAUDE.md). Ne pas dupliquer son contenu ici — cette section n'est qu'un pointeur.
+
+- **Pipeline** : anonymisation (`anonymize_log.py`) → Whisper `large-v3` GPU + alignement mot×tour (`transcribe_offline.py`) → déduplication anti-hallucinations (`deduplicate.py`) → correction Gemini par lots (`correct_transcript.py`). Commande unique : `backend/run_transcription.ps1`.
+- **Stack** : Python + venv (`backend/.venv/`), `faster-whisper`, `google-genai`, ffmpeg. Secrets dans `backend/.env` (`GEMINI_API_KEY`, `HF_TOKEN`). `Débats/` et `transcripts/` non versionnés (RGPD + audio volumineux).
+- **Tests** : 70 tests pytest (`transcription-debat/backend/tests/`).
+- **Historique récent** (voir git) : correction Gemini post-Whisper (juin), module `deduplicate` 3 passes (2026-06-21), organisation des transcripts par thème/table, **suppression du mode live → offline uniquement (2026-06-30)**.
+- **Plans/specs archivés** : `transcription-debat/docs/superpowers/`. Les plans *live*/*intégration* à la racine `docs/superpowers/` (`2026-05-26-transcription-live*`, `2026-05-26-transcription-integration*`) sont **obsolètes** — le mode live abandonné.
 
 ---
 
