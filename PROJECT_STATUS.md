@@ -49,7 +49,7 @@ Dernière mise à jour : 21/07/2026
 ## Chantier 7 — Fusion des assertions
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| B4 | Fusion des assertions ne marche pas | Backlog | | — |
+| B4 | Fusion des assertions ne marche pas | En cours (à vérifier) | Claude | — |
 
 ## Chantier 8 — Bugs techniques divers
 | ID | Résumé | Statut | Contributeur | Dépend de |

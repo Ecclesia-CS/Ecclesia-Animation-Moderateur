@@ -370,6 +370,21 @@ export async function adminSubmitAssertion(
   return data as Assertion
 }
 
+// Chantier 7 / B4 — réécrit le contenu d'une assertion (formulation combinée).
+// Nécessite la migration 20260722_update_assertion_content.sql déployée en base.
+export async function updateAssertionContent(
+  password: string,
+  assertionId: string,
+  content: string
+): Promise<void> {
+  const { error } = await supabase.rpc('update_assertion_content', {
+    p_password: password,
+    p_assertion_id: assertionId,
+    p_content: content,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 export async function getMyTableAssignment(
   sessionId: string
 ): Promise<AssignmentWithJoinCode | null> {

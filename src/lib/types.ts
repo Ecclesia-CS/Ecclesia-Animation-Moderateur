@@ -9,6 +9,10 @@ export interface MergeResult {
   keep_id: string
   reject_ids: string[]
   reason: string
+  // Formulation combinée proposée par Gemini (chantier 7 / B4) : une assertion
+  // unique qui réunit les deux originales. Optionnelle — absente sur les anciens
+  // appels ou si Gemini n'en fournit pas.
+  merged_content?: string
 }
 
 export interface GroupNameResult {

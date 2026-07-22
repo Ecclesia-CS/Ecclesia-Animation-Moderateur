@@ -133,7 +133,8 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
 | `get_all_votes_for_analysis(password, session_id, attending_only?)` | Retourne tous les votes avec `attending_in_person` par vote. Si `attending_only=true` : filtre présentiels uniquement. |
 | `get_session_voting_stats(password, session_id)` | Retourne `{member_count, attending_count, remote_count, onboarded_count, voter_count, approved_assertion_count, total_votes}` |
-| `merge_assertion_votes(password, keep_id, reject_id)` | Transfère les votes de `reject_id` vers `keep_id` : nouveaux votants insérés, conflits résolus (agree prime). Appelé avant `reject_assertion` dans `LLMModerationPanel.handleMerge`. |
+| `merge_assertion_votes(password, keep_id, reject_id)` | Transfère les votes de `reject_id` vers `keep_id` : nouveaux votants insérés, conflits résolus (agree prime). Appelé avant `reject_assertion` lors de l'application d'une fusion validée (`LLMModerationPanel.handleApplyProposal`) et dans l'auto-fusion pré-clustering (`SuperadminScreen`). |
+| `update_assertion_content(password, assertion_id, content)` | **Chantier 7 / B4** — réécrit le contenu d'une assertion existante (conserve id/statut/votes). Utilisé par le bouton « Fusionner en formulation combinée » : remplace le texte de l'assertion conservée par la formulation qui réunit les deux. Migration `20260722_update_assertion_content.sql`. |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les tables suivantes — obligatoire pour que les événements filtrés (DELETE et UPDATE avec RLS) arrivent aux subscribers :
 - `tables`, `participants`, `queue_entries`, `speaking_turns` (migration `core_functions`)
@@ -341,6 +342,7 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 | `ai_log_<id>` | `LogEntry[]` max 50 FIFO — historique appels Gemini |
 | `ai_tokens_day_<YYYY-MM-DD>` | `{ total_tokens, request_count }` — compteurs journaliers |
 | `merge_log_<id>` | `MergeLogEntry[]` max 100 FIFO — fusions effectuées |
+| `merge_proposals_<id>` | `ProposedMerge[]` — **chantier 7 / B4** — fusions PROPOSÉES par Gemini, en attente de validation humaine (self-contained : snapshot du contenu + `merged_content` optionnel). Aucune écriture en base tant que non validées. |
 | `ai_rejected_ids_<id>` | `string[]` — UUIDs rejetés par l'IA (distinct des rejets manuels) |
 | `ai_approved_ids_<id>` | `string[]` — UUIDs approuvés par l'IA (modération manuelle + auto). Badge "acceptée par IA" dans la vue Approuvées |
 | `ai_auto_moderate_<id>` | `'true'/'false'` — toggle auto-modération |
@@ -365,6 +367,7 @@ Toutes les fonctions IA passent **exclusivement** par l'Edge Function `gemini-pr
 - **`PhaseBar` — navigation directe** : chaque cercle d'étape non-courant est un `<button>` qui appelle `onPhaseSelect(phase)`. La modal de confirmation existante gère l'affichage (titre "← Revenir" si `isBack`, "Passer en phase X" sinon). Les badges "fusionnée" / "modérée par IA" / "acceptée par IA" dans `AssertionRow` sont calculés par `aiLabelMap` (useMemo dans `AssertionsPanel`, lecture directe de localStorage)
 - **Ne pas appeler `supabase.functions.invoke` sans vérifier `error` ET `data?.error`**
 - **Sanitisation UUID merge** : `gemini-proxy` filtre les résultats `merge` avant retour — Gemini peut halluciner un UUID légèrement altéré (ex : premier tiret manquant). La validation côté Edge Function (regex UUID + présence dans les IDs d'entrée) est la première ligne de défense ; `LLMModerationPanel` ajoute un guard avant `rejectAssertion`. Ne pas supprimer ces validations.
+- **Fusion en deux temps (chantier 7 / B4)** : la fusion n'écrit **plus jamais** en base sans validation humaine. « Analyser les doublons » empile des `ProposedMerge` dans `merge_proposals_<id>` (snapshot self-contained). Le modérateur valide chaque proposition : soit « garder ✅ telle quelle » (transfert de votes + `reject_assertion`), soit « ✨ fusionner en formulation combinée » (`update_assertion_content` réécrit l'assertion conservée avec `merged_content`, puis transfert + reject). L'auto-fusion **périodique** alimente ces propositions au lieu d'appliquer ; l'auto-fusion **pré-clustering** (`SuperadminScreen`) reste auto mais transfère désormais les votes avant de rejeter (correction d'une perte de votes). Le prompt `buildMergePrompt` a été durci (biais « ne pas fusionner » + contre-exemples réels sur le thème publicité) — **il faut redéployer l'Edge Function `gemini-proxy` pour que ce prompt prenne effet**.
 
 ### ⚠️ Bug connu — nommage Gemini : groupe N toujours nommé "Groupe N"
 

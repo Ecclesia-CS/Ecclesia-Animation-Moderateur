@@ -135,7 +135,7 @@ Tu dois retourner une entrée pour chaque assertion reçue, avec l'uuid exact te
 function buildMergePrompt(p: MergePayload): string {
   const desc = p.session_description ?? 'Aucune description fournie'
   const assertionsStr = serializeAssertions(p.assertions)
-  return `Tu es le modérateur de l'association Ecclesia, qui organise des débats délibératifs structurés. Ton rôle est d'identifier uniquement les assertions qui sont des reformulations quasi-identiques de la même idée.
+  return `Tu es le modérateur de l'association Ecclesia, qui organise des débats délibératifs structurés. Ton rôle est d'identifier uniquement les assertions qui sont des reformulations quasi-identiques de la même idée précise.
 
 Thème de la séance : ${p.session_title}
 Description : ${desc}
@@ -143,29 +143,40 @@ Description : ${desc}
 Voici les assertions approuvées :
 ${assertionsStr}
 
-Tu ne dois fusionner que des assertions qui satisfont ces deux conditions simultanément :
-1. Elles proposent exactement la même action ou expriment exactement le même jugement
-2. Une personne rationnelle ne pourrait pas voter différemment sur l'une et sur l'autre
+RÈGLE FONDAMENTALE : ton biais par défaut est de NE PAS fusionner. La perte d'une nuance est bien plus grave que le maintien d'un quasi-doublon. Ne fusionne QUE si tu es quasi-certain que les deux phrases disent exactement la même chose, au niveau de détail près.
 
-Exemples de ce qu'il NE faut PAS fusionner :
-- Deux actions différentes sur le même sujet ("plus de pistes cyclables" ≠ "plus de vélos") — ce sont des leviers distincts
-- Une action concrète et une valeur générale ("construire des pistes" ≠ "favoriser le vélo en ville")
-- Deux degrés différents ("réduire la voiture" ≠ "supprimer la voiture")
-- Une cause et sa conséquence ("améliorer les transports" ≠ "réduire la pollution")
+Tu ne dois fusionner deux assertions que si TOUTES ces conditions sont réunies :
+1. Elles portent sur le même objet précis (pas seulement le même thème général).
+2. Elles expriment exactement la même action OU exactement le même jugement, au même degré.
+3. Une personne rationnelle ne pourrait strictement pas être d'accord avec l'une et pas avec l'autre.
+4. La différence entre les deux se limite au vocabulaire (synonymes, tournure), pas au fond.
 
-Exemples de ce qu'il faut fusionner :
-- Reformulations avec des mots différents mais sens strictement identique ("Il faut plus de vélos en ville" = "Il faudrait davantage de vélos dans les zones urbaines")
-- Même affirmation avec ou sans précision géographique mineure
+Un simple sentiment partagé (par ex. "négatif envers X") NE SUFFIT PAS. Deux critiques différentes du même sujet restent deux assertions distinctes.
 
-En cas de doute, ne fusionne pas. La préservation des nuances est plus importante que l'élimination des doublons.
+Exemples RÉELS de ce qu'il NE faut SURTOUT PAS fusionner (erreurs à éviter absolument) :
+- "La publicité est de la propagande" ≠ "La publicité c'est mal" ≠ "La publicité est le plus grand mal du 21e siècle" ≠ "La communication publicitaire, c'est pas bien." → Ce sont QUATRE affirmations distinctes : une nature ("propagande"), un jugement moral vague ("mal"), une intensité extrême ("le plus grand mal"), un jugement atténué ("pas bien"). Même camp émotionnel, mais on peut être d'accord avec l'une sans l'autre. NE PAS fusionner.
+- "La publicité devrait être interdite" ≠ "Nous pourrions remplacer la publicité par une autre manière de s'informer." → Interdire n'est pas remplacer : la première supprime, la seconde propose une alternative. Actions différentes. NE PAS fusionner.
+- "La publicité permet de générer des revenus et d'augmenter les investissements" ≠ "La pub permet de financer des projets." → Générer des revenus/investissements n'est pas la même chose que financer des projets ciblés ; portée et bénéficiaires différents. NE PAS fusionner.
+- Deux actions différentes sur le même sujet ("plus de pistes cyclables" ≠ "plus de vélos") — leviers distincts.
+- Une action concrète et une valeur générale ("construire des pistes" ≠ "favoriser le vélo en ville").
+- Deux degrés différents ("réduire la voiture" ≠ "supprimer la voiture").
+- Une cause et sa conséquence ("améliorer les transports" ≠ "réduire la pollution").
+
+Exemples de ce qu'il FAUT fusionner (reformulations strictes uniquement) :
+- "Il faut plus de vélos en ville" = "Il faudrait davantage de vélos dans les zones urbaines" (mêmes mots, autre tournure).
+- "La publicité devrait être interdite" = "Il faut interdire la publicité" (verbe identique, sujet identique, action identique).
+
 Ne fusionne jamais plus de 2 assertions ensemble.
+
+Pour chaque fusion, propose aussi une "formulation combinée" (champ "merged_content") : une SEULE assertion reformulée qui réunit fidèlement les deux et préserve toute nuance commune, sans en ajouter. Elle servira éventuellement à remplacer les deux originales par une version consolidée. Reste au plus près des mots des participants.
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, sans balises markdown :
 [
   {
     "keep_id": "<uuid exact de l'assertion à conserver>",
     "reject_ids": ["<uuid exact>"],
-    "reason": "<citation des deux assertions + explication en 1 phrase de pourquoi elles sont strictement identiques>"
+    "merged_content": "<formulation combinée qui réunit les deux assertions>",
+    "reason": "<citation des deux assertions + explication en 1 phrase de pourquoi elles sont des reformulations strictes>"
   }
 ]
 
@@ -489,6 +500,11 @@ Deno.serve(async (req: Request) => {
           ...r,
           reject_ids: (Array.isArray(r.reject_ids) ? r.reject_ids as unknown[] : [])
             .filter(id => typeof id === 'string' && UUID_RE.test(id as string) && inputIds.has(id as string)),
+          // La formulation combinée (chantier 7) est optionnelle et purement textuelle :
+          // on la conserve seulement si c'est une chaîne non vide, sinon on l'omet.
+          merged_content: typeof r.merged_content === 'string' && r.merged_content.trim().length > 0
+            ? (r.merged_content as string).trim()
+            : undefined,
         }))
         .filter(r => (r.reject_ids as string[]).length > 0)
       return new Response(

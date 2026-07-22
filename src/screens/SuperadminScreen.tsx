@@ -26,7 +26,7 @@ import {
 import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
-  setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin,
+  setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, mergeAssertionVotes,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, runClusteringV3, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup, getModeratorResponses,
@@ -2763,6 +2763,9 @@ function SessionDetail({
                 })
                 for (const merge of merges) {
                   for (const rejectId of merge.reject_ids) {
+                    // Transférer les votes avant de rejeter (sinon perte des votes
+                    // portés sur l'assertion fusionnée — bug B4).
+                    await mergeAssertionVotes(password, merge.keep_id, rejectId)
                     await rejectAssertion(password, rejectId)
                   }
                 }

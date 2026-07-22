@@ -5,7 +5,7 @@
 // =============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { listAssertionsAdmin, approveAssertion, rejectAssertion, mergeAssertionVotes } from '../../lib/voting'
+import { listAssertionsAdmin, approveAssertion, rejectAssertion, mergeAssertionVotes, updateAssertionContent } from '../../lib/voting'
 import { moderateAssertions, mergeAssertions } from '../../lib/gemini'
 import type { AssertionAdmin } from '../../lib/voting'
 import type { Session } from '../../lib/types'
@@ -28,10 +28,28 @@ interface MergeLogEntry {
   timestamp: string
 }
 
+// Fusion PROPOSÉE par Gemini mais PAS encore appliquée — en attente de
+// validation humaine (chantier 7 / B4). Snapshot auto-suffisant du contenu
+// pour survivre à un rechargement même si la liste d'assertions n'est plus
+// en mémoire. Persisté dans localStorage (`merge_proposals_<id>`).
+interface ProposedMerge {
+  keep_id: string
+  keep_content: string
+  reject_ids: string[]
+  reject_contents: string[]
+  reason: string
+  // Formulation combinée suggérée par Gemini : réunit les deux assertions
+  // en une seule. Optionnelle. Éditable par le modérateur avant application
+  // via le bouton « Fusionner en formulation combinée » (chantier 7 / B4).
+  merged_content?: string
+}
+
 interface DayTokens {
   total_tokens: number
   request_count: number
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // ── Helpers localStorage ──────────────────────────────────────
 
@@ -49,6 +67,60 @@ function readMergeLog(sessionId: string): MergeLogEntry[] {
   } catch {
     return []
   }
+}
+
+function readMergeProposals(sessionId: string): ProposedMerge[] {
+  try {
+    return JSON.parse(localStorage.getItem(`merge_proposals_${sessionId}`) ?? '[]') as ProposedMerge[]
+  } catch {
+    return []
+  }
+}
+
+function writeMergeProposals(sessionId: string, proposals: ProposedMerge[]) {
+  localStorage.setItem(`merge_proposals_${sessionId}`, JSON.stringify(proposals))
+}
+
+// Clé d'identité d'une proposition (keep + ensemble des reject), pour dédupliquer.
+function proposalKey(p: { keep_id: string; reject_ids: string[] }): string {
+  return `${p.keep_id}|${[...p.reject_ids].sort().join(',')}`
+}
+
+// Transforme la sortie Gemini en propositions self-contained (snapshot du
+// contenu), en ignorant tout id inconnu / non approuvé. `byId` = id → contenu
+// des assertions approuvées au moment de l'appel.
+function buildFreshProposals(
+  results: { keep_id: string; reject_ids?: string[]; merged_content?: string; reason?: string }[],
+  byId: Map<string, string>,
+): ProposedMerge[] {
+  return results
+    .map(m => {
+      const rejectIds = (Array.isArray(m.reject_ids) ? m.reject_ids : [])
+        .filter(id => UUID_RE.test(id) && byId.has(id) && id !== m.keep_id)
+      const merged = typeof m.merged_content === 'string' && m.merged_content.trim().length > 0
+        ? m.merged_content.trim()
+        : undefined
+      return {
+        keep_id:         m.keep_id,
+        keep_content:    byId.get(m.keep_id) ?? m.keep_id,
+        reject_ids:      rejectIds,
+        reject_contents: rejectIds.map(id => byId.get(id) ?? id),
+        reason:          m.reason ?? '',
+        merged_content:  merged,
+      }
+    })
+    .filter(m => byId.has(m.keep_id) && m.reject_ids.length > 0)
+}
+
+// Ajoute `fresh` à `existing` sans réintroduire de doublon (même keep + rejects).
+function mergeProposalLists(existing: ProposedMerge[], fresh: ProposedMerge[]): ProposedMerge[] {
+  const seen = new Set(existing.map(proposalKey))
+  const out = [...existing]
+  for (const p of fresh) {
+    const key = proposalKey(p)
+    if (!seen.has(key)) { out.push(p); seen.add(key) }
+  }
+  return out
 }
 
 function readAiRejectedIds(sessionId: string): Set<string> {
@@ -108,6 +180,9 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [isError, setIsError]     = useState(false)
   const [showReport, setShowReport] = useState(false)
+
+  // Fusions proposées par Gemini, en attente de validation humaine (B4)
+  const [proposals, setProposals] = useState<ProposedMerge[]>(() => readMergeProposals(session.id))
 
   // Assertions rejetées
   const [rejectedAssertions, setRejectedAssertions] = useState<AssertionAdmin[]>([])
@@ -215,9 +290,20 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
     }
   }
 
-  // ── Action : Fusionner les doublons ────────────────────────
+  // ── Persistance proposals ───────────────────────────────────
 
-  async function handleMerge() {
+  function updateProposals(next: ProposedMerge[]) {
+    setProposals(next)
+    writeMergeProposals(session.id, next)
+  }
+
+  // ── Action : Analyser les doublons (proposer, sans appliquer) ─
+  // Chantier 7 / B4 : la fusion est désormais un flux en deux temps.
+  // 1) Gemini PROPOSE des fusions (cette fonction). 2) Le modérateur les
+  // valide/ignore une par une avant toute écriture en base (handleApplyProposal).
+  // La fusion n'altère plus jamais les assertions sans validation humaine.
+
+  async function handleAnalyzeMerges() {
     setIsLoading(true)
     setActionMsg(null)
     try {
@@ -233,32 +319,154 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         session_description: session.description,
         assertions: approved.map(a => ({ id: a.id, content: a.content })),
       })
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      for (const m of results) {
-        for (const rid of (Array.isArray(m.reject_ids) ? m.reject_ids : [])) {
-          if (!UUID_RE.test(rid)) continue
-          await mergeAssertionVotes(password, m.keep_id, rid)
-          await rejectAssertion(password, rid)
-        }
+      addLogEntry(session.id, 'analyse-fusion', `${results.length} fusion(s) proposée(s)`, tokens_used)
+
+      // Construire les propositions self-contained (snapshot du contenu) et les
+      // ajouter à celles déjà en attente, sans doublon.
+      const byId = new Map(approved.map(a => [a.id, a.content]))
+      const fresh = buildFreshProposals(results, byId)
+      updateProposals(mergeProposalLists(readMergeProposals(session.id), fresh))
+
+      if (fresh.length === 0) {
+        showMsg('Aucun doublon détecté — rien à fusionner')
+      } else {
+        showMsg(`🔎 ${fresh.length} fusion(s) proposée(s) — à valider ci-dessous`)
       }
-      // Stocker dans merge_log
-      const existing = readMergeLog(session.id)
-      const newEntries: MergeLogEntry[] = results.map(m => ({
-        keep_id:         m.keep_id,
-        keep_content:    approved.find(a => a.id === m.keep_id)?.content ?? m.keep_id,
-        reject_ids:      m.reject_ids,
-        reject_contents: m.reject_ids.map(id => approved.find(a => a.id === id)?.content ?? id),
-        reason:          m.reason ?? '',
-        timestamp:       new Date().toISOString(),
-      }))
-      localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
-      addLogEntry(session.id, 'merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
-      showMsg(`✅ ${results.length} fusion(s) effectuée(s)`)
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // ── Choisir quelle assertion conserver dans une proposition ──
+  // Utile car pour deux quasi-doublons, laquelle est « canonique » (mieux
+  // formulée) relève du jugement humain, pas de l'ordre renvoyé par Gemini.
+
+  function swapKeep(index: number, newKeepId: string) {
+    const p = proposals[index]
+    if (!p || p.keep_id === newKeepId) return
+    const all = [
+      { id: p.keep_id, content: p.keep_content },
+      ...p.reject_ids.map((id, i) => ({ id, content: p.reject_contents[i] ?? id })),
+    ]
+    const keep = all.find(a => a.id === newKeepId)
+    if (!keep) return
+    const rejects = all.filter(a => a.id !== newKeepId)
+    const next = proposals.map((pp, i) => i === index ? {
+      ...pp,
+      keep_id:         keep.id,
+      keep_content:    keep.content,
+      reject_ids:      rejects.map(r => r.id),
+      reject_contents: rejects.map(r => r.content),
+    } : pp)
+    updateProposals(next)
+  }
+
+  // ── Ignorer une proposition (sans l'appliquer) ───────────────
+
+  function ignoreProposal(index: number) {
+    updateProposals(proposals.filter((_, i) => i !== index))
+  }
+
+  // ── Éditer la formulation combinée d'une proposition ─────────
+
+  function editMergedContent(index: number, value: string) {
+    updateProposals(proposals.map((pp, i) => i === index ? { ...pp, merged_content: value } : pp))
+  }
+
+  // ── Appliquer UNE proposition validée par le modérateur ──────
+  // mode 'keep'    : on conserve l'assertion « ✅ » telle quelle, on rejette les
+  //                  autres et on leur transfère les votes.
+  // mode 'combine' : on réécrit d'abord l'assertion conservée avec la
+  //                  formulation combinée (réunit les deux), puis idem.
+  //                  Nécessite la migration update_assertion_content.
+
+  async function handleApplyProposal(index: number, mode: 'keep' | 'combine' = 'keep') {
+    const p = proposals[index]
+    if (!p) return
+    const combined = p.merged_content?.trim()
+    if (mode === 'combine' && !combined) {
+      showMsg('Aucune formulation combinée à appliquer', true)
+      return
+    }
+    setIsLoading(true)
+    setActionMsg(null)
+    try {
+      if (mode === 'combine' && combined) {
+        await updateAssertionContent(password, p.keep_id, combined)
+      }
+      for (const rid of p.reject_ids) {
+        if (!UUID_RE.test(rid)) continue
+        await mergeAssertionVotes(password, p.keep_id, rid)
+        await rejectAssertion(password, rid)
+      }
+      // Journaliser la fusion effectuée (réutilise le merge_log existant + undo)
+      const existing = readMergeLog(session.id)
+      const entry: MergeLogEntry = {
+        keep_id:         p.keep_id,
+        keep_content:    mode === 'combine' && combined ? combined : p.keep_content,
+        reject_ids:      p.reject_ids,
+        reject_contents: p.reject_contents,
+        reason:          p.reason,
+        timestamp:       new Date().toISOString(),
+      }
+      localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([entry, ...existing].slice(0, 100)))
+      updateProposals(proposals.filter((_, i) => i !== index))
+      showMsg(mode === 'combine' ? '✅ Fusion en formulation combinée appliquée' : '✅ Fusion appliquée')
+    } catch (e) {
+      showMsg(e instanceof Error ? e.message : String(e), true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // ── Appliquer TOUTES les propositions restantes ──────────────
+
+  async function handleApplyAllProposals() {
+    if (proposals.length === 0) return
+    setIsLoading(true)
+    setActionMsg(null)
+    try {
+      const snapshot = [...proposals]
+      const logEntries: MergeLogEntry[] = []
+      let done = 0
+      for (const p of snapshot) {
+        try {
+          for (const rid of p.reject_ids) {
+            if (!UUID_RE.test(rid)) continue
+            await mergeAssertionVotes(password, p.keep_id, rid)
+            await rejectAssertion(password, rid)
+          }
+          logEntries.push({
+            keep_id:         p.keep_id,
+            keep_content:    p.keep_content,
+            reject_ids:      p.reject_ids,
+            reject_contents: p.reject_contents,
+            reason:          p.reason,
+            timestamp:       new Date().toISOString(),
+          })
+          done++
+        } catch {
+          // On garde les propositions non appliquées (voir plus bas)
+        }
+      }
+      const existing = readMergeLog(session.id)
+      localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...logEntries, ...existing].slice(0, 100)))
+      // Retirer uniquement celles réellement appliquées
+      const appliedKeys = new Set(logEntries.map(e => `${e.keep_id}|${[...e.reject_ids].sort().join(',')}`))
+      updateProposals(proposals.filter(p => !appliedKeys.has(`${p.keep_id}|${[...p.reject_ids].sort().join(',')}`)))
+      showMsg(`✅ ${done} fusion(s) appliquée(s)${done < snapshot.length ? ` — ${snapshot.length - done} en échec (conservées)` : ''}`, done < snapshot.length)
+    } catch (e) {
+      showMsg(e instanceof Error ? e.message : String(e), true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  function ignoreAllProposals() {
+    updateProposals([])
+    showMsg('Propositions de fusion ignorées')
   }
 
   // ── setInterval auto-modération ────────────────────────────
@@ -297,6 +505,9 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   }, [autoModerate, intervalMinutes, session.phase, session.id, session.title, session.description, password])
 
   // ── setInterval auto-fusion périodique ────────────────────
+  // Chantier 7 / B4 : l'auto-fusion ne fusionne plus jamais toute seule. Elle
+  // se contente d'ANALYSER périodiquement et d'empiler des PROPOSITIONS, que le
+  // modérateur valide manuellement. Aucune écriture en base sans validation.
 
   useEffect(() => {
     if (!autoMergePeriodic || !['voting', 'pre_voting'].includes(session.phase)) return
@@ -314,25 +525,12 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           session_description: session.description,
           assertions: approved.map(a => ({ id: a.id, content: a.content })),
         })
-        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        for (const m of results) {
-          for (const rid of (Array.isArray(m.reject_ids) ? m.reject_ids : [])) {
-            if (!UUID_RE.test(rid)) continue
-            await mergeAssertionVotes(password, m.keep_id, rid)
-            await rejectAssertion(password, rid)
-          }
+        const byId = new Map(approved.map(a => [a.id, a.content]))
+        const fresh = buildFreshProposals(results, byId)
+        if (fresh.length > 0) {
+          updateProposals(mergeProposalLists(readMergeProposals(session.id), fresh))
         }
-        const existing = readMergeLog(session.id)
-        const newEntries: MergeLogEntry[] = results.map(m => ({
-          keep_id:         m.keep_id,
-          keep_content:    approved.find(a => a.id === m.keep_id)?.content ?? m.keep_id,
-          reject_ids:      m.reject_ids,
-          reject_contents: m.reject_ids.map(id => approved.find(a => a.id === id)?.content ?? id),
-          reason:          m.reason ?? '',
-          timestamp:       new Date().toISOString(),
-        }))
-        localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
-        addLogEntry(session.id, 'auto-merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
+        addLogEntry(session.id, 'auto-analyse-fusion', `${fresh.length} fusion(s) proposée(s)`, tokens_used)
       } catch {
         // Silencieux en mode auto
       } finally {
@@ -340,6 +538,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       }
     }, intervalMs)
     return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMergePeriodic, mergeIntervalMinutes, session.phase, session.id, session.title, session.description, password])
 
   // ── Données rapport (calculées au render) ───────────────────
@@ -414,14 +613,19 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               </button>
 
               <button
-                onClick={handleMerge}
+                onClick={handleAnalyzeMerges}
                 disabled={isLoading}
                 className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                Fusionner les doublons
+                Analyser les doublons
+                {proposals.length > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-white/25 text-xs font-semibold">
+                    {proposals.length}
+                  </span>
+                )}
               </button>
 
               <button
@@ -432,6 +636,128 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               </button>
             </div>
           </div>
+
+          {/* ── Section Fusions proposées (validation humaine — B4) ─── */}
+          {proposals.length > 0 && (
+            <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+                  Fusions proposées — à valider
+                  <span className="ml-2 font-normal normal-case text-purple-400">({proposals.length})</span>
+                </h4>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={handleApplyAllProposals}
+                    disabled={isLoading}
+                    className="text-xs px-2.5 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  >
+                    Tout fusionner
+                  </button>
+                  <button
+                    onClick={ignoreAllProposals}
+                    disabled={isLoading}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-white disabled:opacity-50 transition-colors"
+                  >
+                    Tout ignorer
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Chaque fusion supprime les assertions « ❌ » et transfère leurs votes vers l'assertion « ✅ » conservée.
+                Rien n'est modifié tant que tu n'as pas validé. Tu peux choisir laquelle conserver.
+              </p>
+
+              <div className="space-y-3">
+                {proposals.map((p, i) => {
+                  const all = [
+                    { id: p.keep_id, content: p.keep_content, keep: true },
+                    ...p.reject_ids.map((id, ri) => ({ id, content: p.reject_contents[ri] ?? id, keep: false })),
+                  ]
+                  return (
+                    <div key={`${p.keep_id}-${i}`} className="bg-white rounded-xl border border-purple-100 p-3 space-y-2">
+                      <div className="space-y-1.5">
+                        {all.map(a => (
+                          <div
+                            key={a.id}
+                            className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${
+                              a.keep ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50/60 border border-red-100'
+                            }`}
+                          >
+                            <span className="shrink-0 text-sm leading-5">{a.keep ? '✅' : '❌'}</span>
+                            <p className={`flex-1 text-sm ${a.keep ? 'text-gray-800 font-medium' : 'text-gray-500 line-through'}`}>
+                              {a.content}
+                            </p>
+                            {!a.keep && (
+                              <button
+                                onClick={() => swapKeep(i, a.id)}
+                                disabled={isLoading}
+                                title="Conserver celle-ci à la place"
+                                className="shrink-0 text-xs px-2 py-0.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+                              >
+                                Garder celle-ci
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {p.reason && (
+                        <p className="text-xs text-gray-500 italic border-l-2 border-purple-200 pl-2">
+                          💬 {p.reason}
+                        </p>
+                      )}
+
+                      {/* Formulation combinée (chantier 7) — éditable avant application */}
+                      {p.merged_content !== undefined && (
+                        <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 space-y-1">
+                          <label className="block text-[11px] font-semibold text-amber-700 uppercase tracking-wide">
+                            ✨ Formulation combinée (réunit les deux)
+                          </label>
+                          <textarea
+                            value={p.merged_content}
+                            onChange={e => editMergedContent(i, e.target.value)}
+                            disabled={isLoading}
+                            rows={2}
+                            className="w-full text-sm text-gray-800 bg-white rounded border border-amber-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y disabled:opacity-50"
+                          />
+                          <p className="text-[11px] text-amber-600">
+                            Remplace le texte de l'assertion « ✅ » par cette version, puis rejette l'autre et transfère ses votes.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 pt-0.5">
+                        {p.merged_content !== undefined && p.merged_content.trim().length > 0 && (
+                          <button
+                            onClick={() => handleApplyProposal(i, 'combine')}
+                            disabled={isLoading}
+                            className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                          >
+                            ✨ Fusionner (formulation combinée)
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleApplyProposal(i, 'keep')}
+                          disabled={isLoading}
+                          className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                        >
+                          ✓ Garder « ✅ » telle quelle
+                        </button>
+                        <button
+                          onClick={() => ignoreProposal(i)}
+                          disabled={isLoading}
+                          className="flex-1 min-w-[6rem] text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        >
+                          ✗ Ignorer
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── Section Rapport ─── */}
           {showReport && (
