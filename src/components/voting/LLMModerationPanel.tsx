@@ -7,17 +7,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { listAssertionsAdmin, approveAssertion, rejectAssertion, mergeAssertionVotes } from '../../lib/voting'
 import { moderateAssertions, mergeAssertions } from '../../lib/gemini'
+import {
+  recordAiUsage,
+  readAiLog,
+  readDayTokens,
+  estimateEnergyWh,
+  formatEnergy,
+  phoneChargeEquivalent,
+  WH_PER_TOKEN_LABEL,
+  type DayTokens,
+} from '../../lib/aiUsage'
 import type { AssertionAdmin } from '../../lib/voting'
 import type { Session } from '../../lib/types'
 
 // ── Types localStorage ────────────────────────────────────────
-
-interface LogEntry {
-  timestamp: string
-  action: string
-  summary: string
-  tokens_used: number
-}
 
 interface MergeLogEntry {
   keep_id: string
@@ -28,20 +31,7 @@ interface MergeLogEntry {
   timestamp: string
 }
 
-interface DayTokens {
-  total_tokens: number
-  request_count: number
-}
-
 // ── Helpers localStorage ──────────────────────────────────────
-
-function readLog(sessionId: string): LogEntry[] {
-  try {
-    return JSON.parse(localStorage.getItem(`ai_log_${sessionId}`) ?? '[]') as LogEntry[]
-  } catch {
-    return []
-  }
-}
 
 function readMergeLog(sessionId: string): MergeLogEntry[] {
   try {
@@ -76,24 +66,8 @@ function addAiApprovedIds(sessionId: string, ids: string[]) {
   localStorage.setItem(`ai_approved_ids_${sessionId}`, JSON.stringify([...existing]))
 }
 
-function addLogEntry(sessionId: string, action: string, summary: string, tokensUsed: number) {
-  const entry: LogEntry = { timestamp: new Date().toISOString(), action, summary, tokens_used: tokensUsed }
-  const existing = readLog(sessionId)
-  const updated = [entry, ...existing].slice(0, 50)
-  localStorage.setItem(`ai_log_${sessionId}`, JSON.stringify(updated))
-
-  // Mise à jour compteurs journaliers
-  const today = new Date().toISOString().slice(0, 10)
-  const key = `ai_tokens_day_${today}`
-  const day: DayTokens = (() => {
-    try { return JSON.parse(localStorage.getItem(key) ?? '{"total_tokens":0,"request_count":0}') }
-    catch { return { total_tokens: 0, request_count: 0 } }
-  })()
-  day.total_tokens += tokensUsed
-  day.request_count += 1
-  localStorage.setItem(key, JSON.stringify(day))
-}
-
+// Le journal + les compteurs journaliers sont centralisés dans lib/aiUsage
+// (recordAiUsage) afin que le nommage des camps soit aussi comptabilisé.
 
 // ── Composant principal ───────────────────────────────────────
 
@@ -103,7 +77,7 @@ interface LLMModerationPanelProps {
 }
 
 export default function LLMModerationPanel({ session, password }: LLMModerationPanelProps) {
-  const [open, setOpen]           = useState(() => readLog(session.id).length > 0)
+  const [open, setOpen]           = useState(() => readAiLog(session.id).length > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [isError, setIsError]     = useState(false)
@@ -205,7 +179,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       }
       addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
       addAiApprovedIds(session.id, results.filter(r => r.action === 'approve').map(r => r.id))
-      addLogEntry(session.id, 'moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
+      recordAiUsage(session.id, 'moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
       showMsg(`✅ ${approved} approuvées, ${rejected} rejetées`)
       await loadRejected()
     } catch (e) {
@@ -252,7 +226,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         timestamp:       new Date().toISOString(),
       }))
       localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
-      addLogEntry(session.id, 'merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
+      recordAiUsage(session.id, 'merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
       showMsg(`✅ ${results.length} fusion(s) effectuée(s)`)
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
@@ -286,7 +260,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         }
         addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
         addAiApprovedIds(session.id, results.filter(r => r.action === 'approve').map(r => r.id))
-        addLogEntry(session.id, 'auto-moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
+        recordAiUsage(session.id, 'auto-moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
       } catch {
         // Silencieux en mode auto — erreurs loggées dans la console uniquement
       } finally {
@@ -332,7 +306,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           timestamp:       new Date().toISOString(),
         }))
         localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...newEntries, ...existing].slice(0, 100)))
-        addLogEntry(session.id, 'auto-merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
+        recordAiUsage(session.id, 'auto-merge', `${results.length} fusion(s) effectuée(s)`, tokens_used)
       } catch {
         // Silencieux en mode auto
       } finally {
@@ -344,15 +318,15 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
   // ── Données rapport (calculées au render) ───────────────────
 
-  const log = readLog(session.id)
+  const log = readAiLog(session.id)
   const mergeLog = readMergeLog(session.id)
 
   const sessionTokens = log.reduce((s, e) => s + e.tokens_used, 0)
-  const today = new Date().toISOString().slice(0, 10)
-  const dayTokens: DayTokens = (() => {
-    try { return JSON.parse(localStorage.getItem(`ai_tokens_day_${today}`) ?? '{"total_tokens":0,"request_count":0}') }
-    catch { return { total_tokens: 0, request_count: 0 } }
-  })()
+  const dayTokens: DayTokens = readDayTokens()
+
+  // Impact énergétique estimé (C6) — indicatif, cf. lib/aiUsage
+  const sessionEnergyWh = estimateEnergyWh(sessionTokens)
+  const dayEnergyWh     = estimateEnergyWh(dayTokens.total_tokens)
 
   const showRejectSection = session.moderation_policy === 'ai' || session.moderation_policy === 'closed'
 
@@ -467,6 +441,24 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   />
                 </div>
                 <p className="text-xs text-gray-400">Référence : 1M tokens/min (limite burst, indicatif)</p>
+              </div>
+
+              {/* Impact énergétique estimé (C6) */}
+              <div className="space-y-1 bg-emerald-50/60 border border-emerald-100 rounded-xl px-3 py-2.5">
+                <div className="flex justify-between text-xs text-gray-600">
+                  <span className="flex items-center gap-1">🌱 Énergie estimée — cette séance</span>
+                  <span className="font-mono text-emerald-700">{formatEnergy(sessionEnergyWh)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Aujourd'hui (toutes séances)</span>
+                  <span className="font-mono">{formatEnergy(dayEnergyWh)}</span>
+                </div>
+                {sessionEnergyWh > 0 && (
+                  <p className="text-xs text-gray-400">
+                    ≈ {phoneChargeEquivalent(sessionEnergyWh).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} charge(s) de smartphone.
+                    {' '}Ordre de grandeur indicatif ({WH_PER_TOKEN_LABEL}), pas une mesure.
+                  </p>
+                )}
               </div>
 
               {/* Historique log */}

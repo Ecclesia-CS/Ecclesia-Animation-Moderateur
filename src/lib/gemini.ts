@@ -153,7 +153,10 @@ export async function nameSingleGroup(payload: {
   if (data?.error) throw new Error(data.error)
 
   const d = data as { result: { name: string; description: string }; usage?: { total_tokens?: number } }
-  if (/^groupe\s*\d+$/i.test(d.result.name.trim())) {
+  // Rejette les identifiants techniques : "Groupe 3", "Camp 2" (numéro) et
+  // "Camp A", "Groupe B" ou une lettre seule (labels neutres du fix A1) →
+  // déclenche le retry, puis le fallback descriptif côté appelant.
+  if (/^(groupe|camp)\s*([0-9]+|[a-z])$/i.test(d.result.name.trim())) {
     throw new Error('generic_name')
   }
   return {
