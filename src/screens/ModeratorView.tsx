@@ -59,7 +59,16 @@ export default function ModeratorView() {
   const collisionDetectionStrategy: CollisionDetection = (args) => {
     // Pas de fallback closestCenter : si le curseur est hors de tout droppable,
     // on ne snap pas vers la première row (ce qui donnait "par défaut en premier").
-    return pointerWithin(args)
+    const hits = pointerWithin(args)
+    // Quand le pointeur survole une ligne, pointerWithin renvoie AUSSI le panneau
+    // conteneur (les deux contiennent le pointeur), et le « gagnant » oscille d'une
+    // frame à l'autre. Quand le panneau l'emporte, la logique de drop retombe sur
+    // « ajouter en dernier » (dstIdx = longueur de la file) → l'entrée arrive en
+    // dernier au lieu de la position visée (bug A2). On privilégie donc toujours
+    // une ligne (sortable) au panneau : le panneau ne gagne que si aucune ligne
+    // n'est réellement sous le pointeur (file vide, ou zone sous la dernière ligne).
+    const rowHit = hits.find(h => h.id !== 'queue-long' && h.id !== 'queue-interactive')
+    return rowHit ? [rowHit] : hits
   }
 
   // ── Ghost entry ID pour le drag participant → file ─────────────
