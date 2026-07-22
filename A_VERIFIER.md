@@ -361,6 +361,20 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **Rappel de portée** : le symptôme visible de A1 reste **déjà corrigé en production** par le fallback frontend. Ce déploiement n'est qu'une amélioration qualité (labels neutres → moins de recours au fallback) + l'activation du prompt de fusion durci du chantier 7.
 
+- [ ] **2026-07-22** — Chantiers 3/5/7/9 — **6 migrations appliquées + Edge `gemini-proxy` redéployée (session 5)** — rapporté par Jules, non vérifié par cette session
+
+  **Contexte** : cette session Claude Code n'a, comme toutes les précédentes documentées ci-dessus, **aucun outil MCP Supabase dans son inventaire** (revérifié en tout début de conversation via `ToolSearch` — aucun résultat). Jules a expliqué que son connecteur Supabase MCP fonctionne côté **Dispatch** (son propre orchestrateur) mais ne se propage pas aux sessions Claude Code sur la machine hôte — un problème d'architecture distinct du blocage credential déjà documenté en session 3/4 ci-dessus. Cette session a donc **uniquement lu et rapporté le contenu exact** des fichiers SQL/Edge Function (sans les appliquer elle-même), et Jules les a appliqués de son côté avec son propre outillage.
+
+  **Ce que Jules rapporte avoir fait** (non vérifié indépendamment par cette session — aucun accès DB/Edge disponible ici) :
+  - 6 migrations appliquées, confirmées via `pg_proc` : `delete_assertions_admin` (chantier 9 / E1), `hide_assertion_author` → `list_assertions_admin` (chantier 9 / E2), `designate_moderator` (chantier 3 / D2), `get_moderator_responses` (chantier 5 / E4), `run_clustering_v3` (chantier 5 / B1), `update_assertion_content` (chantier 7 / B4).
+  - Edge Function `gemini-proxy` redéployée en **version 9, statut ACTIVE**, à partir du code exact lu par cette session (inclut le fix chantier 6/A1 — labels neutres — et le prompt durci + `merged_content` du chantier 7/B4).
+  - Données de test nettoyées : table `join_code=E071DD` (id `95b719bd-6c75-41bb-91bd-3426b836c491`) et ses `speaking_turns`/`queue_entries`/`participants`/`table_assignments`, confirmé absent d'une requête de vérification.
+  - `designate_moderator` confirmé présent en base (le bug de prod — bouton "Devenir animateur" en 404 `PGRST202`, code frontend déjà présent sur `main` dans `TableContext.tsx`/`ParticipantView.tsx` — devrait donc être résolu).
+
+  **⚠️ Ce qui n'est PAS vérifié par cette session** : aucun appel RPC réel, aucune capture d'écran, aucune requête SQL exécutée par moi pour confirmer ce qui précède — je n'ai ni les outils ni les identifiants pour le faire. Cette entrée documente un **rapport de Jules**, pas une vérification indépendante. Les parcours manuels détaillés dans chacune des entrées ci-dessus (chantier 3 D1/D2, chantier 5 B1/B2/E4, chantier 7 B4, chantier 9 E1/E2) **restent à exécuter intégralement** — rien ne remplace le test navigateur bout-en-bout (clic réel sur "Devenir animateur", lancement réel de `run_clustering_v3`, fusion réelle d'assertions, etc.).
+
+  **Ne pas déplacer ces entrées vers "Validé"** tant que le parcours manuel correspondant n'a pas été exécuté et confirmé par Jules (ou une session avec accès navigateur) — l'application en base n'équivaut pas à la validation fonctionnelle demandée par ce fichier.
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->

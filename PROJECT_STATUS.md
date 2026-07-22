@@ -2,7 +2,7 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **confirmé live sur GitHub Pages** (bundle `index-DosYKtsE.js`, sans erreur console). Reste 1 point ops non bloquant : redéployer l'Edge `gemini-proxy` — bloqué sur token Supabase, à faire par Jules, cf. A_VERIFIER.md. Symptôme A1 déjà corrigé en prod via fallback frontend.)
+Dernière mise à jour : 22/07/2026 — **6 migrations SQL appliquées en base + Edge Function `gemini-proxy` redéployée (v9, ACTIVE)**, rapporté par Jules via son propre outillage Supabase (cette session Claude Code n'a toujours aucun outil MCP Supabase dans son inventaire — vérifié en tout début de conversation). Migrations concernées : `delete_assertions_admin`/`hide_assertion_author` (chantier 9), `designate_moderator` (chantier 3), `moderator_responses`/`clustering_v3` (chantier 5), `update_assertion_content` (chantier 7). **Non vérifié fonctionnellement par une session avec accès navigateur** — voir A_VERIFIER.md pour le détail par chantier et les parcours manuels restants.
 
 ## Chantier 1 — Navigation partout
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -23,7 +23,7 @@ Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **con
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
 | D1 | Lecture rapide des règles à l'entrée de table | Backlog | | Chantier 1 |
-| D2 | Désignation d'un admin en cours de débat | Backlog | | Chantier 1 |
+| D2 | Désignation d'un admin en cours de débat | Fait — migration `designate_moderator` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 1 |
 
 ## Chantier 4 — Rejoindre en cours de séance
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -34,14 +34,14 @@ Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **con
 ## Chantier 5 — Algo d'allocation & modérateurs
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| B1 | Refonte algo d'allocation + questionnaire | Fait (à vérifier — voir A_VERIFIER.md) | Claude | Chantier 2 |
-| B2 | Assignation des modérateurs | Fait (à vérifier — voir A_VERIFIER.md) | Claude | Chantier 2 |
-| E4 | Vue superadmin : retour des réponses modérateur | Fait (à vérifier — voir A_VERIFIER.md) | Claude | Chantier 2 |
+| B1 | Refonte algo d'allocation + questionnaire | Fait — migration `clustering_v3` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 2 |
+| B2 | Assignation des modérateurs | Fait — migration `moderator_responses` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 2 |
+| E4 | Vue superadmin : retour des réponses modérateur | Fait — migration `moderator_responses` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 2 |
 
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| A1 | Bug de nommage des camps | Fait & live — symptôme corrigé en prod (fallback frontend). Amélioration Edge (labels neutres) **non déployée** : à faire depuis une **nouvelle session** Claude Code (MCP Supabase connecté au compte mais absent de l'inventaire de la session en cours), cf. A_VERIFIER.md | Claude | — |
+| A1 | Bug de nommage des camps | Fait & live — symptôme corrigé en prod (fallback frontend). Amélioration Edge (labels neutres) **redéployée** (`gemini-proxy` v9, rapporté 22/07 — à valider empiriquement en k=3+ camps, cf. A_VERIFIER.md) | Claude | — |
 | E3 | Nommage Gemini systématique après analyse | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D10 | Assertions consensuelles inter-groupes | Fait — lisibilité (calcul inter-camps préexistant) ; à vérifier — voir A_VERIFIER.md | Claude | A1/E3 |
 | C6 | Tracking impact énergétique des appels LLM | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
@@ -49,7 +49,7 @@ Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **con
 ## Chantier 7 — Fusion des assertions
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| B4 | Fusion des assertions ne marche pas | En cours (à vérifier) | Claude | — |
+| B4 | Fusion des assertions ne marche pas | Fait — migration `update_assertion_content` appliquée + Edge `gemini-proxy` redéployée avec prompt durci (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 8 — Bugs techniques divers
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -63,8 +63,8 @@ Dernière mise à jour : 22/07/2026 (chantier 6 mergé sur `origin/main` + **con
 ## Chantier 9 — Superadmin : gestion des données
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| E1 | Suppression groupée assertions poubelle | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
-| E2 | Masquer qui a soumis quelle assertion | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| E1 | Suppression groupée assertions poubelle | Fait — migration `delete_assertions_admin` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | — |
+| E2 | Masquer qui a soumis quelle assertion | Fait — migration `hide_assertion_author` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 10 — Petites tâches transverses
 | ID | Résumé | Statut | Contributeur | Dépend de |
