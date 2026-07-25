@@ -2,7 +2,9 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 22/07/2026 — **6 migrations SQL appliquées en base + Edge Function `gemini-proxy` redéployée (v9, ACTIVE)**, rapporté par Jules via son propre outillage Supabase (cette session Claude Code n'a toujours aucun outil MCP Supabase dans son inventaire — vérifié en tout début de conversation). Migrations concernées : `delete_assertions_admin`/`hide_assertion_author` (chantier 9), `designate_moderator` (chantier 3), `moderator_responses`/`clustering_v3` (chantier 5), `update_assertion_content` (chantier 7). **Non vérifié fonctionnellement par une session avec accès navigateur** — voir A_VERIFIER.md pour le détail par chantier et les parcours manuels restants.
+Dernière mise à jour : 25/07/2026 — **Chantier 19 (Vague 3) : algorithme d'allocation v2 livré** (`src/lib/allocation.ts`, 41 tests vitest, calcul côté client + RPC de persistance). Remplace la livraison de juillet sur B1/B2/E4 du chantier 5. **3 migrations SQL à appliquer dans l'ordre** (`20260725_1_onboarding_3_questions.sql`, `20260725_2_allocation_v2.sql`, `20260725_3_deprecate_chantier5.sql`) — cette session Claude Code n'a toujours aucun outil MCP Supabase (revérifié). Tant qu'elles ne sont pas appliquées, l'onboarding participant et le panneau d'allocation sont **cassés en production** (signatures RPC divergentes) : voir A_VERIFIER.md.
+
+Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en base + Edge Function `gemini-proxy` redéployée (v9, ACTIVE)**, rapporté par Jules via son propre outillage Supabase (cette session Claude Code n'a toujours aucun outil MCP Supabase dans son inventaire — vérifié en tout début de conversation). Migrations concernées : `delete_assertions_admin`/`hide_assertion_author` (chantier 9), `designate_moderator` (chantier 3), `moderator_responses`/`clustering_v3` (chantier 5), `update_assertion_content` (chantier 7). **Non vérifié fonctionnellement par une session avec accès navigateur** — voir A_VERIFIER.md pour le détail par chantier et les parcours manuels restants.
 
 ## Chantier 1 — Navigation partout
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -32,11 +34,24 @@ Dernière mise à jour : 22/07/2026 — **6 migrations SQL appliquées en base +
 | D8 | Rejoindre un ami via code distribué | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 
 ## Chantier 5 — Algo d'allocation & modérateurs
+> ⚠️ **La livraison de juillet (B1/B2/E4) est remplacée par le chantier 19** (`docs/chantier-5-allocation-v2-spec.md`). `run_clustering_v3` et `get_moderator_responses` sont supprimées ; `run_clustering_v1`/`v2` sont conservées le temps de valider l'algo v2 en prod.
+
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| B1 | Refonte algo d'allocation + questionnaire | Fait — migration `clustering_v3` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 2 |
-| B2 | Assignation des modérateurs | Fait — migration `moderator_responses` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 2 |
-| E4 | Vue superadmin : retour des réponses modérateur | Fait — migration `moderator_responses` appliquée en base (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | Chantier 2 |
+| B1 | Refonte algo d'allocation + questionnaire | **Remplacé par le chantier 19** (`run_clustering_v3` supprimée) | Claude | Chantier 2 |
+| B2 | Assignation des modérateurs | **Remplacé par le chantier 19** (règle 5 + `session_members.is_moderator`) | Claude | Chantier 2 |
+| E4 | Vue superadmin : retour des réponses modérateur | **Annulé** — `moderator_pref` supprimée, panneau retiré (remplacé par le tableau de bord d'allocation) | Claude | Chantier 2 |
+
+## Chantier 19 — Algorithme d'allocation v2 (Vague 3)
+> Spec normative : `docs/chantier-5-allocation-v2-spec.md` · amendements : `docs/VAGUE3-amendements-allocation.md`
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| G1 | Algorithme v2 — 5 règles en ordre lexicographique | Fait — `src/lib/allocation.ts` + 41 tests vitest (`npm test`). **À vérifier sur données réelles** — voir A_VERIFIER.md | Claude | — |
+| G2 | RPC `create_tables_batch` (N tables vides en lot) | Fait — migration `20260725_2` **à appliquer** | Claude | — |
+| G3 | Onboarding 6 → 3 questions | Fait — migration `20260725_1` **à appliquer** (supprime `moderator_pref`, `group_size_pref`, `openness_to_diff` ; `ecclesia_experience` → booléen) | Claude | — |
+| G4 | Signal « modérateur pour cette séance » | Fait — `session_members.is_moderator` + `set_member_moderator` / `claim_moderator_status`. UI minimale (onglet Participants). **Flow UI complet = chantier 21** | Claude | — |
+| G5 | Dépréciation `run_clustering_v3` / `get_moderator_responses` / panneau E4 | Fait — migration `20260725_3` **à appliquer** | Claude | G1 |
 
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |

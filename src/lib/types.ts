@@ -122,18 +122,26 @@ export interface SessionMember {
   created_at: string
   joined_phase?: string | null
   attending_in_person: boolean
+  /**
+   * Chantier 19 (G4) — « je suis modérateur POUR CETTE séance ».
+   * Critère dur de l'allocation v2 (détermine le nombre de tables animées).
+   * À ne pas confondre avec `staff_interest` du questionnaire de fin de
+   * séance, qui reste un signal de recrutement pour les séances futures.
+   */
+  is_moderator?: boolean
 }
 
+/** Chantier 19 (G3) — onboarding réduit à 3 questions. */
 export interface EntryResponse {
   id: string
   session_id: string
   member_id: string
+  /** Règle 2 — table enregistrable. */
   consent_transcript: boolean
-  group_size_pref: 'small' | 'medium' | 'large'
-  moderator_pref: boolean
-  openness_to_diff: number
+  /** Règle 1 — assez de participants actifs. */
   participation_style: 'listener' | 'active'
-  ecclesia_experience: 'never' | 'once_twice' | 'several_times' | null
+  /** Règles 4 et 5 — « As-tu déjà fait un débat Ecclesia ? » (binaire). */
+  ecclesia_experience: boolean | null
   created_at: string
 }
 
@@ -175,26 +183,9 @@ export interface TableAssignment {
   created_at: string
 }
 
-/** Retour de get_moderator_responses (E4 — chantier 5) */
-export interface ModeratorResponses {
-  aggregate: {
-    want_count: number
-    dont_want_count: number
-    onboarded_count: number
-    attending_count: number
-  }
-  per_table: ModeratorTableDemand[]
-}
-
-/** Demande de modérateur pour une table allouée (E4 / B2) */
-export interface ModeratorTableDemand {
-  table_number: number
-  member_count: number
-  want_count: number
-  no_answer_count: number
-  table_leaderless: boolean | null
-  join_code: string | null
-}
+// Chantier 19 (G5) — `ModeratorResponses` / `ModeratorTableDemand` supprimés
+// avec get_moderator_responses et le panneau « Réponses modérateur » : le
+// besoin d'encadrement est désormais traité par la règle 5 de l'allocation v2.
 
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {

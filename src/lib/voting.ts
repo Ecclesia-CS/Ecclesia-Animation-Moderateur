@@ -9,8 +9,8 @@ import type {
   VoteResult,
   TableAssignment,
   ModerationPolicy,
-  ModeratorResponses,
 } from './types'
+import type { AllocationMember, AllocationResult } from './allocation'
 
 export async function registerSessionMember(
   sessionId: string,
@@ -40,21 +40,20 @@ export async function confirmAttendance(
   return data as SessionMember
 }
 
+/**
+ * Chantier 19 (G3) — onboarding à 3 questions.
+ * Nécessite la migration 20260725_1_onboarding_3_questions.sql (l'ancienne
+ * signature à 7 paramètres est supprimée en base).
+ */
 export async function submitEntryResponse(
   sessionId: string,
   consentTranscript: boolean,
-  groupSizePref: 'small' | 'medium' | 'large',
-  moderatorPref: boolean,
-  opennessToDiff: number,
   participationStyle: 'listener' | 'active',
-  ecclesiaExperience: 'never' | 'once_twice' | 'several_times' | null
+  ecclesiaExperience: boolean
 ): Promise<EntryResponse> {
   const { data, error } = await supabase.rpc('submit_entry_response', {
     p_session_id: sessionId,
     p_consent_transcript: consentTranscript,
-    p_group_size_pref: groupSizePref,
-    p_moderator_pref: moderatorPref,
-    p_openness_to_diff: opennessToDiff,
     p_participation_style: participationStyle,
     p_ecclesia_experience: ecclesiaExperience,
   })
@@ -205,41 +204,143 @@ export async function runClusteringV2(
   return data as { table_count: number; member_count: number }
 }
 
-/**
- * B1 (chantier 5) — allocation « avancée » tenant compte du questionnaire.
- * Comme v2 (hétérogène par camp d'opinion) mais équilibre en plus
- * `participation_style` entre les tables. Opt-in : appelée uniquement si
- * le superadmin coche l'option dans la modale de clustering.
- * Nécessite l'analyse des camps (status='done') comme v2.
- */
-export async function runClusteringV3(
-  password:   string,
-  sessionId:  string,
-  targetSize = 6,
-): Promise<{ table_count: number; member_count: number }> {
-  const { data, error } = await supabase.rpc('run_clustering_v3', {
-    p_password:    password,
-    p_session_id:  sessionId,
-    p_target_size: targetSize,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as { table_count: number; member_count: number }
+// Chantier 19 (G5) — `runClusteringV3` (« allocation avancée ») et
+// `getModeratorResponses` supprimés : remplacés par l'allocation v2
+// ci-dessous. `runClusteringV1`/`V2` sont conservées le temps de valider
+// l'algorithme v2 en production.
+
+// ── Chantier 19 — Allocation v2 ───────────────────────────────
+
+/** Ligne retournée par get_allocation_inputs. */
+interface AllocationInputRow {
+  member_id: string
+  pseudo: string
+  is_moderator: boolean
+  is_active: boolean
+  consents: boolean
+  is_veteran: boolean
+  group_id: number | null
+}
+
+export interface AllocationInputs {
+  /** Membres présentiels **hors modérateurs** — les sièges à pourvoir. */
+  members: AllocationMember[]
+  /** `member_id` des modérateurs de cette séance (n'occupent pas de siège). */
+  moderatorIds: string[]
+  /** false → règle 3 désactivée (aucune analyse des camps status='done'). */
+  opinionsAvailable: boolean
 }
 
 /**
- * E4 (chantier 5) — agrégat des réponses à la question modérateur pour le
- * superadmin (global + par table une fois l'allocation faite).
+ * Charge les entrées de l'algorithme d'allocation (G1).
+ * Bypass de la RLS owner-only d'`entry_responses` via le mot de passe
+ * superadmin. Ne retourne que les membres présentiels (§2 de la spec).
  */
-export async function getModeratorResponses(
-  password:  string,
-  sessionId: string,
-): Promise<ModeratorResponses> {
-  const { data, error } = await supabase.rpc('get_moderator_responses', {
-    p_password:   password,
+export async function loadAllocationInputs(
+  password: string,
+  sessionId: string
+): Promise<AllocationInputs> {
+  const { data, error } = await supabase.rpc('get_allocation_inputs', {
+    p_password: password,
     p_session_id: sessionId,
   })
   if (error) throw new Error(extractErr(error))
-  return data as ModeratorResponses
+
+  const raw = (data ?? {}) as { members?: AllocationInputRow[]; opinions_available?: boolean }
+  const rows = raw.members ?? []
+
+  return {
+    members: rows
+      .filter(r => !r.is_moderator)
+      .map(r => ({
+        member_id:  r.member_id,
+        pseudo:     r.pseudo,
+        is_active:  r.is_active,
+        consents:   r.consents,
+        is_veteran: r.is_veteran,
+        group_id:   r.group_id,
+      })),
+    moderatorIds:      rows.filter(r => r.is_moderator).map(r => r.member_id),
+    opinionsAvailable: raw.opinions_available === true,
+  }
+}
+
+export interface ApplyAllocationResult {
+  table_count: number
+  member_count: number
+  tables_created: number
+  tables_reused: number
+}
+
+/**
+ * Persiste le résultat de l'allocation : crée/réutilise les tables physiques,
+ * remplace `table_assignments`, passe la séance en phase `allocating`.
+ */
+export async function applyAllocation(
+  password: string,
+  sessionId: string,
+  result: Pick<AllocationResult, 'tables'>
+): Promise<ApplyAllocationResult> {
+  const { data, error } = await supabase.rpc('apply_allocation', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_tables: result.tables,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as ApplyAllocationResult
+}
+
+/**
+ * G2 — crée N tables vides rattachées à la séance. Un booléen `leaderless`
+ * par table. Utilisée hors allocation (pré-création manuelle) ; l'allocation
+ * elle-même passe par `applyAllocation`, qui crée ce qui manque.
+ */
+export async function createTablesBatch(
+  password: string,
+  sessionId: string,
+  leaderless: boolean[]
+): Promise<{ table_id: string; join_code: string; leaderless: boolean }[]> {
+  const { data, error } = await supabase.rpc('create_tables_batch', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_leaderless: leaderless,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as { table_id: string; join_code: string; leaderless: boolean }[]) ?? []
+}
+
+/** G4 — marque/démarque un membre comme modérateur de cette séance. */
+export async function setMemberModerator(
+  password: string,
+  sessionId: string,
+  memberId: string,
+  isModerator: boolean
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('set_member_moderator', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_member_id: memberId,
+    p_is_moderator: isModerator,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as SessionMember
+}
+
+/**
+ * G4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
+ * Le flow UI complet (onglet « Modérateur » de l'accueil) est le chantier 21 ;
+ * ce wrapper existe pour que la donnée soit renseignable dès maintenant.
+ */
+export async function claimModeratorStatus(
+  sessionId: string,
+  creationCode: string
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('claim_moderator_status', {
+    p_session_id: sessionId,
+    p_creation_code: creationCode,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as SessionMember
 }
 
 // --- Admin wrappers (C2) ---
@@ -342,6 +443,9 @@ export interface SessionMemberAdmin {
   joined_phase: string | null
   has_entry_response: boolean
   has_voted: boolean
+  /** Chantier 19 (G4) — nécessite la migration 20260725_2_allocation_v2.sql. */
+  attending_in_person?: boolean
+  is_moderator?: boolean
 }
 
 export async function listSessionMembersAdmin(

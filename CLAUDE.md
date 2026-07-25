@@ -87,14 +87,16 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 `id`, `table_id` (CASCADE), `participant_id` (CASCADE), `started_at` (NOT NULL, posé par serveur), `ended_at?` (NULL = en cours), `source` (`'long'`|`'interactive'`|`'manual'`)
 
 ### `session_members` — Bloc C
-`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`)
+`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`), `is_moderator` (boolean, défaut `false` — chantier 19)
 Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
 - `attending_in_person = false` → inscrit en pré-vote depuis chez soi. Exclu du clustering.
 - `attending_in_person = true` → a confirmé sa présence physique (`confirm_attendance`). Inclus dans le clustering.
+- `is_moderator = true` → **modérateur POUR CETTE séance**. Critère dur de l'allocation v2 (détermine le nombre de tables animées) ; le membre n'occupe pas de siège mais ses votes alimentent l'analyse des camps. Posé hors onboarding : `claim_moderator_status` (mot de passe Ecclesia) ou `set_member_moderator` (superadmin). **À ne pas confondre** avec `questionnaire_responses.staff_interest` (« je voudrais être modérateur à une séance future »), signal de recrutement purement informatif.
 
 ### `entry_responses` — Bloc C
-`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `consent_transcript`, `group_size_pref` (`small`|`medium`|`large`), `moderator_pref`, `openness_to_diff` (1-5), `participation_style` (`listener`|`active`), `created_at`
+`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `consent_transcript` (règle 2), `participation_style` (`listener`|`active` — règle 1), `ecclesia_experience` (**boolean** — règles 4/5), `created_at`
 Contrainte : `UNIQUE(session_id, member_id)`.
+**Chantier 19 (G3)** : onboarding réduit de 6 à 3 questions. `moderator_pref`, `group_size_pref` et `openness_to_diff` sont **supprimées** ; `ecclesia_experience` est passée de `text` (`never`|`once_twice`|`several_times`) à `boolean` (« As-tu déjà fait un débat Ecclesia ? »). Chaque colonne restante alimente une règle de l'allocation — ne pas en ajouter sans usage algorithmique.
 
 ### `assertions` — Bloc C
 `id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
@@ -168,6 +170,11 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `get_session_voting_stats(password, session_id)` | Retourne `{member_count, attending_count, remote_count, onboarded_count, voter_count, approved_assertion_count, total_votes}` |
 | `merge_assertion_votes(password, keep_id, reject_id)` | Transfère les votes de `reject_id` vers `keep_id` : nouveaux votants insérés, conflits résolus (agree prime). Appelé avant `reject_assertion` lors de l'application d'une fusion validée (`LLMModerationPanel.handleApplyProposal`) et dans l'auto-fusion pré-clustering (`SuperadminScreen`). |
 | `update_assertion_content(password, assertion_id, content)` | **Chantier 7 / B4** — réécrit le contenu d'une assertion existante (conserve id/statut/votes). Utilisé par le bouton « Fusionner en formulation combinée » : remplace le texte de l'assertion conservée par la formulation qui réunit les deux. Migration `20260722_update_assertion_content.sql`. |
+| `get_allocation_inputs(password, session_id)` | **Chantier 19** — entrées de l'algo v2 en un aller-retour : membres présentiels + attributs d'onboarding + `group_id` de la dernière analyse `done` + `is_moderator`. Bypass de la RLS owner-only d'`entry_responses`. Retourne `{members, opinions_available, analysis_id}` — `opinions_available = false` → **règle 3 désactivée côté client, sans exception** (contrairement à `run_clustering_v2`/`v3`). |
+| `apply_allocation(password, session_id, tables)` | **Chantier 19** — persiste le résultat calculé côté client. Réutilise les tables déjà rattachées (ordre `join_code`), crée les manquantes, aligne `tables.leaderless` sur `moderated`, remplace `table_assignments`, phase → `allocating`. Les modérateurs sont écrits dans `table_assignments` comme les autres — c'est `session_members.is_moderator` qui les distingue. |
+| `create_tables_batch(password, session_id, leaderless[])` | **Chantier 19 / G2** — crée N tables vides (join codes générés, `session_id` renseigné, un `leaderless` par table). `create_table` exige un pseudo et crée un participant → inutilisable pour ça. Plafond 60 tables. |
+| `set_member_moderator(password, session_id, member_id, is_moderator)` | **Chantier 19 / G4** — marque/démarque un membre comme modérateur de la séance (fallback superadmin). |
+| `claim_moderator_status(session_id, creation_code)` | **Chantier 19 / G4** — auto-déclaration via le mot de passe Ecclesia. Le membre doit déjà être inscrit à la séance. Prêt pour le flow UI du chantier 21. |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les tables suivantes — obligatoire pour que les événements filtrés (DELETE et UPDATE avec RLS) arrivent aux subscribers :
 - `tables`, `participants`, `queue_entries`, `speaking_turns` (migration `core_functions`)
@@ -189,6 +196,11 @@ src/
 │   │                     + ModerationPolicy, ModerationResult, MergeResult, GroupNameResult (sprint IA)
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
 │   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, confirmAttendance, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, runClusteringV1, runClusteringV2, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
+│   │                     + chantier 19 : loadAllocationInputs, applyAllocation, createTablesBatch, setMemberModerator, claimModeratorStatus
+│   ├── allocation.ts     **Chantier 19 (G1)** — algorithme d'allocation v2, 100 % pur (aucun React/Supabase), spec `docs/chantier-5-allocation-v2-spec.md`.
+│   │                     `runAllocation(input)` : 5 règles en **ordre lexicographique strict** (actifs ≥ min(⌈2/5·taille⌉,4) · ≥1 table enregistrable · hétérogénéité ≤70 %/2e camp ≥2 · anciens ≥ ⌈2/5·taille⌉ · nouveaux aux tables animées). Contraintes dures : N≤10 → table unique ; sinon 5..10, dépassement ≤20 seulement s'il améliore strictement la règle 1.
+│   │                     `diagnoseAllocation(tables, members, opinionsAvailable)` : recalcul des seuils après retouche manuelle (tableau de bord en direct).
+│   │                     **Ne peut jamais échouer** : dégradation par l'ordre lexicographique (règle 5 sacrifiée d'abord, règle 1 en dernier). Recherche locale **déterministe** (graine fixe `DEFAULT_SEED`) et budget d'évaluations borné. Tests : `src/lib/allocation.test.ts` (`npm test`, 41 cas).
 │   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups, nameSingleGroup) — jamais d'appel direct à api.google.com
 │   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`. `loadVotesForAnalysis` accepte `attendingOnly?: boolean`.
 │   ├── storage.ts        tableStore.get/set/clear (localStorage) + lastNameStore.get/set (dernier nom prénom saisi, préremplit les formulaires d'identité — D7)
@@ -211,6 +223,8 @@ src/
 └── components/
     ├── voting/
     │   ├── LLMModerationPanel.tsx    Panneau IA superadmin : modération/fusion manuelle+auto, log tokens, fusions effectuées
+    │   ├── AllocationPanel.tsx       **Chantier 19** — déclenchement manuel de l'allocation v2 en phase `allocating` (§7 : rien d'automatique à l'entrée en phase). Charge les entrées, calcule en local, affiche la proposition + avertissements, puis `applyAllocation` crée les tables. Saisies optionnelles : modérateurs à ajouter, enregistreurs disponibles.
+    │   ├── TableDiagnosticsList.tsx  **Chantier 19** — tableau de bord d'une liste de tables : composition par camp (barre colorée), 4 badges de seuil, badge enregistrable. Purement présentationnel → le parent passe des diagnostics recalculés, d'où la « mise à jour en direct » après glisser-déposer.
     │   ├── TableAssignmentCard.tsx   Carte groupe + nom camp (prop groupName) + join_code + bouton rejoindre
     │   ├── VoteResultsSummary.tsx    Résumé des votes — top 3 consensus + 2 dissensus (assertions + consensus_score)
     │   ├── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
@@ -323,6 +337,9 @@ Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
 - **`WHERE user_id = auth.uid()` sans `LIMIT 1`** — un user_id peut avoir plusieurs participants depuis migration 005
 - **`votedCount = myVotes.size` dans VoteScreen** — `myVotes` accumule tous les votes posés, y compris sur des assertions rejetées/supprimées depuis. Toujours intersecter : `assertions.filter(a => myVotes.has(a.id)).length` pour éviter un numérateur > dénominateur.
 - **`MIN_VOTES_PER_MEMBER` trop élevé dans `analysis.ts`** — `get_all_votes_for_analysis` ne retourne que les votes sur assertions `approved`. Si des assertions sont rejetées après que des participants ont voté dessus, ces participants n'ont plus assez de votes et sont exclus du scatter PCA. Valeur actuelle : 1 (abaissée de 2).
+- **Faire lever une exception à l'allocation v2** — l'algorithme ne doit *jamais* échouer : le jour de la séance, rien ne doit pouvoir bloquer le passage en débat. Une règle non satisfaisable se **dégrade** (ordre lexicographique), elle ne lève pas. Ne pas ajouter de garde bloquante dans `runAllocation` ni dans `apply_allocation` ; les seules erreurs admises sont un mot de passe invalide et un payload vide.
+- **Rendre l'allocation v2 non déterministe** — `Math.random()` est interdit dans `src/lib/allocation.ts` (PRNG `mulberry32` à graine fixe uniquement). Le superadmin doit pouvoir relancer le calcul et retomber sur la même répartition ; un résultat qui change entre deux clics n'est pas acceptable (§6).
+- **Compter les modérateurs comme des sièges** — un modérateur (`session_members.is_moderator`) n'occupe pas de place, ne compte ni comme actif ni comme passif, et son opinion n'entre pas dans le mix d'hétérogénéité de sa table. En revanche ses votes alimentent bien l'analyse globale des camps. `loadAllocationInputs` fait déjà la séparation — ne pas la contourner.
 - **Confondre `group_id` k-means et `table_number` physique** — `analysis_members.group_id` (0-indexé, cluster d'opinion) ≠ `table_assignments.table_number` (1-indexé, table de débat). `run_clustering_v2` mélange intentionnellement les clusters → aucune correspondance garantie. Les `group_names` Gemini sont indexés par numéro de cluster (1 = group_id 0). Dans `ResultsMapScreen`, toujours utiliser `selfGroupId + 1` pour chercher le nom Gemini, jamais `assignment.table_number`.
 
 ---
@@ -334,7 +351,8 @@ Flux complet :
 1. **`draft`** → séance créée, pas encore ouverte
 2. **`pre_voting`** *(optionnel)* → vote ouvert à distance avant l'événement. Participants s'inscrivent avec `attending_in_person=false`. Un code de rappel 4 chiffres leur est affiché (à screenshoter). Pas d'onboarding. VoteScreen géré via `#vote/<join_code>`. EntryScreen affiche la séance comme "en cours".
 3. **`voting`** → vote présentiel. Nouveaux arrivants : `VotingEntryForm` (nom prénom OU code), reclaim auto si nom déjà pris → **onboarding** (`entry_responses`, dont la question modérateur oui/non — D18) avant le vote. Pré-votants sur même appareil : `AttendanceConfirmScreen` (mode `known_user`) → onboarding si pas déjà répondu. Clustering et analyse filtrés sur `attending_in_person = true`.
-4. **`allocating`** → superadmin lance `run_clustering_v1` → `table_assignments` créés (`table_id` auto-assigné si tables physiques rattachées). Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
+4. **`allocating`** → **chantier 19** : le superadmin **déclenche manuellement** l'allocation v2 via `AllocationPanel` (rien d'automatique à l'entrée en phase — amendement à F13). Le calcul tourne dans son navigateur (`src/lib/allocation.ts`), la proposition s'affiche avec le statut de chaque seuil, puis `apply_allocation` crée les tables manquantes et écrit `table_assignments`. Retouches ensuite par glisser-déposer dans l'onglet Tables, avec recalcul des seuils en direct, avant que le superadmin ne déclenche lui-même `debating`. Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
+   *Chemin hérité* : `run_clustering_v1`/`v2` (modale « Répartir en tables » depuis la phase `voting`) restent disponibles le temps de valider v2 en production. `run_clustering_v3` est supprimée.
 5. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → callback `onTableJoined` → `App.handleTableJoined` met à jour `phase` en `table` → TableView (sans reload).
 
 `moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`. `= 'ai'` : `pending`, modération automatique par Gemini via `LLMModerationPanel` (setInterval configurable).

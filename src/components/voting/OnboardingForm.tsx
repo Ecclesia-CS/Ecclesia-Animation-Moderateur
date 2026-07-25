@@ -8,25 +8,26 @@ interface OnboardingFormProps {
   onSuccess: (response: EntryResponse) => void
 }
 
+// Chantier 19 (G3) — onboarding réduit de 6 à 3 questions (spec §8).
+// Chaque question alimente une règle de l'allocation v2 ; les trois
+// anciennes questions (taille de groupe, préférence modérateur, ouverture
+// aux avis différents) n'alimentaient plus rien et ont été supprimées.
 interface Answers {
+  /** Règle 2 — table enregistrable. */
   consentTranscript: boolean | null
-  ecclesiaExperience: 'never' | 'once_twice' | 'several_times' | null
-  groupSizePref: 'small' | 'medium' | 'large' | null
-  moderatorPref: boolean | null
-  opennessToDiff: number | null
+  /** Règles 4 et 5 — ancien / nouveau. */
+  ecclesiaExperience: boolean | null
+  /** Règle 1 — assez de participants actifs. */
   participationStyle: 'listener' | 'active' | null
 }
 
-const TOTAL_QUESTIONS = 6
+const TOTAL_QUESTIONS = 3
 
 export default function OnboardingForm({ sessionId, member, onSuccess }: OnboardingFormProps) {
   const [currentQ, setCurrentQ] = useState(0)
   const [answers, setAnswers] = useState<Answers>({
     consentTranscript: null,
     ecclesiaExperience: null,
-    groupSizePref: null,
-    moderatorPref: null,
-    opennessToDiff: null,
     participationStyle: null,
   })
   const [loading, setLoading] = useState(false)
@@ -36,18 +37,11 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
     setAnswers(prev => ({ ...prev, [key]: value }))
   }
 
-  function handleEcclesiaExperience(v: 'never' | 'once_twice' | 'several_times') {
-    update('ecclesiaExperience', v)
-  }
-
   function isCurrentAnswered(): boolean {
     switch (currentQ) {
       case 0: return answers.consentTranscript !== null
       case 1: return answers.ecclesiaExperience !== null
-      case 2: return answers.groupSizePref !== null
-      case 3: return answers.moderatorPref !== null
-      case 4: return answers.opennessToDiff !== null
-      case 5: return answers.participationStyle !== null
+      case 2: return answers.participationStyle !== null
       default: return true
     }
   }
@@ -60,11 +54,8 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
       const response = await submitEntryResponse(
         sessionId,
         answers.consentTranscript!,
-        answers.groupSizePref!,
-        answers.moderatorPref!,
-        answers.opennessToDiff!,
         answers.participationStyle!,
-        answers.ecclesiaExperience,
+        answers.ecclesiaExperience!,
       )
       onSuccess(response)
     } catch (err: unknown) {
@@ -103,28 +94,10 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
         {currentQ === 1 && (
           <QuestionEcclesia
             value={answers.ecclesiaExperience}
-            onChange={handleEcclesiaExperience}
+            onChange={v => update('ecclesiaExperience', v)}
           />
         )}
         {currentQ === 2 && (
-          <QuestionGroupSize
-            value={answers.groupSizePref}
-            onChange={v => update('groupSizePref', v)}
-          />
-        )}
-        {currentQ === 3 && (
-          <QuestionModerator
-            value={answers.moderatorPref}
-            onChange={v => update('moderatorPref', v)}
-          />
-        )}
-        {currentQ === 4 && (
-          <QuestionOpenness
-            value={answers.opennessToDiff}
-            onChange={v => update('opennessToDiff', v)}
-          />
-        )}
-        {currentQ === 5 && (
           <QuestionStyle
             value={answers.participationStyle}
             onChange={v => update('participationStyle', v)}
@@ -173,48 +146,6 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
 
 // --- Question sub-components ---
 
-function QuestionEcclesia({
-  value,
-  onChange,
-}: {
-  value: 'never' | 'once_twice' | 'several_times' | null
-  onChange: (v: 'never' | 'once_twice' | 'several_times') => void
-}) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Expérience</p>
-        <h2 className="text-xl font-bold text-gray-900 leading-snug">
-          As-tu déjà participé à un débat Ecclesia ?
-        </h2>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <ChoiceButton
-          selected={value === 'never'}
-          onClick={() => onChange('never')}
-          emoji="🌱"
-          label="Jamais"
-          sub="Première fois"
-        />
-        <ChoiceButton
-          selected={value === 'once_twice'}
-          onClick={() => onChange('once_twice')}
-          emoji="🌿"
-          label="1-2 fois"
-          sub="Déjà essayé"
-        />
-        <ChoiceButton
-          selected={value === 'several_times'}
-          onClick={() => onChange('several_times')}
-          emoji="🌳"
-          label="Plusieurs fois"
-          sub="Habitué(e)"
-        />
-      </div>
-    </div>
-  )
-}
-
 function QuestionConsent({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <div className="space-y-6">
@@ -235,72 +166,22 @@ function QuestionConsent({ value, onChange }: { value: boolean | null; onChange:
   )
 }
 
-function QuestionGroupSize({
-  value,
-  onChange,
-}: {
-  value: 'small' | 'medium' | 'large' | null
-  onChange: (v: 'small' | 'medium' | 'large') => void
-}) {
+// Reformulée en binaire (G3) : l'algorithme n'a besoin que de ancien / nouveau.
+function QuestionEcclesia({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Taille de groupe</p>
+        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Expérience</p>
         <h2 className="text-xl font-bold text-gray-900 leading-snug">
-          Tu préfères être dans un groupe de quelle taille ?
+          As-tu déjà fait un débat Ecclesia ?
         </h2>
+        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+          Cela nous aide à répartir les tables pour qu'il y ait partout des personnes qui connaissent le déroulé.
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <ChoiceButton selected={value === 'small'} onClick={() => onChange('small')} emoji="👥" label="Petit" sub="~5 pers." />
-        <ChoiceButton selected={value === 'large'} onClick={() => onChange('large')} emoji="👥👥👥" label="Grand" sub="~10 pers." />
-      </div>
-    </div>
-  )
-}
-
-function QuestionModerator({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Modération</p>
-        <h2 className="text-xl font-bold text-gray-900 leading-snug">
-          Tiens-tu à être avec un modérateur ?
-        </h2>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <ChoiceButton selected={value === true} onClick={() => onChange(true)} emoji="🎙️" label="Oui" />
-        <ChoiceButton selected={value === false} onClick={() => onChange(false)} emoji="🤝" label="Non" />
-      </div>
-    </div>
-  )
-}
-
-function QuestionOpenness({ value, onChange }: { value: number | null; onChange: (v: number) => void }) {
-  // On présente 3 niveaux, mappés sur les valeurs 1, 3, 5
-  const levels = [
-    { val: 1, emoji: '🤝', label: 'Similaires', sub: 'Des gens qui pensent comme moi' },
-    { val: 3, emoji: '⚖️', label: 'Intermédiaires', sub: 'Un peu de tout' },
-    { val: 5, emoji: '🌍', label: 'Très différents', sub: 'Maximum de diversité' },
-  ]
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Diversité des avis</p>
-        <h2 className="text-xl font-bold text-gray-900 leading-snug">
-          À quel point veux-tu rencontrer des avis différents du tien ?
-        </h2>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        {levels.map(l => (
-          <ChoiceButton
-            key={l.val}
-            selected={value === l.val}
-            onClick={() => onChange(l.val)}
-            emoji={l.emoji}
-            label={l.label}
-            sub={l.sub}
-          />
-        ))}
+        <ChoiceButton selected={value === true}  onClick={() => onChange(true)}  emoji="🌳" label="Oui" sub="Déjà participé" />
+        <ChoiceButton selected={value === false} onClick={() => onChange(false)} emoji="🌱" label="Non" sub="Première fois" />
       </div>
     </div>
   )

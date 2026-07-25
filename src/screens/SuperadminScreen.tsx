@@ -28,12 +28,16 @@ import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, Mo
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, mergeAssertionVotes,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, runClusteringV3, assignTableToGroup,
-  listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup, getModeratorResponses,
+  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
+  listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
+  loadAllocationInputs, setMemberModerator,
 } from '../lib/voting'
-import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin } from '../lib/voting'
+import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import { useLiveMs } from '../hooks/useLiveMs'
-import type { VoteResult, ModeratorResponses, ModeratorTableDemand } from '../lib/types'
+import type { VoteResult } from '../lib/types'
+import AllocationPanel from '../components/voting/AllocationPanel'
+import TableDiagnosticsList from '../components/voting/TableDiagnosticsList'
+import { diagnoseAllocation } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
@@ -913,6 +917,8 @@ interface GroupRow {
   members: { pseudo: string; member_id: string }[]
   table_id: string | null
   join_code: string | null
+  /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
+  moderated: boolean
 }
 
 type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
@@ -1117,9 +1123,10 @@ function SessionDetail({
   const [votingStats,    setVotingStats]    = useState<SessionVotingStats | null>(null)
   const [statsLoading,   setStatsLoading]   = useState(false)
   const [statsOpen,      setStatsOpen]      = useState(true)
-  // ── Réponses modérateur (E4 — chantier 5) ──────────────────
-  const [modResponses,   setModResponses]   = useState<ModeratorResponses | null>(null)
-  const [modOpen,        setModOpen]        = useState(false)
+  // ── Chantier 19 — entrées de l'allocation v2 (attributs des membres) ──
+  // Chargées avec les groupes : servent au recalcul en direct des
+  // diagnostics quand le superadmin déplace quelqu'un (§7).
+  const [allocInputs,    setAllocInputs]    = useState<AllocationInputs | null>(null)
 
   // ── C3 : clustering + timer + threshold ───────────────────
   const [showClusteringModal, setShowClusteringModal] = useState(false)
@@ -1200,6 +1207,26 @@ function SessionDetail({
     return () => clearInterval(interval)
   }, [loadMembers, showVotingSections])
 
+  /**
+   * Chantier 19 (G4) — marquage « modérateur pour cette séance ».
+   * Moyen minimal de renseigner le signal pour que l'algorithme puisse le
+   * lire avant l'allocation. Le flow complet (onglet « Modérateur » de
+   * l'accueil + mot de passe Ecclesia) est le chantier 21.
+   */
+  const handleToggleModerator = useCallback(async (memberId: string, next: boolean) => {
+    const password = getPwd()!
+    // Mise à jour optimiste : la liste est rechargée toutes les 15 s de toute façon.
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, is_moderator: next } : m))
+    try {
+      await setMemberModerator(password, session.id, memberId, next)
+    } catch (e) {
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, is_moderator: !next } : m))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    }
+  }, [session.id, onAuthError])
+
   // ── Création de table admin ────────────────────────────────
   const [creatingTable, setCreatingTable] = useState(false)
   const [newTableCode,  setNewTableCode]  = useState<string | null>(null)
@@ -1253,14 +1280,6 @@ function SessionDetail({
     } finally {
       setStatsLoading(false)
     }
-    // E4 — réponses modérateur (indépendant : ne bloque pas les stats)
-    try {
-      const mod = await getModeratorResponses(password, session.id)
-      setModResponses(mod)
-    } catch {
-      // RPC absente (migration non appliquée) ou erreur → on masque le panneau
-      setModResponses(null)
-    }
   }, [session.id])
 
   useEffect(() => {
@@ -1300,6 +1319,7 @@ function SessionDetail({
       ])
 
       const joinCodeMap = new Map<string, string>(sessionTbls.map(t => [t.id, t.join_code]))
+      const leaderlessMap = new Map<string, boolean>(sessionTbls.map(t => [t.id, t.leaderless === true]))
 
       const map = new Map<number, GroupRow>()
       for (const row of rows ?? []) {
@@ -1312,6 +1332,8 @@ function SessionDetail({
             members: [],
             table_id: r.table_id ?? null,
             join_code: r.table_id ? (joinCodeMap.get(r.table_id) ?? null) : null,
+            // Chantier 19 — une table est « animée » si elle n'est pas leaderless.
+            moderated: r.table_id ? leaderlessMap.get(r.table_id) === false : false,
           })
         }
         const g = map.get(tableNum)!
@@ -1326,6 +1348,15 @@ function SessionDetail({
         ...sessionPhys.filter(t => !linkedIds.has(t.id)),
         ...avail,
       ])
+
+      // Chantier 19 — attributs des membres pour le recalcul des seuils.
+      // Non bloquant : si la migration n'est pas appliquée, le tableau de
+      // bord des seuils est simplement masqué.
+      try {
+        setAllocInputs(await loadAllocationInputs(getPwd()!, session.id))
+      } catch {
+        setAllocInputs(null)
+      }
     } finally {
       setGroupsLoading(false)
     }
@@ -1335,6 +1366,21 @@ function SessionDetail({
     const p = currentSession.phase
     if (p === 'allocating' || p === 'debating') loadGroups()
   }, [currentSession.phase, loadGroups])
+
+  // Chantier 19 (§7) — diagnostics recalculés à chaque changement de `groups`,
+  // donc mis à jour en direct après un glisser-déposer.
+  const groupDiagnostics = React.useMemo(() => {
+    if (!allocInputs || groups.length === 0) return []
+    return diagnoseAllocation(
+      groups.map(g => ({
+        table_number: g.table_number,
+        moderated:    g.moderated,
+        member_ids:   g.members.map(m => m.member_id),
+      })),
+      allocInputs.members,
+      allocInputs.opinionsAvailable,
+    )
+  }, [groups, allocInputs])
 
   // Nommage des camps (Gemini + fallback descriptif) — logique partagée.
   // Utilisée à la fois par la phase `allocating` (groupes = table_assignments)
@@ -1912,16 +1958,17 @@ function SessionDetail({
                   </SectionAccordion>
                 )}
 
-                {/* E4 — Retour des réponses modérateur */}
-                {showVotingSections && modResponses && modResponses.aggregate.onboarded_count > 0 && (
-                  <SectionAccordion
-                    title="Réponses modérateur"
-                    open={modOpen}
-                    onToggle={() => setModOpen(o => !o)}
-                    badge={`${modResponses.aggregate.want_count}/${modResponses.aggregate.onboarded_count} veulent un modérateur`}
-                  >
-                    <ModeratorResponsesPanel data={modResponses} />
-                  </SectionAccordion>
+                {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
+                    `allocating` (§7). Le panneau « Réponses modérateur » (E4)
+                    a été supprimé : la demande d'encadrement est traitée par
+                    la règle 5 de l'algorithme. */}
+                {currentSession.phase === 'allocating' && (
+                  <AllocationPanel
+                    sessionId={currentSession.id}
+                    password={getPwd()!}
+                    onApplied={() => { loadGroups(); setActiveTab('tables') }}
+                    onAuthError={onAuthError}
+                  />
                 )}
 
                 <ModerationPolicyEditor
@@ -1998,7 +2045,11 @@ function SessionDetail({
                     badge={membersLoading ? '…' : `${members.length}`}
                     onRefresh={loadMembers}
                   >
-                    <MembersPanel members={members} loading={membersLoading} />
+                    <MembersPanel
+                      members={members}
+                      loading={membersLoading}
+                      onToggleModerator={handleToggleModerator}
+                    />
                   </SectionAccordion>
                 )}
 
@@ -2066,21 +2117,27 @@ function SessionDetail({
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
                               <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              {/* Chantier 19 — statut des seuils, recalculé en direct */}
                               {(() => {
-                                // B2 — demande de modérateur pour ce groupe
-                                const md = modResponses?.per_table.find(t => t.table_number === g.table_number)
-                                if (!md || md.want_count === 0) return null
-                                const unmet = md.table_leaderless === true
+                                const d = groupDiagnostics.find(x => x.table_number === g.table_number)
+                                if (!d) return null
+                                const broken = [
+                                  !d.rule1_ok && `actifs ${d.actives}/${d.actives_threshold}`,
+                                  !d.rule3_ok && allocInputs?.opinionsAvailable && 'hétérogénéité',
+                                  !d.rule4_ok && `anciens ${d.veterans}/${d.veterans_threshold}`,
+                                ].filter(Boolean) as string[]
                                 return (
                                   <span
-                                    title={unmet
-                                      ? `${md.want_count} membre(s) veulent un modérateur — table sans animateur`
-                                      : `${md.want_count} membre(s) veulent un modérateur`}
+                                    title={broken.length === 0
+                                      ? 'Tous les seuils atteints'
+                                      : `Seuils non atteints : ${broken.join(', ')}`}
                                     className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                                      unmet ? 'bg-amber-100 text-amber-700' : 'bg-indigo-50 text-indigo-600'
+                                      broken.length === 0
+                                        ? 'bg-green-50 text-green-700'
+                                        : 'bg-amber-100 text-amber-700'
                                     }`}
                                   >
-                                    🎙️ {md.want_count}{unmet ? ' ⚠️' : ''}
+                                    {broken.length === 0 ? '✓ seuils OK' : `⚠️ ${broken.join(' · ')}`}
                                   </span>
                                 )
                               })()}
@@ -2162,6 +2219,24 @@ function SessionDetail({
                       </DragOverlay>
                       </DndContext>
                     )}
+                    {/* Chantier 19 (§7) — santé des tables, recalculée en
+                        direct après chaque glisser-déposer. */}
+                    {groupDiagnostics.length > 0 && (
+                      <details className="border-t border-gray-100 pt-3">
+                        <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer hover:text-indigo-600 transition-colors">
+                          Santé des tables ({groupDiagnostics.filter(d => d.rule1_ok && d.rule4_ok).length}/{groupDiagnostics.length} conformes)
+                        </summary>
+                        <div className="mt-3">
+                          <TableDiagnosticsList diagnostics={groupDiagnostics} compact />
+                          {!allocInputs?.opinionsAvailable && (
+                            <p className="text-xs text-gray-400 mt-2 leading-snug">
+                              Règle 3 (hétérogénéité) non évaluable : aucune analyse des camps d'opinion.
+                            </p>
+                          )}
+                        </div>
+                      </details>
+                    )}
+
                     {currentSession.phase === 'allocating' && (
                       <div className="space-y-2">
                         {groups.some(g => !g.join_code) && (
@@ -2738,8 +2813,7 @@ function SessionDetail({
           attachedTableCount={attachedTables.length}
           title={hasAnalysisDone ? '🎯 Répartition hétérogène' : '🔀 Répartition aléatoire'}
           warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
-          allowAdvanced={hasAnalysisDone}
-          onConfirm={async (targetSize, advanced) => {
+          onConfirm={async (targetSize) => {
             const password = getPwd()!
 
             // Auto-merge si activé dans localStorage
@@ -2765,11 +2839,9 @@ function SessionDetail({
               }
             }
 
-            const result = advanced
-              ? await runClusteringV3(password, currentSession.id, targetSize)
-              : hasAnalysisDone
-                ? await runClusteringV2(password, currentSession.id, targetSize)
-                : await runClusteringV1(password, currentSession.id, targetSize)
+            const result = hasAnalysisDone
+              ? await runClusteringV2(password, currentSession.id, targetSize)
+              : await runClusteringV1(password, currentSession.id, targetSize)
             setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
             return result
           }}
@@ -3091,83 +3163,10 @@ function VotingStatsPanel({
   )
 }
 
-// ── ModeratorResponsesPanel (E4 — chantier 5) ─────────────────────
-
-function ModeratorResponsesPanel({ data }: { data: ModeratorResponses }) {
-  const { want_count, dont_want_count, onboarded_count } = data.aggregate
-  const noAnswer = Math.max(0, onboarded_count - want_count - dont_want_count)
-  const wantPct = onboarded_count > 0 ? Math.round((want_count / onboarded_count) * 100) : 0
-
-  return (
-    <div className="space-y-4">
-      {/* Agrégat global */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-indigo-50 rounded-xl px-2 py-3">
-          <p className="text-lg font-bold text-indigo-700">{want_count}</p>
-          <p className="text-xs text-indigo-500 leading-tight">🎙️ Veulent un modérateur</p>
-        </div>
-        <div className="bg-gray-50 rounded-xl px-2 py-3">
-          <p className="text-lg font-bold text-gray-700">{dont_want_count}</p>
-          <p className="text-xs text-gray-500 leading-tight">🤝 Sans préférence</p>
-        </div>
-        <div className="bg-gray-50 rounded-xl px-2 py-3">
-          <p className="text-lg font-bold text-gray-400">{noAnswer}</p>
-          <p className="text-xs text-gray-400 leading-tight">Non répondu</p>
-        </div>
-      </div>
-
-      <div className="space-y-1">
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>Demande de modérateur</span>
-          <span className="font-medium">{wantPct}% des répondants</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="h-2 rounded-full bg-indigo-500 transition-all" style={{ width: `${Math.min(wantPct, 100)}%` }} />
-        </div>
-      </div>
-
-      {/* Demande par table (une fois l'allocation faite) */}
-      {data.per_table.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Par table</p>
-          {data.per_table.map(t => (
-            <ModeratorTableRow key={t.table_number} row={t} />
-          ))}
-          <p className="text-xs text-gray-400 leading-snug pt-1">
-            💡 Rattachez une table <span className="font-medium">avec animateur</span> aux groupes en demande,
-            et une table « sans animateur » aux groupes sans demande (onglet Tables).
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ModeratorTableRow({ row }: { row: ModeratorTableDemand }) {
-  // B2 — alerte : le groupe veut un modérateur mais la table rattachée est sans animateur
-  const unmet = row.table_leaderless === true && row.want_count > 0
-  return (
-    <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm border ${
-      unmet ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'
-    }`}>
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-semibold text-gray-700 shrink-0">Table N°{row.table_number}</span>
-        {row.join_code && (
-          <span className="font-mono text-xs text-gray-400 shrink-0">{row.join_code}</span>
-        )}
-        {row.table_leaderless === true && (
-          <span className="text-xs text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0">sans animateur</span>
-        )}
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-xs text-gray-500">
-          <span className="font-bold text-indigo-700">{row.want_count}</span>/{row.member_count} veulent
-        </span>
-        {unmet && <span title="Groupe en demande de modérateur sans animateur rattaché">⚠️</span>}
-      </div>
-    </div>
-  )
-}
+// Chantier 19 (G5) — `ModeratorResponsesPanel` / `ModeratorTableRow`
+// supprimés avec get_moderator_responses : la question « tiens-tu à être avec
+// un modérateur ? » n'est plus posée (onboarding réduit à 3 questions) et le
+// besoin d'encadrement est traité par la règle 5 de l'allocation v2.
 
 // ── TimerCountdown (leaf — uses useLiveMs) ────────────────────────
 
@@ -3239,19 +3238,16 @@ function ClusteringModal({
   onAuthError,
   title,
   warning,
-  allowAdvanced = false,
 }: {
   stats: SessionVotingStats
   attachedTableCount: number
-  onConfirm(targetSize: number, advanced: boolean): Promise<{ table_count: number; member_count: number }>
+  onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
   onClose(): void
   onAuthError(): void
   title?: string
   warning?: string
-  allowAdvanced?: boolean
 }) {
   const [targetSize, setTargetSize]   = useState(7)
-  const [advanced,   setAdvanced]     = useState(false)
   const [loading,    setLoading]      = useState(false)
   const [error,      setError]        = useState<string | null>(null)
   const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
@@ -3263,7 +3259,7 @@ function ClusteringModal({
     setLoading(true)
     setError(null)
     try {
-      const res = await onConfirm(targetSize, advanced)
+      const res = await onConfirm(targetSize)
       setResult(res)
     } catch (e) {
       const msg = extractErr(e)
@@ -3329,22 +3325,16 @@ function ClusteringModal({
                 </p>
               </div>
 
-              {/* B1 — allocation avancée (opt-in, nécessite l'analyse des camps) */}
-              {allowAdvanced && (
-                <label className="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={advanced}
-                    onChange={e => setAdvanced(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-xs text-gray-600 leading-snug">
-                    <span className="font-medium text-gray-800">Allocation avancée</span> — équilibre aussi le
-                    style de participation (écoute / actif) entre les tables, en plus des camps d'opinion.
-                    <span className="block text-gray-400 mt-0.5">Expérimental — à valider (voir A_VERIFIER.md).</span>
-                  </span>
-                </label>
-              )}
+              {/* Chantier 19 (G5) — l'option « Allocation avancée »
+                  (run_clustering_v3) est supprimée : l'algorithme v2 la
+                  remplace intégralement. v1/v2 restent accessibles ici le
+                  temps de valider v2 en production. */}
+              <p className="text-xs text-gray-400 leading-snug bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                💡 Répartition héritée (aléatoire ou hétérogène simple). Pour
+                l'algorithme v2 — 5 règles, tables créées automatiquement —
+                passe la séance en phase <b>Allocation</b> et utilise le
+                panneau « Allocation des tables ».
+              </p>
 
               {notEnoughTables && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -3799,9 +3789,12 @@ const PHASE_LABEL_MEMBER: Record<string, string> = {
 function MembersPanel({
   members,
   loading,
+  onToggleModerator,
 }: {
   members: SessionMemberAdmin[]
   loading: boolean
+  /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
+  onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
 }) {
   if (loading && members.length === 0) {
     return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
@@ -3819,7 +3812,8 @@ function MembersPanel({
             <th className="text-left py-2 pr-3 font-medium">Heure</th>
             <th className="text-left py-2 pr-3 font-medium">Phase</th>
             <th className="text-center py-2 pr-3 font-medium" title="Questionnaire d'entrée rempli">Q.</th>
-            <th className="text-center py-2 font-medium" title="A voté">V.</th>
+            <th className="text-center py-2 pr-3 font-medium" title="A voté">V.</th>
+            <th className="text-center py-2 font-medium" title="Modérateur pour cette séance (utilisé par l'allocation)">🎙️</th>
           </tr>
         </thead>
         <tbody>
@@ -3845,8 +3839,29 @@ function MembersPanel({
               <td className="py-2 pr-3 text-center">
                 {m.has_entry_response ? '✅' : '⬜'}
               </td>
-              <td className="py-2 text-center">
+              <td className="py-2 pr-3 text-center">
                 {m.has_voted ? '✅' : '⬜'}
+              </td>
+              {/* Chantier 19 (G4) — marquage modérateur. Critère dur de
+                  l'allocation : à poser AVANT de lancer la répartition. */}
+              <td className="py-2 text-center">
+                {onToggleModerator ? (
+                  <button
+                    onClick={() => onToggleModerator(m.id, !m.is_moderator)}
+                    title={m.is_moderator
+                      ? 'Modérateur de cette séance — cliquer pour retirer'
+                      : 'Marquer comme modérateur de cette séance'}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                      m.is_moderator
+                        ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-600'
+                    }`}
+                  >
+                    {m.is_moderator ? 'modérateur' : '+ modérateur'}
+                  </button>
+                ) : (
+                  <span className="text-gray-300">—</span>
+                )}
               </td>
             </tr>
           ))}
