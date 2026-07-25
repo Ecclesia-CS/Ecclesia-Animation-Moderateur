@@ -2,7 +2,7 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 25/07/2026 — **Chantier 19 (Vague 3) : algorithme d'allocation v2 livré** (`src/lib/allocation.ts`, 41 tests vitest, calcul côté client + RPC de persistance). Remplace la livraison de juillet sur B1/B2/E4 du chantier 5. **3 migrations SQL à appliquer dans l'ordre** (`20260725_1_onboarding_3_questions.sql`, `20260725_2_allocation_v2.sql`, `20260725_3_deprecate_chantier5.sql`) — cette session Claude Code n'a toujours aucun outil MCP Supabase (revérifié). Tant qu'elles ne sont pas appliquées, l'onboarding participant et le panneau d'allocation sont **cassés en production** (signatures RPC divergentes) : voir A_VERIFIER.md.
+Dernière mise à jour : 25/07/2026 — **Chantier 19 (Vague 3) : algorithme d'allocation v2 livré ET les 3 migrations sont APPLIQUÉES en base** (`chantier19_onboarding_3_questions`, `chantier19_allocation_v2`, `chantier19_deprecate_chantier5`, versions `20260725120352/120433/120442`). Appliquées et vérifiées directement par Claude via le MCP Supabase, devenu disponible en cours de session (projet `plpjiehqsxxakbuykmkm`). Remplace la livraison de juillet sur B1/B2/E4 du chantier 5. Vérifications en base : conversion `ecclesia_experience` exacte (18 anciens / 6 nouveaux), `is_moderator` présent sur les 61 membres, les 5 nouvelles RPC joignables en rôle `anon` et échouant au bon contrôle d'auth, `get_moderator_responses`/`run_clustering_v3` supprimées, v1/v2 conservées. **Reste le parcours fonctionnel navigateur** (mot de passe superadmin requis) : voir A_VERIFIER.md.
 
 Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en base + Edge Function `gemini-proxy` redéployée (v9, ACTIVE)**, rapporté par Jules via son propre outillage Supabase (cette session Claude Code n'a toujours aucun outil MCP Supabase dans son inventaire — vérifié en tout début de conversation). Migrations concernées : `delete_assertions_admin`/`hide_assertion_author` (chantier 9), `designate_moderator` (chantier 3), `moderator_responses`/`clustering_v3` (chantier 5), `update_assertion_content` (chantier 7). **Non vérifié fonctionnellement par une session avec accès navigateur** — voir A_VERIFIER.md pour le détail par chantier et les parcours manuels restants.
 
@@ -48,10 +48,10 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
 | G1 | Algorithme v2 — 5 règles en ordre lexicographique | Fait — `src/lib/allocation.ts` + 41 tests vitest (`npm test`). **À vérifier sur données réelles** — voir A_VERIFIER.md | Claude | — |
-| G2 | RPC `create_tables_batch` (N tables vides en lot) | Fait — migration `20260725_2` **à appliquer** | Claude | — |
-| G3 | Onboarding 6 → 3 questions | Fait — migration `20260725_1` **à appliquer** (supprime `moderator_pref`, `group_size_pref`, `openness_to_diff` ; `ecclesia_experience` → booléen) | Claude | — |
-| G4 | Signal « modérateur pour cette séance » | Fait — `session_members.is_moderator` + `set_member_moderator` / `claim_moderator_status`. UI minimale (onglet Participants). **Flow UI complet = chantier 21** | Claude | — |
-| G5 | Dépréciation `run_clustering_v3` / `get_moderator_responses` / panneau E4 | Fait — migration `20260725_3` **à appliquer** | Claude | G1 |
+| G2 | RPC `create_tables_batch` (N tables vides en lot) | Fait — migration `20260725_2` **appliquée et vérifiée en base** | Claude | — |
+| G3 | Onboarding 6 → 3 questions | Fait — migration `20260725_1` **appliquée** (3 colonnes supprimées ; `ecclesia_experience` → booléen, conversion vérifiée : 18 true / 6 false sur 24 lignes) | Claude | — |
+| G4 | Signal « modérateur pour cette séance » | Fait — `session_members.is_moderator` **en base** + `set_member_moderator` / `claim_moderator_status` vérifiées. UI minimale (onglet Participants). **Flow UI complet = chantier 21** | Claude | — |
+| G5 | Dépréciation `run_clustering_v3` / `get_moderator_responses` / panneau E4 | Fait — migration `20260725_3` **appliquée** (absence des 2 fonctions confirmée via `pg_proc`) | Claude | G1 |
 
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |

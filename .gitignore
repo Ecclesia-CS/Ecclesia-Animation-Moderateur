@@ -35,3 +35,6 @@ supabase/.temp
 
 # Claude Code local settings (chemins absolus spécifiques à la machine)
 .claude/settings.local.json
+
+# Dumps de données participants (RGPD) — sauvegardes avant migration
+entry_responses_backup_*.sql

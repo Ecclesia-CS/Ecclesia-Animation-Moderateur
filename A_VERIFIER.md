@@ -377,20 +377,32 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 - [ ] **2026-07-25** — Chantier 19 (G1→G5) — **Algorithme d'allocation v2 : 3 migrations à appliquer + parcours de validation complet**
 
-  **⚠️ BLOQUANT AVANT TOUT TEST — 3 migrations SQL, dans cet ordre exact** (cette session Claude Code n'a, comme toutes les précédentes, **aucun outil MCP Supabase** — revérifié en début de session, aucun `mcp__supabase__*` chargeable via ToolSearch) :
+  **✅ LES 3 MIGRATIONS SONT APPLIQUÉES** (25/07/2026). Le MCP Supabase est devenu disponible en cours de session (contrairement à toutes les sessions précédentes) ; Jules a donné son feu vert et Claude les a appliquées lui-même sur le projet `plpjiehqsxxakbuykmkm`, dans l'ordre :
 
-  1. `supabase/migrations/20260725_1_onboarding_3_questions.sql` — passe `entry_responses.ecclesia_experience` en **booléen**, supprime `moderator_pref` / `group_size_pref` / `openness_to_diff`, remplace `submit_entry_response` par une signature à **4 paramètres**.
-  2. `supabase/migrations/20260725_2_allocation_v2.sql` — ajoute `session_members.is_moderator`, crée `set_member_moderator`, `claim_moderator_status`, `create_tables_batch`, `get_allocation_inputs`, `apply_allocation`, et met à jour `list_session_members_admin`.
-  3. `supabase/migrations/20260725_3_deprecate_chantier5.sql` — supprime `get_moderator_responses` et `run_clustering_v3`.
+  1. `chantier19_onboarding_3_questions` (version `20260725120352`) — `entry_responses.ecclesia_experience` passée en **booléen**, `moderator_pref` / `group_size_pref` / `openness_to_diff` supprimées, `submit_entry_response` remplacée par la signature à **4 paramètres**.
+  2. `chantier19_allocation_v2` (version `20260725120433`) — `session_members.is_moderator` ajoutée, `set_member_moderator`, `claim_moderator_status`, `create_tables_batch`, `get_allocation_inputs`, `apply_allocation` créées, `list_session_members_admin` mise à jour.
+  3. `chantier19_deprecate_chantier5` (version `20260725120442`) — `get_moderator_responses` et `run_clustering_v3` supprimées.
 
-  L'ordre compte : la migration 2 lit `entry_responses.ecclesia_experience` en booléen, la 1 doit donc passer avant. **Tant que les 3 ne sont pas appliquées, deux choses sont cassées en production** : (a) l'onboarding participant (`submit_entry_response` appelée avec 4 paramètres, l'ancienne signature en attend 7) et (b) le panneau « Allocation des tables » (`get_allocation_inputs` inexistante → RPC 404). Le reste de l'app n'est pas affecté.
+  **Sauvegarde avant destruction** : les 24 lignes d'`entry_responses` ont été dumpées **avant** la suppression des 3 colonnes, dans `entry_responses_backup_20260725.sql` à la racine du repo. Ce fichier contient des `member_id` → il est volontairement **laissé non suivi par git** (et ignoré via `.gitignore`). Il contient aussi le SQL de restauration des colonnes si besoin.
 
-  **Ce que cette session a vérifié elle-même** :
+  **Vérifications faites en base après application** :
+  - Schéma `entry_responses` final : `id, session_id, member_id, consent_transcript, participation_style, created_at, ecclesia_experience (boolean, défaut false)` — les 3 colonnes caduques ont bien disparu.
+  - Conversion `ecclesia_experience` **exacte** : 18 `true` / 6 `false` sur 24 lignes, ce qui correspond au snapshot pré-migration (9 `once_twice` + 9 `several_times` = 18 anciens ; 6 `never` = nouveaux ; 0 NULL).
+  - `session_members.is_moderator` présente sur les 61 membres, tous à `false` (aucun modérateur encore désigné).
+  - `submit_entry_response` n'existe plus qu'en **une seule** signature (4 paramètres) — pas de surcharge résiduelle à 7 paramètres qui aurait pu être appelée par erreur.
+  - Les 5 nouvelles RPC sont toutes `SECURITY DEFINER` et joignables **en rôle `anon`** (comme le frontend les appelle) : chacune échoue exactement au bon contrôle (« Mot de passe superadmin incorrect », et « Code Ecclesia invalide » pour `claim_moderator_status`) — donc les `GRANT` sont corrects et, au passage, `crypt()` se résout bien pour `anon`.
+  - `get_moderator_responses` et `run_clustering_v3` absentes de `pg_proc` ; `run_clustering_v1`/`v2` bien conservées.
+  - **Dry-run réel d'`apply_allocation`** : sa logique a été exécutée sur la séance de test (14 présentiels → 2 tables de 7, tables physiques réutilisées, 0 créée) dans une sous-transaction **annulée à la fin**. Résidu vérifié à zéro après coup : 11 `table_assignments` préexistants intacts, 3 tables, phase toujours `voting`, `leaderless` toujours à 0. Les 2 fonctions temporaires de test ont été supprimées.
+  - **Advisors Supabase** (contrôle autorisé par Jules) : 260 lints sécurité, **aucune catégorie nouvelle introduite par le chantier 19**. Mes 7 fonctions reçoivent exactement les 3 mêmes avertissements que les ~60 fonctions préexistantes (`anon`/`authenticated_security_definer_function_executable`, inhérents à l'architecture du projet — toutes les RPC sont SECURITY DEFINER accordées à `anon` et protégées par un contrôle bcrypt interne ; et `function_search_path_mutable`). Côté performance : uniquement des INFO `unindexed_foreign_keys` et des WARN `auth_rls_initplan` **tous préexistants**, aucun sur mes objets.
+
+  **⚠️ Point de durcissement latent, à l'échelle du projet (pas une régression du chantier 19)** : 72 des 84 fonctions publiques ne fixent pas `search_path`, dont **12 fonctions qui appellent `crypt()`** — parmi elles des fonctions critiques préexistantes (`check_superadmin_password`, `create_table`, `reclaim_moderator`, `approve_assertion`, `set_session_phase`…). Seule `merge_assertion_votes` le fait parmi les utilisatrices de `crypt()`. Mon `claim_moderator_status` suit donc le motif dominant existant, et son fonctionnement est empiriquement confirmé en rôle `anon`. Un chantier de durcissement dédié pourrait ajouter `SET search_path = public, extensions` à toutes ces fonctions d'un coup — **à ne pas faire à la va-vite** : c'est ce que corrigeait déjà la migration historique `fix_crypt_path`, et une erreur y casserait l'authentification.
+
+  **Ce que cette session a vérifié elle-même côté code** :
   - `npx tsc -b` ✅ · `npm run build` ✅ (bundle produit) · `npm test` ✅ **41 tests vitest verts** (`src/lib/allocation.test.ts` — seuils, contraintes de taille, chacune des 5 règles, priorité inter-règles, reproductibilité, populations hostiles, 200 participants < 5 s).
   - *localhost* : `#superadmin` et l'accueil rendus **sans aucune erreur console**. **Non franchissable au-delà** : je ne saisis pas le mot de passe superadmin (règle de sécurité), donc **le panneau d'allocation n'a jamais été piloté en vrai**.
   - **Aucune donnée Supabase créée par moi** : j'ai délibérément renoncé à m'inscrire dans la séance de test live (« 🧪 Test général ») pour ne pas polluer ses effectifs, et l'onboarding aurait de toute façon échoué (migrations non appliquées).
 
-  **(a) Parcours manuel à exécuter** — une fois les 3 migrations appliquées :
+  **(a) Parcours manuel à exécuter** — les migrations étant appliquées, ce parcours est désormais **le seul reste à faire** ; il exige le mot de passe superadmin, que Claude ne saisit pas :
   1. Créer une séance, la passer en `voting`.
   2. Inscrire les participants (voir jeu de données en (b) ci-dessous). Chacun répond aux **3 questions** d'onboarding (consentement / « As-tu déjà fait un débat Ecclesia ? » / style de participation) puis vote. **Vérifier au passage** : la barre de progression affiche bien `1/3`, `2/3`, `3/3` — plus 6 questions, plus de question « Tiens-tu à être avec un modérateur ? » ni « taille de groupe » ni « ouverture aux avis ».
   3. Onglet **📊 Analyse** → lancer l'analyse des camps (nécessite ≥6 votants présentiels, ≥5 assertions approuvées).
