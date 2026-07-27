@@ -1951,6 +1951,10 @@ function SessionDetail({
                     la règle 5 de l'algorithme. */}
                 {currentSession.phase === 'allocating' && (
                   <AllocationPanel
+                    // Chantier 25 (H14) — l'état de travail du panneau est
+                    // restauré depuis sessionStorage au montage : la clé garantit
+                    // un remontage si la séance change sans démontage du parent.
+                    key={currentSession.id}
                     sessionId={currentSession.id}
                     password={getPwd()!}
                     onApplied={() => { loadGroups(); setActiveTab('tables') }}
