@@ -34,7 +34,9 @@ interface AnalysisPanelProps {
   onAnalysisStatusChange?(hasDone: boolean): void
   /** E3 — appelé après un calcul d'analyse manuel réussi, avec l'analyse fraîche.
    *  Permet au parent de déclencher le nommage systématique des camps. */
-  onAnalysisComplete?(analysis: LoadedAnalysis): void
+  /** Nommage des camps. Peut retourner une promesse — `handleAnalyze` l'attend
+   *  pour garder le bouton verrouillé pendant les appels Gemini (chantier 28). */
+  onAnalysisComplete?(analysis: LoadedAnalysis): void | Promise<void>
   groupNames?:  GroupNameResult[]
   totalMembers?: number
   sessionPhase?: string
@@ -136,7 +138,7 @@ export default function AnalysisPanel({
   const [open,          setOpen]          = useState(false)
   const [analysis,      setAnalysis]      = useState<LoadedAnalysis | null>(null)
   const [loadStatus,    setLoadStatus]    = useState<'loading' | 'loaded' | 'error'>('loading')
-  const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'loading' | 'naming' | 'done' | 'error'>('idle')
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null)
 
   // Toggle présentiels uniquement
@@ -233,11 +235,21 @@ export default function AnalysisPanel({
       await saveAnalysisResult(supabase, password, sessionId, result)
 
       // 5. Recharger et afficher
-      setAnalyzeStatus('done')
       await loadExisting()
 
-      // 6. E3 — déclencher le nommage systématique des camps sur l'analyse fraîche
-      onAnalysisComplete?.(resultToLoaded(result))
+      // 6. E3 — nommage systématique des camps sur l'analyse fraîche.
+      //
+      // Chantier 28 — ON ATTEND le nommage, bouton toujours désactivé.
+      // Avant, `setAnalyzeStatus('done')` était posé AVANT cet appel et le
+      // nommage partait en fire-and-forget : le bouton redevenait cliquable et
+      // reprenait son libellé normal pendant les k appels Gemini séquentiels
+      // (15-40 s pour 5 camps, sans le moindre retour visuel). D'où des
+      // re-clics légitimes du superadmin → analyses redondantes (les 3 lignes
+      // `session_analysis` de VERIF7 en 45 s), et surtout un nommage suivant
+      // silencieusement ignoré par le garde-fou de `runNaming`.
+      setAnalyzeStatus('naming')
+      await onAnalysisComplete?.(resultToLoaded(result))
+      setAnalyzeStatus('done')
     } catch (e) {
       if (e instanceof AnalysisError) {
         setErrorMsg(e.message)
@@ -336,7 +348,9 @@ export default function AnalysisPanel({
       .filter(x => x.content !== '')
   }
 
-  const isAnalyzing = analyzeStatus === 'loading'
+  // Le bouton reste verrouillé pendant le calcul ET pendant le nommage Gemini
+  // qui le suit — c'est la phase longue, cf. `handleAnalyze` (chantier 28).
+  const isAnalyzing = analyzeStatus === 'loading' || analyzeStatus === 'naming'
 
   // ── Rendu ─────────────────────────────────────────────────
   return (
@@ -367,7 +381,9 @@ export default function AnalysisPanel({
               disabled={isAnalyzing}
               className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isAnalyzing ? 'Calcul…' : 'Analyser les camps'}
+              {analyzeStatus === 'loading' ? 'Calcul…'
+                : analyzeStatus === 'naming' ? 'Nommage des camps…'
+                : 'Analyser les camps'}
             </button>
           </div>
 
