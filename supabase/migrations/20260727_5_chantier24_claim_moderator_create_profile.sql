@@ -8,7 +8,16 @@
 --   attending_in_person = true, puis is_moderator = true.
 -- Cas (b) — profil déjà existant (a voté / s'est inscrit) :
 --   comportement inchangé, on marque juste is_moderator = true.
+--
+-- Le nombre d'arguments change (2 → 3) : un CREATE OR REPLACE seul créerait
+-- une surcharge à côté de l'ancienne fonction à 2 arguments au lieu de la
+-- remplacer (Postgres ne réutilise l'entrée existante que si la liste de
+-- types d'arguments est strictement identique), rendant tout appel à 2
+-- arguments ambigu ("function is not unique"). Même piège que la migration
+-- du chantier 22 sur update_session_config — DROP explicite requis avant.
 -- =============================================================
+
+DROP FUNCTION IF EXISTS claim_moderator_status(uuid, text);
 
 CREATE OR REPLACE FUNCTION claim_moderator_status(
   p_session_id    uuid,
