@@ -104,6 +104,9 @@ export default function ModeratorView() {
   const [showOutils,  setShowOutils]  = useState(false)
   const [err, setErr]               = useState<string | null>(null)
 
+  // H23 — panorama d'accueil modérateur, affiché une seule fois par table
+  const [showModWelcome, setShowModWelcome] = useState(() => !localStorage.getItem('mod_welcome_' + table.id))
+
   // Session docs pour le bouton Documentation
   const [sessionDocs, setSessionDocs] = useState<{
     title: string | null
@@ -852,6 +855,59 @@ export default function ModeratorView() {
 
       {/* ── Modals ────────────────────────────────────────────── */}
       {showCorrect && <CorrectTurnModal onClose={() => setShowCorrect(false)} />}
+
+      {/* H23 — panorama d'accueil modérateur, affiché une seule fois par table */}
+      {showModWelcome && (
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden text-gray-900">
+            <div className="bg-indigo-600 px-6 py-5 text-center">
+              <p className="text-2xl mb-1">🧑‍⚖️</p>
+              <h2 className="text-lg font-bold text-white">Bienvenue, modérateur</h2>
+            </div>
+            <div className="px-6 py-5 space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto">
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🖐️</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Glisser-déposer</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Fais glisser un participant dans une file pour lui donner la parole, ou réordonne les files en glissant les lignes.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">▶️</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Donner/retirer la parole</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Les files "File normale" et "Coupe-file" gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🧭</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Bouton "Camps"</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Affiche la composition idéologique de ta table et les assertions représentatives des différents avis, pour t'aider à équilibrer la parole.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">🔧</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Outils Modo</p>
+                  <p className="text-gray-500 text-xs mt-0.5">QR code de la table, documentation, notes et assertions du vote sont accessibles depuis les boutons du header.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => {
+                  localStorage.setItem('mod_welcome_' + table.id, '1')
+                  setShowModWelcome(false)
+                }}
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                C'est parti ! →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Séance terminée */}
       {session?.phase === 'closed' && (

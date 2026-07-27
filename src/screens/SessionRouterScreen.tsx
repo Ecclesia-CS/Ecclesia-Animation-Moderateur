@@ -151,7 +151,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
             <h1 className="text-lg font-bold text-gray-900">Débat en cours</h1>
             {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
             <p className="text-sm text-gray-400 mt-3">
-              Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché en salle.
+              Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
             </p>
           </div>
           <JoinTableForm
