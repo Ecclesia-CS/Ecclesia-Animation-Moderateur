@@ -188,15 +188,16 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       })
       if (error) throw error
       const r = data as TableResult
+      const isMod = member.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,
         joinCode:      r.join_code,
-        isModerator:   false,
+        isModerator:   isMod,
         pseudo:        member.pseudo,
       })
       if (onTableJoined) {
-        onTableJoined(r.id, r.participant_id, false)
+        onTableJoined(r.id, r.participant_id, isMod)
       } else {
         window.location.href = window.location.pathname + window.location.search
       }

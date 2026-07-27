@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
+import { claimModeratorStatus } from '../lib/voting'
 import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
 
@@ -30,7 +31,7 @@ const PHASE_ACTION: Record<string, string> = {
 
 type ActiveSession = Pick<Session, 'id' | 'title' | 'phase' | 'join_code'>
 
-type Mode = 'join' | 'reclaim' | 'create' | 'vote'
+type Mode = 'join' | 'create' | 'moderator'
 
 interface Props {
   userId: string
@@ -45,8 +46,8 @@ export default function EntryScreen({ onJoined }: Props) {
   const [pseudo, setPseudo] = useState(() => lastNameStore.get())
   const [joinCode, setJoinCode] = useState('')
   const [creationCode, setCreationCode] = useState('')
+  const [asModerator, setAsModerator] = useState(false)
   const [reclaimCode, setReclaimCode] = useState('')
-  const [reclaimPseudo, setReclaimPseudo] = useState(() => lastNameStore.get())
   const [selectedSessionId, setSelectedSessionId] = useState('')
   const [leaderless, setLeaderless] = useState(false)
   const [availableSessions, setAvailableSessions] = useState<{
@@ -56,6 +57,17 @@ export default function EntryScreen({ onJoined }: Props) {
   }[]>([])
 
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
+
+  // ── Onglet Modérateur (G8) ──────────────────────────────────────
+  const [moderatorSessions, setModeratorSessions] = useState<{
+    id: string
+    title: string
+    join_code: string | null
+  }[]>([])
+  const [moderatorSessionId, setModeratorSessionId] = useState('')
+  const [moderatorPassword, setModeratorPassword] = useState('')
+  const [moderatorLoading, setModeratorLoading] = useState(false)
+  const [moderatorError, setModeratorError] = useState<string | null>(null)
 
   useEffect(() => {
     function fetchActiveSessions() {
@@ -79,6 +91,17 @@ export default function EntryScreen({ onJoined }: Props) {
       .in('phase', ['draft', 'voting', 'debating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setAvailableSessions(data) })
+  }, [mode])
+
+  // Séances où l'auto-déclaration modérateur a un sens (avant le lancement du débat).
+  useEffect(() => {
+    if (mode !== 'moderator') return
+    supabase
+      .from('sessions')
+      .select('id, title, join_code')
+      .in('phase', ['voting', 'allocating'])
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setModeratorSessions(data) })
   }, [mode])
 
   function store(tableId: string, participantId: string, jCode: string, isMod: boolean) {
@@ -133,8 +156,8 @@ export default function EntryScreen({ onJoined }: Props) {
 
   async function handleReclaim(e: React.FormEvent) {
     e.preventDefault()
-    if (!reclaimPseudo.trim()) {
-      setError('Veuillez entrer votre pseudo.')
+    if (!pseudo.trim()) {
+      setError('Veuillez entrer votre nom prénom.')
       return
     }
     setError(null)
@@ -143,12 +166,12 @@ export default function EntryScreen({ onJoined }: Props) {
       const { data, error: err } = await supabase.rpc('reclaim_moderator', {
         p_join_code: joinCode,
         p_moderator_code: reclaimCode,
-        p_pseudo: reclaimPseudo.trim(),
+        p_pseudo: pseudo.trim(),
       })
       if (err) throw err
       const r = data as TableResult
-      tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: true, pseudo: reclaimPseudo.trim() })
-      lastNameStore.set(reclaimPseudo)
+      tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: true, pseudo: pseudo.trim() })
+      lastNameStore.set(pseudo)
       onJoined(r.id, r.participant_id, true)
     } catch (err) {
       setError(extractErr(err))
@@ -157,13 +180,33 @@ export default function EntryScreen({ onJoined }: Props) {
     }
   }
 
-  const [voteCode, setVoteCode] = useState('')
+  async function handleClaimModerator(e: React.FormEvent) {
+    e.preventDefault()
+    if (!moderatorSessionId) {
+      setModeratorError('Veuillez sélectionner une séance.')
+      return
+    }
+    setModeratorError(null)
+    setModeratorLoading(true)
+    try {
+      await claimModeratorStatus(moderatorSessionId, moderatorPassword)
+      const sel = moderatorSessions.find(s => s.id === moderatorSessionId)
+      if (sel?.join_code) {
+        window.location.hash = '#vote/' + sel.join_code
+      } else {
+        setModeratorError('Séance sans code — contactez le superadmin.')
+      }
+    } catch (err) {
+      setModeratorError(extractErr(err))
+    } finally {
+      setModeratorLoading(false)
+    }
+  }
 
   const tabs: { id: Mode; label: string }[] = [
-    { id: 'vote',    label: '🗳️ Voter' },
-    { id: 'join',    label: 'Rejoindre' },
-    { id: 'reclaim', label: 'Reprendre' },
-    { id: 'create',  label: 'Créer' },
+    { id: 'moderator', label: '🎙️ Modérateur' },
+    { id: 'join',      label: 'Rejoindre ou reprendre une table' },
+    { id: 'create',    label: 'Créer' },
   ]
 
   return (
@@ -220,7 +263,7 @@ export default function EntryScreen({ onJoined }: Props) {
           {tabs.map(t => (
             <button
               key={t.id}
-              onClick={() => { setMode(t.id); setError(null) }}
+              onClick={() => { setMode(t.id); setError(null); setAsModerator(false) }}
               className={`flex-1 py-2.5 text-xs font-medium transition-colors focus:outline-none ${
                 mode === t.id
                   ? 'border-b-2 border-indigo-600 text-indigo-600'
@@ -233,34 +276,84 @@ export default function EntryScreen({ onJoined }: Props) {
         </div>
 
         <div className="p-6">
-          {mode === 'vote' && (
-            <form
-              onSubmit={e => {
-                e.preventDefault()
-                if (voteCode.trim()) window.location.hash = `#vote/${voteCode.trim()}`
-              }}
-              className="space-y-4"
-            >
+          {mode === 'moderator' && (
+            <form onSubmit={handleClaimModerator} className="space-y-4">
               <p className="text-xs text-gray-500">
-                Entre le code de ta séance pour accéder au vote et aux résultats.
+                Déclare-toi modérateur d'une séance en cours (vote ou formation des groupes) avec le mot de passe Ecclesia.
+                Il faut déjà être inscrit à cette séance sur cet appareil (avoir voté ou t'être inscrit·e) — sinon demande au superadmin de te marquer directement dans l'onglet Participants.
               </p>
-              <Field
-                label="Code de la séance"
-                value={voteCode}
-                onChange={v => setVoteCode(v.toUpperCase())}
-                placeholder="A1B2C3"
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Séance <span className="text-red-500">*</span>
+                </label>
+                {moderatorSessions.length === 0 ? (
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    Aucune séance en vote ou en formation des groupes actuellement.
+                  </p>
+                ) : (
+                  <select
+                    value={moderatorSessionId}
+                    onChange={e => setModeratorSessionId(e.target.value)}
+                    required
+                    className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                      bg-white transition-shadow"
+                  >
+                    <option value="" disabled>— Sélectionner une séance —</option>
+                    {moderatorSessions.map(s => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <Field label="Code Ecclesia" value={moderatorPassword}
+                onChange={setModeratorPassword} type="password" placeholder="••••••••" />
+              {moderatorError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  {moderatorError}
+                </div>
+              )}
+              <Btn
+                loading={moderatorLoading}
+                label="Rejoindre en tant que modérateur"
+                disabled={moderatorSessions.length === 0}
               />
-              <Btn loading={false} label="Accéder au vote →" />
             </form>
           )}
 
-          {mode === 'join' && (
+          {mode === 'join' && !asModerator && (
             <form onSubmit={handleJoin} className="space-y-4">
-              <Field label="Code de session" value={joinCode}
+              <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
               <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Alice Dupont" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               <Btn loading={loading} label="Rejoindre" />
+              <button
+                type="button"
+                onClick={() => { setAsModerator(true); setError(null) }}
+                className="w-full text-xs text-indigo-600 hover:underline text-center"
+              >
+                Je suis modérateur →
+              </button>
+            </form>
+          )}
+
+          {mode === 'join' && asModerator && (
+            <form onSubmit={handleReclaim} className="space-y-4">
+              <Field label="Code de table" value={joinCode}
+                onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
+              <Field label="Votre nom Prénom" value={pseudo}
+                onChange={setPseudo} placeholder="Alice Dupont" />
+              <Field label="Code Ecclesia" value={reclaimCode}
+                onChange={setReclaimCode} type="password" placeholder="••••••••" />
+              <Btn loading={loading} label="Reprendre la main" />
+              <button
+                type="button"
+                onClick={() => { setAsModerator(false); setError(null) }}
+                className="w-full text-xs text-gray-400 hover:text-gray-600 hover:underline text-center"
+              >
+                ← Retour
+              </button>
             </form>
           )}
 
@@ -335,19 +428,7 @@ export default function EntryScreen({ onJoined }: Props) {
             </form>
           )}
 
-          {mode === 'reclaim' && (
-            <form onSubmit={handleReclaim} className="space-y-4">
-              <Field label="Code de session" value={joinCode}
-                onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Votre nom Prénom" value={reclaimPseudo}
-                onChange={setReclaimPseudo} placeholder="Alice Dupont" />
-              <Field label="Code Ecclesia" value={reclaimCode}
-                onChange={setReclaimCode} type="password" placeholder="••••••••" />
-              <Btn loading={loading} label="Reprendre la main" />
-            </form>
-          )}
-
-          {error && (
+          {mode !== 'moderator' && error && (
             <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
