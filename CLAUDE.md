@@ -453,7 +453,7 @@ Avec k=3+ groupes, Gemini 2.5 Flash Lite retourne systématiquement `"Groupe 3"`
 Affiché une seule fois par table via `localStorage` (clé `debate_welcome_<tableId>`). Explique les deux files, les outils, le modérateur. Ne pas utiliser `useEffect` pour l'initialisation — lire `localStorage` directement dans `useState(() => ...)`.
 
 ### Modal intro vote (`VoteScreen`)
-`showVoteIntro` mis à `true` dans `loadVoteData()` juste avant `setStep('vote')`. Affiché à chaque nouvelle session de vote (pas de persistance localStorage — intentionnel).
+`showVoteIntro` mis à `true` dans `loadVoteData()` juste avant `setStep('vote')`, seulement si `localStorage['ecclesia_vote_intro_<session.id>']` est absent (chantier 11 / F3 — auparavant affiché à chaque rechargement, changement volontaire). Posé par `closeVoteIntro()` à la fermeture (croix ou bouton "Commencer →").
 
 ### Voir toutes les assertions (`VoteScreen`)
 Bouton "📋 Voir toutes" visible dès qu'il y a des assertions, que le participant ait tout voté ou non. Charge `getVoteResults` à la demande. Sur l'écran "Tu as tout voté", les barres de votes collectifs sont aussi affichées inline dans la liste "Tes votes" (depuis `voteResults` déjà chargé).

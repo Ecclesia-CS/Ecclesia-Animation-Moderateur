@@ -298,7 +298,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     setMyVotes(voteMap)
     setProposedCount((myAssertions ?? []).length)
     setAssertionIndex(0)
-    setShowVoteIntro(true)
+    // F3 — affiché une seule fois par séance, pas à chaque rechargement/re-vote.
+    if (!localStorage.getItem(`ecclesia_vote_intro_${s.id}`)) setShowVoteIntro(true)
     setStep('vote')
 
     // Subscribe Realtime
@@ -480,6 +481,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       window.location.hash = '#session/' + sessionJoinCode
     }
   }, [step, sessionJoinCode])
+
+  // ── Fermeture modal intro vote (F3) ────────────────────────────────────────
+  function closeVoteIntro() {
+    if (session) localStorage.setItem(`ecclesia_vote_intro_${session.id}`, '1')
+    setShowVoteIntro(false)
+  }
 
   // ── Vote handler ──────────────────────────────────────────────────────────
   async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
@@ -960,7 +967,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         {/* Modal intro vote */}
         {showVoteIntro && (
           <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
-            onClick={() => setShowVoteIntro(false)}>
+            onClick={closeVoteIntro}>
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="bg-indigo-600 px-6 py-5 text-center">
@@ -999,7 +1006,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               </div>
               <div className="px-6 pb-6">
                 <button
-                  onClick={() => setShowVoteIntro(false)}
+                  onClick={closeVoteIntro}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
                 >
                   Commencer →
@@ -1518,10 +1525,16 @@ interface VotingEntryFormProps {
 
 function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormProps) {
   const [tab,          setTab]          = useState<'pseudo' | 'code'>('pseudo')
-  const [input,        setInput]        = useState(() => lastNameStore.get())
+  // Champs distincts par onglet — partager un seul state videait le nom déjà
+  // saisi dès qu'on regardait l'onglet "code" puis revenait sur "Mon nom" (F5).
+  const [pseudoInput,  setPseudoInput]  = useState(() => lastNameStore.get())
+  const [codeInput,    setCodeInput]    = useState('')
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [reclaimDone,  setReclaimDone]  = useState<SessionMember | null>(null)
+
+  const input = tab === 'pseudo' ? pseudoInput : codeInput
+  const setInput = tab === 'pseudo' ? setPseudoInput : setCodeInput
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -1599,7 +1612,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
               <button
                 key={t}
                 type="button"
-                onClick={() => { setTab(t); setInput(''); setError(null) }}
+                onClick={() => { setTab(t); setError(null) }}
                 className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
                   tab === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                 }`}

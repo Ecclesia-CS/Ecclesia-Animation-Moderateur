@@ -7,6 +7,7 @@ import type { QuestionnaireResponse, VoteResult } from '../lib/types'
 import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
+import QrCodeModal from './QrCodeModal'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -39,6 +40,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const [notesOpen,          setNotesOpen]          = useState(false)
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
   const [voteResultsOpen,    setVoteResultsOpen]    = useState(false)
+  const [qrOpen,             setQrOpen]             = useState(false)
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
@@ -228,6 +230,22 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             )}
 
+            {/* QR code de la table (F6 — remplace l'ancien bouton "Inviter un ami") */}
+            <button
+              onClick={() => { setPanelOpen(false); setQrOpen(true) }}
+              className={linkClass}
+            >
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" strokeWidth={2}>
+                <rect x="3" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+                <rect x="14" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+                <rect x="3" y="14" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="14" y1="17.5" x2="21" y2="17.5" strokeLinecap="round" />
+                <line x1="17.5" y1="14" x2="17.5" y2="21" strokeLinecap="round" />
+              </svg>
+              QR code de la table
+            </button>
+
             {/* Notes */}
             <button
               onClick={() => { setPanelOpen(false); setNotesOpen(true) }}
@@ -263,6 +281,14 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             <div className="pb-2" />
           </div>
         </div>
+      )}
+
+      {qrOpen && (
+        <QrCodeModal
+          value={`${window.location.origin}${window.location.pathname}#table/${table.join_code}`}
+          title={`Rejoindre la table ${table.join_code}`}
+          onClose={() => setQrOpen(false)}
+        />
       )}
 
       {notesOpen && (

@@ -325,7 +325,7 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Alice Dupont" />
+              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Ex : Marie Dupont" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               <Btn loading={loading} label="Rejoindre" />
               <button
@@ -343,7 +343,7 @@ export default function EntryScreen({ onJoined }: Props) {
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
               <Field label="Votre nom Prénom" value={pseudo}
-                onChange={setPseudo} placeholder="Alice Dupont" />
+                onChange={setPseudo} placeholder="Ex : Marie Dupont" />
               <Field label="Code Ecclesia" value={reclaimCode}
                 onChange={setReclaimCode} type="password" placeholder="••••••••" />
               <Btn loading={loading} label="Reprendre la main" />
@@ -360,7 +360,7 @@ export default function EntryScreen({ onJoined }: Props) {
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
               <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (modérateur)'} value={pseudo} onChange={setPseudo}
-                placeholder="Alice Dupont" />
+                placeholder="Ex : Marie Dupont" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
                 <Field label="Code Ecclesia" value={creationCode}
