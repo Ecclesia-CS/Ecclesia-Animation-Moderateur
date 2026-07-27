@@ -33,6 +33,14 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
     return (1 - dominance) * Math.min(nonPass / 3, 1) * 100
   }
 
+  // Taux de pass : signal d'ambiguïté indépendant du consensus/dissensus (cf. notes pol.is C4) —
+  // un fort taux de "passe" suggère une formulation à retravailler plutôt qu'un vrai clivage.
+  function passRate(r: VoteResult): number {
+    return r.total_votes > 0 ? r.pass_count / r.total_votes : 0
+  }
+  const UNCERTAIN_PASS_RATE = 0.35
+  const UNCERTAIN_MIN_VOTES = 5
+
   const byConsensus = [...results].sort((a, b) => (b.consensus_score ?? -1) - (a.consensus_score ?? -1))
   const topCount = Math.min(3, byConsensus.length)
   const top = byConsensus.slice(0, topCount)
@@ -44,6 +52,12 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
         .sort((a, b) => dissensusScore(b) - dissensusScore(a))
         .slice(0, 2)
     : []
+  const bottomIds = new Set(bottom.map(r => r.id))
+  // hésitation : exclue des deux sections précédentes, fort taux de pass sur assez de votes
+  const uncertain = [...results]
+    .filter(r => !topIds.has(r.id) && !bottomIds.has(r.id) && r.total_votes >= UNCERTAIN_MIN_VOTES && passRate(r) >= UNCERTAIN_PASS_RATE)
+    .sort((a, b) => passRate(b) - passRate(a))
+    .slice(0, 2)
 
   const totalVotes = results.reduce((sum, r) => sum + r.total_votes, 0)
 
@@ -75,6 +89,25 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
         </div>
       )}
 
+      {/* Beaucoup d'hésitation */}
+      {uncertain.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Beaucoup d'hésitation
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Beaucoup de « passe » sur ces affirmations — le sujet laisse perplexe, ou la formulation gagnerait à être plus claire.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {uncertain.map(r => (
+              <ResultCard key={r.id} result={r} variant="uncertain" />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Global stats */}
       <p className="text-xs text-gray-400 text-center">
         {results.length} assertion{results.length > 1 ? 's' : ''} approuvée{results.length > 1 ? 's' : ''} · {totalVotes} vote{totalVotes > 1 ? 's' : ''} au total
@@ -83,7 +116,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
   )
 }
 
-function ResultCard({ result, variant }: { result: VoteResult; variant: 'consensus' | 'dissensus' }) {
+function ResultCard({ result, variant }: { result: VoteResult; variant: 'consensus' | 'dissensus' | 'uncertain' }) {
   const total = result.agree_count + result.disagree_count + result.pass_count
   const agreePct    = total > 0 ? (result.agree_count    / total) * 100 : 0
   const disagreePct = total > 0 ? (result.disagree_count / total) * 100 : 0
@@ -96,6 +129,8 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
   let badge: { label: string; className: string }
   if (variant === 'dissensus') {
     badge = { label: 'Point de désaccord', className: 'bg-red-100 text-red-700' }
+  } else if (variant === 'uncertain') {
+    badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-600' }
   } else if (score != null && score >= 50) {
     badge = { label: 'Fort consensus', className: 'bg-green-100 text-green-700' }
   } else {
@@ -125,7 +160,7 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
       <div className="flex gap-3 text-xs text-gray-400">
         <span className="text-green-600">✓ {result.agree_count}</span>
         <span className="text-red-500">✗ {result.disagree_count}</span>
-        <span>→ {result.pass_count}</span>
+        <span>⏭ {result.pass_count}</span>
       </div>
     </div>
   )

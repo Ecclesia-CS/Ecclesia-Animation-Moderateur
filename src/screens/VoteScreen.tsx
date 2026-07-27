@@ -909,7 +909,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                               {passPct     > 0 && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
                             </div>
                             <p className="text-[10px] text-gray-400">
-                              ✓ {r.agree_count} pour · ✗ {r.disagree_count} contre · → {r.pass_count} neutre
+                              ✓ {r.agree_count} pour · ✗ {r.disagree_count} contre · ⏭ {r.pass_count} passe
                             </p>
                           </div>
                         )
@@ -996,6 +996,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   <div>
                     <p className="font-semibold text-gray-900">Voter sur chaque assertion</p>
                     <p className="text-gray-500 text-xs mt-0.5">Pour chaque affirmation, indique si tu es d'accord, en désaccord, ou si tu préfères passer.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">⏭</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : passer indique que le sujet ne te fait pencher ni d'un côté ni de l'autre, et ça compte dans les résultats.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -1102,7 +1109,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                               {passPct > 0     && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
                             </div>
                             <p className="text-[10px] text-gray-400">
-                              ✓ {result.agree_count} · ✗ {result.disagree_count} · → {result.pass_count}
+                              ✓ {result.agree_count} · ✗ {result.disagree_count} · ⏭ {result.pass_count}
                             </p>
                           </div>
                         )

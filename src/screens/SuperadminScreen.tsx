@@ -3847,6 +3847,9 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
   const agreePct    = Math.round((agree    / total) * 100)
   const disagreePct = Math.round((disagree / total) * 100)
   const passPct     = Math.round((pass     / total) * 100)
+  // Fort taux de "passe" (≥35 %, sur au moins 5 votes) : signal qu'une assertion pourrait
+  // être mal formulée/ambiguë (cf. notes pol.is C4) — actionnable ici par le modérateur.
+  const manyPasses  = total >= 5 && pass / total >= 0.35
 
   return (
     <div className="w-full space-y-1">
@@ -3859,6 +3862,9 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
         <span>✅ {agree} · ❌ {disagree} · ⏭ {pass} ({total} votes)</span>
         {score !== null && <span className="font-semibold text-indigo-600">Score : {score}%</span>}
       </div>
+      {manyPasses && (
+        <p className="text-[10px] text-amber-600">⚠️ Beaucoup de passes — formulation peut-être à revoir</p>
+      )}
     </div>
   )
 }

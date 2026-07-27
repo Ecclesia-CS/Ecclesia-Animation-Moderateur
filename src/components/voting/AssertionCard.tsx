@@ -101,6 +101,11 @@ export default function AssertionCard({
             onClick={() => handleVote('agree')}
           />
         </div>
+        {index === 0 && (
+          <p className="text-center text-[10px] text-gray-400 mt-3 px-4">
+            💡 « Passe » est un vrai choix, compté dans les résultats — ce n'est pas pareil que de ne jamais répondre.
+          </p>
+        )}
       </div>
     </div>
   )

@@ -53,6 +53,15 @@ export interface AnalysisResult {
 /**
  * Construit la matrice membres × assertions.
  * Encodage : agree=+1, disagree=-1, pass=0, absent=0.
+ *
+ * `pass` (ligne existante dans assertion_votes) et l'absence de vote (aucune ligne)
+ * restent distincts en storage — voir VoteRow / assertion_votes — mais sont volontairement
+ * encodés à la même valeur 0 ici (choix v1, cf. notes de recherche pol.is C4/chantier 10).
+ * `pass` est un choix actif qui compte dans les stats (voir pass_count côté get_vote_results) ;
+ * l'absence est un vrai trou dans la matrice. Fidèle à pol.is serait d'imputer la moyenne de
+ * la colonne assertion pour les seuls absents (pass restant à 0 fixe) — pas fait en v1 car ça
+ * suppose de garder une matrice binaire séparée "ce vote existe-t-il" en plus des valeurs, et
+ * le filtrage de sparsité ci-dessous limite déjà la part de vrais absents dans la matrice.
  * Applique le filtrage sparsité en deux passes :
  *   1. Exclure les assertions avec < MIN_VOTES_PER_ASSERTION votes réels
  *   2. Exclure les membres avec < MIN_VOTES_PER_MEMBER votes sur les assertions restantes

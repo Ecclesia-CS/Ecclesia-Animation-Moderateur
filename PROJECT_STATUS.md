@@ -133,7 +133,7 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 | C1 | Ping automatique Supabase | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | C2 | Identité visuelle / branding | Backlog | | Charte graphique (Jules) |
 | C3 | Affichage documents + backend de stockage | **Remplacé par le chantier 13** — décision d'infra tranchée (site externe séparé) | Claude | — |
-| C4 | Distinction vote pass/neutre + doc technique | Backlog | | Jules (doc pol.is) |
+| C4 | Distinction vote pass/neutre + doc technique | Fait — à vérifier (voir A_VERIFIER.md) | Claude | Jules (doc pol.is) |
 | D6 | Mention non-conservation des audios | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D11 | Assertions visibles pendant le débat | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D12 | Mention anonymat des votes | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
