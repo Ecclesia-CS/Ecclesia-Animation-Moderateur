@@ -108,22 +108,27 @@ BEGIN
 
   -- ── H18 : détacher les tables excédentaires et vides ──
   -- Reliquats d'une allocation précédente plus large. On ne touche pas à
-  -- celles où quelqu'un a déjà rejoint (`participants`).
-  WITH surplus AS (
-    SELECT t.id,
-           EXISTS (SELECT 1 FROM participants p WHERE p.table_id = t.id) AS has_people
+  -- celles où quelqu'un a déjà rejoint (`participants`) : on ne coupe pas le
+  -- sol sous les pieds d'un participant déjà en séance.
+  --
+  -- Compté d'abord, modifié ensuite (plutôt qu'une CTE modifiante référencée
+  -- en sous-requête scalaire, dont la validité est moins évidente à relire).
+  SELECT
+    count(*) FILTER (WHERE NOT has_people),
+    count(*) FILTER (WHERE has_people)
+  INTO v_detached, v_orphaned
+  FROM (
+    SELECT EXISTS (SELECT 1 FROM participants p WHERE p.table_id = t.id) AS has_people
     FROM tables t
     WHERE t.session_id = p_session_id
       AND NOT (t.id = ANY (v_used_ids))
-  ), detached AS (
-    UPDATE tables SET session_id = NULL
-    WHERE id IN (SELECT id FROM surplus WHERE NOT has_people)
-    RETURNING 1
-  )
-  SELECT
-    (SELECT count(*) FROM detached),
-    (SELECT count(*) FROM surplus WHERE has_people)
-  INTO v_detached, v_orphaned;
+  ) s;
+
+  UPDATE tables t
+  SET session_id = NULL
+  WHERE t.session_id = p_session_id
+    AND NOT (t.id = ANY (v_used_ids))
+    AND NOT EXISTS (SELECT 1 FROM participants p WHERE p.table_id = t.id);
 
   UPDATE sessions
   SET phase = 'allocating', phase_changed_at = now()
