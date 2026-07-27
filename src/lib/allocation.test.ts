@@ -470,3 +470,115 @@ describe('diagnoseAllocation', () => {
     expect(diags[0].size).toBe(5)
   })
 })
+
+// ── Chantier 25 — modérateurs en surplus / déficit ───────────
+
+describe('chantier 25 — modérateurs en surplus (H17)', () => {
+  it('un modérateur sans table devient un participant ordinaire', () => {
+    // 25 places → 3 tables [10,10,5] et 3 tables animées : le 4e modérateur
+    // n'anime rien. Avant le chantier 25 il disparaissait purement du résultat.
+    const r = runAllocation({
+      members: balanced(25),
+      moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4'],
+      opinionsAvailable: true,
+    })
+    expect(r.tables).toHaveLength(3)
+    expect(r.animatingModerators).toBe(3)
+    expect(r.seatedModeratorIds).toEqual(['mo-4'])
+
+    // Il occupe un siège, dans la table la moins remplie.
+    expect(totalSeats(r)).toBe(26)
+    const seatedTable = r.tables.find(t => t.member_ids.includes('mo-4'))
+    expect(seatedTable).toBeDefined()
+    expect(seatedTable!.moderator_member_ids).not.toContain('mo-4')
+    expect(seatedTable!.member_ids.length).toBe(6) // la table de 5 devient 6
+  })
+
+  it('aucun modérateur inscrit n’est laissé sans affectation', () => {
+    for (const nMods of [1, 2, 3, 4, 6, 8]) {
+      const ids = Array.from({ length: nMods }, (_, i) => `mo-${i}`)
+      const r = runAllocation({ members: balanced(25), moderatorIds: ids, opinionsAvailable: true })
+      const placed = new Set([
+        ...r.tables.flatMap(t => t.moderator_member_ids),
+        ...r.tables.flatMap(t => t.member_ids),
+      ])
+      for (const id of ids) expect(placed.has(id)).toBe(true)
+      // Jamais à la fois animateur et participant.
+      const animating = r.tables.flatMap(t => t.moderator_member_ids)
+      expect(animating.filter(id => r.seatedModeratorIds.includes(id))).toHaveLength(0)
+    }
+  })
+
+  it('le surplus ne dégrade pas la forme retenue', () => {
+    const without = runAllocation({
+      members: balanced(25), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+    })
+    const withSurplus = runAllocation({
+      members: balanced(25),
+      moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4', 'mo-5', 'mo-6'],
+      opinionsAvailable: true,
+    })
+    // Même nombre de tables, mêmes tables animées : seuls des sièges s'ajoutent.
+    expect(withSurplus.tables).toHaveLength(without.tables.length)
+    expect(withSurplus.tables.filter(t => t.moderated)).toHaveLength(
+      without.tables.filter(t => t.moderated).length,
+    )
+  })
+
+  it('les attributs réels du modérateur assis sont pris en compte', () => {
+    const profile = {
+      member_id: 'mo-4', pseudo: 'Zoé',
+      is_active: true, consents: false, is_veteran: true, group_id: 1,
+    }
+    const r = runAllocation({
+      members: balanced(25),
+      moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4'],
+      moderatorProfiles: [profile],
+      opinionsAvailable: true,
+    })
+    const seatedTable = r.tables.find(t => t.member_ids.includes('mo-4'))!
+    const d = r.diagnostics.find(x => x.table_number === seatedTable.table_number)!
+    // Non consentant → sa table ne peut plus être enregistrable.
+    expect(d.non_consenting).toBeGreaterThanOrEqual(1)
+    expect(d.recordable).toBe(false)
+  })
+
+  it('les diagnostics décrivent bien les tailles réelles après placement', () => {
+    const r = runAllocation({
+      members: balanced(25),
+      moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4'],
+      opinionsAvailable: true,
+    })
+    for (const t of r.tables) {
+      const d = r.diagnostics.find(x => x.table_number === t.table_number)!
+      expect(d.size).toBe(t.member_ids.length)
+    }
+  })
+})
+
+describe('chantier 25 — transparence du recalcul (H13/H15)', () => {
+  it('toutes les tables déjà animées → avertir que les modérateurs en plus ne changent rien', () => {
+    const base = { members: balanced(25), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true }
+    const a = runAllocation(base)
+    const b = runAllocation({ ...base, extraModerators: 3 })
+    // Comportement inchangé (conforme au §4), mais désormais expliqué.
+    expect(b.tables).toHaveLength(a.tables.length)
+    expect(b.warnings.join(' ')).toContain('déjà toutes animées')
+  })
+
+  it('le nombre d’enregistreurs visé est exposé et expliqué', () => {
+    const r = runAllocation({
+      members: balanced(25), moderatorIds: ['mo-1', 'mo-2'],
+      recorderCount: 4, opinionsAvailable: true,
+    })
+    expect(r.recorderTarget).toBe(4)
+    if (r.tables.some(t => !t.moderated)) {
+      expect(r.warnings.join(' ')).toContain('enregistrables')
+    }
+  })
+
+  it('recorderCount absent → objectif 1 (garantie minimale de la règle 2)', () => {
+    const r = runAllocation({ members: balanced(25), moderatorIds: [], opinionsAvailable: true })
+    expect(r.recorderTarget).toBe(1)
+  })
+})
