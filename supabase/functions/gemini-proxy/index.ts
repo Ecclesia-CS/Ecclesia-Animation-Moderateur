@@ -297,10 +297,17 @@ Réponds UNIQUEMENT avec un objet JSON, sans texte avant ni après, sans balises
 
 // ── Appel Gemini ──────────────────────────────────────────────
 
+// Modèle Gemini effectivement appelé — exposé dans `usage.model` (F19)
+// pour que le rapport de tokens affiche le modèle réel plutôt qu'une
+// valeur supposée côté frontend.
+const MODEL_NAME = 'gemini-2.5-flash-lite'
+
 interface GeminiUsage {
   prompt_tokens: number
   completion_tokens: number
   total_tokens: number
+  thoughts_tokens: number
+  model: string
 }
 
 interface GeminiCallResult {
@@ -309,7 +316,7 @@ interface GeminiCallResult {
 }
 
 async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallResult> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`
 
   const geminiRes = await fetch(url, {
     method: 'POST',
@@ -331,6 +338,7 @@ async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallRes
       promptTokenCount?: number
       candidatesTokenCount?: number
       totalTokenCount?: number
+      thoughtsTokenCount?: number
     }
   }
 
@@ -352,10 +360,15 @@ async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallRes
     throw new GeminiError('Gemini response is not an array', cleaned)
   }
 
+  // F22 : les 3 champs sont les valeurs brutes retournées par Google,
+  // jamais recalculées côté serveur (total_tokens peut inclure les
+  // tokens de réflexion, cf. thoughts_tokens — ne pas faire prompt+completion).
   const usage: GeminiUsage = {
     prompt_tokens:      geminiData.usageMetadata?.promptTokenCount      ?? 0,
     completion_tokens:  geminiData.usageMetadata?.candidatesTokenCount   ?? 0,
     total_tokens:       geminiData.usageMetadata?.totalTokenCount        ?? 0,
+    thoughts_tokens:    geminiData.usageMetadata?.thoughtsTokenCount     ?? 0,
+    model:              MODEL_NAME,
   }
 
   return { results: parsed, usage }
@@ -367,7 +380,7 @@ interface GeminiSingleResult {
 }
 
 async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiSingleResult> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`
 
   const geminiRes = await fetch(url, {
     method: 'POST',
@@ -399,6 +412,7 @@ async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiS
       promptTokenCount?: number
       candidatesTokenCount?: number
       totalTokenCount?: number
+      thoughtsTokenCount?: number
     }
   }
 
@@ -429,6 +443,8 @@ async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiS
     prompt_tokens:     geminiData.usageMetadata?.promptTokenCount     ?? 0,
     completion_tokens: geminiData.usageMetadata?.candidatesTokenCount ?? 0,
     total_tokens:      geminiData.usageMetadata?.totalTokenCount      ?? 0,
+    thoughts_tokens:   geminiData.usageMetadata?.thoughtsTokenCount   ?? 0,
+    model:             MODEL_NAME,
   }
 
   return { result: { name: obj.name as string, description: obj.description as string }, usage }
