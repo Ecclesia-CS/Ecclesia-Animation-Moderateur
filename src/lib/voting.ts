@@ -420,16 +420,12 @@ export async function getSessionVotingStats(
 export async function updateSessionConfig(
   password: string,
   sessionId: string,
-  moderationPolicy: ModerationPolicy,
-  voteTimerMinutes: number | null,
-  voteThresholdPercent: number | null
+  moderationPolicy: ModerationPolicy
 ): Promise<Session> {
   const { data, error } = await supabase.rpc('update_session_config', {
     p_password: password,
     p_session_id: sessionId,
     p_moderation_policy: moderationPolicy,
-    p_vote_timer_minutes: voteTimerMinutes,
-    p_vote_threshold_percent: voteThresholdPercent,
   })
   if (error) throw new Error(extractErr(error))
   return data as Session

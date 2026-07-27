@@ -315,7 +315,7 @@ export default function ParticipantView() {
       {showBecomeModConfirm && (
         <ConfirmModal
           title="Devenir modérateur de cette table ?"
-          body="Vous serez responsable de donner la parole aux participants. Cette table n'aura plus besoin de l'auto-gestion par file."
+          body="En devenant animateur de cette table, tu n'auras plus le statut de participant au débat. Tu modéreras, mais tu ne participeras pas : tu seras responsable de donner la parole aux participants, et cette table n'aura plus besoin de l'auto-gestion par file."
           confirmLabel="Devenir modérateur"
           onConfirm={handleBecomeModerator}
           onCancel={() => setShowBecomeModConfirm(false)}

@@ -62,7 +62,7 @@ Après tout test navigateur, ou toute implémentation dont le comportement reste
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `vote_timer_minutes?` (int), `vote_threshold_percent?` (int), `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
 
 Phase order : `draft → pre_voting → voting → allocating → debating → questionnaire → closed`
 - `pre_voting` : vote ouvert à distance, `attending_in_person = false` par défaut. Pas d'onboarding.
@@ -163,7 +163,7 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `set_session_phase(password, session_id, phase)` | Change la phase (inclut `pre_voting`) |
 | `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire — **filtre `attending_in_person = true`** → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}` |
 | `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène PCA — **filtre `attending_in_person = true`** → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. Les membres présents sans votes sont distribués aléatoirement. |
-| `update_session_config(password, session_id, moderation_policy, vote_timer_minutes, vote_threshold_percent)` | Met à jour la configuration de vote. `moderation_policy` ∈ `('open','closed','ai')` |
+| `update_session_config(password, session_id, moderation_policy)` | Met à jour la politique de modération. `moderation_policy` ∈ `('open','closed','ai')`. **Chantier 22 / G14** : ne prend plus `vote_timer_minutes`/`vote_threshold_percent` — colonnes supprimées, timers de phase retirés de l'app (gestion de la durée entièrement manuelle, hors application) |
 | `update_group_names(password, session_id, group_names)` | Persiste les noms de groupes Gemini en DB (`sessions.group_names`). Appelé par `SuperadminScreen` après chaque génération Gemini (en parallèle du localStorage). |
 | `assign_table_to_group(password, session_id, table_number, table_id?)` | Rattache une table physique à un groupe logique (NULL = désassigner). Met aussi à jour `tables.session_id`. |
 | `get_all_votes_for_analysis(password, session_id, attending_only?)` | Retourne tous les votes avec `attending_in_person` par vote. Si `attending_only=true` : filtre présentiels uniquement. |
@@ -227,8 +227,7 @@ src/
     │   ├── TableDiagnosticsList.tsx  **Chantier 19** — tableau de bord d'une liste de tables : composition par camp (barre colorée), 4 badges de seuil, badge enregistrable. Purement présentationnel → le parent passe des diagnostics recalculés, d'où la « mise à jour en direct » après glisser-déposer.
     │   ├── TableAssignmentCard.tsx   Carte groupe + nom camp (prop groupName) + join_code + bouton rejoindre
     │   ├── VoteResultsSummary.tsx    Résumé des votes — top 3 consensus + 2 dissensus (assertions + consensus_score)
-    │   ├── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
-    │   └── VoteTimerBadge.tsx        Countdown timer de vote (vote_timer_minutes)
+    │   └── VoteResultsList.tsx       Liste complète de toutes les assertions approuvées, triée par consensus_score décroissant
     ├── AnalysisPanel.tsx         Scatter PCA, assertions clivantes/consensuelles. Props: groupNames?: GroupNameResult[], totalMembers?: number, sessionPhase?: string. Section Automatisation : toggle auto-analyse + slider 1-15 min (actif si phase=voting ou pre_voting). Légende scatter : nom + description du groupe (depuis groupNames). En-têtes "Assertions clivantes" : nom + description en gris sous le nom coloré. Toggle "Tous les votants / Présentiels uniquement" : recharge les votes avec `attendingOnly=true`, recalcule repness/consensus localement sans sauvegarder.
     ├── SpeakerTimer.tsx          Chrono avec offsetMs
     ├── QueuePanel.tsx            File DnD (useDroppable + SortableContext + ghostId)
@@ -357,7 +356,7 @@ Flux complet :
 
 `moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`. `= 'ai'` : `pending`, modération automatique par Gemini via `LLMModerationPanel` (setInterval configurable).
 
-`vote_timer_minutes` / `vote_threshold_percent` : configurés à la création ou via update, NULL = désactivé.
+**Chantier 22 / G14** : plus de timer/seuil de phase — colonnes `vote_timer_minutes`/`vote_threshold_percent` supprimées de `sessions`. La durée de chaque phase est gérée entièrement à la main par l'organisateur, hors application ; les transitions de phase restent des boutons superadmin.
 
 Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom).
 

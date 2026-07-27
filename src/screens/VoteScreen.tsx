@@ -9,7 +9,6 @@ import OnboardingForm from '../components/voting/OnboardingForm'
 import AssertionCard from '../components/voting/AssertionCard'
 import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
-import VoteTimerBadge from '../components/voting/VoteTimerBadge'
 import NotesModal from '../components/NotesModal'
 import AllocatingScreen from './AllocatingScreen'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
@@ -69,6 +68,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Message d'intro affiché une fois par séance : explique les phases de l'app
   const [showAppIntro, setShowAppIntro] = useState(false)
 
+  // G12 — pop-up unique annonçant le vote à distance (pre_voting), remplace l'ancienne bannière inline
+  const [showPreVotingAnnounce, setShowPreVotingAnnounce] = useState(false)
+
   // Proposition nudge every 10 votes
   const [nextNudgeAt,      setNextNudgeAt]      = useState(10)
   const [showProposalNudge, setShowProposalNudge] = useState(false)
@@ -126,6 +128,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       // Message d'intro "comment fonctionne l'app" — une fois par séance
       if (!localStorage.getItem(`ecclesia_app_intro_${s.id}`)) {
         setShowAppIntro(true)
+      }
+
+      // G12 — annonce du vote à distance, une fois par séance, uniquement en pre_voting
+      if (s.phase === 'pre_voting' && !localStorage.getItem(`ecclesia_prevoting_announce_${s.id}`)) {
+        setShowPreVotingAnnounce(true)
       }
 
       // 3. Check if already a member
@@ -649,7 +656,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        {showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        {showPreVotingAnnounce
+          ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
+          : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">⏳</div>
@@ -677,7 +686,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   if (step === 'pseudo' && session) {
-    const intro = showAppIntro ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} /> : null
+    const intro = showPreVotingAnnounce
+      ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
+      : showAppIntro ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} /> : null
     // En phase voting : formulaire combiné pseudo OU code (pas de double écran)
     if (session.phase === 'voting') {
       return (
@@ -722,7 +733,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        {showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        {showPreVotingAnnounce
+          ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
+          : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
         <AttendanceConfirmScreen
           session={session}
           pseudo={confirmPseudo}
@@ -768,12 +781,6 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             </h1>
             <p className="text-xs text-gray-500">{member.pseudo}</p>
           </div>
-          {session.vote_timer_minutes != null && session.phase_changed_at != null && (
-            <VoteTimerBadge
-              phaseChangedAt={session.phase_changed_at}
-              timerMinutes={session.vote_timer_minutes}
-            />
-          )}
           <div className="flex items-center gap-2">
             <button
               onClick={() => { window.location.hash = '' }}
@@ -1161,7 +1168,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           </div>
         )}
 
-        {showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        {showPreVotingAnnounce
+          ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
+          : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
       </div>
     )
   }
@@ -1185,9 +1194,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
     onClose()
   }
 
-  const voteDuration = session.vote_timer_minutes
-    ? `Les ${session.vote_timer_minutes} premières minutes sont dédiées au vote.`
-    : "Prends le temps qu'il te faut pour voter sur les assertions."
+  const voteDuration = "Prends le temps qu'il te faut pour voter sur les assertions."
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
@@ -1235,6 +1242,51 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
           >
             Compris, c'est parti →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── PreVotingAnnounceModal ───────────────────────────────────────────────────
+// G12 — annonce du vote à distance, affichée une seule fois par séance (localStorage),
+// remplace l'ancienne bannière inline de PseudoForm (trop discrète / encombrante sur mobile)
+
+interface PreVotingAnnounceModalProps {
+  session: Session
+  onClose: () => void
+}
+
+function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProps) {
+  function handleClose() {
+    localStorage.setItem(`ecclesia_prevoting_announce_${session.id}`, '1')
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+      onClick={handleClose}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="bg-amber-500 px-6 py-5 text-center">
+          <p className="text-2xl mb-1">🗳️</p>
+          <h2 className="text-lg font-bold text-white">Vote à distance ouvert</h2>
+          <p className="text-amber-50 text-xs mt-1">{session.title}</p>
+        </div>
+        <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
+          <p>Tu peux voter dès maintenant depuis chez toi.</p>
+          <p>
+            Si tu comptes venir au débat, <strong>retiens bien le nom et prénom</strong> que
+            tu vas indiquer — ça te permettra de retrouver tes votes sur place.
+          </p>
+        </div>
+        <div className="px-6 pb-6">
+          <button
+            onClick={handleClose}
+            className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Compris →
           </button>
         </div>
       </div>

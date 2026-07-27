@@ -33,7 +33,6 @@ import {
   loadAllocationInputs, setMemberModerator,
 } from '../lib/voting'
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
-import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
 import TableDiagnosticsList, { CampCompositionBar } from '../components/voting/TableDiagnosticsList'
@@ -643,8 +642,6 @@ function CreateModal({
   const [docInfoUrl, setDocInfoUrl]     = useState('')
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
-  const [voteTimerMinutes, setVoteTimerMinutes]     = useState('')
-  const [voteThresholdPercent, setVoteThresholdPercent] = useState('')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -662,11 +659,9 @@ function CreateModal({
         docInfoUrl || undefined,
         docSummaryUrl || undefined,
       )
-      // Apply vote config if any field is set
-      const timerVal = voteTimerMinutes ? parseInt(voteTimerMinutes, 10) : null
-      const thresholdVal = voteThresholdPercent ? parseInt(voteThresholdPercent, 10) : null
-      if (moderationPolicy !== 'closed' || timerVal !== null || thresholdVal !== null) {
-        await updateSessionConfig(password, session.id, moderationPolicy, timerVal, thresholdVal)
+      // Apply moderation policy if not the default
+      if (moderationPolicy !== 'closed') {
+        await updateSessionConfig(password, session.id, moderationPolicy)
       }
       onCreated(session)
     } catch (e) {
@@ -749,50 +744,23 @@ function CreateModal({
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               Configuration du vote <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['closed', 'open', 'ai'] as const).map(val => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => setModerationPolicy(val)}
-                      className={`py-2 px-3 rounded-xl border-2 text-xs font-medium transition-all ${
-                        moderationPolicy === val
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-200 text-gray-600 hover:border-indigo-200'
-                      }`}
-                    >
-                      {val === 'closed' ? '🔒 Fermée (validation requise)' : val === 'open' ? '🔓 Ouverte (immédiat)' : '🤖 Gérée par IA'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Durée du vote (min)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={voteTimerMinutes}
-                    onChange={e => setVoteTimerMinutes(e.target.value)}
-                    placeholder="Sans timer"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-300"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Seuil automatique (%)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={voteThresholdPercent}
-                    onChange={e => setVoteThresholdPercent(e.target.value)}
-                    placeholder="Sans seuil"
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-300"
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['closed', 'open', 'ai'] as const).map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setModerationPolicy(val)}
+                    className={`py-2 px-3 rounded-xl border-2 text-xs font-medium transition-all ${
+                      moderationPolicy === val
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 text-gray-600 hover:border-indigo-200'
+                    }`}
+                  >
+                    {val === 'closed' ? '🔒 Fermée (validation requise)' : val === 'open' ? '🔓 Ouverte (immédiat)' : '🤖 Gérée par IA'}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -1128,12 +1096,9 @@ function SessionDetail({
   // diagnostics quand le superadmin déplace quelqu'un (§7).
   const [allocInputs,    setAllocInputs]    = useState<AllocationInputs | null>(null)
 
-  // ── C3 : clustering + timer + threshold ───────────────────
+  // ── C3 : clustering ────────────────────────────────────────
   const [showClusteringModal, setShowClusteringModal] = useState(false)
   const [hasAnalysisDone,     setHasAnalysisDone]     = useState(false)
-  const [showTimerAlert,        setShowTimerAlert]        = useState(false)
-  const [showThresholdAlert,   setShowThresholdAlert]   = useState(false)
-  const thresholdAlertShownRef = useRef(false)
 
   // ── C5 : groupes et assignation ───────────────────────────
   const [groups,          setGroups]          = useState<GroupRow[]>([])
@@ -1291,21 +1256,6 @@ function SessionDetail({
     const interval = setInterval(loadStats, 15000)
     return () => clearInterval(interval)
   }, [loadStats, showVotingSections])
-
-  // Threshold alert — fires at most once per session detail view
-  useEffect(() => {
-    if (thresholdAlertShownRef.current) return
-    if (currentSession.phase !== 'voting') return
-    if (!votingStats) return
-    const threshold = currentSession.vote_threshold_percent
-    if (threshold == null) return
-    if (votingStats.member_count === 0) return
-    const pct = (votingStats.voter_count / votingStats.member_count) * 100
-    if (pct >= threshold) {
-      thresholdAlertShownRef.current = true
-      setShowThresholdAlert(true)
-    }
-  }, [votingStats, currentSession.phase, currentSession.vote_threshold_percent])
 
   // ── C5 : loadGroups ──────────────────────────────────────────
   const loadGroups = useCallback(async () => {
@@ -1974,7 +1924,6 @@ function SessionDetail({
                       <VotingStatsPanel
                         stats={votingStats}
                         session={currentSession}
-                        onTimerExpired={() => setShowTimerAlert(true)}
                         onTriggerClustering={() => setShowClusteringModal(true)}
                       />
                     ) : null}
@@ -1998,11 +1947,7 @@ function SessionDetail({
                   currentPolicy={currentSession.moderation_policy}
                   onSave={async (policy) => {
                     const pwd = getPwd()!
-                    await updateSessionConfig(
-                      pwd, currentSession.id, policy,
-                      currentSession.vote_timer_minutes,
-                      currentSession.vote_threshold_percent,
-                    )
+                    await updateSessionConfig(pwd, currentSession.id, policy)
                     setCurrentSession(prev => ({ ...prev, moderation_policy: policy }))
                     if (policy === 'open') {
                       const pending = assertions.filter(a => a.status === 'pending')
@@ -2849,26 +2794,6 @@ function SessionDetail({
         />
       )}
 
-      {showTimerAlert && (
-        <ConfirmModal
-          title="⏰ Timer écoulé"
-          body="Le temps de vote configuré est écoulé. Voulez-vous lancer le clustering maintenant ?"
-          confirmLabel="🔀 Lancer le clustering"
-          onConfirm={() => { setShowTimerAlert(false); setShowClusteringModal(true) }}
-          onCancel={() => setShowTimerAlert(false)}
-        />
-      )}
-
-      {showThresholdAlert && (
-        <ConfirmModal
-          title="✅ Seuil de participation atteint"
-          body={`${currentSession.vote_threshold_percent}% des participants ont voté. Voulez-vous lancer le clustering maintenant ?`}
-          confirmLabel="🔀 Lancer le clustering"
-          onConfirm={() => { setShowThresholdAlert(false); setShowClusteringModal(true) }}
-          onCancel={() => setShowThresholdAlert(false)}
-        />
-      )}
-
       {showClusteringModal && votingStats && (
         <ClusteringModal
           stats={votingStats}
@@ -3131,38 +3056,16 @@ function SectionAccordion({
 function VotingStatsPanel({
   stats,
   session,
-  onTimerExpired,
   onTriggerClustering,
 }: {
   stats: SessionVotingStats
   session: SessionRow
-  onTimerExpired(): void
   onTriggerClustering(): void
 }) {
-  const voterPct = stats.member_count > 0
-    ? Math.round((stats.voter_count / stats.member_count) * 100)
-    : 0
-  const threshold = session.vote_threshold_percent
-
-  const showTimer = session.phase === 'voting'
-    && session.vote_timer_minutes != null
-    && session.phase_changed_at != null
-
   const showClusterBtn = session.phase === 'voting'
 
   return (
     <div className="space-y-3">
-      {/* Timer row */}
-      {showTimer && (
-        <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-xl px-3 py-2">
-          <span className="text-xs font-medium text-orange-700">⏱ Temps restant</span>
-          <TimerCountdown
-            deadline={new Date(session.phase_changed_at!).getTime() + session.vote_timer_minutes! * 60 * 1000}
-            onExpired={onTimerExpired}
-          />
-        </div>
-      )}
-
       <div className="grid grid-cols-2 gap-3">
         {[
           { emoji: '👥', label: 'Participants inscrits',    val: stats.member_count },
@@ -3194,24 +3097,6 @@ function VotingStatsPanel({
         </div>
       )}
 
-      {threshold != null && (
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Participation au vote</span>
-            <span className="font-medium">{voterPct}% / seuil {threshold}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${voterPct >= threshold ? 'bg-green-500' : 'bg-indigo-500'}`}
-              style={{ width: `${Math.min(voterPct, 100)}%` }}
-            />
-          </div>
-          {voterPct >= threshold && (
-            <p className="text-xs text-green-600 font-medium">✅ Seuil atteint</p>
-          )}
-        </div>
-      )}
-
       {/* Clustering trigger */}
       {showClusterBtn && (
         <button
@@ -3229,31 +3114,6 @@ function VotingStatsPanel({
 // supprimés avec get_moderator_responses : la question « tiens-tu à être avec
 // un modérateur ? » n'est plus posée (onboarding réduit à 3 questions) et le
 // besoin d'encadrement est traité par la règle 5 de l'allocation v2.
-
-// ── TimerCountdown (leaf — uses useLiveMs) ────────────────────────
-
-function TimerCountdown({ deadline, onExpired }: { deadline: number; onExpired(): void }) {
-  const now      = useLiveMs()
-  const firedRef = useRef(false)
-  const remaining = deadline - now
-
-  useEffect(() => {
-    if (!firedRef.current && remaining <= 0) {
-      firedRef.current = true
-      onExpired()
-    }
-  }, [remaining, onExpired])
-
-  if (remaining <= 0) {
-    return <span className="text-xs font-bold text-orange-700">Écoulé</span>
-  }
-
-  return (
-    <span className="text-xs font-bold text-orange-700 font-mono">
-      {formatDuration(remaining)}
-    </span>
-  )
-}
 
 // ── DnD primitives pour les groupes ──────────────────────────────
 

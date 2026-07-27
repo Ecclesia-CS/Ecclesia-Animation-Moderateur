@@ -2,7 +2,9 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 27/07/2026 — **Chantier 21 : flow d'entrée modérateur & refonte menu participant livré** (G8/G9/G10/G11) — onglet « Modérateur » (remplace « Voter ») auto-déclarant via `claim_moderator_status`, fusion des onglets Rejoindre/Reprendre avec bouton « Je suis modérateur », fallback superadmin (G9) déjà suffisant depuis le chantier 19. Bug corrigé en passant : `AllocatingScreen.handleJoin` codait `isModerator` en dur à `false`, empêchant tout modérateur assigné par l'allocation d'arriver en `ModeratorView` au passage en `debating`. Développé en worktree dédié (`chantier-21-flow-moderateur`) en parallèle du chantier 20 — aucun chevauchement de fichiers constaté. **Reste le parcours fonctionnel navigateur complet** (mot de passe superadmin requis) : voir A_VERIFIER.md.
+Dernière mise à jour : 27/07/2026 — **Chantier 22 : petits ajustements UX livrés** (G12/G13/G14) — pop-up unique remplaçant la bannière `pre_voting` (mémorisée en localStorage), message de clarification sur la perte du statut de participant en devenant animateur d'une table sans admin, suppression complète des timers de phase (`vote_timer_minutes`/`vote_threshold_percent` retirés du schéma et du front). Migration `20260727_2_chantier22_remove_vote_timers.sql` **non appliquée** (MCP Supabase indisponible cette session) — fournie en clair à Jules pour application manuelle. Développé en worktree dédié (`chantier-22-ajustements-ux`) en parallèle du chantier 11, après avoir détecté et résolu une collision de dossier de travail partagé avec cette session concurrente (aucune perte de travail). **Reste le parcours fonctionnel navigateur complet** (données de test `pre_voting`/`leaderless` + mot de passe superadmin requis) : voir A_VERIFIER.md.
+
+Mise à jour précédente : 27/07/2026 — **Chantier 21 : flow d'entrée modérateur & refonte menu participant livré** (G8/G9/G10/G11) — onglet « Modérateur » (remplace « Voter ») auto-déclarant via `claim_moderator_status`, fusion des onglets Rejoindre/Reprendre avec bouton « Je suis modérateur », fallback superadmin (G9) déjà suffisant depuis le chantier 19. Bug corrigé en passant : `AllocatingScreen.handleJoin` codait `isModerator` en dur à `false`, empêchant tout modérateur assigné par l'allocation d'arriver en `ModeratorView` au passage en `debating`. Développé en worktree dédié (`chantier-21-flow-moderateur`) en parallèle du chantier 20 — aucun chevauchement de fichiers constaté. **Reste le parcours fonctionnel navigateur complet** (mot de passe superadmin requis) : voir A_VERIFIER.md.
 
 Mise à jour précédente : 25/07/2026 — **Chantier 19 (Vague 3) : algorithme d'allocation v2 livré ET les 3 migrations sont APPLIQUÉES en base** (`chantier19_onboarding_3_questions`, `chantier19_allocation_v2`, `chantier19_deprecate_chantier5`, versions `20260725120352/120433/120442`). Appliquées et vérifiées directement par Claude via le MCP Supabase, devenu disponible en cours de session (projet `plpjiehqsxxakbuykmkm`). Remplace la livraison de juillet sur B1/B2/E4 du chantier 5. Vérifications en base : conversion `ecclesia_experience` exacte (18 anciens / 6 nouveaux), `is_moderator` présent sur les 61 membres, les 5 nouvelles RPC joignables en rôle `anon` et échouant au bon contrôle d'auth, `get_moderator_responses`/`run_clustering_v3` supprimées, v1/v2 conservées. **Reste le parcours fonctionnel navigateur** (mot de passe superadmin requis) : voir A_VERIFIER.md.
 
@@ -74,6 +76,17 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 | G11 | Renommer l'onglet fusionné | Fait — « Rejoindre ou reprendre une table » | Claude | G10 |
 
 ⚠️ Correction associée (hors périmètre G8-G11 mais indispensable) : `AllocatingScreen.handleJoin` codait `isModerator` en dur à `false` — corrigé pour lire `member.is_moderator`, sans quoi un modérateur assigné par l'allocation v2 (chantier 19) rejoignait sa table comme participant ordinaire.
+
+## Chantier 22 — Petits ajustements UX liés (Vague 3)
+> Amendements : `docs/VAGUE3-amendements-allocation.md` § « Phase pre_voting — message d'annonce », § « Table leaderless — message de clarification », § « Suppression des notions de durée par phase »
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| G12 | Pop-up unique pre_voting (remplace la bannière inline) | Fait — `PreVotingAnnounceModal` dans `VoteScreen.tsx`, mémorisée en localStorage. **À vérifier fonctionnellement** (nécessite une séance en `pre_voting`) — voir A_VERIFIER.md | Claude | — |
+| G13 | Message de clarification « devenir animateur » (table leaderless) | Fait — texte de confirmation enrichi dans `ParticipantView.tsx` | Claude | — |
+| G14 | Suppression des timers de phase | Fait — `vote_timer_minutes`/`vote_threshold_percent` retirés du type `Session`, de `update_session_config`, et de toute l'UI superadmin (VotingStatsPanel, alertes timer/seuil, formulaire de création). Migration `20260727_2_chantier22_remove_vote_timers.sql` **non appliquée** (MCP Supabase indisponible) | Claude | — |
+
+⚠️ Développé en worktree dédié (`chantier-22-ajustements-ux` → `C:\Users\jules\projet\Ecclesia-chantier-22`) après avoir détecté que le dossier de travail partagé contenait déjà le travail non commité de la session concurrente du chantier 11 (QR codes déplacés vers Outils/Outils Modo) — collision résolue par `git stash`/restauration sur `main` sans perte, puis isolation dans un worktree. Voir A_VERIFIER.md pour le détail.
 
 ## Chantier 6 — Analyse des camps (Gemini)
 | ID | Résumé | Statut | Contributeur | Dépend de |

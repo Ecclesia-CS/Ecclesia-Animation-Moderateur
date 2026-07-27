@@ -46,14 +46,6 @@ export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFo
           )}
         </div>
 
-        {/* Contexte pré-vote */}
-        {session.phase === 'pre_voting' && (
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 text-left">
-            <strong>Vote à distance ouvert.</strong> Tu peux voter dès maintenant depuis chez toi.
-            Si tu comptes venir au débat, <strong>retiens bien ce que tu inscris ci-dessous</strong> — ça te permettra de retrouver tes votes.
-          </div>
-        )}
-
         {/* Contexte vote présentiel */}
         {session.phase === 'voting' && (
           <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
