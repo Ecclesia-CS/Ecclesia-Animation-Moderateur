@@ -12,9 +12,10 @@
 // phase `voting`/`pre_voting` (groupes issus des clusters k-means) — E3.
 // =============================================================
 
-import { nameSingleGroup } from './gemini'
+import { nameSingleGroup, GenericNameError } from './gemini'
 import { recordAiUsage } from './aiUsage'
 import type { GroupNameResult } from './types'
+import type { AiUsageDetail } from './aiUsage'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -142,21 +143,35 @@ export async function generateGroupNames(
   }
 
   const allNames: GroupNameResult[] = []
-  let totalTokens = 0
   let geminiCount = 0
+  // F21 : agrégat de TOUTES les tentatives (y compris rejetées par la regex
+  // anti-générique) — ces tokens sont réellement consommés côté API et ne
+  // doivent pas être jetés silencieusement au retry.
+  const usageAgg: AiUsageDetail = {
+    prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, thoughts_tokens: 0, model: '',
+  }
+
+  function addUsage(u: AiUsageDetail) {
+    usageAgg.prompt_tokens     += u.prompt_tokens
+    usageAgg.completion_tokens += u.completion_tokens
+    usageAgg.total_tokens      += u.total_tokens
+    usageAgg.thoughts_tokens   += u.thoughts_tokens
+    if (u.model) usageAgg.model = u.model
+  }
 
   for (const g of groups) {
     let named: GroupNameResult | null = null
     for (let attempt = 0; attempt < 2 && !named; attempt++) {
       try {
-        const { result, tokens_used } = await nameSingleGroup({
+        const { result, usage } = await nameSingleGroup({
           ...commonPayload,
           target_table_number: g.table_number,
         })
         named = result
-        totalTokens += tokens_used
+        addUsage(usage)
         geminiCount += 1
-      } catch {
+      } catch (e) {
+        if (e instanceof GenericNameError) addUsage(e.usage)
         // retry silencieux (inclut le rejet des noms génériques "Groupe N")
       }
     }
@@ -170,8 +185,8 @@ export async function generateGroupNames(
     }
   }
 
-  if (geminiCount > 0) {
-    recordAiUsage(sessionId, 'name_groups', `${geminiCount} camp(s) nommé(s) par IA`, totalTokens)
+  if (usageAgg.total_tokens > 0) {
+    recordAiUsage(sessionId, 'name_groups', `${geminiCount} camp(s) nommé(s) par IA`, usageAgg)
   }
 
   return allNames.sort((a, b) => a.table_number - b.table_number)

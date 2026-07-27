@@ -945,6 +945,12 @@ function SessionDetail({
   const [deletingRespId,     setDeletingRespId]     = useState<string | null>(null)
   const [themesOpen,         setThemesOpen]         = useState(false)
   const [responsesOpen,      setResponsesOpen]      = useState(false)
+  const [staffOpen,          setStaffOpen]          = useState(false)
+  // F15 — zoom recrutement : réponses où staff_interest est renseigné (texte libre)
+  const staffInterestResponses = React.useMemo(
+    () => responses.filter(r => r.staff_interest),
+    [responses],
+  )
 
   // ── Collab sources data ────────────────────────────────────────
   const [sources,             setSources]             = useState<CollabSource[]>([])
@@ -2613,6 +2619,45 @@ function SessionDetail({
                   )}
                 </section>
 
+                {/* Recrutement modérateurs — F15 : zoom sur qui a répondu vouloir
+                    staffer au questionnaire de fin de séance (staff_interest, texte
+                    libre). Signal de recrutement pur, indépendant de session_members.
+                    is_moderator (modérateur POUR cette séance, utilisé par l'algo
+                    d'allocation) — voir CLAUDE.md. */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setStaffOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left
+                      hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      🙋 Recrutement modérateurs
+                      {staffInterestResponses.length > 0 && (
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({staffInterestResponses.length})
+                        </span>
+                      )}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${staffOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {staffOpen && (
+                    <div className="border-t border-gray-100 px-5 py-4">
+                      <p className="text-xs text-gray-400 mb-3">
+                        Personnes ayant répondu vouloir aider (modérer, préparer les fiches, communication…)
+                        au questionnaire de fin de séance — à solliciter pour de futures séances. Sans lien
+                        avec « modérateur pour cette séance » (onglet Participants).
+                      </p>
+                      <StaffInterestList responses={staffInterestResponses} loading={responsesLoading} />
+                    </div>
+                  )}
+                </section>
+
                 {/* Sources collaboratives */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <button
@@ -4035,6 +4080,52 @@ function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExport
             <span className="text-xs text-gray-400 shrink-0 w-12 text-right">
               {s.count} vote{s.count > 1 ? 's' : ''}
             </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── StaffInterestList (F15) ────────────────────────────────────────
+// Zoom recrutement : liste des réponses où staff_interest (texte libre,
+// nom + contact) est renseigné. Signal indépendant de session_members.
+// is_moderator — voir CLAUDE.md.
+
+function StaffInterestList({
+  responses, loading,
+}: {
+  responses: QuestionnaireExportRow[]
+  loading: boolean
+}) {
+  if (loading) return (
+    <div className="flex justify-center py-6">
+      <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+    </div>
+  )
+  if (responses.length === 0) return (
+    <p className="text-xs text-gray-400">Personne n'a manifesté d'intérêt pour l'instant.</p>
+  )
+  return (
+    <div className="divide-y divide-gray-100">
+      {responses.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('fr-FR', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        })
+        return (
+          <div key={r.id} className="py-3 flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs text-gray-400 tabular-nums">{date}</span>
+                {r.table_join_code && (
+                  <span className="font-mono text-xs text-indigo-600 tracking-widest">
+                    {r.table_join_code}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{r.staff_interest}</p>
+            </div>
           </div>
         )
       })}
