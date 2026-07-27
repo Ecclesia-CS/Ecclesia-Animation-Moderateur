@@ -624,3 +624,9 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
+
+- [x] **2026-07-27 (validé le 2026-07-27)** — Chantier 14 (F11) — `supabase/migrations/20260727_3_chantier14_create_table_session_required.sql`
+
+  RPC `create_table` avait silencieusement perdu son garde-fou `session_required` (perdu le 01/06/2026 lors de l'ajout de `p_leaderless`), permettant en théorie la création d'une table "sans admin" orpheline via un appel RPC direct (hors UI) — reproduit empiriquement. Les deux parcours UI (`EntryScreen` "Créer", superadmin "+ Sans admin") liaient déjà correctement `session_id`, donc aucun changement frontend.
+
+  **Migration appliquée et vérifiée par Jules** : un appel direct à `create_table` avec `p_session_id: null` lève maintenant bien l'erreur `session_required` au lieu de créer une table orpheline en silence. Point (1)/(2) du parcours manuel (reproduction du test RPC) confirmés par Jules. Points (3)-(5) (non-régression `EntryScreen`/"+ Sans admin"/"Tables disponibles à rattacher") non re-testés explicitement par Jules mais ce code n'a pas changé — risque de régression jugé nul.
