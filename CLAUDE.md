@@ -203,6 +203,7 @@ src/
 │   │                     **Ne peut jamais échouer** : dégradation par l'ordre lexicographique (règle 5 sacrifiée d'abord, règle 1 en dernier). Recherche locale **déterministe** (graine fixe `DEFAULT_SEED`) et budget d'évaluations borné. Tests : `src/lib/allocation.test.ts` (`npm test`, 41 cas).
 │   ├── gemini.ts         Client Edge Function Gemini (moderateAssertions, mergeAssertions, nameIdeologicalGroups, nameSingleGroup) — jamais d'appel direct à api.google.com
 │   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`. `loadVotesForAnalysis` accepte `attendingOnly?: boolean`.
+│   ├── groupNaming.ts    Orchestration du nommage des camps (Gemini + repli descriptif). `namingGroupsFromAnalysis(members)` — **seule** façon autorisée de construire la liste à nommer (invariant : `table_number` = `group_id + 1`, cf. « Ne jamais faire »). `discriminatingAssertions()` — top 3 des assertions où un camp s'écarte du reste, envoyées en `divisive_assertions` à Gemini (chantier 28 / H9). `groupsFingerprint()` — empreinte de composition, évite de rappeler Gemini. Tests : `src/lib/groupNaming.test.ts` (12 cas).
 │   ├── storage.ts        tableStore.get/set/clear (localStorage) + lastNameStore.get/set (dernier nom prénom saisi, préremplit les formulaires d'identité — D7)
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
 ├── hooks/
@@ -339,6 +340,7 @@ Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
 - **Faire lever une exception à l'allocation v2** — l'algorithme ne doit *jamais* échouer : le jour de la séance, rien ne doit pouvoir bloquer le passage en débat. Une règle non satisfaisable se **dégrade** (ordre lexicographique), elle ne lève pas. Ne pas ajouter de garde bloquante dans `runAllocation` ni dans `apply_allocation` ; les seules erreurs admises sont un mot de passe invalide et un payload vide.
 - **Rendre l'allocation v2 non déterministe** — `Math.random()` est interdit dans `src/lib/allocation.ts` (PRNG `mulberry32` à graine fixe uniquement). Le superadmin doit pouvoir relancer le calcul et retomber sur la même répartition ; un résultat qui change entre deux clics n'est pas acceptable (§6).
 - **Compter les modérateurs comme des sièges** — un modérateur (`session_members.is_moderator`) n'occupe pas de place, ne compte ni comme actif ni comme passif, et son opinion n'entre pas dans le mix d'hétérogénéité de sa table. En revanche ses votes alimentent bien l'analyse globale des camps. `loadAllocationInputs` fait déjà la séparation — ne pas la contourner.
+- **Écrire dans `sessions.group_names` un nommage indexé par table physique** (chantier 28 / H26) — `group_names[].table_number` vaut **toujours** `analysis_members.group_id + 1` (camp d'opinion). Tous les lecteurs indexent ainsi : `ResultsMapScreen`, `AnalysisPanel`, `get_table_opinion_summary`. Construire la liste à nommer uniquement via `namingGroupsFromAnalysis()` (`lib/groupNaming.ts`). Indexer par `table_assignments.table_number` produisait un tableau tronqué (autant d'entrées que de tables, pas de camps) qui écrasait le précédent → camps au-delà anonymes sur l'écran de résultats et noms qui changent tout seuls.
 - **Confondre `group_id` k-means et `table_number` physique** — `analysis_members.group_id` (0-indexé, cluster d'opinion) ≠ `table_assignments.table_number` (1-indexé, table de débat). `run_clustering_v2` mélange intentionnellement les clusters → aucune correspondance garantie. Les `group_names` Gemini sont indexés par numéro de cluster (1 = group_id 0). Dans `ResultsMapScreen`, toujours utiliser `selfGroupId + 1` pour chercher le nom Gemini, jamais `assignment.table_number`.
 
 ---
@@ -375,9 +377,11 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 
 `AllocatingScreen` ajoute un polling 10 s sur la phase de la séance pendant l'étape `allocating`. Couvre la transition `allocating → debating` quand Realtime est indisponible — sans ça, le participant resterait bloqué sans voir le bouton "Rejoindre".
 
-### Nom du camp dans AllocatingScreen
+### Nom du camp dans AllocatingScreen — **supprimé (chantier 28 / H26)**
 
-`AllocatingScreen` lit `localStorage.getItem('group_names_<session.id>')` (tableau `GroupNameResult[]` généré par le superadmin via Gemini) et extrait l'entrée dont `table_number === assignment.table_number`. Passé à `TableAssignmentCard` via prop `groupName?: { name, description }`. Affiché entre le header "Table N" et le code de table. Absent si aucun nom Gemini disponible — aucun fallback affiché.
+`AllocatingScreen` cherchait dans `group_names` l'entrée dont `table_number === assignment.table_number` et la passait à `TableAssignmentCard` via une prop `groupName`. **Retiré** : `group_names` est indexé par camp d'opinion (`group_id + 1`), pas par table physique — l'affichage montrait donc le nom d'un camp arbitraire. Et sous l'allocation v2 la table mélange plusieurs camps par construction, donc aucun nom de camp ne la décrit. `TableAssignmentCard` affiche à la place une phrase expliquant que la table réunit volontairement des avis différents ; le participant découvre son propre camp sur `ResultsMapScreen` en fin de séance.
+
+Pour afficher « ton camp » dès la phase `allocating`, il faudrait une RPC dédiée : `analysis_members` est en RLS *no-select*, le participant ne peut pas lire son `group_id`.
 
 ---
 
@@ -510,4 +514,4 @@ Dossier `transcription-debat/` — **outil offline autonome**, indépendant de l
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
 - Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant
 - Génération de QR code dans l'UI superadmin (actuellement : site externe)
-- Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameSingleGroup` comme `divisive_assertions`
+- ~~Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameSingleGroup` comme `divisive_assertions`~~ — **fait (chantier 28 / H9)** autrement : `groupNaming.discriminatingAssertions()` recalcule côté client, par camp, les 3 assertions où il s'écarte le plus du reste (proxy de `repness`), sans dépendre d'un callback depuis `AnalysisPanel`.

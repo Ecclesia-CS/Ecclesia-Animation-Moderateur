@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getVoteResults, getMyTableAssignment } from '../lib/voting'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
-import type { GroupNameResult, Session, SessionMember, VoteResult } from '../lib/types'
+import type { Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import VoteResultsList from '../components/voting/VoteResultsList'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
@@ -157,23 +157,14 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     return () => clearInterval(interval)
   }, [currentSession.phase, session.id])
 
-  // ── Nom du camp idéologique ────────────────────────────────────────
-  // Priorité 1 : DB via session.group_names (mis à jour en temps réel par Realtime)
-  // Priorité 2 : localStorage superadmin (compatibilité / sessions passées)
-  const groupName = useMemo(() => {
-    if (!assignment) return null
-    const fromDB = (currentSession.group_names as GroupNameResult[] | undefined)
-      ?.find(n => n.table_number === assignment.table_number)
-    if (fromDB) return fromDB
-    try {
-      const names = JSON.parse(
-        localStorage.getItem(`group_names_${session.id}`) ?? '[]',
-      ) as GroupNameResult[]
-      return names.find(n => n.table_number === assignment.table_number) ?? null
-    } catch {
-      return null
-    }
-  }, [assignment, session.id, currentSession])
+  // ── Nom du camp idéologique — RETIRÉ (chantier 28 / H26) ───────────
+  // `group_names` est indexé par camp d'opinion (cluster k-means), pas par
+  // table physique. On l'indexait ici avec `assignment.table_number`, ce qui
+  // affichait au participant le nom d'un camp arbitraire ; et sous l'allocation
+  // v2 la table mélange de toute façon plusieurs camps par construction, donc
+  // aucun nom de camp ne la décrit. Le participant découvre son propre camp sur
+  // l'écran de résultats en fin de séance (ResultsMapScreen, indexé correctement
+  // par `group_id + 1`).
 
   // ── Join table (bouton cliquable) ─────────────────────────────────
   async function handleJoin() {
@@ -247,7 +238,6 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             onJoin={handleJoin}
             joinLoading={joinLoading}
             joinError={joinError}
-            groupName={groupName}
           />
         </div>
 

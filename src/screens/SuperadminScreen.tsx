@@ -42,9 +42,9 @@ import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import { mergeAssertions } from '../lib/gemini'
-import { loadVotesForAnalysis } from '../lib/analysis'
+import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
 import type { LoadedAnalysis } from '../lib/analysis'
-import { generateGroupNames, groupsFingerprint } from '../lib/groupNaming'
+import { generateGroupNames, groupsFingerprint, namingGroupsFromAnalysis } from '../lib/groupNaming'
 import type { NamingGroup } from '../lib/groupNaming'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
@@ -1362,8 +1362,13 @@ function SessionDetail({
   }, [groups, allocInputs])
 
   // Nommage des camps (Gemini + fallback descriptif) — logique partagée.
-  // Utilisée à la fois par la phase `allocating` (groupes = table_assignments)
-  // et par le nommage systématique après analyse en phase vote (E3).
+  //
+  // ⚠️ Chantier 28 (H26) — `namingGroups` doit TOUJOURS être dérivé des clusters
+  // k-means de l'analyse (`namingGroupsFromAnalysis`), jamais des tables
+  // physiques de `table_assignments`. Voir l'invariant documenté sur
+  // `NamingGroup` dans lib/groupNaming.ts : nommer les tables physiques écrasait
+  // `sessions.group_names` par un jeu tronqué (autant d'entrées que de tables),
+  // laissant anonymes les camps au-delà et changeant les noms déjà affichés.
   const namingInFlightRef = useRef(false)
   const runNaming = useCallback(async (namingGroups: NamingGroup[]) => {
     if (namingGroups.length === 0) return
@@ -1409,33 +1414,37 @@ function SessionDetail({
     }
   }, [currentSession.id, currentSession.title, currentSession.description])
 
-  // Phase `allocating` : nommer les camps une fois les groupes (table_assignments) chargés
+  // Phases post-vote : rattrapage de nommage.
+  //
+  // Chantier 28 (H26) — les camps sont ceux de la DERNIÈRE ANALYSE, pas les
+  // tables physiques : entrer en `allocating` ne doit rien écraser. En pratique
+  // E3 a déjà nommé ces mêmes clusters pendant le vote → même empreinte → aucun
+  // appel Gemini. L'effet ne sert donc qu'aux séances analysées avant E3, à
+  // celles dont le superadmin n'a jamais ouvert l'onglet Analyse, et aux séances
+  // dont `group_names` a été corrompu par l'ancien nommage par table physique —
+  // d'où l'inclusion de `closed`, seule voie de réparation d'une séance déjà
+  // terminée (l'écran de résultats participant en dépend).
   useEffect(() => {
-    if (currentSession.phase !== 'allocating') return
-    if (!hasAnalysisDone) return
-    if (groups.length === 0) return
-    const namingGroups: NamingGroup[] = groups.map(g => ({
-      table_number: g.table_number,
-      member_ids:   g.members.map(m => m.member_id),
-    }))
-    runNaming(namingGroups)
-  }, [groups, hasAnalysisDone, currentSession.phase, runNaming])
+    const p = currentSession.phase
+    if (p !== 'allocating' && p !== 'debating' && p !== 'closed') return
+    let cancelled = false
+    ;(async () => {
+      const pwd = getPwd()
+      if (!pwd) return
+      try {
+        const analysis = await loadLatestAnalysis(supabase, pwd, currentSession.id)
+        if (cancelled || !analysis || analysis.members.length === 0) return
+        runNaming(namingGroupsFromAnalysis(analysis.members))
+      } catch { /* silencieux — les camps restent sans nom */ }
+    })()
+    return () => { cancelled = true }
+  }, [currentSession.phase, currentSession.id, runNaming])
 
   // E3 — Nommage systématique après une analyse en phase vote/pré-vote.
-  // Déclenché par AnalysisPanel après un calcul manuel : on dérive les groupes
-  // des clusters k-means (group_id 0-indexé → table_number = group_id + 1).
+  // Déclenché par AnalysisPanel après un calcul manuel.
   const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis) => {
     if (!['voting', 'pre_voting'].includes(currentSession.phase)) return
-    const byGroup = new Map<number, string[]>()
-    for (const m of analysis.members) {
-      const tn = m.group_id + 1
-      if (!byGroup.has(tn)) byGroup.set(tn, [])
-      byGroup.get(tn)!.push(m.member_id)
-    }
-    const namingGroups: NamingGroup[] = [...byGroup.entries()]
-      .map(([table_number, member_ids]) => ({ table_number, member_ids }))
-      .sort((a, b) => a.table_number - b.table_number)
-    runNaming(namingGroups)
+    runNaming(namingGroupsFromAnalysis(analysis.members))
   }, [currentSession.phase, runNaming])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
@@ -2156,15 +2165,10 @@ function SessionDetail({
                                 </div>
                               ) : null
                             })()}
-                            {(() => {
-                              const gn = groupNames.find(n => n.table_number === g.table_number)
-                              return gn ? (
-                                <div className="mb-2">
-                                  <span className="text-xs font-semibold text-gray-700">{gn.name}</span>
-                                  <p className="text-xs text-gray-400">{gn.description}</p>
-                                </div>
-                              ) : null
-                            })()}
+                            {/* Chantier 28 (H26) — le nom de camp Gemini indexé sur le numéro de
+                                table physique a été retiré : sous l'allocation v2 la table mélange
+                                volontairement plusieurs camps, ce nom était donc faux. La barre de
+                                composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
                               {g.members.map(m => (
                                 <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
