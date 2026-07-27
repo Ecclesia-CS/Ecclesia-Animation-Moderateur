@@ -8,7 +8,6 @@ import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
 import ParticipantToolsButton from '../components/ParticipantToolsButton'
 import QuestionnaireModal from '../components/QuestionnaireModal'
-import InviteFriendButton from '../components/InviteFriendButton'
 import DebateRulesModal from '../components/DebateRulesModal'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -182,11 +181,6 @@ export default function ParticipantView() {
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
         <div className="flex items-center gap-2">
-          <InviteFriendButton
-            joinCode={table.join_code}
-            className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
-              hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
-          />
           {table.leaderless && (
             <button
               onClick={() => setShowBecomeModConfirm(true)}

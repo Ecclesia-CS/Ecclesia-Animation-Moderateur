@@ -27,10 +27,9 @@ import CorrectTurnModal from '../components/CorrectTurnModal'
 import QuestionnaireBtn from '../components/QuestionnaireFab'
 import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
-import InviteFriendButton from '../components/InviteFriendButton'
 import AssertionsButton from '../components/AssertionsButton'
 import TableOpinionButton from '../components/voting/TableOpinionButton'
-import QrCodeButton from '../components/QrCodeButton'
+import ModeratorToolsButton from '../components/ModeratorToolsButton'
 
 export default function ModeratorView() {
   const {
@@ -501,11 +500,6 @@ export default function ModeratorView() {
 
           {/* Right: moderator badge + actions */}
           <div className="flex items-center gap-3 shrink-0">
-            <InviteFriendButton
-              joinCode={table.join_code}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
-                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
-            />
             <DocumentationButton
               session={sessionDocs}
               userPseudo={myParticipant?.pseudo}
@@ -529,14 +523,9 @@ export default function ModeratorView() {
             <TableOpinionButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
               focus:ring-2 focus:ring-slate-500" />
-            <QrCodeButton
-              value={`${window.location.origin}${window.location.pathname}#table/${table.join_code}`}
-              title={`Rejoindre la table ${table.join_code}`}
-              label="QR"
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
-                text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-slate-500"
-            />
+            <ModeratorToolsButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+              focus:ring-2 focus:ring-slate-500" />
             <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
               focus:ring-2 focus:ring-slate-500" />

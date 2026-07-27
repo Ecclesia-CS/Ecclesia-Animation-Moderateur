@@ -3746,14 +3746,18 @@ function AssertionsPanel({
           )}
           {rejected.length > 0 && (
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <button
-                onClick={() => setSelectedRejected(prev =>
-                  prev.size === rejected.length ? new Set() : new Set(rejected.map(a => a.id))
-                )}
-                className="text-xs font-medium text-gray-500 hover:text-gray-700"
-              >
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedRejected.size === rejected.length}
+                  ref={el => { if (el) el.indeterminate = selectedRejected.size > 0 && selectedRejected.size < rejected.length }}
+                  onChange={() => setSelectedRejected(prev =>
+                    prev.size === rejected.length ? new Set() : new Set(rejected.map(a => a.id))
+                  )}
+                  className="w-3.5 h-3.5 accent-red-600"
+                />
                 {selectedRejected.size === rejected.length ? 'Tout désélectionner' : 'Tout sélectionner'}
-              </button>
+              </label>
               {selectedRejected.size > 0 && (
                 <button
                   onClick={() => setDeleteConfirm({
