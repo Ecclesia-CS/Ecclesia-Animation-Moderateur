@@ -5,6 +5,27 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-07-27** — Chantier 16 (F14) — `src/screens/ParticipantView.tsx`, `src/screens/ModeratorView.tsx`
+
+  **Contexte** : le bouton "Voir les résultats"/"Voir vos résultats" de l'overlay "Séance terminée" (phase `closed`) semblait indisponible au premier clic, mais devenait accessible après avoir quitté la table puis retenté d'y accéder. Investigué avant de conclure à un bug — l'hypothèse "séance de test sans analyse faite" a été écartée par lecture de code (`ResultsMapScreen`/`PublicResultsScreen` gèrent déjà l'absence d'analyse proprement).
+
+  **Cause racine trouvée** : le bouton était un `<a href="#session/<code>">` rendu depuis `TableView` (donc pendant que `App.tsx` a `phase.type === 'table'`). Le guard de routage de la route `#session/` dans `App.tsx` est `hash.startsWith('#session/') && phase.type !== 'table'` — il exclut explicitement ce cas (pensé à l'origine pour laisser `TableView` prioritaire quand on vient de rejoindre une table en retard). Le clic changeait donc le hash du navigateur sans jamais déclencher le montage de `SessionRouterScreen`. En cliquant ensuite "← Retour au menu" (`leaveTable()` → `phase: 'entry'`), le hash déjà en place devenait exploitable au re-render suivant → la navigation aboutissait enfin.
+
+  **Ce qui a changé** : les deux liens `<a href="#session/...">` (`ParticipantView.tsx` et `ModeratorView.tsx`, overlay "Séance terminée") sont remplacés par des `<button onClick>` qui positionnent `window.location.hash` **et** appellent `leaveTable()` dans le même handler, au lieu de compter sur une navigation `<a>` pure bloquée par le guard tant qu'on est encore rattaché à la table.
+
+  **Déjà vérifié par moi** : `npx tsc -b` et `npm run build` passent sans erreur (worktree dédié, port 5181). Mécanisme du bug **et** du correctif reproduits en direct dans le Browser pane, sans mot de passe superadmin : création d'une table sans admin réelle rattachée à la séance de test `GENER1` (phase `voting`) → `ParticipantView` s'affiche sans erreur console → `window.location.hash = '#session/16E27A'` (séance de test déjà `closed`, "Retraite") pendant que la table est encore ouverte → aucune navigation (bug confirmé à l'identique) → clic sur "Quitter" juste après → `PublicResultsScreen` de "Retraite" s'affiche immédiatement (résolution confirmée). Ce test valide exactement le mécanisme utilisé par le correctif. **Non vérifié** : le clic réel sur le bouton "Voir les résultats" de l'overlay "Séance terminée" lui-même, qui nécessite qu'une séance passe en phase `closed` pendant qu'un participant est sur l'écran de débat — impossible sans mot de passe superadmin (règle de sécurité, non contournable).
+
+  **Effet de bord assumé** : une table sans admin réelle ("TestF14routing", code `5A3B51`) a été créée et rattachée à la séance de test `GENER1` (phase `voting`, toujours active) pour ce test — table vide (aucun autre participant), sans impact sur le déroulé de la séance. À nettoyer par Jules si souhaité (superadmin → séance GENER1 → onglet Tables → détacher/supprimer la table `5A3B51`).
+
+  **(1) Parcours manuel à suivre** (avec le mot de passe superadmin, une fois mergé et déployé) :
+  1. Passer une séance de test en phase `debating` avec au moins une table physique rattachée, y rejoindre en tant que participant (ou modérateur) sur `ParticipantView`/`ModeratorView`.
+  2. Depuis le superadmin (autre onglet), faire passer cette séance en phase `closed`.
+  3. Attendre jusqu'à 5 s (polling de secours de `TableContext`) — l'overlay "Séance terminée" doit apparaître automatiquement, sans reload.
+  4. Cliquer directement sur "Voir les résultats →" / "Voir vos résultats →" — doit naviguer **immédiatement** (en un seul clic) vers l'écran de résultats (`ResultsMapScreen` si inscrit à la séance, `PublicResultsScreen` sinon), sans avoir besoin de cliquer "← Retour au menu" au préalable.
+  5. Refaire le test côté `ModeratorView` (modérateur d'une table normale, pas leaderless).
+
+  **(2) Données de test nécessaires** : une séance pilotable jusqu'en phase `debating` avec une table rattachée et au moins un participant dessus, pour pouvoir observer la transition `debating → closed` en direct depuis `ParticipantView`/`ModeratorView`.
+
 - [ ] **2026-07-27** — Chantier 13 (F10) — `src/components/DocumentationButton.tsx`, `src/components/ParticipantToolsButton.tsx`, `src/screens/VoteScreen.tsx`, `src/screens/SuperadminScreen.tsx`
 
   **Contexte** : bug F10 récurrent — un document lié à une séance (fiche information / résumé) renvoyait un 404. Décision C3 tranchée par Jules le 2026-07-23 : ces fiches sont hébergées sur un site externe séparé (en construction par l'équipe), pas dans Ecclesia — `doc_info_url`/`doc_summary_url` ne sont que des liens externes, sans backend de stockage interne à construire.

@@ -394,13 +394,16 @@ export default function ParticipantView() {
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">Merci pour votre participation.</p>
           {session.join_code && (
-            <a
-              href={`#session/${session.join_code}`}
+            <button
+              onClick={() => {
+                window.location.hash = `#session/${session.join_code}`
+                leaveTable()
+              }}
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
                 text-white text-sm font-semibold rounded-xl transition-colors"
             >
               Voir vos résultats →
-            </a>
+            </button>
           )}
           <button
             onClick={leaveTable}
