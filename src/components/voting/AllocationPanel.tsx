@@ -17,6 +17,13 @@
 //   · H13 — horodatage du calcul + capacité effective affichée, pour que
 //           « relancer » soit visible même quand le résultat est identique.
 //   · H15 — objectif d'enregistrement effectif affiché et expliqué.
+//
+// Chantier 25b — arbitrages de Jules :
+//   · décocher un modérateur écrit `is_moderator = false` EN BASE : il n'est
+//     plus modérateur du tout, il redevient un membre ordinaire. La liste
+//     n'est donc plus un filtre local, c'est un interrupteur persistant.
+//   · un modérateur en surplus est réinjecté dans la population soumise à
+//     `runAllocation` (cf. src/lib/allocation.ts), plus placé après coup.
 // =============================================================
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -24,6 +31,7 @@ import { runAllocation, type AllocationResult } from '../../lib/allocation'
 import {
   loadAllocationInputs,
   applyAllocation,
+  setMemberModerator,
   type AllocationInputs,
 } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
@@ -41,9 +49,16 @@ interface Props {
 interface PersistedState {
   extraModerators: number
   recorderCount: number | ''
+  /**
+   * Chantier 25b — modérateurs décochés. Le flag est déjà à `false` en base ;
+   * on les garde ici uniquement pour continuer à les afficher dans la liste,
+   * donc pouvoir les recocher sans aller les chercher ailleurs.
+   */
   excluded: string[]
   preview: AllocationResult | null
   computedAt: string | null
+  /** Signature des entrées au moment du calcul — détecte une proposition périmée. */
+  signature: string | null
 }
 
 const storageKey = (sessionId: string) => `ecclesia_alloc_preview_${sessionId}`
@@ -59,6 +74,7 @@ function readPersisted(sessionId: string): PersistedState | null {
       excluded:        Array.isArray(p.excluded) ? p.excluded : [],
       preview:         (p.preview as AllocationResult | undefined) ?? null,
       computedAt:      typeof p.computedAt === 'string' ? p.computedAt : null,
+      signature:       typeof p.signature === 'string' ? p.signature : null,
     }
   } catch {
     return null
@@ -75,11 +91,13 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   // Saisies superadmin, toutes optionnelles (§3)
   const [extraModerators, setExtraModerators] = useState(restored?.extraModerators ?? 0)
   const [recorderCount,   setRecorderCount]   = useState<number | ''>(restored?.recorderCount ?? '')
-  /** H16 — modérateurs déclarés absents : ils redeviennent des participants. */
+  /** H16 — modérateurs décochés, gardés visibles pour pouvoir les recocher. */
   const [excluded, setExcluded] = useState<string[]>(restored?.excluded ?? [])
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const [preview, setPreview]     = useState<AllocationResult | null>(restored?.preview ?? null)
   const [computedAt, setComputedAt] = useState<string | null>(restored?.computedAt ?? null)
+  const [signature, setSignature] = useState<string | null>(restored?.signature ?? null)
   const [applying, setApplying] = useState(false)
   const [applied, setApplied]   = useState<string | null>(null)
 
@@ -103,34 +121,81 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey(sessionId), JSON.stringify({
-        extraModerators, recorderCount, excluded, preview, computedAt,
+        extraModerators, recorderCount, excluded, preview, computedAt, signature,
       } satisfies PersistedState))
     } catch { /* quota / mode privé : la persistance est un confort, pas un prérequis */ }
-  }, [sessionId, extraModerators, recorderCount, excluded, preview, computedAt])
+  }, [sessionId, extraModerators, recorderCount, excluded, preview, computedAt, signature])
 
-  /** Modérateurs cochés = ceux qui animeront ; les décochés prennent un siège. */
-  const activeModerators = useMemo(
-    () => (inputs?.moderators ?? []).filter(m => !excluded.includes(m.member_id)),
-    [inputs, excluded],
-  )
+  /**
+   * Chantier 25b — la base fait foi : `inputs.moderators` ne contient que les
+   * membres réellement `is_moderator = true`. Les décochés sont déjà passés à
+   * `false` en base et se retrouvent dans `inputs.members` ; on les réaffiche
+   * ici pour permettre de revenir en arrière.
+   */
+  const moderatorChoices = useMemo(() => {
+    if (!inputs) return []
+    const unchecked = inputs.members.filter(m => excluded.includes(m.member_id))
+    return [...inputs.moderators, ...unchecked]
+      .sort((a, b) => a.pseudo.localeCompare(b.pseudo, 'fr'))
+  }, [inputs, excluded])
+
+  /** Signature des entrées — une proposition calculée avant un changement est périmée. */
+  const currentSignature = useMemo(() => {
+    if (!inputs) return ''
+    return JSON.stringify({
+      extraModerators,
+      recorderCount,
+      moderators: [...inputs.moderatorIds].sort(),
+      members: inputs.members.length,
+      opinions: inputs.opinionsAvailable,
+    })
+  }, [inputs, extraModerators, recorderCount])
+
+  const isStale = preview !== null && signature !== null && signature !== currentSignature
+
+  /**
+   * Point 1 de l'arbitrage : décocher retire réellement le statut en base.
+   * « Je ne vois pas en quoi on devrait lui laisser ce flag s'il n'est plus
+   * modérateur et devient participant. » Recocher le repose.
+   */
+  async function toggleModerator(memberId: string, next: boolean) {
+    setTogglingId(memberId)
+    setError(null)
+    try {
+      await setMemberModerator(password, sessionId, memberId, next)
+      setExcluded(prev => next
+        ? prev.filter(id => id !== memberId)
+        : (prev.includes(memberId) ? prev : [...prev, memberId]))
+      await load()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (/mot de passe|password/i.test(msg)) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   function handleCompute() {
     if (!inputs) return
     setError(null)
     setApplied(null)
     try {
-      const excludedMembers = inputs.moderators.filter(m => excluded.includes(m.member_id))
+      // Plus de tri local : un décoché n'est plus modérateur en base, il est
+      // donc déjà dans `inputs.members`. Les modérateurs restants qui n'auront
+      // pas de table à animer sont réintégrés à la population par
+      // `runAllocation` lui-même, et optimisés comme n'importe quel participant.
       setPreview(runAllocation({
-        // Un modérateur décoché est un participant comme un autre.
-        members:           [...inputs.members, ...excludedMembers],
-        moderatorIds:      activeModerators.map(m => m.member_id),
-        moderatorProfiles: activeModerators,
+        members:           inputs.members,
+        moderatorIds:      inputs.moderatorIds,
+        moderatorProfiles: inputs.moderators,
         extraModerators,
         recorderCount:     recorderCount === '' ? null : recorderCount,
         opinionsAvailable: inputs.opinionsAvailable,
       }))
       // H13 — l'horodatage rend le recalcul visible même à résultat identique.
       setComputedAt(new Date().toISOString())
+      setSignature(currentSignature)
     } catch (e) {
       // L'algorithme ne doit jamais échouer — filet de sécurité malgré tout.
       setError(`Échec du calcul : ${extractErr(e)}`)
@@ -161,8 +226,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
     }
   }
 
-  const seatCount  = (inputs?.members.length ?? 0) + excluded.length
-  const capacity   = activeModerators.length + extraModerators
+  // `inputs.members` inclut déjà les modérateurs décochés (flag retiré en base).
+  const seatCount  = inputs?.members.length ?? 0
+  const capacity   = (inputs?.moderatorIds.length ?? 0) + extraModerators
   const recorderGoal = recorderCount === '' ? 1 : Math.max(1, recorderCount)
   const surplus    = preview?.seatedModeratorIds.length ?? 0
 
@@ -190,7 +256,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           {/* Récapitulatif des entrées */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <Stat value={seatCount} label="👥 Présentiels à placer" />
-            <Stat value={activeModerators.length} label="🎙️ Modérateurs retenus" />
+            <Stat value={inputs.moderatorIds.length} label="🎙️ Modérateurs retenus" />
             <Stat
               value={inputs.opinionsAvailable ? '✓' : '✗'}
               label="📊 Camps d'opinion"
@@ -207,32 +273,38 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           )}
 
           {/* H16 / H12 — qui anime réellement ? */}
-          {inputs.moderators.length > 0 && (
+          {moderatorChoices.length > 0 && (
             <details open={surplus > 0} className="rounded-xl border border-gray-200 bg-gray-50/60">
               <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-gray-700">
-                🎙️ Modérateurs présents ({activeModerators.length}/{inputs.moderators.length})
+                🎙️ Modérateurs présents ({inputs.moderatorIds.length}/{moderatorChoices.length})
                 {excluded.length > 0 && (
-                  <span className="text-gray-400 font-normal"> — {excluded.length} placé(s) en participant</span>
+                  <span className="text-gray-400 font-normal"> — {excluded.length} repassé(s) en participant</span>
                 )}
               </summary>
               <div className="px-3 pb-3 space-y-1.5">
                 <p className="text-xs text-gray-500 leading-snug">
-                  Décoche ceux qui n'animeront pas : ils sont alors répartis comme des
-                  participants ordinaires et comptent dans les seuils de leur table.
+                  Décoche ceux qui n'animeront pas : <b>leur statut de modérateur est
+                  retiré immédiatement</b> et ils redeviennent des participants ordinaires,
+                  répartis par l'algorithme comme les autres. Recocher le rétablit.
                 </p>
-                {inputs.moderators.map(m => {
+                {moderatorChoices.map(m => {
                   const on = !excluded.includes(m.member_id)
+                  const busy = togglingId === m.member_id
                   return (
-                    <label key={m.member_id} className="flex items-center gap-2 text-sm text-gray-700">
+                    <label
+                      key={m.member_id}
+                      className={`flex items-center gap-2 text-sm text-gray-700 ${busy ? 'opacity-50' : ''}`}
+                    >
                       <input
                         type="checkbox"
                         checked={on}
-                        onChange={() => setExcluded(prev =>
-                          on ? [...prev, m.member_id] : prev.filter(id => id !== m.member_id))}
+                        disabled={busy || togglingId !== null}
+                        onChange={() => toggleModerator(m.member_id, !on)}
                         className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
                       />
                       <span className={on ? '' : 'text-gray-400 line-through'}>{m.pseudo}</span>
                       {!on && <span className="text-xs text-gray-400">participant</span>}
+                      {busy && <span className="text-xs text-gray-400">…</span>}
                     </label>
                   )
                 })}
@@ -310,6 +382,13 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 </p>
               </div>
 
+              {isStale && (
+                <p className="text-xs text-amber-800 bg-amber-100 border border-amber-300 rounded-xl px-3 py-2 leading-snug">
+                  ⏳ Les réglages ont changé depuis ce calcul (modérateurs, enregistreurs
+                  ou participants). Relance le calcul avant d'appliquer.
+                </p>
+              )}
+
               {preview.warnings.map((w, i) => (
                 <p key={i} className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">
                   ⚠️ {w}
@@ -337,7 +416,8 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
 
               <button
                 onClick={handleApply}
-                disabled={applying}
+                disabled={applying || isStale}
+                title={isStale ? 'Relance le calcul : les réglages ont changé' : undefined}
                 className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-300
                   text-white text-sm font-semibold rounded-xl transition-colors"
               >
