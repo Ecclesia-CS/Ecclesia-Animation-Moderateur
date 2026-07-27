@@ -9,6 +9,7 @@ import type {
   VoteResult,
   TableAssignment,
   ModerationPolicy,
+  TableOpinionSummary,
 } from './types'
 import type { AllocationMember, AllocationResult } from './allocation'
 
@@ -104,6 +105,19 @@ export async function getVoteResults(sessionId: string): Promise<VoteResult[]> {
   })
   if (error) throw new Error(extractErr(error))
   return (data as VoteResult[]) ?? []
+}
+
+// Chantier 20 (G7) — vue modérateur : composition idéologique de sa table +
+// assertions représentatives par camp + clivantes/consensuelles au sein de
+// la table. Aucun mot de passe : auth par participation à la table (RPC
+// vérifie is_table_participant côté serveur). Retourne null si l'appelant
+// n'est pas participant de cette table.
+export async function loadTableOpinionSummary(tableId: string): Promise<TableOpinionSummary | null> {
+  const { data, error } = await supabase.rpc('get_table_opinion_summary', {
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as TableOpinionSummary) ?? null
 }
 
 export async function getVoteCountsAdmin(password: string, sessionId: string): Promise<VoteResult[]> {

@@ -29,6 +29,7 @@ import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
 import InviteFriendButton from '../components/InviteFriendButton'
 import AssertionsButton from '../components/AssertionsButton'
+import TableOpinionButton from '../components/voting/TableOpinionButton'
 import QrCodeButton from '../components/QrCodeButton'
 
 export default function ModeratorView() {
@@ -523,6 +524,9 @@ export default function ModeratorView() {
               }
             />
             <AssertionsButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
+              focus:ring-2 focus:ring-slate-500" />
+            <TableOpinionButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
               text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
               focus:ring-2 focus:ring-slate-500" />
             <QrCodeButton

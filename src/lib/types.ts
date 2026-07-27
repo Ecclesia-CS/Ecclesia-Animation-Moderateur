@@ -187,6 +187,26 @@ export interface TableAssignment {
 // avec get_moderator_responses et le panneau « Réponses modérateur » : le
 // besoin d'encadrement est désormais traité par la règle 5 de l'allocation v2.
 
+// Chantier 20 (G7) — vue modérateur : composition idéologique de sa table.
+export interface TableOpinionCamp {
+  group_id: number
+  count: number
+  /** Nom Gemini best-effort — voir limite documentée dans la migration
+   * 20260727_1 (table_number physique ≠ camp d'opinion pur sous l'allocation v2). */
+  name: string | null
+  description: string | null
+  top_assertions: { content: string; score: number }[]
+}
+
+export interface TableOpinionSummary {
+  session_id: string
+  table_number: number | null
+  opinions_available: boolean
+  camps: TableOpinionCamp[]
+  /** Assertions clivantes/consensuelles calculées sur les votes de CETTE table uniquement. */
+  votes: VoteResult[]
+}
+
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {
   id: string

@@ -36,7 +36,7 @@ import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, Allocation
 import { useLiveMs } from '../hooks/useLiveMs'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
-import TableDiagnosticsList from '../components/voting/TableDiagnosticsList'
+import TableDiagnosticsList, { CampCompositionBar } from '../components/voting/TableDiagnosticsList'
 import { diagnoseAllocation } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
@@ -1142,6 +1142,9 @@ function SessionDetail({
     catch { return [] }
   })
   const [groupsLoading,   setGroupsLoading]   = useState(false)
+  // Chantier 20 (G6) — horodatage du dernier rafraîchissement, affiché à
+  // côté de « Groupes » pour matérialiser l'état « à jour » du tableau de bord.
+  const [groupsSyncedAt,  setGroupsSyncedAt]  = useState<Date | null>(null)
   const [dropdownTables,  setDropdownTables]  = useState<SessionTableRow[]>([])
   const [assigningGroup,  setAssigningGroup]  = useState<number | null>(null)
   const [assignError,     setAssignError]     = useState<string | null>(null)
@@ -1357,6 +1360,7 @@ function SessionDetail({
       } catch {
         setAllocInputs(null)
       }
+      setGroupsSyncedAt(new Date())
     } finally {
       setGroupsLoading(false)
     }
@@ -1366,6 +1370,25 @@ function SessionDetail({
     const p = currentSession.phase
     if (p === 'allocating' || p === 'debating') loadGroups()
   }, [currentSession.phase, loadGroups])
+
+  // Chantier 20 (G6) — état « live » : un déplacement de membre fait par un
+  // autre onglet/superadmin (ou l'auto-fusion, etc.) doit se refléter ici
+  // sans réaction manuelle. `table_assignments` est déjà en REPLICA IDENTITY
+  // FULL (migration 20260530) — un seul channel, comme partout ailleurs dans
+  // l'app (cf. règle « plusieurs .on() chaînés, jamais plusieurs channels »).
+  useEffect(() => {
+    const p = currentSession.phase
+    if (p !== 'allocating' && p !== 'debating') return
+    const channel = supabase
+      .channel(`table_assignments:${session.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'table_assignments', filter: `session_id=eq.${session.id}` },
+        () => { loadGroups() },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [currentSession.phase, session.id, loadGroups])
 
   // Chantier 19 (§7) — diagnostics recalculés à chaque changement de `groups`,
   // donc mis à jour en direct après un glisser-déposer.
@@ -2091,7 +2114,19 @@ function SessionDetail({
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
-                      {groupsLoading && <Spinner />}
+                      <div className="flex items-center gap-2">
+                        {groupsLoading ? (
+                          <Spinner />
+                        ) : groupsSyncedAt ? (
+                          <span
+                            className="flex items-center gap-1 text-xs text-gray-400"
+                            title="Se met à jour automatiquement (glisser-déposer local ou changement fait ailleurs)"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                            à jour à {groupsSyncedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     {assignError && (
                       <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
@@ -2141,8 +2176,35 @@ function SessionDetail({
                                   </span>
                                 )
                               })()}
+                              {(() => {
+                                const d = groupDiagnostics.find(x => x.table_number === g.table_number)
+                                if (!d) return null
+                                return d.recordable ? (
+                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded shrink-0"
+                                    title="Aucun non-consentant et table non homogène">
+                                    🎙️ enregistrable
+                                  </span>
+                                ) : (
+                                  <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0"
+                                    title={d.non_consenting > 0
+                                      ? `${d.non_consenting} personne(s) non consentante(s)`
+                                      : "Table homogène en opinion — un enregistrement n'y apporterait rien"}>
+                                    non enregistrable
+                                  </span>
+                                )
+                              })()}
                               {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
                             </div>
+                            {/* Chantier 20 (G6) — composition par camp visible directement sur la
+                                carte, sans avoir à déplier « Santé des tables » plus bas. */}
+                            {(() => {
+                              const d = groupDiagnostics.find(x => x.table_number === g.table_number)
+                              return d ? (
+                                <div className="mb-2">
+                                  <CampCompositionBar d={d} />
+                                </div>
+                              ) : null
+                            })()}
                             {(() => {
                               const gn = groupNames.find(n => n.table_number === g.table_number)
                               return gn ? (

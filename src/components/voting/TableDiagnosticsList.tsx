@@ -26,6 +26,43 @@ interface Props {
   compact?: boolean
 }
 
+/**
+ * Barre de composition par camp d'opinion — extraite pour être réutilisable
+ * directement sur une carte de groupe (superadmin, §7 « d'un coup d'œil »)
+ * sans dupliquer l'en-tête complet de `TableDiagnosticsList`.
+ */
+export function CampCompositionBar({ d }: { d: TableDiagnostics }) {
+  if (Object.keys(d.camp_counts).length === 0) return null
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex h-2 rounded-full overflow-hidden flex-1 min-w-[80px] bg-gray-200">
+        {Object.entries(d.camp_counts)
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([gid, count]) => (
+            <div
+              key={gid}
+              style={{ width: `${(count / d.size) * 100}%`, background: campColor(Number(gid)) }}
+              title={`Camp ${Number(gid) + 1} : ${count}`}
+            />
+          ))}
+        {d.neutral_count > 0 && (
+          <div
+            style={{ width: `${(d.neutral_count / d.size) * 100}%`, background: '#d1d5db' }}
+            title={`${d.neutral_count} sans vote`}
+          />
+        )}
+      </div>
+      <span className="text-xs text-gray-400 shrink-0">
+        {Object.entries(d.camp_counts)
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([gid, c]) => `C${Number(gid) + 1}:${c}`)
+          .join(' · ')}
+        {d.neutral_count > 0 ? ` · ?:${d.neutral_count}` : ''}
+      </span>
+    </div>
+  )
+}
+
 export default function TableDiagnosticsList({ diagnostics, membersByTable, compact }: Props) {
   if (diagnostics.length === 0) return null
 
@@ -64,34 +101,9 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
           </div>
 
           {/* Composition par camp d'opinion */}
-          {Object.keys(d.camp_counts).length > 0 && (
-            <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-              <div className="flex h-2 rounded-full overflow-hidden flex-1 min-w-[80px] bg-gray-200">
-                {Object.entries(d.camp_counts)
-                  .sort(([a], [b]) => Number(a) - Number(b))
-                  .map(([gid, count]) => (
-                    <div
-                      key={gid}
-                      style={{ width: `${(count / d.size) * 100}%`, background: campColor(Number(gid)) }}
-                      title={`Camp ${Number(gid) + 1} : ${count}`}
-                    />
-                  ))}
-                {d.neutral_count > 0 && (
-                  <div
-                    style={{ width: `${(d.neutral_count / d.size) * 100}%`, background: '#d1d5db' }}
-                    title={`${d.neutral_count} sans vote`}
-                  />
-                )}
-              </div>
-              <span className="text-xs text-gray-400 shrink-0">
-                {Object.entries(d.camp_counts)
-                  .sort(([a], [b]) => Number(a) - Number(b))
-                  .map(([gid, c]) => `C${Number(gid) + 1}:${c}`)
-                  .join(' · ')}
-                {d.neutral_count > 0 ? ` · ?:${d.neutral_count}` : ''}
-              </span>
-            </div>
-          )}
+          <div className="mb-2">
+            <CampCompositionBar d={d} />
+          </div>
 
           {/* Statut des 4 seuils */}
           <div className="flex flex-wrap gap-1.5">
