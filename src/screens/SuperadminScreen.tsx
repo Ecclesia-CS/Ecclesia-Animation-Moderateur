@@ -1369,12 +1369,24 @@ function SessionDetail({
   // `NamingGroup` dans lib/groupNaming.ts : nommer les tables physiques écrasait
   // `sessions.group_names` par un jeu tronqué (autant d'entrées que de tables),
   // laissant anonymes les camps au-delà et changeant les noms déjà affichés.
-  const namingInFlightRef = useRef(false)
-  const runNaming = useCallback(async (namingGroups: NamingGroup[]) => {
+  //
+  // ⚠️ Chantier 28 — les appels sont SÉRIALISÉS, jamais abandonnés. L'ancien
+  // garde-fou (`if (namingInFlightRef.current) return`) laissait tomber
+  // silencieusement toute demande arrivant pendant un nommage en cours : une
+  // seconde analyse lancée pendant les appels Gemini de la première ne voyait
+  // jamais ses camps nommés, et `group_names` restait indexé sur le clustering
+  // précédent — noms qui ne correspondent plus, nouveaux camps anonymes.
+  // Ré-enfiler est sans coût : le court-circuit d'empreinte ci-dessous rend une
+  // demande redondante gratuite (aucun appel Gemini).
+  const namingChainRef = useRef<Promise<void>>(Promise.resolve())
+
+  const doNaming = useCallback(async (namingGroups: NamingGroup[]) => {
     if (namingGroups.length === 0) return
     const pwd = getPwd()
     if (!pwd) return
 
+    // Empreinte relue au moment de l'exécution (pas de l'empilement) : une
+    // demande devenue redondante entre-temps sort ici sans appeler Gemini.
     const fp       = groupsFingerprint(namingGroups)
     const storedFp = localStorage.getItem(`group_names_fp_${currentSession.id}`)
     let storedNames: GroupNameResult[] = []
@@ -1387,8 +1399,6 @@ function SessionDetail({
       return
     }
 
-    if (namingInFlightRef.current) return
-    namingInFlightRef.current = true
     try {
       const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
       const approved = allAssertions.filter(a => a.status === 'approved')
@@ -1409,10 +1419,16 @@ function SessionDetail({
       updateGroupNames(pwd, currentSession.id, names).catch(() => {})
     } catch {
       // silencieux — les camps restent sans nom
-    } finally {
-      namingInFlightRef.current = false
     }
   }, [currentSession.id, currentSession.title, currentSession.description])
+
+  const runNaming = useCallback((namingGroups: NamingGroup[]): Promise<void> => {
+    const next = namingChainRef.current
+      .catch(() => {})
+      .then(() => doNaming(namingGroups))
+    namingChainRef.current = next
+    return next
+  }, [doNaming])
 
   // Phases post-vote : rattrapage de nommage.
   //
@@ -1442,9 +1458,11 @@ function SessionDetail({
 
   // E3 — Nommage systématique après une analyse en phase vote/pré-vote.
   // Déclenché par AnalysisPanel après un calcul manuel.
-  const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis) => {
-    if (!['voting', 'pre_voting'].includes(currentSession.phase)) return
-    runNaming(namingGroupsFromAnalysis(analysis.members))
+  // Retourne la promesse : `AnalysisPanel.handleAnalyze` l'attend pour garder le
+  // bouton verrouillé pendant les appels Gemini (chantier 28).
+  const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis): Promise<void> => {
+    if (!['voting', 'pre_voting'].includes(currentSession.phase)) return Promise.resolve()
+    return runNaming(namingGroupsFromAnalysis(analysis.members))
   }, [currentSession.phase, runNaming])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
