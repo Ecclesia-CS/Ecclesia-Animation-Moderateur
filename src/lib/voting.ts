@@ -241,6 +241,13 @@ export interface AllocationInputs {
   members: AllocationMember[]
   /** `member_id` des modérateurs de cette séance (n'occupent pas de siège). */
   moderatorIds: string[]
+  /**
+   * Chantier 25 — profils complets des modérateurs (mêmes ids que
+   * `moderatorIds`). Nécessaires pour qu'un modérateur en surplus, replacé
+   * comme participant ordinaire, compte correctement dans les seuils de sa
+   * table, et pour l'afficher par son pseudo dans la sélection du superadmin.
+   */
+  moderators: AllocationMember[]
   /** false → règle 3 désactivée (aucune analyse des camps status='done'). */
   opinionsAvailable: boolean
 }
@@ -263,18 +270,20 @@ export async function loadAllocationInputs(
   const raw = (data ?? {}) as { members?: AllocationInputRow[]; opinions_available?: boolean }
   const rows = raw.members ?? []
 
+  const toMember = (r: AllocationInputRow): AllocationMember => ({
+    member_id:  r.member_id,
+    pseudo:     r.pseudo,
+    is_active:  r.is_active,
+    consents:   r.consents,
+    is_veteran: r.is_veteran,
+    group_id:   r.group_id,
+  })
+  const moderators = rows.filter(r => r.is_moderator).map(toMember)
+
   return {
-    members: rows
-      .filter(r => !r.is_moderator)
-      .map(r => ({
-        member_id:  r.member_id,
-        pseudo:     r.pseudo,
-        is_active:  r.is_active,
-        consents:   r.consents,
-        is_veteran: r.is_veteran,
-        group_id:   r.group_id,
-      })),
-    moderatorIds:      rows.filter(r => r.is_moderator).map(r => r.member_id),
+    members:           rows.filter(r => !r.is_moderator).map(toMember),
+    moderatorIds:      moderators.map(m => m.member_id),
+    moderators,
     opinionsAvailable: raw.opinions_available === true,
   }
 }
@@ -284,6 +293,10 @@ export interface ApplyAllocationResult {
   member_count: number
   tables_created: number
   tables_reused: number
+  /** Chantier 25 (H18) — tables reliquats détachées de la séance. */
+  tables_detached?: number
+  /** Reliquats conservés car des participants les ont déjà rejointes. */
+  tables_orphaned?: number
 }
 
 /**
