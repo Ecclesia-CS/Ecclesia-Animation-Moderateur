@@ -12,10 +12,9 @@ interface TableAssignmentCardProps {
   onJoin?: () => Promise<void>
   joinLoading?: boolean
   joinError?: string | null
-  groupName?: { name: string; description: string } | null
 }
 
-export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError, groupName }: TableAssignmentCardProps) {
+export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError }: TableAssignmentCardProps) {
   if (loading || assignment === null) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
@@ -51,12 +50,14 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
         </p>
       </div>
 
-      {groupName && (
-        <div className="px-6 pt-4 pb-0 text-center space-y-0.5">
-          <p className="text-sm font-semibold text-indigo-700">{groupName.name}</p>
-          <p className="text-xs text-gray-500">{groupName.description}</p>
-        </div>
-      )}
+      {/* Chantier 28 (H26) — plus de nom de camp ici : cette table réunit
+          volontairement plusieurs camps d'opinion (allocation v2), aucun nom de
+          camp ne la décrit. On explique le principe à la place. */}
+      <div className="px-6 pt-4 pb-0 text-center">
+        <p className="text-xs text-gray-500">
+          Ta table réunit volontairement des personnes aux avis différents.
+        </p>
+      </div>
 
       <div className="px-6 py-5 space-y-4">
         {/* Join code */}

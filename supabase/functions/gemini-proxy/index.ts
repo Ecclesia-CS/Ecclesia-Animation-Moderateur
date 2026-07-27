@@ -279,9 +279,14 @@ Chaque profil indique, pour chaque assertion, combien de membres du camp ont vot
 
 Ta tâche : nommer UNIQUEMENT le Camp ${targetLabel} (${memberCount} membres).
 
-Donne à ce camp un nom court (3 mots maximum) et une description neutre (1-2 phrases) qui reflète objectivement son positionnement sur les assertions, en le distinguant des autres camps.
+Donne à ce camp un nom court (2 à 4 mots) et une description neutre (1-2 phrases) qui reflète objectivement son positionnement sur les assertions, en le distinguant des autres camps.
+
+Méthode : cherche d'abord les assertions sur lesquelles le Camp ${targetLabel} S'ÉCARTE le plus des autres camps (celles listées comme clivantes ci-dessus si elles sont fournies), puis nomme le camp d'après CES positions-là. Ignore les assertions où tous les camps votent pareil : elles ne disent rien de ce camp en particulier.
 
 Règles strictes :
+- Test de validité du nom : il doit être VRAI pour le Camp ${targetLabel} et FAUX pour au moins un autre camp. Un nom qui conviendrait aussi bien à un autre camp est un mauvais nom — recommence en te fondant sur un point de divergence.
+- Le nom doit exprimer une POSITION ("Pour la gratuité des transports"), pas seulement un thème ("Transports et mobilité").
+- Les camps peuvent se ressembler beaucoup : dans ce cas, nomme quand même d'après la nuance qui les sépare (intensité, priorité, exception) — par exemple "Favorables mais prudents" vs "Favorables sans réserve". Ne te rabats jamais sur un identifiant technique sous prétexte que l'écart est faible.
 - Sois descriptif, pas normatif. Ne juge pas quel camp a "raison".
 - Évite les étiquettes politiques préexistantes — décris les positions concrètes sur ce débat.
 - Base-toi uniquement sur les patterns de vote, pas sur des suppositions démographiques.
