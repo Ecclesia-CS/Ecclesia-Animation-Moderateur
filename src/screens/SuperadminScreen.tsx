@@ -731,8 +731,8 @@ function CreateModal({
               Documentation <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
             <div className="space-y-3">
-              <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
-              <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+              <DocFileField label="Fiche information" placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
+              <DocFileField label="Résumé" placeholder="https://…" value={docSummaryUrl} onChange={setDocSummaryUrl} />
             </div>
             <p className="mt-3 text-xs text-gray-400">
               Le document de sources collaboratives est disponible automatiquement pour chaque séance
@@ -1455,13 +1455,13 @@ function SessionDetail({
 
   // ── Documentation editing state ────────────────────────────
   const [editingDocs,    setEditingDocs]    = useState(false)
-  const [docInfoUrl,     setDocInfoUrl]     = useState(() => normalizeDocUrl(session.doc_info_url ?? ''))
-  const [docSummaryUrl,  setDocSummaryUrl]  = useState(() => normalizeDocUrl(session.doc_summary_url ?? ''))
+  const [docInfoUrl,     setDocInfoUrl]     = useState(() => session.doc_info_url ?? '')
+  const [docSummaryUrl,  setDocSummaryUrl]  = useState(() => session.doc_summary_url ?? '')
   const [docsLoading,    setDocsLoading]    = useState(false)
   const [docsErr,        setDocsErr]        = useState<string | null>(null)
   const [sessionDocs,    setSessionDocs]    = useState({
-    doc_info_url:    normalizeDocUrl(session.doc_info_url ?? '') || null,
-    doc_summary_url: normalizeDocUrl(session.doc_summary_url ?? '') || null,
+    doc_info_url:    session.doc_info_url ?? null,
+    doc_summary_url: session.doc_summary_url ?? null,
     doc_collab_url:  session.doc_collab_url,
   })
 
@@ -2452,8 +2452,8 @@ function SessionDetail({
                         {!editingDocs && (
                           <button
                             onClick={() => {
-                              setDocInfoUrl(normalizeDocUrl(sessionDocs.doc_info_url ?? ''))
-                              setDocSummaryUrl(normalizeDocUrl(sessionDocs.doc_summary_url ?? ''))
+                              setDocInfoUrl(sessionDocs.doc_info_url ?? '')
+                              setDocSummaryUrl(sessionDocs.doc_summary_url ?? '')
                               setDocsErr(null)
                               setEditingDocs(true)
                             }}
@@ -3963,48 +3963,24 @@ function DocLink({ label, url }: { label: string; url: string | null }) {
   )
 }
 
-function normalizeDocUrl(value: string): string {
-  const docsPath = `${import.meta.env.BASE_URL}docs/`
-  const baseUrl = `https://ecclesia-cs.github.io${docsPath}`
-  if (!value) return ''
-  if (value.includes(docsPath)) {
-    const filename = value.split(docsPath)[1] ?? ''
-    return filename ? baseUrl + filename : ''
-  }
-  return value
-}
-
 function DocFileField({ label, placeholder, value, onChange }: {
   label: string
   placeholder: string
   value: string
   onChange(v: string): void
 }) {
-  const baseUrl = `https://ecclesia-cs.github.io${import.meta.env.BASE_URL}docs/`
-  const docsPath = `${import.meta.env.BASE_URL}docs/`
-  const filename = value.includes(docsPath) ? value.split(docsPath)[1] ?? '' : value
-
-  function handleChange(raw: string) {
-    const trimmed = raw.trim()
-    onChange(trimmed ? baseUrl + trimmed : '')
-  }
-
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
-      <div className="flex items-center gap-0 border border-gray-300 rounded-xl overflow-hidden
-        focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-shadow">
-        <span className="px-3 py-2.5 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 shrink-0 select-none whitespace-nowrap">
-          docs/
-        </span>
-        <input
-          type="text"
-          value={filename}
-          onChange={e => handleChange(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 px-3 py-2.5 text-sm focus:outline-none placeholder:text-gray-300 bg-white"
-        />
-      </div>
+      <input
+        type="url"
+        value={value}
+        onChange={e => onChange(e.target.value.trim())}
+        placeholder={placeholder}
+        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+          focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+          placeholder:text-gray-300 bg-white transition-shadow"
+      />
     </div>
   )
 }

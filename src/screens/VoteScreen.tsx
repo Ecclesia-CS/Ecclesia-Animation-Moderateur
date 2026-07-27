@@ -1321,18 +1321,6 @@ function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
 
 // ── VoteToolsPanel ────────────────────────────────────────────────────────────
 
-const DOCS_PATH = '/Ecclesia-Animation-Moderateur/docs/'
-const BASE_DOCS = 'https://ecclesia-cs.github.io/docs/'
-
-function normalizeUrl(url: string | null | undefined): string | null {
-  if (!url) return null
-  if (url.includes(DOCS_PATH)) {
-    const filename = url.split(DOCS_PATH)[1] ?? ''
-    return filename ? BASE_DOCS + filename : null
-  }
-  return url
-}
-
 interface VoteToolsPanelProps {
   session: Session
   memberPseudo: string
@@ -1342,9 +1330,9 @@ interface VoteToolsPanelProps {
 
 function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes }: VoteToolsPanelProps) {
 
-  const infoUrl    = normalizeUrl(session.doc_info_url)
-  const summaryUrl = normalizeUrl(session.doc_summary_url)
-  const collabUrl  = normalizeUrl(session.doc_collab_url)
+  const infoUrl    = session.doc_info_url
+  const summaryUrl = session.doc_summary_url
+  const collabUrl  = session.doc_collab_url
   const hasCollab  = !!(session.join_code || collabUrl)
   const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
 
@@ -1451,9 +1439,9 @@ interface DocNudgeProps {
 }
 
 function DocNudge({ session, memberPseudo }: DocNudgeProps) {
-  const infoUrl    = normalizeUrl(session.doc_info_url)
-  const summaryUrl = normalizeUrl(session.doc_summary_url)
-  const collabUrl  = normalizeUrl(session.doc_collab_url)
+  const infoUrl    = session.doc_info_url
+  const summaryUrl = session.doc_summary_url
+  const collabUrl  = session.doc_collab_url
   const hasDocs    = !!(infoUrl || summaryUrl || collabUrl || session.join_code)
 
   function handleCollabClick() {

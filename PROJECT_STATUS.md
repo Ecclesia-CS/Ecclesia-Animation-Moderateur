@@ -2,7 +2,9 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 27/07/2026 — **Chantier 22 : petits ajustements UX livrés** (G12/G13/G14) — pop-up unique remplaçant la bannière `pre_voting` (mémorisée en localStorage), message de clarification sur la perte du statut de participant en devenant animateur d'une table sans admin, suppression complète des timers de phase (`vote_timer_minutes`/`vote_threshold_percent` retirés du schéma et du front). Migration `20260727_2_chantier22_remove_vote_timers.sql` **non appliquée** (MCP Supabase indisponible cette session) — fournie en clair à Jules pour application manuelle. Développé en worktree dédié (`chantier-22-ajustements-ux`) en parallèle du chantier 11, après avoir détecté et résolu une collision de dossier de travail partagé avec cette session concurrente (aucune perte de travail). **Reste le parcours fonctionnel navigateur complet** (données de test `pre_voting`/`leaderless` + mot de passe superadmin requis) : voir A_VERIFIER.md.
+Dernière mise à jour : 27/07/2026 — **Chantier 13 : 404 persistant sur les fiches d'info corrigé (F10)** — cause racine : 4 copies dupliquées d'une logique de réécriture d'URL supposant un stockage interne (`public/docs/*.html` commité), dont une (`VoteScreen.tsx`, panneau Outils en phase de vote) avait un `BASE_DOCS` codé en dur sans le segment `/Ecclesia-Animation-Moderateur/` → 404 systématique sur GitHub Pages. Conforme à la décision C3 (2026-07-23, Jules — fiches hébergées sur un site externe séparé) : toute la logique de réécriture est supprimée, `doc_info_url`/`doc_summary_url` sont utilisés tels quels (passthrough), champ superadmin passé en URL libre. Aucune migration nécessaire (schéma inchangé). **Reste à faire par Jules** : nettoyer l'URL localhost restée dans `doc_info_url` de la séance de test `GENER1` (nécessite le mot de passe superadmin) — voir A_VERIFIER.md.
+
+Mise à jour précédente : 27/07/2026 — **Chantier 22 : petits ajustements UX livrés** (G12/G13/G14) — pop-up unique remplaçant la bannière `pre_voting` (mémorisée en localStorage), message de clarification sur la perte du statut de participant en devenant animateur d'une table sans admin, suppression complète des timers de phase (`vote_timer_minutes`/`vote_threshold_percent` retirés du schéma et du front). Migration `20260727_2_chantier22_remove_vote_timers.sql` **non appliquée** (MCP Supabase indisponible cette session) — fournie en clair à Jules pour application manuelle. Développé en worktree dédié (`chantier-22-ajustements-ux`) en parallèle du chantier 11, après avoir détecté et résolu une collision de dossier de travail partagé avec cette session concurrente (aucune perte de travail). **Reste le parcours fonctionnel navigateur complet** (données de test `pre_voting`/`leaderless` + mot de passe superadmin requis) : voir A_VERIFIER.md.
 
 Mise à jour précédente : 27/07/2026 — **Chantier 11 : petits fixes UX livrés (F1-F7)** — placeholder générique corrigé (F1), modale vote intro affichée une seule fois par séance (F3), affordance checkbox pour "Tout sélectionner" superadmin (F4), bug corrigé : le champ nom se vidait en changeant d'onglet sur l'écran de code de rappel (F5), bouton "Inviter un ami" supprimé au profit du QR code seul, accessible via Outils côté participant (F6) et via un nouveau menu "Outils Modo" côté modérateur (F7). F2 (nom des séances affiché) était déjà correct, vérifié par lecture de code. Vérifié en production (GitHub Pages) contre la séance de test réelle : F1 et F5 confirmés interactivement, F6/F7/F4 confirmés par inspection du bundle déployé. **Reste le parcours superadmin/modérateur complet** (mot de passe requis) : voir A_VERIFIER.md.
 
@@ -123,7 +125,7 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 |---|---|---|---|---|
 | C1 | Ping automatique Supabase | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | C2 | Identité visuelle / branding | Backlog | | Charte graphique (Jules) |
-| C3 | Affichage documents + backend de stockage | Backlog | | Décision infra |
+| C3 | Affichage documents + backend de stockage | **Remplacé par le chantier 13** — décision d'infra tranchée (site externe séparé) | Claude | — |
 | C4 | Distinction vote pass/neutre + doc technique | Backlog | | Jules (doc pol.is) |
 | D6 | Mention non-conservation des audios | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D11 | Assertions visibles pendant le débat | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
@@ -142,6 +144,19 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 | F5 | Bug : champ "mon nom" se vide sur l'écran de code de rappel | Fait & vérifié en production (bug reproduit puis fix confirmé) | Claude | — |
 | F6 | Supprimer "inviter un ami", garder QR code via Outils | Fait — bundle déployé vérifié (à vérifier interactivement — voir A_VERIFIER.md) | Claude | — |
 | F7 | Déplacer QR code modérateur dans "Outils Modo" | Fait — nouveau menu créé (à vérifier interactivement — voir A_VERIFIER.md) | Claude | — |
+
+## Chantier 13 — Fiches d'info : 404 persistant
+> Décision C3 (2026-07-23, Jules) : les fiches d'info sont hébergées sur un site externe séparé (en construction par l'équipe), pas dans Ecclesia. `doc_info_url`/`doc_summary_url` sont de simples liens externes, sans backend de stockage interne.
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| F10 | 404 sur les fiches d'info d'une séance | Bug corrigé — voir détail ci-dessous et A_VERIFIER.md | Claude | C3 |
+
+**Cause racine identifiée** : trois copies quasi-identiques d'une logique de réécriture d'URL (`normalizeUrl`/`normalizeDocUrl` dans `DocumentationButton.tsx`, `ParticipantToolsButton.tsx`, `VoteScreen.tsx`, `SuperadminScreen.tsx`) réécrivaient `doc_info_url`/`doc_summary_url` vers `https://ecclesia-cs.github.io<BASE_URL>docs/<fichier>` en supposant un stockage interne (`public/docs/*.html` commité dans ce repo). La copie de `VoteScreen.tsx` (panneau "Outils" en phase de vote) avait un `BASE_DOCS` codé en dur **sans** le segment `/Ecclesia-Animation-Moderateur/` (`https://ecclesia-cs.github.io/docs/` au lieu de `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/docs/`) — un 404 systématique sur GitHub Pages dès qu'un participant cliquait "Fiche information"/"Résumé" pendant le vote. Confirmé avec les données réelles en base : la séance de test `🧪 Test général — parcours chantiers 1-4 / 8-10` (phase `voting`, live) a `doc_info_url = "http://localhost:5173/Ecclesia-Animation-Moderateur/docs/fiche-info-test-general.html"` — un artefact de test en local, jamais nettoyé, que seule cette logique de réécriture pouvait transformer en URL de prod (et le faisait mal dans `VoteScreen.tsx`).
+
+**Correctif appliqué** (conforme à la décision C3 — plus de stockage interne) : suppression complète des 4 copies de réécriture d'URL. `doc_info_url`/`doc_summary_url` sont maintenant utilisés tels quels (passthrough), sans transformation. Le champ superadmin (`DocFileField`) est un simple `<input type="url">` en champ libre (au lieu du champ "docs/<fichier>" qui forçait la convention interne). `doc_collab_url` (document collaboratif, fonctionnalité distincte à base de `#collab/<code>`) n'est pas concerné et reste inchangé.
+
+**Reste à faire par Jules** (hors portée code, nécessite le mot de passe superadmin) : mettre à jour `doc_info_url`/`doc_summary_url` de la séance de test `GENER1` (actuellement une URL localhost, cassée pour tout le monde) — soit vider le champ, soit y coller la vraie URL du site externe une fois disponible. Les fichiers `public/docs/*.html` (fiches de test committées à l'ancienne convention) sont maintenant orphelins — plus référencés par aucun code, à supprimer si Jules confirme qu'ils ne servent plus.
 
 ---
 

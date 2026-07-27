@@ -82,20 +82,9 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
 
   const done = checkDone && isComplete(savedResponse)
 
-  const DOCS_PATH = `${import.meta.env.BASE_URL}docs/`
-  const BASE_DOCS = `https://ecclesia-cs.github.io${DOCS_PATH}`
-  function normalizeUrl(url: string | null | undefined): string | null {
-    if (!url) return null
-    if (url.includes(DOCS_PATH)) {
-      const filename = url.split(DOCS_PATH)[1] ?? ''
-      return filename ? BASE_DOCS + filename : null
-    }
-    return url
-  }
-
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session ?? {}
-  const infoUrl    = normalizeUrl(doc_info_url)
-  const summaryUrl = normalizeUrl(doc_summary_url)
+  const infoUrl    = doc_info_url ?? null
+  const summaryUrl = doc_summary_url ?? null
   const hasCollab  = !!session_join_code || !!doc_collab_url
   const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
 
