@@ -32,6 +32,21 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+/**
+ * Insère chaque nouvel élément à une position aléatoire (par élément) plutôt qu'en fin de
+ * liste. Sans ça, les assertions approuvées après le chargement initial (le cas normal —
+ * la modération tourne pendant que les gens votent) arrivent toujours dans le même ordre
+ * pour tout le monde via Realtime/polling, ce qui annule en pratique le shuffle initial.
+ */
+function insertRandomly<T>(prev: T[], items: T[]): T[] {
+  const next = [...prev]
+  for (const item of items) {
+    const idx = Math.floor(Math.random() * (next.length + 1))
+    next.splice(idx, 0, item)
+  }
+  return next
+}
+
 export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScreenProps) {
   const [step, setStep] = useState<Step>('loading')
   const [errorMsg, setErrorMsg] = useState('')
@@ -336,8 +351,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               // update existing (e.g. pending → approved)
               return prev.map(x => (x.id === a.id ? a : x))
             }
-            // New assertion: append at end (already voted boundary)
-            return [...prev, a]
+            // Nouvelle assertion : position aléatoire, pas en fin de liste (F8)
+            return insertRandomly(prev, [a])
           })
         },
       )
@@ -408,7 +423,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       setAssertions(prev => {
         const incoming = data as Assertion[]
         const newOnes = incoming.filter(a => !prev.some(p => p.id === a.id))
-        return newOnes.length > 0 ? [...prev, ...newOnes] : prev
+        // Position aléatoire par élément, pas un append en bloc en fin de liste (F8)
+        return newOnes.length > 0 ? insertRandomly(prev, newOnes) : prev
       })
     }, 10000)
     return () => clearInterval(interval)
@@ -1052,11 +1068,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                                 setRevoteAssertion(a)
                                 setShowAllAssertions(false)
                               }}
-                              className="shrink-0 text-base hover:opacity-70 transition-opacity"
+                              className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-indigo-600 border border-indigo-200 rounded-full pl-1.5 pr-2 py-0.5 hover:bg-indigo-50 transition-colors"
                               aria-label="Changer mon vote"
-                              title="Changer mon vote"
                             >
-                              {voteIcon}
+                              <span className="text-sm leading-none">{voteIcon}</span>
+                              <span>Changer</span>
                             </button>
                           )
                           : (

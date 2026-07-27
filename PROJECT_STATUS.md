@@ -2,7 +2,9 @@
 
 > Descriptions complètes des tâches : voir `ecclesia_plan_chantiers.md`. Ce fichier ne recense que le statut courant — à mettre à jour au fil des PR. Statuts possibles : `Backlog` / `En cours` / `Bloqué` / `Terminé`.
 
-Dernière mise à jour : 27/07/2026 — **Chantier 22 : petits ajustements UX livrés** (G12/G13/G14) — pop-up unique remplaçant la bannière `pre_voting` (mémorisée en localStorage), message de clarification sur la perte du statut de participant en devenant animateur d'une table sans admin, suppression complète des timers de phase (`vote_timer_minutes`/`vote_threshold_percent` retirés du schéma et du front). Migration `20260727_2_chantier22_remove_vote_timers.sql` **non appliquée** (MCP Supabase indisponible cette session) — fournie en clair à Jules pour application manuelle. Développé en worktree dédié (`chantier-22-ajustements-ux`) en parallèle du chantier 11, après avoir détecté et résolu une collision de dossier de travail partagé avec cette session concurrente (aucune perte de travail). **Reste le parcours fonctionnel navigateur complet** (données de test `pre_voting`/`leaderless` + mot de passe superadmin requis) : voir A_VERIFIER.md.
+Dernière mise à jour : 27/07/2026 — **Chantier 12 : ordre des assertions & changement de vote livré (F8-F9)** — F8 : bug réel trouvé et corrigé — le shuffle initial fonctionnait, mais toute assertion approuvée après le premier chargement (cas normal en séance réelle) était toujours ajoutée en fin de liste dans le même ordre pour tout le monde (Realtime + polling 10s), ce qui annulait l'effet du hasard en pratique ; corrigé avec une insertion à position aléatoire par élément. F9 : la modale "Voir toutes les assertions" affichait juste une icône cliquable sans libellé pour changer un vote déjà posé (contrairement au bouton "Voter" texté et à la liste "Tes votes" qui a déjà "Changer") — harmonisé avec une pastille icône+"Changer" identique aux autres boutons. Développé en worktree dédié (`chantier-12-ordre-assertions-vote`) en parallèle du chantier 13 — aucun chevauchement de fichiers constaté. **Reste à vérifier** : comportement de l'insertion aléatoire sur une nouvelle assertion approuvée pendant qu'un participant est déjà sur l'écran de vote (bloqué par modération fermée sur la séance de test disponible, mot de passe superadmin requis) — voir A_VERIFIER.md.
+
+Mise à jour précédente : 27/07/2026 — **Chantier 22 : petits ajustements UX livrés** (G12/G13/G14) — pop-up unique remplaçant la bannière `pre_voting` (mémorisée en localStorage), message de clarification sur la perte du statut de participant en devenant animateur d'une table sans admin, suppression complète des timers de phase (`vote_timer_minutes`/`vote_threshold_percent` retirés du schéma et du front). Migration `20260727_2_chantier22_remove_vote_timers.sql` **non appliquée** (MCP Supabase indisponible cette session) — fournie en clair à Jules pour application manuelle. Développé en worktree dédié (`chantier-22-ajustements-ux`) en parallèle du chantier 11, après avoir détecté et résolu une collision de dossier de travail partagé avec cette session concurrente (aucune perte de travail). **Reste le parcours fonctionnel navigateur complet** (données de test `pre_voting`/`leaderless` + mot de passe superadmin requis) : voir A_VERIFIER.md.
 
 Mise à jour précédente : 27/07/2026 — **Chantier 11 : petits fixes UX livrés (F1-F7)** — placeholder générique corrigé (F1), modale vote intro affichée une seule fois par séance (F3), affordance checkbox pour "Tout sélectionner" superadmin (F4), bug corrigé : le champ nom se vidait en changeant d'onglet sur l'écran de code de rappel (F5), bouton "Inviter un ami" supprimé au profit du QR code seul, accessible via Outils côté participant (F6) et via un nouveau menu "Outils Modo" côté modérateur (F7). F2 (nom des séances affiché) était déjà correct, vérifié par lecture de code. Vérifié en production (GitHub Pages) contre la séance de test réelle : F1 et F5 confirmés interactivement, F6/F7/F4 confirmés par inspection du bundle déployé. **Reste le parcours superadmin/modérateur complet** (mot de passe requis) : voir A_VERIFIER.md.
 
@@ -128,9 +130,9 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 | D6 | Mention non-conservation des audios | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D11 | Assertions visibles pendant le débat | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
 | D12 | Mention anonymat des votes | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
-| D13 | Ordre aléatoire des assertions | Fait — déjà implémenté (shuffle Fisher-Yates dans VoteScreen), vérifié en lisant le code | Claude | — |
+| D13 | Ordre aléatoire des assertions | ⚠️ Correction chantier 12 (F8) — le shuffle initial était bien là, mais les assertions approuvées après coup (cas normal en séance réelle) étaient ajoutées en fin de liste, dans le même ordre pour tout le monde | Claude | — |
 | D15 | QR code lien table (modérateurs) | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
-| D16 | Pouvoir changer son vote | Fait (à vérifier — voir A_VERIFIER.md) | Claude | — |
+| D16 | Pouvoir changer son vote | Fait — harmonisé chantier 12 (F9), voir A_VERIFIER.md | Claude | — |
 
 ## Chantier 11 — Petits fixes UX
 | ID | Résumé | Statut | Contributeur | Dépend de |
@@ -142,6 +144,12 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 | F5 | Bug : champ "mon nom" se vide sur l'écran de code de rappel | Fait & vérifié en production (bug reproduit puis fix confirmé) | Claude | — |
 | F6 | Supprimer "inviter un ami", garder QR code via Outils | Fait — bundle déployé vérifié (à vérifier interactivement — voir A_VERIFIER.md) | Claude | — |
 | F7 | Déplacer QR code modérateur dans "Outils Modo" | Fait — nouveau menu créé (à vérifier interactivement — voir A_VERIFIER.md) | Claude | — |
+
+## Chantier 12 — Ordre des assertions & changement de vote
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| F8 | Ordre aléatoire des assertions ne fonctionne pas en pratique | Bug réel trouvé et corrigé — `src/screens/VoteScreen.tsx`, insertion à position aléatoire des assertions nouvellement approuvées (Realtime + polling), au lieu d'un append en fin de liste identique pour tout le monde. **Reste à vérifier en conditions réelles multi-participants** — voir A_VERIFIER.md | Claude | D13 |
+| F9 | Harmoniser les deux points d'entrée "changer son vote" | Fait — la modale "Voir toutes les assertions" affiche maintenant "icône + Changer" comme le bouton "Voter" et comme la liste "Tes votes". Aucune raison légitime trouvée pour l'ancienne asymétrie (reliquat du fragment WIP D16) | Claude | D16 |
 
 ---
 
