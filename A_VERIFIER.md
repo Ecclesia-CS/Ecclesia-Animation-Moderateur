@@ -5,6 +5,18 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-07-28** — Chantier 32 (J7) — `src/lib/allocation.test.ts` (aucun changement applicatif)
+
+  **Contexte** : Jules avait signalé que le champ « Modérateurs à ajouter » (`AllocationPanel`) semblait sans effet sur le calcul, quelle que soit la valeur saisie.
+
+  **Investigation** : traçage complet state React (`extraModerators`) → `buildInput` → `runAllocation` → `extras`/`moderatorCapacity` → `moderatedCount`/`shapePreference` dans `src/lib/allocation.ts` : le branchement est correct sur `main` actuel. Confirmé par les 2 tests existants (`allocation.test.ts` L187, L628) et par un rendu React réel temporaire (`@testing-library/react`, installé puis retiré après vérification) qui a simulé exactement le geste de Jules — remplir le champ, cliquer « Recalculer » — sur un scénario où la capacité de modération (1 modérateur inscrit) est inférieure au nombre de tables : `moderated` passe de 1 à 4 tables quand `extraModerators` passe de 0 à 5.
+
+  **Hypothèse retenue sur l'origine du signalement** : les commits `4b09c33`/`c39f2df`/`fc3de98` (chantiers 25/25b/25c, 2026-07-27, la veille de ce ticket) ont retouché exactement cette zone (capacité de modération, surplus de modérateurs, sélection différée). Jules a très probablement testé avant que ces correctifs n'arrivent sur `main` — le champ apparaissait donc bien cassé au moment du test, mais est déjà réparé aujourd'hui.
+
+  **Pas de changement de code applicatif** : ajout d'un test de non-régression (`allocation.test.ts`) qui reproduit la méthodologie exacte du signalement (1 modérateur inscrit, `extraModerators` variant 0/+1/+2/+3, capacité inférieure au nombre de tables) — garde-fou notamment pour le chantier 29 (fiabilité de la recherche), en cours sur le même fichier.
+
+  **Non vérifié** : le comportement du champ dans le panneau superadmin réel contre une séance réelle en phase `allocating` (nécessite le mot de passe superadmin, non saisi par Claude — règle de sécurité). Si le symptôme réapparaît en conditions réelles après ce ticket, c'est un signal fort qu'il faut regarder ailleurs (RPC `get_allocation_inputs`, cache de `sessionStorage` d'un ancien calcul, ou un bug spécifique à la séance testée) plutôt que dans le calcul lui-même.
+
 - [ ] **2026-07-28** — Chantier 18 (F23/F24) — `supabase/functions/gemini-proxy/index.ts`, `supabase/migrations/20260728_chantier18_merge_undo.sql` (nouveau), `src/lib/voting.ts`, `src/components/voting/LLMModerationPanel.tsx`, `src/screens/SuperadminScreen.tsx`
 
   **Contexte** : suite du chantier 7 (B4). F23 — une prescription législative ("la publicité devrait être interdite") était fusionnée à tort avec des jugements moraux ("la publicité c'est mal"). F24 — le bouton "Annuler" d'une fusion ne restaurait pas l'état d'avant.
