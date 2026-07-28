@@ -5,6 +5,29 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-07-28** — Chantier 25c (flow de sélection des modérateurs en surplus) — `src/components/voting/AllocationPanel.tsx`
+
+  **Contexte** : Jules a précisé le flux voulu après le 25b. Décocher un modérateur ne doit **rien** écrire en base et ne doit **pas** relancer le calcul ; tout est différé et groupé au clic sur « Appliquer ». Ordonnancement arrêté : **les flags `is_moderator = false` ne sont écrits qu'APRÈS que la création des tables a réussi** — si elle échoue, aucun flag n'est touché.
+
+  **État constaté avant correctif** (vérifié dans le code mergé) : le `set_member_moderator(false)` partait bien **dès le clic sur la case** ; en revanche l'algorithme ne se relançait **pas** automatiquement (ça, c'était déjà conforme). Un troisième écart non identifié au départ : le décochage rendait la proposition « périmée » et **désactivait « Appliquer »** jusqu'à un clic manuel sur « Recalculer ».
+
+  **Ce qui a changé** :
+  - `toggleModerator` → état local pur, plus aucun appel réseau ni rechargement.
+  - `buildInput()` (nouveau) → construit les entrées depuis la sélection courante : les décochés rejoignent `members` avec leurs vraies réponses d'onboarding, et sortent de `moderatorIds`. Utilisé à l'identique par « Calculer » et par « Appliquer ».
+  - `handleApply` → 1. recalcule avec la sélection ; 2. `applyAllocation` ; 3. **seulement en cas de succès**, `setMemberModerator(false)` pour chaque décoché, puis vide la sélection. En cas d'échec : message explicite « aucune table créée et aucun statut de modérateur modifié, ta sélection est conservée ».
+  - Le blocage « réglages modifiés » ne désactive plus « Appliquer » ; le bandeau explique désormais qu'« Appliquer » recalcule d'abord.
+  - La liste s'ouvre automatiquement et passe en ambre quand un surplus est détecté, avec le message : « décoche ceux qui n'animeront pas pour choisir toi-même lesquels ; sinon l'algorithme en désigne d'office (les derniers inscrits) ».
+  - Si un `set_member_moderator` échoue après création réussie des tables, les pseudos concernés sont listés dans le message de succès avec l'indication de corriger dans l'onglet Participants (les tables, elles, existent bien).
+
+  **Vérifié par moi** : `npx tsc -b`, `npm run build`, `npm test` → 62/62. Browser pane (port 5190) : **zéro erreur console**. Sémantique de sélection exercée dans le bundle réel servi par Vite, sur 25 participants + 4 modérateurs — aucun décoché → mo-0/1/2 animent et mo-3 est désigné d'office ; **Mod0 décoché → mo-1/2/3 animent** (le choix porte bien sur *qui*, pas seulement sur le nombre) ; deux décochés → 2 animateurs et une table passe « sans animateur ». 29 personnes placées dans les 4 cas.
+
+  **Non vérifié / à valider par Jules** :
+  1. **Le parcours UI reste non testé de bout en bout** (mot de passe superadmin, non détenu). **Il n'existe actuellement aucune séance testable** : la seule séance non clôturée est `GENER1`, en phase `voting` avec **0 modérateur** (vérifié en base). Pour tester il faut d'abord marquer 3-4 membres comme modérateurs (onglet Participants) puis passer la séance en `allocating`. Je ne l'ai pas fait moi-même : `GENER1` est le bac à sable partagé avec d'autres chantiers en cours, changer sa phase les perturberait.
+  2. **Point d'attention — décocher trop, ou pas assez.** Si tu décoches **moins** que le surplus, l'algorithme continue d'en désigner d'office pour combler (message ajouté dans la liste pour le dire). Si tu décoches **plus** que nécessaire, une table se retrouve sans animateur — visible via le badge « sans animateur » sur la table concernée. Aucun des deux n'est bloqué : c'est ton choix, l'app l'affiche.
+  3. **La sélection est persistée en `sessionStorage`** (survit au changement d'onglet et au rechargement) alors qu'elle n'est pas encore en base. Conséquence : si tu décoches, changes d'onglet, reviens et cliques « Appliquer », les décochages d'avant sont toujours actifs. C'est voulu (cohérent avec H14) mais à garder en tête.
+  4. **Écriture des flags non transactionnelle.** Les `set_member_moderator` sont faits un par un après la création des tables. Si l'un échoue (réseau), les autres passent quand même et le message le signale nommément. Rendre l'ensemble atomique demanderait une RPC dédiée — pas fait, l'échec est signalé plutôt que masqué.
+
+
 - [ ] **2026-07-28** — Chantier 26 (H10, H19, H20, H21, H25 — vue superadmin tables : tri, affichage, édition) — `src/screens/SuperadminScreen.tsx`, `supabase/migrations/20260727_6_chantier26_sync_table_assignments.sql` (nouveau)
 
   **H10** — `MembersPanel` (accordéon « Participants inscrits », onglet 🟢 En direct) : les 6 colonnes (Pseudo, Heure, Phase, Q., V., 🎙️) sont désormais triables via de petites flèches ▲▼ à côté de chaque en-tête, cliquables, avec bascule croissant/décroissant. Tri par défaut inchangé (arrivée croissante). Vérifié en navigateur sur `VERIF7` (29 membres) : tri alphabétique croissant (Alice → Yasmine) et décroissant (Yasmine → Alice) tous deux corrects.
