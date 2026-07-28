@@ -128,7 +128,28 @@ une paire au hasard serait deviner. Sans effet sur les appels à faible volume.
 supprime pas seulement les faux positifs mais aussi les vraies fusions, donc la
 fonctionnalité devient silencieusement inopérante là où elle servirait le plus.
 
-**Correction de fond recommandée — présélection des paires candidates** : au
+**Décision de Jules (2026-07-28) : on garde l'architecture d'appel actuelle** —
+envoyer toutes les assertions approuvées en un seul appel — parce qu'observer
+cette capacité de fusion en conditions réelles a de la valeur en soi. En
+contrepartie, ce que les garde-fous écartent est **affiché dans le panneau**
+(« N regroupement(s) de plus de 2 assertions écarté(s) automatiquement ») et non
+filtré en silence : sur une séance chargée, c'est le signal que Gemini a
+décroché. Sans cet affichage, « aucun doublon détecté » laisserait croire à une
+liste propre.
+
+**Garde-fou n°2 — inclusion partielle** (`src/lib/mergeGuards.ts`,
+`isPartialInclusion`) : vérification déterministe, sans appel réseau, testée par
+14 tests de non-régression bâtis sur les verdicts ci-dessus. Elle bloque une
+fusion quand la plus longue des deux assertions **coordonne** deux propositions
+(« et », « ainsi que ») et que la plus courte n'en reprend qu'une, tout le
+supplément tenant dans le segment laissé de côté. Volontairement **étroite** :
+une règle plus large (« tout mot de contenu en trop bloque ») casserait des
+fusions validées — « La publicité manipule les gens » = « La publicité est
+manipulatrice » serait bloquée à cause de « gens », et « Je trouve la publicité
+agaçante » = « La publicité est agaçante » à cause de « trouve ». Mieux vaut
+rater un cas que bloquer une fusion légitime.
+
+**Correction de fond, écartée pour l'instant — présélection des paires candidates** : au
 lieu d'envoyer N assertions et de demander « trouve les doublons » (tâche
 ouverte, qui dégénère en clustering), présélectionner côté client les paires
 lexicalement proches (recouvrement de mots / similarité cosinus sur les
