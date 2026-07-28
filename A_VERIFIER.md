@@ -17,6 +17,8 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **Non testé** : le flow réel avec une vraie table modérée (nécessite le code Ecclesia, que je n'ai pas) — la vérification ci-dessus contourne ça via la manipulation du flag `isModerator` en local, ce qui teste fidèlement le rendu et les handlers du menu mais pas les policies RLS spécifiques à un vrai modérateur `created_by`. Un test manuel rapide par Jules avec une vraie table modérée serait bienvenu pour confirmer qu'aucune régression RLS ne s'est glissée (aucun changement de RPC n'a été fait dans ce chantier, donc risque jugé faible).
 
+  **Merge & déploiement** : mergé sur `main` en fast-forward (`424c4b7`, tag de rollback `pre-merge-chantier-27-2026-07-28` posé avant merge). Le run GitHub Actions `deploy.yml` pour ce commit s'est terminé avec succès (`conclusion: success`, vérifié via l'API GitHub). Je n'ai pas pu confirmer visuellement le nouveau build sur `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/` dans la fenêtre de vérification (~7 min de polling) — cohérent avec le cache CDN Fastly documenté dans `CLAUDE.md` (`Cache-Control: max-age=600`, jusqu'à 10 min de latence après déploiement), pas un signal d'échec.
+
 - [ ] **2026-07-28** — Chantier 25c (flow de sélection des modérateurs en surplus) — `src/components/voting/AllocationPanel.tsx`
 
   **Contexte** : Jules a précisé le flux voulu après le 25b. Décocher un modérateur ne doit **rien** écrire en base et ne doit **pas** relancer le calcul ; tout est différé et groupé au clic sur « Appliquer ». Ordonnancement arrêté : **les flags `is_moderator = false` ne sont écrits qu'APRÈS que la création des tables a réussi** — si elle échoue, aucun flag n'est touché.
