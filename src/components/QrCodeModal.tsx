@@ -32,6 +32,9 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
         ) : (
           <div className="w-56 h-56 flex items-center justify-center text-xs text-gray-400">Génération…</div>
         )}
+        <p className="text-xs text-gray-400 text-center">
+          Les autres participants peuvent scanner ce QR code avec leur téléphone pour rejoindre directement cette table.
+        </p>
         <p className="text-xs text-gray-500 text-center break-all">{value}</p>
         <button
           onClick={onClose}

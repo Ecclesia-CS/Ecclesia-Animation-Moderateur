@@ -242,7 +242,7 @@ export default function EntryScreen({ onJoined }: Props) {
                 <div key={s.id}
                   className="bg-gray-50 rounded-xl border border-gray-200 p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{s.title}</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words">{s.title}</p>
                     <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_BADGE[s.phase] ?? 'bg-gray-100 text-gray-600'}`}>
                       {PHASE_LABEL[s.phase] ?? s.phase}
                     </span>
@@ -308,7 +308,7 @@ export default function EntryScreen({ onJoined }: Props) {
                   </select>
                 )}
               </div>
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Ex : Marie Dupont" />
+              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">
                 Retiens bien ce que tu inscris ici — utilisé seulement si tu n'as pas encore de profil sur cette séance.
               </p>
@@ -331,7 +331,7 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Ex : Marie Dupont" />
+              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -351,7 +351,7 @@ export default function EntryScreen({ onJoined }: Props) {
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
               <Field label="Votre nom Prénom" value={pseudo}
-                onChange={setPseudo} placeholder="Ex : Marie Dupont" />
+                onChange={setPseudo} placeholder="Prénom Nom" />
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -370,7 +370,7 @@ export default function EntryScreen({ onJoined }: Props) {
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
               <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (modérateur)'} value={pseudo} onChange={setPseudo}
-                placeholder="Ex : Marie Dupont" />
+                placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
                 <Field label="Code Ecclesia" value={creationCode}

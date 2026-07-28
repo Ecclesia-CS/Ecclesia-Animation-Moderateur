@@ -76,7 +76,7 @@ export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLa
           required
           value={pseudo}
           onChange={e => setPseudo(e.target.value)}
-          placeholder="Ex : Marie Dupont"
+          placeholder="Prénom Nom"
           className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
             placeholder:text-gray-300 transition-shadow"
