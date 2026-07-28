@@ -88,7 +88,7 @@ export default function EntryScreen({ onJoined }: Props) {
     supabase
       .from('sessions')
       .select('id, title, join_code')
-      .in('phase', ['draft', 'voting', 'debating'])
+      .in('phase', ['draft', 'pre_voting', 'voting', 'debating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setAvailableSessions(data) })
   }, [mode])
@@ -99,7 +99,7 @@ export default function EntryScreen({ onJoined }: Props) {
     supabase
       .from('sessions')
       .select('id, title, join_code')
-      .in('phase', ['voting', 'allocating'])
+      .in('phase', ['pre_voting', 'voting', 'allocating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setModeratorSessions(data) })
   }, [mode])
@@ -280,7 +280,7 @@ export default function EntryScreen({ onJoined }: Props) {
           {mode === 'moderator' && (
             <form onSubmit={handleClaimModerator} className="space-y-4">
               <p className="text-xs text-gray-500">
-                Déclare-toi modérateur d'une séance en cours (vote ou formation des groupes) avec le mot de passe Ecclesia.
+                Déclare-toi modérateur d'une séance en cours (vote à distance, vote présentiel ou formation des groupes) avec le mot de passe Ecclesia.
                 Si tu es déjà inscrit·e sur cet appareil (tu as voté ou tu t'es déjà inscrit·e), on ajoute juste le badge modérateur à ton profil.
                 Sinon, ton profil est créé avec le nom ci-dessous, comme une inscription normale.
               </p>
