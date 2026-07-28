@@ -70,7 +70,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Progress bar */}
-      <div className="px-4 pt-5 pb-4 bg-white border-b border-gray-100">
+      <div className="px-4 pt-14 pb-4 bg-white border-b border-gray-100">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500">Question {currentQ + 1}/{TOTAL_QUESTIONS}</span>
           <span className="text-xs text-indigo-600 font-medium">{member.pseudo}</span>

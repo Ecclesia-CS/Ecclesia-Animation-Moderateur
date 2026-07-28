@@ -828,6 +828,26 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **⚠️ Migration SQL non appliquée** — `supabase/migrations/20260727_2_chantier22_remove_vote_timers.sql` (fournie en clair dans le rapport de session à Jules, qui l'appliquera via son propre accès Supabase). Tant qu'elle n'est pas appliquée, le code front (qui ne référence plus `vote_timer_minutes`/`vote_threshold_percent`) continue de fonctionner sans erreur — `Session` ignore simplement des colonnes DB non lues — mais `update_session_config` échouera si l'ancienne fonction à 5 arguments est toujours seule en base (l'appel front passe désormais 3 arguments). **Donc : ne pas déployer le nouveau code front en production avant d'avoir appliqué cette migration**, sous peine de casser le bouton d'enregistrement de `ModerationPolicyEditor`/`CreateModal`.
 
+- [ ] **2026-07-28** — Chantier 23 (H1, H2, H7, H8, H24 — petits fixes UX & texte) — `src/components/voting/PseudoForm.tsx`, `src/screens/VoteScreen.tsx`, `src/screens/EntryScreen.tsx`, `src/components/JoinTableForm.tsx`, `src/components/voting/AssertionCard.tsx`, `src/components/voting/OnboardingForm.tsx`, `src/components/QrCodeModal.tsx`
+
+  **H1** — placeholder `"Ex : Marie Dupont"` remplacé par `"Prénom Nom"` (100 % générique, aucun exemple concret) dans les 4 formulaires où il apparaissait (`PseudoForm`, `VoteScreen` (VotingEntryForm), `EntryScreen` (join/reclaim/create), `JoinTableForm`).
+
+  **H2** — `EntryScreen.tsx:245` (carte "Séances en cours") : classe `truncate` (tronque en une ligne + ellipsis) remplacée par `break-words` (retour à la ligne, longueur illimitée). Vérifié en navigateur : un titre de 47 caractères passe de 1 ligne tronquée à 2 lignes complètes (`offsetHeight` 40px au lieu d'une ligne simple), rien ne déborde de la carte.
+
+  **H7** — le sens de « Passe » était déjà partiellement expliqué (« un vrai choix, compté dans les résultats ») mais sans dire *ce que ça signifie* concrètement. Texte enrichi à 2 endroits : la modale d'intro du vote (`VoteScreen.tsx`, affichée une fois via `ecclesia_vote_intro_<session.id>`) et l'astuce sous les boutons de vote sur la 1ʳᵉ assertion (`AssertionCard.tsx`, `index === 0`). Les deux disent maintenant explicitement "ni l'un ni l'autre, ou que la question n'est pas claire".
+
+  **H8** — cause : `OnboardingForm.tsx` a une barre de progression `px-4 pt-5` (20px de marge haute) contenant le texte "Question X/3" en haut à gauche, exactement sous le bouton flottant `QuitLink` (`fixed top-3 left-3`, ~12-42px de haut). `pt-5` → `pt-14` (56px) pour dégager le bouton. Vérifié par `getBoundingClientRect()` sur les deux éléments : bouton `top:12/bottom:42`, compteur `top:56/bottom:72` — zéro chevauchement (contre chevauchement certain avec l'ancien `pt-5`, le compteur commençait à y:32).
+
+  **H24** — `QrCodeModal.tsx` (composant unique utilisé pour le QR code de table, depuis les menus Outils participant et modérateur) : ajout d'une phrase sous le QR code, avant le lien brut — "Les autres participants peuvent scanner ce QR code avec leur téléphone pour rejoindre directement cette table."
+
+  **Déjà vérifié par moi** : `npx tsc -b` (exit 0, aucune erreur TS) dans le worktree dédié (`Ecclesia-chantier-23`, `node_modules` installés localement). Vérification navigateur complète (Browser pane, serveur dev isolé port 5188, config `chantier-23-dev` ajoutée à `.claude/launch.json`) sur la séance de test partagée `🧪 Test général — parcours chantiers 1-4 / 8-10` : parcours entrée → intro app → saisie nom → onboarding (3 questions, H8 vérifié par mesure de positions) → vote (H7 vérifié, modale d'intro + astuce 1ʳᵉ carte) → création d'une table `leaderless` de test → panneau Outils → QR code (H24 vérifié, texte affiché). Menu principal (H2) et placeholders (H1) vérifiés directement sur `EntryScreen`. **Zéro erreur console** sur l'ensemble du parcours (`read_console_messages` vide après filtrage erreurs).
+
+  **Effet de bord mineur** : le clic natif via `computer` (coordonnées pixel) ne déclenchait pas les handlers React dans cette session (le Browser pane refusait aussi les captures d'écran — "pane not displayed, compositing impossible") ; toutes les interactions de vérification ont donc été faites via `javascript_tool` (`element.click()` / `dispatchEvent('input')`), qui elles fonctionnaient normalement. Aucun rapport avec le code du chantier — probablement une particularité de l'environnement d'exécution de cette session. À garder en tête si une future session rencontre le même souci.
+
+  **Non testé** : rendu réel du QR code scanné avec un téléphone physique (uniquement vérifié que le composant s'affiche avec le bon texte et la bonne URL) ; wrapping du titre de séance (H2) sur un très long titre sans aucun espace (un seul "mot" de 100+ caractères) — `break-words` gère normalement ce cas mais non vérifié spécifiquement.
+
+  **Données de test créées** dans la séance partagée `🧪 Test général — parcours chantiers 1-4 / 8-10` (pas de nettoyage effectué, cohérent avec l'usage déjà observé d'autres chantiers sur cette séance de QA) : un membre "Test H8 Verif …" (votes + réponse onboarding), une table `leaderless` `EA9703` avec un participant "QR Test …".
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
