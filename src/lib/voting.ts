@@ -499,6 +499,71 @@ export async function updateAssertionContent(
   if (error) throw new Error(extractErr(error))
 }
 
+// ── Chantier 18 / F24 — fusion annulable ──────────────────────
+// Remplace la séquence updateAssertionContent → mergeAssertionVotes →
+// rejectAssertion : une seule RPC atomique qui enregistre au passage de
+// quoi revenir en arrière (voir 20260728_chantier18_merge_undo.sql).
+
+export interface AssertionMergeRecord {
+  id:                  string
+  keep_id:             string
+  reject_id:           string
+  keep_content_before: string
+  keep_content_after:  string
+  reject_content:      string
+  reason:              string | null
+  created_at:          string
+  reverted_at:         string | null
+}
+
+export interface RevertMergeResult {
+  content_restored: boolean
+  votes_removed:    number
+  votes_restored:   number
+}
+
+export async function applyAssertionMerge(
+  password: string,
+  keepId: string,
+  rejectId: string,
+  newContent?: string | null,
+  reason?: string | null
+): Promise<string> {
+  const { data, error } = await supabase.rpc('apply_assertion_merge', {
+    p_password:    password,
+    p_keep_id:     keepId,
+    p_reject_id:   rejectId,
+    p_new_content: newContent ?? null,
+    p_reason:      reason ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as string
+}
+
+export async function revertAssertionMerge(
+  password: string,
+  mergeId: string
+): Promise<RevertMergeResult> {
+  const { data, error } = await supabase.rpc('revert_assertion_merge', {
+    p_password: password,
+    p_merge_id: mergeId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as RevertMergeResult
+}
+
+export async function listAssertionMerges(
+  password: string,
+  sessionId: string
+): Promise<AssertionMergeRecord[]> {
+  const { data, error } = await supabase.rpc('list_assertion_merges', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data ?? []) as AssertionMergeRecord[]
+}
+
 export async function getMyTableAssignment(
   sessionId: string
 ): Promise<AssignmentWithJoinCode | null> {

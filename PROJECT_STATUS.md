@@ -108,7 +108,15 @@ Mise à jour précédente : 22/07/2026 — **6 migrations SQL appliquées en bas
 ## Chantier 7 — Fusion des assertions
 | ID | Résumé | Statut | Contributeur | Dépend de |
 |---|---|---|---|---|
-| B4 | Fusion des assertions ne marche pas | Fait — migration `update_assertion_content` appliquée + Edge `gemini-proxy` redéployée avec prompt durci (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md) | Claude | — |
+| B4 | Fusion des assertions ne marche pas | Fait — migration `update_assertion_content` appliquée + Edge `gemini-proxy` redéployée avec prompt durci (rapporté 22/07, à vérifier fonctionnellement — voir A_VERIFIER.md). **Suite : chantier 18** | Claude | — |
+
+## Chantier 18 — Fusion : prescription vs jugement + annulation
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| F23 | Prescription ≠ jugement dans le prompt de fusion | Fait — règle de typage PRESCRIPTION/JUGEMENT/CONSTAT ajoutée à `buildMergePrompt`, Edge `gemini-proxy` redéployée (**v12**). Vérifié par 1 appel Gemini réel sur le jeu PUBFUS retrouvé en base — voir A_VERIFIER.md | Claude | Chantier 7 (B4) |
+| F24 | Annuler une fusion déjà acceptée | Fait — migration `20260728_chantier18_merge_undo` **appliquée** (table `assertion_merges` + `apply_assertion_merge`/`revert_assertion_merge`/`list_assertion_merges`). Aller-retour vérifié en SQL ; rendu visuel du panneau à vérifier avec le mot de passe superadmin — voir A_VERIFIER.md | Claude | Chantier 7 (B4) |
+
+> **Suite prévue (hors chantier)** : session de calibrage dédiée où Jules tranchera cas par cas quelles assertions doivent ou non fusionner, pour affiner le prompt à partir d'exemples réels validés.
 
 ## Chantier 8 — Bugs techniques divers
 | ID | Résumé | Statut | Contributeur | Dépend de |

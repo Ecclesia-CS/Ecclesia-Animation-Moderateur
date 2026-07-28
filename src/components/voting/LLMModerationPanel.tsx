@@ -5,7 +5,11 @@
 // =============================================================
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { listAssertionsAdmin, approveAssertion, rejectAssertion, mergeAssertionVotes, updateAssertionContent } from '../../lib/voting'
+import {
+  listAssertionsAdmin, approveAssertion, rejectAssertion,
+  applyAssertionMerge, revertAssertionMerge, listAssertionMerges,
+  type AssertionMergeRecord,
+} from '../../lib/voting'
 import { moderateAssertions, mergeAssertions } from '../../lib/gemini'
 import {
   recordAiUsage,
@@ -161,6 +165,13 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   // Assertions rejetées
   const [rejectedAssertions, setRejectedAssertions] = useState<AssertionAdmin[]>([])
 
+  // Fusions appliquées, lues en base (chantier 18 / F24). Remplace l'ancien
+  // journal localStorage `merge_log_<id>` : une fusion faite sur un poste
+  // reste annulable depuis n'importe quel autre navigateur.
+  const [merges, setMerges] = useState<AssertionMergeRecord[]>([])
+  const [revertingId, setRevertingId] = useState<string | null>(null)
+  const [confirmRevertId, setConfirmRevertId] = useState<string | null>(null)
+
   // Toggles auto-modération (initialisés depuis localStorage)
   const [autoModerate, setAutoModerateState] = useState(
     () => localStorage.getItem(`ai_auto_moderate_${session.id}`) === 'true'
@@ -221,6 +232,20 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   useEffect(() => {
     loadRejected()
   }, [loadRejected])
+
+  // ── Chargement des fusions appliquées (F24) ─────────────────
+
+  const loadMerges = useCallback(async () => {
+    try {
+      setMerges(await listAssertionMerges(password, session.id))
+    } catch {
+      // silencieux — la section s'affichera vide
+    }
+  }, [password, session.id])
+
+  useEffect(() => {
+    loadMerges()
+  }, [loadMerges])
 
   // ── Utilitaire affichage message ────────────────────────────
 
@@ -367,31 +392,54 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
     setIsLoading(true)
     setActionMsg(null)
     try {
-      if (mode === 'combine' && combined) {
-        await updateAssertionContent(password, p.keep_id, combined)
-      }
+      // Une RPC atomique par assertion fusionnée : elle réécrit le contenu,
+      // transfère les votes, rejette l'assertion absorbée et enregistre de
+      // quoi tout défaire (F24). La formulation combinée n'est appliquée
+      // qu'une fois, sur la première itération.
+      let first = true
       for (const rid of p.reject_ids) {
         if (!UUID_RE.test(rid)) continue
-        await mergeAssertionVotes(password, p.keep_id, rid)
-        await rejectAssertion(password, rid)
+        await applyAssertionMerge(
+          password, p.keep_id, rid,
+          mode === 'combine' && first ? combined : null,
+          p.reason || null,
+        )
+        first = false
       }
-      // Journaliser la fusion effectuée (réutilise le merge_log existant + undo)
-      const existing = readMergeLog(session.id)
-      const entry: MergeLogEntry = {
-        keep_id:         p.keep_id,
-        keep_content:    mode === 'combine' && combined ? combined : p.keep_content,
-        reject_ids:      p.reject_ids,
-        reject_contents: p.reject_contents,
-        reason:          p.reason,
-        timestamp:       new Date().toISOString(),
-      }
-      localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([entry, ...existing].slice(0, 100)))
       updateProposals(proposals.filter((_, i) => i !== index))
+      await loadMerges()
       showMsg(mode === 'combine' ? '✅ Fusion en formulation combinée appliquée' : '✅ Fusion appliquée')
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // ── Annuler une fusion déjà appliquée (F24) ──────────────────
+  // Retour à l'état d'avant : formulation d'origine restaurée, votes
+  // transférés retirés, votes basculés en « pour » rendus à leur valeur,
+  // assertion absorbée ré-approuvée. Les votes exprimés APRÈS la fusion
+  // sont préservés (voir la migration pour le détail).
+
+  async function handleRevertMerge(mergeId: string) {
+    setRevertingId(mergeId)
+    setActionMsg(null)
+    try {
+      const r = await revertAssertionMerge(password, mergeId)
+      await loadMerges()
+      await loadRejected()
+      const details = [
+        r.content_restored ? 'formulation d\'origine restaurée' : null,
+        r.votes_removed  ? `${r.votes_removed} vote(s) transféré(s) retiré(s)`        : null,
+        r.votes_restored ? `${r.votes_restored} vote(s) rendu(s) à leur valeur`       : null,
+      ].filter(Boolean).join(', ')
+      showMsg(`↩ Fusion annulée${details ? ` — ${details}` : ''}`)
+      setConfirmRevertId(null)
+    } catch (e) {
+      showMsg(e instanceof Error ? e.message : String(e), true)
+    } finally {
+      setRevertingId(null)
     }
   }
 
@@ -403,33 +451,23 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
     setActionMsg(null)
     try {
       const snapshot = [...proposals]
-      const logEntries: MergeLogEntry[] = []
+      const appliedKeys = new Set<string>()
       let done = 0
       for (const p of snapshot) {
         try {
           for (const rid of p.reject_ids) {
             if (!UUID_RE.test(rid)) continue
-            await mergeAssertionVotes(password, p.keep_id, rid)
-            await rejectAssertion(password, rid)
+            await applyAssertionMerge(password, p.keep_id, rid, null, p.reason || null)
           }
-          logEntries.push({
-            keep_id:         p.keep_id,
-            keep_content:    p.keep_content,
-            reject_ids:      p.reject_ids,
-            reject_contents: p.reject_contents,
-            reason:          p.reason,
-            timestamp:       new Date().toISOString(),
-          })
+          appliedKeys.add(proposalKey(p))
           done++
         } catch {
           // On garde les propositions non appliquées (voir plus bas)
         }
       }
-      const existing = readMergeLog(session.id)
-      localStorage.setItem(`merge_log_${session.id}`, JSON.stringify([...logEntries, ...existing].slice(0, 100)))
       // Retirer uniquement celles réellement appliquées
-      const appliedKeys = new Set(logEntries.map(e => `${e.keep_id}|${[...e.reject_ids].sort().join(',')}`))
-      updateProposals(proposals.filter(p => !appliedKeys.has(`${p.keep_id}|${[...p.reject_ids].sort().join(',')}`)))
+      updateProposals(proposals.filter(p => !appliedKeys.has(proposalKey(p))))
+      await loadMerges()
       showMsg(`✅ ${done} fusion(s) appliquée(s)${done < snapshot.length ? ` — ${snapshot.length - done} en échec (conservées)` : ''}`, done < snapshot.length)
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
@@ -851,19 +889,99 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
             </div>
           )}
 
-          {/* ── Section Fusions effectuées ─── */}
+          {/* ── Section Fusions effectuées (base, annulables — F24) ─── */}
           <div>
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               Fusions effectuées
-              {mergeLog.length > 0 && (
+              {merges.length > 0 && (
                 <span className="ml-2 font-normal normal-case text-gray-400">
-                  ({mergeLog.length})
+                  ({merges.filter(m => !m.reverted_at).length} active(s) / {merges.length})
                 </span>
               )}
             </h4>
-            {mergeLog.length === 0 ? (
+            {merges.length === 0 ? (
               <p className="text-xs text-gray-400">Aucune fusion enregistrée.</p>
             ) : (
+              <div className="space-y-2">
+                {merges.map(m => {
+                  const reverted  = m.reverted_at !== null
+                  const combined  = m.keep_content_after !== m.keep_content_before
+                  const confirming = confirmRevertId === m.id
+                  return (
+                    <div
+                      key={m.id}
+                      className={`flex items-start gap-3 rounded-xl px-3 py-2 ${reverted ? 'bg-gray-50 opacity-60' : 'bg-gray-50'}`}
+                    >
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-xs text-gray-700">
+                          <span className="font-medium text-green-700">✅ Conservée :</span>{' '}
+                          {m.keep_content_after}
+                        </p>
+                        {combined && (
+                          <p className="text-xs text-gray-400 pl-3 border-l-2 border-gray-200">
+                            formulation d'origine : {m.keep_content_before}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          <span className="font-medium text-red-600">❌ Absorbée :</span>{' '}
+                          {m.reject_content}
+                        </p>
+                        {m.reason && (
+                          <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-gray-200 pl-2">{m.reason}</p>
+                        )}
+                        {reverted && (
+                          <p className="text-xs text-amber-700 font-medium">↩ Fusion annulée</p>
+                        )}
+                      </div>
+                      {!reverted && (
+                        confirming ? (
+                          <div className="shrink-0 flex items-center gap-1">
+                            <button
+                              onClick={() => handleRevertMerge(m.id)}
+                              disabled={revertingId !== null}
+                              className="text-xs px-2 py-1 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                            >
+                              {revertingId === m.id ? 'Annulation…' : 'Confirmer'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmRevertId(null)}
+                              disabled={revertingId !== null}
+                              className="text-xs px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                            >
+                              Non
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmRevertId(m.id)}
+                            disabled={isLoading || revertingId !== null}
+                            className="shrink-0 text-xs px-2 py-1 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                          >
+                            Annuler
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Ancien journal localStorage (fusions d'avant le chantier 18) ───
+              Conservé en lecture seule : ces fusions n'ont pas d'enregistrement
+              en base, leur annulation reste donc partielle (ré-approbation de
+              l'assertion absorbée uniquement, sans restauration du contenu ni
+              des votes). Se vide naturellement. */}
+          {mergeLog.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Fusions antérieures (journal local)
+              <span className="ml-2 font-normal normal-case text-gray-400">
+                ({mergeLog.length}) — annulation partielle
+              </span>
+            </h4>
+            {(
               <div className="space-y-2">
                 {mergeLog.map((m, i) => (
                   <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-2">
@@ -908,13 +1026,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                       disabled={isLoading}
                       className="shrink-0 text-xs px-2 py-1 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
                     >
-                      Annuler
+                      Annuler (partiel)
                     </button>
                   </div>
                 ))}
               </div>
             )}
           </div>
+          )}
 
           {/* ── Section Automatisation (uniquement si policy = 'ai') ─── */}
           {session.moderation_policy === 'ai' && (

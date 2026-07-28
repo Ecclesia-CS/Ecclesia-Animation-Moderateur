@@ -172,24 +172,34 @@ ${assertionsStr}
 
 RÈGLE FONDAMENTALE : ton biais par défaut est de NE PAS fusionner. La perte d'une nuance est bien plus grave que le maintien d'un quasi-doublon. Ne fusionne QUE si tu es quasi-certain que les deux phrases disent exactement la même chose, au niveau de détail près.
 
-Tu ne dois fusionner deux assertions que si TOUTES ces conditions sont réunies :
+ÉTAPE 1 — Détermine d'abord le TYPE de chaque assertion :
+- PRESCRIPTION : elle propose une action, un changement, une règle. Marqueurs : "il faut", "devrait être interdit / encadré / réglementé / taxé", "nous pourrions remplacer", "créer", "supprimer".
+- JUGEMENT : elle porte une appréciation de valeur sur un objet, sans proposer d'action. Marqueurs : "c'est mal", "c'est bien", "c'est grave", "est un problème", "est de la propagande".
+- CONSTAT : elle affirme un fait, un effet ou un mécanisme, sans jugement ni action. Marqueurs : "permet de", "entraîne", "coûte", "représente".
+
+RÈGLE DE TYPE (absolue, prioritaire sur tout le reste) : deux assertions de TYPES DIFFÉRENTS ne se fusionnent JAMAIS, même si elles portent sur le même sujet, vont dans le même sens et semblent appartenir au même camp. Vouloir interdire la publicité (PRESCRIPTION) n'est pas la même chose que trouver la publicité mauvaise (JUGEMENT) : on peut parfaitement juger la publicité néfaste sans vouloir l'interdire, et vouloir l'encadrer sans porter de jugement moral. Si tu hésites sur le type de l'une des deux, NE FUSIONNE PAS.
+
+ÉTAPE 2 — Ce n'est qu'entre assertions de MÊME TYPE que tu peux envisager une fusion, et seulement si TOUTES ces conditions sont réunies :
 1. Elles portent sur le même objet précis (pas seulement le même thème général).
-2. Elles expriment exactement la même action OU exactement le même jugement, au même degré.
+2. Elles expriment exactement la même action (si PRESCRIPTION) ou exactement la même appréciation (si JUGEMENT) ou exactement le même fait (si CONSTAT), au même degré.
 3. Une personne rationnelle ne pourrait strictement pas être d'accord avec l'une et pas avec l'autre.
 4. La différence entre les deux se limite au vocabulaire (synonymes, tournure), pas au fond.
 
 Un simple sentiment partagé (par ex. "négatif envers X") NE SUFFIT PAS. Deux critiques différentes du même sujet restent deux assertions distinctes.
 
 Exemples RÉELS de ce qu'il NE faut SURTOUT PAS fusionner (erreurs à éviter absolument) :
-- "La publicité est de la propagande" ≠ "La publicité c'est mal" ≠ "La publicité est le plus grand mal du 21e siècle" ≠ "La communication publicitaire, c'est pas bien." → Ce sont QUATRE affirmations distinctes : une nature ("propagande"), un jugement moral vague ("mal"), une intensité extrême ("le plus grand mal"), un jugement atténué ("pas bien"). Même camp émotionnel, mais on peut être d'accord avec l'une sans l'autre. NE PAS fusionner.
-- "La publicité devrait être interdite" ≠ "Nous pourrions remplacer la publicité par une autre manière de s'informer." → Interdire n'est pas remplacer : la première supprime, la seconde propose une alternative. Actions différentes. NE PAS fusionner.
-- "La publicité permet de générer des revenus et d'augmenter les investissements" ≠ "La pub permet de financer des projets." → Générer des revenus/investissements n'est pas la même chose que financer des projets ciblés ; portée et bénéficiaires différents. NE PAS fusionner.
+- "La publicité devrait être interdite" (PRESCRIPTION) ≠ "La publicité c'est mal" (JUGEMENT) ≠ "La communication publicitaire, c'est pas bien." (JUGEMENT) → ERREUR DÉJÀ COMMISE, à ne plus jamais reproduire. Une prescription législative ne fusionne pas avec un jugement de valeur, même quand le sujet est identique et l'orientation la même.
+- "La publicité est de la propagande" (JUGEMENT sur la nature) ≠ "La publicité c'est mal" (JUGEMENT moral) ≠ "La publicité est le plus grand mal du 21e siècle" (JUGEMENT d'intensité extrême) → même type, mais contenus distincts : une nature, une appréciation morale vague, une intensité superlative. On peut être d'accord avec l'une sans l'autre. NE PAS fusionner.
+- "La publicité devrait être interdite" ≠ "Nous pourrions remplacer la publicité par une autre manière de s'informer." → deux PRESCRIPTIONS, mais interdire n'est pas remplacer : la première supprime, la seconde propose une alternative. Actions différentes. NE PAS fusionner.
+- "La publicité permet de générer des revenus et d'augmenter les investissements" ≠ "La pub permet de financer des projets." → deux CONSTATS, mais générer des revenus/investissements n'est pas la même chose que financer des projets ciblés ; portée et bénéficiaires différents. NE PAS fusionner.
 - Deux actions différentes sur le même sujet ("plus de pistes cyclables" ≠ "plus de vélos") — leviers distincts.
-- Une action concrète et une valeur générale ("construire des pistes" ≠ "favoriser le vélo en ville").
+- Une action concrète et une valeur générale ("construire des pistes" ≠ "favoriser le vélo en ville") — types différents (PRESCRIPTION vs JUGEMENT).
 - Deux degrés différents ("réduire la voiture" ≠ "supprimer la voiture").
 - Une cause et sa conséquence ("améliorer les transports" ≠ "réduire la pollution").
 
-Exemples de ce qu'il FAUT fusionner (reformulations strictes uniquement) :
+Exemples RÉELS de ce qu'il FAUT fusionner (reformulations strictes, à l'intérieur d'un même type) :
+- "La publicité devrait être plus strictement encadrée par la loi." = "La publicité devrait être davantage réglementée par la loi" → deux PRESCRIPTIONS, même levier (la loi), même degré (encadrer davantage). FUSION LÉGITIME.
+- "La publicité c'est mal" = "La communication publicitaire, c'est pas bien." → deux JUGEMENTS moraux généraux sur le même objet, même appréciation, la seule différence est la tournure familière. FUSION LÉGITIME.
 - "Il faut plus de vélos en ville" = "Il faudrait davantage de vélos dans les zones urbaines" (mêmes mots, autre tournure).
 - "La publicité devrait être interdite" = "Il faut interdire la publicité" (verbe identique, sujet identique, action identique).
 
@@ -203,7 +213,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après, san
     "keep_id": "<uuid exact de l'assertion à conserver>",
     "reject_ids": ["<uuid exact>"],
     "merged_content": "<formulation combinée qui réunit les deux assertions>",
-    "reason": "<citation des deux assertions + explication en 1 phrase de pourquoi elles sont des reformulations strictes>"
+    "reason": "<TYPE commun des deux assertions (PRESCRIPTION / JUGEMENT / CONSTAT) + citation des deux assertions + explication en 1 phrase de pourquoi elles sont des reformulations strictes>"
   }
 ]
 

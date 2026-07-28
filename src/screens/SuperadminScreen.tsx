@@ -26,7 +26,7 @@ import {
 import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
-  setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, mergeAssertionVotes,
+  setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
@@ -2817,10 +2817,14 @@ function SessionDetail({
                 })
                 for (const merge of merges) {
                   for (const rejectId of merge.reject_ids) {
-                    // Transférer les votes avant de rejeter (sinon perte des votes
-                    // portés sur l'assertion fusionnée — bug B4).
-                    await mergeAssertionVotes(password, merge.keep_id, rejectId)
-                    await rejectAssertion(password, rejectId)
+                    // RPC atomique : transfère les votes (sinon perte des votes
+                    // portés sur l'assertion fusionnée — bug B4), rejette
+                    // l'assertion absorbée et enregistre de quoi annuler la
+                    // fusion depuis le panneau IA (chantier 18 / F24).
+                    await applyAssertionMerge(
+                      password, merge.keep_id, rejectId, null,
+                      merge.reason ?? null,
+                    )
                   }
                 }
               }

@@ -5,6 +5,46 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-07-28** — Chantier 18 (F23/F24) — `supabase/functions/gemini-proxy/index.ts`, `supabase/migrations/20260728_chantier18_merge_undo.sql` (nouveau), `src/lib/voting.ts`, `src/components/voting/LLMModerationPanel.tsx`, `src/screens/SuperadminScreen.tsx`
+
+  **Contexte** : suite du chantier 7 (B4). F23 — une prescription législative ("la publicité devrait être interdite") était fusionnée à tort avec des jugements moraux ("la publicité c'est mal"). F24 — le bouton "Annuler" d'une fusion ne restaurait pas l'état d'avant.
+
+  **Cas PUBFUS retrouvé (pas reconstruit)** : la séance `🧪 Test fusion des assertions — chantier 7 (B4)` (`join_code=PUBFUS`, `id=bf9a15c7-1220-4662-a8f5-c37c660e9a68`, phase `closed`, `moderation_policy='ai'`) existe toujours en base avec ses 10 assertions d'origine. Elle porte déjà la trace de deux fusions appliquées pendant le chantier 7 (« encadrée/réglementée par la loi » et « générer des revenus / financer des projets », toutes deux avec l'assertion absorbée en `rejected`).
+
+  **Constat important sur l'origine de F23** : la version de `gemini-proxy` déployée avant ce chantier (v11) contenait **déjà** tout le durcissement du prompt fait au chantier 7. F23 s'est donc produit *malgré* ce durcissement — ajouter d'autres contre-exemples n'aurait pas suffi, d'où le passage à une règle catégorielle.
+
+  **Ce qui a changé — F23** : `buildMergePrompt` impose désormais une **étape de typage** avant toute comparaison (PRESCRIPTION / JUGEMENT / CONSTAT) et une règle absolue « deux types différents ne fusionnent jamais ». Le champ `reason` renvoyé par Gemini doit annoncer le type commun, ce qui rend chaque proposition auditable d'un coup d'œil. Edge Function redéployée (**v12**) — elle est donc active en production dès maintenant, indépendamment du merge de cette branche.
+  - ⚠️ **Contradiction du chantier 7 corrigée** : l'ancien prompt interdisait explicitement de fusionner « La publicité c'est mal » avec « La communication publicitaire, c'est pas bien », alors que F23 donne cette fusion-là comme **correcte**. Les deux exemples ont été déplacés du bloc « NE PAS fusionner » vers le bloc « FUSION LÉGITIME ». Si l'intention réelle était l'inverse, c'est cette entrée qu'il faut rectifier.
+
+  **Ce qui a changé — F24** : nouvelle table `assertion_merges` + RPC `apply_assertion_merge` / `revert_assertion_merge` / `list_assertion_merges`.
+  - `merge_assertion_votes` n'est **pas réversible par calcul** : il bascule des votes existants en `agree` sans mémoriser leur valeur d'avant, et insère des lignes indiscernables d'un vote légitime. L'annulation exige donc un enregistrement pris *au moment* de la fusion — d'où la table.
+  - On enregistre le **delta** (votes basculés + votes insérés), pas un instantané complet : conséquence voulue, les votes exprimés **après** la fusion par d'autres participants ne sont pas écrasés par l'annulation.
+  - L'historique des fusions passe de `localStorage` (`merge_log_<id>`, propre à un navigateur) à la base : une fusion faite sur un poste est annulable depuis n'importe quel autre.
+  - Le contenu d'origine n'est restauré que s'il n'a pas été retouché à la main depuis la fusion (sinon on écraserait une correction volontaire) ; la RPC retourne `{content_restored, votes_removed, votes_restored}` et l'UI affiche ce détail.
+  - L'ancien journal `localStorage` reste affiché en lecture seule sous « Fusions antérieures (journal local) », avec son bouton renommé **« Annuler (partiel) »** — ces fusions-là n'ont pas d'enregistrement en base, leur annulation reste donc incomplète (ré-approbation seule). Cette section se vide naturellement.
+  - `SuperadminScreen` (auto-fusion pré-clustering) passe aussi par la nouvelle RPC → ces fusions automatiques sont désormais annulables elles aussi.
+
+  **Déjà vérifié par moi** :
+  - **F23, 1 seul appel Gemini réel** (quota) sur les 10 assertions PUBFUS, positifs et négatifs dans le même appel : prescription « interdite » **non** fusionnée avec les jugements ✅ ; « c'est mal » = « c'est pas bien » fusionnées ✅ ; « encadrée par la loi » = « réglementée par la loi » fusionnées ✅ ; « propagande » et « plus grand mal » laissées seules ✅ ; « interdire » ≠ « remplacer » ✅. `reason` bien préfixé du type.
+  - **F24, aller-retour complet vérifié en SQL** sur un jeu jetable (5 membres, 2 assertions, supprimé ensuite — `sessions/merges/votes` restants = 0) : fusion en formulation combinée → contenu réécrit, assertion absorbée `rejected`, vote M1 basculé `disagree→agree`, vote M3 transféré ; puis annulation → contenu d'origine restauré, M1 rendu à `disagree`, vote de M3 retiré, assertion ré-approuvée, **et vote posté après la fusion (M5) préservé**. Double annulation correctement refusée (« Cette fusion a déjà été annulée »).
+  - Exposition PostgREST des 3 RPC vérifiée avec la clé anon + JWT anonyme : chacune répond « Mot de passe superadmin incorrect » (donc bien exposée et bien protégée), et le helper interne `_revert_assertion_merge` répond `permission denied` (le `REVOKE` fonctionne).
+  - `npx tsc -b`, `npm run build`, `npm test` (41 tests) : tous OK. Écran d'accueil + écran de connexion superadmin en local (port 5191) : **zéro erreur console**.
+  - **Non vérifié — nécessite le mot de passe superadmin** (je ne saisis pas de mot de passe applicatif à la place de Jules) : le rendu visuel réel de la nouvelle section « Fusions effectuées » dans `LLMModerationPanel`, le parcours de clic « Annuler → Confirmer/Non », et le comportement du panneau quand la liste est vide. La logique serveur sous-jacente est, elle, vérifiée bout-en-bout (ci-dessus).
+
+  **(1) Parcours manuel à suivre** (avec le mot de passe superadmin) :
+  1. Superadmin → séance de test avec ≥ 2 assertions approuvées quasi-doublons → panneau IA → « Analyser les doublons » → vérifier que chaque proposition affiche un `reason` commençant par PRESCRIPTION / JUGEMENT / CONSTAT.
+  2. Appliquer une fusion avec **« ✨ Fusionner en formulation combinée »** → l'assertion conservée prend le texte combiné, l'autre disparaît de la liste des approuvées.
+  3. Section **« Fusions effectuées »** → la fusion apparaît avec « ✅ Conservée », la ligne grise « formulation d'origine : … » et « ❌ Absorbée ».
+  4. Cliquer **« Annuler »** → le bouton devient « Confirmer / Non » → « Confirmer » → message `↩ Fusion annulée — formulation d'origine restaurée, N vote(s)…`, la ligne passe en « ↩ Fusion annulée » (grisée), et l'assertion absorbée réapparaît dans les approuvées avec son texte d'origine.
+  5. Recharger la page → la liste des fusions est **toujours là** (elle vient de la base, plus du localStorage). La tester depuis un **autre navigateur** pour confirmer qu'une fusion faite ailleurs est bien annulable.
+  6. Cas des votes : faire voter 2-3 participants sur les deux assertions avant la fusion, puis un participant supplémentaire **après** la fusion, puis annuler → vérifier que le vote postérieur est conservé et que les autres retrouvent leur valeur d'origine.
+
+  **(2) Données de test nécessaires** (non créées par moi, hors le jeu SQL jetable déjà supprimé) :
+  - Une séance en phase `voting` ou `pre_voting`, `moderation_policy = 'ai'` (pour que le panneau IA soit complet), avec au moins 4 assertions approuvées dont deux paires de quasi-doublons — une paire de PRESCRIPTIONS et une paire de JUGEMENTS. La séance `PUBFUS` convient si on la repasse en `voting` et qu'on ré-approuve les deux assertions absorbées.
+  - Quelques `assertion_votes` sur les deux assertions d'une même paire (dont au moins un membre ayant voté sur les deux, avec un `agree` d'un côté et un `disagree` de l'autre) pour observer la restauration des votes à l'annulation.
+
+  **Point laissé à l'arbitrage de Jules (session de calibrage à venir)** : dans l'appel de vérification, Gemini a fusionné la paire CONSTAT « La publicité permet de générer des revenus et de financer des projets. » / « La pub permet de financer des projets », alors que le prompt donne cette paire en contre-exemple. Ce n'est pas absurde ici : le contenu en base est déjà la *formulation combinée* produite au chantier 7, qui contient littéralement l'autre assertion. À trancher pendant la session de calibrage plutôt qu'en durcissant le prompt à l'aveugle.
+
 - [ ] **2026-07-27** — Chantier 13 (F10) — `src/components/DocumentationButton.tsx`, `src/components/ParticipantToolsButton.tsx`, `src/screens/VoteScreen.tsx`, `src/screens/SuperadminScreen.tsx`
 
   **Contexte** : bug F10 récurrent — un document lié à une séance (fiche information / résumé) renvoyait un 404. Décision C3 tranchée par Jules le 2026-07-23 : ces fiches sont hébergées sur un site externe séparé (en construction par l'équipe), pas dans Ecclesia — `doc_info_url`/`doc_summary_url` ne sont que des liens externes, sans backend de stockage interne à construire.
