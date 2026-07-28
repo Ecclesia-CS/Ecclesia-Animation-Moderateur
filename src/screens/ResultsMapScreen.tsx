@@ -303,18 +303,12 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
                   style={{ backgroundColor: selfGroupId !== null ? groupColor(selfGroupId) : '#4338ca' }}
                 >
                   <p className="text-sm font-medium mb-1 opacity-80" style={{ color: 'white' }}>Votre groupe</p>
-                  <p className="text-white text-5xl font-black tracking-tight">
-                    Table {assignment.table_number}
+                  <p className="text-white text-3xl font-black tracking-tight">
+                    {groupName ? groupName.name : 'Camp pas encore nommé'}
                   </p>
                 </div>
                 {groupName ? (
                   <div className="px-6 py-4 text-center space-y-0.5">
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: selfGroupId !== null ? groupColor(selfGroupId) : '#4338ca' }}
-                    >
-                      {groupName.name}
-                    </p>
                     <p className="text-xs text-gray-500">{groupName.description}</p>
                   </div>
                 ) : (
