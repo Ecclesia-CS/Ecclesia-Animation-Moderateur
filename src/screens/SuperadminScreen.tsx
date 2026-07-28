@@ -35,8 +35,8 @@ import {
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
-import TableDiagnosticsList, { CampCompositionBar } from '../components/voting/TableDiagnosticsList'
-import { diagnoseAllocation } from '../lib/allocation'
+import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
+import { diagnoseAllocation, type AllocationMember } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
@@ -882,7 +882,8 @@ function Spinner() {
 
 interface GroupRow {
   table_number: number
-  members: { pseudo: string; member_id: string }[]
+  /** Chantier 26 (H21) — `is_moderator` vient de `session_members`, posé au chargement. */
+  members: { pseudo: string; member_id: string; is_moderator: boolean }[]
   table_id: string | null
   join_code: string | null
   /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
@@ -1270,7 +1271,7 @@ function SessionDetail({
       const [{ data: rows }, sessionTbls, availTbls] = await Promise.all([
         supabase
           .from('table_assignments')
-          .select('table_number, member_id, table_id, session_members!member_id(pseudo)')
+          .select('table_number, member_id, table_id, session_members!member_id(pseudo, is_moderator)')
           .eq('session_id', session.id)
           .order('table_number'),
         listSessionTables(getPwd()!, session.id).catch(() => [] as Awaited<ReturnType<typeof listSessionTables>>),
@@ -1296,7 +1297,11 @@ function SessionDetail({
           })
         }
         const g = map.get(tableNum)!
-        g.members.push({ pseudo: r.session_members?.pseudo ?? '?', member_id: r.member_id })
+        g.members.push({
+          pseudo: r.session_members?.pseudo ?? '?',
+          member_id: r.member_id,
+          is_moderator: r.session_members?.is_moderator === true,
+        })
       }
       setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
 
@@ -1360,6 +1365,17 @@ function SessionDetail({
       allocInputs.opinionsAvailable,
     )
   }, [groups, allocInputs])
+
+  // Chantier 26 (H20) — attributs individuels (actif / consentant / ancien /
+  // camp) pour l'affichage par lettres + couleur sur chaque carte membre.
+  // `allocInputs.moderators` couvre aussi un modérateur en surplus assis
+  // comme participant ordinaire (chantier 25 / H17).
+  const memberProfiles = React.useMemo(() => {
+    const map = new Map<string, AllocationMember>()
+    for (const m of allocInputs?.members ?? [])    map.set(m.member_id, m)
+    for (const m of allocInputs?.moderators ?? []) map.set(m.member_id, m)
+    return map
+  }, [allocInputs])
 
   // Nommage des camps (Gemini + fallback descriptif) — logique partagée.
   //
@@ -2098,6 +2114,7 @@ function SessionDetail({
                         <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
                       </div>
                     )}
+                    {groups.length > 0 && <MemberBadgeLegend />}
                     {groups.length === 0 && !groupsLoading ? (
                       <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
                     ) : (
@@ -2159,6 +2176,31 @@ function SessionDetail({
                               })()}
                               {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
                             </div>
+                            {/* Chantier 26 (H21) — nom du modérateur affecté à cette table, ou
+                                attente explicite si la table doit être animée mais que le
+                                modérateur annoncé n'est pas encore inscrit. */}
+                            {(() => {
+                              const mod = g.members.find(m => m.is_moderator)
+                              if (mod) {
+                                return (
+                                  <div className="mb-2">
+                                    <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
+                                      🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              if (g.moderated) {
+                                return (
+                                  <div className="mb-2">
+                                    <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1">
+                                      ⏳ En attente de modérateur
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
                             {/* Chantier 20 (G6) — composition par camp visible directement sur la
                                 carte, sans avoir à déplier « Santé des tables » plus bas. */}
                             {(() => {
@@ -2175,7 +2217,12 @@ function SessionDetail({
                                 composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
                               {g.members.map(m => (
-                                <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
+                                <DraggableMemberChip
+                                  key={m.member_id}
+                                  memberId={m.member_id}
+                                  pseudo={m.pseudo}
+                                  profile={memberProfiles.get(m.member_id)}
+                                />
                               ))}
                             </div>
                             <div className="border-t border-gray-100 pt-3">
@@ -3170,22 +3217,70 @@ function VotingStatsPanel({
 
 // ── DnD primitives pour les groupes ──────────────────────────────
 
-function DraggableMemberChip({ memberId, pseudo }: { memberId: string; pseudo: string }) {
+/** H20 — tooltip récapitulant les attributs d'un membre derrière ses lettres. */
+function memberProfileTitle(p: AllocationMember): string {
+  const parts = [
+    p.is_active ? 'Actif' : 'Plutôt passif',
+    p.consents  ? 'Consentant à l\'enregistrement' : 'Non consentant à l\'enregistrement',
+    p.is_veteran ? 'A déjà fait un débat Ecclesia' : 'Nouveau',
+    p.group_id !== null ? `Camp ${p.group_id + 1}` : 'N\'a pas voté (camp inconnu)',
+  ]
+  return parts.join(' · ')
+}
+
+function DraggableMemberChip({
+  memberId, pseudo, profile,
+}: {
+  memberId: string
+  pseudo: string
+  /** Chantier 26 (H20) — attributs de l'allocation (actif/consentant/ancien/camp). */
+  profile?: AllocationMember
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: memberId })
+  const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)` } : undefined}
-      className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none transition-opacity ${
+      style={{
+        ...(transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)` } : {}),
+        ...(color ? { borderColor: color, background: `${color}1a` } : {}),
+      }}
+      title={profile ? memberProfileTitle(profile) : undefined}
+      className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none
+        transition-opacity inline-flex items-center gap-1 ${
         isDragging
           ? 'opacity-0'
-          : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+          : color ? 'text-gray-700 hover:brightness-95' : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
       }`}
     >
-      {pseudo}
+      <span>{pseudo}</span>
+      {profile && (
+        <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
+          <span className={profile.is_active ? '' : 'line-through'}>a</span>
+          <span className={profile.consents ? '' : 'line-through'}>e</span>
+          <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
+        </span>
+      )}
     </div>
+  )
+}
+
+/** H20 — légende des lettres et de la couleur, affichée une fois au-dessus des tables. */
+function MemberBadgeLegend() {
+  return (
+    <details className="text-xs text-gray-500 bg-gray-50/60 border border-gray-100 rounded-lg px-3 py-1.5">
+      <summary className="cursor-pointer select-none font-medium text-gray-600">
+        Légende des cartes participant
+      </summary>
+      <div className="pt-1.5 space-y-1 leading-snug">
+        <p><span className="font-mono">a</span> actif · <span className="font-mono line-through">a</span> plutôt passif</p>
+        <p><span className="font-mono">e</span> consentant à l'enregistrement · <span className="font-mono line-through">e</span> non consentant</p>
+        <p><span className="font-mono">n</span> nouveau · <span className="font-mono line-through">n</span> a déjà fait un débat Ecclesia</p>
+        <p>Couleur du cadre = camp d'opinion (mêmes couleurs que l'onglet Analyse) · pas de couleur = n'a pas voté</p>
+      </div>
+    </details>
   )
 }
 
@@ -3765,6 +3860,53 @@ const PHASE_LABEL_MEMBER: Record<string, string> = {
   admin:   'Animateur',
 }
 
+/** H10 — colonnes triables de `MembersPanel`, chacune avec un comparateur dédié. */
+type MembersSortKey = 'pseudo' | 'created_at' | 'joined_phase' | 'has_entry_response' | 'has_voted' | 'is_moderator'
+
+const MEMBERS_SORTERS: Record<MembersSortKey, (a: SessionMemberAdmin, b: SessionMemberAdmin) => number> = {
+  pseudo:             (a, b) => a.pseudo.localeCompare(b.pseudo, 'fr'),
+  created_at:         (a, b) => a.created_at.localeCompare(b.created_at),
+  joined_phase:       (a, b) => (a.joined_phase ?? '').localeCompare(b.joined_phase ?? ''),
+  has_entry_response: (a, b) => Number(a.has_entry_response) - Number(b.has_entry_response),
+  has_voted:          (a, b) => Number(a.has_voted) - Number(b.has_voted),
+  is_moderator:       (a, b) => Number(!!a.is_moderator) - Number(!!b.is_moderator),
+}
+
+/** Petites flèches ▲▼ à côté du nom de colonne (H10). */
+function SortArrows({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
+  return (
+    <span className="inline-flex flex-col leading-none ml-1 -space-y-0.5 align-middle">
+      <span className={`text-[8px] ${active && direction === 'asc' ? 'text-indigo-600' : 'text-gray-300'}`}>▲</span>
+      <span className={`text-[8px] ${active && direction === 'desc' ? 'text-indigo-600' : 'text-gray-300'}`}>▼</span>
+    </span>
+  )
+}
+
+function SortableTh({
+  label, title, sortKey, sort, onSort, className,
+}: {
+  label: React.ReactNode
+  title?: string
+  sortKey: MembersSortKey
+  sort: { key: MembersSortKey; direction: 'asc' | 'desc' }
+  onSort: (key: MembersSortKey) => void
+  className?: string
+}) {
+  const active = sort.key === sortKey
+  return (
+    <th className={`font-medium ${className ?? 'text-left py-2 pr-3'}`} title={title}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className="inline-flex items-center hover:text-indigo-600 transition-colors"
+      >
+        {label}
+        <SortArrows active={active} direction={active ? sort.direction : 'asc'} />
+      </button>
+    </th>
+  )
+}
+
 function MembersPanel({
   members,
   loading,
@@ -3775,6 +3917,21 @@ function MembersPanel({
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
 }) {
+  // H10 — tri par colonne, alphabétique ou ordre d'arrivée, croissant/décroissant.
+  const [sort, setSort] = useState<{ key: MembersSortKey; direction: 'asc' | 'desc' }>(
+    { key: 'created_at', direction: 'asc' },
+  )
+  const handleSort = useCallback((key: MembersSortKey) => {
+    setSort(prev => prev.key === key
+      ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+      : { key, direction: 'asc' })
+  }, [])
+  const sortedMembers = React.useMemo(() => {
+    const cmp = MEMBERS_SORTERS[sort.key]
+    const sorted = [...members].sort(cmp)
+    return sort.direction === 'asc' ? sorted : sorted.reverse()
+  }, [members, sort])
+
   if (loading && members.length === 0) {
     return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
   }
@@ -3787,16 +3944,34 @@ function MembersPanel({
       <table className="w-full text-xs">
         <thead>
           <tr className="text-gray-400 border-b border-gray-100">
-            <th className="text-left py-2 pr-3 font-medium">Pseudo</th>
-            <th className="text-left py-2 pr-3 font-medium">Heure</th>
-            <th className="text-left py-2 pr-3 font-medium">Phase</th>
-            <th className="text-center py-2 pr-3 font-medium" title="Questionnaire d'entrée rempli">Q.</th>
-            <th className="text-center py-2 pr-3 font-medium" title="A voté">V.</th>
-            <th className="text-center py-2 font-medium" title="Modérateur pour cette séance (utilisé par l'allocation)">🎙️</th>
+            <SortableTh label="Pseudo" sortKey="pseudo" sort={sort} onSort={handleSort} />
+            <SortableTh label="Heure" sortKey="created_at" sort={sort} onSort={handleSort} />
+            <SortableTh label="Phase" sortKey="joined_phase" sort={sort} onSort={handleSort} />
+            <SortableTh
+              label="Q."
+              title="Questionnaire d'entrée rempli"
+              sortKey="has_entry_response"
+              sort={sort} onSort={handleSort}
+              className="text-center py-2 pr-3"
+            />
+            <SortableTh
+              label="V."
+              title="A voté"
+              sortKey="has_voted"
+              sort={sort} onSort={handleSort}
+              className="text-center py-2 pr-3"
+            />
+            <SortableTh
+              label="🎙️"
+              title="Modérateur pour cette séance (utilisé par l'allocation)"
+              sortKey="is_moderator"
+              sort={sort} onSort={handleSort}
+              className="text-center py-2"
+            />
           </tr>
         </thead>
         <tbody>
-          {members.map(m => (
+          {sortedMembers.map(m => (
             <tr key={m.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
               <td className="py-2 pr-3 font-medium text-gray-900">{m.pseudo}</td>
               <td className="py-2 pr-3 text-gray-500">

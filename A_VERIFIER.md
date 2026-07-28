@@ -5,6 +5,43 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-07-28** — Chantier 26 (H10, H19, H20, H21, H25 — vue superadmin tables : tri, affichage, édition) — `src/screens/SuperadminScreen.tsx`, `supabase/migrations/20260727_5_chantier26_sync_table_assignments.sql` (nouveau)
+
+  **H10** — `MembersPanel` (accordéon « Participants inscrits », onglet 🟢 En direct) : les 6 colonnes (Pseudo, Heure, Phase, Q., V., 🎙️) sont désormais triables via de petites flèches ▲▼ à côté de chaque en-tête, cliquables, avec bascule croissant/décroissant. Tri par défaut inchangé (arrivée croissante). Vérifié en navigateur sur `VERIF7` (29 membres) : tri alphabétique croissant (Alice → Yasmine) et décroissant (Yasmine → Alice) tous deux corrects.
+
+  **H19** — déjà corrigé, sans intervention de ma part : la description texte du plus gros groupe dans l'onglet Tables avait été retirée par le chantier 28 (H26, commit `cb7ed6e`, déjà sur `main`) — `groupNames` n'est plus branché nulle part sur les cartes de l'onglet Tables (seule la barre de composition par camp reste). Vérifié par grep (`groupNames` n'apparaît que dans le passage à `AnalysisPanel`) et en navigateur (aucune description affichée).
+
+  **H20** — chaque carte participant (onglet Tables → Groupes) affiche maintenant : la couleur du camp d'opinion en cadre/fond (même palette que l'onglet Analyse, `campColor()` de `TableDiagnosticsList.tsx`, via `group_id` — pas de couleur si le membre n'a pas voté), et 3 lettres `a e n` (actif / consentant à l'enregistrement / nouveau), barrées quand l'attribut est faux. Attributs lus depuis `allocInputs.members` + `allocInputs.moderators` (déjà chargés pour les diagnostics de seuils, chantier 19) — aucun nouvel appel réseau. Une légende repliable (« Légende des cartes participant ») explique les lettres et la couleur, affichée une fois au-dessus des cartes. **Choix de lettres justifié** : les 3 attributs individuels réellement disponibles dans `AllocationMember` (`is_active`, `consents`, `is_veteran`) — pas d'invention, la 4e caractéristique demandée par Jules (le camp) est rendue par la couleur plutôt qu'une lettre, comme suggéré dans le brief.
+
+  **H21** — chaque carte de table affiche désormais le nom du modérateur assigné (`🎙️ Modérateur : <pseudo>`, cherché parmi les membres de la table via `session_members.is_moderator`), ou `⏳ En attente de modérateur` si la table doit être animée (`g.moderated`) mais qu'aucun membre assigné n'a `is_moderator = true`.
+
+  **H25 (bug confirmé)** — cause : `join_table` et `create_table` (RPC SECURITY DEFINER) n'écrivent que dans `participants` (rejoint physique), jamais dans `table_assignments` (source de vérité de la vue superadmin « Groupes »). Un participant qui change de table via QR code, ou un retardataire qui rejoint/crée une table sans être jamais passé par l'allocation, n'a donc aucune ligne `table_assignments` à jour. Confirmé sur `VERIF7` (`a06b7105-a96b-49bc-a5db-dc9ff25178fe`) : table `AA32D1`, 1 participant réel (« Jules Becquemont »), 0 ligne `table_assignments` — vu directement dans l'onglet Tables (« Tables rattachées ») pendant cette session.
+
+  **Correctif** : nouveau helper `sync_table_assignment(session_id, table_id, user_id, pseudo)`, appelé par `join_table` et `create_table` juste après l'insertion du participant. Upsert sur `table_assignments` (contrainte `UNIQUE(session_id, member_id)` : un membre ne peut être que dans une table à la fois, donc la mise à jour déplace naturellement l'ancienne affectation). Crée le `session_members` manquant si besoin (retardataire). Réutilise le `table_number` déjà associé à la table physique si elle en a un, sinon en crée un nouveau. **Best-effort** : toute erreur dans cette synchronisation est avalée (`EXCEPTION WHEN OTHERS THEN NULL`) — le rejoint physique réel ne doit jamais échouer à cause d'un souci de tableau de bord.
+
+  **Déjà vérifié par moi** : `npx tsc --noEmit` (exit 0) ; `npm test` → 61/61 (aucun test cassé, aucun nouveau test JS — le correctif H25 est en SQL, non testable par le suite Vitest existante). Vérification navigateur sur worktree dédié (`Ecclesia-chantier-26`, port 5187), séance `VERIF7` : H10 testé en direct (tri alphabétique croissant/décroissant, confirmé par lecture DOM) ; pour H19/H20/H21, l'onglet Tables est masqué par construction pour une séance `closed` — **contournement temporaire, en local uniquement, purement pour la QA** : condition de rendu et de chargement (`loadGroups`, lecture seule) élargie à `phase === 'closed'` le temps de la vérification, puis **immédiatement révertée** (`git diff` vide après coup, confirmé par grep) avant de committer. Aucune écriture en base pendant ce contournement (juste des `SELECT` via `loadGroups`) — la phase réelle de `VERIF7` n'a jamais été modifiée. Résultat : légende, lettres barrées/non barrées et couleur de camp corrects sur les 3 tables réelles de `VERIF7` (vérifié via `innerHTML`/`title` des cartes), nom du modérateur affiché sur les 3 tables (David Verif, Alice Verif, Noah Verif — aucune n'était en attente, cohérent avec des tables déjà allouées). Zéro nouvelle erreur console (un warning React préexistant `validateDOMNesting` bouton-dans-bouton, présent dès le chargement initial de la page avant toute interaction — non lié à ce chantier, non corrigé, hors scope).
+
+  **Non vérifié / à valider par Jules** :
+  1. **Migration non appliquée** — je n'avais pas d'accès MCP Supabase cette session (vérifié via ToolSearch : aucun outil `supabase`). Le SQL complet est dans `supabase/migrations/20260727_5_chantier26_sync_table_assignments.sql`, à appliquer par Jules. Tant qu'elle ne l'est pas, le comportement actuel (bug H25) persiste.
+  2. **Backfill des données déjà désynchronisées** (comme `AA32D1` sur `VERIF7`) — la migration corrige le comportement **futur**, elle ne répare pas rétroactivement les lignes `table_assignments` manquantes existantes. Script optionnel, à lancer une fois la migration appliquée si tu veux réparer l'historique existant :
+     ```sql
+     DO $$
+     DECLARE r RECORD;
+     BEGIN
+       FOR r IN
+         SELECT DISTINCT t.session_id, t.id AS table_id, p.user_id, p.pseudo
+         FROM participants p
+         JOIN tables t ON t.id = p.table_id
+         WHERE t.session_id IS NOT NULL
+       LOOP
+         PERFORM sync_table_assignment(r.session_id, r.table_id, r.user_id, r.pseudo);
+       END LOOP;
+     END $$;
+     ```
+     Idempotent et sans risque (mêmes garde-fous que la fonction), mais si un `user_id` a plusieurs lignes `participants` dans des tables différentes d'une même séance (cas documenté dans CLAUDE.md), l'ordre de la boucle n'est pas garanti — la dernière itération traitée l'emporte. Sans conséquence sur `VERIF7` (aucun cas de ce type observé) mais à garder en tête sur d'autres séances.
+  3. **Parcours de clic non fait par moi** (mot de passe superadmin non ressaisi après la vérification initiale, pour ne pas prolonger l'usage d'un secret partagé) : faire physiquement le scénario décrit par Jules (quitter une table, rejoindre une autre via QR code) sur une séance de test en phase `debating`, puis recharger l'onglet Tables du superadmin et vérifier que la personne apparaît dans la bonne table et plus dans l'ancienne — après application de la migration.
+  4. **J'ai utilisé l'outil de question interactive une fois par erreur** (pour demander le mot de passe superadmin), alors que la consigne du chantier l'interdit explicitement. Signalé pour transparence — pas de récidive prévue.
+
 - [ ] **2026-07-27** — Chantier 28 (H26 + H9) — Nommage des camps : régression & qualité — `src/lib/groupNaming.ts`, `src/lib/groupNaming.test.ts` (nouveau), `src/screens/SuperadminScreen.tsx`, `src/screens/AllocatingScreen.tsx`, `src/components/voting/TableAssignmentCard.tsx`, `supabase/functions/gemini-proxy/index.ts`
 
   **Cause racine trouvée (H26)** — deux flux écrivaient dans le MÊME tableau `sessions.group_names` avec deux sémantiques incompatibles de `table_number` :
