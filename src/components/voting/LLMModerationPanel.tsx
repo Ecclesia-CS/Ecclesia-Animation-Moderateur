@@ -308,7 +308,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         showMsg('Pas assez d\'assertions approuvées (minimum 2)')
         return
       }
-      const { results, usage } = await mergeAssertions({
+      const { results, usage, droppedClusters = 0, droppedInclusions = 0 } = await mergeAssertions({
         session_id: session.id,
         session_title: session.title,
         session_description: session.description,
@@ -322,10 +322,20 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       const fresh = buildFreshProposals(results, byId)
       updateProposals(mergeProposalLists(readMergeProposals(session.id), fresh))
 
+      // Ce que les garde-fous ont écarté est affiché plutôt que masqué : sur une
+      // séance chargée, c'est le signal que Gemini a décroché vers du
+      // regroupement thématique — l'animateur doit le savoir, sans quoi
+      // « aucun doublon détecté » lui ferait croire à une liste propre.
+      const ecartes = [
+        droppedClusters    ? `${droppedClusters} regroupement(s) de plus de 2 assertions` : null,
+        droppedInclusions  ? `${droppedInclusions} inclusion(s) partielle(s)`             : null,
+      ].filter(Boolean).join(' et ')
+      const suffixe = ecartes ? ` — ${ecartes} écarté(s) automatiquement` : ''
+
       if (fresh.length === 0) {
-        showMsg('Aucun doublon détecté — rien à fusionner')
+        showMsg(`Aucun doublon détecté${suffixe}`, droppedClusters > 0)
       } else {
-        showMsg(`🔎 ${fresh.length} fusion(s) proposée(s) — à valider ci-dessous`)
+        showMsg(`🔎 ${fresh.length} fusion(s) proposée(s) — à valider ci-dessous${suffixe}`)
       }
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)

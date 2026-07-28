@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase'
 import { extractErr } from './utils'
+import { isPartialInclusion } from './mergeGuards'
 import type { ModerationResult, MergeResult, GroupNameResult } from './types'
 
 // ── Type de retour commun ─────────────────────────────────────
@@ -29,6 +30,9 @@ export interface GeminiResponse<T> {
   results: T[]
   tokens_used: number
   usage: GeminiUsage
+  /** Propositions écartées par les garde-fous de fusion (voir mergeAssertions). */
+  droppedClusters?:   number
+  droppedInclusions?: number
 }
 
 function extractResponse<T>(data: unknown): GeminiResponse<T> {
@@ -83,7 +87,31 @@ export async function mergeAssertions(payload: {
   })
   if (error) throw new Error(extractErr(error))
   if (data?.error) throw new Error(data.error)
-  return extractResponse<MergeResult>(data)
+  const res = extractResponse<MergeResult>(data)
+  const byId = new Map(payload.assertions.map(a => [a.id, a.content]))
+
+  // ── Garde-fou 1 : regroupement thématique ───────────────────
+  // Le prompt interdit de fusionner plus de 2 assertions, mais Gemini cesse de
+  // respecter cette consigne au-delà d'une trentaine d'assertions : il bascule
+  // d'une détection de doublons vers un regroupement par thème et renvoie des
+  // entrées absorbant jusqu'à 9 assertions d'un coup (mesuré sur un jeu de 41 ;
+  // à 10 assertions le même prompt ne renvoie que des paires). Une entrée à
+  // plusieurs `reject_ids` n'est pas un jugement de quasi-doublon fiable : on la
+  // jette entièrement plutôt que d'en garder une paire au hasard.
+  const notClustered = res.results.filter(m => (m.reject_ids?.length ?? 0) === 1)
+  const droppedClusters = res.results.length - notClustered.length
+
+  // ── Garde-fou 2 : inclusion partielle ───────────────────────
+  // Verdict 21 du calibrage. Gemini l'enfreint même quand la paire fautive est
+  // citée mot pour mot dans le prompt — d'où une vérification en dur.
+  const kept = notClustered.filter(m => {
+    const a = byId.get(m.keep_id)
+    const b = byId.get(m.reject_ids[0])
+    return !(a && b && isPartialInclusion(a, b))
+  })
+  const droppedInclusions = notClustered.length - kept.length
+
+  return { ...res, results: kept, droppedClusters, droppedInclusions }
 }
 
 // ── nameIdeologicalGroups ─────────────────────────────────────

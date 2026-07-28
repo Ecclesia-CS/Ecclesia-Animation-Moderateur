@@ -170,38 +170,35 @@ Description : ${desc}
 Voici les assertions approuvées :
 ${assertionsStr}
 
-RÈGLE FONDAMENTALE : ton biais par défaut est de NE PAS fusionner. La perte d'une nuance est bien plus grave que le maintien d'un quasi-doublon. Ne fusionne QUE si tu es quasi-certain que les deux phrases disent exactement la même chose, au niveau de détail près.
+RÈGLE FONDAMENTALE — LE TEST DU DÉSACCORD. Avant toute fusion, pose-toi cette question : « puis-je imaginer une personne de bonne foi qui approuve l'une et refuse l'autre ? » Si oui, même de justesse, NE FUSIONNE PAS. Ces assertions vont être soumises au vote : deux formulations susceptibles de recevoir des votes différents doivent rester séparées. La perte d'une nuance est bien plus grave que le maintien d'un quasi-doublon. En cas d'hésitation, ne fusionne pas. Il est parfaitement normal de ne proposer aucune fusion.
 
-ÉTAPE 1 — Détermine d'abord le TYPE de chaque assertion :
-- PRESCRIPTION : elle propose une action, un changement, une règle. Marqueurs : "il faut", "devrait être interdit / encadré / réglementé / taxé", "nous pourrions remplacer", "créer", "supprimer".
-- JUGEMENT : elle porte une appréciation de valeur sur un objet, sans proposer d'action. Marqueurs : "c'est mal", "c'est bien", "c'est grave", "est un problème", "est de la propagande".
-- CONSTAT : elle affirme un fait, un effet ou un mécanisme, sans jugement ni action. Marqueurs : "permet de", "entraîne", "coûte", "représente".
+ÉTAPE 1 — Détermine le TYPE de chaque assertion :
+- PRESCRIPTION : elle demande une action, un changement, une règle. Marqueurs : "il faut", "devrait être interdit / encadré / réglementé / taxé", "nous pourrions remplacer", "créer", "supprimer".
+- JUGEMENT : elle porte une appréciation de valeur, sans demander d'action. Marqueurs : "c'est mal", "c'est bien", "c'est grave", "est un problème", "est de la propagande".
+- CONSTAT : elle affirme un fait, un effet ou un mécanisme, sans jugement ni demande d'action. Marqueurs : "permet de", "entraîne", "coûte", "représente".
 
-RÈGLE DE TYPE (absolue, prioritaire sur tout le reste) : deux assertions de TYPES DIFFÉRENTS ne se fusionnent JAMAIS, même si elles portent sur le même sujet, vont dans le même sens et semblent appartenir au même camp. Vouloir interdire la publicité (PRESCRIPTION) n'est pas la même chose que trouver la publicité mauvaise (JUGEMENT) : on peut parfaitement juger la publicité néfaste sans vouloir l'interdire, et vouloir l'encadrer sans porter de jugement moral. Si tu hésites sur le type de l'une des deux, NE FUSIONNE PAS.
+ATTENTION — piège fréquent : une phrase qui porte un jugement SUR une action reste un JUGEMENT, ce n'est pas une prescription. "Interdire la publicité serait une bonne chose" (JUGEMENT) ≠ "Il faut interdire la publicité" (PRESCRIPTION) : on peut trouver une mesure souhaitable en principe sans vouloir l'imposer à ceux qui n'en veulent pas.
 
-ÉTAPE 2 — Ce n'est qu'entre assertions de MÊME TYPE que tu peux envisager une fusion, et seulement si TOUTES ces conditions sont réunies :
-1. Elles portent sur le même objet précis (pas seulement le même thème général).
-2. Elles expriment exactement la même action (si PRESCRIPTION) ou exactement la même appréciation (si JUGEMENT) ou exactement le même fait (si CONSTAT), au même degré.
-3. Une personne rationnelle ne pourrait strictement pas être d'accord avec l'une et pas avec l'autre.
-4. La différence entre les deux se limite au vocabulaire (synonymes, tournure), pas au fond.
+RÈGLE DE TYPE (absolue, prioritaire sur tout le reste) : deux assertions de TYPES DIFFÉRENTS ne se fusionnent JAMAIS, même si elles portent sur le même sujet, vont dans le même sens et semblent appartenir au même camp. Si tu hésites sur le type de l'une des deux, NE FUSIONNE PAS.
 
-Un simple sentiment partagé (par ex. "négatif envers X") NE SUFFIT PAS. Deux critiques différentes du même sujet restent deux assertions distinctes.
+ÉTAPE 2 — Sept motifs de BLOCAGE. Un seul suffit pour interdire la fusion :
+1. OBJET — l'objet doit avoir exactement la même étendue. Un terme plus large ne fusionne jamais avec un terme plus étroit : "le marketing" englobe "la publicité" (prix, distribution, études…) → distincts. Un ensemble ne fusionne jamais avec une de ses parties : "la publicité" ≠ "la publicité ciblée" ≠ "la publicité dans l'espace public" ≠ "la publicité pour les enfants" ≠ "la publicité pendant les programmes jeunesse".
+2. DEGRÉ — toute différence d'intensité bloque, y compris pour un lien de cause à effet : "réduire" ≠ "fortement limiter" ≠ "supprimer" ; "c'est mal" ≠ "c'est une catastrophe pour la société" ; "la publicité nous pousse à surconsommer" ≠ "la publicité est responsable de la surconsommation" (contribuer n'est pas être la cause principale).
+3. MOTIF — si l'une mentionne une cause, un but ou une justification que l'autre ne mentionne pas, ou si les motifs diffèrent, ne fusionne pas : "Il faut réglementer la publicité" ≠ "Il faut réglementer la publicité car elle est mensongère" ; "…pour protéger les enfants" ≠ "…pour lutter contre la surconsommation". Deux personnes peuvent vouloir la même mesure pour des raisons opposées.
+4. MODALITÉ — une obligation n'est pas une possibilité : "Il faut interdire la publicité" ≠ "On pourrait envisager d'interdire la publicité".
+5. AGENT — toute différence d'acteur bloque, y compris entre un agent explicite et un agent implicite : "L'État doit réglementer la publicité" ≠ "Il faut réglementer la publicité" ≠ "Les marques doivent s'autoréguler".
+6. INCLUSION PARTIELLE — si l'une dit tout ce que dit l'autre PLUS quelque chose, ce n'est pas un doublon : "La publicité est envahissante et manipulatrice" ≠ "La publicité est envahissante" ; "La publicité permet de générer des revenus et de financer des projets" ≠ "La pub permet de financer des projets".
+7. PORTÉE D'UN CONSTAT — deux faits voisins mais de portée, d'objet ou de mécanisme différents restent distincts : "La publicité finance les médias" ≠ "Sans publicité, beaucoup de journaux disparaîtraient" (les journaux ne sont pas tous les médias, et un autre modèle de financement reste imaginable) ; "La publicité crée des emplois" ≠ "La publicité fait vivre tout un secteur économique".
 
-Exemples RÉELS de ce qu'il NE faut SURTOUT PAS fusionner (erreurs à éviter absolument) :
-- "La publicité devrait être interdite" (PRESCRIPTION) ≠ "La publicité c'est mal" (JUGEMENT) ≠ "La communication publicitaire, c'est pas bien." (JUGEMENT) → ERREUR DÉJÀ COMMISE, à ne plus jamais reproduire. Une prescription législative ne fusionne pas avec un jugement de valeur, même quand le sujet est identique et l'orientation la même.
-- "La publicité est de la propagande" (JUGEMENT sur la nature) ≠ "La publicité c'est mal" (JUGEMENT moral) ≠ "La publicité est le plus grand mal du 21e siècle" (JUGEMENT d'intensité extrême) → même type, mais contenus distincts : une nature, une appréciation morale vague, une intensité superlative. On peut être d'accord avec l'une sans l'autre. NE PAS fusionner.
-- "La publicité devrait être interdite" ≠ "Nous pourrions remplacer la publicité par une autre manière de s'informer." → deux PRESCRIPTIONS, mais interdire n'est pas remplacer : la première supprime, la seconde propose une alternative. Actions différentes. NE PAS fusionner.
-- "La publicité permet de générer des revenus et d'augmenter les investissements" ≠ "La pub permet de financer des projets." → deux CONSTATS, mais générer des revenus/investissements n'est pas la même chose que financer des projets ciblés ; portée et bénéficiaires différents. NE PAS fusionner.
-- Deux actions différentes sur le même sujet ("plus de pistes cyclables" ≠ "plus de vélos") — leviers distincts.
-- Une action concrète et une valeur générale ("construire des pistes" ≠ "favoriser le vélo en ville") — types différents (PRESCRIPTION vs JUGEMENT).
-- Deux degrés différents ("réduire la voiture" ≠ "supprimer la voiture").
-- Une cause et sa conséquence ("améliorer les transports" ≠ "réduire la pollution").
+Trois cas particuliers qui bloquent également :
+- Une réfutation n'est pas une affirmation positive : "La publicité n'est pas si nocive qu'on le dit" ≠ "La publicité est utile".
+- Un problème constaté n'est pas une demande d'action : "La publicité est un problème" ≠ "Il faut faire quelque chose contre la publicité".
+- Deux actions différentes sur le même sujet restent distinctes, même si elles vont dans le même sens : "interdire" ≠ "remplacer par autre chose" ; "plus de pistes cyclables" ≠ "plus de vélos" ; "améliorer les transports" ≠ "réduire la pollution" (une cause et sa conséquence).
 
-Exemples RÉELS de ce qu'il FAUT fusionner (reformulations strictes, à l'intérieur d'un même type) :
-- "La publicité devrait être plus strictement encadrée par la loi." = "La publicité devrait être davantage réglementée par la loi" → deux PRESCRIPTIONS, même levier (la loi), même degré (encadrer davantage). FUSION LÉGITIME.
-- "La publicité c'est mal" = "La communication publicitaire, c'est pas bien." → deux JUGEMENTS moraux généraux sur le même objet, même appréciation, la seule différence est la tournure familière. FUSION LÉGITIME.
-- "Il faut plus de vélos en ville" = "Il faudrait davantage de vélos dans les zones urbaines" (mêmes mots, autre tournure).
-- "La publicité devrait être interdite" = "Il faut interdire la publicité" (verbe identique, sujet identique, action identique).
+ÉTAPE 3 — Ce n'est qu'après avoir écarté TOUS les blocages ci-dessus que tu peux fusionner, et uniquement dans l'un de ces trois cas :
+- REFORMULATION PURE — mêmes mots dans un autre ordre, synonymes stricts, ou simple différence de registre : "Il faut taxer la publicité" = "La publicité devrait être taxée" ; "La pub, faut arrêter ça" = "Il faut mettre fin à la publicité" ; "La publicité manipule les gens" = "La publicité est manipulatrice" ; "La publicité c'est mal" = "La communication publicitaire, c'est pas bien." ; "La publicité devrait être plus strictement encadrée par la loi" = "La publicité devrait être davantage réglementée par la loi".
+- ÉQUIVALENCE LOGIQUE STRICTE, double négation comprise : "La publicité ne devrait pas être interdite" = "La publicité doit rester autorisée".
+- CADRAGE PERSONNEL vs GÉNÉRAL, à prédicat identique : "Je trouve la publicité agaçante" = "La publicité est agaçante".
 
 Ne fusionne jamais plus de 2 assertions ensemble.
 
