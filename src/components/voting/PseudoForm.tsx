@@ -64,7 +64,7 @@ export default function PseudoForm({ session, onSuccess, reclaimCode }: PseudoFo
               type="text"
               value={pseudo}
               onChange={e => setPseudo(e.target.value)}
-              placeholder="Ex : Marie Dupont"
+              placeholder="Prénom Nom"
               maxLength={40}
               required
               autoFocus

@@ -1015,7 +1015,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   <span className="text-xl shrink-0">⏭</span>
                   <div>
                     <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : passer indique que le sujet ne te fait pencher ni d'un côté ni de l'autre, et ça compte dans les résultats.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -1685,7 +1685,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="Ex : Marie Dupont"
+                placeholder="Prénom Nom"
                 maxLength={40}
                 required
                 autoFocus

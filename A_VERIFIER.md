@@ -17,6 +17,28 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **Non testé** : le flow réel avec une vraie table modérée (nécessite le code Ecclesia, que je n'ai pas) — la vérification ci-dessus contourne ça via la manipulation du flag `isModerator` en local, ce qui teste fidèlement le rendu et les handlers du menu mais pas les policies RLS spécifiques à un vrai modérateur `created_by`. Un test manuel rapide par Jules avec une vraie table modérée serait bienvenu pour confirmer qu'aucune régression RLS ne s'est glissée (aucun changement de RPC n'a été fait dans ce chantier, donc risque jugé faible).
 
+- [ ] **2026-07-28** — Chantier 25c (flow de sélection des modérateurs en surplus) — `src/components/voting/AllocationPanel.tsx`
+
+  **Contexte** : Jules a précisé le flux voulu après le 25b. Décocher un modérateur ne doit **rien** écrire en base et ne doit **pas** relancer le calcul ; tout est différé et groupé au clic sur « Appliquer ». Ordonnancement arrêté : **les flags `is_moderator = false` ne sont écrits qu'APRÈS que la création des tables a réussi** — si elle échoue, aucun flag n'est touché.
+
+  **État constaté avant correctif** (vérifié dans le code mergé) : le `set_member_moderator(false)` partait bien **dès le clic sur la case** ; en revanche l'algorithme ne se relançait **pas** automatiquement (ça, c'était déjà conforme). Un troisième écart non identifié au départ : le décochage rendait la proposition « périmée » et **désactivait « Appliquer »** jusqu'à un clic manuel sur « Recalculer ».
+
+  **Ce qui a changé** :
+  - `toggleModerator` → état local pur, plus aucun appel réseau ni rechargement.
+  - `buildInput()` (nouveau) → construit les entrées depuis la sélection courante : les décochés rejoignent `members` avec leurs vraies réponses d'onboarding, et sortent de `moderatorIds`. Utilisé à l'identique par « Calculer » et par « Appliquer ».
+  - `handleApply` → 1. recalcule avec la sélection ; 2. `applyAllocation` ; 3. **seulement en cas de succès**, `setMemberModerator(false)` pour chaque décoché, puis vide la sélection. En cas d'échec : message explicite « aucune table créée et aucun statut de modérateur modifié, ta sélection est conservée ».
+  - Le blocage « réglages modifiés » ne désactive plus « Appliquer » ; le bandeau explique désormais qu'« Appliquer » recalcule d'abord.
+  - La liste s'ouvre automatiquement et passe en ambre quand un surplus est détecté, avec le message : « décoche ceux qui n'animeront pas pour choisir toi-même lesquels ; sinon l'algorithme en désigne d'office (les derniers inscrits) ».
+  - Si un `set_member_moderator` échoue après création réussie des tables, les pseudos concernés sont listés dans le message de succès avec l'indication de corriger dans l'onglet Participants (les tables, elles, existent bien).
+
+  **Vérifié par moi** : `npx tsc -b`, `npm run build`, `npm test` → 62/62. Browser pane (port 5190) : **zéro erreur console**. Sémantique de sélection exercée dans le bundle réel servi par Vite, sur 25 participants + 4 modérateurs — aucun décoché → mo-0/1/2 animent et mo-3 est désigné d'office ; **Mod0 décoché → mo-1/2/3 animent** (le choix porte bien sur *qui*, pas seulement sur le nombre) ; deux décochés → 2 animateurs et une table passe « sans animateur ». 29 personnes placées dans les 4 cas.
+
+  **Non vérifié / à valider par Jules** :
+  1. **Le parcours UI reste non testé de bout en bout** (mot de passe superadmin, non détenu). **Il n'existe actuellement aucune séance testable** : la seule séance non clôturée est `GENER1`, en phase `voting` avec **0 modérateur** (vérifié en base). Pour tester il faut d'abord marquer 3-4 membres comme modérateurs (onglet Participants) puis passer la séance en `allocating`. Je ne l'ai pas fait moi-même : `GENER1` est le bac à sable partagé avec d'autres chantiers en cours, changer sa phase les perturberait.
+  2. **Point d'attention — décocher trop, ou pas assez.** Si tu décoches **moins** que le surplus, l'algorithme continue d'en désigner d'office pour combler (message ajouté dans la liste pour le dire). Si tu décoches **plus** que nécessaire, une table se retrouve sans animateur — visible via le badge « sans animateur » sur la table concernée. Aucun des deux n'est bloqué : c'est ton choix, l'app l'affiche.
+  3. **La sélection est persistée en `sessionStorage`** (survit au changement d'onglet et au rechargement) alors qu'elle n'est pas encore en base. Conséquence : si tu décoches, changes d'onglet, reviens et cliques « Appliquer », les décochages d'avant sont toujours actifs. C'est voulu (cohérent avec H14) mais à garder en tête.
+  4. **Écriture des flags non transactionnelle.** Les `set_member_moderator` sont faits un par un après la création des tables. Si l'un échoue (réseau), les autres passent quand même et le message le signale nommément. Rendre l'ensemble atomique demanderait une RPC dédiée — pas fait, l'échec est signalé plutôt que masqué.
+
 - [ ] **2026-07-28** — Chantier 26 (H10, H19, H20, H21, H25 — vue superadmin tables : tri, affichage, édition) — `src/screens/SuperadminScreen.tsx`, `supabase/migrations/20260727_6_chantier26_sync_table_assignments.sql` (nouveau)
 
   **H10** — `MembersPanel` (accordéon « Participants inscrits », onglet 🟢 En direct) : les 6 colonnes (Pseudo, Heure, Phase, Q., V., 🎙️) sont désormais triables via de petites flèches ▲▼ à côté de chaque en-tête, cliquables, avec bascule croissant/décroissant. Tri par défaut inchangé (arrivée croissante). Vérifié en navigateur sur `VERIF7` (29 membres) : tri alphabétique croissant (Alice → Yasmine) et décroissant (Yasmine → Alice) tous deux corrects.
@@ -839,6 +861,26 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   - Après application de la migration : une séance quelconque en phase `voting` pour vérifier l'absence des éléments timer/seuil dans le tableau de bord superadmin (nécessite le mot de passe superadmin).
 
   **⚠️ Migration SQL non appliquée** — `supabase/migrations/20260727_2_chantier22_remove_vote_timers.sql` (fournie en clair dans le rapport de session à Jules, qui l'appliquera via son propre accès Supabase). Tant qu'elle n'est pas appliquée, le code front (qui ne référence plus `vote_timer_minutes`/`vote_threshold_percent`) continue de fonctionner sans erreur — `Session` ignore simplement des colonnes DB non lues — mais `update_session_config` échouera si l'ancienne fonction à 5 arguments est toujours seule en base (l'appel front passe désormais 3 arguments). **Donc : ne pas déployer le nouveau code front en production avant d'avoir appliqué cette migration**, sous peine de casser le bouton d'enregistrement de `ModerationPolicyEditor`/`CreateModal`.
+
+- [ ] **2026-07-28** — Chantier 23 (H1, H2, H7, H8, H24 — petits fixes UX & texte) — `src/components/voting/PseudoForm.tsx`, `src/screens/VoteScreen.tsx`, `src/screens/EntryScreen.tsx`, `src/components/JoinTableForm.tsx`, `src/components/voting/AssertionCard.tsx`, `src/components/voting/OnboardingForm.tsx`, `src/components/QrCodeModal.tsx`
+
+  **H1** — placeholder `"Ex : Marie Dupont"` remplacé par `"Prénom Nom"` (100 % générique, aucun exemple concret) dans les 4 formulaires où il apparaissait (`PseudoForm`, `VoteScreen` (VotingEntryForm), `EntryScreen` (join/reclaim/create), `JoinTableForm`).
+
+  **H2** — `EntryScreen.tsx:245` (carte "Séances en cours") : classe `truncate` (tronque en une ligne + ellipsis) remplacée par `break-words` (retour à la ligne, longueur illimitée). Vérifié en navigateur : un titre de 47 caractères passe de 1 ligne tronquée à 2 lignes complètes (`offsetHeight` 40px au lieu d'une ligne simple), rien ne déborde de la carte.
+
+  **H7** — le sens de « Passe » était déjà partiellement expliqué (« un vrai choix, compté dans les résultats ») mais sans dire *ce que ça signifie* concrètement. Texte enrichi à 2 endroits : la modale d'intro du vote (`VoteScreen.tsx`, affichée une fois via `ecclesia_vote_intro_<session.id>`) et l'astuce sous les boutons de vote sur la 1ʳᵉ assertion (`AssertionCard.tsx`, `index === 0`). Les deux disent maintenant explicitement "ni l'un ni l'autre, ou que la question n'est pas claire".
+
+  **H8** — cause : `OnboardingForm.tsx` a une barre de progression `px-4 pt-5` (20px de marge haute) contenant le texte "Question X/3" en haut à gauche, exactement sous le bouton flottant `QuitLink` (`fixed top-3 left-3`, ~12-42px de haut). `pt-5` → `pt-14` (56px) pour dégager le bouton. Vérifié par `getBoundingClientRect()` sur les deux éléments : bouton `top:12/bottom:42`, compteur `top:56/bottom:72` — zéro chevauchement (contre chevauchement certain avec l'ancien `pt-5`, le compteur commençait à y:32).
+
+  **H24** — `QrCodeModal.tsx` (composant unique utilisé pour le QR code de table, depuis les menus Outils participant et modérateur) : ajout d'une phrase sous le QR code, avant le lien brut — "Les autres participants peuvent scanner ce QR code avec leur téléphone pour rejoindre directement cette table."
+
+  **Déjà vérifié par moi** : `npx tsc -b` (exit 0, aucune erreur TS) dans le worktree dédié (`Ecclesia-chantier-23`, `node_modules` installés localement). Vérification navigateur complète (Browser pane, serveur dev isolé port 5188, config `chantier-23-dev` ajoutée à `.claude/launch.json`) sur la séance de test partagée `🧪 Test général — parcours chantiers 1-4 / 8-10` : parcours entrée → intro app → saisie nom → onboarding (3 questions, H8 vérifié par mesure de positions) → vote (H7 vérifié, modale d'intro + astuce 1ʳᵉ carte) → création d'une table `leaderless` de test → panneau Outils → QR code (H24 vérifié, texte affiché). Menu principal (H2) et placeholders (H1) vérifiés directement sur `EntryScreen`. **Zéro erreur console** sur l'ensemble du parcours (`read_console_messages` vide après filtrage erreurs).
+
+  **Effet de bord mineur** : le clic natif via `computer` (coordonnées pixel) ne déclenchait pas les handlers React dans cette session (le Browser pane refusait aussi les captures d'écran — "pane not displayed, compositing impossible") ; toutes les interactions de vérification ont donc été faites via `javascript_tool` (`element.click()` / `dispatchEvent('input')`), qui elles fonctionnaient normalement. Aucun rapport avec le code du chantier — probablement une particularité de l'environnement d'exécution de cette session. À garder en tête si une future session rencontre le même souci.
+
+  **Non testé** : rendu réel du QR code scanné avec un téléphone physique (uniquement vérifié que le composant s'affiche avec le bon texte et la bonne URL) ; wrapping du titre de séance (H2) sur un très long titre sans aucun espace (un seul "mot" de 100+ caractères) — `break-words` gère normalement ce cas mais non vérifié spécifiquement.
+
+  **Données de test créées** dans la séance partagée `🧪 Test général — parcours chantiers 1-4 / 8-10` (pas de nettoyage effectué, cohérent avec l'usage déjà observé d'autres chantiers sur cette séance de QA) : un membre "Test H8 Verif …" (votes + réponse onboarding), une table `leaderless` `EA9703` avec un participant "QR Test …".
 
 ## Validé
 
