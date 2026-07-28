@@ -5,6 +5,112 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-07-28** — Chantier 29 (I1) — **fiabilité de la recherche d'allocation : 4 pistes mesurées, AUCUNE mergée, arbitrage à rendre par Jules** — branche `chantier-29-fiabilite-recherche-allocation` (worktree `C:/Users/jules/projet/Ecclesia-chantier-29`)
+
+  > ⚠️ **Rien n'est parti sur `main` et le comportement de production est inchangé.** Sur la branche, `runAllocation` garde `STRATEGY_LEGACY` par défaut : à entrée identique, l'app produit exactement la même répartition qu'aujourd'hui. Les pistes ne s'activent qu'en passant explicitement `strategy` (ce que seul le banc d'essai fait). Conformément à ta consigne, **le merge attend ton feu vert explicite**.
+
+  **Rapport comparatif complet** : `docs/chantier-29-comparatif-allocation.md` (généré, ~160 configurations × 4 stratégies). Régénérable par `ALLOC_BENCH=1 npx vitest run bench/`.
+
+  ---
+
+  ### Ce qui a été trouvé — et qui change l'énoncé du chantier
+
+  **Le problème n'est pas seulement la formule de la règle 4 : la recherche locale est réellement défaillante, et le test unitaire qui « garantissait » l'exemple normatif du §4 ne le garantit pas.**
+
+  L'exemple normatif (60 participants / 4 modérateurs → 8 tables : 4 animées de 10 + 4 de 5) est vérifié par un test qui construit sa population avec `balanced(60)`, où les attributs sont **corrélés par construction** (`is_active = i%2`, `is_veteran = i%5<2`, `camp = i%3`). Sur une population de **même composition agrégée** (60 personnes, 24 anciens, 30 actifs, 3 camps équilibrés, tous consentants) mais aux attributs **décorrélés** — c'est-à-dire une vraie salle — le code de `main` produit `10M 10M 10M 10M 10- 10-`, soit **6 tables dont 2 de 10 sans animateur : exactement le résultat que la spec §4 désigne comme le mauvais**. Le test passe, la propriété qu'il est censé protéger n'est pas là.
+
+  Cause identifiée (deux mécanismes distincts, tous deux confirmés par ablation) :
+  1. **Le budget d'évaluations est un pool global consommé dans l'ordre d'énumération des formes.** Les premières formes (peu de tables) le vident, les suivantes sont sous-optimisées, donc écartées — pour leur position dans la boucle, pas pour leur qualité.
+  2. **Le maximin d'hétérogénéité (règle 3) est classé juste avant la règle 4.** Toute réparation d'un déficit d'anciens qui déplace une personne d'un camp à l'autre dégrade potentiellement ce maximin et se fait refuser : la descente se fige alors qu'une meilleure solution existe. Il faut chercher d'abord parmi les échanges **à camp constant**, structurellement neutres pour la règle 3.
+
+  ### Les 4 stratégies comparées
+
+  | Clé | Contenu |
+  |---|---|
+  | **A** | Code actuel de `main`. Règles 1 et 4 scorées en **taux d'échec** `-échecs/T`. |
+  | **B** | Piste « corriger la formule seule » : score en **manque absolu de personnes**. Recherche inchangée. |
+  | **C** | Piste « fiabiliser la recherche seule » : score historique conservé ; budget en **part équitable** entre formes, 6 démarrages, **amorce par quotas** (résolution exacte du sous-problème d'affectation des anciens), **voisinage dirigé à camp constant**, **élagage par borne** (une forme dont l'optimum théorique est déjà battu n'est pas explorée). |
+  | **D** | **B + C.** |
+
+  ### Cas de référence
+
+  Lecture : `10M 10M 6M 5-` = quatre tables de 10, 10, 6 et 5 ; `M` = animée, `-` = sans animateur.
+
+  | Scénario | A (actuel) | B (formule seule) | C (recherche seule) | D (les deux) |
+  |---|---|---|---|---|
+  | **Normatif §4** — 60 part. / 4 modé. *(attendu : 8 tables)* | ❌ `10M 10M 10M 10M 10- 10-` **6 t.** | ❌ idem A | ✅ `10M×4 5- 5- 5- 5-` **8 t.** | ✅ **8 t.** |
+  | **Régression 25b** — 31 part. / 3 modé. / **12 anciens (39 %)** | `10M 6M 5M 5- 5-` **5 t.**, 10 sièges non animés | idem A | ❌ `6M 5M 5M 5- 5- 5-` **6 t.**, 15 sièges non animés | ✅ `10M 10M 6M 5-` **4 t.**, 5 sièges non animés |
+  | **Témoin** — 31 part. / 3 modé. / **13 anciens (42 %)** | **5 t.**, 10 sièges non animés | idem A | **4 t.**, 5 sièges non animés | **4 t.**, 5 sièges non animés |
+
+  Le point important de la 2ᵉ et 3ᵉ ligne : **seule D supprime la discontinuité**. Passer de 13 à 12 anciens (un seul participant) ne change plus la forme sous D (4 tables dans les deux cas), alors que sous A la salle se découpe différemment. C'était le symptôme d'origine du I1.
+
+  ### Scénarios où les stratégies divergent le plus (extraits)
+
+  | Scénario | A (actuel) | D (proposée) | Commentaire |
+  |---|---|---|---|
+  | 90 part. · 15 % anciens · **0 modé.** | `6- ×10, 5- ×6` → **16 tables**, manque anciens 28 | `10- ×9` → **9 tables**, manque anciens 22 | **← à arbitrer, voir ci-dessous** |
+  | 36 part. · 15 % anciens · 6 modé. | `10M 8M 5M 5M 5- 5-` → 6 t., **10 sièges non animés** | `10M 10M 10M 8M` → 4 t., **0 siège non animé** | D respecte mieux le §4 (« préférer un nombre de tables ≤ nombre de modérateurs, quitte à faire des tables plus grosses, mais toutes animées ») |
+  | 50 part. · 25 % anciens · 0 modé. | `10- ×5` → 5 t., manque 7 | idem A | mais **C seule** donne `6- ×5, 5- ×4` → 9 t., manque 10 |
+  | 60 part. · 25 % anciens · 2 modé. | `10M 10M 6- ×5 5- 5-` → 9 t., manque 12 | `10M 10M 10- ×4` → 6 t., manque 9 | |
+  | 30 part. · 20 % actifs · 3 modé. | `20M 5M 5M`, manque actifs 2 | idem A | mais **C seule** donne `15M 5M 5M 5-`, manque actifs **4** — dégradation sur la règle **la plus prioritaire** |
+
+  **Ce que l'ablation démontre** (et c'est le résultat le plus net) : **C seule est souvent pire que A**. Fiabiliser la recherche sans corriger la métrique ne fait qu'appliquer plus efficacement un objectif biaisé — le taux d'échec récompense mécaniquement le découpage. Inversement **B seule** ne suffit pas : elle rate l'exemple normatif, parce que la bonne forme existe mais n'est pas trouvée. **Les deux moitiés sont nécessaires, aucune n'est suffisante** — ce qui répond à la question posée par le chantier (« corriger la formule casse le §4 ») : ça le casse parce que la recherche est défaillante, pas parce que la formule serait mauvaise.
+
+  ### Synthèse sur la grille complète (147 configurations)
+
+  | Stratégie | Tables (moy.) | Sièges non animés (moy.) | Manque actifs (moy.) | Manque anciens (moy.) | Temps médian | Temps @200 pers. |
+  |---|---|---|---|---|---|---|
+  | A · actuel | 5,55 | 22,6 | 0,00 | 4,18 | 14 ms | 1 260 ms |
+  | B · formule seule | 5,25 | 22,4 | 0,00 | 3,76 | 15 ms | 1 460 ms |
+  | C · recherche seule | 5,73 | 22,8 | 0,00 | 4,09 | 45 ms | 2 150 ms |
+  | **D · les deux** | **5,30** | **22,4** | 0,00 | **3,75** | 47 ms | 2 030 ms |
+
+  Les moyennes séparent peu (le nombre de sièges non animés est surtout dicté par le nombre de modérateurs, pas par l'algorithme) — **c'est scénario par scénario que ça se joue**, d'où les tableaux ci-dessus. Le seul écart agrégé net est le manque d'anciens : −10 % avec la métrique absolue, soit ~0,4 personne par séance en moyenne.
+
+  ---
+
+  ### ⚖️ Ce que je te demande d'arbitrer
+
+  1. **Arbitrage principal : adopte-t-on D ?** Mon avis : oui, mais c'est ta décision. Elle corrige le symptôme d'origine (I1), répare l'exemple normatif du §4 qui n'était en réalité pas tenu, et ne dégrade aucun des ~160 scénarios mesurés sur les règles 1 et 4. Coût : temps de calcul ×1,6 (47 ms médian, 2 s sur une salle de 200 — reste très en dessous du plafond de 5 s).
+
+  2. **Arbitrage de fond, non tranché par la spec — salle nombreuse, peu d'anciens, peu ou pas de modérateurs.** Exemple : 90 personnes, 15 % d'anciens, 0 modérateur.
+     - A donne **16 petites tables** (6 et 5) sans animateur ;
+     - D donne **9 tables de 10** sans animateur.
+
+     Les deux sont défendables **selon la spec elle-même**, qui se contredit ici : le §4 dit « tables non modérées : les dimensionner vers le minimum de 5 » (l'auto-régulation par `claim_floor` est réaliste à 5, pas à 10) — ce qui plaide pour A. Mais la règle 4 est plus prioritaire que la politique de dimensionnement, et 9 tables de 10 laissent 22 personnes sans « ancien » de référence contre 28 avec 16 tables — ce qui plaide pour D. **Que préfères-tu concrètement en salle** : beaucoup de petites tables auto-gérées mais presque toutes sans participant expérimenté, ou moins de grandes tables auto-gérées avec un peu plus d'expérience à chacune ? Je n'ai pas tranché : c'est un choix d'animation, pas un choix technique.
+
+  3. **Le test unitaire du §4 doit-il être durci ?** Il passe aujourd'hui alors que la propriété n'est pas tenue sur une vraie population. Je propose de le doubler d'une variante à attributs décorrélés — mais ça revient à **rendre `main` rouge tant que le correctif n'est pas adopté**, donc je ne l'ai pas fait sans ton accord.
+
+  4. **Faut-il conserver le point d'entrée `strategy` en production ?** Il est aujourd'hui utile pour l'ablation. Si tu adoptes D, on peut soit figer D en dur et supprimer le paramètre (code plus simple), soit le garder pour pouvoir refaire ce type de mesure plus tard. Ma préférence : le garder, avec `STRATEGY_LEGACY` conservée en référence de comparaison.
+
+  ### 🧪 Comment tester toi-même un scénario précis dans l'app
+
+  Le comportement est observable en conditions réelles via le panneau d'allocation du superadmin, sans rien installer :
+
+  1. `#superadmin` → mot de passe → **créer une séance de test** (comme `VERIF7`), phase `voting`.
+  2. Inscrire N participants (plusieurs onglets/navigateurs, ou en te faisant aider). Ce qui pilote l'algorithme, c'est l'**onboarding** en 3 questions :
+     - « As-tu déjà fait un débat Ecclesia ? » → **oui = ancien** : c'est ce ratio qui déclenche le bug (viser **sous 40 %** pour reproduire, ex. 12 anciens sur 31) ;
+     - « participer activement / plutôt écouter » → règle 1 ;
+     - consentement à l'enregistrement → règle 2.
+  3. Marquer les modérateurs : onglet **Participants** → `set_member_moderator`, ou auto-déclaration avec le mot de passe Ecclesia. **Le nombre de modérateurs est le second levier** du comportement observé.
+  4. Faire voter suffisamment pour que l'analyse des camps aboutisse (sinon la règle 3 est désactivée et l'arbitrage change), puis lancer l'analyse dans l'onglet **Analyse**.
+  5. Passer en phase `allocating` → onglet **🟢 En direct** → **« Calculer la répartition »**. La proposition affiche la composition, les 4 badges de seuil par table et le badge « sans animateur ».
+
+  **Pour comparer une piste au comportement actuel sur ta séance**, il faut basculer le worktree `Ecclesia-chantier-29` sur la stratégie voulue (une ligne : `STRATEGY_LEGACY` → `STRATEGY_ABSOLUTE_STRONG` dans `runAllocation`) et recliquer « Calculer » — dis-le moi et je te prépare les deux captures sur la même séance. **Ne pas appliquer** la répartition si la séance sert à autre chose : « Calculer » est sans effet en base, seul « Appliquer » écrit.
+
+  ### Vérifié par moi
+
+  - `npx tsc --noEmit`, `npm run build`, `npm test` → **62/62** avec le défaut `STRATEGY_LEGACY` (aucune régression), **et 62/62 également** en basculant temporairement le défaut sur D — y compris le test normatif §4, qui reste vert (sa population corrélée reste satisfaite).
+  - Nouveaux garde-fous `bench/strategy-sanity.test.ts` (12 cas, tournent avec `npm test`) appliqués **à chacune des 4 stratégies** : déterminisme à graine fixe (§6), aucun membre perdu, bornes de taille respectées sur populations hostiles, et **latence < 5 s sur 200 personnes**.
+  - Le banc d'essai vérifie sur les ~160 configurations × 4 stratégies qu'aucune ne perd de participant et qu'aucune ne viole les bornes de taille — **zéro violation**.
+  - **Latence : régression détectée puis corrigée en cours de route.** Un budget fixe par forme (60 000 évaluations) faisait passer C et D à **6,1–6,9 s** sur 200 personnes, au-dessus du plafond. Remplacé par une **part équitable** du budget global (le reliquat d'une forme qui converge tôt profite aux suivantes) : coût total du même ordre qu'aujourd'hui, sans le biais d'ordre, et retour à **2,0 s**.
+
+  ### Non vérifié
+
+  1. **Aucun test en navigateur sur une vraie séance** — ce chantier est purement algorithmique, et le panneau d'allocation est derrière le mot de passe superadmin que je ne saisis pas. Les mesures portent sur `runAllocation` en isolation, pas sur le trajet complet `loadAllocationInputs` → calcul → `apply_allocation`.
+  2. **Les populations sont synthétiques.** Attributs décorrélés et effectifs exacts — plus réalistes que le `balanced()` des tests, mais une vraie salle peut présenter des corrélations que je n'ai pas modélisées (p. ex. les anciens sont probablement plus souvent « actifs » que les nouveaux, ce qui rendrait les règles 1 et 4 partiellement colinéaires). À confronter à une vraie séance.
+  3. **La règle 3 n'a pas été poussée.** Le nombre de tables en échec sur la règle 3 est identique entre stratégies sur la quasi-totalité des scénarios, sauf camp ultra-dominant où il l'est aussi. Je n'ai pas cherché à l'améliorer — hors périmètre du I1.
+
 - [ ] **2026-07-28** — Chantier 25c (flow de sélection des modérateurs en surplus) — `src/components/voting/AllocationPanel.tsx`
 
   **Contexte** : Jules a précisé le flux voulu après le 25b. Décocher un modérateur ne doit **rien** écrire en base et ne doit **pas** relancer le calcul ; tout est différé et groupé au clic sur « Appliquer ». Ordonnancement arrêté : **les flags `is_moderator = false` ne sont écrits qu'APRÈS que la création des tables a réussi** — si elle échoue, aucun flag n'est touché.
