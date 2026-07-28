@@ -83,7 +83,28 @@ export async function mergeAssertions(payload: {
   })
   if (error) throw new Error(extractErr(error))
   if (data?.error) throw new Error(data.error)
-  return extractResponse<MergeResult>(data)
+  const res = extractResponse<MergeResult>(data)
+
+  // Garde-fou anti-regroupement thématique (chantier 18, calibrage du 2026-07-28).
+  // Le prompt interdit de fusionner plus de 2 assertions, mais Gemini cesse de
+  // respecter cette consigne au-delà d'une trentaine d'assertions : il bascule
+  // d'une détection de doublons vers un regroupement par thème et renvoie des
+  // entrées absorbant jusqu'à 9 assertions d'un coup (mesuré sur un jeu de 41).
+  // Une entrée à plusieurs `reject_ids` n'est donc pas un jugement de quasi-
+  // doublon fiable : on la jette entièrement plutôt que d'en garder une paire
+  // au hasard. Les appels à faible volume ne sont pas affectés (Gemini y renvoie
+  // systématiquement un seul reject_id par entrée).
+  // Ce garde-fou traite le symptôme, pas la cause — voir
+  // docs/calibrage-fusion-assertions.md pour la correction de fond envisagée.
+  const kept = res.results.filter(m => (m.reject_ids?.length ?? 0) === 1)
+  const dropped = res.results.length - kept.length
+  if (dropped > 0) {
+    console.warn(
+      `[fusion] ${dropped} proposition(s) ignorée(s) : regroupement de plus de 2 assertions ` +
+      `(${payload.assertions.length} assertions envoyées)`
+    )
+  }
+  return { ...res, results: kept }
 }
 
 // ── nameIdeologicalGroups ─────────────────────────────────────

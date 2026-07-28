@@ -83,6 +83,61 @@ en v12 et que j'avais laissée à l'arbitrage, est **tranchée en non-fusion** p
 verdict 21 (inclusion partielle). Elle figure désormais comme contre-exemple
 explicite dans le prompt.
 
+## ⚠️ Découverte de la validation : Gemini décroche à grande échelle
+
+La validation du prompt calibré a été faite sur un jeu de **41 assertions**
+couvrant les 24 cas. Résultat : **3 fusions correctes sur 5 attendues, et 28
+faux positifs**. Le mode d'échec n'est pas une erreur de jugement au cas par
+cas, c'est un **changement de tâche** : au lieu de chercher des quasi-doublons
+deux à deux, Gemini s'est mis à **regrouper par thème**, renvoyant des entrées
+absorbant jusqu'à 9 assertions d'un coup — « Il faut réduire la publicité »
+avec « Le marketing c'est mal », « L'État doit réglementer la publicité » et
+« Les marques doivent s'autoréguler ». La consigne « ne fusionne jamais plus de
+2 assertions ensemble », pourtant présente depuis le chantier 7, est purement
+et simplement ignorée.
+
+**Contrôle décisif** : le même prompt v13, sur les 10 assertions du jeu PUBFUS,
+renvoie 3 entrées, **toutes des paires**, sans aucun regroupement. La bascule se
+joue donc sur le **volume**, pas sur les règles du prompt — le calibrage n'est
+pas en cause.
+
+**Second problème, révélé par ce même contrôle** : à 10 assertions, v13 fusionne
+toujours « La publicité permet de générer des revenus **et** de financer des
+projets » avec « La pub permet de financer des projets », alors que cette paire
+exacte est citée **mot pour mot** dans le prompt comme contre-exemple du motif
+de blocage n°6 (inclusion partielle). Le modèle passe donc outre un
+contre-exemple verbatim. C'est le seul faux positif à cette échelle (2 fusions
+attendues sur 2 par ailleurs correctes). Enseignement : sur ce point précis, un
+contre-exemple textuel ne suffit pas — l'inclusion partielle demanderait une
+vérification déterministe côté client (si le contenu de l'une est inclus dans
+celui de l'autre à quelques mots près, refuser la fusion sans consulter le
+modèle), plutôt qu'une consigne supplémentaire.
+
+**Conséquence pour la production** : `handleAnalyzeMerges` envoie *toutes* les
+assertions approuvées de la séance en un seul appel. Une séance réelle en
+compte facilement 40 ou plus — le mode dégradé décrit ci-dessus est donc un
+risque **réel**, et il préexistait au calibrage (rien dans le prompt v12 ne
+l'empêchait ; il n'avait simplement jamais été testé à cette échelle).
+
+**Garde-fou déployé** (`src/lib/gemini.ts`) : toute proposition comportant plus
+d'un `reject_id` est jetée, avec un avertissement en console. Une entrée qui
+regroupe 9 assertions n'est pas un jugement de quasi-doublon fiable ; en garder
+une paire au hasard serait deviner. Sans effet sur les appels à faible volume.
+
+**Ce garde-fou traite le symptôme, pas la cause.** À grande échelle il ne
+supprime pas seulement les faux positifs mais aussi les vraies fusions, donc la
+fonctionnalité devient silencieusement inopérante là où elle servirait le plus.
+
+**Correction de fond recommandée — présélection des paires candidates** : au
+lieu d'envoyer N assertions et de demander « trouve les doublons » (tâche
+ouverte, qui dégénère en clustering), présélectionner côté client les paires
+lexicalement proches (recouvrement de mots / similarité cosinus sur les
+contenus), n'en garder qu'une quinzaine, et demander à Gemini de trancher
+**chaque paire** par oui/non. La tâche passe d'un regroupement ouvert à une
+classification binaire, beaucoup plus fiable — et l'appel devient plus court
+donc moins coûteux. Décision à prendre par Jules : ce n'est plus du calibrage
+de prompt mais un changement d'architecture de l'appel.
+
 ## Reste à calibrer
 
 - **Gradient d'intensité (série B2)** — les verdicts 5, 6 et 7 posent que toute
