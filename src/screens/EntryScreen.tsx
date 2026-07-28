@@ -189,7 +189,8 @@ export default function EntryScreen({ onJoined }: Props) {
     setModeratorError(null)
     setModeratorLoading(true)
     try {
-      await claimModeratorStatus(moderatorSessionId, moderatorPassword)
+      await claimModeratorStatus(moderatorSessionId, moderatorPassword, pseudo)
+      lastNameStore.set(pseudo)
       const sel = moderatorSessions.find(s => s.id === moderatorSessionId)
       if (sel?.join_code) {
         window.location.hash = '#vote/' + sel.join_code
@@ -241,7 +242,7 @@ export default function EntryScreen({ onJoined }: Props) {
                 <div key={s.id}
                   className="bg-gray-50 rounded-xl border border-gray-200 p-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{s.title}</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words">{s.title}</p>
                     <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_BADGE[s.phase] ?? 'bg-gray-100 text-gray-600'}`}>
                       {PHASE_LABEL[s.phase] ?? s.phase}
                     </span>
@@ -280,7 +281,8 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleClaimModerator} className="space-y-4">
               <p className="text-xs text-gray-500">
                 Déclare-toi modérateur d'une séance en cours (vote ou formation des groupes) avec le mot de passe Ecclesia.
-                Il faut déjà être inscrit à cette séance sur cet appareil (avoir voté ou t'être inscrit·e) — sinon demande au superadmin de te marquer directement dans l'onglet Participants.
+                Si tu es déjà inscrit·e sur cet appareil (tu as voté ou tu t'es déjà inscrit·e), on ajoute juste le badge modérateur à ton profil.
+                Sinon, ton profil est créé avec le nom ci-dessous, comme une inscription normale.
               </p>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -306,6 +308,10 @@ export default function EntryScreen({ onJoined }: Props) {
                   </select>
                 )}
               </div>
+              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
+              <p className="text-xs text-gray-400 -mt-2.5">
+                Retiens bien ce que tu inscris ici — utilisé seulement si tu n'as pas encore de profil sur cette séance.
+              </p>
               <Field label="Code Ecclesia" value={moderatorPassword}
                 onChange={setModeratorPassword} type="password" placeholder="••••••••" />
               {moderatorError && (
@@ -325,16 +331,18 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Ex : Marie Dupont" />
+              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  onChange={() => { setAsModerator(true); setError(null) }}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
+              </label>
               <Btn loading={loading} label="Rejoindre" />
-              <button
-                type="button"
-                onClick={() => { setAsModerator(true); setError(null) }}
-                className="w-full text-xs text-indigo-600 hover:underline text-center"
-              >
-                Je suis modérateur →
-              </button>
             </form>
           )}
 
@@ -343,24 +351,26 @@ export default function EntryScreen({ onJoined }: Props) {
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
               <Field label="Votre nom Prénom" value={pseudo}
-                onChange={setPseudo} placeholder="Ex : Marie Dupont" />
+                onChange={setPseudo} placeholder="Prénom Nom" />
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={true}
+                  onChange={() => { setAsModerator(false); setError(null) }}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
+              </label>
               <Field label="Code Ecclesia" value={reclaimCode}
                 onChange={setReclaimCode} type="password" placeholder="••••••••" />
               <Btn loading={loading} label="Reprendre la main" />
-              <button
-                type="button"
-                onClick={() => { setAsModerator(false); setError(null) }}
-                className="w-full text-xs text-gray-400 hover:text-gray-600 hover:underline text-center"
-              >
-                ← Retour
-              </button>
             </form>
           )}
 
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
               <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (modérateur)'} value={pseudo} onChange={setPseudo}
-                placeholder="Ex : Marie Dupont" />
+                placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
                 <Field label="Code Ecclesia" value={creationCode}

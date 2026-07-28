@@ -9,16 +9,48 @@ import type { ModerationResult, MergeResult, GroupNameResult } from './types'
 
 // ── Type de retour commun ─────────────────────────────────────
 
+// Détail brut de consommation Gemini (F19-F22) — prompt_tokens/completion_tokens/
+// total_tokens sont les valeurs telles que retournées par Google (usageMetadata),
+// jamais recalculées côté client. `model` est le modèle réellement appelé,
+// renvoyé par l'Edge Function plutôt que supposé côté frontend.
+export interface GeminiUsage {
+  prompt_tokens:     number
+  completion_tokens: number
+  total_tokens:      number
+  thoughts_tokens:   number
+  model:             string
+}
+
+const EMPTY_USAGE: GeminiUsage = {
+  prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, thoughts_tokens: 0, model: '',
+}
+
 export interface GeminiResponse<T> {
   results: T[]
   tokens_used: number
+  usage: GeminiUsage
 }
 
 function extractResponse<T>(data: unknown): GeminiResponse<T> {
-  const d = data as { results: T[]; usage?: { total_tokens?: number } }
+  const d = data as { results: T[]; usage?: GeminiUsage }
+  const usage = d.usage ?? EMPTY_USAGE
   return {
     results:     d.results,
-    tokens_used: d.usage?.total_tokens ?? 0,
+    tokens_used: usage.total_tokens,
+    usage,
+  }
+}
+
+// Levée par `nameSingleGroup` quand Gemini retourne un nom générique
+// rejeté par la regex ("Groupe 3", "Camp A"…) — voir F21 : contrairement
+// à une simple Error, elle transporte l'usage de la tentative rejetée
+// afin que l'appelant (`groupNaming.ts`) compte quand même ces tokens
+// réellement consommés côté API, au lieu de les jeter silencieusement.
+export class GenericNameError extends Error {
+  usage: GeminiUsage
+  constructor(usage: GeminiUsage) {
+    super('generic_name')
+    this.usage = usage
   }
 }
 
@@ -117,7 +149,7 @@ export async function nameSingleGroup(payload: {
   assertions: { id: string; content: string }[]
   votes: { member_id: string; assertion_id: string; vote: 'agree' | 'disagree' | 'pass' }[]
   divisive_assertions?: { id: string; content: string }[]
-}): Promise<{ result: GroupNameResult; tokens_used: number }> {
+}): Promise<{ result: GroupNameResult; tokens_used: number; usage: GeminiUsage }> {
   const { session_title, session_description, target_table_number, groups, assertions, votes, divisive_assertions } = payload
 
   const enrichedGroups = groups.map(group => ({
@@ -152,12 +184,16 @@ export async function nameSingleGroup(payload: {
   if (error) throw new Error(extractErr(error))
   if (data?.error) throw new Error(data.error)
 
-  const d = data as { result: { name: string; description: string }; usage?: { total_tokens?: number } }
+  const d = data as { result: { name: string; description: string }; usage?: GeminiUsage }
+  const usage = d.usage ?? EMPTY_USAGE
   // Rejette les identifiants techniques : "Groupe 3", "Camp 2" (numéro) et
   // "Camp A", "Groupe B" ou une lettre seule (labels neutres du fix A1) →
   // déclenche le retry, puis le fallback descriptif côté appelant.
+  // F21 : l'appel API a bien eu lieu (tokens consommés côté Google) même si
+  // le nom est rejeté ici — on transporte `usage` sur l'erreur pour que
+  // l'appelant les compte quand même, au lieu de les jeter silencieusement.
   if (/^(groupe|camp)\s*([0-9]+|[a-z])$/i.test(d.result.name.trim())) {
-    throw new Error('generic_name')
+    throw new GenericNameError(usage)
   }
   return {
     result: {
@@ -165,6 +201,7 @@ export async function nameSingleGroup(payload: {
       name:         d.result.name,
       description:  d.result.description,
     },
-    tokens_used: d.usage?.total_tokens ?? 0,
+    tokens_used: usage.total_tokens,
+    usage,
   }
 }

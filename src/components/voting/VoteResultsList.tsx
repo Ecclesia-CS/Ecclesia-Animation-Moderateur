@@ -28,15 +28,22 @@ export default function VoteResultsList({ results, loading }: VoteResultsListPro
   )
 }
 
+// Fort taux de "passe" : signal d'ambiguïté distinct du consensus/désaccord (cf. notes pol.is C4)
+const UNCERTAIN_PASS_RATE = 0.35
+const UNCERTAIN_MIN_VOTES = 5
+
 function AssertionRow({ result }: { result: VoteResult }) {
   const total = result.agree_count + result.disagree_count + result.pass_count
   const agreePct    = total > 0 ? (result.agree_count    / total) * 100 : 0
   const disagreePct = total > 0 ? (result.disagree_count / total) * 100 : 0
   const passPct     = total > 0 ? (result.pass_count     / total) * 100 : 0
   const score = result.consensus_score
+  const isUncertain = result.total_votes >= UNCERTAIN_MIN_VOTES && passPct / 100 >= UNCERTAIN_PASS_RATE
 
   let badge: { label: string; className: string }
-  if (score != null && score >= 50) {
+  if (isUncertain) {
+    badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-600' }
+  } else if (score != null && score >= 50) {
     badge = { label: 'Fort consensus', className: 'bg-green-100 text-green-700' }
   } else if (score != null && score >= 20) {
     badge = { label: 'Consensus partiel', className: 'bg-yellow-100 text-yellow-700' }
@@ -66,7 +73,7 @@ function AssertionRow({ result }: { result: VoteResult }) {
       <div className="flex gap-3 text-xs text-gray-400">
         <span className="text-green-600">✓ {result.agree_count}</span>
         <span className="text-red-500">✗ {result.disagree_count}</span>
-        <span>→ {result.pass_count}</span>
+        <span>⏭ {result.pass_count}</span>
       </div>
     </div>
   )

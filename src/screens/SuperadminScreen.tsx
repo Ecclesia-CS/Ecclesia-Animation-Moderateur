@@ -35,16 +35,16 @@ import {
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
-import TableDiagnosticsList, { CampCompositionBar } from '../components/voting/TableDiagnosticsList'
-import { diagnoseAllocation } from '../lib/allocation'
+import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
+import { diagnoseAllocation, type AllocationMember } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import { mergeAssertions } from '../lib/gemini'
-import { loadVotesForAnalysis } from '../lib/analysis'
+import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
 import type { LoadedAnalysis } from '../lib/analysis'
-import { generateGroupNames, groupsFingerprint } from '../lib/groupNaming'
+import { generateGroupNames, groupsFingerprint, namingGroupsFromAnalysis } from '../lib/groupNaming'
 import type { NamingGroup } from '../lib/groupNaming'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
@@ -882,7 +882,8 @@ function Spinner() {
 
 interface GroupRow {
   table_number: number
-  members: { pseudo: string; member_id: string }[]
+  /** Chantier 26 (H21) — `is_moderator` vient de `session_members`, posé au chargement. */
+  members: { pseudo: string; member_id: string; is_moderator: boolean }[]
   table_id: string | null
   join_code: string | null
   /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
@@ -945,6 +946,12 @@ function SessionDetail({
   const [deletingRespId,     setDeletingRespId]     = useState<string | null>(null)
   const [themesOpen,         setThemesOpen]         = useState(false)
   const [responsesOpen,      setResponsesOpen]      = useState(false)
+  const [staffOpen,          setStaffOpen]          = useState(false)
+  // F15 — zoom recrutement : réponses où staff_interest est renseigné (texte libre)
+  const staffInterestResponses = React.useMemo(
+    () => responses.filter(r => r.staff_interest),
+    [responses],
+  )
 
   // ── Collab sources data ────────────────────────────────────────
   const [sources,             setSources]             = useState<CollabSource[]>([])
@@ -1264,7 +1271,7 @@ function SessionDetail({
       const [{ data: rows }, sessionTbls, availTbls] = await Promise.all([
         supabase
           .from('table_assignments')
-          .select('table_number, member_id, table_id, session_members!member_id(pseudo)')
+          .select('table_number, member_id, table_id, session_members!member_id(pseudo, is_moderator)')
           .eq('session_id', session.id)
           .order('table_number'),
         listSessionTables(getPwd()!, session.id).catch(() => [] as Awaited<ReturnType<typeof listSessionTables>>),
@@ -1290,7 +1297,11 @@ function SessionDetail({
           })
         }
         const g = map.get(tableNum)!
-        g.members.push({ pseudo: r.session_members?.pseudo ?? '?', member_id: r.member_id })
+        g.members.push({
+          pseudo: r.session_members?.pseudo ?? '?',
+          member_id: r.member_id,
+          is_moderator: r.session_members?.is_moderator === true,
+        })
       }
       setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
 
@@ -1355,15 +1366,43 @@ function SessionDetail({
     )
   }, [groups, allocInputs])
 
+  // Chantier 26 (H20) — attributs individuels (actif / consentant / ancien /
+  // camp) pour l'affichage par lettres + couleur sur chaque carte membre.
+  // `allocInputs.moderators` couvre aussi un modérateur en surplus assis
+  // comme participant ordinaire (chantier 25 / H17).
+  const memberProfiles = React.useMemo(() => {
+    const map = new Map<string, AllocationMember>()
+    for (const m of allocInputs?.members ?? [])    map.set(m.member_id, m)
+    for (const m of allocInputs?.moderators ?? []) map.set(m.member_id, m)
+    return map
+  }, [allocInputs])
+
   // Nommage des camps (Gemini + fallback descriptif) — logique partagée.
-  // Utilisée à la fois par la phase `allocating` (groupes = table_assignments)
-  // et par le nommage systématique après analyse en phase vote (E3).
-  const namingInFlightRef = useRef(false)
-  const runNaming = useCallback(async (namingGroups: NamingGroup[]) => {
+  //
+  // ⚠️ Chantier 28 (H26) — `namingGroups` doit TOUJOURS être dérivé des clusters
+  // k-means de l'analyse (`namingGroupsFromAnalysis`), jamais des tables
+  // physiques de `table_assignments`. Voir l'invariant documenté sur
+  // `NamingGroup` dans lib/groupNaming.ts : nommer les tables physiques écrasait
+  // `sessions.group_names` par un jeu tronqué (autant d'entrées que de tables),
+  // laissant anonymes les camps au-delà et changeant les noms déjà affichés.
+  //
+  // ⚠️ Chantier 28 — les appels sont SÉRIALISÉS, jamais abandonnés. L'ancien
+  // garde-fou (`if (namingInFlightRef.current) return`) laissait tomber
+  // silencieusement toute demande arrivant pendant un nommage en cours : une
+  // seconde analyse lancée pendant les appels Gemini de la première ne voyait
+  // jamais ses camps nommés, et `group_names` restait indexé sur le clustering
+  // précédent — noms qui ne correspondent plus, nouveaux camps anonymes.
+  // Ré-enfiler est sans coût : le court-circuit d'empreinte ci-dessous rend une
+  // demande redondante gratuite (aucun appel Gemini).
+  const namingChainRef = useRef<Promise<void>>(Promise.resolve())
+
+  const doNaming = useCallback(async (namingGroups: NamingGroup[]) => {
     if (namingGroups.length === 0) return
     const pwd = getPwd()
     if (!pwd) return
 
+    // Empreinte relue au moment de l'exécution (pas de l'empilement) : une
+    // demande devenue redondante entre-temps sort ici sans appeler Gemini.
     const fp       = groupsFingerprint(namingGroups)
     const storedFp = localStorage.getItem(`group_names_fp_${currentSession.id}`)
     let storedNames: GroupNameResult[] = []
@@ -1376,8 +1415,6 @@ function SessionDetail({
       return
     }
 
-    if (namingInFlightRef.current) return
-    namingInFlightRef.current = true
     try {
       const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
       const approved = allAssertions.filter(a => a.status === 'approved')
@@ -1398,38 +1435,50 @@ function SessionDetail({
       updateGroupNames(pwd, currentSession.id, names).catch(() => {})
     } catch {
       // silencieux — les camps restent sans nom
-    } finally {
-      namingInFlightRef.current = false
     }
   }, [currentSession.id, currentSession.title, currentSession.description])
 
-  // Phase `allocating` : nommer les camps une fois les groupes (table_assignments) chargés
+  const runNaming = useCallback((namingGroups: NamingGroup[]): Promise<void> => {
+    const next = namingChainRef.current
+      .catch(() => {})
+      .then(() => doNaming(namingGroups))
+    namingChainRef.current = next
+    return next
+  }, [doNaming])
+
+  // Phases post-vote : rattrapage de nommage.
+  //
+  // Chantier 28 (H26) — les camps sont ceux de la DERNIÈRE ANALYSE, pas les
+  // tables physiques : entrer en `allocating` ne doit rien écraser. En pratique
+  // E3 a déjà nommé ces mêmes clusters pendant le vote → même empreinte → aucun
+  // appel Gemini. L'effet ne sert donc qu'aux séances analysées avant E3, à
+  // celles dont le superadmin n'a jamais ouvert l'onglet Analyse, et aux séances
+  // dont `group_names` a été corrompu par l'ancien nommage par table physique —
+  // d'où l'inclusion de `closed`, seule voie de réparation d'une séance déjà
+  // terminée (l'écran de résultats participant en dépend).
   useEffect(() => {
-    if (currentSession.phase !== 'allocating') return
-    if (!hasAnalysisDone) return
-    if (groups.length === 0) return
-    const namingGroups: NamingGroup[] = groups.map(g => ({
-      table_number: g.table_number,
-      member_ids:   g.members.map(m => m.member_id),
-    }))
-    runNaming(namingGroups)
-  }, [groups, hasAnalysisDone, currentSession.phase, runNaming])
+    const p = currentSession.phase
+    if (p !== 'allocating' && p !== 'debating' && p !== 'closed') return
+    let cancelled = false
+    ;(async () => {
+      const pwd = getPwd()
+      if (!pwd) return
+      try {
+        const analysis = await loadLatestAnalysis(supabase, pwd, currentSession.id)
+        if (cancelled || !analysis || analysis.members.length === 0) return
+        runNaming(namingGroupsFromAnalysis(analysis.members))
+      } catch { /* silencieux — les camps restent sans nom */ }
+    })()
+    return () => { cancelled = true }
+  }, [currentSession.phase, currentSession.id, runNaming])
 
   // E3 — Nommage systématique après une analyse en phase vote/pré-vote.
-  // Déclenché par AnalysisPanel après un calcul manuel : on dérive les groupes
-  // des clusters k-means (group_id 0-indexé → table_number = group_id + 1).
-  const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis) => {
-    if (!['voting', 'pre_voting'].includes(currentSession.phase)) return
-    const byGroup = new Map<number, string[]>()
-    for (const m of analysis.members) {
-      const tn = m.group_id + 1
-      if (!byGroup.has(tn)) byGroup.set(tn, [])
-      byGroup.get(tn)!.push(m.member_id)
-    }
-    const namingGroups: NamingGroup[] = [...byGroup.entries()]
-      .map(([table_number, member_ids]) => ({ table_number, member_ids }))
-      .sort((a, b) => a.table_number - b.table_number)
-    runNaming(namingGroups)
+  // Déclenché par AnalysisPanel après un calcul manuel.
+  // Retourne la promesse : `AnalysisPanel.handleAnalyze` l'attend pour garder le
+  // bouton verrouillé pendant les appels Gemini (chantier 28).
+  const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis): Promise<void> => {
+    if (!['voting', 'pre_voting'].includes(currentSession.phase)) return Promise.resolve()
+    return runNaming(namingGroupsFromAnalysis(analysis.members))
   }, [currentSession.phase, runNaming])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
@@ -1936,6 +1985,10 @@ function SessionDetail({
                     la règle 5 de l'algorithme. */}
                 {currentSession.phase === 'allocating' && (
                   <AllocationPanel
+                    // Chantier 25 (H14) — l'état de travail du panneau est
+                    // restauré depuis sessionStorage au montage : la clé garantit
+                    // un remontage si la séance change sans démontage du parent.
+                    key={currentSession.id}
                     sessionId={currentSession.id}
                     password={getPwd()!}
                     onApplied={() => { loadGroups(); setActiveTab('tables') }}
@@ -2079,6 +2132,7 @@ function SessionDetail({
                         <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
                       </div>
                     )}
+                    {groups.length > 0 && <MemberBadgeLegend />}
                     {groups.length === 0 && !groupsLoading ? (
                       <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
                     ) : (
@@ -2140,6 +2194,31 @@ function SessionDetail({
                               })()}
                               {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
                             </div>
+                            {/* Chantier 26 (H21) — nom du modérateur affecté à cette table, ou
+                                attente explicite si la table doit être animée mais que le
+                                modérateur annoncé n'est pas encore inscrit. */}
+                            {(() => {
+                              const mod = g.members.find(m => m.is_moderator)
+                              if (mod) {
+                                return (
+                                  <div className="mb-2">
+                                    <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
+                                      🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              if (g.moderated) {
+                                return (
+                                  <div className="mb-2">
+                                    <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1">
+                                      ⏳ En attente de modérateur
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
                             {/* Chantier 20 (G6) — composition par camp visible directement sur la
                                 carte, sans avoir à déplier « Santé des tables » plus bas. */}
                             {(() => {
@@ -2150,18 +2229,18 @@ function SessionDetail({
                                 </div>
                               ) : null
                             })()}
-                            {(() => {
-                              const gn = groupNames.find(n => n.table_number === g.table_number)
-                              return gn ? (
-                                <div className="mb-2">
-                                  <span className="text-xs font-semibold text-gray-700">{gn.name}</span>
-                                  <p className="text-xs text-gray-400">{gn.description}</p>
-                                </div>
-                              ) : null
-                            })()}
+                            {/* Chantier 28 (H26) — le nom de camp Gemini indexé sur le numéro de
+                                table physique a été retiré : sous l'allocation v2 la table mélange
+                                volontairement plusieurs camps, ce nom était donc faux. La barre de
+                                composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
                               {g.members.map(m => (
-                                <DraggableMemberChip key={m.member_id} memberId={m.member_id} pseudo={m.pseudo} />
+                                <DraggableMemberChip
+                                  key={m.member_id}
+                                  memberId={m.member_id}
+                                  pseudo={m.pseudo}
+                                  profile={memberProfiles.get(m.member_id)}
+                                />
                               ))}
                             </div>
                             <div className="border-t border-gray-100 pt-3">
@@ -2609,6 +2688,45 @@ function SessionDetail({
                         onToggle={id => setExpandedResponseId(prev => prev === id ? null : id)}
                         onDeleteRequest={r => setDeleteRespConfirm(r)}
                       />
+                    </div>
+                  )}
+                </section>
+
+                {/* Recrutement modérateurs — F15 : zoom sur qui a répondu vouloir
+                    staffer au questionnaire de fin de séance (staff_interest, texte
+                    libre). Signal de recrutement pur, indépendant de session_members.
+                    is_moderator (modérateur POUR cette séance, utilisé par l'algo
+                    d'allocation) — voir CLAUDE.md. */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setStaffOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left
+                      hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      🙋 Recrutement modérateurs
+                      {staffInterestResponses.length > 0 && (
+                        <span className="ml-2 font-normal normal-case text-gray-400">
+                          ({staffInterestResponses.length})
+                        </span>
+                      )}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${staffOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {staffOpen && (
+                    <div className="border-t border-gray-100 px-5 py-4">
+                      <p className="text-xs text-gray-400 mb-3">
+                        Personnes ayant répondu vouloir aider (modérer, préparer les fiches, communication…)
+                        au questionnaire de fin de séance — à solliciter pour de futures séances. Sans lien
+                        avec « modérateur pour cette séance » (onglet Participants).
+                      </p>
+                      <StaffInterestList responses={staffInterestResponses} loading={responsesLoading} />
                     </div>
                   )}
                 </section>
@@ -3121,22 +3239,70 @@ function VotingStatsPanel({
 
 // ── DnD primitives pour les groupes ──────────────────────────────
 
-function DraggableMemberChip({ memberId, pseudo }: { memberId: string; pseudo: string }) {
+/** H20 — tooltip récapitulant les attributs d'un membre derrière ses lettres. */
+function memberProfileTitle(p: AllocationMember): string {
+  const parts = [
+    p.is_active ? 'Actif' : 'Plutôt passif',
+    p.consents  ? 'Consentant à l\'enregistrement' : 'Non consentant à l\'enregistrement',
+    p.is_veteran ? 'A déjà fait un débat Ecclesia' : 'Nouveau',
+    p.group_id !== null ? `Camp ${p.group_id + 1}` : 'N\'a pas voté (camp inconnu)',
+  ]
+  return parts.join(' · ')
+}
+
+function DraggableMemberChip({
+  memberId, pseudo, profile,
+}: {
+  memberId: string
+  pseudo: string
+  /** Chantier 26 (H20) — attributs de l'allocation (actif/consentant/ancien/camp). */
+  profile?: AllocationMember
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: memberId })
+  const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)` } : undefined}
-      className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none transition-opacity ${
+      style={{
+        ...(transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)` } : {}),
+        ...(color ? { borderColor: color, background: `${color}1a` } : {}),
+      }}
+      title={profile ? memberProfileTitle(profile) : undefined}
+      className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none
+        transition-opacity inline-flex items-center gap-1 ${
         isDragging
           ? 'opacity-0'
-          : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+          : color ? 'text-gray-700 hover:brightness-95' : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
       }`}
     >
-      {pseudo}
+      <span>{pseudo}</span>
+      {profile && (
+        <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
+          <span className={profile.is_active ? '' : 'line-through'}>a</span>
+          <span className={profile.consents ? '' : 'line-through'}>e</span>
+          <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
+        </span>
+      )}
     </div>
+  )
+}
+
+/** H20 — légende des lettres et de la couleur, affichée une fois au-dessus des tables. */
+function MemberBadgeLegend() {
+  return (
+    <details className="text-xs text-gray-500 bg-gray-50/60 border border-gray-100 rounded-lg px-3 py-1.5">
+      <summary className="cursor-pointer select-none font-medium text-gray-600">
+        Légende des cartes participant
+      </summary>
+      <div className="pt-1.5 space-y-1 leading-snug">
+        <p><span className="font-mono">a</span> actif · <span className="font-mono line-through">a</span> plutôt passif</p>
+        <p><span className="font-mono">e</span> consentant à l'enregistrement · <span className="font-mono line-through">e</span> non consentant</p>
+        <p><span className="font-mono">n</span> nouveau · <span className="font-mono line-through">n</span> a déjà fait un débat Ecclesia</p>
+        <p>Couleur du cadre = camp d'opinion (mêmes couleurs que l'onglet Analyse) · pas de couleur = n'a pas voté</p>
+      </div>
+    </details>
   )
 }
 
@@ -3716,6 +3882,53 @@ const PHASE_LABEL_MEMBER: Record<string, string> = {
   admin:   'Animateur',
 }
 
+/** H10 — colonnes triables de `MembersPanel`, chacune avec un comparateur dédié. */
+type MembersSortKey = 'pseudo' | 'created_at' | 'joined_phase' | 'has_entry_response' | 'has_voted' | 'is_moderator'
+
+const MEMBERS_SORTERS: Record<MembersSortKey, (a: SessionMemberAdmin, b: SessionMemberAdmin) => number> = {
+  pseudo:             (a, b) => a.pseudo.localeCompare(b.pseudo, 'fr'),
+  created_at:         (a, b) => a.created_at.localeCompare(b.created_at),
+  joined_phase:       (a, b) => (a.joined_phase ?? '').localeCompare(b.joined_phase ?? ''),
+  has_entry_response: (a, b) => Number(a.has_entry_response) - Number(b.has_entry_response),
+  has_voted:          (a, b) => Number(a.has_voted) - Number(b.has_voted),
+  is_moderator:       (a, b) => Number(!!a.is_moderator) - Number(!!b.is_moderator),
+}
+
+/** Petites flèches ▲▼ à côté du nom de colonne (H10). */
+function SortArrows({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
+  return (
+    <span className="inline-flex flex-col leading-none ml-1 -space-y-0.5 align-middle">
+      <span className={`text-[8px] ${active && direction === 'asc' ? 'text-indigo-600' : 'text-gray-300'}`}>▲</span>
+      <span className={`text-[8px] ${active && direction === 'desc' ? 'text-indigo-600' : 'text-gray-300'}`}>▼</span>
+    </span>
+  )
+}
+
+function SortableTh({
+  label, title, sortKey, sort, onSort, className,
+}: {
+  label: React.ReactNode
+  title?: string
+  sortKey: MembersSortKey
+  sort: { key: MembersSortKey; direction: 'asc' | 'desc' }
+  onSort: (key: MembersSortKey) => void
+  className?: string
+}) {
+  const active = sort.key === sortKey
+  return (
+    <th className={`font-medium ${className ?? 'text-left py-2 pr-3'}`} title={title}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className="inline-flex items-center hover:text-indigo-600 transition-colors"
+      >
+        {label}
+        <SortArrows active={active} direction={active ? sort.direction : 'asc'} />
+      </button>
+    </th>
+  )
+}
+
 function MembersPanel({
   members,
   loading,
@@ -3726,6 +3939,21 @@ function MembersPanel({
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
 }) {
+  // H10 — tri par colonne, alphabétique ou ordre d'arrivée, croissant/décroissant.
+  const [sort, setSort] = useState<{ key: MembersSortKey; direction: 'asc' | 'desc' }>(
+    { key: 'created_at', direction: 'asc' },
+  )
+  const handleSort = useCallback((key: MembersSortKey) => {
+    setSort(prev => prev.key === key
+      ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+      : { key, direction: 'asc' })
+  }, [])
+  const sortedMembers = React.useMemo(() => {
+    const cmp = MEMBERS_SORTERS[sort.key]
+    const sorted = [...members].sort(cmp)
+    return sort.direction === 'asc' ? sorted : sorted.reverse()
+  }, [members, sort])
+
   if (loading && members.length === 0) {
     return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
   }
@@ -3738,16 +3966,34 @@ function MembersPanel({
       <table className="w-full text-xs">
         <thead>
           <tr className="text-gray-400 border-b border-gray-100">
-            <th className="text-left py-2 pr-3 font-medium">Pseudo</th>
-            <th className="text-left py-2 pr-3 font-medium">Heure</th>
-            <th className="text-left py-2 pr-3 font-medium">Phase</th>
-            <th className="text-center py-2 pr-3 font-medium" title="Questionnaire d'entrée rempli">Q.</th>
-            <th className="text-center py-2 pr-3 font-medium" title="A voté">V.</th>
-            <th className="text-center py-2 font-medium" title="Modérateur pour cette séance (utilisé par l'allocation)">🎙️</th>
+            <SortableTh label="Pseudo" sortKey="pseudo" sort={sort} onSort={handleSort} />
+            <SortableTh label="Heure" sortKey="created_at" sort={sort} onSort={handleSort} />
+            <SortableTh label="Phase" sortKey="joined_phase" sort={sort} onSort={handleSort} />
+            <SortableTh
+              label="Q."
+              title="Questionnaire d'entrée rempli"
+              sortKey="has_entry_response"
+              sort={sort} onSort={handleSort}
+              className="text-center py-2 pr-3"
+            />
+            <SortableTh
+              label="V."
+              title="A voté"
+              sortKey="has_voted"
+              sort={sort} onSort={handleSort}
+              className="text-center py-2 pr-3"
+            />
+            <SortableTh
+              label="🎙️"
+              title="Modérateur pour cette séance (utilisé par l'allocation)"
+              sortKey="is_moderator"
+              sort={sort} onSort={handleSort}
+              className="text-center py-2"
+            />
           </tr>
         </thead>
         <tbody>
-          {members.map(m => (
+          {sortedMembers.map(m => (
             <tr key={m.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
               <td className="py-2 pr-3 font-medium text-gray-900">{m.pseudo}</td>
               <td className="py-2 pr-3 text-gray-500">
@@ -3851,6 +4097,9 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
   const agreePct    = Math.round((agree    / total) * 100)
   const disagreePct = Math.round((disagree / total) * 100)
   const passPct     = Math.round((pass     / total) * 100)
+  // Fort taux de "passe" (≥35 %, sur au moins 5 votes) : signal qu'une assertion pourrait
+  // être mal formulée/ambiguë (cf. notes pol.is C4) — actionnable ici par le modérateur.
+  const manyPasses  = total >= 5 && pass / total >= 0.35
 
   return (
     <div className="w-full space-y-1">
@@ -3863,6 +4112,9 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
         <span>✅ {agree} · ❌ {disagree} · ⏭ {pass} ({total} votes)</span>
         {score !== null && <span className="font-semibold text-indigo-600">Score : {score}%</span>}
       </div>
+      {manyPasses && (
+        <p className="text-[10px] text-amber-600">⚠️ Beaucoup de passes — formulation peut-être à revoir</p>
+      )}
     </div>
   )
 }
@@ -4039,6 +4291,52 @@ function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExport
             <span className="text-xs text-gray-400 shrink-0 w-12 text-right">
               {s.count} vote{s.count > 1 ? 's' : ''}
             </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── StaffInterestList (F15) ────────────────────────────────────────
+// Zoom recrutement : liste des réponses où staff_interest (texte libre,
+// nom + contact) est renseigné. Signal indépendant de session_members.
+// is_moderator — voir CLAUDE.md.
+
+function StaffInterestList({
+  responses, loading,
+}: {
+  responses: QuestionnaireExportRow[]
+  loading: boolean
+}) {
+  if (loading) return (
+    <div className="flex justify-center py-6">
+      <span className="w-5 h-5 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+    </div>
+  )
+  if (responses.length === 0) return (
+    <p className="text-xs text-gray-400">Personne n'a manifesté d'intérêt pour l'instant.</p>
+  )
+  return (
+    <div className="divide-y divide-gray-100">
+      {responses.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('fr-FR', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        })
+        return (
+          <div key={r.id} className="py-3 flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs text-gray-400 tabular-nums">{date}</span>
+                {r.table_join_code && (
+                  <span className="font-mono text-xs text-indigo-600 tracking-widest">
+                    {r.table_join_code}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{r.staff_interest}</p>
+            </div>
           </div>
         )
       })}

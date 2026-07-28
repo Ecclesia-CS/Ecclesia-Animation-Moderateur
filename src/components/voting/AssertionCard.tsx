@@ -101,6 +101,11 @@ export default function AssertionCard({
             onClick={() => handleVote('agree')}
           />
         </div>
+        {index === 0 && (
+          <p className="text-center text-[10px] text-gray-400 mt-3 px-4">
+            💡 « Passe » veut dire ni l'un ni l'autre, ou que la question n'est pas claire — c'est un vrai choix, compté dans les résultats, pas pareil que de ne jamais répondre.
+          </p>
+        )}
       </div>
     </div>
   )

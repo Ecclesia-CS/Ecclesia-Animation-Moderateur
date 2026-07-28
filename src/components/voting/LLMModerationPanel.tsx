@@ -15,10 +15,6 @@ import {
   recordAiUsage,
   readAiLog,
   readDayTokens,
-  estimateEnergyWh,
-  formatEnergy,
-  phoneChargeEquivalent,
-  WH_PER_TOKEN_LABEL,
   type DayTokens,
 } from '../../lib/aiUsage'
 import type { AssertionAdmin } from '../../lib/voting'
@@ -266,7 +262,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         showMsg('Aucune assertion en attente')
         return
       }
-      const { results, tokens_used } = await moderateAssertions({
+      const { results, usage } = await moderateAssertions({
         session_id: session.id,
         session_title: session.title,
         session_description: session.description,
@@ -279,7 +275,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       }
       addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
       addAiApprovedIds(session.id, results.filter(r => r.action === 'approve').map(r => r.id))
-      recordAiUsage(session.id, 'moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
+      recordAiUsage(session.id, 'moderate', `${approved} approuvées, ${rejected} rejetées`, usage)
       showMsg(`✅ ${approved} approuvées, ${rejected} rejetées`)
       await loadRejected()
     } catch (e) {
@@ -312,13 +308,13 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         showMsg('Pas assez d\'assertions approuvées (minimum 2)')
         return
       }
-      const { results, tokens_used } = await mergeAssertions({
+      const { results, usage } = await mergeAssertions({
         session_id: session.id,
         session_title: session.title,
         session_description: session.description,
         assertions: approved.map(a => ({ id: a.id, content: a.content })),
       })
-      recordAiUsage(session.id, 'analyse-fusion', `${results.length} fusion(s) proposée(s)`, tokens_used)
+      recordAiUsage(session.id, 'analyse-fusion', `${results.length} fusion(s) proposée(s)`, usage)
 
       // Construire les propositions self-contained (snapshot du contenu) et les
       // ajouter à celles déjà en attente, sans doublon.
@@ -493,7 +489,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         const all = await listAssertionsAdmin(password, session.id)
         const pending = all.filter(a => a.status === 'pending')
         if (!pending.length) return
-        const { results, tokens_used } = await moderateAssertions({
+        const { results, usage } = await moderateAssertions({
           session_id: session.id,
           session_title: session.title,
           session_description: session.description,
@@ -506,7 +502,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         }
         addAiRejectedIds(session.id, results.filter(r => r.action === 'reject').map(r => r.id))
         addAiApprovedIds(session.id, results.filter(r => r.action === 'approve').map(r => r.id))
-        recordAiUsage(session.id, 'auto-moderate', `${approved} approuvées, ${rejected} rejetées`, tokens_used)
+        recordAiUsage(session.id, 'auto-moderate', `${approved} approuvées, ${rejected} rejetées`, usage)
       } catch {
         // Silencieux en mode auto — erreurs loggées dans la console uniquement
       } finally {
@@ -531,7 +527,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         const all = await listAssertionsAdmin(password, session.id)
         const approved = all.filter(a => a.status === 'approved')
         if (approved.length < 2) return
-        const { results, tokens_used } = await mergeAssertions({
+        const { results, usage } = await mergeAssertions({
           session_id: session.id,
           session_title: session.title,
           session_description: session.description,
@@ -542,7 +538,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         if (fresh.length > 0) {
           updateProposals(mergeProposalLists(readMergeProposals(session.id), fresh))
         }
-        recordAiUsage(session.id, 'auto-analyse-fusion', `${fresh.length} fusion(s) proposée(s)`, tokens_used)
+        recordAiUsage(session.id, 'auto-analyse-fusion', `${fresh.length} fusion(s) proposée(s)`, usage)
       } catch {
         // Silencieux en mode auto
       } finally {
@@ -558,12 +554,16 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   const log = readAiLog(session.id)
   const mergeLog = readMergeLog(session.id)
 
-  const sessionTokens = log.reduce((s, e) => s + e.tokens_used, 0)
+  // F22 : sommes des 3 champs bruts Gemini (prompt/completion/total), sans
+  // recalcul — total_tokens n'est jamais reconstruit à partir des deux autres
+  // (il peut inclure thoughts_tokens). F20 : idem pour les tokens de réflexion.
+  const sessionTokens           = log.reduce((s, e) => s + e.usage.total_tokens, 0)
+  const sessionPromptTokens     = log.reduce((s, e) => s + e.usage.prompt_tokens, 0)
+  const sessionCompletionTokens = log.reduce((s, e) => s + e.usage.completion_tokens, 0)
+  const sessionThoughtsTokens   = log.reduce((s, e) => s + e.usage.thoughts_tokens, 0)
+  // F19 : nom du modèle Gemini effectivement utilisé (dernier appel connu)
+  const sessionModel = log.find(e => e.usage.model)?.usage.model ?? null
   const dayTokens: DayTokens = readDayTokens()
-
-  // Impact énergétique estimé (C6) — indicatif, cf. lib/aiUsage
-  const sessionEnergyWh = estimateEnergyWh(sessionTokens)
-  const dayEnergyWh     = estimateEnergyWh(dayTokens.total_tokens)
 
   const showRejectSection = session.moderation_policy === 'ai' || session.moderation_policy === 'closed'
 
@@ -644,7 +644,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                 onClick={() => setShowReport(r => !r)}
                 className="text-sm px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                {showReport ? 'Masquer le rapport' : 'Rapport'}
+                {showReport ? 'Masquer le rapport' : 'Rapport token'}
               </button>
             </div>
           </div>
@@ -795,7 +795,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               {/* Tokens cette séance */}
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-gray-600">
-                  <span>Tokens cette séance</span>
+                  <span>Tokens cette séance (total_tokens)</span>
                   <span className="font-mono">{sessionTokens.toLocaleString('fr-FR')}</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -807,22 +807,32 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                 <p className="text-xs text-gray-400">Référence : 1M tokens/min (limite burst, indicatif)</p>
               </div>
 
-              {/* Impact énergétique estimé (C6) */}
-              <div className="space-y-1 bg-emerald-50/60 border border-emerald-100 rounded-xl px-3 py-2.5">
-                <div className="flex justify-between text-xs text-gray-600">
-                  <span className="flex items-center gap-1">🌱 Énergie estimée — cette séance</span>
-                  <span className="font-mono text-emerald-700">{formatEnergy(sessionEnergyWh)}</span>
+              {/* Détail brut Gemini (F22) — valeurs telles que retournées par Google,
+                  jamais recalculées (total_tokens peut inclure thoughts_tokens). */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs bg-gray-50 rounded-xl px-3 py-2.5">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">prompt_tokens</span>
+                  <span className="font-mono text-gray-700">{sessionPromptTokens.toLocaleString('fr-FR')}</span>
                 </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Aujourd'hui (toutes séances)</span>
-                  <span className="font-mono">{formatEnergy(dayEnergyWh)}</span>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">completion_tokens</span>
+                  <span className="font-mono text-gray-700">{sessionCompletionTokens.toLocaleString('fr-FR')}</span>
                 </div>
-                {sessionEnergyWh > 0 && (
-                  <p className="text-xs text-gray-400">
-                    ≈ {phoneChargeEquivalent(sessionEnergyWh).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} charge(s) de smartphone.
-                    {' '}Ordre de grandeur indicatif ({WH_PER_TOKEN_LABEL}), pas une mesure.
-                  </p>
-                )}
+                <div className="flex justify-between">
+                  {/* F20 — tokens de réflexion (thinking), non inclus dans completion_tokens */}
+                  <span className="text-gray-500">thoughts_tokens</span>
+                  <span className="font-mono text-gray-700">{sessionThoughtsTokens.toLocaleString('fr-FR')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">total_tokens</span>
+                  <span className="font-mono text-gray-700">{sessionTokens.toLocaleString('fr-FR')}</span>
+                </div>
+              </div>
+
+              {/* Modèle Gemini utilisé (F19 — remplace l'ancienne estimation d'énergie) */}
+              <div className="flex justify-between text-xs text-gray-500 bg-gray-50 rounded-xl px-3 py-2.5">
+                <span>Modèle</span>
+                <span className="font-mono text-gray-700">{sessionModel ?? '—'}</span>
               </div>
 
               {/* Historique log */}
@@ -831,12 +841,16 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Historique</h5>
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {log.map((e, i) => (
-                      <div key={i} className="text-xs text-gray-600 flex justify-between gap-2">
+                      <div
+                        key={i}
+                        className="text-xs text-gray-600 flex justify-between gap-2"
+                        title={`prompt ${e.usage.prompt_tokens} · completion ${e.usage.completion_tokens} · thoughts ${e.usage.thoughts_tokens} · ${e.usage.model || '?'}`}
+                      >
                         <span className="text-gray-400 shrink-0">
                           {new Date(e.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                         </span>
                         <span className="flex-1">{e.action} — {e.summary}</span>
-                        <span className="font-mono text-gray-400 shrink-0">{e.tokens_used} tok</span>
+                        <span className="font-mono text-gray-400 shrink-0">{e.usage.total_tokens} tok</span>
                       </div>
                     ))}
                   </div>

@@ -83,6 +83,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Message d'intro affiché une fois par séance : explique les phases de l'app
   const [showAppIntro, setShowAppIntro] = useState(false)
 
+  // H11 — explication du badge "vous êtes modérateur"
+  const [showModeratorInfo, setShowModeratorInfo] = useState(false)
+
   // G12 — pop-up unique annonçant le vote à distance (pre_voting), remplace l'ancienne bannière inline
   const [showPreVotingAnnounce, setShowPreVotingAnnounce] = useState(false)
 
@@ -645,7 +648,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <h1 className="text-lg font-bold text-gray-900">Débat en cours</h1>
                 <p className="text-sm text-gray-500 mt-1">{session.title}</p>
                 <p className="text-sm text-gray-400 mt-3">
-                  Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché en salle.
+                  Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
                 </p>
               </div>
               <JoinTableForm
@@ -796,6 +799,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
+        {showModeratorInfo && <ModeratorInfoModal onClose={() => setShowModeratorInfo(false)} />}
         {/* Header */}
         <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
           <div>
@@ -803,6 +807,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               {session.title}
             </h1>
             <p className="text-xs text-gray-500">{member.pseudo}</p>
+            {member.is_moderator && (
+              <button
+                type="button"
+                onClick={() => setShowModeratorInfo(true)}
+                className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
+              >
+                🎙️ Vous êtes modérateur
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -909,7 +922,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                               {passPct     > 0 && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
                             </div>
                             <p className="text-[10px] text-gray-400">
-                              ✓ {r.agree_count} pour · ✗ {r.disagree_count} contre · → {r.pass_count} neutre
+                              ✓ {r.agree_count} pour · ✗ {r.disagree_count} contre · ⏭ {r.pass_count} passe
                             </p>
                           </div>
                         )
@@ -996,6 +1009,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   <div>
                     <p className="font-semibold text-gray-900">Voter sur chaque assertion</p>
                     <p className="text-gray-500 text-xs mt-0.5">Pour chaque affirmation, indique si tu es d'accord, en désaccord, ou si tu préfères passer.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl shrink-0">⏭</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -1102,7 +1122,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                               {passPct > 0     && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
                             </div>
                             <p className="text-[10px] text-gray-400">
-                              ✓ {result.agree_count} · ✗ {result.disagree_count} · → {result.pass_count}
+                              ✓ {result.agree_count} · ✗ {result.disagree_count} · ⏭ {result.pass_count}
                             </p>
                           </div>
                         )
@@ -1265,6 +1285,36 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
           >
             Compris, c'est parti →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── ModeratorInfoModal ────────────────────────────────────────────────────────
+// H11 — explique le badge "vous êtes modérateur" affiché pendant le vote/prévote.
+
+function ModeratorInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="bg-indigo-600 px-6 py-5 text-center">
+          <p className="text-2xl mb-1">🎙️</p>
+          <h2 className="text-lg font-bold text-white">Tu es modérateur</h2>
+        </div>
+        <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
+          <p>Tu es marqué·e comme modérateur pour cette séance. Au moment du débat, tu animeras une table plutôt que d'y participer comme un membre ordinaire.</p>
+          <p className="text-gray-500 text-xs">Si tu n'es pas d'accord, ou si c'est une erreur, adresse-toi à l'administrateur de la séance.</p>
+        </div>
+        <div className="px-6 pb-6">
+          <button
+            onClick={onClose}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Compris
           </button>
         </div>
       </div>
@@ -1635,7 +1685,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="Ex : Marie Dupont"
+                placeholder="Prénom Nom"
                 maxLength={40}
                 required
                 autoFocus
@@ -1708,12 +1758,13 @@ function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProp
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100">
           <span className="text-2xl">🔑</span>
         </div>
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3">
+          <p className="text-base font-bold text-amber-700">📸 Fais un screen de cet écran !</p>
+        </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Note ton code de rappel</h1>
           <p className="mt-2 text-sm text-gray-500">
             Si tu viens au débat et changes d'appareil, entre ton nom et prénom <strong>ou</strong> ce code pour retrouver tes votes.
-            <br />
-            <span className="text-amber-600 font-medium">📸 Fais un screen de cet écran !</span>
           </p>
         </div>
 

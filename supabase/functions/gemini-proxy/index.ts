@@ -289,9 +289,14 @@ Chaque profil indique, pour chaque assertion, combien de membres du camp ont vot
 
 Ta tâche : nommer UNIQUEMENT le Camp ${targetLabel} (${memberCount} membres).
 
-Donne à ce camp un nom court (3 mots maximum) et une description neutre (1-2 phrases) qui reflète objectivement son positionnement sur les assertions, en le distinguant des autres camps.
+Donne à ce camp un nom court (2 à 4 mots) et une description neutre (1-2 phrases) qui reflète objectivement son positionnement sur les assertions, en le distinguant des autres camps.
+
+Méthode : cherche d'abord les assertions sur lesquelles le Camp ${targetLabel} S'ÉCARTE le plus des autres camps (celles listées comme clivantes ci-dessus si elles sont fournies), puis nomme le camp d'après CES positions-là. Ignore les assertions où tous les camps votent pareil : elles ne disent rien de ce camp en particulier.
 
 Règles strictes :
+- Test de validité du nom : il doit être VRAI pour le Camp ${targetLabel} et FAUX pour au moins un autre camp. Un nom qui conviendrait aussi bien à un autre camp est un mauvais nom — recommence en te fondant sur un point de divergence.
+- Le nom doit exprimer une POSITION ("Pour la gratuité des transports"), pas seulement un thème ("Transports et mobilité").
+- Les camps peuvent se ressembler beaucoup : dans ce cas, nomme quand même d'après la nuance qui les sépare (intensité, priorité, exception) — par exemple "Favorables mais prudents" vs "Favorables sans réserve". Ne te rabats jamais sur un identifiant technique sous prétexte que l'écart est faible.
 - Sois descriptif, pas normatif. Ne juge pas quel camp a "raison".
 - Évite les étiquettes politiques préexistantes — décris les positions concrètes sur ce débat.
 - Base-toi uniquement sur les patterns de vote, pas sur des suppositions démographiques.
@@ -307,10 +312,17 @@ Réponds UNIQUEMENT avec un objet JSON, sans texte avant ni après, sans balises
 
 // ── Appel Gemini ──────────────────────────────────────────────
 
+// Modèle Gemini effectivement appelé — exposé dans `usage.model` (F19)
+// pour que le rapport de tokens affiche le modèle réel plutôt qu'une
+// valeur supposée côté frontend.
+const MODEL_NAME = 'gemini-2.5-flash-lite'
+
 interface GeminiUsage {
   prompt_tokens: number
   completion_tokens: number
   total_tokens: number
+  thoughts_tokens: number
+  model: string
 }
 
 interface GeminiCallResult {
@@ -319,7 +331,7 @@ interface GeminiCallResult {
 }
 
 async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallResult> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`
 
   const geminiRes = await fetch(url, {
     method: 'POST',
@@ -341,6 +353,7 @@ async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallRes
       promptTokenCount?: number
       candidatesTokenCount?: number
       totalTokenCount?: number
+      thoughtsTokenCount?: number
     }
   }
 
@@ -362,10 +375,15 @@ async function callGemini(prompt: string, apiKey: string): Promise<GeminiCallRes
     throw new GeminiError('Gemini response is not an array', cleaned)
   }
 
+  // F22 : les 3 champs sont les valeurs brutes retournées par Google,
+  // jamais recalculées côté serveur (total_tokens peut inclure les
+  // tokens de réflexion, cf. thoughts_tokens — ne pas faire prompt+completion).
   const usage: GeminiUsage = {
     prompt_tokens:      geminiData.usageMetadata?.promptTokenCount      ?? 0,
     completion_tokens:  geminiData.usageMetadata?.candidatesTokenCount   ?? 0,
     total_tokens:       geminiData.usageMetadata?.totalTokenCount        ?? 0,
+    thoughts_tokens:    geminiData.usageMetadata?.thoughtsTokenCount     ?? 0,
+    model:              MODEL_NAME,
   }
 
   return { results: parsed, usage }
@@ -377,7 +395,7 @@ interface GeminiSingleResult {
 }
 
 async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiSingleResult> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`
 
   const geminiRes = await fetch(url, {
     method: 'POST',
@@ -409,6 +427,7 @@ async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiS
       promptTokenCount?: number
       candidatesTokenCount?: number
       totalTokenCount?: number
+      thoughtsTokenCount?: number
     }
   }
 
@@ -439,6 +458,8 @@ async function callGeminiSingle(prompt: string, apiKey: string): Promise<GeminiS
     prompt_tokens:     geminiData.usageMetadata?.promptTokenCount     ?? 0,
     completion_tokens: geminiData.usageMetadata?.candidatesTokenCount ?? 0,
     total_tokens:      geminiData.usageMetadata?.totalTokenCount      ?? 0,
+    thoughts_tokens:   geminiData.usageMetadata?.thoughtsTokenCount   ?? 0,
+    model:             MODEL_NAME,
   }
 
   return { result: { name: obj.name as string, description: obj.description as string }, usage }

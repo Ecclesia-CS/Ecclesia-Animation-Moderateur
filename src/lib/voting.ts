@@ -241,6 +241,13 @@ export interface AllocationInputs {
   members: AllocationMember[]
   /** `member_id` des modérateurs de cette séance (n'occupent pas de siège). */
   moderatorIds: string[]
+  /**
+   * Chantier 25 — profils complets des modérateurs (mêmes ids que
+   * `moderatorIds`). Nécessaires pour qu'un modérateur en surplus, replacé
+   * comme participant ordinaire, compte correctement dans les seuils de sa
+   * table, et pour l'afficher par son pseudo dans la sélection du superadmin.
+   */
+  moderators: AllocationMember[]
   /** false → règle 3 désactivée (aucune analyse des camps status='done'). */
   opinionsAvailable: boolean
 }
@@ -263,18 +270,20 @@ export async function loadAllocationInputs(
   const raw = (data ?? {}) as { members?: AllocationInputRow[]; opinions_available?: boolean }
   const rows = raw.members ?? []
 
+  const toMember = (r: AllocationInputRow): AllocationMember => ({
+    member_id:  r.member_id,
+    pseudo:     r.pseudo,
+    is_active:  r.is_active,
+    consents:   r.consents,
+    is_veteran: r.is_veteran,
+    group_id:   r.group_id,
+  })
+  const moderators = rows.filter(r => r.is_moderator).map(toMember)
+
   return {
-    members: rows
-      .filter(r => !r.is_moderator)
-      .map(r => ({
-        member_id:  r.member_id,
-        pseudo:     r.pseudo,
-        is_active:  r.is_active,
-        consents:   r.consents,
-        is_veteran: r.is_veteran,
-        group_id:   r.group_id,
-      })),
-    moderatorIds:      rows.filter(r => r.is_moderator).map(r => r.member_id),
+    members:           rows.filter(r => !r.is_moderator).map(toMember),
+    moderatorIds:      moderators.map(m => m.member_id),
+    moderators,
     opinionsAvailable: raw.opinions_available === true,
   }
 }
@@ -284,6 +293,10 @@ export interface ApplyAllocationResult {
   member_count: number
   tables_created: number
   tables_reused: number
+  /** Chantier 25 (H18) — tables reliquats détachées de la séance. */
+  tables_detached?: number
+  /** Reliquats conservés car des participants les ont déjà rejointes. */
+  tables_orphaned?: number
 }
 
 /**
@@ -341,17 +354,21 @@ export async function setMemberModerator(
 }
 
 /**
- * G4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
- * Le flow UI complet (onglet « Modérateur » de l'accueil) est le chantier 21 ;
- * ce wrapper existe pour que la donnée soit renseignable dès maintenant.
+ * G4/H4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
+ * Si l'appareil n'a pas encore de profil pour cette séance (n'a jamais voté/
+ * inscrit), `pseudo` sert à en créer un à la volée (attending_in_person=true) ;
+ * sinon le profil existant est simplement marqué is_moderator=true et `pseudo`
+ * est ignoré côté serveur.
  */
 export async function claimModeratorStatus(
   sessionId: string,
-  creationCode: string
+  creationCode: string,
+  pseudo?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('claim_moderator_status', {
     p_session_id: sessionId,
     p_creation_code: creationCode,
+    p_pseudo: pseudo ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember

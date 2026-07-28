@@ -69,6 +69,14 @@ export interface AllocationInput {
   members: AllocationMember[]
   /** Modérateurs déjà identifiés dans l'app (session_members.is_moderator). */
   moderatorIds: string[]
+  /**
+   * Chantier 25 (H17) — attributs des modérateurs, pour ceux qui devront être
+   * assis comme participants ordinaires faute de table à animer. Facultatif :
+   * un modérateur sans profil est assis avec les valeurs conservatrices
+   * habituelles (non-actif, non-consentant, nouveau, sans camp), comme un
+   * membre sans onboarding (§6).
+   */
+  moderatorProfiles?: AllocationMember[]
   /** Modérateurs annoncés par le superadmin mais pas encore inscrits (§3). */
   extraModerators?: number
   /** Nombre d'enregistreurs disponibles — si fourni, la règle 2 vise ce nombre de tables propres. */
@@ -123,6 +131,16 @@ export interface AllocationResult {
   singleTable: boolean
   /** Capacité de modération retenue (modérateurs inscrits + annoncés). */
   moderatorCapacity: number
+  /**
+   * Chantier 25 (H17) — modérateurs inscrits qui n'animent aucune table et ont
+   * donc été placés comme participants ordinaires. Ils figurent dans
+   * `member_ids` de leur table, jamais dans `moderator_member_ids`.
+   */
+  seatedModeratorIds: string[]
+  /** Nombre de modérateurs qui animent réellement une table. */
+  animatingModerators: number
+  /** Objectif de tables enregistrables effectivement utilisé (règle 2). */
+  recorderTarget: number
   /** true → une table dépasse 10 personnes pour sauver la règle 1. */
   overflowUsed: boolean
   /** Rappel : le résultat est reproductible à graine identique. */
@@ -439,6 +457,19 @@ function evaluate(
   // 4 modérateurs → 8 tables et non 6) ne serait alors pas reproduit.
   // La règle 3, dont le degré d'hétérogénéité est déjà normalisé (part du camp
   // majoritaire), conserve un maximin plein comme le décrit la spec.
+  //
+  // ⚠️ Faiblesse connue du taux, mesurée au chantier 25b mais **non corrigée
+  // ici** (voir A_VERIFIER.md) : quand la règle 4 est globalement
+  // insatisfaisable (anciens < 40 %, que le §5 désigne pourtant comme le cas
+  // *normal* d'une association qui grandit), le nombre de tables en échec reste
+  // à peu près constant pendant que T augmente — découper la salle fait donc
+  // baisser le taux sans rien améliorer. Reproduction : 31 personnes et 12
+  // anciens (39 %) → 6 tables `[6,5,5,5,5,5]`, dont la moitié sans animateur,
+  // au lieu de 4 tables `[10,10,6,5]` ; à 13 anciens (42 %) le problème
+  // disparaît. Remplacer ce terme par le manque total (invariant au découpage)
+  // corrige bien ce cas, mais modifie la trajectoire de la recherche locale et
+  // casse l'exemple normatif du §4 (60 participants / 4 modérateurs) — le
+  // correctif demande une refonte de la recherche, hors périmètre du 25b.
   const T_ = T || 1
   const score = [
     -fail1 / T_, Math.min(minMargin1, 0),   // règle 1
@@ -646,82 +677,43 @@ function buildDiagnostics(
 
 // ── Orchestrateur ────────────────────────────────────────────
 
+/** Résultat d'une passe de recherche pour une population et une capacité données. */
+interface SolveOutcome {
+  prep: Prepared
+  shape: Shape
+  assign: Int32Array
+  score: number[]
+  overflowUsed: boolean
+  overflowNote: string | null
+  singleTable: boolean
+}
+
 /**
- * Calcule l'allocation. Ne lève jamais d'exception liée à la qualité des
- * données : au pire elle retourne une table unique avec des avertissements.
+ * Recherche la meilleure forme + affectation pour une population figée.
+ * Isolée de `runAllocation` pour pouvoir être rejouée par la boucle de
+ * résolution du surplus de modérateurs (chantier 25 / H17).
  */
-export function runAllocation(input: AllocationInput): AllocationResult {
-  const seed = input.seed ?? DEFAULT_SEED
-  const warnings: string[] = []
-
-  const moderatorIds = [...input.moderatorIds]
-  const moderatorCapacity = moderatorIds.length + Math.max(0, input.extraModerators ?? 0)
-  const opinionsAvailable = input.opinionsAvailable
-  if (!opinionsAvailable) {
-    warnings.push(
-      "Analyse des camps d'opinion indisponible : la règle 3 (hétérogénéité) est désactivée. " +
-      "L'allocation est faite sur les seules règles 1, 2, 4 et 5.",
-    )
-  }
-
-  const members = [...input.members]
-  const n = members.length
-
-  if (n === 0) {
-    warnings.push('Aucun participant présentiel à répartir.')
-    return {
-      tables: [], diagnostics: [], score: [], warnings,
-      singleTable: false, moderatorCapacity, overflowUsed: false, seed,
-    }
-  }
-
+function solveFor(
+  members: AllocationMember[],
+  moderatorCapacity: number,
+  opinionsAvailable: boolean,
+  recorderTarget: number,
+  seed: number,
+): SolveOutcome {
   const prep = prepare(members)
-
-  if (opinionsAvailable && prep.campCount < 2) {
-    warnings.push(
-      "Un seul camp d'opinion détecté : la règle 3 ne peut pas être satisfaite (aucune table ne peut être hétérogène).",
-    )
-  }
-  const totalActives = members.filter(m => m.is_active).length
-  if (totalActives < 4) {
-    warnings.push(
-      `Seulement ${totalActives} participant(s) se déclarent actifs : la règle 1 ne peut pas être pleinement satisfaite. ` +
-      `L'algorithme maximise le nombre de tables conformes.`,
-    )
-  }
-  const veteranShare = members.filter(m => m.is_veteran).length / n
-  if (veteranShare < 0.4) {
-    warnings.push(
-      `${Math.round(veteranShare * 100)} % d'anciens (< 40 %) : la règle 4 sera partiellement dégradée.`,
-    )
-  }
-  if (moderatorCapacity === 0) {
-    warnings.push("Aucun modérateur identifié : toutes les tables seront sans animateur (leaderless).")
-  }
+  const n = prep.n
 
   // ── Cas N ≤ 10 : table unique, aucune règle appliquée (§4) ──
   if (n <= SINGLE_TABLE_MAX) {
     const shape: Shape = { sizes: [n], moderatedCount: moderatorCapacity > 0 ? 1 : 0 }
     const assign = new Int32Array(n) // tous en table 0
     return {
-      tables: [{
-        table_number: 1,
-        moderated: shape.moderatedCount === 1,
-        member_ids: prep.ids.slice(),
-        moderator_member_ids: moderatorIds,
-      }],
-      diagnostics: buildDiagnostics(shape, assign, prep, opinionsAvailable),
-      score: evaluate(shape, buildCounters(assign, prep, 1), prep, opinionsAvailable,
-        Math.max(1, input.recorderCount ?? 1)).score,
-      warnings: [`${n} participants (≤ ${SINGLE_TABLE_MAX}) : une table unique, pas d'allocation.`, ...warnings],
-      singleTable: true,
-      moderatorCapacity,
-      overflowUsed: false,
-      seed,
+      prep, shape, assign,
+      score: evaluate(shape, buildCounters(assign, prep, 1), prep, opinionsAvailable, recorderTarget).score,
+      overflowUsed: false, overflowNote: null, singleTable: true,
     }
   }
 
-  const recorderTarget = Math.max(1, input.recorderCount ?? 1)
   const budget: Budget = { left: MAX_EVALUATIONS }
   const baseOrder = sortedOrder(prep)
 
@@ -746,6 +738,7 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   // 1re passe : tables de 5 à 10 (contrainte dure nominale)
   let best = searchOver(enumerateShapes(n, moderatorCapacity, TABLE_MAX))
   let overflowUsed = false
+  let overflowNote: string | null = null
 
   // 2e passe : dépassement jusqu'à 20 — toléré **uniquement** si cela améliore
   // strictement la règle 1 (première composante du vecteur). §4.
@@ -756,67 +749,202 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     if (alt && alt.evaluation.score[0] > best.evaluation.score[0]) {
       best = alt
       overflowUsed = true
-      warnings.push(
+      overflowNote =
         `Des tables dépassent ${TABLE_MAX} personnes (jusqu'à ${Math.max(...alt.shape.sizes)}) : ` +
-        `c'était la seule façon de satisfaire la règle 1 (assez de participants actifs par table).`,
-      )
+        `c'était la seule façon de satisfaire la règle 1 (assez de participants actifs par table).`
     }
   }
 
   if (!best) {
     // Ne devrait pas arriver (n > 10 ⇒ au moins une forme valide existe),
     // mais l'algorithme ne doit jamais échouer : repli sur une table unique.
-    warnings.push('Aucune répartition valide trouvée — repli sur une table unique.')
     const shape: Shape = { sizes: [n], moderatedCount: moderatorCapacity > 0 ? 1 : 0 }
     const assign = new Int32Array(n)
     return {
-      tables: [{
-        table_number: 1,
-        moderated: shape.moderatedCount === 1,
-        member_ids: prep.ids.slice(),
-        moderator_member_ids: moderatorIds,
-      }],
-      diagnostics: buildDiagnostics(shape, assign, prep, opinionsAvailable),
-      score: [], warnings, singleTable: true, moderatorCapacity, overflowUsed: false, seed,
+      prep, shape, assign, score: [],
+      overflowUsed: false,
+      overflowNote: 'Aucune répartition valide trouvée — repli sur une table unique.',
+      singleTable: true,
     }
   }
 
-  const { shape, assign, evaluation } = best
+  return {
+    prep,
+    shape: best.shape,
+    assign: best.assign,
+    score: best.evaluation.score,
+    overflowUsed, overflowNote,
+    singleTable: false,
+  }
+}
+
+/**
+ * Calcule l'allocation. Ne lève jamais d'exception liée à la qualité des
+ * données : au pire elle retourne une table unique avec des avertissements.
+ */
+export function runAllocation(input: AllocationInput): AllocationResult {
+  const seed = input.seed ?? DEFAULT_SEED
+  const warnings: string[] = []
+
+  const allModeratorIds = [...input.moderatorIds]
+  const extras = Math.max(0, input.extraModerators ?? 0)
+  const moderatorCapacity = allModeratorIds.length + extras
+  const opinionsAvailable = input.opinionsAvailable
+  const recorderTarget = Math.max(1, input.recorderCount ?? 1)
+
+  if (!opinionsAvailable) {
+    warnings.push(
+      "Analyse des camps d'opinion indisponible : la règle 3 (hétérogénéité) est désactivée. " +
+      "L'allocation est faite sur les seules règles 1, 2, 4 et 5.",
+    )
+  }
+
+  const members = [...input.members]
+  const n = members.length
+
+  if (n === 0) {
+    warnings.push('Aucun participant présentiel à répartir.')
+    return {
+      tables: [], diagnostics: [], score: [], warnings,
+      singleTable: false, moderatorCapacity, seatedModeratorIds: [],
+      animatingModerators: 0, recorderTarget, overflowUsed: false, seed,
+    }
+  }
+
+  if (moderatorCapacity === 0) {
+    warnings.push("Aucun modérateur identifié : toutes les tables seront sans animateur (leaderless).")
+  }
+
+  // Profils des modérateurs — nécessaires pour asseoir ceux qui n'animent rien.
+  const profileById = new Map(input.moderatorProfiles?.map(p => [p.member_id, p]) ?? [])
+  const seatProfile = (id: string): AllocationMember =>
+    profileById.get(id) ?? {
+      // Mêmes valeurs conservatrices qu'un membre sans onboarding (§6).
+      member_id: id, pseudo: id,
+      is_active: false, consents: false, is_veteran: false, group_id: null,
+    }
+
+  // ── Surplus de modérateurs (chantier 25b / H17) ──
+  // Un modérateur qui n'anime aucune table redevient un participant ordinaire.
+  // Il est alors soumis aux règles 1 à 5 **comme n'importe quel autre
+  // participant** : il entre dans la population passée à la recherche, pas
+  // dans une table choisie après coup.
+  //
+  // La difficulté est que le problème est circulaire : la population dépend du
+  // nombre de modérateurs en surplus, qui dépend du nombre de tables, qui
+  // dépend de la population. On le lève en **énumérant** le nombre `k` de
+  // modérateurs qui animent réellement, au lieu d'itérer vers un point fixe
+  // (l'itération naïve diverge : elle transformait `[10, 10, 10]` en 6 tables).
+  //
+  // Un candidat `k` est **cohérent** si la répartition qu'il produit compte au
+  // moins `k` tables — sinon un animateur se retrouverait sans table, ce qui
+  // est exactement le bug qu'on corrige. On part de `k = M` (aucun surplus,
+  // cas courant : une seule recherche, coût inchangé) et, tant que le candidat
+  // est incohérent, on redescend `k` au nombre de tables effectivement produit.
+  // `k` décroît strictement à chaque tour, la boucle termine ; `k = 0` est
+  // toujours cohérent. On retient le plus grand `k` cohérent, c'est-à-dire le
+  // maximum de tables animées — conforme au §4.
+  const M = allModeratorIds.length
+  let k = M
+  let solved = solveFor(members, k + extras, opinionsAvailable, recorderTarget, seed)
+  for (let guard = 0; guard <= M && k > solved.shape.sizes.length; guard++) {
+    k = solved.shape.sizes.length
+    const pool = [...members, ...allModeratorIds.slice(k).map(seatProfile)]
+    solved = solveFor(pool, k + extras, opinionsAvailable, recorderTarget, seed)
+  }
+
+  const { prep, shape, assign, score, overflowUsed, overflowNote, singleTable } = solved
   const T = shape.sizes.length
+  const animatingIds       = allModeratorIds.slice(0, Math.min(k, shape.moderatedCount))
+  const seatedModeratorIds = allModeratorIds.slice(k)
+
+  // Avertissements sur la population initiale (hors modérateurs assis).
+  const seatedPop = prep.n
+  if (opinionsAvailable && prep.campCount < 2) {
+    warnings.push(
+      "Un seul camp d'opinion détecté : la règle 3 ne peut pas être satisfaite (aucune table ne peut être hétérogène).",
+    )
+  }
+  const totalActives = prep.active.reduce((s, v) => s + v, 0)
+  if (totalActives < 4) {
+    warnings.push(
+      `Seulement ${totalActives} participant(s) se déclarent actifs : la règle 1 ne peut pas être pleinement satisfaite. ` +
+      `L'algorithme maximise le nombre de tables conformes.`,
+    )
+  }
+  const veteranShare = prep.veteran.reduce((s, v) => s + v, 0) / seatedPop
+  if (veteranShare < 0.4) {
+    warnings.push(
+      `${Math.round(veteranShare * 100)} % d'anciens (< 40 %) : la règle 4 sera partiellement dégradée.`,
+    )
+  }
+  if (singleTable && seatedPop <= SINGLE_TABLE_MAX) {
+    warnings.unshift(`${seatedPop} participants (≤ ${SINGLE_TABLE_MAX}) : une table unique, pas d'allocation.`)
+  }
+  if (overflowNote) warnings.push(overflowNote)
 
   const memberIdsByTable: string[][] = Array.from({ length: T }, () => [])
   for (let i = 0; i < prep.n; i++) memberIdsByTable[assign[i]].push(prep.ids[i])
 
   // Répartition des modérateurs : un par table modérée, dans l'ordre.
+  // Les modérateurs en surplus ne sont PAS traités ici : ils font déjà partie
+  // de la population répartie par la recherche, donc de `memberIdsByTable`.
   const moderatorsByTable: string[][] = Array.from({ length: T }, () => [])
-  moderatorIds.forEach((mid, k) => {
-    if (k < shape.moderatedCount) moderatorsByTable[k].push(mid)
-  })
-  if (moderatorIds.length > shape.moderatedCount) {
+  animatingIds.forEach((mid, idx) => { moderatorsByTable[idx].push(mid) })
+
+  // ── Retours explicites au superadmin (chantier 25 / H13, H15, H17) ──
+  if (seatedModeratorIds.length > 0) {
     warnings.push(
-      `${moderatorIds.length - shape.moderatedCount} modérateur(s) en surplus par rapport au nombre de tables : ` +
-      `ils ne sont affectés à aucune table (à placer à la main).`,
+      `${seatedModeratorIds.length} modérateur(s) de plus que de tables animées : ils ont été répartis comme ` +
+      `des participants ordinaires, en tenant compte de leurs réponses d'onboarding et de leur camp ` +
+      `(ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la ` +
+      `liste des modérateurs avant de relancer le calcul.`,
     )
   }
-  if (shape.moderatedCount > moderatorIds.length) {
+  if (shape.moderatedCount > animatingIds.length) {
     warnings.push(
-      `${shape.moderatedCount - moderatorIds.length} table(s) comptent sur un modérateur annoncé mais pas encore inscrit — ` +
+      `${shape.moderatedCount - animatingIds.length} table(s) comptent sur un modérateur annoncé mais pas encore inscrit — ` +
       `à rattacher à la main dès son arrivée.`,
     )
   }
+  // H13 — pourquoi ajouter des modérateurs ne change parfois rien.
+  if (extras > 0 && shape.moderatedCount >= T && animatingIds.length >= T) {
+    warnings.push(
+      `Les ${T} tables sont déjà toutes animées : les ${extras} modérateur(s) annoncés en plus ne modifient pas ` +
+      `la répartition (la règle §4 « préférer un nombre de tables ≤ nombre de modérateurs » est déjà satisfaite). ` +
+      `À leur arrivée, ils seront placés comme participants.`,
+    )
+  }
+  // H15 — le nombre d'enregistreurs pilote le nombre de tables.
+  const unmoderatedCount = T - shape.moderatedCount
+  if (recorderTarget > 1 && unmoderatedCount > 0) {
+    warnings.push(
+      `Objectif de ${recorderTarget} tables enregistrables (règle 2, prioritaire sur le dimensionnement) : ` +
+      `il a fallu ${T} tables, dont ${unmoderatedCount} sans animateur. ` +
+      `Avec moins d'enregistreurs, l'algorithme ferait des tables plus grosses et toutes animées.`,
+    )
+  }
+
+  const tables = memberIdsByTable.map((ids, t) => ({
+    table_number: t + 1,
+    moderated: t < shape.moderatedCount,
+    member_ids: ids,
+    moderator_member_ids: moderatorsByTable[t],
+  }))
 
   return {
-    tables: memberIdsByTable.map((ids, t) => ({
-      table_number: t + 1,
-      moderated: t < shape.moderatedCount,
-      member_ids: ids,
-      moderator_member_ids: moderatorsByTable[t],
-    })),
+    tables,
+    // `shape`/`assign`/`prep` décrivent la population complète, modérateurs en
+    // surplus compris (ils ont été réintégrés en amont de la recherche) : les
+    // diagnostics directs sont exacts, sans recalcul.
     diagnostics: buildDiagnostics(shape, assign, prep, opinionsAvailable),
-    score: evaluation.score,
+    score,
     warnings,
-    singleTable: false,
+    singleTable,
     moderatorCapacity,
+    seatedModeratorIds,
+    animatingModerators: animatingIds.length,
+    recorderTarget,
     overflowUsed,
     seed,
   }
