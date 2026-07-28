@@ -354,17 +354,21 @@ export async function setMemberModerator(
 }
 
 /**
- * G4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
- * Le flow UI complet (onglet « Modérateur » de l'accueil) est le chantier 21 ;
- * ce wrapper existe pour que la donnée soit renseignable dès maintenant.
+ * G4/H4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
+ * Si l'appareil n'a pas encore de profil pour cette séance (n'a jamais voté/
+ * inscrit), `pseudo` sert à en créer un à la volée (attending_in_person=true) ;
+ * sinon le profil existant est simplement marqué is_moderator=true et `pseudo`
+ * est ignoré côté serveur.
  */
 export async function claimModeratorStatus(
   sessionId: string,
-  creationCode: string
+  creationCode: string,
+  pseudo?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('claim_moderator_status', {
     p_session_id: sessionId,
     p_creation_code: creationCode,
+    p_pseudo: pseudo ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember

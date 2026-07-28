@@ -457,6 +457,19 @@ function evaluate(
   // 4 modérateurs → 8 tables et non 6) ne serait alors pas reproduit.
   // La règle 3, dont le degré d'hétérogénéité est déjà normalisé (part du camp
   // majoritaire), conserve un maximin plein comme le décrit la spec.
+  //
+  // ⚠️ Faiblesse connue du taux, mesurée au chantier 25b mais **non corrigée
+  // ici** (voir A_VERIFIER.md) : quand la règle 4 est globalement
+  // insatisfaisable (anciens < 40 %, que le §5 désigne pourtant comme le cas
+  // *normal* d'une association qui grandit), le nombre de tables en échec reste
+  // à peu près constant pendant que T augmente — découper la salle fait donc
+  // baisser le taux sans rien améliorer. Reproduction : 31 personnes et 12
+  // anciens (39 %) → 6 tables `[6,5,5,5,5,5]`, dont la moitié sans animateur,
+  // au lieu de 4 tables `[10,10,6,5]` ; à 13 anciens (42 %) le problème
+  // disparaît. Remplacer ce terme par le manque total (invariant au découpage)
+  // corrige bien ce cas, mais modifie la trajectoire de la recherche locale et
+  // casse l'exemple normatif du §4 (60 participants / 4 modérateurs) — le
+  // correctif demande une refonte de la recherche, hors périmètre du 25b.
   const T_ = T || 1
   const score = [
     -fail1 / T_, Math.min(minMargin1, 0),   // règle 1
@@ -811,20 +824,39 @@ export function runAllocation(input: AllocationInput): AllocationResult {
       is_active: false, consents: false, is_veteran: false, group_id: null,
     }
 
-  const solved = solveFor(members, moderatorCapacity, opinionsAvailable, recorderTarget, seed)
+  // ── Surplus de modérateurs (chantier 25b / H17) ──
+  // Un modérateur qui n'anime aucune table redevient un participant ordinaire.
+  // Il est alors soumis aux règles 1 à 5 **comme n'importe quel autre
+  // participant** : il entre dans la population passée à la recherche, pas
+  // dans une table choisie après coup.
+  //
+  // La difficulté est que le problème est circulaire : la population dépend du
+  // nombre de modérateurs en surplus, qui dépend du nombre de tables, qui
+  // dépend de la population. On le lève en **énumérant** le nombre `k` de
+  // modérateurs qui animent réellement, au lieu d'itérer vers un point fixe
+  // (l'itération naïve diverge : elle transformait `[10, 10, 10]` en 6 tables).
+  //
+  // Un candidat `k` est **cohérent** si la répartition qu'il produit compte au
+  // moins `k` tables — sinon un animateur se retrouverait sans table, ce qui
+  // est exactement le bug qu'on corrige. On part de `k = M` (aucun surplus,
+  // cas courant : une seule recherche, coût inchangé) et, tant que le candidat
+  // est incohérent, on redescend `k` au nombre de tables effectivement produit.
+  // `k` décroît strictement à chaque tour, la boucle termine ; `k = 0` est
+  // toujours cohérent. On retient le plus grand `k` cohérent, c'est-à-dire le
+  // maximum de tables animées — conforme au §4.
+  const M = allModeratorIds.length
+  let k = M
+  let solved = solveFor(members, k + extras, opinionsAvailable, recorderTarget, seed)
+  for (let guard = 0; guard <= M && k > solved.shape.sizes.length; guard++) {
+    k = solved.shape.sizes.length
+    const pool = [...members, ...allModeratorIds.slice(k).map(seatProfile)]
+    solved = solveFor(pool, k + extras, opinionsAvailable, recorderTarget, seed)
+  }
+
   const { prep, shape, assign, score, overflowUsed, overflowNote, singleTable } = solved
   const T = shape.sizes.length
-
-  // ── Surplus de modérateurs (chantier 25 / H17) ──
-  // Un modérateur qui n'anime aucune table n'est pas « perdu » : il redevient
-  // un participant ordinaire et prend un siège. Le placement est fait **après**
-  // la recherche, sur la forme retenue : réinjecter ces personnes dans la
-  // population avant le calcul rend le problème circulaire (asseoir quelqu'un
-  // change le nombre de tables, donc le surplus, donc la population…) et
-  // dégradait fortement la répartition. Ici la forme optimisée est préservée ;
-  // seul un siège est ajouté à la table la moins remplie.
-  const animatingIds       = allModeratorIds.slice(0, shape.moderatedCount)
-  const seatedModeratorIds = allModeratorIds.slice(shape.moderatedCount)
+  const animatingIds       = allModeratorIds.slice(0, Math.min(k, shape.moderatedCount))
+  const seatedModeratorIds = allModeratorIds.slice(k)
 
   // Avertissements sur la population initiale (hors modérateurs assis).
   const seatedPop = prep.n
@@ -855,27 +887,18 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   for (let i = 0; i < prep.n; i++) memberIdsByTable[assign[i]].push(prep.ids[i])
 
   // Répartition des modérateurs : un par table modérée, dans l'ordre.
+  // Les modérateurs en surplus ne sont PAS traités ici : ils font déjà partie
+  // de la population répartie par la recherche, donc de `memberIdsByTable`.
   const moderatorsByTable: string[][] = Array.from({ length: T }, () => [])
-  animatingIds.forEach((mid, k) => { moderatorsByTable[k].push(mid) })
-
-  // Les modérateurs en surplus rejoignent la table la moins remplie (à égalité,
-  // la première). Aucune table n'est créée : on comble les sièges libres.
-  const seatedProfiles: AllocationMember[] = []
-  for (const mid of seatedModeratorIds) {
-    let target = 0
-    for (let t = 1; t < T; t++) {
-      if (memberIdsByTable[t].length < memberIdsByTable[target].length) target = t
-    }
-    memberIdsByTable[target].push(mid)
-    seatedProfiles.push(seatProfile(mid))
-  }
+  animatingIds.forEach((mid, idx) => { moderatorsByTable[idx].push(mid) })
 
   // ── Retours explicites au superadmin (chantier 25 / H13, H15, H17) ──
   if (seatedModeratorIds.length > 0) {
     warnings.push(
-      `${seatedModeratorIds.length} modérateur(s) de plus que de tables animées : ils sont placés comme ` +
-      `participants ordinaires (ils occupent un siège et comptent dans les seuils de leur table). ` +
-      `S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul.`,
+      `${seatedModeratorIds.length} modérateur(s) de plus que de tables animées : ils ont été répartis comme ` +
+      `des participants ordinaires, en tenant compte de leurs réponses d'onboarding et de leur camp ` +
+      `(ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la ` +
+      `liste des modérateurs avant de relancer le calcul.`,
     )
   }
   if (shape.moderatedCount > animatingIds.length) {
@@ -911,12 +934,10 @@ export function runAllocation(input: AllocationInput): AllocationResult {
 
   return {
     tables,
-    // Avec des modérateurs assis, les tailles de `shape` ne décrivent plus les
-    // tables réelles → on rediagnostique la répartition finale, exactement
-    // comme le fait le tableau de bord après un glisser-déposer.
-    diagnostics: seatedProfiles.length > 0
-      ? diagnoseAllocation(tables, [...members, ...seatedProfiles], opinionsAvailable)
-      : buildDiagnostics(shape, assign, prep, opinionsAvailable),
+    // `shape`/`assign`/`prep` décrivent la population complète, modérateurs en
+    // surplus compris (ils ont été réintégrés en amont de la recherche) : les
+    // diagnostics directs sont exacts, sans recalcul.
+    diagnostics: buildDiagnostics(shape, assign, prep, opinionsAvailable),
     score,
     warnings,
     singleTable,
