@@ -103,6 +103,14 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   - `npx tsc --noEmit`, `npm run build`, `npm test` → **62/62** avec le défaut `STRATEGY_LEGACY` (aucune régression), **et 62/62 également** en basculant temporairement le défaut sur D — y compris le test normatif §4, qui reste vert (sa population corrélée reste satisfaite).
   - Nouveaux garde-fous `bench/strategy-sanity.test.ts` (12 cas, tournent avec `npm test`) appliqués **à chacune des 4 stratégies** : déterminisme à graine fixe (§6), aucun membre perdu, bornes de taille respectées sur populations hostiles, et **latence < 5 s sur 200 personnes**.
   - Le banc d'essai vérifie sur les ~160 configurations × 4 stratégies qu'aucune ne perd de participant et qu'aucune ne viole les bornes de taille — **zéro violation**.
+  - **Browser pane** (worktree `Ecclesia-chantier-29`, port 5191) : app montée, `#superadmin` rendu, **zéro erreur console**. Le module `allocation.ts` **réellement servi par Vite** a été exercé dans la page, sur une **troisième** construction de population encore différente (ni `balanced()`, ni celle du banc) :
+
+    | Scénario | défaut actuel (legacy) | candidate D |
+    |---|---|---|
+    | 60 part. / 4 modé. | `10M 10M 10M 10M 10- 10-` → **6 t.**, 220 ms | `10M 10M 10M 10M 5- 5- 5- 5-` → **8 t.**, 483 ms |
+    | 31 part. / 3 modé. / 12 anciens | `6M 5M 5M 5- 5- 5-` → **6 t.**, 14 ms | `10M 10M 6M 5-` → **4 t.**, 34 ms |
+
+    La 2ᵉ ligne reproduit **au découpage près** le symptôme d'origine tel que décrit au 25b (« 6 tables `[6,5,5,5,5,5]` dont la moitié sans animateur, au lieu de 4 tables `[10,10,6,5]` ») — et D produit exactement la répartition attendue. 60 et 31 places dans les quatre cas (aucun participant perdu), et deux appels identiques donnent le même résultat (déterminisme §6 vérifié dans le bundle, pas seulement en test).
   - **Latence : régression détectée puis corrigée en cours de route.** Un budget fixe par forme (60 000 évaluations) faisait passer C et D à **6,1–6,9 s** sur 200 personnes, au-dessus du plafond. Remplacé par une **part équitable** du budget global (le reliquat d'une forme qui converge tôt profite aux suivantes) : coût total du même ordre qu'aujourd'hui, sans le biais d'ordre, et retour à **2,0 s**.
 
   ### Non vérifié
