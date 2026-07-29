@@ -7,7 +7,11 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 - [ ] **2026-07-28** — Chantier 29 (I1) — **fiabilité de la recherche d'allocation : 4 pistes mesurées, AUCUNE mergée, arbitrage à rendre par Jules** — branche `chantier-29-fiabilite-recherche-allocation` (worktree `C:/Users/jules/projet/Ecclesia-chantier-29`)
 
-  > ⚠️ **Rien n'est parti sur `main` et le comportement de production est inchangé.** Sur la branche, `runAllocation` garde `STRATEGY_LEGACY` par défaut : à entrée identique, l'app produit exactement la même répartition qu'aujourd'hui. Les pistes ne s'activent qu'en passant explicitement `strategy` (ce que seul le banc d'essai fait). Conformément à ta consigne, **le merge attend ton feu vert explicite**.
+  > ✅ **Arbitrage rendu par Jules le 2026-07-29 : « Passe à D, c'est très bien. »** `runAllocation` utilise désormais `STRATEGY_ABSOLUTE_STRONG` par défaut, et le chantier est mergé sur `main` (tag de rollback `pre-merge-chantier-29-20260729`). **La répartition produite change donc sur une partie des séances** — c'est l'objet du chantier, mais à savoir avant la prochaine séance réelle.
+  >
+  > **Arbitrages 2 et 4 encore ouverts** (voir plus bas) ; l'arbitrage 3 (durcissement du test §4) a été appliqué avec D, comme proposé.
+  >
+  > **Suite prévue** : session de test dédiée — génération de plusieurs séances aux profils variés, passage sous l'algorithme, et revue des répartitions par Jules pour affiner le modèle. Brief de reprise : `docs/chantier-29-suite-tests-reglages.md`.
 
   **Rapport comparatif complet** : `docs/chantier-29-comparatif-allocation.md` (généré, ~160 configurations × 4 stratégies). Régénérable par `ALLOC_BENCH=1 npx vitest run bench/`.
 
@@ -71,7 +75,7 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   ### ⚖️ Ce que je te demande d'arbitrer
 
-  1. **Arbitrage principal : adopte-t-on D ?** Mon avis : oui, mais c'est ta décision. Elle corrige le symptôme d'origine (I1), répare l'exemple normatif du §4 qui n'était en réalité pas tenu, et ne dégrade aucun des ~160 scénarios mesurés sur les règles 1 et 4. Coût : temps de calcul ×1,6 (47 ms médian, 2 s sur une salle de 200 — reste très en dessous du plafond de 5 s).
+  1. ~~**Arbitrage principal : adopte-t-on D ?**~~ → **TRANCHÉ le 2026-07-29 : oui.** Coût accepté : temps de calcul ×1,6 (47 ms médian, ~2 s sur une salle de 200, plafond de 5 s respecté).
 
   2. **Arbitrage de fond, non tranché par la spec — salle nombreuse, peu d'anciens, peu ou pas de modérateurs.** Exemple : 90 personnes, 15 % d'anciens, 0 modérateur.
      - A donne **16 petites tables** (6 et 5) sans animateur ;
@@ -79,9 +83,9 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
      Les deux sont défendables **selon la spec elle-même**, qui se contredit ici : le §4 dit « tables non modérées : les dimensionner vers le minimum de 5 » (l'auto-régulation par `claim_floor` est réaliste à 5, pas à 10) — ce qui plaide pour A. Mais la règle 4 est plus prioritaire que la politique de dimensionnement, et 9 tables de 10 laissent 22 personnes sans « ancien » de référence contre 28 avec 16 tables — ce qui plaide pour D. **Que préfères-tu concrètement en salle** : beaucoup de petites tables auto-gérées mais presque toutes sans participant expérimenté, ou moins de grandes tables auto-gérées avec un peu plus d'expérience à chacune ? Je n'ai pas tranché : c'est un choix d'animation, pas un choix technique.
 
-  3. **Le test unitaire du §4 doit-il être durci ?** Il passe aujourd'hui alors que la propriété n'est pas tenue sur une vraie population. Je propose de le doubler d'une variante à attributs décorrélés — mais ça revient à **rendre `main` rouge tant que le correctif n'est pas adopté**, donc je ne l'ai pas fait sans ton accord.
+  3. ~~**Le test unitaire du §4 doit-il être durci ?**~~ → **FAIT**, couplé à D comme proposé. Nouveau test `60 participants / 4 modérateurs — même exigence sur une population DÉCORRÉLÉE` dans `allocation.test.ts`. **Vérifié qu'il discrimine réellement** : rouge si on rebascule le défaut sur `STRATEGY_LEGACY`, vert avec D. C'est lui qui empêche la propriété du §4 de redevenir silencieusement fausse.
 
-  4. **Faut-il conserver le point d'entrée `strategy` en production ?** Il est aujourd'hui utile pour l'ablation. Si tu adoptes D, on peut soit figer D en dur et supprimer le paramètre (code plus simple), soit le garder pour pouvoir refaire ce type de mesure plus tard. Ma préférence : le garder, avec `STRATEGY_LEGACY` conservée en référence de comparaison.
+  4. **Faut-il conserver le point d'entrée `strategy` en production ? — ENCORE OUVERT.** Il est conservé pour l'instant (aucun appelant de production ne le passe ; `STRATEGY_LEGACY` reste exportée comme référence de comparaison du banc d'essai). À trancher : soit on le garde tel quel, soit on le renomme explicitement (`__benchStrategy`) pour qu'un futur contributeur ne le prenne pas pour un réglage produit, soit on fige D en dur et on supprime le paramètre. Ma préférence inchangée : le garder — c'est lui qui a permis l'ablation, et sans ablation on aurait « corrigé » le mauvais bout du problème.
 
   ### 🧪 Comment tester toi-même un scénario précis dans l'app
 
@@ -115,7 +119,9 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   ### Non vérifié
 
-  1. **Aucun test en navigateur sur une vraie séance** — ce chantier est purement algorithmique, et le panneau d'allocation est derrière le mot de passe superadmin que je ne saisis pas. Les mesures portent sur `runAllocation` en isolation, pas sur le trajet complet `loadAllocationInputs` → calcul → `apply_allocation`.
+  1. **Aucun test en navigateur sur une vraie séance** — ce chantier est purement algorithmique, et le panneau d'allocation est derrière le mot de passe superadmin que je ne saisis pas. Les mesures portent sur `runAllocation` en isolation, pas sur le trajet complet `loadAllocationInputs` → calcul → `apply_allocation`. **C'est l'objet de la session de test à venir.**
+
+  1 bis. **La bascule du défaut n'a pas été re-vérifiée en navigateur** — au moment de la bascule, les 5 serveurs de dev du dossier étaient pris par d'autres sessions. Le comportement livré avait cependant déjà été exercé dans le bundle Vite réel plus tôt dans la session, en passant `STRATEGY_ABSOLUTE_STRONG` explicitement (résultats dans le tableau ci-dessus). Ce qui n'a pas été revu dans le navigateur est donc uniquement la ligne de routage du défaut — couverte par les 75 tests, dont celui du §4 qui discrimine les deux algorithmes.
   2. **Les populations sont synthétiques.** Attributs décorrélés et effectifs exacts — plus réalistes que le `balanced()` des tests, mais une vraie salle peut présenter des corrélations que je n'ai pas modélisées (p. ex. les anciens sont probablement plus souvent « actifs » que les nouveaux, ce qui rendrait les règles 1 et 4 partiellement colinéaires). À confronter à une vraie séance.
   3. **La règle 3 n'a pas été poussée.** Le nombre de tables en échec sur la règle 3 est identique entre stratégies sur la quasi-totalité des scénarios, sauf camp ultra-dominant où il l'est aussi. Je n'ai pas cherché à l'améliorer — hors périmètre du I1.
 

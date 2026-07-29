@@ -49,20 +49,31 @@ const RESTARTS = 2
 /** Garde-fou anti-boucle sur les passes de descente. */
 const MAX_PASSES = 12
 
-// ── Chantier 29 — variantes de recherche (I1) ────────────────
+// ── Chantier 29 — réglages de la recherche (I1) ──────────────
 //
-// Le chantier 25b a mesuré que le score des règles 1 et 4 en **taux
-// d'échec** (`-fail/T`) pousse à fragmenter la salle dès que la règle est
-// globalement insatisfaisable : le nombre de tables en échec reste à peu près
-// constant pendant que T augmente, donc le taux baisse sans que personne n'y
-// gagne. Remplacer le taux par le **manque absolu en personnes** (invariant au
-// découpage) corrige ce biais, mais change la trajectoire de la recherche
-// locale — d'où la nécessité de fiabiliser la recherche elle-même.
+// **Défaut en production : `STRATEGY_ABSOLUTE_STRONG`** (validé par Jules le
+// 2026-07-29). Les autres constantes n'existent que pour le banc d'essai —
+// aucune ne doit être passée par l'application.
 //
-// Ces réglages sont exposés pour permettre l'**ablation** (bench
-// `bench/allocation-bench.ts`) : chaque piste peut être activée seule, afin de
-// mesurer sa contribution propre plutôt que de livrer un correctif global non
-// attribuable.
+// Le chantier 25b a mesuré que le score des règles 1 et 4 en **taux d'échec**
+// (`-fail/T`) pousse à fragmenter la salle dès que la règle est globalement
+// insatisfaisable : le nombre de tables en échec reste à peu près constant
+// pendant que T augmente, donc le taux baisse sans que personne n'y gagne.
+//
+// Le chantier 29 a établi que corriger ce taux ne suffit pas, et surtout que
+// l'exemple normatif du §4 n'était **pas** tenu par la version historique :
+// son test de non-régression emploie une population aux attributs corrélés
+// (`balanced()`), et sur une population décorrélée de même composition la
+// version historique produisait 6 tables dont 2 de 10 sans animateur. La
+// recherche elle-même était en cause. D'où deux correctifs indissociables :
+// métrique absolue **et** recherche fiabilisée — mesuré, chacun pris seul est
+// insuffisant, et « recherche seule » est même souvent pire que l'historique
+// (elle applique plus efficacement un objectif biaisé).
+//
+// Les réglages restent découpés en champs indépendants pour permettre
+// l'**ablation** (`bench/allocation-bench.ts`) : c'est ce qui a permis
+// d'attribuer l'effet à chaque piste plutôt que de constater le résultat d'un
+// correctif global. Ne pas les fusionner en un booléen.
 export interface AllocationStrategy {
   /**
    * Terme principal des règles 1 et 4.
@@ -104,7 +115,10 @@ export interface AllocationStrategy {
   boundPruning: boolean
 }
 
-/** Comportement historique — défaut, pour non-régression. */
+/**
+ * Comportement historique (chantiers 19 à 25c). **Plus utilisé en
+ * production** — conservé comme référence de comparaison pour le banc d'essai.
+ */
 export const STRATEGY_LEGACY: AllocationStrategy = {
   shortfallMetric: 'rate',
   restarts: RESTARTS,
@@ -130,7 +144,11 @@ export const STRATEGY_STRONG_SEARCH_ONLY: AllocationStrategy = {
   boundPruning: true,
 }
 
-/** Piste combinée — métrique absolue + recherche fiabilisée. */
+/**
+ * **Stratégie de production** (chantier 29) — métrique absolue + recherche
+ * fiabilisée. Les deux moitiés sont nécessaires, aucune n'est suffisante :
+ * voir le commentaire en tête de section et `A_VERIFIER.md`.
+ */
 export const STRATEGY_ABSOLUTE_STRONG: AllocationStrategy = {
   ...STRATEGY_STRONG_SEARCH_ONLY,
   shortfallMetric: 'absolute',
@@ -1220,7 +1238,7 @@ function solveFor(
  */
 export function runAllocation(input: AllocationInput): AllocationResult {
   const seed = input.seed ?? DEFAULT_SEED
-  const strategy = input.strategy ?? STRATEGY_LEGACY
+  const strategy = input.strategy ?? STRATEGY_ABSOLUTE_STRONG
   const warnings: string[] = []
 
   const allModeratorIds = [...input.moderatorIds]
