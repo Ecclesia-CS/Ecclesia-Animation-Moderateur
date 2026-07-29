@@ -159,6 +159,7 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `update_session_docs(password, session_id, doc_*?)` | Met à jour les 3 URLs docs |
 | `register_session_member(session_id, pseudo, reclaim_code?)` | Inscrit l'utilisateur. En `pre_voting` : `attending_in_person=false` + stocke le code en clair. ON CONFLICT user → retourne existant ; pseudo pris → exception |
 | `confirm_attendance(session_id, pseudo?, code?)` | Confirme présence présentielle. Cas 1 : caller déjà membre → marking attending. Cas 2 : code fourni → reclaim par `reclaim_code`. Cas 3 : pseudo fourni → reclaim ou création. L'un ou l'autre suffit. |
+| `reclaim_prevoting_member(session_id, pseudo?, code?)` | **Chantier B3** — reconquête d'un profil `pre_voting` déjà inscrit (pseudo pris suite à une perte d'identité locale — User ID instable selon navigateur). Par pseudo ou code de rappel, l'un ou l'autre suffit. Phase-safe : exception si la séance n'est plus en `pre_voting`. **Ne touche jamais `attending_in_person`** (contrairement à `confirm_attendance`, à ne pas réutiliser ici — reconquête à distance, pas une confirmation de présence physique) — transfère uniquement `user_id`. |
 | `submit_entry_response(session_id, ...)` | Upsert entry_responses |
 | `submit_assertion(session_id, content)` | Insère assertion (status auto selon moderation_policy) |
 | `cast_vote(assertion_id, vote)` | Upsert assertion_votes |
@@ -381,6 +382,10 @@ Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom
 - Guard dans App.tsx : `hash.startsWith('#vote/') && phase.type !== 'table'` — dès que `phase` passe à `table`, le routing hash n'a plus priorité → TableView s'affiche sans reload
 - **Compatibilité Messenger** : plus de `window.location.href` / `window.location.reload()`. Le fallback `href` reste si `onTableJoined` n'est pas fourni (usage standalone).
 - **Pas d'étape intermédiaire "J'arrive"** : `TableAssignmentCard` ne prend plus de props `joined`/`onArrived` — le join et la navigation sont fusionnés en une seule action.
+
+### Reconquête d'un pseudo pré-vote déjà pris (`PseudoForm` — chantier B3)
+
+En phase `pre_voting`, si le pseudo saisi est déjà inscrit (perte d'identité locale — User ID instable selon navigateur), `PseudoForm` ne bloque plus avec une simple erreur : il bascule vers un écran de reconquête (onglets "C'est bien moi" / code de rappel) qui appelle `reclaim_prevoting_member` — jamais `confirm_attendance`, qui marquerait à tort `attending_in_person=true` pour un vote resté à distance. Symétrique à la reconquête déjà existante pour la phase `voting` (`VotingEntryForm`/`AttendanceConfirmScreen` + `confirm_attendance`), mais phase-safe et sans effet de bord sur la présence. Un succès saute l'écran d'affichage du code (`step === 'reclaim_code'` dans `VoteScreen`) — le code généré côté client pour la tentative en cours n'a jamais été persisté — et va directement au vote via `handlePseudoReclaimSuccess`.
 
 ### Polling de secours phase (VoteScreen + AllocatingScreen — Messenger/WebSocket indisponible)
 

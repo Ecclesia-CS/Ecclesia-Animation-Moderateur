@@ -531,6 +531,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     }
   }
 
+  // Chantier B3 — reconquête d'un profil pré-vote déjà inscrit (pseudo pris).
+  // Pas de code de rappel à (re)montrer ici : celui généré côté client pour
+  // cette tentative n'a jamais été persisté (registerSessionMember n'a pas
+  // été appelé), le vrai reste celui affiché à l'inscription d'origine.
+  // Pas d'onboarding non plus : la pré-vote n'en a pas.
+  async function handlePseudoReclaimSuccess(m: SessionMember) {
+    if (!session) return
+    setMember(m)
+    await loadVoteData(session, m)
+  }
+
   async function handleConfirmAttendanceSuccess(m: SessionMember) {
     if (!session) return
     setMember(m)
@@ -736,6 +747,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <PseudoForm
           session={session}
           onSuccess={handlePseudoSuccess}
+          onReclaimSuccess={handlePseudoReclaimSuccess}
           reclaimCode={session.phase === 'pre_voting' ? (reclaimCode ?? undefined) : undefined}
         />
       </>
