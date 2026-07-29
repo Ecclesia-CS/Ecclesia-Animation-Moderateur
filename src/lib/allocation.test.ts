@@ -141,6 +141,53 @@ describe('politique de dimensionnement', () => {
     expect(r.tables).toHaveLength(8)
   })
 
+  it('60 participants / 4 modérateurs — même exigence sur une population DÉCORRÉLÉE', () => {
+    // Chantier 29 (I1) — durcissement du test précédent.
+    //
+    // Le test ci-dessus emploie `balanced(60)`, dont les attributs sont
+    // corrélés par construction (`i%2`, `i%5`, `i%3`). Il passait donc alors
+    // même que la propriété n'était PAS tenue : sur une population de même
+    // composition agrégée (24 anciens, 30 actifs, 3 camps équilibrés, tous
+    // consentants) mais aux attributs décorrélés — c'est-à-dire une vraie
+    // salle — l'algorithme d'avant le chantier 29 produisait
+    // `10M 10M 10M 10M 10- 10-`, soit 6 tables dont deux de 10 sans
+    // animateur : très exactement ce que le §4 désigne comme le mauvais
+    // résultat (« plutôt que 6 tables de 10 dont 2 sans animateur »).
+    //
+    // Ne pas remplacer cette population par un helper « pratique » qui
+    // recorrélerait les attributs : c'est la décorrélation qui fait le test.
+    const idx = [...Array(60).keys()]
+    const rotate = (k: number, m: number) => (i: number) => (i * k + 7) % 60 < m
+    const isVeteran = rotate(23, 24)  // 24 anciens (40 %)
+    const isActive  = rotate(37, 30)  // 30 actifs  (50 %)
+    const members: AllocationMember[] = idx.map(i => ({
+      member_id: `d-${i}`,
+      pseudo: `d${i}`,
+      is_active: isActive(i),
+      consents: true,
+      is_veteran: isVeteran(i),
+      group_id: (i * 11 + 4) % 3,
+    }))
+    // Garde-fou sur le jeu de données lui-même : si ces effectifs changent,
+    // le test ne teste plus l'exemple normatif.
+    expect(members.filter(m => m.is_veteran)).toHaveLength(24)
+    expect(members.filter(m => m.is_active)).toHaveLength(30)
+
+    const r = runAllocation({
+      members,
+      moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4'],
+      opinionsAvailable: true,
+    })
+    const moderated   = r.tables.filter(t => t.moderated)
+    const unmoderated = r.tables.filter(t => !t.moderated)
+    expect(moderated).toHaveLength(4)
+    expect(moderated.every(t => t.member_ids.length === TABLE_MAX)).toBe(true)
+    // Le cœur du §4 : le reliquat est découpé vers le minimum de 5, pas laissé
+    // en grosses tables sans animateur.
+    expect(unmoderated.every(t => t.member_ids.length === TABLE_MIN)).toBe(true)
+    expect(r.tables).toHaveLength(8)
+  })
+
   it('30 participants / 4 modérateurs → 3 animateurs, le 4e prend un siège', () => {
     // Chantier 25b : la demande n'est que de 3 tables, donc le 4e modérateur
     // n'anime rien et redevient un participant (H17) — la population passe à 31,

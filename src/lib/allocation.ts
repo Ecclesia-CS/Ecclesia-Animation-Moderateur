@@ -49,6 +49,111 @@ const RESTARTS = 2
 /** Garde-fou anti-boucle sur les passes de descente. */
 const MAX_PASSES = 12
 
+// ── Chantier 29 — réglages de la recherche (I1) ──────────────
+//
+// **Défaut en production : `STRATEGY_ABSOLUTE_STRONG`** (validé par Jules le
+// 2026-07-29). Les autres constantes n'existent que pour le banc d'essai —
+// aucune ne doit être passée par l'application.
+//
+// Le chantier 25b a mesuré que le score des règles 1 et 4 en **taux d'échec**
+// (`-fail/T`) pousse à fragmenter la salle dès que la règle est globalement
+// insatisfaisable : le nombre de tables en échec reste à peu près constant
+// pendant que T augmente, donc le taux baisse sans que personne n'y gagne.
+//
+// Le chantier 29 a établi que corriger ce taux ne suffit pas, et surtout que
+// l'exemple normatif du §4 n'était **pas** tenu par la version historique :
+// son test de non-régression emploie une population aux attributs corrélés
+// (`balanced()`), et sur une population décorrélée de même composition la
+// version historique produisait 6 tables dont 2 de 10 sans animateur. La
+// recherche elle-même était en cause. D'où deux correctifs indissociables :
+// métrique absolue **et** recherche fiabilisée — mesuré, chacun pris seul est
+// insuffisant, et « recherche seule » est même souvent pire que l'historique
+// (elle applique plus efficacement un objectif biaisé).
+//
+// Les réglages restent découpés en champs indépendants pour permettre
+// l'**ablation** (`bench/allocation-bench.ts`) : c'est ce qui a permis
+// d'attribuer l'effet à chaque piste plutôt que de constater le résultat d'un
+// correctif global. Ne pas les fusionner en un booléen.
+export interface AllocationStrategy {
+  /**
+   * Terme principal des règles 1 et 4.
+   *  · `rate`     — `-échecs / T` (comportement historique) ;
+   *  · `absolute` — `-Σ(personnes manquantes)`, invariant au découpage.
+   */
+  shortfallMetric: 'rate' | 'absolute'
+  /** Nombre de démarrages par forme. */
+  restarts: number
+  /**
+   * Répartition du budget d'évaluations entre les formes candidates.
+   *  · `null`   — pool global consommé dans l'ordre d'énumération
+   *    (comportement historique : les formes explorées en dernier sont
+   *    affamées, donc sous-optimisées, donc écartées pour une raison qui n'a
+   *    rien à voir avec leur qualité) ;
+   *  · `'fair'` — part équitable du budget restant entre les formes restantes,
+   *    le reliquat d'une forme qui converge tôt profitant aux suivantes. Coût
+   *    total du même ordre qu'en historique, sans le biais d'ordre ;
+   *  · un nombre — plafond fixe par forme (coût total ∝ nombre de formes :
+   *    ne passe pas l'échelle sur les grandes salles).
+   */
+  perShapeBudget: number | 'fair' | null
+  /**
+   * Voisinage dirigé : réparer d'abord les déficits des règles 1 et 4 par des
+   * échanges **à camp constant** (neutres pour la règle 3, plus prioritaire).
+   */
+  targetedNeighborhood: boolean
+  /**
+   * Amorce par quotas : distribution exacte (greedy sur seuils croissants) des
+   * actifs et des anciens avant toute descente — résolution exacte du
+   * sous-problème d'affectation des anciens.
+   */
+  quotaSeeding: boolean
+  /**
+   * Élagage par borne : une forme dont l'**optimum théorique** est déjà
+   * lexicographiquement battu par le meilleur résultat réalisé est ignorée.
+   * Sépare « évaluer une forme à son optimum » de « guider la recherche ».
+   */
+  boundPruning: boolean
+}
+
+/**
+ * Comportement historique (chantiers 19 à 25c). **Plus utilisé en
+ * production** — conservé comme référence de comparaison pour le banc d'essai.
+ */
+export const STRATEGY_LEGACY: AllocationStrategy = {
+  shortfallMetric: 'rate',
+  restarts: RESTARTS,
+  perShapeBudget: null,
+  targetedNeighborhood: false,
+  quotaSeeding: false,
+  boundPruning: false,
+}
+
+/** Piste « corriger la formule seule » — le correctif naïf du 25b. */
+export const STRATEGY_ABSOLUTE_ONLY: AllocationStrategy = {
+  ...STRATEGY_LEGACY,
+  shortfallMetric: 'absolute',
+}
+
+/** Piste « fiabiliser la recherche seule » — métrique historique conservée. */
+export const STRATEGY_STRONG_SEARCH_ONLY: AllocationStrategy = {
+  shortfallMetric: 'rate',
+  restarts: 6,
+  perShapeBudget: 'fair',
+  targetedNeighborhood: true,
+  quotaSeeding: true,
+  boundPruning: true,
+}
+
+/**
+ * **Stratégie de production** (chantier 29) — métrique absolue + recherche
+ * fiabilisée. Les deux moitiés sont nécessaires, aucune n'est suffisante :
+ * voir le commentaire en tête de section et `A_VERIFIER.md`.
+ */
+export const STRATEGY_ABSOLUTE_STRONG: AllocationStrategy = {
+  ...STRATEGY_STRONG_SEARCH_ONLY,
+  shortfallMetric: 'absolute',
+}
+
 // ── Types publics ────────────────────────────────────────────
 
 export interface AllocationMember {
@@ -84,6 +189,11 @@ export interface AllocationInput {
   /** false → règle 3 désactivée proprement (analyse des camps indisponible, §5). */
   opinionsAvailable: boolean
   seed?: number
+  /**
+   * Chantier 29 (I1) — réglages de la recherche. Absent → `STRATEGY_LEGACY`.
+   * Sert à l'ablation dans le bench ; la production n'a pas à le fournir.
+   */
+  strategy?: AllocationStrategy
 }
 
 export interface AllocationTable {
@@ -189,6 +299,10 @@ interface Prepared {
   campCount: number
   /** index remappé → group_id d'origine. */
   campLabels: number[]
+  /** Totaux population — bornes exactes par forme (chantier 29). */
+  totalActive: number
+  totalVeteran: number
+  totalNonConsent: number
 }
 
 function prepare(members: AllocationMember[]): Prepared {
@@ -206,12 +320,18 @@ function prepare(members: AllocationMember[]): Prepared {
     camp: new Int32Array(n),
     campCount: labels.length,
     campLabels: labels,
+    totalActive: 0,
+    totalVeteran: 0,
+    totalNonConsent: 0,
   }
   members.forEach((m, i) => {
     prep.active[i] = m.is_active ? 1 : 0
     prep.consent[i] = m.consents ? 1 : 0
     prep.veteran[i] = m.is_veteran ? 1 : 0
     prep.camp[i] = m.group_id === null ? -1 : labelIdx.get(m.group_id)!
+    if (prep.active[i]) prep.totalActive++
+    if (prep.veteran[i]) prep.totalVeteran++
+    if (!prep.consent[i]) prep.totalNonConsent++
   })
   return prep
 }
@@ -285,6 +405,204 @@ function shapePreference(shape: Shape): number[] {
   return [allModerated, -maxUnmoderated, -T]
 }
 
+// ── Chantier 29 — optimum théorique d'une forme (piste « exact ») ──
+//
+// Le sous-problème « répartir S personnes portant un attribut sur des tables de
+// seuils `thr_t` » a une solution exacte immédiate, indépendante de la
+// recherche locale :
+//   · manque total minimal   = max(0, Σthr − S)   (car thr_t ≤ taille_t, donc
+//     aucune table ne sature avant d'avoir absorbé son seuil) ;
+//   · nombre minimal de tables en échec = T − (plus grand k tel que la somme
+//     des k plus petits seuils ≤ S).
+// C'est vrai pour la règle 1 (actifs) comme pour la règle 4 (anciens).
+
+/** Somme des seuils + plus petit nombre de tables en échec, pour une offre `supply`. */
+function exactShortfall(thresholds: number[], supply: number): { total: number; fails: number } {
+  let sum = 0
+  for (const t of thresholds) sum += t
+  const asc = [...thresholds].sort((a, b) => a - b)
+  let acc = 0
+  let satisfied = 0
+  for (const t of asc) {
+    if (acc + t > supply) break
+    acc += t
+    satisfied++
+  }
+  return { total: Math.max(0, sum - supply), fails: thresholds.length - satisfied }
+}
+
+/**
+ * Borne supérieure (optimiste, composante par composante) du score atteignable
+ * par une forme. Les composantes qu'on ne sait pas borner finement prennent
+ * leur maximum trivial — la borne reste valide, seulement moins tranchante.
+ *
+ * Sépare « évaluer une forme à son optimum » de « guider la recherche » : une
+ * forme dont l'optimum est déjà battu n'a pas à consommer de budget.
+ */
+function shapeBound(
+  shape: Shape,
+  prep: Prepared,
+  opinionsAvailable: boolean,
+  recorderTarget: number,
+  metric: AllocationStrategy['shortfallMetric'],
+): number[] {
+  const T = shape.sizes.length
+  const T_ = T || 1
+  const thr1 = shape.sizes.map(activeThreshold)
+  const thr4 = shape.sizes.map(veteranThreshold)
+  const e1 = exactShortfall(thr1, prep.totalActive)
+  const e4 = exactShortfall(thr4, prep.totalVeteran)
+
+  // Règle 2 — au mieux, tous les non-consentants sont entassés dans les plus
+  // grandes tables ; les autres tables sont alors « propres ».
+  const desc = [...shape.sizes].sort((a, b) => b - a)
+  let absorbed = 0
+  let dirty = 0
+  while (absorbed < prep.totalNonConsent && dirty < T) { absorbed += desc[dirty]; dirty++ }
+  const r2Bound = Math.min(T - dirty, recorderTarget)
+
+  // Règle 5 — au mieux, toutes les places modérées sont occupées par des nouveaux.
+  let moderatedSeats = 0
+  for (let t = 0; t < shape.moderatedCount; t++) moderatedSeats += shape.sizes[t]
+  const r5Bound = Math.min(prep.n - prep.totalVeteran, moderatedSeats)
+
+  const hetBound = opinionsAvailable ? 1 : 0
+
+  return metric === 'absolute'
+    ? [-e1.total, -e1.fails, 0, r2Bound, 0, hetBound, -e4.total, -e4.fails, 0, r5Bound]
+    : [-e1.fails / T_, 0, r2Bound, 0, hetBound, -e4.fails / T_, 0, r5Bound]
+}
+
+/**
+ * Test de dominance lexicographique : la forme peut-elle être écartée sans
+ * être explorée ? Vrai seulement si sa borne est **strictement** battue à la
+ * première composante où elle diffère du meilleur score déjà réalisé.
+ */
+function boundIsDominated(bound: number[], best: number[]): boolean {
+  for (let i = 0; i < bound.length && i < best.length; i++) {
+    if (bound[i] !== best[i]) return bound[i] < best[i]
+  }
+  return false
+}
+
+// ── Chantier 29 — amorce par quotas (piste « résolution exacte ») ──
+
+/** Répartit `supply` unités sur les tables : seuils croissants d'abord, reliquat ensuite. */
+function quotas(thresholds: number[], sizes: number[], supply: number): number[] {
+  const T = thresholds.length
+  const q = new Array<number>(T).fill(0)
+  const order = [...Array(T).keys()].sort((a, b) => thresholds[a] - thresholds[b] || a - b)
+  let left = supply
+  for (const t of order) {
+    const give = Math.min(thresholds[t], left)
+    q[t] = give
+    left -= give
+  }
+  // Reliquat : tout le monde doit être placé, on remplit les tables restantes.
+  for (const t of order) {
+    if (left <= 0) break
+    const room = sizes[t] - q[t]
+    const give = Math.min(room, left)
+    q[t] += give
+    left -= give
+  }
+  return q
+}
+
+/**
+ * Amorce constructive : réalise exactement les quotas d'anciens (règle 4) et
+ * d'actifs (règle 1), en équilibrant les camps au passage. La descente locale
+ * n'a plus qu'à polir les règles 2 et 3 au lieu de devoir d'abord découvrir
+ * une distribution correcte des attributs.
+ */
+function quotaAssignment(shape: Shape, prep: Prepared): Int32Array {
+  const T = shape.sizes.length
+  const sizes = shape.sizes
+  const qV = quotas(sizes.map(veteranThreshold), sizes, prep.totalVeteran)
+  const qA = quotas(sizes.map(activeThreshold), sizes, prep.totalActive)
+
+  const assign = new Int32Array(prep.n).fill(-1)
+  const room = [...sizes]
+  const needV = [...qV]
+  const needA = [...qA]
+  const campSeen: number[][] = Array.from({ length: T }, () => new Array(Math.max(1, prep.campCount)).fill(0))
+  const nonConsentSeen = new Array<number>(T).fill(0)
+
+  const place = (i: number, t: number) => {
+    assign[i] = t
+    room[t]--
+    if (prep.veteran[i]) needV[t]--
+    if (prep.active[i]) needA[t]--
+    const c = prep.camp[i]
+    if (c >= 0) campSeen[t][c]++
+    if (!prep.consent[i]) nonConsentSeen[t]++
+  }
+
+  /**
+   * Choisit, dans `pool`, la personne la plus utile à la table `t` :
+   * camp le moins représenté d'abord (règle 3), puis regroupement des
+   * non-consentants (règle 2 : concentrer la « saleté » libère des tables
+   * propres), puis index pour rester déterministe.
+   */
+  const pick = (pool: number[], t: number): number => {
+    let bestIdx = -1
+    let bestKey = Infinity
+    for (let k = 0; k < pool.length; k++) {
+      const i = pool[k]
+      const c = prep.camp[i]
+      const campLoad = c >= 0 ? campSeen[t][c] : 0
+      const dirtyPref = prep.consent[i] ? 0 : (nonConsentSeen[t] > 0 ? 0 : 1)
+      const key = campLoad * 4 + dirtyPref
+      if (key < bestKey) { bestKey = key; bestIdx = k }
+    }
+    const i = pool[bestIdx]
+    pool.splice(bestIdx, 1)
+    return i
+  }
+
+  const bucket = (v: number, a: number) => {
+    const out: number[] = []
+    for (let i = 0; i < prep.n; i++) if (prep.veteran[i] === v && prep.active[i] === a) out.push(i)
+    return out
+  }
+  const vetActive = bucket(1, 1)
+  const vetPassive = bucket(1, 0)
+  const newActive = bucket(0, 1)
+  const newPassive = bucket(0, 0)
+
+  const byNeed = (need: number[]) => [...Array(T).keys()].sort((a, b) => need[b] - need[a] || a - b)
+
+  // 1. Anciens — les tables les plus exigeantes d'abord ; on prend en priorité
+  //    des anciens actifs tant que la table a aussi besoin d'actifs.
+  for (const t of byNeed(needV)) {
+    while (needV[t] > 0 && room[t] > 0 && (vetActive.length || vetPassive.length)) {
+      const pool = (needA[t] > 0 && vetActive.length) ? vetActive
+                 : (vetPassive.length ? vetPassive : vetActive)
+      place(pick(pool, t), t)
+    }
+  }
+  // 2. Actifs restants — complète les quotas d'actifs non couverts par les anciens.
+  for (const t of byNeed(needA)) {
+    while (needA[t] > 0 && room[t] > 0 && (newActive.length || vetActive.length)) {
+      const pool = newActive.length ? newActive : vetActive
+      place(pick(pool, t), t)
+    }
+  }
+  // 3. Reliquat — toutes les places restantes, dans l'ordre des tables.
+  const rest = [...newPassive, ...newActive, ...vetPassive, ...vetActive]
+  for (let t = 0; t < T; t++) {
+    while (room[t] > 0 && rest.length) place(pick(rest, t), t)
+  }
+  // Filet de sécurité : personne ne doit rester sans table.
+  for (let i = 0; i < prep.n; i++) {
+    if (assign[i] === -1) {
+      const t = room.findIndex(r => r > 0)
+      place(i, t >= 0 ? t : 0)
+    }
+  }
+  return assign
+}
+
 // ── Compteurs par table (mis à jour de façon incrémentale) ───
 
 interface Counters {
@@ -355,6 +673,7 @@ function evaluate(
   prep: Prepared,
   opinionsAvailable: boolean,
   recorderTarget: number,
+  metric: AllocationStrategy['shortfallMetric'] = 'rate',
 ): Evaluation {
   const T = shape.sizes.length
   const C = prep.campCount
@@ -458,28 +777,63 @@ function evaluate(
   // La règle 3, dont le degré d'hétérogénéité est déjà normalisé (part du camp
   // majoritaire), conserve un maximin plein comme le décrit la spec.
   //
-  // ⚠️ Faiblesse connue du taux, mesurée au chantier 25b mais **non corrigée
-  // ici** (voir A_VERIFIER.md) : quand la règle 4 est globalement
-  // insatisfaisable (anciens < 40 %, que le §5 désigne pourtant comme le cas
-  // *normal* d'une association qui grandit), le nombre de tables en échec reste
-  // à peu près constant pendant que T augmente — découper la salle fait donc
-  // baisser le taux sans rien améliorer. Reproduction : 31 personnes et 12
-  // anciens (39 %) → 6 tables `[6,5,5,5,5,5]`, dont la moitié sans animateur,
-  // au lieu de 4 tables `[10,10,6,5]` ; à 13 anciens (42 %) le problème
-  // disparaît. Remplacer ce terme par le manque total (invariant au découpage)
-  // corrige bien ce cas, mais modifie la trajectoire de la recherche locale et
-  // casse l'exemple normatif du §4 (60 participants / 4 modérateurs) — le
-  // correctif demande une refonte de la recherche, hors périmètre du 25b.
+  // ⚠️ Faiblesse connue du taux, mesurée au chantier 25b, **instruite au
+  // chantier 29 (I1) et toujours active par défaut** : l'adoption du correctif
+  // attend l'arbitrage de Jules (A_VERIFIER.md + rapport comparatif
+  // `docs/chantier-29-comparatif-allocation.md`).
+  //
+  // Symptôme : quand la règle 4 est globalement insatisfaisable (anciens
+  // < 40 %, que le §5 désigne pourtant comme le cas *normal* d'une association
+  // qui grandit), le nombre de tables en échec reste à peu près constant
+  // pendant que T augmente — découper la salle fait donc baisser le taux sans
+  // rien améliorer.
+  //
+  // Ce que le chantier 29 a établi **en plus**, et qui corrige la conclusion du
+  // 25b : passer au manque total ne « casse » pas l'exemple normatif du §4.
+  // Cet exemple n'était en réalité **pas tenu**. Le test qui le protège emploie
+  // une population aux attributs corrélés (`balanced()`) ; sur une population
+  // décorrélée de même composition agrégée, le code ci-dessous produit déjà
+  // 6 tables dont 2 de 10 sans animateur — précisément le résultat que le §4
+  // désigne comme mauvais. La cause est la **recherche** (budget global
+  // consommé dans l'ordre d'énumération des formes, et maximin
+  // d'hétérogénéité de la règle 3 qui fige la descente juste avant la règle 4),
+  // pas la formule. Cf. `STRATEGY_ABSOLUTE_STRONG` : métrique absolue et
+  // recherche fiabilisée sont chacune nécessaires, aucune n'est suffisante.
+  //
+  // ── Chantier 29 (I1) : `shortfallMetric = 'absolute'` ────────────────
+  // Remplace le taux par le **manque total en personnes** pour les règles 1 et
+  // 4. Ce terme est invariant au découpage (⌈2/5·taille⌉ sommé sur une salle
+  // donnée bouge de ±2 quel que soit le nombre de tables), donc fragmenter ne
+  // le fait plus baisser artificiellement. Le choix du nombre de tables
+  // redevient alors l'affaire de la politique de dimensionnement du §4
+  // (`shapePreference`) et de la règle 5, comme la spec le prévoit.
+  // Le taux d'échec reste utilisé comme second terme : à manque total égal, on
+  // préfère concentrer le manque sur peu de tables plutôt que l'étaler.
   const T_ = T || 1
-  const score = [
-    -fail1 / T_, Math.min(minMargin1, 0),   // règle 1
-    r2main,                                 // règle 2 (garantie ; le surplus de
-                                            //   tables propres est « sans priorité »
-                                            //   → volontairement hors du vecteur)
-    -fail3 / T_, het,                       // règle 3
-    -fail4 / T_, Math.min(minMargin4, 0),   // règle 4
-    newcomersModerated,                     // règle 5
-  ]
+  const absolute = metric === 'absolute'
+  // ⚠️ Les termes secondaires sont des **comptes absolus** (`-fail`), surtout
+  // pas des taux : réintroduire `-fail/T` ici ramènerait très exactement le
+  // biais de fragmentation qu'on retire au premier terme. À manque total égal
+  // (cas fréquent, le manque total étant quasi invariant au découpage), c'est
+  // ce terme qui départage — et `1/5 < 1/6` ferait à nouveau préférer six
+  // petites tables à cinq. Mesuré : 31 participants / 12 anciens.
+  const score = absolute
+    ? [
+        -sumShort1, -fail1, Math.min(minMargin1, 0),   // règle 1
+        r2main,                                        // règle 2
+        -fail3 / T_, het,                              // règle 3
+        -sumShort4, -fail4, Math.min(minMargin4, 0),   // règle 4
+        newcomersModerated,                            // règle 5
+      ]
+    : [
+        -fail1 / T_, Math.min(minMargin1, 0),   // règle 1
+        r2main,                                 // règle 2 (garantie ; le surplus de
+                                                //   tables propres est « sans priorité »
+                                                //   → volontairement hors du vecteur)
+        -fail3 / T_, het,                       // règle 3
+        -fail4 / T_, Math.min(minMargin4, 0),   // règle 4
+        newcomersModerated,                     // règle 5
+      ]
 
   // Plateau : poids hiérarchiques pour ne jamais inverser l'ordre des règles.
   nonConsentList.sort((a, b) => a - b)
@@ -573,45 +927,103 @@ function localSearch(
   recorderTarget: number,
   order: number[],
   budget: Budget,
+  strategy: AllocationStrategy = STRATEGY_LEGACY,
+  seedAssign?: Int32Array,
 ): { assign: Int32Array; evaluation: Evaluation } {
   const T = shape.sizes.length
-  const assign = initialAssignment(shape, prep, order)
+  const metric = strategy.shortfallMetric
+  const assign = seedAssign ?? initialAssignment(shape, prep, order)
   const ctr = buildCounters(assign, prep, T)
-  let current = evaluate(shape, ctr, prep, opinionsAvailable, recorderTarget)
+  let current = evaluate(shape, ctr, prep, opinionsAvailable, recorderTarget, metric)
 
   if (T < 2) return { assign, evaluation: current }
+
+  /** Tente l'échange i↔j ; le conserve s'il améliore. */
+  const trySwap = (i: number, j: number): boolean => {
+    const ti = assign[i]
+    const tj = assign[j]
+    if (ti === tj) return false
+    // Deux membres indiscernables : l'échange ne change rien.
+    if (prep.active[i] === prep.active[j] &&
+        prep.consent[i] === prep.consent[j] &&
+        prep.veteran[i] === prep.veteran[j] &&
+        prep.camp[i] === prep.camp[j]) return false
+    if (budget.left <= 0) return false
+    budget.left--
+
+    removeMember(ctr, prep, i, ti); removeMember(ctr, prep, j, tj)
+    addMember(ctr, prep, i, tj);    addMember(ctr, prep, j, ti)
+
+    const candidate = evaluate(shape, ctr, prep, opinionsAvailable, recorderTarget, metric)
+    if (compareEval(candidate, current) > 0) {
+      assign[i] = tj
+      assign[j] = ti
+      current = candidate
+      return true
+    }
+    removeMember(ctr, prep, i, tj); removeMember(ctr, prep, j, ti)
+    addMember(ctr, prep, i, ti);    addMember(ctr, prep, j, tj)
+    return false
+  }
+
+  /**
+   * Chantier 29 — voisinage dirigé.
+   *
+   * Le vecteur lexicographique place le maximin d'hétérogénéité (règle 3) juste
+   * **avant** la règle 4. Toute réparation d'un déficit d'anciens qui déplace
+   * ne serait-ce qu'une personne d'un camp à l'autre dégrade potentiellement ce
+   * maximin, et se fait donc refuser : la descente se fige sur un plateau alors
+   * qu'une solution meilleure existe. On explore donc d'abord les échanges
+   * **à camp constant**, structurellement neutres pour la règle 3, entre une
+   * table en excédent et une table en déficit.
+   */
+  const repair = (attr: Uint8Array, threshold: (s: number) => number, campPreserving: boolean): boolean => {
+    let improved = false
+    const byTable: number[][] = Array.from({ length: T }, () => [])
+    for (let i = 0; i < prep.n; i++) byTable[assign[i]].push(i)
+
+    const surplus: number[] = []
+    const deficit: number[] = []
+    for (let t = 0; t < T; t++) {
+      let have = 0
+      for (const i of byTable[t]) have += attr[i]
+      const margin = have - threshold(shape.sizes[t])
+      if (margin > 0) surplus.push(t)
+      else if (margin < 0) deficit.push(t)
+    }
+
+    for (const t of deficit) {
+      for (const u of surplus) {
+        if (budget.left <= 0) return improved
+        for (const i of byTable[u]) {
+          if (!attr[i]) continue
+          for (const j of byTable[t]) {
+            if (attr[j]) continue
+            if (campPreserving && prep.camp[i] !== prep.camp[j]) continue
+            if (trySwap(i, j)) { improved = true }
+            if (budget.left <= 0) return improved
+          }
+        }
+      }
+    }
+    return improved
+  }
 
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     let improved = false
 
+    if (strategy.targetedNeighborhood) {
+      // Règle 1 avant règle 4 (ordre lexicographique), camp constant d'abord.
+      for (const preserve of [true, false]) {
+        if (repair(prep.active, activeThreshold, preserve)) improved = true
+        if (repair(prep.veteran, veteranThreshold, preserve)) improved = true
+      }
+    }
+
     for (let i = 0; i < prep.n && budget.left > 0; i++) {
       for (let j = i + 1; j < prep.n; j++) {
-        const ti = assign[i]
-        const tj = assign[j]
-        if (ti === tj) continue
-        // Deux membres indiscernables : l'échange ne change rien.
-        if (prep.active[i] === prep.active[j] &&
-            prep.consent[i] === prep.consent[j] &&
-            prep.veteran[i] === prep.veteran[j] &&
-            prep.camp[i] === prep.camp[j]) continue
-
         if (budget.left <= 0) break
-        budget.left--
-
-        removeMember(ctr, prep, i, ti); removeMember(ctr, prep, j, tj)
-        addMember(ctr, prep, i, tj);    addMember(ctr, prep, j, ti)
-
-        const candidate = evaluate(shape, ctr, prep, opinionsAvailable, recorderTarget)
-        if (compareEval(candidate, current) > 0) {
-          assign[i] = tj
-          assign[j] = ti
-          current = candidate
-          improved = true
-        } else {
-          // revert
-          removeMember(ctr, prep, i, tj); removeMember(ctr, prep, j, ti)
-          addMember(ctr, prep, i, ti);    addMember(ctr, prep, j, tj)
-        }
+        if (trySwap(i, j)) improved = true
       }
     }
 
@@ -699,9 +1111,11 @@ function solveFor(
   opinionsAvailable: boolean,
   recorderTarget: number,
   seed: number,
+  strategy: AllocationStrategy = STRATEGY_LEGACY,
 ): SolveOutcome {
   const prep = prepare(members)
   const n = prep.n
+  const metric = strategy.shortfallMetric
 
   // ── Cas N ≤ 10 : table unique, aucune règle appliquée (§4) ──
   if (n <= SINGLE_TABLE_MAX) {
@@ -709,21 +1123,59 @@ function solveFor(
     const assign = new Int32Array(n) // tous en table 0
     return {
       prep, shape, assign,
-      score: evaluate(shape, buildCounters(assign, prep, 1), prep, opinionsAvailable, recorderTarget).score,
+      score: evaluate(shape, buildCounters(assign, prep, 1), prep, opinionsAvailable, recorderTarget, metric).score,
       overflowUsed: false, overflowNote: null, singleTable: true,
     }
   }
 
-  const budget: Budget = { left: MAX_EVALUATIONS }
+  // Plafond global — garde-fou de latence dans le navigateur du superadmin.
+  // En mode `'fair'` il reste du même ordre qu'en historique : ce qui change
+  // n'est pas la quantité de calcul, c'est sa **répartition** entre les formes.
+  const budget: Budget = {
+    left: typeof strategy.perShapeBudget === 'number'
+      ? Math.max(MAX_EVALUATIONS, strategy.perShapeBudget * 30)
+      : MAX_EVALUATIONS,
+  }
   const baseOrder = sortedOrder(prep)
 
   function searchOver(shapes: Shape[]): { shape: Shape; assign: Int32Array; evaluation: Evaluation } | null {
     let best: { shape: Shape; assign: Int32Array; evaluation: Evaluation } | null = null
+    let shapesLeft = shapes.length
     for (const shape of shapes) {
-      for (let r = 0; r < RESTARTS; r++) {
-        // Restart 0 = ordre trié déterministe ; suivants = mélange à graine fixe.
-        const order = r === 0 ? baseOrder : shuffled(baseOrder, mulberry32(seed + r * 7919 + shape.sizes.length))
-        const res = localSearch(shape, prep, opinionsAvailable, recorderTarget, order, budget)
+      const remainingShapes = shapesLeft--
+      // Élagage : optimum théorique déjà battu → forme ignorée, budget préservé
+      // pour les formes qui peuvent encore gagner.
+      if (strategy.boundPruning && best) {
+        const bound = shapeBound(shape, prep, opinionsAvailable, recorderTarget, metric)
+        if (boundIsDominated(bound, best.evaluation.score)) continue
+      }
+      // Part équitable : chaque forme reçoit `restant / formes restantes`. Une
+      // forme qui converge avant d'épuiser sa part rend le solde aux suivantes,
+      // et l'élagage ci-dessus en libère davantage encore. Le budget total est
+      // donc borné comme avant, mais aucune forme n'est affamée par sa seule
+      // position dans l'énumération.
+      const shapeBudget: Budget =
+        strategy.perShapeBudget === null
+          ? budget
+          : strategy.perShapeBudget === 'fair'
+            ? { left: Math.max(1, Math.floor(budget.left / remainingShapes)) }
+            : { left: Math.min(strategy.perShapeBudget, budget.left) }
+      const shapeStart = shapeBudget.left
+
+      for (let r = 0; r < strategy.restarts; r++) {
+        if (shapeBudget.left <= 0) break
+        // Restart 0 = ordre trié déterministe ; 1 = amorce par quotas ;
+        // suivants = mélanges à graine fixe (reproductibilité, §6).
+        let seedAssign: Int32Array | undefined
+        let order = baseOrder
+        if (r === 1 && strategy.quotaSeeding) {
+          seedAssign = quotaAssignment(shape, prep)
+        } else if (r > 0) {
+          order = shuffled(baseOrder, mulberry32(seed + r * 7919 + shape.sizes.length))
+        }
+        const res = localSearch(
+          shape, prep, opinionsAvailable, recorderTarget, order, shapeBudget, strategy, seedAssign,
+        )
         if (!best) { best = { shape, assign: res.assign, evaluation: res.evaluation }; continue }
         const cmp = compareEval(res.evaluation, best.evaluation)
         if (cmp > 0) { best = { shape, assign: res.assign, evaluation: res.evaluation }; continue }
@@ -731,6 +1183,8 @@ function solveFor(
           best = { shape, assign: res.assign, evaluation: res.evaluation }
         }
       }
+      // Décompte du plafond global une fois la forme traitée.
+      if (strategy.perShapeBudget !== null) budget.left -= shapeStart - shapeBudget.left
     }
     return best
   }
@@ -784,6 +1238,7 @@ function solveFor(
  */
 export function runAllocation(input: AllocationInput): AllocationResult {
   const seed = input.seed ?? DEFAULT_SEED
+  const strategy = input.strategy ?? STRATEGY_ABSOLUTE_STRONG
   const warnings: string[] = []
 
   const allModeratorIds = [...input.moderatorIds]
@@ -846,11 +1301,11 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   // maximum de tables animées — conforme au §4.
   const M = allModeratorIds.length
   let k = M
-  let solved = solveFor(members, k + extras, opinionsAvailable, recorderTarget, seed)
+  let solved = solveFor(members, k + extras, opinionsAvailable, recorderTarget, seed, strategy)
   for (let guard = 0; guard <= M && k > solved.shape.sizes.length; guard++) {
     k = solved.shape.sizes.length
     const pool = [...members, ...allModeratorIds.slice(k).map(seatProfile)]
-    solved = solveFor(pool, k + extras, opinionsAvailable, recorderTarget, seed)
+    solved = solveFor(pool, k + extras, opinionsAvailable, recorderTarget, seed, strategy)
   }
 
   const { prep, shape, assign, score, overflowUsed, overflowNote, singleTable } = solved
