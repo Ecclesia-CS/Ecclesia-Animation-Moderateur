@@ -70,7 +70,7 @@ export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLa
         </div>
       )}
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1.5">Nom Prénom</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
         <input
           type="text"
           required

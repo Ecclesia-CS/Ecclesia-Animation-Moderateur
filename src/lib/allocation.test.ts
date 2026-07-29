@@ -196,6 +196,24 @@ describe('politique de dimensionnement', () => {
     // Table annoncée sans modérateur inscrit → avertissement explicite
     expect(r.warnings.join(' ')).toContain('pas encore inscrit')
   })
+
+  it('chantier 32 (J7) — faire varier extraModerators (0/+1/+2/+3) change la capacité et le nombre de tables animées quand elle est le facteur limitant', () => {
+    // 1 seul modérateur inscrit pour une population qui produit plusieurs
+    // tables : la capacité de modération (1) est bien inférieure au nombre de
+    // tables, donc chaque modérateur annoncé en plus doit être pris en compte.
+    const members = balanced(40)
+    const base = { members, moderatorIds: ['mo-1'], moderatorProfiles: modProfiles(['mo-1']), opinionsAvailable: true }
+
+    const runs = [0, 1, 2, 3].map(extra => runAllocation({ ...base, extraModerators: extra }))
+
+    runs.forEach((r, i) => expect(r.moderatorCapacity).toBe(1 + i))
+    const moderatedCounts = runs.map(r => r.tables.filter(t => t.moderated).length)
+    // Strictement croissant tant que la capacité reste sous le nombre de tables.
+    for (let i = 1; i < moderatedCounts.length; i++) {
+      expect(moderatedCounts[i]).toBeGreaterThanOrEqual(moderatedCounts[i - 1])
+    }
+    expect(moderatedCounts[3]).toBeGreaterThan(moderatedCounts[0])
+  })
 })
 
 // ── Règle 1 ──────────────────────────────────────────────────
