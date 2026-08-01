@@ -1122,6 +1122,8 @@ function SessionDetail({
   const [assignError,     setAssignError]     = useState<string | null>(null)
   const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
   const [showDebateConfirm, setShowDebateConfirm] = useState(false)
+  // Chantier 30 (J8) — vue récapitulative en lecture seule, prête à capturer.
+  const [rosterOpen, setRosterOpen] = useState(false)
 
   // ── DnD déplacement membres entre groupes ─────────────────
   const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string } | null>(null)
@@ -2113,6 +2115,15 @@ function SessionDetail({
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
                       <div className="flex items-center gap-2">
+                        {groups.length > 0 && (
+                          <button
+                            onClick={() => setRosterOpen(true)}
+                            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                            title="Vue récapitulative, prête à capturer en screenshot"
+                          >
+                            🖨️ Récapitulatif
+                          </button>
+                        )}
                         {groupsLoading ? (
                           <Spinner />
                         ) : groupsSyncedAt ? (
@@ -2900,6 +2911,10 @@ function SessionDetail({
         />
       )}
 
+      {rosterOpen && (
+        <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
+      )}
+
       {phaseConfirm && (
         <ConfirmModal
           title={phaseConfirm.isBack ? '← Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
@@ -3459,6 +3474,68 @@ function ClusteringModal({
               {loading ? 'Clustering…' : 'Confirmer'}
             </button>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── TableRosterModal (chantier 30 / J8) ────────────────────────────
+// Vue en lecture seule, pensée pour être capturée en screenshot : liste
+// simple table virtuelle → modérateur → table physique, sans les éléments
+// d'interaction (glisser-déposer, boutons rattacher/détacher…) de l'onglet
+// Tables qui l'encombreraient sur une capture.
+
+function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): void }) {
+  const sorted = [...groups].sort((a, b) => a.table_number - b.table_number)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">🖨️ Récapitulatif des tables</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Prêt à capturer en screenshot</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-6 pb-6">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <th className="py-2 pr-3">Table</th>
+                <th className="py-2 pr-3">Modérateur</th>
+                <th className="py-2">Table physique</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(g => {
+                const mod = g.members.find(m => m.is_moderator)
+                return (
+                  <tr key={g.table_number} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2.5 pr-3 font-semibold text-gray-900">N°{g.table_number}</td>
+                    <td className="py-2.5 pr-3 text-gray-700">
+                      {mod ? mod.pseudo : (g.moderated ? '⏳ en attente' : '— sans animateur —')}
+                    </td>
+                    <td className="py-2.5 font-mono tracking-widest text-gray-700">
+                      {g.join_code ?? '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-gray-400">Aucune table.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -4328,6 +4405,7 @@ function StaffInterestList({
           <div key={r.id} className="py-3 flex items-start gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-sm font-semibold text-gray-900">{r.pseudo ?? 'Pseudo inconnu'}</span>
                 <span className="text-xs text-gray-400 tabular-nums">{date}</span>
                 {r.table_join_code && (
                   <span className="font-mono text-xs text-indigo-600 tracking-widest">
