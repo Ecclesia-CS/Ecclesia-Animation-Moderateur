@@ -295,8 +295,13 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
 
         {!loading && (
           <>
-            {/* ── Carte de groupe personnelle ───────────────────── */}
-            {assignment != null && (
+            {/* ── Carte de groupe personnelle ─────────────────────
+                N'affiche la carte que si le participant appartient réellement à un camp
+                d'opinion (selfGroupId !== null, càd ≥1 vote pris en compte par l'analyse PCA).
+                Un membre présent mais n'ayant pas voté a bien un table_assignments (assignment
+                != null, table physique de débat) mais aucun camp — ne pas afficher "pas encore
+                nommé" dans ce cas, réservé à un camp qui existe mais n'a pas encore de nom. */}
+            {assignment != null && selfGroupId !== null && (
               <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div
                   className="px-6 py-5 text-center"
