@@ -17,6 +17,8 @@ export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLa
   const locked = !!initialJoinCode
   const [joinCode, setJoinCode] = useState(initialJoinCode)
   const [pseudo, setPseudo] = useState(() => lastNameStore.get())
+  const [asModerator, setAsModerator] = useState(false)
+  const [moderatorCode, setModeratorCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,21 +27,29 @@ export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLa
     setError(null)
     setLoading(true)
     try {
-      const { data, error: err } = await supabase.rpc('join_table', {
-        p_join_code: joinCode.trim().toUpperCase(),
-        p_pseudo: pseudo.trim(),
-      })
+      const code = joinCode.trim().toUpperCase()
+      const name = pseudo.trim()
+      const { data, error: err } = asModerator
+        ? await supabase.rpc('reclaim_moderator', {
+            p_join_code: code,
+            p_moderator_code: moderatorCode,
+            p_pseudo: name,
+          })
+        : await supabase.rpc('join_table', {
+            p_join_code: code,
+            p_pseudo: name,
+          })
       if (err) throw err
       const r = data as TableResult
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,
         joinCode:      r.join_code,
-        isModerator:   false,
-        pseudo:        pseudo.trim(),
+        isModerator:   asModerator,
+        pseudo:        name,
       })
-      lastNameStore.set(pseudo.trim())
-      onJoined(r.id, r.participant_id, false)
+      lastNameStore.set(name)
+      onJoined(r.id, r.participant_id, asModerator)
     } catch (err) {
       setError(extractErr(err))
     } finally {
@@ -82,6 +92,30 @@ export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLa
             placeholder:text-gray-300 transition-shadow"
         />
       </div>
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={asModerator}
+          onChange={e => { setAsModerator(e.target.checked); setError(null) }}
+          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        />
+        <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
+      </label>
+      {asModerator && (
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">Code Ecclesia</label>
+          <input
+            type="password"
+            required
+            value={moderatorCode}
+            onChange={e => setModeratorCode(e.target.value)}
+            placeholder="••••••••"
+            className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+              placeholder:text-gray-300 transition-shadow"
+          />
+        </div>
+      )}
       {error && (
         <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
           {error}

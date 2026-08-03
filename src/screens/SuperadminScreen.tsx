@@ -2265,23 +2265,28 @@ function SessionDetail({
                             </div>
                             {/* Chantier 26 (H21) — nom du modérateur affecté à cette table, ou
                                 attente explicite si la table doit être animée mais que le
-                                modérateur annoncé n'est pas encore inscrit. */}
+                                modérateur annoncé n'est pas encore inscrit. Chantier 36 : un
+                                membre `is_moderator` ne doit apparaître qu'ici, jamais en plus
+                                dans la liste de puces ci-dessous (cf. filtre sur `g.members`). */}
                             {(() => {
-                              const mod = g.members.find(m => m.is_moderator)
-                              if (mod) {
+                              const mods = g.members.filter(m => m.is_moderator)
+                              if (mods.length > 0) {
                                 return (
                                   <div className="mb-2 flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
-                                      🎙️ Modérateur : <strong>{mod.pseudo}</strong>
-                                    </span>
-                                    <button
-                                      onClick={() => handleRemoveTableModerator(mod.member_id)}
-                                      disabled={movingMember}
-                                      className="text-xs text-gray-400 hover:text-red-600 underline disabled:opacity-50"
-                                      title="Redevient un participant ordinaire de cette table"
-                                    >
-                                      Retirer
-                                    </button>
+                                    {mods.map(mod => (
+                                      <span key={mod.member_id}
+                                        className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
+                                        🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                        <button
+                                          onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                          disabled={movingMember}
+                                          className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                          title="Redevient un participant ordinaire de cette table"
+                                        >
+                                          Retirer
+                                        </button>
+                                      </span>
+                                    ))}
                                   </div>
                                 )
                               }
@@ -2314,7 +2319,7 @@ function SessionDetail({
                                 volontairement plusieurs camps, ce nom était donc faux. La barre de
                                 composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
-                              {g.members.map(m => (
+                              {g.members.filter(m => !m.is_moderator).map(m => (
                                 <DraggableMemberChip
                                   key={m.member_id}
                                   memberId={m.member_id}
