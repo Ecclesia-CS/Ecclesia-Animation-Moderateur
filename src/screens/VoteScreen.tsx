@@ -113,6 +113,24 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Garde memberRef synchronisé pour les closures Realtime
   useEffect(() => { memberRef.current = member }, [member])
 
+  // ── Chantier 35 — statut modérateur en direct ──────────────────────────────
+  // Le superadmin peut poser/retirer `is_moderator` (onglet Membres ou Tables)
+  // pendant que ce participant est sur cet écran (badge "Vous êtes modérateur"
+  // ici, et `member.is_moderator` réutilisé tel quel au clic "Rejoindre" dans
+  // AllocatingScreen) : sans ça, seul un reload le rattrapait.
+  useEffect(() => {
+    if (!member) return
+    const channel = supabase
+      .channel(`session-member:${member.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'session_members', filter: `id=eq.${member.id}` },
+        payload => { setMember(payload.new as SessionMember) },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [member?.id])
+
   // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {

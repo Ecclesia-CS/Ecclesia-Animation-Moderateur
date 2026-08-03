@@ -1634,6 +1634,29 @@ function SessionDetail({
 
   useEffect(() => { load() }, [load])
 
+  // Chantier 35 — "Tables rattachées" (moderator_pseudo, participant_count,
+  // is_active) n'avait jamais de rafraîchissement après le chargement initial :
+  // un reclaim_moderator (reprise de modération sur une table déjà rattachée)
+  // ou un nouveau participant qui rejoint restaient invisibles sans reload
+  // manuel. Realtime (tables — REPLICA IDENTITY FULL déjà en place, cf.
+  // CLAUDE.md) + polling de secours, même schéma que loadMembers/loadStats.
+  useEffect(() => {
+    const interval = setInterval(load, 15000)
+    return () => clearInterval(interval)
+  }, [load])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`session-tables:${session.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tables', filter: `session_id=eq.${session.id}` },
+        () => { load() },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [session.id, load])
+
   const loadResponses = useCallback(async () => {
     const password = getPwd()!
     setResponsesLoading(true)

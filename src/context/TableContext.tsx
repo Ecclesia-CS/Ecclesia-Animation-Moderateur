@@ -86,7 +86,16 @@ export function TableProvider({
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
   const [ready, setReady] = useState(false)
-  const [isModerator, setIsModerator] = useState(initialIsModerator)
+  // Contrôle physique de la table (tables.created_by === userId, tables leaderless
+  // exclues) — chantier 35 : renommé en interne pour le distinguer du statut
+  // `session_members.is_moderator`, qui peut le révoquer sans toucher `created_by`.
+  const [physicalModerator, setPhysicalModerator] = useState(initialIsModerator)
+  // Chantier 35 — superadmin a retiré le statut de modérateur (session_members.is_moderator
+  // = false) pendant que ce participant est assis comme modérateur physique de la table.
+  // `false` par défaut (pas de véto tant que `load()` n'a pas vérifié) : sans séance
+  // rattachée ou sans ligne session_members pour ce user, ce véto ne s'applique jamais.
+  const [moderatorRevoked, setModeratorRevoked] = useState(false)
+  const isModerator = physicalModerator && !moderatorRevoked
 
   // Guard against double-calling onTableEnd
   const endedRef = useRef(false)
@@ -117,11 +126,23 @@ export function TableProvider({
     if (tbl.session_id) {
       const { data: sess } = await supabase.from('sessions').select('*').eq('id', tbl.session_id).maybeSingle()
       setSession(sess as Session | null)
+      // Chantier 35 — rattrape un retrait de modération fait pendant que ce
+      // client était hors ligne / avant montage (sinon on ne le saurait qu'au
+      // prochain UPDATE realtime, qui peut ne jamais arriver si rien d'autre
+      // ne change côté session_members entre-temps).
+      const { data: member } = await supabase
+        .from('session_members')
+        .select('is_moderator')
+        .eq('session_id', tbl.session_id)
+        .eq('user_id', userId)
+        .maybeSingle()
+      setModeratorRevoked((member as { is_moderator?: boolean } | null)?.is_moderator === false)
     } else {
       setSession(null)
+      setModeratorRevoked(false)
     }
     setReady(true)
-  }, [tableId, handleEnd])
+  }, [tableId, handleEnd, userId])
 
   // ── Targeted refetch (called by broadcast listener) ───────────
   const refetch = useCallback(async (tables: TableName[]) => {
@@ -167,8 +188,13 @@ export function TableProvider({
       { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
       ({ new: row, old: prev }) => {
         setTable(row as Table)
-        if (!(row as Table).leaderless && (prev as Table).created_by !== (row as Table).created_by) {
-          setIsModerator((row as Table).created_by === userId)
+        if ((row as Table).leaderless) {
+          // Chantier 35 — auparavant ignoré : si la table passe leaderless
+          // (created_by inchangé), le modérateur physique restait bloqué à
+          // `true` côté client jusqu'au prochain changement de created_by.
+          setPhysicalModerator(false)
+        } else if ((prev as Table).created_by !== (row as Table).created_by) {
+          setPhysicalModerator((row as Table).created_by === userId)
         }
       },
     )
@@ -254,6 +280,30 @@ export function TableProvider({
     const id = setInterval(() => load(), 5000)
     return () => clearInterval(id)
   }, [ready, load])
+
+  // ── Chantier 35 — statut modérateur (session_members.is_moderator) ────
+  // Canal distinct de `table:<id>` (concern différent, session_id peut être
+  // absent) : le superadmin peut retirer ce statut (onglet Tables/Membres)
+  // pendant que ce participant est déjà assis comme modérateur physique —
+  // sans ça, son écran restait bloqué sur ModeratorView jusqu'au prochain
+  // polling `load()` (5 s, best-effort) ou reload manuel.
+  useEffect(() => {
+    const sessionId = table?.session_id
+    if (!sessionId) return
+    const ch = supabase
+      .channel(`session-member-status:${tableId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'session_members', filter: `session_id=eq.${sessionId}` },
+        ({ new: row }) => {
+          const r = row as { user_id: string; is_moderator?: boolean }
+          if (r.user_id !== userId) return
+          setModeratorRevoked(r.is_moderator === false)
+        },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [tableId, table?.session_id, userId])
 
   // ── Actions ───────────────────────────────────────────────────
 
@@ -361,7 +411,7 @@ export function TableProvider({
       await rpc('designate_moderator', { p_table_id: tableId })
       // Mise à jour locale immédiate — le rebond Realtime confirmera pour les autres clients
       setTable(prev => prev ? { ...prev, leaderless: false, created_by: userId } : prev)
-      setIsModerator(true)
+      setPhysicalModerator(true)
       broadcast(['tables'])
     },
     [rpc, tableId, userId, broadcast],
