@@ -7,6 +7,8 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 - [ ] **2026-08-03** — Chantier 36 — **deux petites retouches UX** — branche `chantier-36-petites-retouches-ux` (worktree `C:/Users/jules/projet/Ecclesia-chantier-36`)
 
+  > ✅ **Mergé sur `origin/main` le 2026-08-03** (fast-forward pur `c4fd8b1..0c98775`, tag de rollback `pre-merge-chantier-36-20260803` posé sur l'ancien tip et poussé). Branche `chantier-36-petites-retouches-ux` aussi poussée sur `origin` pour référence. Aucune migration SQL, aucune modification de schéma. `origin/main` n'avait pas bougé depuis le dernier fetch (chantier 33) — pas de réconciliation nécessaire. Aucune interférence avec le chantier 35, en cours en parallèle sur `SuperadminScreen.tsx` mais sur une zone disjointe (voir détail plus bas).
+
   Retours bruts de Jules (dispatch "vague 03/08/26"), distincts du chantier 35 (bugs de synchronisation temps réel, en parallèle sur une partie des mêmes fichiers) :
   > Toute petite retouche éventuelle à noter pour le futur : dans l'allocation des tables, le modérateur apparait à la fois en tant que modérateur et participant.
 
