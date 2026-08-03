@@ -42,6 +42,26 @@ export async function confirmAttendance(
 }
 
 /**
+ * Chantier B3 — reconquête d'un profil pré-vote déjà inscrit (pseudo pris),
+ * par pseudo OU code de rappel. Contrairement à `confirmAttendance`, ne
+ * touche jamais `attending_in_person` : le vote reste à distance. Phase-safe
+ * côté serveur — n'agit que si la séance est encore en `pre_voting`.
+ */
+export async function reclaimPrevotingMember(
+  sessionId: string,
+  pseudo?: string,
+  code?: string
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('reclaim_prevoting_member', {
+    p_session_id: sessionId,
+    p_pseudo:     pseudo ?? null,
+    p_code:       code   ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as SessionMember
+}
+
+/**
  * Chantier 19 (G3) — onboarding à 3 questions.
  * Nécessite la migration 20260725_1_onboarding_3_questions.sql (l'ancienne
  * signature à 7 paramètres est supprimée en base).

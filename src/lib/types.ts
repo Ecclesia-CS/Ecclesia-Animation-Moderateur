@@ -213,6 +213,7 @@ export interface QuestionnaireExportRow {
   session_title: string | null
   table_id: string | null
   table_join_code: string | null
+  pseudo: string | null
   debate_attended: string | null
   debate_rating: number | null
   theme_ideas: string | null

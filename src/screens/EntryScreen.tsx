@@ -311,7 +311,7 @@ export default function EntryScreen({ onJoined }: Props) {
                   </select>
                 )}
               </div>
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
+              <Field label="Prénom Nom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">
                 Retiens bien ce que tu inscris ici — utilisé seulement si tu n'as pas encore de profil sur cette séance.
               </p>
@@ -334,7 +334,7 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
+              <Field label="Prénom Nom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -353,7 +353,7 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleReclaim} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Votre nom Prénom" value={pseudo}
+              <Field label="Votre Prénom Nom" value={pseudo}
                 onChange={setPseudo} placeholder="Prénom Nom" />
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -372,7 +372,7 @@ export default function EntryScreen({ onJoined }: Props) {
 
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (modérateur)'} value={pseudo} onChange={setPseudo}
+              <Field label={leaderless ? 'Votre Prénom Nom' : 'Prénom Nom (modérateur)'} value={pseudo} onChange={setPseudo}
                 placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
