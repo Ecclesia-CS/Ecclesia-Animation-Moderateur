@@ -1207,6 +1207,10 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 - [ ] **2026-08-03** — Chantier 35 (retours vague 03/08/26 — synchronisation temps réel du statut modérateur) — `src/context/TableContext.tsx`, `src/screens/VoteScreen.tsx`, `src/screens/SuperadminScreen.tsx`, `supabase/migrations/20260803_chantier35_session_members_replica_identity.sql` (nouvelle, **non appliquée** — MCP Supabase indisponible cette session)
 
+  > ✅ **Mergé sur `origin/main` le 2026-08-03** (fast-forward pur `367d074..42ccae2`, tag de rollback `pre-merge-chantier-35-20260803` posé sur l'ancien tip `origin/main` et poussé). Branche `chantier-35-sync-realtime-moderateur` aussi poussée sur `origin` pour référence. `origin/main` avait bougé deux fois pendant la session (chantiers 36 puis 37, retours de la même vague, zones majoritairement disjointes) — réconcilié par deux `git merge origin/main` successifs, conflit texte uniquement sur `PROJECT_STATUS.md` (résolu en conservant les trois entrées 35/36/37), aucun conflit de code : `SuperadminScreen.tsx`, touché par les trois chantiers, a fusionné proprement. `npx tsc --noEmit`/`npm run build`/`npx vitest run` (90/91, 1 skip préexistant) OK **après** chaque merge.
+  >
+  > **La migration SQL reste non appliquée** (`supabase/migrations/20260803_chantier35_session_members_replica_identity.sql`) — les deux abonnements realtime `session_members` ajoutés (`VoteScreen.tsx`, `TableContext.tsx`) restent inertes tant qu'elle ne l'est pas (le polling 15s/5s de secours limite l'impact, mais la mise à jour instantanée visée par ce chantier ne fonctionnera pas). Le parcours manuel décrit plus bas reste entièrement à faire par Jules.
+
   **Contexte** : trois retours de Jules sur la synchronisation temps réel autour du statut modérateur. Investigation de l'architecture existante avant tout correctif (voir détail complet dans le rapport de session) :
 
   1. **Superadmin ne voit pas un changement initié côté participant** (auto-attachement chantier 33, `reclaim_moderator`) sans reload.
