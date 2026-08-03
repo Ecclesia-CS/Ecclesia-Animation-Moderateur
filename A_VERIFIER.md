@@ -7,6 +7,8 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 - [ ] **2026-08-03** — Chantier 37 — **retours vague 03/08/26 (bouton clustering hérité + bug modérateur)** — branche `chantier-37-retours-vague-03-08` (worktree `C:/Users/jules/projet/Ecclesia-chantier-37`)
 
+  > ✅ **Mergé sur `origin/main` le 2026-08-03** (fast-forward pur `318d497..cf7083d`, tag de rollback `pre-merge-chantier-37-20260803` posé sur l'ancien tip et poussé). Branche `chantier-37-retours-vague-03-08` aussi poussée sur `origin` pour référence. `origin/main` n'avait pas bougé depuis le fetch initial (chantier 35 encore local, jamais poussé sur `origin`) — pas de réconciliation nécessaire. **La migration SQL reste non appliquée** (`supabase/migrations/20260803_chantier37_set_member_moderator_seat.sql`, MCP Supabase indisponible cette session) — le point 2 reste inerte tant qu'elle ne l'est pas.
+
   Deux retours bruts de Jules, cités mot pour mot :
   > Phase vote presentiel : le bouton répartir les tables doit être enlevé. Je ne vois pas à quoi il sert encore.
 
