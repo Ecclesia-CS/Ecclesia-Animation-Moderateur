@@ -336,6 +336,28 @@ export async function createTablesBatch(
   return (data as { table_id: string; join_code: string; leaderless: boolean }[]) ?? []
 }
 
+/**
+ * Chantier 33 — assigne manuellement un membre comme modérateur d'une table
+ * précise (superadmin) : pose `is_moderator = true` et (dé)place sa ligne
+ * `table_assignments` sur cette table. Pour retirer un modérateur d'une
+ * table, réutiliser `setMemberModerator(..., false)` — il redevient un
+ * participant ordinaire, toujours assis à la même table.
+ */
+export async function assignModeratorToTable(
+  password: string,
+  sessionId: string,
+  tableNumber: number,
+  memberId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('assign_moderator_to_table', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_table_number: tableNumber,
+    p_member_id: memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+}
+
 /** G4 — marque/démarque un membre comme modérateur de cette séance. */
 export async function setMemberModerator(
   password: string,

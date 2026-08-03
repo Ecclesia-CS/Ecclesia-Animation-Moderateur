@@ -30,7 +30,7 @@ import {
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
-  loadAllocationInputs, setMemberModerator,
+  loadAllocationInputs, setMemberModerator, assignModeratorToTable,
 } from '../lib/voting'
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
@@ -1135,6 +1135,15 @@ function SessionDetail({
 
     const memberId   = active.id as string
     const overIdStr  = over.id as string
+
+    // Chantier 33 (point 2) — déposer un membre sur la zone "Ajouter un
+    // modérateur" d'une table l'y assied comme modérateur (glisser-déposer).
+    if (overIdStr.startsWith('add-moderator-')) {
+      const targetTableNumber = parseInt(overIdStr.replace('add-moderator-', ''), 10)
+      await handleAssignTableModerator(targetTableNumber, memberId)
+      return
+    }
+
     if (!overIdStr.startsWith('group-')) return
 
     const targetTableNumber = parseInt(overIdStr.replace('group-', ''), 10)
@@ -1326,6 +1335,53 @@ function SessionDetail({
       setGroupsLoading(false)
     }
   }, [session.id])
+
+  /**
+   * Chantier 33 (point 2) — assigne un membre comme modérateur d'une table
+   * précise (drag & drop ou saisie de nom). Réutilisable par les deux
+   * entrées : `assign_moderator_to_table` pose `is_moderator` et (dé)place
+   * la ligne `table_assignments` en une seule transaction.
+   */
+  const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await assignModeratorToTable(password, currentSession.id, tableNumber, memberId)
+      await loadGroups()
+      await loadMembers()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [currentSession.id, onAuthError, loadGroups, loadMembers])
+
+  /**
+   * Chantier 33 (point 2) — « retirer » un modérateur d'une table : il
+   * redevient un participant ordinaire, toujours assis à la même table.
+   * Réutilise `set_member_moderator`, déjà existante (chantier 19/25c).
+   */
+  const handleRemoveTableModerator = useCallback(async (memberId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await setMemberModerator(password, currentSession.id, memberId, false)
+      await loadGroups()
+      await loadMembers()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [currentSession.id, onAuthError, loadGroups, loadMembers])
 
   useEffect(() => {
     const p = currentSession.phase
@@ -1979,23 +2035,6 @@ function SessionDetail({
                   </SectionAccordion>
                 )}
 
-                {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
-                    `allocating` (§7). Le panneau « Réponses modérateur » (E4)
-                    a été supprimé : la demande d'encadrement est traitée par
-                    la règle 5 de l'algorithme. */}
-                {currentSession.phase === 'allocating' && (
-                  <AllocationPanel
-                    // Chantier 25 (H14) — l'état de travail du panneau est
-                    // restauré depuis sessionStorage au montage : la clé garantit
-                    // un remontage si la séance change sans démontage du parent.
-                    key={currentSession.id}
-                    sessionId={currentSession.id}
-                    password={getPwd()!}
-                    onApplied={() => { loadGroups(); setActiveTab('tables') }}
-                    onAuthError={onAuthError}
-                  />
-                )}
-
                 <ModerationPolicyEditor
                   currentPolicy={currentSession.moderation_policy}
                   onSave={async (policy) => {
@@ -2107,6 +2146,25 @@ function SessionDetail({
             {/* ── Onglet Tables ────────────────────────────── */}
             {activeTab === 'tables' && (
               <div className="space-y-4">
+                {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
+                    `allocating` (§7). Le panneau « Réponses modérateur » (E4)
+                    a été supprimé : la demande d'encadrement est traitée par
+                    la règle 5 de l'algorithme.
+                    Chantier 33 — déplacé depuis l'onglet « En direct » : sa
+                    place est ici, avec le reste de la gestion des tables. */}
+                {currentSession.phase === 'allocating' && (
+                  <AllocationPanel
+                    // Chantier 25 (H14) — l'état de travail du panneau est
+                    // restauré depuis sessionStorage au montage : la clé garantit
+                    // un remontage si la séance change sans démontage du parent.
+                    key={currentSession.id}
+                    sessionId={currentSession.id}
+                    password={getPwd()!}
+                    onApplied={loadGroups}
+                    onAuthError={onAuthError}
+                  />
+                )}
+
                 {/* Groupes (allocating/debating) */}
                 {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden px-5 py-4 space-y-3">
@@ -2201,19 +2259,30 @@ function SessionDetail({
                               const mod = g.members.find(m => m.is_moderator)
                               if (mod) {
                                 return (
-                                  <div className="mb-2">
+                                  <div className="mb-2 flex items-center gap-1.5 flex-wrap">
                                     <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
                                       🎙️ Modérateur : <strong>{mod.pseudo}</strong>
                                     </span>
+                                    <button
+                                      onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                      disabled={movingMember}
+                                      className="text-xs text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                      title="Redevient un participant ordinaire de cette table"
+                                    >
+                                      Retirer
+                                    </button>
                                   </div>
                                 )
                               }
                               if (g.moderated) {
                                 return (
                                   <div className="mb-2">
-                                    <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1">
-                                      ⏳ En attente de modérateur
-                                    </span>
+                                    <AddModeratorControl
+                                      tableNumber={g.table_number}
+                                      candidates={members}
+                                      onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
+                                      disabled={movingMember}
+                                    />
                                   </div>
                                 )
                               }
@@ -3316,6 +3385,85 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
       }`}
     >
       {children}
+    </div>
+  )
+}
+
+/**
+ * Chantier 33 (point 2) — table animée en attente d'un modérateur : le
+ * superadmin peut soit glisser-déposer un `DraggableMemberChip` dessus
+ * (zone droppable `add-moderator-<table_number>`, gérée par
+ * `handleGroupDragEnd`), soit taper un nom.
+ *
+ * Choix d'implémentation : autocomplete (datalist native sur les pseudos
+ * déjà inscrits à la séance) plutôt qu'un champ libre, pour éviter les
+ * fautes de frappe qui échoueraient silencieusement à retrouver le bon
+ * membre. La résolution nom → member_id se fait côté client (correspondance
+ * exacte insensible à la casse) ; `session_members` a une contrainte
+ * UNIQUE(session_id, pseudo), donc un pseudo désigne au plus un membre.
+ */
+function AddModeratorControl({
+  tableNumber, candidates, onAssign, disabled,
+}: {
+  tableNumber: number
+  candidates: SessionMemberAdmin[]
+  onAssign(memberId: string): void
+  disabled?: boolean
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `add-moderator-${tableNumber}` })
+  const [name,  setName]  = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const datalistId = `moderator-candidates-${tableNumber}`
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = name.trim().toLowerCase()
+    const match = candidates.find(c => c.pseudo.trim().toLowerCase() === trimmed)
+    if (!match) {
+      setError('Aucun participant inscrit avec ce nom — vérifie l\'orthographe.')
+      return
+    }
+    setError(null)
+    setName('')
+    onAssign(match.id)
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg border px-2.5 py-2 transition-colors ${
+        isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-amber-200 bg-amber-50/60'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-xs text-amber-800 inline-flex items-center gap-1">
+          ⏳ En attente de modérateur
+        </span>
+        <span className="text-xs text-gray-400">glisse un participant ici, ou :</span>
+      </div>
+      <form onSubmit={handleSubmit} className="flex items-center gap-1.5">
+        <input
+          list={datalistId}
+          value={name}
+          onChange={e => { setName(e.target.value); setError(null) }}
+          disabled={disabled}
+          placeholder="Nom prénom du modérateur…"
+          className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+            focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white disabled:opacity-50"
+        />
+        <datalist id={datalistId}>
+          {candidates.map(c => <option key={c.id} value={c.pseudo} />)}
+        </datalist>
+        <button
+          type="submit"
+          disabled={disabled || !name.trim()}
+          className="shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+            text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ➕ Ajouter
+        </button>
+      </form>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
   )
 }
