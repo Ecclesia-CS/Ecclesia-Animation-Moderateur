@@ -28,7 +28,7 @@ import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, Mo
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
+  getVoteCountsAdmin, getThemeStatsAll, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
 } from '../lib/voting'
@@ -971,11 +971,46 @@ function SessionDetail({
   const [phaseConfirm, setPhaseConfirm] = useState<{ phase: Session['phase']; label: string; isBack: boolean } | null>(null)
   const [phaseActing, setPhaseActing]   = useState(false)
 
+  /**
+   * Chantier 37 — fusion IA « en fin de vote » (toggle du panneau de
+   * modération, clé localStorage `ai_auto_merge_<id>`). Elle ne déclenchait
+   * auparavant que depuis la modale héritée « Répartir en tables »
+   * (chantier 19, RPC run_clustering_v1/v2) — supprimée ici (plus aucun
+   * usage réel depuis l'allocation v2, cf. AllocationPanel). Rattachée au
+   * seul point de sortie de la phase voting qui reste : le passage manuel
+   * en allocating, pour ne pas perdre le toggle.
+   */
+  async function runAutoMergeIfEnabled(password: string) {
+    const autoMerge = localStorage.getItem(`ai_auto_merge_${currentSession.id}`) === 'true'
+    if (!autoMerge) return
+    const allAssertions = await listAssertionsAdmin(password, currentSession.id)
+    const approved = allAssertions.filter(a => a.status === 'approved')
+    if (approved.length < 2) return
+    const { results: merges } = await mergeAssertions({
+      session_id:          currentSession.id,
+      session_title:       currentSession.title,
+      session_description: currentSession.description ?? null,
+      assertions:          approved.map(a => ({ id: a.id, content: a.content })),
+    })
+    for (const merge of merges) {
+      for (const rejectId of merge.reject_ids) {
+        // RPC atomique : transfère les votes (sinon perte des votes
+        // portés sur l'assertion fusionnée — bug B4), rejette
+        // l'assertion absorbée et enregistre de quoi annuler la
+        // fusion depuis le panneau IA (chantier 18 / F24).
+        await applyAssertionMerge(password, merge.keep_id, rejectId, null, merge.reason ?? null)
+      }
+    }
+  }
+
   async function handlePhaseChange(targetPhase: Session['phase']) {
     const password = getPwd()!
     setPhaseActing(true)
     setPhaseConfirm(null)
     try {
+      if (targetPhase === 'allocating' && currentSession.phase === 'voting') {
+        await runAutoMergeIfEnabled(password)
+      }
       const updated = await setSessionPhase(password, currentSession.id, targetPhase)
       setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
       if (targetPhase === 'questionnaire') {
@@ -1102,10 +1137,6 @@ function SessionDetail({
   // Chargées avec les groupes : servent au recalcul en direct des
   // diagnostics quand le superadmin déplace quelqu'un (§7).
   const [allocInputs,    setAllocInputs]    = useState<AllocationInputs | null>(null)
-
-  // ── C3 : clustering ────────────────────────────────────────
-  const [showClusteringModal, setShowClusteringModal] = useState(false)
-  const [hasAnalysisDone,     setHasAnalysisDone]     = useState(false)
 
   // ── C5 : groupes et assignation ───────────────────────────
   const [groups,          setGroups]          = useState<GroupRow[]>([])
@@ -2028,11 +2059,7 @@ function SessionDetail({
                     {statsLoading && !votingStats ? (
                       <p className="text-sm text-gray-400 py-2">Chargement…</p>
                     ) : votingStats ? (
-                      <VotingStatsPanel
-                        stats={votingStats}
-                        session={currentSession}
-                        onTriggerClustering={() => setShowClusteringModal(true)}
-                      />
+                      <VotingStatsPanel stats={votingStats} />
                     ) : null}
                   </SectionAccordion>
                 )}
@@ -2091,7 +2118,6 @@ function SessionDetail({
                     password={getPwd()!}
                     assertions={assertions}
                     onAuthError={onAuthError}
-                    onAnalysisStatusChange={setHasAnalysisDone}
                     onAnalysisComplete={handleAnalysisNaming}
                     groupNames={groupNames}
                     totalMembers={members.length > 0 ? members.length : undefined}
@@ -3000,53 +3026,6 @@ function SessionDetail({
           onCancel={() => setPhaseConfirm(null)}
         />
       )}
-
-      {showClusteringModal && votingStats && (
-        <ClusteringModal
-          stats={votingStats}
-          attachedTableCount={attachedTables.length}
-          title={hasAnalysisDone ? '🎯 Répartition hétérogène' : '🔀 Répartition aléatoire'}
-          warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
-          onConfirm={async (targetSize) => {
-            const password = getPwd()!
-
-            // Auto-merge si activé dans localStorage
-            const autoMerge = localStorage.getItem(`ai_auto_merge_${currentSession.id}`) === 'true'
-            if (autoMerge) {
-              const allAssertions = await listAssertionsAdmin(password, currentSession.id)
-              const approved = allAssertions.filter(a => a.status === 'approved')
-              if (approved.length >= 2) {
-                const { results: merges } = await mergeAssertions({
-                  session_id:          currentSession.id,
-                  session_title:       currentSession.title,
-                  session_description: currentSession.description ?? null,
-                  assertions:          approved.map(a => ({ id: a.id, content: a.content })),
-                })
-                for (const merge of merges) {
-                  for (const rejectId of merge.reject_ids) {
-                    // RPC atomique : transfère les votes (sinon perte des votes
-                    // portés sur l'assertion fusionnée — bug B4), rejette
-                    // l'assertion absorbée et enregistre de quoi annuler la
-                    // fusion depuis le panneau IA (chantier 18 / F24).
-                    await applyAssertionMerge(
-                      password, merge.keep_id, rejectId, null,
-                      merge.reason ?? null,
-                    )
-                  }
-                }
-              }
-            }
-
-            const result = hasAnalysisDone
-              ? await runClusteringV2(password, currentSession.id, targetSize)
-              : await runClusteringV1(password, currentSession.id, targetSize)
-            setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
-            return result
-          }}
-          onClose={() => setShowClusteringModal(false)}
-          onAuthError={onAuthError}
-        />
-      )}
     </div>
   )
 }
@@ -3264,17 +3243,7 @@ function SectionAccordion({
 
 // ── VotingStatsPanel ──────────────────────────────────────────────
 
-function VotingStatsPanel({
-  stats,
-  session,
-  onTriggerClustering,
-}: {
-  stats: SessionVotingStats
-  session: SessionRow
-  onTriggerClustering(): void
-}) {
-  const showClusterBtn = session.phase === 'voting'
-
+function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -3306,16 +3275,6 @@ function VotingStatsPanel({
             <p className="text-xs text-gray-500">À distance</p>
           </div>
         </div>
-      )}
-
-      {/* Clustering trigger */}
-      {showClusterBtn && (
-        <button
-          onClick={onTriggerClustering}
-          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-        >
-          🎯 Répartir en tables
-        </button>
       )}
     </div>
   )
@@ -3484,151 +3443,6 @@ function AddModeratorControl({
         </button>
       </form>
       {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-    </div>
-  )
-}
-
-// ── ClusteringModal ───────────────────────────────────────────────
-
-function ClusteringModal({
-  stats,
-  attachedTableCount,
-  onConfirm,
-  onClose,
-  onAuthError,
-  title,
-  warning,
-}: {
-  stats: SessionVotingStats
-  attachedTableCount: number
-  onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
-  onClose(): void
-  onAuthError(): void
-  title?: string
-  warning?: string
-}) {
-  const [targetSize, setTargetSize]   = useState(7)
-  const [loading,    setLoading]      = useState(false)
-  const [error,      setError]        = useState<string | null>(null)
-  const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
-
-  const expectedGroups = stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : 0
-  const notEnoughTables = expectedGroups > attachedTableCount
-
-  async function handleConfirm() {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await onConfirm(targetSize)
-      setResult(res)
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError(); return
-      }
-      setError(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-        <div className="px-6 pt-6 pb-2">
-          <h2 className="text-base font-semibold text-gray-900">{title ?? '🔀 Déclencher le clustering'}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Répartit les participants en tables de discussion</p>
-        </div>
-
-        <div className="px-6 py-4 space-y-4">
-          {warning && (
-            <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-700">
-              ⚠️ {warning}
-            </div>
-          )}
-          {/* Stats recap */}
-          <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <p className="text-gray-500 text-xs">Participants inscrits</p>
-              <p className="font-bold text-gray-900">{stats.member_count}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Ont voté</p>
-              <p className="font-bold text-gray-900">{stats.voter_count}</p>
-            </div>
-          </div>
-
-          {result ? (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-              <p className="text-green-700 font-semibold text-sm">
-                ✅ {result.table_count} tables créées pour {result.member_count} participants
-              </p>
-              <p className="text-xs text-green-600 mt-1">La séance est maintenant en phase Allocation</p>
-            </div>
-          ) : (
-            <>
-              {/* Target size input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Taille cible par table
-                </label>
-                <input
-                  type="number"
-                  min={3}
-                  max={15}
-                  value={targetSize}
-                  onChange={e => setTargetSize(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s) · {attachedTableCount} rattachée(s)
-                </p>
-              </div>
-
-              {/* Chantier 19 (G5) — l'option « Allocation avancée »
-                  (run_clustering_v3) est supprimée : l'algorithme v2 la
-                  remplace intégralement. v1/v2 restent accessibles ici le
-                  temps de valider v2 en production. */}
-              <p className="text-xs text-gray-400 leading-snug bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                💡 Répartition héritée (aléatoire ou hétérogène simple). Pour
-                l'algorithme v2 — 5 règles, tables créées automatiquement —
-                passe la séance en phase <b>Allocation</b> et utilise le
-                panneau « Allocation des tables ».
-              </p>
-
-              {notEnoughTables && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                  ⚠️ Il faut {expectedGroups} table(s) rattachée(s) mais seulement {attachedTableCount} sont disponibles. Rattachez des tables à la séance avant de lancer le clustering.
-                </div>
-              )}
-
-              {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="px-6 pb-6 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            {result ? 'Fermer' : 'Annuler'}
-          </button>
-          {!result && (
-            <button
-              onClick={handleConfirm}
-              disabled={loading || notEnoughTables}
-              className="flex-1 py-2.5 text-sm font-medium bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl transition-colors"
-            >
-              {loading ? 'Clustering…' : 'Confirmer'}
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

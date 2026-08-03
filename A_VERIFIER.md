@@ -5,6 +5,29 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **2026-08-03** — Chantier 37 — **retours vague 03/08/26 (bouton clustering hérité + bug modérateur)** — branche `chantier-37-retours-vague-03-08` (worktree `C:/Users/jules/projet/Ecclesia-chantier-37`)
+
+  Deux retours bruts de Jules, cités mot pour mot :
+  > Phase vote presentiel : le bouton répartir les tables doit être enlevé. Je ne vois pas à quoi il sert encore.
+
+  > Si j'ajoute dans l'accordéon participant un modérateur, cela fonctionne dans l'onglet table uniquement s'il est dans la même table qui est en attente de modérateur. Si le participant est dans une autre table, qui possède déja un modérateur, il ne devient pas le modérateur de cette table (ok), mais le problème c'est qu'il ne devient pas non plus le modérateur de la table sans modérateur (le bug). A fix.
+
+  **1. Bouton « Répartir en tables » supprimé** (`SuperadminScreen.tsx`, `VotingStatsPanel`) — confirmé obsolète en lisant le code : depuis le chantier 19, il court-circuitait l'allocation v2 en créant les tables via l'algorithme hérité (RPC `run_clustering_v1`/`v2` — aléatoire ou PCA simple) et poussait directement la phase en `allocating`, sans jamais passer par `AllocationPanel`. La modale elle-même avertissait déjà l'utilisateur de préférer l'algorithme v2. Composant `ClusteringModal` et wrappers `runClusteringV1`/`runClusteringV2` (`lib/voting.ts`) supprimés. Les RPC `run_clustering_v1`/`v2` restent en base, non appelées par le frontend — pas touchées (pas demandé, risque inutile de les retirer).
+
+  **Effet de bord repéré et corrigé** : le toggle IA « Fusionner auto en fin de vote » (`LLMModerationPanel`, clé localStorage `ai_auto_merge_<id>`) ne déclenchait *que* depuis le `onConfirm` de cette modale — en la supprimant telle quelle, ce toggle serait devenu un interrupteur mort. Déplacé dans `handlePhaseChange` (superadmin), déclenché quand la séance passe de `voting` à `allocating` — c'est le seul point de sortie de phase `voting` qui reste, et « fin de vote » en est une lecture fidèle. Détail dans `CLAUDE.md` (section Phase de vote + Modération IA).
+
+  **2. Bug de réassignation modérateur — migration SQL écrite, non appliquée** : `supabase/migrations/20260803_chantier37_set_member_moderator_seat.sql`. Confirmé : le toggle modérateur de la liste des participants (`SuperadminScreen`, `handleToggleModerator` → `set_member_moderator`) ne posait que le flag `is_moderator`, sans jamais toucher `table_assignments` — contrairement à `claim_moderator_status` (chantier 33/point 3) et `assign_moderator_to_table` (chantier 33/point 2), qui assoient déjà le nouveau modérateur sur la première table animée sans modérateur. D'où le symptôme exact décrit par Jules : ça ne « marche » que par coïncidence, quand le participant est déjà assis à la bonne table. Fix : reprise à l'identique de la logique de placement de `claim_moderator_status` (même requête, même choix arbitraire déjà validé par Jules — la première table dans l'ordre des numéros), exécutée aussi par `set_member_moderator` quand `p_is_moderator = true`. Démarquer un modérateur (`false`) reste inchangé.
+
+  **MCP Supabase indisponible cette session** (`ToolSearch "+supabase"` → rien, re-testé en cours de session) — la migration n'a pas pu être appliquée. **À appliquer avant que ce fix soit actif.**
+
+  **Vérifié par moi** (`npx tsc --noEmit` OK, `npm test` : 90/91 passés, 1 skip préexistant — aucun test ne couvrait `set_member_moderator` côté SQL) :
+  - Point 1 : recherche exhaustive de toute référence résiduelle à `runClusteringV1`/`runClusteringV2`/`ClusteringModal`/`showClusteringModal`/`hasAnalysisDone`/`onTriggerClustering` dans `src/` — aucune. Superadmin non testable en navigateur cette session (mot de passe superadmin jamais saisi, règle de sécurité constante sur ce projet) : écran d'accueil chargé sans erreur console (worktree dédié, port 5201, données réelles visibles — séances de test des chantiers 33/30-32), confirme au moins que le retrait du bouton n'a rien cassé de plus large dans `SuperadminScreen.tsx`.
+  - Point 2 : **non vérifiable en conditions réelles cette session** — migration non appliquée (cf. ci-dessus) + mot de passe superadmin non détenu. Correction validée par relecture attentive (requête copiée à l'identique depuis `claim_moderator_status`, déjà en production) et par le typecheck (aucun changement frontend requis, `set_member_moderator` garde la même signature).
+
+  **Parcours manuel restant (après application de la migration, mot de passe superadmin requis)** :
+  1. Répartir en tables : vérifier que le bouton n'apparaît plus du tout en phase `voting`, et que la fusion IA se déclenche bien (si le toggle est activé) au moment du passage `voting → allocating`.
+  2. Bug modérateur : séance avec ≥2 tables animées en `allocating`/`debating`, une avec modérateur déjà assis, une sans. Depuis la liste des participants (onglet Participants), cocher "modérateur" sur quelqu'un assis à la table déjà pourvue → vérifier qu'il apparaît maintenant assis (déplacé) sur la table sans modérateur, dans l'onglet Tables.
+
 - [ ] **2026-08-03** — Chantier 36 — **deux petites retouches UX** — branche `chantier-36-petites-retouches-ux` (worktree `C:/Users/jules/projet/Ecclesia-chantier-36`)
 
   > ✅ **Mergé sur `origin/main` le 2026-08-03** (fast-forward pur `c4fd8b1..0c98775`, tag de rollback `pre-merge-chantier-36-20260803` posé sur l'ancien tip et poussé). Branche `chantier-36-petites-retouches-ux` aussi poussée sur `origin` pour référence. Aucune migration SQL, aucune modification de schéma. `origin/main` n'avait pas bougé depuis le dernier fetch (chantier 33) — pas de réconciliation nécessaire. Aucune interférence avec le chantier 35, en cours en parallèle sur `SuperadminScreen.tsx` mais sur une zone disjointe (voir détail plus bas).
