@@ -22,7 +22,7 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   **Test minimal** : séance en phase `voting` → vérifier l'absence du bouton. Avec le toggle "Fusionner auto en fin de vote" activé, faire passer la séance en `allocating` → vérifier que la fusion IA s'est bien déclenchée (log `LLMModerationPanel`).
 
 - [ ] **Chantier 37 — Point 2 : bug de réassignation modérateur**
-  Mergé sur `main` (`cf7083d`) côté code. **Migration `supabase/migrations/20260803_chantier37_set_member_moderator_seat.sql` non appliquée — à appliquer en premier, ce point reste inerte sans elle.**
+  Mergé sur `main` (`cf7083d`). **Migration `supabase/migrations/20260803_chantier37_set_member_moderator_seat.sql` appliquée et vérifiée par Jules côté Supabase** (`set_member_moderator` confirmée contenir la logique de placement) — seul le test manuel ci-dessous reste à faire.
 
   **Comportement attendu** : depuis la liste des participants (onglet Membres du superadmin), cocher "modérateur" sur quelqu'un doit maintenant l'asseoir automatiquement sur la première table animée encore sans modérateur (même logique que `claim_moderator_status`), pas seulement poser le flag.
 
@@ -45,7 +45,7 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   **Test minimal** : depuis "Séances en cours", "Rejoindre →" sur une séance `debating`, avec un compte n'ayant jamais rejoint cette séance → cocher la case, code de table réel + code Ecclesia réel → vérifier l'arrivée en `ModeratorView`.
 
 - [ ] **Chantier 35 — synchronisation temps réel du statut modérateur**
-  Mergé sur `main` (`42ccae2`) côté code. **Migration `supabase/migrations/20260803_chantier35_session_members_replica_identity.sql` non appliquée — à appliquer en premier** : les deux abonnements realtime `session_members` ajoutés restent inertes sans elle (polling 15s/5s de secours en attendant, donc pas cassé mais pas instantané).
+  Mergé sur `main` (`42ccae2`). **Migration `supabase/migrations/20260803_chantier35_session_members_replica_identity.sql` appliquée et vérifiée par Jules côté Supabase** (`REPLICA IDENTITY FULL` confirmé sur `session_members`) — les deux abonnements realtime `session_members` sont donc actifs, seul le test manuel ci-dessous reste à faire.
 
   **Comportement attendu** (3 points) :
   1. Superadmin voit en direct (sans reload) un changement de modérateur initié côté participant (auto-attachement chantier 33, `reclaim_moderator`) — section "Tables rattachées" ET onglet Tables/Groupes.
@@ -54,7 +54,7 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **Volontairement pas traité** : le sens inverse du point 2 (superadmin *ajoute* le statut modérateur à quelqu'un déjà physiquement assis à une table) ne fait pas basculer son écran vers `ModeratorView` — asymétrie connue, pas demandée par Jules.
 
-  **Test minimal** (mot de passe superadmin requis, après application de la migration) :
+  **Test minimal** (mot de passe superadmin requis) :
   1. **Point 1 (reclaim)** : superadmin sur "Tables rattachées" ouvert, 2ᵉ onglet fait un `reclaim_moderator` sur une table → `moderator_pseudo` doit se mettre à jour sans reload (~15s max).
   2. **Point 1 (auto-attachement, à re-tester en priorité — jamais reproduit en session)** : séance `allocating`/`debating`, table animée sans modérateur, superadmin sur l'onglet 🪑 Tables. 2ᵉ onglet : `#session/<code>` → "🎙️ Modérateur" → se déclarer modérateur → vérifier l'apparition à la table sans reload.
   3. **Point 2 (retrait en débat)** : participant modérateur physique d'une table en `debating` → superadmin retire son statut (onglet Tables ou case Membres) → vérifier bascule vers `ParticipantView` sans reload, puis réversibilité en recochant.
