@@ -46,7 +46,7 @@ computer { action: "left_click", ref: "ref_N" }                  → interaction
 get_page_text {}                                                 → vérifier le contenu affiché
 ```
 
-**Règle pour les états asynchrones du cycle de séance** (`draft → pre_voting → voting → allocating → debating → questionnaire → closed`, et transitions Realtime en général) :
+**Règle pour les états asynchrones du cycle de séance** (`draft → pre_voting → voting → allocating → debating → closed`, et transitions Realtime en général) :
 
 Ne **jamais** enchaîner une action (clic, RPC déclenchant un changement de phase) avec une vérification immédiate. L'app elle-même n'attend jamais une transition instantanément — elle combine Realtime + polling de secours (5-10s selon l'écran, voir `AllocatingScreen`/`VoteScreen`). Le test navigateur doit reproduire cette tolérance : après une action qui déclenche un changement d'état (phase de séance, apparition d'un participant, mise à jour d'une file d'attente...), **relire l'état affiché en boucle bornée** (`read_page`/`get_page_text`, intervalle ~1-2s, jusqu'à ~15-20s de plafond) jusqu'à observer le résultat attendu, plutôt que de cliquer ou d'asserter juste après l'action. Un échec après le plafond est un vrai signal (bug ou régression Realtime) — ne pas l'ignorer en relançant indéfiniment.
 
@@ -62,11 +62,12 @@ Après tout test navigateur, ou toute implémentation dont le comportement reste
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`questionnaire`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
 
-Phase order : `draft → pre_voting → voting → allocating → debating → questionnaire → closed`
+Phase order : `draft → pre_voting → voting → allocating → debating → closed`
 - `pre_voting` : vote ouvert à distance, `attending_in_person = false` par défaut. Pas d'onboarding.
 - `voting` : vote présentiel uniquement — confirmation présentielle requise. Clustering filtre `attending_in_person = true`.
+- **Chantier 39** : la phase `questionnaire` a été supprimée de l'énumération — voir « Nomenclature des phases côté participant » plus bas pour la correspondance à jour et le mécanisme de déclenchement automatique du questionnaire post-débat.
 
 ### `tables`
 `id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`)
@@ -215,15 +216,16 @@ src/
 │   ├── analysis.ts       PCA + k-means côté navigateur (runOpinionAnalysis, loadVotesForAnalysis, loadLatestAnalysis, saveAnalysisResult, loadResultsMap). `ResultsMapData` inclut `repness`, `group_consensus`, `all_assertions` (depuis migration `20260621`). Score repness : `(mean_vote_in_group − mean_vote_out_group) × n_votes_réels_groupe`. `loadVotesForAnalysis` accepte `attendingOnly?: boolean`.
 │   ├── groupNaming.ts    Orchestration du nommage des camps (Gemini + repli descriptif). `namingGroupsFromAnalysis(members)` — **seule** façon autorisée de construire la liste à nommer (invariant : `table_number` = `group_id + 1`, cf. « Ne jamais faire »). `discriminatingAssertions()` — top 3 des assertions où un camp s'écarte du reste, envoyées en `divisive_assertions` à Gemini (chantier 28 / H9). `groupsFingerprint()` — empreinte de composition, évite de rappeler Gemini. Tests : `src/lib/groupNaming.test.ts` (12 cas).
 │   ├── storage.ts        tableStore.get/set/clear (localStorage) + lastNameStore.get/set (dernier nom prénom saisi, préremplit les formulaires d'identité — D7)
+│   ├── phaseLabels.ts    **Chantier 39** — nomenclature des phases côté participant (`PARTICIPANT_PHASE_STEPS`, `participantPhaseStep()`), distincte des libellés superadmin. Voir « Nomenclature des phases côté participant ».
 │   └── utils.ts          formatDuration, extractErr, generateTableCSV, generateQuestionnaireCSV
 ├── hooks/
 │   ├── useLiveMs.ts      setInterval 500ms → Date.now()
 │   └── useTranscription.ts  ⚠️ LEGACY — reliquat du mode transcription *live* (WebSocket → backend temps réel). Le backend live a été supprimé le 2026-06-30 (transcription 100% offline désormais). Le hook et son bouton dans ModeratorView.tsx (l.180-599) sont morts tant qu'aucun serveur live ne tourne — à retirer ou réactiver selon décision.
 ├── context/TableContext.tsx  État, Realtime, Broadcast, polling, toutes les actions
 ├── screens/
-│   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s, phases pre_voting/voting/allocating/debating/questionnaire) + tabs Rejoindre/Reprendre/Créer + lien Administration
+│   ├── EntryScreen.tsx         Section "Séances en cours" (polling 30s, phases pre_voting/voting/allocating/debating) + tabs Rejoindre/Reprendre/Créer + lien Administration
 │   ├── SuperadminScreen.tsx    Auth sessionStorage, liste séances, clustering, ModerationPolicyEditor, LLMModerationPanel, nommage groupes Gemini. `SessionDetail` organisé en 4 onglets (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse). Persistance séance ouverte via `sessionStorage` (clé `ecclesia_superadmin_session`). Persistance onglet actif via `sessionStorage` (clé `ecclesia_admin_tab_<session.id>`, fallback `defaultTab(phase)`). Exports CSV + toggle questionnaire dans l'accordéon "Actions post-séance" (onglet Analyse). Stats présentiels/distance dans `VotingStatsPanel`.
-│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (pre_voting/voting/allocating → #vote/, debating → check member → #vote/ ou message) ; phase=closed → ResultsMapScreen (membre) ou PublicResultsScreen (visiteur)
+│   ├── SessionRouterScreen.tsx Routeur intelligent #session/<join_code> — redirige selon phase (pre_voting/voting/allocating → #vote/, debating → check member → #vote/ ou message) ; phase=closed → membre sans réponse au questionnaire post-débat → `SessionQuestionnaireForm`, sinon ResultsMapScreen (membre) ou PublicResultsScreen (visiteur) — chantier 39
 │   ├── VoteScreen.tsx          Flow vote participant. En `pre_voting` : pseudo → ReclaimCodeDisplay → vote (pas d'onboarding). En `voting` : VotingEntryForm (nom prénom OU code, reclaim auto si nom déjà pris) → **onboarding (entry_responses)** → vote → AllocatingScreen. Confirmation présentielle (known_user, même appareil) via AttendanceConfirmScreen, puis onboarding si pas déjà répondu. Champs identité (nom prénom) préremplis via `lastNameStore` (D7) — voir `lib/storage.ts`.
 │   ├── AllocatingScreen.tsx    Post-vote : affectation groupe, code table, nom du camp (DB via session.group_names en priorité, localStorage fallback), bouton rejoindre. Affiche VoteResultsSummary + accordéon "Voir toutes les assertions"
 │   ├── ResultsMapScreen.tsx    Écran résultats post-clôture (participant inscrit). Charge en parallèle : scatter PCA (`loadResultsMap`), affectation groupe (`getMyTableAssignment`), assertions (`getVoteResults`). Affiche : carte groupe (couleur du groupe, nom+description depuis session.group_names), section "Ce qui vous caractérise" (top repness du groupe), scatter avec légende nommée, "Les autres camps" (top repness par groupe), "Points de clivage" (spread repness inter-groupes), "Points de consensus". Fallback sans analyse PCA : dissensus via consensus_score. Couleur et nom du camp du participant basés sur `selfGroupId` (cluster k-means 0-indexé depuis `data.points`) — **NE PAS** utiliser `assignment.table_number` pour la recherche du nom Gemini car `table_number` est la table physique de débat, sans correspondance garantie avec le cluster k-means. Bouton "← Retour au menu" (hash='') en bas de page — permet de rejoindre une nouvelle séance depuis cet écran.
@@ -251,7 +253,8 @@ src/
     ├── QuestionnaireModal.tsx    6 questions, 26 thèmes aléatoires, upsert RPC
     ├── QuestionnaireFab.tsx      Bouton header → QuestionnaireModal
     ├── ParticipantToolsButton.tsx Panneau Outils (débat) : documentation, résultats du vote (modal VoteResultsList, lazy-loaded, visible si table.session_id non-null), notes, questionnaire
-    └── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL
+    ├── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL
+    └── PhaseIndicator.tsx        **Chantier 39** — pill "Étape N · Libellé" (voir `lib/phaseLabels.ts`). Prop `floating` : pill fixe façon `QuitLink` (coin opposé) pour les écrans sans en-tête propre ; sinon rendu inline (à intégrer dans l'en-tête existant de l'écran appelant).
 ```
 
 ### Edge Functions Supabase
@@ -367,12 +370,28 @@ Flux complet :
 4. **`allocating`** → **chantier 19** : le superadmin **déclenche manuellement** l'allocation v2 via `AllocationPanel` (rien d'automatique à l'entrée en phase — amendement à F13). Le calcul tourne dans son navigateur (`src/lib/allocation.ts`), la proposition s'affiche avec le statut de chaque seuil, puis `apply_allocation` crée les tables manquantes et écrit `table_assignments`. Retouches ensuite par glisser-déposer dans l'onglet Tables, avec recalcul des seuils en direct, avant que le superadmin ne déclenche lui-même `debating`. Participants voient leur numéro de groupe + nom du camp dans AllocatingScreen (polling 5s + Realtime). Polling couvre aussi la phase `allocating` quand `assignment === null`.
    *Chemin hérité — supprimé (chantier 37)* : le bouton « Répartir en tables » / modale de clustering (phase `voting`, RPC `run_clustering_v1`/`v2`) a été retiré du superadmin — retour de Jules (« je ne vois pas à quoi il sert encore »), confirmé en lisant le code : depuis le chantier 19, il court-circuitait l'allocation v2 en créant les tables via l'algorithme hérité (aléatoire ou PCA simple) et en poussant directement la phase en `allocating`, sans jamais passer par `AllocationPanel`. La modale elle-même avertissait déjà l'utilisateur d'utiliser l'algorithme v2 à la place. Le toggle IA « Fusionner auto en fin de vote » (`LLMModerationPanel`, clé `ai_auto_merge_<id>`) ne déclenchait que depuis cette modale : le déclenchement a été déplacé dans `handlePhaseChange` (superadmin), quand le superadmin fait passer la séance de `voting` à `allocating` — même sémantique (« fin de vote »), sans perte de fonctionnalité. Les RPC `run_clustering_v1`/`v2` restent en base (non appelées par le frontend) ; `runClusteringV1`/`runClusteringV2` (wrappers `lib/voting.ts`) et le composant `ClusteringModal` sont supprimés.
 5. **`debating`** → superadmin clique "Ouvrir le débat". Participants voient le `join_code` et rejoignent via `join_table(join_code, pseudo)` → `tableStore.set(...)` → callback `onTableJoined` → `App.handleTableJoined` met à jour `phase` en `table` → TableView (sans reload).
+6. **`closed`** → superadmin clique pour clôturer. **Chantier 39** : la phase `questionnaire`, qui s'intercalait ici comme étape manuelle dédiée, a été supprimée de l'énumération `sessions.phase`. Le passage `debating → closed` déclenche désormais automatiquement `force_session_questionnaire` (même effet que l'ancien passage manuel en phase `questionnaire` : force le modal chez les participants encore connectés à une table de la séance — `handlePhaseChange`, `SuperadminScreen.tsx`). Un membre inscrit qui revient sur `#vote/<join_code>` ou `#session/<join_code>` après clôture sans avoir répondu se voit proposer `SessionQuestionnaireForm` avant l'écran de résultats — gate sur l'absence de ligne dans `questionnaire_responses` (`hasQuestionnaireResponse`, `lib/voting.ts`) plutôt que sur la phase. Voir « Nomenclature des phases côté participant » ci-dessous.
 
 `moderation_policy = 'open'` : assertions directement `approved`. `= 'closed'` : `pending` jusqu'à `approve_assertion`. `= 'ai'` : `pending`, modération automatique par Gemini via `LLMModerationPanel` (setInterval configurable).
 
 **Chantier 22 / G14** : plus de timer/seuil de phase — colonnes `vote_timer_minutes`/`vote_threshold_percent` supprimées de `sessions`. La durée de chaque phase est gérée entièrement à la main par l'organisateur, hors application ; les transitions de phase restent des boutons superadmin.
 
 Realtime : les 4 tables Bloc C utilisent Realtime natif (pas de broadcast custom).
+
+### Nomenclature des phases côté participant (chantier 39)
+
+Repère affiché en continu côté participant (`PhaseIndicator`, `src/components/PhaseIndicator.tsx` + `src/lib/phaseLabels.ts`) — numérotation distincte des libellés internes du superadmin (`PHASE_LABEL`/`PHASE_SEQUENCE_LABELS`, `SuperadminScreen.tsx`) :
+
+| # participant | Libellé participant   | Phase interne (`sessions.phase`) |
+|---|---|---|
+| — | *(aucun — jamais vu par un participant)* | `draft` — rebaptisée **« Phase 0 »** côté superadmin, pour rester alignée sur cette numérotation (le superadmin part donc de 0, le participant de 1) |
+| 1 | Distanciel | `pre_voting` |
+| 2 | Vote en présentiel | `voting` |
+| 3 | Allocation | `allocating` |
+| 4 | Débat | `debating` |
+| 5 | Post-débat | `closed` (questionnaire post-débat inclus — plus de phase `questionnaire` séparée, voir point 6 du flux ci-dessus) |
+
+`PhaseIndicator` ne rend rien en phase `draft` ou si la phase est absente/inconnue. Affiché dans `VoteScreen`, `AllocatingScreen`, `ParticipantView` (phase 4, uniquement si la table est rattachée à une séance — `table.session_id`), `ResultsMapScreen` et `SessionQuestionnaireForm` (phase 5 fixe, ce formulaire n'apparaissant plus qu'en post-clôture). Volontairement absent de `PublicResultsScreen` (visiteur non inscrit, hors « parcours participant ») et de `ModeratorView` (vue modérateur, hors périmètre du chantier).
 
 ### Navigation post-vote (AllocatingScreen)
 
@@ -530,6 +549,6 @@ Dossier `transcription-debat/` — **outil offline autonome**, indépendant de l
 - Page 404 / table expirée élégante
 - Persistance de la pause après rechargement (localStorage)
 - Tests manuels complets sur mobile (iOS Safari, Android Chrome)
-- Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant
+- ~~Phase `questionnaire` : connecter `SessionRouterScreen` + flow questionnaire participant~~ — **fait (chantier 39)**, autrement : la phase `questionnaire` a été supprimée plutôt que connectée ; `SessionRouterScreen` route désormais vers `SessionQuestionnaireForm` en phase `closed` tant que `questionnaire_responses` ne contient pas de réponse pour le membre.
 - Génération de QR code dans l'UI superadmin (actuellement : site externe)
 - ~~Exposer les assertions clivantes (`repness`) depuis `AnalysisPanel` via callback pour les passer à `nameSingleGroup` comme `divisive_assertions`~~ — **fait (chantier 28 / H9)** autrement : `groupNaming.discriminatingAssertions()` recalcule côté client, par camp, les 3 assertions où il s'écarte le plus du reste (proxy de `repness`), sans dépendre d'un callback depuis `AnalysisPanel`.

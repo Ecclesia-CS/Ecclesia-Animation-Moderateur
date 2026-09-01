@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { castVote, getVoteResults, confirmAttendance, registerSessionMember } from '../lib/voting'
+import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse } from '../lib/voting'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
@@ -14,6 +14,7 @@ import AllocatingScreen from './AllocatingScreen'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
+import PhaseIndicator from '../components/PhaseIndicator'
 
 interface VoteScreenProps {
   sessionJoinCode: string
@@ -201,12 +202,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         setStep('allocating')
         return
       }
-      if (s.phase === 'questionnaire') {
-        setStep('questionnaire')
-        return
-      }
       if (s.phase === 'closed') {
-        setStep('closed')
+        // Chantier 39 — plus de phase 'questionnaire' dédiée : le formulaire
+        // se propose avant l'écran de clôture tant qu'il n'a pas été rempli.
+        const answered = await hasQuestionnaireResponse(s.id)
+        setStep(answered ? 'closed' : 'questionnaire')
         return
       }
 
@@ -268,7 +268,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           table: 'sessions',
           filter: `id=eq.${s.id}`,
         },
-        payload => {
+        async payload => {
           const updated = payload.new as Session
           setSession(updated)
           if (updated.phase === 'pre_voting' || updated.phase === 'allocating') {
@@ -284,10 +284,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             }
           } else if (updated.phase === 'debating') {
             setStep('allocating')
-          } else if (updated.phase === 'questionnaire') {
-            setStep('questionnaire')
           } else if (updated.phase === 'closed') {
-            setStep('closed')
+            // Chantier 39 — plus de phase 'questionnaire' dédiée
+            const answered = await hasQuestionnaireResponse(updated.id)
+            setStep(answered ? 'closed' : 'questionnaire')
           } else if (updated.phase !== 'draft') {
             setStep('ended')
           }
@@ -386,15 +386,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           table: 'sessions',
           filter: `id=eq.${s.id}`,
         },
-        payload => {
+        async payload => {
           const updated = payload.new as Session
           setSession(updated)
           if (updated.phase === 'debating') {
             setStep('allocating')
-          } else if (updated.phase === 'questionnaire') {
-            setStep('questionnaire')
           } else if (updated.phase === 'closed') {
-            setStep('closed')
+            // Chantier 39 — plus de phase 'questionnaire' dédiée
+            const answered = await hasQuestionnaireResponse(updated.id)
+            setStep(answered ? 'closed' : 'questionnaire')
           } else if (updated.phase === 'draft') {
             // Admin reverted to draft — go back to waiting
             setStep('waiting')
@@ -491,10 +491,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         }
       } else if (s.phase === 'debating') {
         setStep('allocating')
-      } else if (s.phase === 'questionnaire') {
-        setStep('questionnaire')
       } else if (s.phase === 'closed') {
-        setStep('closed')
+        // Chantier 39 — plus de phase 'questionnaire' dédiée
+        const answered = await hasQuestionnaireResponse(s.id)
+        setStep(answered ? 'closed' : 'questionnaire')
       }
     }, 10_000)
 
@@ -670,6 +670,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       return (
         <>
           <QuitLink />
+          <PhaseIndicator phase={session.phase} floating />
           <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
               <div className="text-center mb-4">
@@ -693,6 +694,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
+        <PhaseIndicator phase={session?.phase} floating />
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">🎉</div>
@@ -711,6 +713,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
+        <PhaseIndicator phase={session.phase} floating />
         {showPreVotingAnnounce
           ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
           : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
@@ -749,6 +752,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       return (
         <>
           <QuitLink />
+          <PhaseIndicator phase={session.phase} floating />
           {intro}
           <VotingEntryForm
             session={session}
@@ -761,6 +765,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
+        <PhaseIndicator phase={session.phase} floating />
         {intro}
         <PseudoForm
           session={session}
@@ -776,6 +781,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
+        <PhaseIndicator phase={session.phase} floating />
         <ReclaimCodeDisplay
           pseudo={member.pseudo}
           code={reclaimCode}
@@ -789,6 +795,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
+        <PhaseIndicator phase={session.phase} floating />
         {showPreVotingAnnounce
           ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
           : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
@@ -811,6 +818,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
+        <PhaseIndicator phase={session.phase} floating />
         <OnboardingForm sessionId={session.id} member={member} onSuccess={handleOnboardingSuccess} />
       </>
     )
@@ -848,6 +856,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             )}
           </div>
           <div className="flex items-center gap-2">
+            <PhaseIndicator phase={session.phase} />
             <button
               onClick={() => { window.location.hash = '' }}
               className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"

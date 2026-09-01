@@ -27,7 +27,7 @@ export interface Session {
   description: string | null
   scheduled_at: string | null
   join_code: string | null
-  phase: 'draft' | 'pre_voting' | 'voting' | 'allocating' | 'debating' | 'questionnaire' | 'closed'
+  phase: 'draft' | 'pre_voting' | 'voting' | 'allocating' | 'debating' | 'closed'
   created_at: string
   doc_info_url: string | null
   doc_summary_url: string | null

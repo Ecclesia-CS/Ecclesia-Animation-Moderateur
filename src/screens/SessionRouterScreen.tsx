@@ -4,6 +4,8 @@ import type { Session } from '../lib/types'
 import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
 import JoinTableForm from '../components/JoinTableForm'
+import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
+import { hasQuestionnaireResponse } from '../lib/voting'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -82,10 +84,6 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           return
         }
 
-        case 'questionnaire':
-          setStatus('questionnaire')
-          return
-
         case 'closed': {
           if (userId) {
             const { data: member } = await supabase
@@ -96,10 +94,13 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               .maybeSingle()
 
             if (member) {
-              // Participant inscrit → carte personnalisée (scatter + point self)
               setFullSession(s)
               setSelfMemberId(member.id)
-              setStatus('results_map')
+              // Chantier 39 — plus de phase 'questionnaire' dédiée : un membre
+              // inscrit qui n'a pas encore répondu au questionnaire post-débat
+              // le voit avant sa carte de résultats (scatter + point self).
+              const answered = await hasQuestionnaireResponse(s.id)
+              setStatus(answered ? 'results_map' : 'questionnaire')
               return
             }
           }
@@ -118,6 +119,15 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   }, [sessionJoinCode])
 
   // ── Render ────────────────────────────────────────────────────
+  if (status === 'questionnaire' && fullSession) {
+    return (
+      <SessionQuestionnaireForm
+        sessionId={fullSession.id}
+        onDone={() => setStatus('results_map')}
+      />
+    )
+  }
+
   if (status === 'results_map' && fullSession && selfMemberId) {
     return <ResultsMapScreen session={fullSession} memberId={selfMemberId} />
   }
@@ -170,7 +180,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     )
   }
 
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member'>, {
+  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'questionnaire'>, {
     icon: string
     title: string
     subtitle: string
@@ -180,11 +190,6 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       title: 'Séance introuvable',
       subtitle: 'Vérifie le lien ou scanne à nouveau le QR code.',
     },
-    questionnaire: {
-      icon: '📋',
-      title: 'Questionnaire',
-      subtitle: 'Réponds au questionnaire pour cette séance.',
-    },
     closed: {
       icon: '✅',
       title: 'Séance terminée',
@@ -192,7 +197,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     },
   }
 
-  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member'>]
+  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'questionnaire'>]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

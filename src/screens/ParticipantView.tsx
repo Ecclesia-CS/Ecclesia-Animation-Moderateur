@@ -10,6 +10,7 @@ import ParticipantToolsButton from '../components/ParticipantToolsButton'
 import QuestionnaireModal from '../components/QuestionnaireModal'
 import DebateRulesModal from '../components/DebateRulesModal'
 import ConfirmModal from '../components/ConfirmModal'
+import PhaseIndicator from '../components/PhaseIndicator'
 
 export default function ParticipantView() {
   const {
@@ -177,6 +178,9 @@ export default function ParticipantView() {
           </span>
           {sessionTitle && (
             <span className="text-xs text-gray-400 truncate max-w-[140px]">{sessionTitle}</span>
+          )}
+          {session && (
+            <div className="mt-1"><PhaseIndicator phase={session.phase} /></div>
           )}
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
@@ -392,6 +396,7 @@ export default function ParticipantView() {
       {/* Séance terminée */}
       {session?.phase === 'closed' && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
+          <PhaseIndicator phase={session.phase} />
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">Merci pour votre participation.</p>
           {session.join_code && (

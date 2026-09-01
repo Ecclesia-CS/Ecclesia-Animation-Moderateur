@@ -15,11 +15,11 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 
 Les points sont groupés **par écran/parcours**, pas par chantier, pour permettre une seule passe par écran plutôt que d'aller-retour entre chantiers. Dans l'ordre suggéré :
 
-1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester le chantier 33.
+1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33 et 39.
 2. **Superadmin** — onglets Tables, Membres, phase voting.
 3. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
 4. **Modérateur** (`ModeratorView`) — Code Ecclesia + vraie table animée requis.
-5. **Questionnaire post-débat** — les deux points d'entrée (table et séance sans table).
+5. **Questionnaire post-débat** — les trois points d'entrée (table, `#vote/`, `#session/`) et leur déclenchement automatique à la clôture (chantier 39).
 6. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
 7. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
 
@@ -30,6 +30,17 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   **Contenu du fichier** : redéfinit `claim_moderator_status(session_id, creation_code, pseudo?)` pour (a) accepter la phase `debating` en plus de `pre_voting`/`voting`/`allocating`, et (b) asseoir automatiquement le nouveau modérateur sur la première table animée encore sans modérateur (ordre des numéros de table) via une nouvelle ligne `table_assignments`. Crée aussi `assign_moderator_to_table(password, session_id, table_number, member_id)` — assignation manuelle superadmin, pose `is_moderator=true` + `table_assignments`.
 
   **À faire (session de vérification)** : exécuter le contenu du fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname IN ('claim_moderator_status','assign_moderator_to_table')` retourne bien les deux fonctions à jour, puis cocher cette entrée et dérouler le test manuel du chantier 33 ci-dessous (section Superadmin). **Tant qu'elle n'est pas appliquée** : le contrôle d'ajout/retrait de modérateur par table (`AddModeratorControl`) échoue silencieusement côté RPC, et l'auto-assise en phase `debating` reste bloquée par l'ancienne signature de `claim_moderator_status`.
+
+- [ ] **Chantier 39 — `supabase/migrations/20260901_chantier39_remove_questionnaire_phase.sql`** (jamais appliquée)
+
+  **Contenu du fichier** :
+  1. `UPDATE sessions SET phase = 'closed', phase_changed_at = now() WHERE phase = 'questionnaire'` — au moment de l'écriture, aucune séance de la base de test n'était dans cet état (vérifié par requête REST anon `select id,title,phase,join_code`), mais la migration doit rester idempotente/défensive pour toute séance réelle qui y serait encore.
+  2. Contrainte `sessions_phase_check` réécrite sans `'questionnaire'` (`draft`, `pre_voting`, `voting`, `allocating`, `debating`, `closed`).
+  3. `set_session_phase(password, session_id, phase)` réécrite avec la même liste sans `'questionnaire'` — sinon la fonction acceptait toujours l'ancienne valeur alors que le frontend ne l'envoie plus jamais.
+
+  **Pourquoi retirer la phase plutôt que la garder mais inutilisée** : Jules a demandé explicitement la suppression (« on va supprimer cette phase ») — le questionnaire post-débat se déclenche désormais automatiquement à la sortie de `debating` (voir entrée dédiée, section "Questionnaire post-débat" plus bas) au lieu de nécessiter une étape de phase manuelle.
+
+  **À faire (session de vérification)** : exécuter le fichier via le SQL Editor (ou MCP), puis `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'sessions_phase_check'` pour confirmer l'absence de `'questionnaire'` dans la définition, et `SELECT count(*) FROM sessions WHERE phase = 'questionnaire'` doit retourner 0. **Tant qu'elle n'est pas appliquée** : si une séance reste dans l'ancienne phase `questionnaire` (aucune trouvée dans la base de test au moment de l'écriture), `SuperadminScreen.tsx` ne la reconnaît plus dans `PHASE_SEQUENCE` (`indexOf` retourne -1) et affiche un `PhaseBar` incohérent (case courante non repérée, bouton suivant pointant vers `draft`) — appliquer la migration avant de rouvrir une telle séance dans le superadmin plutôt que de cliquer les boutons de phase pour la sortir de cet état.
 
 ## Parcours Superadmin
 
@@ -71,6 +82,21 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 - [ ] **Chantier 35 — synchronisation temps réel du statut modérateur (volet superadmin)**
   Voir la section dédiée **"Synchronisation temps réel (chantier 35)"** plus bas — nécessite deux onglets/navigateurs en parallèle, regroupée à part pour ne pas la faire deux fois.
+
+- [ ] **2026-09-01 — Chantier 39 — renommage "Phase 0" + suppression de la phase `questionnaire`** — `SuperadminScreen.tsx` (`PHASE_LABEL`, `PHASE_SEQUENCE_LABELS`, `PhaseBar`, `handlePhaseChange`) *(migration SQL requise, voir ci-dessus — mais le comportement décrit ici ne dépend pas de son application, seule la définition de `sessions_phase_check`/`set_session_phase` en base en dépend)*
+
+  **Livré (3 points)** :
+  1. Le badge de phase et le `PhaseBar` de la fiche séance affichent **"Phase 0"** au lieu de "Brouillon" pour la phase `draft`.
+  2. Numérotation des cercles du `PhaseBar` alignée sur la nomenclature participant (voir section dédiée CLAUDE.md « Nomenclature des phases côté participant ») : `draft`=0, `pre_voting`=1, `voting`=2, `allocating`=3, `debating`=4, `closed`=5 — au lieu de 1..6 précédemment (`{i}` au lieu de `{i + 1}`).
+  3. La phase `questionnaire` a disparu du `PhaseBar` (6 cercles au lieu de 7) et de `PHASE_SEQUENCE`. Le passage manuel `debating → closed` déclenche désormais automatiquement `force_session_questionnaire` (avant : nécessitait de cliquer "Passer en Questionnaire" comme étape intermédiaire). Le bouton "Forcer questionnaire" manuel de l'accordéon "Actions post-séance" reste inchangé et disponible à tout moment (chantier 45), indépendamment de ce déclenchement automatique.
+
+  **Déjà vérifié** (`tsc -b`, `npm run build`, `npm test` — 94 tests, tous OK ; aucune régression sur `allocation.ts`, non modifié). Session sans mot de passe superadmin — **le rendu réel du `PhaseBar` et le déclenchement de `handlePhaseChange` n'ont pas pu être exercés en navigateur.**
+
+  **Test minimal** (mot de passe superadmin requis) :
+  1. Ouvrir une séance en `draft` → vérifier le badge "Phase 0" (liste des séances ET fiche séance) et le cercle "0" (pas "1") dans le `PhaseBar`.
+  2. Dérouler les phases une par une → vérifier la numérotation 0,1,2,3,4,5 sur les 6 cercles (pas de 7ᵉ cercle "Questionnaire").
+  3. Séance en `debating` avec ≥ 1 participant connecté à une table de la séance → cliquer "Passer en Clôturée" → vérifier dans les secondes qui suivent que le modal questionnaire s'ouvre chez ce participant (`ParticipantView`, `table.questionnaire_forced_at` mis à jour) **sans** être passé par une phase intermédiaire — et que le bouton manuel "Forcer questionnaire"/"Annuler forçage" de l'accordéon "Actions post-séance" reflète bien l'état forcé (`isQForced=true`).
+  4. Vérifier qu'aucun bouton "Passer en Questionnaire" n'apparaît plus nulle part dans le `PhaseBar`.
 
 ## Parcours Participant
 
@@ -124,6 +150,14 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 - [ ] **Chantier 35 — synchronisation temps réel du statut modérateur (volet participant)**
   Voir la section dédiée **"Synchronisation temps réel (chantier 35)"** plus bas.
 
+- [ ] **2026-09-01 — Chantier 39 — repère de phase participant (`PhaseIndicator`)** — `src/components/PhaseIndicator.tsx`, `src/lib/phaseLabels.ts`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `ParticipantView.tsx`, `ResultsMapScreen.tsx`, `SessionQuestionnaireForm.tsx`
+
+  **Livré** : pastille "Étape N · Libellé" affichée tout au long du parcours participant — 1 Distanciel (`pre_voting`), 2 Vote en présentiel (`voting`), 3 Allocation (`allocating`), 4 Débat (`debating`), 5 Post-débat (`closed`). Absente en phase `draft` (jamais vue par un participant) et dans `PublicResultsScreen`/`ModeratorView` (hors périmètre). Rendu flottant façon `QuitLink` (coin opposé, en haut à droite) sur les écrans sans en-tête propre (pseudo, onboarding, attente, reconquête de code, confirmation de présence, questionnaire) ; rendu inline dans l'en-tête existant sur les écrans qui en ont un (`VoteScreen` étape vote, `AllocatingScreen`, `ParticipantView`, `ResultsMapScreen`).
+
+  **Déjà vérifié en navigateur** (séance de test réelle "Esai 24/08", phase `draft`, inscription avec pseudo "Chantier39 Verif") : étapes pseudo → onboarding (Question 1/3) → aucune pastille affichée nulle part, conforme (phase `draft` = pas de numéro participant), zéro erreur console. **Non testé faute d'accès superadmin pour faire avancer une séance de test à travers les phases** : l'apparition réelle de la pastille elle-même (1 à 5) sur `pre_voting`/`voting`/`allocating`/`debating`/`closed`, ainsi que son intégration visuelle dans les en-têtes de `VoteScreen` (étape vote)/`AllocatingScreen`/`ParticipantView`/`ResultsMapScreen` (collision potentielle avec les boutons existants, notamment le header dense de `VoteScreen` en phase vote).
+
+  **Test minimal** (mot de passe superadmin requis pour faire avancer une séance de test) : dérouler pre_voting → voting → allocating → debating → closed avec un même compte participant, vérifier à chaque étape le texte et le numéro corrects, l'absence de chevauchement avec les boutons de header (`Quitter`/`Outils`/`Proposer` en phase vote, `Devenir modérateur`/`Outils`/`Quitter` dans `ParticipantView`), et la disparition complète en phase `draft`. Vérifier aussi l'apparition dans `SessionQuestionnaireForm` (voir entrée dédiée ci-dessous, section "Questionnaire post-débat").
+
 ## Parcours Modérateur (`ModeratorView`)
 
 *Nécessite un Code Ecclesia et une vraie table animée (avec modérateur) pour la plupart des points ci-dessous — pas testable avec une table `leaderless` seule.*
@@ -165,7 +199,24 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   1. `QuestionnaireBtn` dans le header de `ModeratorView` (bouton "Outils Modo" → Questionnaire post-débat, ou l'ancien `QuestionnaireFab` si le chantier 43 n'est pas encore mergé) — nécessite une table **animée** avec Code Ecclesia réel, jamais testé (une table `leaderless` ne donne accès qu'à `ParticipantView`).
   2. `SessionQuestionnaireForm` — formulaire rattaché à la séance sans table, utilisé dans `AllocatingScreen`/`VoteScreen` — modifié à l'identique du point ci-dessus mais jamais exercé en navigateur.
 
-  **Test minimal** : dérouler le même parcours que "Déjà vérifié" ci-dessus, une fois depuis `ModeratorView` (table animée, Code Ecclesia) et une fois depuis `SessionQuestionnaireForm` (accessible en phase `allocating`/`voting` via `AllocatingScreen`/`VoteScreen`).
+  **Test minimal** : dérouler le même parcours que "Déjà vérifié" ci-dessus, une fois depuis `ModeratorView` (table animée, Code Ecclesia) et une fois depuis `SessionQuestionnaireForm` — **note chantier 39 ci-dessous : ses points d'entrée ont changé, ce n'est plus `allocating`/`voting`**.
+
+- [ ] **2026-09-01 — Chantier 39 — déclenchement de `SessionQuestionnaireForm` déplacé de la phase `questionnaire` (supprimée) vers `closed`** — `VoteScreen.tsx`, `AllocatingScreen.tsx`, `SessionRouterScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`) *(migration SQL requise, voir "Migration SQL en attente" — mais sans effet sur ce comportement frontend tant qu'aucune séance réelle n'est restée bloquée en phase `questionnaire`)*
+
+  **Pourquoi** : la phase `questionnaire` disparaît de la machine à états (demande explicite de Jules). Le formulaire `SessionQuestionnaireForm` (déjà repositionné par le chantier 45 ci-dessus) doit donc se déclencher autrement : désormais, dès qu'une séance passe en `closed`, `SessionQuestionnaireForm` s'affiche à la place de l'écran de résultats **pour un membre inscrit qui n'a pas encore de ligne dans `questionnaire_responses` pour cette séance** (nouvelle fonction `hasQuestionnaireResponse(sessionId)`, RLS `user_id = auth.uid()` déjà en place — pas de filtre supplémentaire nécessaire). Une fois répondu (`onDone`), l'écran de résultats normal s'affiche. Un visiteur non inscrit (`PublicResultsScreen`) n'est **jamais** concerné par ce gate — volontaire, il n'a jamais voté.
+
+  **Trois points d'entrée concernés, tous avec la même logique** :
+  1. `VoteScreen` (`#vote/<join_code>`) — au chargement initial, sur les mises à jour Realtime (2 canaux distincts) et sur le polling 10s de secours.
+  2. `AllocatingScreen` (rendu par `VoteScreen` en phase `debating`/`allocating` pour qui n'a pas encore rejoint de table) — sur Realtime et sur le polling 10s.
+  3. `SessionRouterScreen` (`#session/<join_code>`) — anciennement un texte statique non fonctionnel ("Réponds au questionnaire", sans formulaire réel, cf. TODO `CLAUDE.md` désormais retiré) ; affiche maintenant le vrai `SessionQuestionnaireForm`. C'est probablement le point d'entrée le plus emprunté en pratique (lien QR code / WhatsApp stable tout au long de la séance).
+
+  **Déjà vérifié** (`tsc -b`, `npm run build`, `npm test`, tous OK) + navigateur, séances de test réelles : `#session/DEBAT8` (`closed`, visiteur non inscrit) → `PublicResultsScreen` normal, aucun questionnaire proposé (comportement attendu, visiteur jamais voté), zéro erreur console. **Non testé faute de compte membre dans une séance `closed` réelle** : l'apparition effective du formulaire pour un membre inscrit sans réponse, ni la disparition après soumission (`onDone` → écran de résultats).
+
+  **Test minimal** (mot de passe superadmin requis pour clôturer une séance de test avec un membre inscrit n'ayant pas encore répondu) :
+  1. Membre inscrit, séance passée en `closed`, jamais répondu au questionnaire → `#vote/<join_code>` **et** `#session/<join_code>` (les deux, séparément, avec des comptes/sessions différents si besoin) → vérifier l'apparition de `SessionQuestionnaireForm` dans les deux cas, pastille "Étape 5 · Post-débat" visible dans son en-tête (chantier 39, voir entrée `PhaseIndicator` ci-dessus).
+  2. Répondre et envoyer → vérifier la transition vers l'écran de résultats normal (`ResultsMapScreen`) sans reload.
+  3. Revenir sur le même lien après avoir déjà répondu → vérifier l'accès direct à l'écran de résultats, sans repasser par le questionnaire.
+  4. Séance en `debating` avec un participant connecté à sa table (`ParticipantView`) → superadmin clique "Passer en Clôturée" → vérifier le déclenchement **automatique** du modal questionnaire chez ce participant (couvert aussi par l'entrée superadmin ci-dessus) — ce test-ci vérifie spécifiquement qu'aucune étape de phase intermédiaire n'est nécessaire.
 
 ## Synchronisation temps réel (chantier 35)
 

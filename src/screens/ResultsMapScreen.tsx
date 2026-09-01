@@ -9,6 +9,7 @@ import { getMyTableAssignment, getVoteResults } from '../lib/voting'
 import type { ResultsMapData } from '../lib/analysis'
 import type { Session, GroupNameResult, VoteResult } from '../lib/types'
 import type { AssignmentWithJoinCode } from '../lib/voting'
+import PhaseIndicator from '../components/PhaseIndicator'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED']
@@ -268,6 +269,7 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
 
         <div>
+          <div className="mb-2"><PhaseIndicator phase={session.phase} /></div>
           <h1 className="text-xl font-bold text-gray-900">Votre position dans le débat</h1>
           <p className="text-sm text-gray-500 mt-1">{session.title}</p>
           <button
