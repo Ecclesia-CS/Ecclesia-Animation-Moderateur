@@ -87,15 +87,28 @@ export function TableProvider({
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
   const [ready, setReady] = useState(false)
   // Contrôle physique de la table (tables.created_by === userId, tables leaderless
-  // exclues) — chantier 35 : renommé en interne pour le distinguer du statut
-  // `session_members.is_moderator`, qui peut le révoquer sans toucher `created_by`.
+  // exclues, ou auto-désignation `designate_moderator`) — indépendant de la séance.
   const [physicalModerator, setPhysicalModerator] = useState(initialIsModerator)
-  // Chantier 35 — superadmin a retiré le statut de modérateur (session_members.is_moderator
-  // = false) pendant que ce participant est assis comme modérateur physique de la table.
-  // `false` par défaut (pas de véto tant que `load()` n'a pas vérifié) : sans séance
-  // rattachée ou sans ligne session_members pour ce user, ce véto ne s'applique jamais.
-  const [moderatorRevoked, setModeratorRevoked] = useState(false)
-  const isModerator = physicalModerator && !moderatorRevoked
+  // Chantier 41 — statut `session_members.is_moderator` (assignation superadmin,
+  // onglet Tables/Membres, ou auto-déclaration). `false` par défaut : sans séance
+  // rattachée ou sans ligne session_members pour ce user, ne contribue jamais.
+  //
+  // Combiné en OR avec `physicalModerator`, jamais en véto : chantier 35 posait
+  // `isModerator = physicalModerator && !revoked`, qui ne pouvait que dégrader.
+  // Un participant nommé modérateur *après* avoir déjà rejoint sa table (donc
+  // avec `physicalModerator=false` figé depuis le join) ne repassait jamais à
+  // `true` — ni en direct (le listener ne posait que le véto), ni au montage
+  // (`initialIsModerator` vient du cache localStorage figé au join, cf. App.tsx).
+  // Seul un `leaveTable()` + rejoin (qui relit `session_members.is_moderator`
+  // à neuf dans AllocatingScreen.handleJoin) rattrapait l'écart — symptôme
+  // exact du retour de Jules. L'OR ne réintroduit pas le cas que chantier 35
+  // ciblait (démodération d'un modérateur assigné côté Bloc C) : pour ces
+  // tables, `tables.created_by` reste l'uid du superadmin qui a appelé
+  // `apply_allocation`/`create_tables_batch`, jamais celui du participant
+  // assigné — `physicalModerator` y est donc déjà `false`, et `is_moderator
+  // = false` suffit à lui seul à garder `isModerator` à `false`.
+  const [sessionMemberIsModerator, setSessionMemberIsModerator] = useState(false)
+  const isModerator = physicalModerator || sessionMemberIsModerator
 
   // Guard against double-calling onTableEnd
   const endedRef = useRef(false)
@@ -126,20 +139,20 @@ export function TableProvider({
     if (tbl.session_id) {
       const { data: sess } = await supabase.from('sessions').select('*').eq('id', tbl.session_id).maybeSingle()
       setSession(sess as Session | null)
-      // Chantier 35 — rattrape un retrait de modération fait pendant que ce
-      // client était hors ligne / avant montage (sinon on ne le saurait qu'au
-      // prochain UPDATE realtime, qui peut ne jamais arriver si rien d'autre
-      // ne change côté session_members entre-temps).
+      // Chantier 35/41 — rattrape un octroi ou un retrait de modération fait
+      // pendant que ce client était hors ligne / avant montage (sinon on ne
+      // le saurait qu'au prochain UPDATE realtime, qui peut ne jamais arriver
+      // si rien d'autre ne change côté session_members entre-temps).
       const { data: member } = await supabase
         .from('session_members')
         .select('is_moderator')
         .eq('session_id', tbl.session_id)
         .eq('user_id', userId)
         .maybeSingle()
-      setModeratorRevoked((member as { is_moderator?: boolean } | null)?.is_moderator === false)
+      setSessionMemberIsModerator((member as { is_moderator?: boolean } | null)?.is_moderator === true)
     } else {
       setSession(null)
-      setModeratorRevoked(false)
+      setSessionMemberIsModerator(false)
     }
     setReady(true)
   }, [tableId, handleEnd, userId])
@@ -281,12 +294,14 @@ export function TableProvider({
     return () => clearInterval(id)
   }, [ready, load])
 
-  // ── Chantier 35 — statut modérateur (session_members.is_moderator) ────
+  // ── Chantier 35/41 — statut modérateur (session_members.is_moderator) ──
   // Canal distinct de `table:<id>` (concern différent, session_id peut être
-  // absent) : le superadmin peut retirer ce statut (onglet Tables/Membres)
-  // pendant que ce participant est déjà assis comme modérateur physique —
-  // sans ça, son écran restait bloqué sur ModeratorView jusqu'au prochain
-  // polling `load()` (5 s, best-effort) ou reload manuel.
+  // absent) : le superadmin peut poser ou retirer ce statut (onglet
+  // Tables/Membres) pendant que ce participant a déjà rejoint sa table —
+  // sans ça, son écran restait bloqué sur ParticipantView/ModeratorView
+  // jusqu'au prochain polling `load()` (5 s, best-effort) ou reload manuel.
+  // Chantier 41 : les deux sens sont posés ici (pas seulement le retrait,
+  // cf. commentaire sur `sessionMemberIsModerator` plus haut).
   useEffect(() => {
     const sessionId = table?.session_id
     if (!sessionId) return
@@ -298,7 +313,7 @@ export function TableProvider({
         ({ new: row }) => {
           const r = row as { user_id: string; is_moderator?: boolean }
           if (r.user_id !== userId) return
-          setModeratorRevoked(r.is_moderator === false)
+          setSessionMemberIsModerator(r.is_moderator === true)
         },
       )
       .subscribe()
