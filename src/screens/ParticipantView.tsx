@@ -297,7 +297,8 @@ export default function ParticipantView() {
       </div>{/* end body flex */}
 
       {/* ── Règles du débat — lecture individuelle, sans attente des autres (D1) ── */}
-      {showRules && (
+      {/* Chantier 40 : affichée après le panorama d'accueil (voir plus bas), jamais avant */}
+      {!showWelcome && showRules && (
         <DebateRulesModal
           onConfirm={() => {
             localStorage.setItem('debate_rules_read_' + table.id, '1')
@@ -317,8 +318,8 @@ export default function ParticipantView() {
       )}
 
       {/* Questionnaire forcé par le modérateur — modal verrouillé */}
-      {/* ── Panorama d'accueil — affiché une seule fois par table ── */}
-      {!showRules && showWelcome && (
+      {/* ── Panorama d'accueil — affiché une seule fois par table, avant les règles (chantier 40) ── */}
+      {showWelcome && (
         <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
             <div className="bg-indigo-600 px-6 py-5 text-center">
@@ -373,7 +374,7 @@ export default function ParticipantView() {
                 }}
                 className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
               >
-                C'est parti ! →
+                Lire les règles de débat Ecclesia →
               </button>
             </div>
           </div>

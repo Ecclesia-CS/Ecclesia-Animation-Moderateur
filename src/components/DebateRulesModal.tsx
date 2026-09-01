@@ -11,7 +11,7 @@ export default function DebateRulesModal({ onConfirm }: Props) {
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
         <div className="bg-indigo-600 px-6 py-5 text-center">
           <p className="text-2xl mb-1">📜</p>
-          <h2 className="text-lg font-bold text-white">Règles du débat</h2>
+          <h2 className="text-lg font-bold text-white">Règles d'Ecclesia lors des débats</h2>
         </div>
         <div className="px-6 py-5 text-sm text-gray-700 whitespace-pre-line leading-relaxed">
           {DEBATE_RULES_TEXT}

@@ -61,6 +61,19 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
   4. **Point 3 (phase vote)** : participant avec badge "Vous êtes modérateur" visible → superadmin décoche depuis Membres → badge doit disparaître sans reload.
   5. **Régression** : un modérateur "classique" (table créée via `create_table`/`reclaim_moderator`, jamais inscrit au vote de cette séance, donc sans ligne `session_members`) doit garder son `ModeratorView` sans interruption.
 
+- [ ] **2026-09-01** — Chantier 40 — `src/screens/ParticipantView.tsx`, `src/components/DebateRulesModal.tsx`
+
+  Retour de Jules : à l'entrée en débat, les deux modales successives ("Bienvenue dans le débat" puis les règles) n'étaient pas clairement présentées comme une séquence voulue. Trois changements purement front, aucune logique de phase touchée :
+  1. Ordre inversé : "Bienvenue dans le débat" s'affiche désormais **avant** les règles (auparavant l'inverse). Gate `showWelcome` en premier, puis `!showWelcome && showRules`.
+  2. Titre de la 2ᵉ modale (`DebateRulesModal.tsx`) changé de "Règles du débat" à "Règles d'Ecclesia lors des débats".
+  3. Bouton bleu de la 1ʳᵉ modale changé de "C'est parti ! →" à "Lire les règles de débat Ecclesia →", pour annoncer la modale suivante.
+
+  **Vérifié en navigateur** (Browser pane, worktree dédié `C:/Users/jules/projet/Ecclesia-chantier-40`, serveur dev isolé port 5202, config `chantier-40-dev` ajoutée à `.claude/launch.json`) : création d'une table `leaderless` de test rattachée à la séance partagée "Test manuel — Vote & bascule modérateur (chantiers 35/37)" → parcours complet accueil → panorama "Bienvenue dans le débat" (nouveau texte de bouton confirmé) → clic → modale règles (nouveau titre confirmé) → clic "J'ai lu" → retour à la vue débat normale, aucune 3ᵉ modale. Rechargement de page : les deux `localStorage` (`debate_welcome_<id>`, `debate_rules_read_<id>`) empêchent bien toute réapparition (pas de régression sur le "une seule fois par table"). **Zéro erreur console** sur tout le parcours (`read_console_messages` vide après filtrage erreurs).
+
+  **Non testé** : rendu sur une table non-`leaderless` (avec modérateur) — le bloc conditionnel affiché dans le panorama diffère selon `table.leaderless` mais l'ordre/titres/bouton ne dépendent pas de cette variable, risque de régression jugé nul ; parcours mobile réel (uniquement viewport desktop du Browser pane).
+
+  **Donnée de test créée** dans la séance partagée "Test manuel — Vote & bascule modérateur (chantiers 35/37)" (pas de nettoyage effectué, cohérent avec l'usage déjà observé sur cette séance de QA) : une table `leaderless` (code `589D79`) avec un participant "Test Chantier40".
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
