@@ -30,17 +30,15 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
   const [themeIdeas,     setThemeIdeas]     = useState(savedResponse?.theme_ideas     ?? '')
   const [themeRatings,   setThemeRatings]   = useState<Record<string, number>>(savedResponse?.theme_ratings ?? {})
   const [staffInterest,  setStaffInterest]  = useState(savedResponse?.staff_interest  ?? '')
-  const [debateAttended, setDebateAttended] = useState(savedResponse?.debate_attended ?? '')
   const [debateRating,   setDebateRating]   = useState<number | null>(savedResponse?.debate_rating ?? null)
   const [feedback,       setFeedback]       = useState(savedResponse?.feedback        ?? '')
 
   // Helpers de verrouillage : un champ est verrouillé s'il a une valeur enregistrée non nulle
   const locked = {
-    themeIdeas:     savedResponse?.theme_ideas     != null,
-    debateAttended: savedResponse?.debate_attended != null,
-    debateRating:   savedResponse?.debate_rating   != null,
-    staffInterest:  savedResponse?.staff_interest  != null,
-    feedback:       savedResponse?.feedback        != null,
+    themeIdeas:    savedResponse?.theme_ideas   != null,
+    debateRating:  savedResponse?.debate_rating != null,
+    staffInterest: savedResponse?.staff_interest != null,
+    feedback:      savedResponse?.feedback       != null,
     theme: (t: string) => savedResponse?.theme_ratings[t] !== undefined,
   }
 
@@ -60,6 +58,10 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
 
   async function handleSubmit() {
     setErr(null)
+    if (!locked.debateRating && debateRating === null) {
+      setErr('Merci de noter le débat avant d\'envoyer.')
+      return
+    }
     setIsSubmitting(true)
     try {
       const { error } = await supabase.rpc('submit_questionnaire', {
@@ -67,7 +69,6 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
         p_session_id:      table.session_id ?? null,
         p_theme_ideas:     themeIdeas.trim()     || null,
         p_theme_ratings:   themeRatings,
-        p_debate_attended: debateAttended.trim() || null,
         p_debate_rating:   debateRating,
         p_staff_interest:  staffInterest.trim()  || null,
         p_feedback:        feedback.trim()        || null,
@@ -135,7 +136,35 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
             </div>
           ) : (
             <>
-              {/* Q1 — Idées de thèmes */}
+              {/* Q1 — Note globale (obligatoire) */}
+              <QuestionBlock
+                label="De 0 (horrible) à 5 (super), as-tu apprécié le débat ?"
+                locked={locked.debateRating}
+                required
+              >
+                <RatingRow
+                  value={debateRating}
+                  locked={locked.debateRating}
+                  onChange={setDebateRating}
+                />
+              </QuestionBlock>
+
+              {/* Q2 — Retour libre */}
+              <QuestionBlock
+                label="As-tu un retour à nous faire ? Négatif comme positif !"
+                locked={locked.feedback}
+              >
+                <textarea
+                  value={feedback}
+                  onChange={e => setFeedback(e.target.value)}
+                  disabled={locked.feedback}
+                  rows={3}
+                  placeholder="Tout commentaire est le bienvenu…"
+                  className={locked.feedback ? textareaLockedClass : textareaClass}
+                />
+              </QuestionBlock>
+
+              {/* Q3 — Idées de thèmes */}
               <QuestionBlock
                 label="Quelle(s) idée(s) de thème pour un débat aimerais-tu aborder ?"
                 locked={locked.themeIdeas}
@@ -150,7 +179,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                 />
               </QuestionBlock>
 
-              {/* Q2 — Notes par thème */}
+              {/* Q4 — Notes par thème */}
               <QuestionBlock label="Quels thèmes t'attireraient le plus (5) au moins (0) ?">
                 <div className="space-y-3">
                   {visibleThemes.map(theme => (
@@ -177,7 +206,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                 )}
               </QuestionBlock>
 
-              {/* Q3 — Staffer */}
+              {/* Q5 — Staffer */}
               <QuestionBlock
                 label="Est-ce que tu voudrais staffer chez Ecclesia ?"
                 locked={locked.staffInterest}
@@ -193,48 +222,6 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                   rows={2}
                   placeholder="Prénom Nom, 06… ou email@…"
                   className={locked.staffInterest ? textareaLockedClass : textareaClass}
-                />
-              </QuestionBlock>
-
-              {/* Q4 — Quel débat */}
-              <QuestionBlock
-                label="À quel débat viens-tu de participer ?"
-                locked={locked.debateAttended}
-              >
-                <input
-                  type="text"
-                  value={debateAttended}
-                  onChange={e => setDebateAttended(e.target.value)}
-                  disabled={locked.debateAttended}
-                  placeholder="Ex. : La religion, Le 12 mai 2026…"
-                  className={locked.debateAttended ? inputLockedClass : inputClass}
-                />
-              </QuestionBlock>
-
-              {/* Q5 — Note globale */}
-              <QuestionBlock
-                label="De 0 (horrible) à 5 (super), as-tu apprécié le débat ?"
-                locked={locked.debateRating}
-              >
-                <RatingRow
-                  value={debateRating}
-                  locked={locked.debateRating}
-                  onChange={setDebateRating}
-                />
-              </QuestionBlock>
-
-              {/* Q6 — Retour libre */}
-              <QuestionBlock
-                label="As-tu un retour à nous faire ? Négatif comme positif !"
-                locked={locked.feedback}
-              >
-                <textarea
-                  value={feedback}
-                  onChange={e => setFeedback(e.target.value)}
-                  disabled={locked.feedback}
-                  rows={3}
-                  placeholder="Tout commentaire est le bienvenu…"
-                  className={locked.feedback ? textareaLockedClass : textareaClass}
                 />
               </QuestionBlock>
 
@@ -269,16 +256,19 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
 // ── Sous-composants ───────────────────────────────────────────────
 
 function QuestionBlock({
-  label, locked, children,
+  label, locked, required, children,
 }: {
   label: string
   locked?: boolean
+  required?: boolean
   children: React.ReactNode
 }) {
   return (
     <div className={`space-y-2 ${locked ? 'opacity-60' : ''}`}>
       <div className="flex items-center gap-1.5">
-        <p className="text-sm font-semibold text-gray-800 leading-snug">{label}</p>
+        <p className="text-sm font-semibold text-gray-800 leading-snug">
+          {label}{required && !locked && <span className="text-red-500"> *</span>}
+        </p>
         {locked && (
           <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -364,10 +354,3 @@ const textareaClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text
 
 const textareaLockedClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
   text-gray-700 bg-gray-50 resize-none leading-relaxed cursor-not-allowed`
-
-const inputClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
-  text-gray-900 placeholder:text-gray-400
-  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`
-
-const inputLockedClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
-  text-gray-700 bg-gray-50 cursor-not-allowed`

@@ -7,6 +7,17 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 ## En attente
 
+- [ ] **Chantier 45 — Questionnaire post-débat : suppression "à quel débat" + note globale obligatoire en 1ʳᵉ position**
+  Développé en worktree dédié (`chantier-45-questionnaire-post-debat` → `C:/Users/jules/projet/Ecclesia-chantier-45`, port 5203), aucune migration (changement frontend uniquement, `debate_attended` reste en base pour l'historique mais n'est plus jamais renseigné par le frontend).
+
+  **Comportement attendu** : questionnaire post-débat (`QuestionnaireModal.tsx` — table, et `SessionQuestionnaireForm.tsx` — séance sans table) sans la question "à quel débat viens-tu de participer ?" ; la question de note globale (0-5) est en première position et bloque l'envoi tant qu'elle n'est pas remplie (sauf si déjà enregistrée avant ce changement — verrouillée comme les autres champs) ; la question de retour libre est en deuxième position.
+
+  **Déjà vérifié cette session** (navigateur réel, table `leaderless` rattachée à la séance de test "Test manuel — Vote & bascule modérateur (chantiers 35/37)", via `ParticipantToolsButton` → Outils → Questionnaire post-débat) : ordre des questions conforme, absence de la question "à quel débat", clic sur "Envoyer" sans note → message d'erreur bloquant sans appel réseau, note sélectionnée puis "Envoyer" → succès, réponse relue verrouillée (rating=4 disabled) confirmant la persistance en base. Zéro erreur console tout du long.
+
+  **Reste à vérifier** : le même flux via `QuestionnaireBtn` (bouton header de `ModeratorView`, nécessite une table *animée* avec Code Ecclesia réel — non testé, une table `leaderless` ne donne accès qu'à `ParticipantView`) et via `SessionQuestionnaireForm` (formulaire questionnaire rattaché à la séance sans table, utilisé dans `AllocatingScreen`/`VoteScreen` — modifié à l'identique mais pas exercé en navigateur cette session).
+
+  **Donnée de test résiduelle** : une table (`join_code` 6ABDC9, pseudo "TestQ45") et une réponse `questionnaire_responses` (note=4) ont été créées sur la séance "Test manuel — Vote & bascule modérateur (chantiers 35/37)" pour cette vérification — à nettoyer si besoin (pas d'accès MCP Supabase cette session pour le faire moi-même).
+
 - [ ] **Chantier 8 (rattrapage) — Fix DnD : l'entrée déposée n'arrive plus en dernier (A2)**
   Mergé sur `main` (`e1fb31a`), aucune migration.
 
