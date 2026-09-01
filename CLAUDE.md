@@ -19,9 +19,9 @@ VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<clé publique anon>
 ```
 
-### Accès MCP Supabase
+### Accès MCP Supabase — règle SQL (2026-09-01)
 
-Claude dispose d'un accès MCP direct au projet Supabase (migrations, SQL, logs, advisors, edge functions, etc.). **Ne pas demander à l'utilisateur d'appliquer les migrations manuellement** — utiliser directement les outils MCP (`apply_migration`, `execute_sql`, `list_tables`, `get_advisors`, `get_logs`...) pour lire l'état de la base et appliquer les changements de schéma.
+**Une session de chantier n'applique plus jamais de migration SQL elle-même**, qu'un accès MCP Supabase soit disponible ou non dans la session. Elle écrit la migration dans `supabase/migrations/` et **documente dans `A_VERIFIER.md`** le chemin du fichier et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard ou MCP) et met à jour l'entrée correspondante. Ne pas présumer d'un accès MCP Supabase direct pour une session de chantier — l'affirmation inverse, qui figurait ici, était périmée.
 
 `vite.config.ts` a `base: '/Ecclesia-Animation-Moderateur/'` — **ne pas supprimer**.
 
