@@ -74,6 +74,18 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
   **Donnée de test créée** dans la séance partagée "Test manuel — Vote & bascule modérateur (chantiers 35/37)" (pas de nettoyage effectué, cohérent avec l'usage déjà observé sur cette séance de QA) : une table `leaderless` (code `589D79`) avec un participant "Test Chantier40".
 
+- [ ] **2026-09-01** — Chantier 42 (retour de test Jules — notes participant perdues) — `src/components/NotesModal.tsx`
+
+  **Cause identifiée** : les 3 chemins de fermeture de la modale (croix, clic hors modale, Échap) appelaient `onClose()` sans vider le debounce de 800ms qui déclenche l'écriture en base (`saveNote`). Fermer puis rouvrir la modale juste après une frappe pouvait recharger la base *avant* que l'écriture différée n'ait abouti — la note paraissait alors perdue (course, pas une perte réelle). Risque aggravant identifié en même temps : au premier enregistrement, deux écritures concurrentes (l'ancienne en attente + une nouvelle ressaisie) pouvaient se percuter sur la contrainte unique partielle `(session_id, user_id)` / `(table_id, user_id)` de `private_notes`.
+
+  **Correctif appliqué** : `handleClose()` vide et exécute immédiatement le debounce en attente (`await saveNote(...)`) avant d'appeler `onClose()`, sur les 3 chemins de fermeture.
+
+  **Vérifié en navigateur** (Browser pane, table de test créée en mode "sans modérateur" sur la séance TEST33A, join_code `6296A9`, participant "Test Notes QA") : frappe dans l'éditeur → fermeture ~200ms après la frappe → réouverture ~150ms après la fermeture → contenu bien présent au rechargement. Zéro erreur console pendant tout le flux, zéro message "Erreur :" affiché dans la modale.
+
+  **Point non couvert par ce correctif — à vérifier humainement** : la fermeture *dure* du navigateur/onglet (pas la modale) pendant l'écriture différée — le flush est déclenché par `onClose()` React, qui ne s'exécute pas si l'onglet/la page est fermé(e) avant. Reste une perte possible dans ce cas précis (`beforeunload`/`pagehide` non gérés), scénario différent de celui rapporté par Jules ("écrit, fermé, rouvert" — la modale, pas l'onglet) et donc hors scope du fix ci-dessus. À évaluer si ça revient.
+
+  **Reste à nettoyer** : table de test `6296A9` (leaderless) et son participant "Test Notes QA" créés dans la séance réelle TEST33A pour la vérification — aucun impact fonctionnel, mais visibles dans le superadmin si Jules regarde cette séance.
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
