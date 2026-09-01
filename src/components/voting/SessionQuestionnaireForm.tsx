@@ -18,7 +18,6 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
   const [themeIdeas,     setThemeIdeas]     = useState('')
   const [themeRatings,   setThemeRatings]   = useState<Record<string, number>>({})
   const [staffInterest,  setStaffInterest]  = useState('')
-  const [debateAttended, setDebateAttended] = useState('')
   const [debateRating,   setDebateRating]   = useState<number | null>(null)
   const [feedback,       setFeedback]       = useState('')
 
@@ -30,6 +29,10 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
 
   async function handleSubmit() {
     setErr(null)
+    if (debateRating === null) {
+      setErr('Merci de noter le débat avant d\'envoyer.')
+      return
+    }
     setIsSubmitting(true)
     try {
       const { error } = await supabase.rpc('submit_questionnaire', {
@@ -37,7 +40,6 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
         p_session_id:      sessionId,
         p_theme_ideas:     themeIdeas.trim()     || null,
         p_theme_ratings:   themeRatings,
-        p_debate_attended: debateAttended.trim() || null,
         p_debate_rating:   debateRating,
         p_staff_interest:  staffInterest.trim()  || null,
         p_feedback:        feedback.trim()        || null,
@@ -81,7 +83,38 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
             </div>
           ) : (
             <>
-              {/* Q1 — Idées de thèmes */}
+              {/* Q1 — Note globale (obligatoire) */}
+              <QBlock label="De 0 (horrible) à 5 (super), as-tu apprécié le débat ?" required>
+                <div className="flex gap-2">
+                  {[0, 1, 2, 3, 4, 5].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setDebateRating(debateRating === n ? null : n)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors
+                        focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+                        debateRating === n
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </QBlock>
+
+              {/* Q2 — Retour libre */}
+              <QBlock label="As-tu un retour à nous faire ? Négatif comme positif !">
+                <textarea
+                  value={feedback}
+                  onChange={e => setFeedback(e.target.value)}
+                  rows={3}
+                  placeholder="Tout commentaire est le bienvenu…"
+                  className={taClass}
+                />
+              </QBlock>
+
+              {/* Q3 — Idées de thèmes */}
               <QBlock label="Quelle(s) idée(s) de thème pour un débat aimerais-tu aborder ?">
                 <textarea
                   value={themeIdeas}
@@ -92,7 +125,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
                 />
               </QBlock>
 
-              {/* Q2 — Notes par thème */}
+              {/* Q4 — Notes par thème */}
               <QBlock label="Quels thèmes t'attireraient le plus (5) au moins (0) ?">
                 <div className="space-y-3">
                   {visibleThemes.map(theme => (
@@ -117,7 +150,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
                 )}
               </QBlock>
 
-              {/* Q3 — Staffer */}
+              {/* Q5 — Staffer */}
               <QBlock label="Est-ce que tu voudrais staffer chez Ecclesia ?">
                 <p className="text-xs text-gray-500 mb-2 leading-relaxed">
                   Modérer un débat, aider à la préparation des fiches d'informations ou à la
@@ -128,48 +161,6 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
                   onChange={e => setStaffInterest(e.target.value)}
                   rows={2}
                   placeholder="Prénom Nom, 06… ou email@…"
-                  className={taClass}
-                />
-              </QBlock>
-
-              {/* Q4 — Quel débat */}
-              <QBlock label="À quel débat viens-tu de participer ?">
-                <input
-                  type="text"
-                  value={debateAttended}
-                  onChange={e => setDebateAttended(e.target.value)}
-                  placeholder="Ex. : La religion, Le 12 mai 2026…"
-                  className={inputClass}
-                />
-              </QBlock>
-
-              {/* Q5 — Note globale */}
-              <QBlock label="De 0 (horrible) à 5 (super), as-tu apprécié le débat ?">
-                <div className="flex gap-2">
-                  {[0, 1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setDebateRating(debateRating === n ? null : n)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors
-                        focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
-                        debateRating === n
-                          ? 'bg-indigo-600 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </QBlock>
-
-              {/* Q6 — Retour libre */}
-              <QBlock label="As-tu un retour à nous faire ? Négatif comme positif !">
-                <textarea
-                  value={feedback}
-                  onChange={e => setFeedback(e.target.value)}
-                  rows={3}
-                  placeholder="Tout commentaire est le bienvenu…"
                   className={taClass}
                 />
               </QBlock>
@@ -202,10 +193,12 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
   )
 }
 
-function QBlock({ label, children }: { label: string; children: React.ReactNode }) {
+function QBlock({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-semibold text-gray-800 leading-snug">{label}</p>
+      <p className="text-sm font-semibold text-gray-800 leading-snug">
+        {label}{required && <span className="text-red-500"> *</span>}
+      </p>
       {children}
     </div>
   )
@@ -241,8 +234,4 @@ function ThemeRow({ theme, value, onChange }: {
 
 const taClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
   text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed
-  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`
-
-const inputClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
-  text-gray-900 placeholder:text-gray-400
   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`

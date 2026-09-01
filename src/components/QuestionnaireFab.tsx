@@ -13,11 +13,10 @@ interface Props {
 function isComplete(r: QuestionnaireResponse | null): boolean {
   if (!r) return false
   return (
-    r.theme_ideas     !== null &&
-    r.debate_attended !== null &&
-    r.debate_rating   !== null &&
-    r.staff_interest  !== null &&
-    r.feedback        !== null &&
+    r.theme_ideas    !== null &&
+    r.debate_rating  !== null &&
+    r.staff_interest !== null &&
+    r.feedback       !== null &&
     QUESTIONNAIRE_THEMES.every(t => r.theme_ratings[t] !== undefined)
   )
 }
