@@ -239,6 +239,13 @@ export default function EntryScreen({ onJoined }: Props) {
           </div>
         </div>
 
+        {/* Message d'accueil — première chose vue en arrivant ou en quittant une séance (chantier 46) */}
+        <div className="px-6 pt-3 pb-1">
+          <p className="text-sm text-gray-600">
+            Bienvenue sur l'application d'Ecclesia !
+          </p>
+        </div>
+
         {/* Séances en cours */}
         {activeSessions.length > 0 && (
           <section className="px-6 pt-4">
