@@ -63,10 +63,11 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
   // Escape to close
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') handleClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose])
 
   const saveNote = useCallback(async (html: string) => {
@@ -108,7 +109,23 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
   function handleInput(e: React.FormEvent<HTMLDivElement>) {
     const html = (e.target as HTMLDivElement).innerHTML
     clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => saveNote(html), 800)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = undefined
+      saveNote(html)
+    }, 800)
+  }
+
+  // Vide le debounce en attente (sauvegarde immédiate) avant de fermer — sans ça, fermer puis
+  // rouvrir juste après une frappe recharge la base avant que l'écriture différée n'ait abouti
+  // et la note paraît perdue (course entre le debounce de saveNote et le rechargement au montage).
+  async function handleClose() {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = undefined
+      const html = editorRef.current?.innerHTML
+      if (html !== undefined) await saveNote(html)
+    }
+    onClose()
   }
 
   function execCmd(cmd: string, value?: string) {
@@ -127,7 +144,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
 
@@ -139,7 +156,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
             {saveErr && <span className="text-xs text-red-500">Erreur : {saveErr}</span>}
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none
               focus:ring-2 focus:ring-gray-300 rounded-lg p-1"
             aria-label="Fermer"
