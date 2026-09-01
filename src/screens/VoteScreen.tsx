@@ -113,6 +113,24 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Garde memberRef synchronisé pour les closures Realtime
   useEffect(() => { memberRef.current = member }, [member])
 
+  // ── Chantier 35 — statut modérateur en direct ──────────────────────────────
+  // Le superadmin peut poser/retirer `is_moderator` (onglet Membres ou Tables)
+  // pendant que ce participant est sur cet écran (badge "Vous êtes modérateur"
+  // ici, et `member.is_moderator` réutilisé tel quel au clic "Rejoindre" dans
+  // AllocatingScreen) : sans ça, seul un reload le rattrapait.
+  useEffect(() => {
+    if (!member) return
+    const channel = supabase
+      .channel(`session-member:${member.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'session_members', filter: `id=eq.${member.id}` },
+        payload => { setMember(payload.new as SessionMember) },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [member?.id])
+
   // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
@@ -531,6 +549,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     }
   }
 
+  // Chantier B3 — reconquête d'un profil pré-vote déjà inscrit (pseudo pris).
+  // Pas de code de rappel à (re)montrer ici : celui généré côté client pour
+  // cette tentative n'a jamais été persisté (registerSessionMember n'a pas
+  // été appelé), le vrai reste celui affiché à l'inscription d'origine.
+  // Pas d'onboarding non plus : la pré-vote n'en a pas.
+  async function handlePseudoReclaimSuccess(m: SessionMember) {
+    if (!session) return
+    setMember(m)
+    await loadVoteData(session, m)
+  }
+
   async function handleConfirmAttendanceSuccess(m: SessionMember) {
     if (!session) return
     setMember(m)
@@ -736,6 +765,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <PseudoForm
           session={session}
           onSuccess={handlePseudoSuccess}
+          onReclaimSuccess={handlePseudoReclaimSuccess}
           reclaimCode={session.phase === 'pre_voting' ? (reclaimCode ?? undefined) : undefined}
         />
       </>
@@ -1679,7 +1709,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           {tab === 'pseudo' ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nom Prénom
+                Prénom Nom
               </label>
               <input
                 type="text"
@@ -1770,7 +1800,7 @@ function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProp
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Nom Prénom</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Prénom Nom</p>
             <p className="text-lg font-bold text-gray-900">{pseudo}</p>
           </div>
           <div>
@@ -1933,7 +1963,7 @@ function AttendanceConfirmScreen({
 
           {reclaimTab === 'pseudo' ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom Prénom pré-vote</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom Nom pré-vote</label>
               <input
                 type="text"
                 value={reclaimInput}

@@ -1,0 +1,15 @@
+-- Chantier 35 — synchronisation temps réel du statut modérateur
+--
+-- Sans REPLICA IDENTITY FULL, Supabase Realtime ne peut pas enforcer la RLS
+-- sur les UPDATE de `session_members` (même mécanisme documenté pour
+-- `sessions` — migration 20260615 — et `table_assignments` — migration
+-- 20260530) → les changements de `is_moderator` (retrait/ajout via
+-- `set_member_moderator`, `assign_moderator_to_table`, `claim_moderator_status`)
+-- ne sont pas livrés aux subscribers, quel que soit le filtre utilisé.
+--
+-- `session_members` est déjà dans la publication `supabase_realtime`
+-- (migration 20260528_voting_app.sql) mais n'avait jamais reçu ce réglage.
+-- Prérequis pour les nouveaux abonnements ajoutés côté frontend
+-- (`VoteScreen`, `TableContext`) qui gardent `session_members.is_moderator`
+-- à jour en direct sur le poste du participant concerné.
+ALTER TABLE session_members REPLICA IDENTITY FULL;

@@ -28,9 +28,9 @@ import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, Mo
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
-  getVoteCountsAdmin, getThemeStatsAll, runClusteringV1, runClusteringV2, assignTableToGroup,
+  getVoteCountsAdmin, getThemeStatsAll, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
-  loadAllocationInputs, setMemberModerator,
+  loadAllocationInputs, setMemberModerator, assignModeratorToTable,
 } from '../lib/voting'
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
@@ -971,11 +971,46 @@ function SessionDetail({
   const [phaseConfirm, setPhaseConfirm] = useState<{ phase: Session['phase']; label: string; isBack: boolean } | null>(null)
   const [phaseActing, setPhaseActing]   = useState(false)
 
+  /**
+   * Chantier 37 — fusion IA « en fin de vote » (toggle du panneau de
+   * modération, clé localStorage `ai_auto_merge_<id>`). Elle ne déclenchait
+   * auparavant que depuis la modale héritée « Répartir en tables »
+   * (chantier 19, RPC run_clustering_v1/v2) — supprimée ici (plus aucun
+   * usage réel depuis l'allocation v2, cf. AllocationPanel). Rattachée au
+   * seul point de sortie de la phase voting qui reste : le passage manuel
+   * en allocating, pour ne pas perdre le toggle.
+   */
+  async function runAutoMergeIfEnabled(password: string) {
+    const autoMerge = localStorage.getItem(`ai_auto_merge_${currentSession.id}`) === 'true'
+    if (!autoMerge) return
+    const allAssertions = await listAssertionsAdmin(password, currentSession.id)
+    const approved = allAssertions.filter(a => a.status === 'approved')
+    if (approved.length < 2) return
+    const { results: merges } = await mergeAssertions({
+      session_id:          currentSession.id,
+      session_title:       currentSession.title,
+      session_description: currentSession.description ?? null,
+      assertions:          approved.map(a => ({ id: a.id, content: a.content })),
+    })
+    for (const merge of merges) {
+      for (const rejectId of merge.reject_ids) {
+        // RPC atomique : transfère les votes (sinon perte des votes
+        // portés sur l'assertion fusionnée — bug B4), rejette
+        // l'assertion absorbée et enregistre de quoi annuler la
+        // fusion depuis le panneau IA (chantier 18 / F24).
+        await applyAssertionMerge(password, merge.keep_id, rejectId, null, merge.reason ?? null)
+      }
+    }
+  }
+
   async function handlePhaseChange(targetPhase: Session['phase']) {
     const password = getPwd()!
     setPhaseActing(true)
     setPhaseConfirm(null)
     try {
+      if (targetPhase === 'allocating' && currentSession.phase === 'voting') {
+        await runAutoMergeIfEnabled(password)
+      }
       const updated = await setSessionPhase(password, currentSession.id, targetPhase)
       setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
       if (targetPhase === 'questionnaire') {
@@ -1103,10 +1138,6 @@ function SessionDetail({
   // diagnostics quand le superadmin déplace quelqu'un (§7).
   const [allocInputs,    setAllocInputs]    = useState<AllocationInputs | null>(null)
 
-  // ── C3 : clustering ────────────────────────────────────────
-  const [showClusteringModal, setShowClusteringModal] = useState(false)
-  const [hasAnalysisDone,     setHasAnalysisDone]     = useState(false)
-
   // ── C5 : groupes et assignation ───────────────────────────
   const [groups,          setGroups]          = useState<GroupRow[]>([])
   const [groupNames,      setGroupNames]      = useState<GroupNameResult[]>(() => {
@@ -1122,6 +1153,8 @@ function SessionDetail({
   const [assignError,     setAssignError]     = useState<string | null>(null)
   const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
   const [showDebateConfirm, setShowDebateConfirm] = useState(false)
+  // Chantier 30 (J8) — vue récapitulative en lecture seule, prête à capturer.
+  const [rosterOpen, setRosterOpen] = useState(false)
 
   // ── DnD déplacement membres entre groupes ─────────────────
   const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string } | null>(null)
@@ -1135,6 +1168,15 @@ function SessionDetail({
 
     const memberId   = active.id as string
     const overIdStr  = over.id as string
+
+    // Chantier 33 (point 2) — déposer un membre sur la zone "Ajouter un
+    // modérateur" d'une table l'y assied comme modérateur (glisser-déposer).
+    if (overIdStr.startsWith('add-moderator-')) {
+      const targetTableNumber = parseInt(overIdStr.replace('add-moderator-', ''), 10)
+      await handleAssignTableModerator(targetTableNumber, memberId)
+      return
+    }
+
     if (!overIdStr.startsWith('group-')) return
 
     const targetTableNumber = parseInt(overIdStr.replace('group-', ''), 10)
@@ -1326,6 +1368,53 @@ function SessionDetail({
       setGroupsLoading(false)
     }
   }, [session.id])
+
+  /**
+   * Chantier 33 (point 2) — assigne un membre comme modérateur d'une table
+   * précise (drag & drop ou saisie de nom). Réutilisable par les deux
+   * entrées : `assign_moderator_to_table` pose `is_moderator` et (dé)place
+   * la ligne `table_assignments` en une seule transaction.
+   */
+  const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await assignModeratorToTable(password, currentSession.id, tableNumber, memberId)
+      await loadGroups()
+      await loadMembers()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [currentSession.id, onAuthError, loadGroups, loadMembers])
+
+  /**
+   * Chantier 33 (point 2) — « retirer » un modérateur d'une table : il
+   * redevient un participant ordinaire, toujours assis à la même table.
+   * Réutilise `set_member_moderator`, déjà existante (chantier 19/25c).
+   */
+  const handleRemoveTableModerator = useCallback(async (memberId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await setMemberModerator(password, currentSession.id, memberId, false)
+      await loadGroups()
+      await loadMembers()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [currentSession.id, onAuthError, loadGroups, loadMembers])
 
   useEffect(() => {
     const p = currentSession.phase
@@ -1575,6 +1664,29 @@ function SessionDetail({
   }, [session.id, onAuthError, tableFilter, customSince])
 
   useEffect(() => { load() }, [load])
+
+  // Chantier 35 — "Tables rattachées" (moderator_pseudo, participant_count,
+  // is_active) n'avait jamais de rafraîchissement après le chargement initial :
+  // un reclaim_moderator (reprise de modération sur une table déjà rattachée)
+  // ou un nouveau participant qui rejoint restaient invisibles sans reload
+  // manuel. Realtime (tables — REPLICA IDENTITY FULL déjà en place, cf.
+  // CLAUDE.md) + polling de secours, même schéma que loadMembers/loadStats.
+  useEffect(() => {
+    const interval = setInterval(load, 15000)
+    return () => clearInterval(interval)
+  }, [load])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`session-tables:${session.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tables', filter: `session_id=eq.${session.id}` },
+        () => { load() },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [session.id, load])
 
   const loadResponses = useCallback(async () => {
     const password = getPwd()!
@@ -1970,30 +2082,9 @@ function SessionDetail({
                     {statsLoading && !votingStats ? (
                       <p className="text-sm text-gray-400 py-2">Chargement…</p>
                     ) : votingStats ? (
-                      <VotingStatsPanel
-                        stats={votingStats}
-                        session={currentSession}
-                        onTriggerClustering={() => setShowClusteringModal(true)}
-                      />
+                      <VotingStatsPanel stats={votingStats} />
                     ) : null}
                   </SectionAccordion>
-                )}
-
-                {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
-                    `allocating` (§7). Le panneau « Réponses modérateur » (E4)
-                    a été supprimé : la demande d'encadrement est traitée par
-                    la règle 5 de l'algorithme. */}
-                {currentSession.phase === 'allocating' && (
-                  <AllocationPanel
-                    // Chantier 25 (H14) — l'état de travail du panneau est
-                    // restauré depuis sessionStorage au montage : la clé garantit
-                    // un remontage si la séance change sans démontage du parent.
-                    key={currentSession.id}
-                    sessionId={currentSession.id}
-                    password={getPwd()!}
-                    onApplied={() => { loadGroups(); setActiveTab('tables') }}
-                    onAuthError={onAuthError}
-                  />
                 )}
 
                 <ModerationPolicyEditor
@@ -2050,7 +2141,6 @@ function SessionDetail({
                     password={getPwd()!}
                     assertions={assertions}
                     onAuthError={onAuthError}
-                    onAnalysisStatusChange={setHasAnalysisDone}
                     onAnalysisComplete={handleAnalysisNaming}
                     groupNames={groupNames}
                     totalMembers={members.length > 0 ? members.length : undefined}
@@ -2107,12 +2197,40 @@ function SessionDetail({
             {/* ── Onglet Tables ────────────────────────────── */}
             {activeTab === 'tables' && (
               <div className="space-y-4">
+                {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
+                    `allocating` (§7). Le panneau « Réponses modérateur » (E4)
+                    a été supprimé : la demande d'encadrement est traitée par
+                    la règle 5 de l'algorithme.
+                    Chantier 33 — déplacé depuis l'onglet « En direct » : sa
+                    place est ici, avec le reste de la gestion des tables. */}
+                {currentSession.phase === 'allocating' && (
+                  <AllocationPanel
+                    // Chantier 25 (H14) — l'état de travail du panneau est
+                    // restauré depuis sessionStorage au montage : la clé garantit
+                    // un remontage si la séance change sans démontage du parent.
+                    key={currentSession.id}
+                    sessionId={currentSession.id}
+                    password={getPwd()!}
+                    onApplied={loadGroups}
+                    onAuthError={onAuthError}
+                  />
+                )}
+
                 {/* Groupes (allocating/debating) */}
                 {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
                       <div className="flex items-center gap-2">
+                        {groups.length > 0 && (
+                          <button
+                            onClick={() => setRosterOpen(true)}
+                            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                            title="Vue récapitulative, prête à capturer en screenshot"
+                          >
+                            🖨️ Récapitulatif
+                          </button>
+                        )}
                         {groupsLoading ? (
                           <Spinner />
                         ) : groupsSyncedAt ? (
@@ -2196,24 +2314,40 @@ function SessionDetail({
                             </div>
                             {/* Chantier 26 (H21) — nom du modérateur affecté à cette table, ou
                                 attente explicite si la table doit être animée mais que le
-                                modérateur annoncé n'est pas encore inscrit. */}
+                                modérateur annoncé n'est pas encore inscrit. Chantier 36 : un
+                                membre `is_moderator` ne doit apparaître qu'ici, jamais en plus
+                                dans la liste de puces ci-dessous (cf. filtre sur `g.members`). */}
                             {(() => {
-                              const mod = g.members.find(m => m.is_moderator)
-                              if (mod) {
+                              const mods = g.members.filter(m => m.is_moderator)
+                              if (mods.length > 0) {
                                 return (
-                                  <div className="mb-2">
-                                    <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
-                                      🎙️ Modérateur : <strong>{mod.pseudo}</strong>
-                                    </span>
+                                  <div className="mb-2 flex items-center gap-1.5 flex-wrap">
+                                    {mods.map(mod => (
+                                      <span key={mod.member_id}
+                                        className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
+                                        🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                        <button
+                                          onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                          disabled={movingMember}
+                                          className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                          title="Redevient un participant ordinaire de cette table"
+                                        >
+                                          Retirer
+                                        </button>
+                                      </span>
+                                    ))}
                                   </div>
                                 )
                               }
                               if (g.moderated) {
                                 return (
                                   <div className="mb-2">
-                                    <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1">
-                                      ⏳ En attente de modérateur
-                                    </span>
+                                    <AddModeratorControl
+                                      tableNumber={g.table_number}
+                                      candidates={members}
+                                      onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
+                                      disabled={movingMember}
+                                    />
                                   </div>
                                 )
                               }
@@ -2234,7 +2368,7 @@ function SessionDetail({
                                 volontairement plusieurs camps, ce nom était donc faux. La barre de
                                 composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
-                              {g.members.map(m => (
+                              {g.members.filter(m => !m.is_moderator).map(m => (
                                 <DraggableMemberChip
                                   key={m.member_id}
                                   memberId={m.member_id}
@@ -2900,6 +3034,10 @@ function SessionDetail({
         />
       )}
 
+      {rosterOpen && (
+        <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
+      )}
+
       {phaseConfirm && (
         <ConfirmModal
           title={phaseConfirm.isBack ? '← Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
@@ -2909,53 +3047,6 @@ function SessionDetail({
           confirmLabel={phaseConfirm.isBack ? '← Revenir' : 'Confirmer →'}
           onConfirm={() => handlePhaseChange(phaseConfirm.phase)}
           onCancel={() => setPhaseConfirm(null)}
-        />
-      )}
-
-      {showClusteringModal && votingStats && (
-        <ClusteringModal
-          stats={votingStats}
-          attachedTableCount={attachedTables.length}
-          title={hasAnalysisDone ? '🎯 Répartition hétérogène' : '🔀 Répartition aléatoire'}
-          warning={hasAnalysisDone ? undefined : "L'analyse des camps n'a pas encore été faite. La répartition sera aléatoire."}
-          onConfirm={async (targetSize) => {
-            const password = getPwd()!
-
-            // Auto-merge si activé dans localStorage
-            const autoMerge = localStorage.getItem(`ai_auto_merge_${currentSession.id}`) === 'true'
-            if (autoMerge) {
-              const allAssertions = await listAssertionsAdmin(password, currentSession.id)
-              const approved = allAssertions.filter(a => a.status === 'approved')
-              if (approved.length >= 2) {
-                const { results: merges } = await mergeAssertions({
-                  session_id:          currentSession.id,
-                  session_title:       currentSession.title,
-                  session_description: currentSession.description ?? null,
-                  assertions:          approved.map(a => ({ id: a.id, content: a.content })),
-                })
-                for (const merge of merges) {
-                  for (const rejectId of merge.reject_ids) {
-                    // RPC atomique : transfère les votes (sinon perte des votes
-                    // portés sur l'assertion fusionnée — bug B4), rejette
-                    // l'assertion absorbée et enregistre de quoi annuler la
-                    // fusion depuis le panneau IA (chantier 18 / F24).
-                    await applyAssertionMerge(
-                      password, merge.keep_id, rejectId, null,
-                      merge.reason ?? null,
-                    )
-                  }
-                }
-              }
-            }
-
-            const result = hasAnalysisDone
-              ? await runClusteringV2(password, currentSession.id, targetSize)
-              : await runClusteringV1(password, currentSession.id, targetSize)
-            setCurrentSession(prev => ({ ...prev, phase: 'allocating' as const }))
-            return result
-          }}
-          onClose={() => setShowClusteringModal(false)}
-          onAuthError={onAuthError}
         />
       )}
     </div>
@@ -3175,17 +3266,7 @@ function SectionAccordion({
 
 // ── VotingStatsPanel ──────────────────────────────────────────────
 
-function VotingStatsPanel({
-  stats,
-  session,
-  onTriggerClustering,
-}: {
-  stats: SessionVotingStats
-  session: SessionRow
-  onTriggerClustering(): void
-}) {
-  const showClusterBtn = session.phase === 'voting'
-
+function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -3217,16 +3298,6 @@ function VotingStatsPanel({
             <p className="text-xs text-gray-500">À distance</p>
           </div>
         </div>
-      )}
-
-      {/* Clustering trigger */}
-      {showClusterBtn && (
-        <button
-          onClick={onTriggerClustering}
-          className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-        >
-          🎯 Répartir en tables
-        </button>
       )}
     </div>
   )
@@ -3320,145 +3391,141 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
   )
 }
 
-// ── ClusteringModal ───────────────────────────────────────────────
-
-function ClusteringModal({
-  stats,
-  attachedTableCount,
-  onConfirm,
-  onClose,
-  onAuthError,
-  title,
-  warning,
+/**
+ * Chantier 33 (point 2) — table animée en attente d'un modérateur : le
+ * superadmin peut soit glisser-déposer un `DraggableMemberChip` dessus
+ * (zone droppable `add-moderator-<table_number>`, gérée par
+ * `handleGroupDragEnd`), soit taper un nom.
+ *
+ * Choix d'implémentation : autocomplete (datalist native sur les pseudos
+ * déjà inscrits à la séance) plutôt qu'un champ libre, pour éviter les
+ * fautes de frappe qui échoueraient silencieusement à retrouver le bon
+ * membre. La résolution nom → member_id se fait côté client (correspondance
+ * exacte insensible à la casse) ; `session_members` a une contrainte
+ * UNIQUE(session_id, pseudo), donc un pseudo désigne au plus un membre.
+ */
+function AddModeratorControl({
+  tableNumber, candidates, onAssign, disabled,
 }: {
-  stats: SessionVotingStats
-  attachedTableCount: number
-  onConfirm(targetSize: number): Promise<{ table_count: number; member_count: number }>
-  onClose(): void
-  onAuthError(): void
-  title?: string
-  warning?: string
+  tableNumber: number
+  candidates: SessionMemberAdmin[]
+  onAssign(memberId: string): void
+  disabled?: boolean
 }) {
-  const [targetSize, setTargetSize]   = useState(7)
-  const [loading,    setLoading]      = useState(false)
-  const [error,      setError]        = useState<string | null>(null)
-  const [result,     setResult]       = useState<{ table_count: number; member_count: number } | null>(null)
+  const { setNodeRef, isOver } = useDroppable({ id: `add-moderator-${tableNumber}` })
+  const [name,  setName]  = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const datalistId = `moderator-candidates-${tableNumber}`
 
-  const expectedGroups = stats.member_count > 0 ? Math.ceil(stats.member_count / targetSize) : 0
-  const notEnoughTables = expectedGroups > attachedTableCount
-
-  async function handleConfirm() {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await onConfirm(targetSize)
-      setResult(res)
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError(); return
-      }
-      setError(msg)
-    } finally {
-      setLoading(false)
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = name.trim().toLowerCase()
+    const match = candidates.find(c => c.pseudo.trim().toLowerCase() === trimmed)
+    if (!match) {
+      setError('Aucun participant inscrit avec ce nom — vérifie l\'orthographe.')
+      return
     }
+    setError(null)
+    setName('')
+    onAssign(match.id)
   }
 
   return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg border px-2.5 py-2 transition-colors ${
+        isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-amber-200 bg-amber-50/60'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-xs text-amber-800 inline-flex items-center gap-1">
+          ⏳ En attente de modérateur
+        </span>
+        <span className="text-xs text-gray-400">glisse un participant ici, ou :</span>
+      </div>
+      <form onSubmit={handleSubmit} className="flex items-center gap-1.5">
+        <input
+          list={datalistId}
+          value={name}
+          onChange={e => { setName(e.target.value); setError(null) }}
+          disabled={disabled}
+          placeholder="Nom prénom du modérateur…"
+          className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+            focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white disabled:opacity-50"
+        />
+        <datalist id={datalistId}>
+          {candidates.map(c => <option key={c.id} value={c.pseudo} />)}
+        </datalist>
+        <button
+          type="submit"
+          disabled={disabled || !name.trim()}
+          className="shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+            text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          ➕ Ajouter
+        </button>
+      </form>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  )
+}
+
+// ── TableRosterModal (chantier 30 / J8) ────────────────────────────
+// Vue en lecture seule, pensée pour être capturée en screenshot : liste
+// simple table virtuelle → modérateur → table physique, sans les éléments
+// d'interaction (glisser-déposer, boutons rattacher/détacher…) de l'onglet
+// Tables qui l'encombreraient sur une capture.
+
+function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): void }) {
+  const sorted = [...groups].sort((a, b) => a.table_number - b.table_number)
+
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-        <div className="px-6 pt-6 pb-2">
-          <h2 className="text-base font-semibold text-gray-900">{title ?? '🔀 Déclencher le clustering'}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Répartit les participants en tables de discussion</p>
-        </div>
-
-        <div className="px-6 py-4 space-y-4">
-          {warning && (
-            <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-700">
-              ⚠️ {warning}
-            </div>
-          )}
-          {/* Stats recap */}
-          <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <p className="text-gray-500 text-xs">Participants inscrits</p>
-              <p className="font-bold text-gray-900">{stats.member_count}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Ont voté</p>
-              <p className="font-bold text-gray-900">{stats.voter_count}</p>
-            </div>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">🖨️ Récapitulatif des tables</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Prêt à capturer en screenshot</p>
           </div>
-
-          {result ? (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-              <p className="text-green-700 font-semibold text-sm">
-                ✅ {result.table_count} tables créées pour {result.member_count} participants
-              </p>
-              <p className="text-xs text-green-600 mt-1">La séance est maintenant en phase Allocation</p>
-            </div>
-          ) : (
-            <>
-              {/* Target size input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Taille cible par table
-                </label>
-                <input
-                  type="number"
-                  min={3}
-                  max={15}
-                  value={targetSize}
-                  onChange={e => setTargetSize(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  {expectedGroups > 0 ? expectedGroups : '?'} table(s) nécessaire(s) · {attachedTableCount} rattachée(s)
-                </p>
-              </div>
-
-              {/* Chantier 19 (G5) — l'option « Allocation avancée »
-                  (run_clustering_v3) est supprimée : l'algorithme v2 la
-                  remplace intégralement. v1/v2 restent accessibles ici le
-                  temps de valider v2 en production. */}
-              <p className="text-xs text-gray-400 leading-snug bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                💡 Répartition héritée (aléatoire ou hétérogène simple). Pour
-                l'algorithme v2 — 5 règles, tables créées automatiquement —
-                passe la séance en phase <b>Allocation</b> et utilise le
-                panneau « Allocation des tables ».
-              </p>
-
-              {notEnoughTables && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                  ⚠️ Il faut {expectedGroups} table(s) rattachée(s) mais seulement {attachedTableCount} sont disponibles. Rattachez des tables à la séance avant de lancer le clustering.
-                </div>
-              )}
-
-              {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="px-6 pb-6 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            {result ? 'Fermer' : 'Annuler'}
+            ✕
           </button>
-          {!result && (
-            <button
-              onClick={handleConfirm}
-              disabled={loading || notEnoughTables}
-              className="flex-1 py-2.5 text-sm font-medium bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl transition-colors"
-            >
-              {loading ? 'Clustering…' : 'Confirmer'}
-            </button>
-          )}
+        </div>
+
+        <div className="px-6 pb-6">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <th className="py-2 pr-3">Table</th>
+                <th className="py-2 pr-3">Modérateur</th>
+                <th className="py-2">Table physique</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(g => {
+                const mod = g.members.find(m => m.is_moderator)
+                return (
+                  <tr key={g.table_number} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2.5 pr-3 font-semibold text-gray-900">N°{g.table_number}</td>
+                    <td className="py-2.5 pr-3 text-gray-700">
+                      {mod ? mod.pseudo : (g.moderated ? '⏳ en attente' : '— sans animateur —')}
+                    </td>
+                    <td className="py-2.5 font-mono tracking-widest text-gray-700">
+                      {g.join_code ?? '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-gray-400">Aucune table.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -4328,6 +4395,7 @@ function StaffInterestList({
           <div key={r.id} className="py-3 flex items-start gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-sm font-semibold text-gray-900">{r.pseudo ?? 'Pseudo inconnu'}</span>
                 <span className="text-xs text-gray-400 tabular-nums">{date}</span>
                 {r.table_join_code && (
                   <span className="font-mono text-xs text-indigo-600 tracking-widest">
