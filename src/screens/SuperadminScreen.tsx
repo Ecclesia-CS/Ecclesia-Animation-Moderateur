@@ -2054,7 +2054,7 @@ function SessionDetail({
                     onAnalysisComplete={handleAnalysisNaming}
                     groupNames={groupNames}
                     totalMembers={members.length > 0 ? members.length : undefined}
-                    sessionPhase={session.phase}
+                    sessionPhase={currentSession.phase}
                   />
                 )}
 
