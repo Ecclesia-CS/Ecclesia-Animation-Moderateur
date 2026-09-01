@@ -8,7 +8,7 @@ const THEMES_INITIAL = 5
 
 interface Props {
   onClose: () => void
-  /** Réponse déjà enregistrée, chargée par QuestionnaireFab avant l'ouverture. */
+  /** Réponse déjà enregistrée, chargée par le parent avant l'ouverture. */
   savedResponse: QuestionnaireResponse | null
   /** Quand true : modal verrouillé (forçage admin) — pas de croix, Echap ni clic overlay. */
   forced?: boolean

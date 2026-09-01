@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTable } from '../context/TableContext'
-import { useTranscription } from '../hooks/useTranscription'
-import { extractErr } from '../lib/utils'
+import { supabase } from '../lib/supabase'
+import { extractErr, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import { getVoteResults } from '../lib/voting'
+import type { QuestionnaireResponse, VoteResult } from '../lib/types'
 import QrCodeModal from './QrCodeModal'
 import CorrectTurnModal from './CorrectTurnModal'
+import NotesModal from './NotesModal'
+import QuestionnaireModal from './QuestionnaireModal'
+import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
 
 interface Props {
@@ -11,47 +16,88 @@ interface Props {
   onError?: (message: string) => void
 }
 
-const BACKEND_URL_KEY = 'ecclesia_transcription_url'
+function isQuestionnaireComplete(r: QuestionnaireResponse | null): boolean {
+  if (!r) return false
+  return (
+    r.theme_ideas     !== null &&
+    r.debate_attended !== null &&
+    r.debate_rating   !== null &&
+    r.staff_interest  !== null &&
+    r.feedback        !== null &&
+    QUESTIONNAIRE_THEMES.every(t => r.theme_ratings[t] !== undefined)
+  )
+}
 
-// "Outils Modo" — menu unique regroupant tous les outils réservés au modérateur
-// (chantier 27 / H22 : fusion de l'ancien bouton "Outils Modo" — qui ne contenait
-// que le QR code, chantier 21/F7 — et du dropdown "Outils Modo" du header —
-// transcription, historique, forçage questionnaire. Le bouton "Camps" séparé
-// (chantier 20/G7) est intégré ici plutôt que de rester à part).
+// "Outils Modo" — menu unique regroupant tous les outils réservés au modérateur.
+// Chantier 27 / H22 : fusion de l'ancien bouton "Outils Modo" (QR code, chantier
+// 21/F7) et du dropdown "Outils Modo" du header (transcription, historique,
+// forçage questionnaire) + bouton "Camps" (chantier 20/G7).
+// Chantier 43 : fusion du reste de la barre du header modérateur (Notes,
+// Assertions, Questionnaire post-débat — la Documentation reste à part), et
+// suppression de la transcription (backend live abandonné, cf. CLAUDE.md).
+// Sections séparées par des lignes : Camps + Assertions groupés en premier
+// pour donner au modérateur un point de vue sur l'idéologie de sa table.
 export default function ModeratorToolsButton({ className = '', onError }: Props) {
   const { table, forceQuestionnaire, cancelForceQuestionnaire } = useTable()
-  const [panelOpen, setPanelOpen] = useState(false)
-  const [qrOpen,      setQrOpen]      = useState(false)
-  const [campsOpen,   setCampsOpen]   = useState(false)
-  const [correctOpen, setCorrectOpen] = useState(false)
+  const [panelOpen,     setPanelOpen]     = useState(false)
+  const [campsOpen,     setCampsOpen]     = useState(false)
+  const [assertionsOpen, setAssertionsOpen] = useState(false)
+  const [qrOpen,        setQrOpen]        = useState(false)
+  const [correctOpen,   setCorrectOpen]   = useState(false)
+  const [notesOpen,     setNotesOpen]     = useState(false)
+  const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
 
-  const [backendUrl, setBackendUrl] = useState<string>(
-    () => localStorage.getItem(BACKEND_URL_KEY) ?? ''
-  )
-  const [showUrlInput, setShowUrlInput] = useState(false)
-  const [urlDraft, setUrlDraft] = useState(backendUrl)
+  const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
+  const [voteResultsLoading, setVoteResultsLoading] = useState(false)
 
-  const { isRecording, connected, start, stop } = useTranscription(backendUrl, table.join_code)
+  const [savedResponse, setSavedResponse] = useState<QuestionnaireResponse | null>(null)
+  const [checkDone,     setCheckDone]     = useState(false)
 
-  function saveBackendUrl() {
-    const trimmed = urlDraft.trim().replace(/\/$/, '')
-    setBackendUrl(trimmed)
-    localStorage.setItem(BACKEND_URL_KEY, trimmed)
-    setShowUrlInput(false)
+  useEffect(() => {
+    supabase
+      .from('questionnaire_responses')
+      .select('*')
+      .eq('table_id', table.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSavedResponse(data as QuestionnaireResponse | null)
+        setCheckDone(true)
+      })
+  }, [table.id])
+
+  function refetchQuestionnaire() {
+    supabase
+      .from('questionnaire_responses')
+      .select('*')
+      .eq('table_id', table.id)
+      .maybeSingle()
+      .then(({ data }) => setSavedResponse(data as QuestionnaireResponse | null))
   }
 
   function handleError(e: unknown) {
     onError?.(extractErr(e))
   }
 
+  function openAssertions() {
+    setPanelOpen(false)
+    setAssertionsOpen(true)
+    if (voteResults.length > 0 || voteResultsLoading || !table.session_id) return
+    setVoteResultsLoading(true)
+    getVoteResults(table.session_id)
+      .then(setVoteResults)
+      .catch(() => {})
+      .finally(() => setVoteResultsLoading(false))
+  }
+
+  const questionnaireDone = checkDone && isQuestionnaireComplete(savedResponse)
+
   const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors'
+  const sectionLabelClass = 'pt-3 pb-1 px-5 text-xs font-semibold text-gray-400 uppercase tracking-wide'
+  const dividerClass = 'mt-2 border-t border-gray-100'
 
   return (
     <>
       <button onClick={() => setPanelOpen(true)} className={className}>
-        {isRecording && (
-          <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse mr-1.5" />
-        )}
         Outils Modo
       </button>
 
@@ -75,15 +121,33 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               </button>
             </div>
 
+            {/* ── Camps & assertions — vue d'ensemble de l'idéologie de la table, en premier ── */}
             {table.session_id && (
-              <button onClick={() => { setPanelOpen(false); setCampsOpen(true) }} className={linkClass}>
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18" />
-                  <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Camps
-              </button>
+              <>
+                <p className={sectionLabelClass}>Camps &amp; assertions</p>
+
+                <button onClick={() => { setPanelOpen(false); setCampsOpen(true) }} className={linkClass}>
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18" />
+                    <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Camps
+                </button>
+
+                <button onClick={openAssertions} className={linkClass}>
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Assertions votées
+                </button>
+
+                <div className={dividerClass} />
+              </>
             )}
+
+            {/* ── Table ── */}
+            <p className={sectionLabelClass}>Table</p>
 
             <button onClick={() => { setPanelOpen(false); setQrOpen(true) }} className={linkClass}>
               <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -123,60 +187,33 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 : 'Forcer questionnaire'}
             </button>
 
-            <div className="my-1 border-t border-gray-100" />
+            <div className={dividerClass} />
 
-            {showUrlInput ? (
-              <div className="px-5 py-3 flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={urlDraft}
-                  onChange={(e) => setUrlDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveBackendUrl() }}
-                  placeholder="https://xxxx.ngrok.io"
-                  className="text-xs px-2 py-1 rounded border border-gray-300 bg-white
-                    text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1
-                    focus:ring-indigo-500 flex-1 min-w-0"
-                  autoFocus
-                />
-                <button
-                  onClick={saveBackendUrl}
-                  className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 shrink-0"
-                >
-                  OK
-                </button>
-                <button
-                  onClick={() => setShowUrlInput(false)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded text-gray-500
-                    hover:bg-gray-50 shrink-0"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (!backendUrl) { setShowUrlInput(true); setUrlDraft(''); return }
-                  setPanelOpen(false)
-                  isRecording ? stop() : start()
-                }}
-                className={linkClass}
-              >
-                {backendUrl ? (
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${connected ? 'bg-green-500' : 'bg-gray-300'}`} />
-                ) : (
-                  <span className="text-base leading-none w-4 text-center shrink-0">🎙</span>
-                )}
-                {isRecording ? 'Arrêter la transcription' : 'Transcription'}
-              </button>
-            )}
-            {backendUrl && !showUrlInput && (
-              <button
-                onClick={() => { setUrlDraft(backendUrl); setShowUrlInput(true) }}
-                className="w-full px-5 pb-3 text-xs text-gray-400 hover:text-gray-600 text-left"
-              >
-                Modifier l'URL
-              </button>
-            )}
+            {/* ── Personnel ── */}
+            <p className={sectionLabelClass}>Personnel</p>
+
+            <button onClick={() => { setPanelOpen(false); setNotesOpen(true) }} className={linkClass}>
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
+              </svg>
+              Mes notes
+            </button>
+
+            <button
+              onClick={() => { if (!questionnaireDone) { setPanelOpen(false); setQuestionnaireOpen(true) } }}
+              disabled={questionnaireDone}
+              title={questionnaireDone ? 'Questionnaire déjà rempli' : undefined}
+              className={`${linkClass}${questionnaireDone ? ' opacity-40 cursor-not-allowed' : ''}`}
+            >
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Questionnaire post-débat
+              {questionnaireDone && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
+            </button>
 
             <div className="pb-2" />
           </div>
@@ -194,6 +231,43 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
 
       {correctOpen && <CorrectTurnModal onClose={() => setCorrectOpen(false)} />}
+
+      {notesOpen && (
+        <NotesModal tableId={table.id} onClose={() => setNotesOpen(false)} />
+      )}
+
+      {questionnaireOpen && (
+        <QuestionnaireModal
+          savedResponse={savedResponse}
+          onClose={() => { setQuestionnaireOpen(false); refetchQuestionnaire() }}
+        />
+      )}
+
+      {assertionsOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          onMouseDown={e => { if (e.target === e.currentTarget) setAssertionsOpen(false) }}
+        >
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <h2 className="text-sm font-semibold text-gray-900">Assertions votées</h2>
+              <button
+                onClick={() => setAssertionsOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                aria-label="Fermer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <VoteResultsList results={voteResults} loading={voteResultsLoading} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

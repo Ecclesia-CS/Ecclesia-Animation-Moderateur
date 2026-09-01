@@ -128,6 +128,20 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 *Nécessite un Code Ecclesia et une vraie table animée (avec modérateur) pour la plupart des points ci-dessous — pas testable avec une table `leaderless` seule.*
 
+- [ ] **Chantier 43 — Fusion "Outils Modo" + suppression transcription (vue modérateur)**
+  Branche `chantier-43-outils-modo-transcription`, pas encore mergée sur `main` (voir note ci-dessous).
+
+  **Ce qui a été fait** : `NotesButton`, `AssertionsButton` et `QuestionnaireFab` (header de `ModeratorView`) sont retirés — leur contenu est intégré comme entrées du menu `ModeratorToolsButton` ("Outils Modo"), désormais organisé en 3 sections séparées par des lignes : **Camps & assertions** (Camps, Assertions votées — en premier), **Table** (QR code, Historique, Forçage questionnaire), **Personnel** (Mes notes, Questionnaire post-débat). Seul le bouton Documentation reste séparé dans le header. Le bouton et le code de transcription live (`useTranscription.ts`, backend WebSocket) sont supprimés — ils étaient déjà signalés morts dans `CLAUDE.md` (backend live abandonné le 2026-06-30). Le sous-projet `transcription-debat/` (pipeline offline) n'a pas été touché, ni les migrations/tables Supabase.
+
+  **Vérifié** : `tsc --noEmit` propre, suite de tests (`npm test`, 90/91 — 1 skip pré-existant) verte sans régression, `npm run build` réussi, app chargée dans le Browser pane sans erreur console (EntryScreen, navigation vers une séance `debating` existante).
+
+  **Non vérifié — bloqué faute d'identifiants** : impossible en session headless d'obtenir un Code Ecclesia ou un mot de passe superadmin valides pour rejoindre une table réelle en tant que modérateur et donc faire tourner `ModeratorView`/`ModeratorToolsButton` en conditions réelles dans le navigateur. Point à vérifier manuellement par Jules avant merge :
+  1. Rejoindre une table de débat en tant que modérateur (Code Ecclesia requis) → ouvrir "Outils Modo" → confirmer les 3 sections dans l'ordre (Camps & assertions en premier), tous les items s'ouvrent (Camps, Assertions votées, QR code, Historique, Forcer/Annuler questionnaire, Mes notes, Questionnaire post-débat) sans erreur console.
+  2. Confirmer qu'aucun bouton/mention "Transcription" ne subsiste dans la vue modérateur.
+  3. Cas sans séance rattachée (table créée hors séance) : confirmer que la section "Camps & assertions" est bien absente (elle est conditionnée à `table.session_id`) et qu'il n'y a pas de ligne de séparation orpheline.
+
+  **Reste identifié mais volontairement non touché (hors périmètre du chantier)** : `src/hooks/useTranscription.ts` a été supprimé (devenu mort après le retrait de son unique appelant), mais `src/components/voting/OnboardingForm.tsx:158` mentionne encore la transcription dans un texte de consentement participant (anonymisation du pipeline offline) — sans lien avec le hook supprimé, non modifié.
+
 - [ ] **Chantier 8 (rattrapage) — Fix DnD : l'entrée déposée n'arrive plus en dernier (A2)**
   Mergé sur `main` (`e1fb31a`), aucune migration.
 

@@ -22,10 +22,7 @@ import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
-import QuestionnaireBtn from '../components/QuestionnaireFab'
-import NotesButton from '../components/NotesButton'
 import DocumentationButton from '../components/DocumentationButton'
-import AssertionsButton from '../components/AssertionsButton'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 
 export default function ModeratorView() {
@@ -492,28 +489,12 @@ export default function ModeratorView() {
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
             />
-            <NotesButton
-              className="p-1.5 border border-slate-600 rounded-lg text-slate-300
-                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
-              label={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
-                </svg>
-              }
-            />
-            <AssertionsButton className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
-              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-              focus:ring-2 focus:ring-slate-500" />
             <ModeratorToolsButton
               onError={setErr}
               className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2
                 focus:ring-slate-500 flex items-center gap-1.5"
             />
-            <QuestionnaireBtn className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
-              text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-              focus:ring-2 focus:ring-slate-500" />
             <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-300">
               <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
               <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-0.5
@@ -750,7 +731,7 @@ export default function ModeratorView() {
                 <span className="text-xl shrink-0">🔧</span>
                 <div>
                   <p className="font-semibold text-gray-900">Outils Modo</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Camps (composition idéologique de ta table et assertions représentatives des différents avis), QR code de la table, historique et forçage du questionnaire, transcription. Documentation, notes et assertions du vote restent accessibles depuis les boutons du header.</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.</p>
                 </div>
               </div>
             </div>
