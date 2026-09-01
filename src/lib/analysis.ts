@@ -351,11 +351,16 @@ export interface LoadedAnalysis {
 }
 
 // ── PublicResultsData ─────────────────────────────────────────
+// Chantier 46 — get_public_results() ne retourne plus un résumé filtré
+// (top-3 par camp / consensus > seuil) mais la liste complète des
+// assertions approuvées avec leurs compteurs, et le nuage de points
+// anonyme (sans member_id) — même esprit que ResultsMapData mais sans
+// aucun identifiant, gate en base sur phase='closed' ET results_public=true.
 
 export interface PublicResultsData {
-  k_chosen:  number
-  groups:    { group_id: number; top_assertions: { content: string; score: number }[] }[]
-  consensus: { content: string; score: number }[] | null
+  k_chosen:   number | null
+  points:     { pca_x: number; pca_y: number; group_id: number }[]
+  assertions: { content: string; agree_count: number; disagree_count: number; pass_count: number }[]
 }
 
 // ── ResultsMapData ────────────────────────────────────────────

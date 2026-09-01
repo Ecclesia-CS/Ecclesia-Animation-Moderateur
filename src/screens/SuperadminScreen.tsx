@@ -13,7 +13,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
-  verifyPassword, createSession, closeSession, deleteSession,
+  verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
   attachTableToSession, detachTableFromSession,
   listSessionTables, listAvailableTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
@@ -229,6 +229,31 @@ export default function SuperadminScreen() {
     }
   }
 
+  // ── Bascule visibilité publique des résultats (chantier 46) ────
+  const [resultsPublicErr, setResultsPublicErr] = useState<Record<string, string>>({})
+
+  async function handleToggleResultsPublic(target: SessionRow, next: boolean) {
+    const password = getPwd()!
+    setResultsPublicErr(prev => {
+      const { [target.id]: _omit, ...rest } = prev
+      return rest
+    })
+    // Optimiste — la bascule est un simple toggle, peu de raisons d'échouer
+    // une fois authentifié ; on revient en arrière si l'appel échoue.
+    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, results_public: next } : s))
+    try {
+      await setSessionResultsPublic(password, target.id, next)
+    } catch (e) {
+      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, results_public: !next } : s))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+        return
+      }
+      setResultsPublicErr(prev => ({ ...prev, [target.id]: msg }))
+    }
+  }
+
   // ── Session created ────────────────────────────────────────────
   function handleCreated(s: Session) {
     setSessions(prev => sortSessions([{ ...s, tableCount: 0, memberCount: 0 }, ...prev]))
@@ -426,6 +451,8 @@ export default function SuperadminScreen() {
                 onClose={() => setToClose(s)}
                 onDelete={() => setToDelete(s)}
                 onClick={() => { sessionStorage.setItem('ecclesia_superadmin_session', s.id); setView({ type: 'detail', session: s }) }}
+                onResultsPublicChange={next => handleToggleResultsPublic(s, next)}
+                resultsPublicError={resultsPublicErr[s.id]}
               />
             ))}
           </div>
@@ -467,12 +494,14 @@ export default function SuperadminScreen() {
 // ── SessionCard ───────────────────────────────────────────────────
 
 function SessionCard({
-  session, onClose, onDelete, onClick,
+  session, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
 }: {
   session: SessionRow
   onClose(): void
   onDelete(): void
   onClick(): void
+  onResultsPublicChange(next: boolean): void
+  resultsPublicError?: string
 }) {
   const isClosed = session.phase === 'closed'
   const [expanded, setExpanded]   = useState(false)
@@ -545,6 +574,41 @@ function SessionCard({
           {/* Description */}
           {session.description && (
             <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{session.description}</p>
+          )}
+
+          {/* Résultats publics (chantier 46) — uniquement pertinent une fois close */}
+          {isClosed && (
+            <div onClick={e => e.stopPropagation()} className="pt-0.5">
+              <button
+                onClick={() => onResultsPublicChange(!session.results_public)}
+                title={
+                  session.results_public
+                    ? 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
+                    : 'Rendre les résultats de cette séance consultables par les visiteurs non connectés'
+                }
+                className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                  session.results_public
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <span
+                  className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
+                    session.results_public ? 'bg-emerald-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                      session.results_public ? 'translate-x-3' : 'translate-x-0.5'
+                    }`}
+                  />
+                </span>
+                {session.results_public ? 'Résultats publics' : 'Résultats privés'}
+              </button>
+              {resultsPublicError && (
+                <p className="text-xs text-red-600 mt-1">{resultsPublicError}</p>
+              )}
+            </div>
           )}
         </div>
 

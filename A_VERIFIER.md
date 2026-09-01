@@ -15,21 +15,71 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 
 Les points sont groupés **par écran/parcours**, pas par chantier, pour permettre une seule passe par écran plutôt que d'aller-retour entre chantiers. Dans l'ordre suggéré :
 
-1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester le chantier 33.
-2. **Superadmin** — onglets Tables, Membres, phase voting.
-3. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
-4. **Modérateur** (`ModeratorView`) — Code Ecclesia + vraie table animée requis.
-5. **Questionnaire post-débat** — les deux points d'entrée (table et séance sans table).
-6. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
-7. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
+1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester le chantier 33 **et** le chantier 46.
+2. **Résultats publics (chantier 46)** — accueil (bouton + modale), superadmin (pastille par séance), page publique `#results/<id>`.
+3. **Superadmin** — onglets Tables, Membres, phase voting.
+4. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
+5. **Modérateur** (`ModeratorView`) — Code Ecclesia + vraie table animée requis.
+6. **Questionnaire post-débat** — les deux points d'entrée (table et séance sans table).
+7. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
+8. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
 
 ## ⚠️ Migration SQL en attente d'application
+
+- [ ] **Chantier 46 — `supabase/migrations/20260901_chantier46_public_results_visibility.sql`**
+
+  **Contenu du fichier** :
+  1. `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS results_public boolean NOT NULL DEFAULT false` — opt-in explicite par séance, aucune séance existante ne devient publique automatiquement.
+  2. `set_session_results_public(password, session_id, results_public)` — RPC superadmin (mot de passe requis) qui bascule la colonne. Utilisée par le nouveau bouton "Résultats publics" / "Résultats privés" sur chaque séance close du superadmin (`SessionCard`, écran de liste).
+  3. `get_public_results(session_id)` **remplacé** — durci pour exiger `phase='closed' AND results_public=true` (avant : `phase='closed'` seul, donc *toute* séance close était déjà publique — comportement qui n'avait jamais été demandé). Charge utile changée : au lieu d'un résumé filtré (top-3 assertions par camp + consensus > seuil), retourne désormais la liste complète des assertions approuvées avec leurs compteurs `agree_count`/`disagree_count`/`pass_count`, et le nuage de points PCA (`pca_x`, `pca_y`, `group_id` — **sans** `member_id` ni aucun identifiant, contrairement à `get_results_map` qui est réservée aux membres inscrits). Le fichier de migration contient en pied de page les requêtes SQL de vérification (colonne, séance non-publique → NULL, séance publique → payload sans identifiant, appel anonyme, mauvais mot de passe).
+
+  **Pourquoi cette migration change le comportement de l'existant** : la fonction `get_public_results` existait déjà (chantier antérieur, migration `20260613_public_results.sql`) et rendait **toute** séance close consultable publiquement dès sa clôture — sans bascule de visibilité. Le retour de test de Jules du 2026-09-01 demande explicitement à restreindre l'accès aux séances *explicitement marquées visibles*, pas à tout l'historique clos. Tant que cette migration n'est pas appliquée, l'ancien comportement (tout closed = public) reste actif en base, et l'ancienne forme de payload (`groups`/`consensus`) ne correspond plus à ce qu'attend le frontend (`points`/`assertions`) — voir le point "Résultats publics" ci-dessous pour l'impact exact sur les tests.
+
+  **À faire (session de vérification)** : appliquer le fichier, dérouler les 5 requêtes de vérification en pied de fichier (colonne + défaut, séance non-publique → NULL, séance publique → payload strictement `k_chosen`/`points`/`assertions` sans `member_id`/`user_id`/`pseudo`, appel anonyme fonctionnel, mauvais mot de passe rejeté), puis dérouler le test manuel de la section "Résultats publics (chantier 46)" plus bas.
 
 - [ ] **Chantier 33 — `supabase/migrations/20260801_chantier33_moderator_table_assignment.sql`** (statut d'application non confirmé — aucune trace de vérification post-application dans l'historique, contrairement aux migrations chantier-35 et chantier-37 ci-dessous)
 
   **Contenu du fichier** : redéfinit `claim_moderator_status(session_id, creation_code, pseudo?)` pour (a) accepter la phase `debating` en plus de `pre_voting`/`voting`/`allocating`, et (b) asseoir automatiquement le nouveau modérateur sur la première table animée encore sans modérateur (ordre des numéros de table) via une nouvelle ligne `table_assignments`. Crée aussi `assign_moderator_to_table(password, session_id, table_number, member_id)` — assignation manuelle superadmin, pose `is_moderator=true` + `table_assignments`.
 
   **À faire (session de vérification)** : exécuter le contenu du fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname IN ('claim_moderator_status','assign_moderator_to_table')` retourne bien les deux fonctions à jour, puis cocher cette entrée et dérouler le test manuel du chantier 33 ci-dessous (section Superadmin). **Tant qu'elle n'est pas appliquée** : le contrôle d'ajout/retrait de modérateur par table (`AddModeratorControl`) échoue silencieusement côté RPC, et l'auto-assise en phase `debating` reste bloquée par l'ancienne signature de `claim_moderator_status`.
+
+## Résultats publics (chantier 46)
+
+*Nécessite la migration SQL ci-dessus appliquée pour tester le flux de bout en bout (nouvelle colonne `results_public` + nouvelle forme du payload `get_public_results`). Sans elle : le bouton "Résultats publics" du superadmin échoue avec l'erreur Postgres "column sessions.results_public does not exist" (vérifié en navigateur ci-dessous, échec propre — pas de crash) et `get_public_results` renvoie encore l'ancienne forme (`groups`/`consensus`) que le frontend ne lit plus, donc `points`/`assertions` restent vides même pour une séance déjà close.*
+
+- [ ] **2026-09-01 — Bouton "Voir tous les débats" (accueil)** — `src/screens/EntryScreen.tsx`
+
+  Lien externe vers `https://ecclesia-centralesupelec.vercel.app/#debats` (site public Ecclesia, hébergé à part sur Vercel), `target="_blank" rel="noopener noreferrer"`. Placé en pied de carte d'accueil, au-dessus du lien "Administration".
+
+  **Déjà vérifié en navigateur** : présent sur l'écran d'accueil, `href`/`target`/`rel` corrects (lu via le DOM), zéro erreur console au chargement de l'écran.
+
+  **Non vérifiable en session headless** : l'ouverture réelle d'un nouvel onglet vers un domaine externe (Vercel) n'a pas été cliquée pour de vrai — seuls les attributs du lien ont été inspectés.
+
+- [ ] **2026-09-01 — Modale "Anciennes séances" (accueil)** — `src/screens/EntryScreen.tsx` (`PastSessionsModal`)
+
+  Bouton "Voir les votes des anciennes séances" en pied de carte d'accueil → modale listant les séances `phase='closed' AND results_public=true` (titre, date, description), triées par date décroissante. Clic sur une séance → `#results/<id>` (nouvelle route directe par id, pas de join_code — un `join_code` de séance close peut être réutilisé par une séance non-close plus récente, donc le routage par id évite toute ambiguïté).
+
+  **Déjà vérifié en navigateur (avant migration)** : la modale s'ouvre, affiche "Anciennes séances" avec bouton de fermeture, la requête échoue proprement avec le message Postgres explicite affiché à l'écran ("column sessions.results_public does not exist") — pas de page blanche, pas d'exception React non gérée. Fermeture de la modale (✕) fonctionne.
+
+  **Test minimal (après migration)** : au moins une séance `closed` avec `results_public=true` créée par la session de vérification (via le nouveau bouton superadmin ci-dessous) → vérifier son apparition dans la liste, triée correctement si plusieurs. Cliquer dessus → arrivée sur `#results/<id>` (voir section dédiée ci-dessous). Vérifier aussi le cas vide ("Aucune séance aux résultats publics pour l'instant.") si aucune séance n'est encore marquée visible.
+
+- [ ] **2026-09-01 — Bouton "Résultats publics" par séance (superadmin)** — `src/screens/SuperadminScreen.tsx` (`SessionCard`)
+
+  Sur chaque séance `closed` de la liste superadmin (écran de liste, avant d'ouvrir le détail) : pastille bascule "Résultats privés" (gris) / "Résultats publics" (vert) à côté de la description. Appelle `set_session_results_public` (mot de passe déjà en session), mise à jour optimiste de la liste avec rollback si l'appel échoue (message d'erreur affiché sous la pastille). Nommage tranché sans consulter Jules davantage : "Résultats publics" plutôt que sa proposition "Visible post débat" — le libellé décrit l'effet (qui peut voir quoi) plutôt que le moment (déjà capturé par le badge de phase "Clôturée" juste au-dessus), cohérent avec le style des autres badges d'état de la carte.
+
+  **Non testable en session headless** : aucun mot de passe superadmin disponible. Uniquement vérifié : `tsc -b`, `npm test` (94 passants), `npm run build`, chargement de l'écran d'accueil sans erreur console. Le comportement d'échec pré-migration (colonne absente) a été vérifié indirectement via la modale "Anciennes séances" ci-dessus, qui tape la même colonne.
+
+  **Test minimal (mot de passe superadmin requis, migration appliquée au préalable)** : ouvrir une séance close depuis la liste, cliquer la pastille → passe à "Résultats publics" sans reload ; recharger la page → l'état persiste (relu depuis `sessions.results_public`) ; cliquer à nouveau → repasse à "Résultats privés". Vérifier qu'aucune pastille n'apparaît sur les séances non closes.
+
+- [ ] **2026-09-01 — Page de résultats publics** — `src/screens/PublicResultsScreen.tsx`, routes `#results/<session_id>` et `#session/<join_code>` (phase closed, visiteur non inscrit)
+
+  Page unique : nuage de points PCA anonyme (aucun `member_id`, mêmes couleurs/légende que l'onglet Analyse du superadmin) si une analyse existe, puis liste complète des assertions approuvées avec barre agree/disagree/pass et compteurs. Accessible sans connexion (auth anonyme uniquement). Aucune table, aucun pseudo, aucun découpage par table de débat — vérifié en lisant le payload exact retourné par `get_public_results` (voir requêtes de vérification dans le fichier de migration) : seulement `k_chosen`, `points[].{pca_x,pca_y,group_id}`, `assertions[].{content,agree_count,disagree_count,pass_count}`.
+
+  **Déjà vérifié en navigateur (avant migration)** : `#results/<uuid inexistant>` → "Séance introuvable." affiché proprement (pas de crash), zéro exception React. `#results/<id>` sans `session` prop résout bien la séance par id avant de charger les résultats (chemin de code distinct de l'usage existant via `SessionRouterScreen`, qui passe toujours `session` directement).
+
+  **Non testable avant migration** : le rendu réel avec des données (nuage de points + assertions) — la fonction `get_public_results` encore déployée renvoie l'ancienne forme (`groups`/`consensus`), donc `data.points`/`data.assertions` restent vides même pour une séance close existante avec `results_public` inexistant en base.
+
+  **Test minimal (après migration, mot de passe superadmin pour préparer une séance de test)** : séance close avec au moins une analyse d'opinion lancée et quelques assertions votées → marquer `results_public=true` (bouton superadmin ci-dessus) → ouvrir `#results/<id>` (via la modale accueil) et `#session/<join_code>` (si le join_code est encore d'actualité) en visiteur non connecté (nouvel onglet privé / navigateur non inscrit à la séance) → vérifier l'affichage du nuage de points, des assertions avec compteurs, l'absence totale de nom/pseudo/table à l'écran, zéro erreur console. Démarquer `results_public=false` → revérifier que la page affiche "non disponibles publiquement" (le RPC renvoie NULL).
 
 ## Parcours Superadmin
 

@@ -35,6 +35,11 @@ export interface Session {
   moderation_policy: ModerationPolicy
   phase_changed_at: string | null
   group_names?: GroupNameResult[] | null
+  // Chantier 46 — bascule superadmin par séance : résultats consultables par
+  // des visiteurs non connectés une fois la séance closed (assertions + votes
+  // agrégés + nuage de points anonyme). false par défaut, colonne SQL en
+  // attente d'application — voir A_VERIFIER.md.
+  results_public: boolean
 }
 
 export interface Table {

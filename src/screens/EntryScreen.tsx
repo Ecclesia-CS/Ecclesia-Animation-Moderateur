@@ -6,6 +6,9 @@ import { claimModeratorStatus } from '../lib/voting'
 import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
 
+// ── Lien externe vers le site public Ecclesia (chantier 46) ────
+const ALL_DEBATES_URL = 'https://ecclesia-centralesupelec.vercel.app/#debats'
+
 // ── Séances en cours ────────────────────────────────────────────
 const PHASE_BADGE: Record<string, string> = {
   pre_voting:    'bg-amber-100 text-amber-700',
@@ -57,6 +60,9 @@ export default function EntryScreen({ onJoined }: Props) {
   }[]>([])
 
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
+
+  // ── Anciennes séances aux résultats publics (chantier 46) ───────
+  const [showPastSessions, setShowPastSessions] = useState(false)
 
   // ── Onglet Modérateur (G8) ──────────────────────────────────────
   const [moderatorSessions, setModeratorSessions] = useState<{
@@ -448,6 +454,24 @@ export default function EntryScreen({ onJoined }: Props) {
           )}
         </div>
 
+        <div className="pb-5 px-6 flex flex-col items-center gap-2">
+          <a
+            href={ALL_DEBATES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full text-center py-2.5 px-4 border border-gray-200 rounded-xl
+              text-sm font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+          >
+            Voir tous les débats ↗
+          </a>
+          <button
+            onClick={() => setShowPastSessions(true)}
+            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+          >
+            Voir les votes des anciennes séances
+          </button>
+        </div>
+
         <div className="pb-4 text-center">
           <a
             href="#superadmin"
@@ -455,6 +479,77 @@ export default function EntryScreen({ onJoined }: Props) {
           >
             Administration
           </a>
+        </div>
+      </div>
+
+      {showPastSessions && (
+        <PastSessionsModal onClose={() => setShowPastSessions(false)} />
+      )}
+    </div>
+  )
+}
+
+// ── PastSessionsModal — anciennes séances aux résultats publics ────
+function PastSessionsModal({ onClose }: { onClose(): void }) {
+  const [sessions, setSessions] = useState<Pick<Session, 'id' | 'title' | 'description' | 'scheduled_at'>[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase
+      .from('sessions')
+      .select('id, title, description, scheduled_at')
+      .eq('phase', 'closed')
+      .eq('results_public', true)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
+      .then(({ data, error: err }) => {
+        if (err) { setError(extractErr(err)); return }
+        setSessions(data ?? [])
+      })
+  }, [])
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden max-h-[80vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <h2 className="text-sm font-semibold text-gray-900">Anciennes séances</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4 space-y-2">
+          {error && (
+            <p className="text-sm text-red-600">{error}</p>
+          )}
+          {!error && sessions === null && (
+            <p className="text-sm text-gray-400 text-center py-6">Chargement…</p>
+          )}
+          {!error && sessions !== null && sessions.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">
+              Aucune séance aux résultats publics pour l'instant.
+            </p>
+          )}
+          {!error && sessions?.map(s => (
+            <button
+              key={s.id}
+              onClick={() => { window.location.hash = '#results/' + s.id }}
+              className="w-full text-left bg-gray-50 hover:bg-indigo-50 rounded-xl border border-gray-200
+                hover:border-indigo-200 px-4 py-3 transition-colors"
+            >
+              <p className="text-sm font-semibold text-gray-900">{s.title}</p>
+              {s.scheduled_at && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {new Date(s.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
+              {s.description && (
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{s.description}</p>
+              )}
+            </button>
+          ))}
         </div>
       </div>
     </div>
