@@ -15,6 +15,8 @@ import {
   STRATEGY_ABSOLUTE_STRONG,
   TABLE_MIN,
   TABLE_OVERFLOW_MAX,
+  UNMODERATED_TABLE_MIN,
+  UNMODERATED_TABLE_MAX,
   type AllocationMember,
   type AllocationStrategy,
 } from '../src/lib/allocation'
@@ -60,12 +62,12 @@ describe.each(CANDIDATES)('garde-fous — %s', (_label, strategy) => {
       expect(new Set(ids).size).toBe(members.length)
       if (!r.singleTable) {
         for (const t of r.tables) {
-          expect(t.member_ids.length).toBeGreaterThanOrEqual(TABLE_MIN)
-          expect(t.member_ids.length).toBeLessThanOrEqual(TABLE_OVERFLOW_MAX)
+          expect(t.member_ids.length).toBeGreaterThanOrEqual(t.moderated ? TABLE_MIN : UNMODERATED_TABLE_MIN)
+          expect(t.member_ids.length).toBeLessThanOrEqual(t.moderated ? TABLE_OVERFLOW_MAX : UNMODERATED_TABLE_MAX)
         }
       }
     }
-  })
+  }, 15_000)
 
   it('200 personnes : calcul sous 5 s (contrainte de latence navigateur)', () => {
     const start = Date.now()

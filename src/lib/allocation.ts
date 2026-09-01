@@ -25,12 +25,35 @@
 
 /** Taille minimale d'une table quand il y a allocation (N > 10). */
 export const TABLE_MIN = 5
-/** Taille maximale nominale d'une table. */
-export const TABLE_MAX = 10
+/** Taille maximale nominale d'une table animée. Relevé de 10 à 12 le 2026-08-03. */
+export const TABLE_MAX = 12
 /** Plafond de dépassement, toléré seulement pour sauver la règle 1. */
 export const TABLE_OVERFLOW_MAX = 20
 /** N ≤ ce seuil → table unique, pas d'allocation. */
 export const SINGLE_TABLE_MAX = 10
+/**
+ * Tables **sans modérateur** : bornes resserrées par rapport aux tables
+ * animées. L'auto-régulation par `claim_floor` (le premier en file prend la
+ * parole) reste gérable dans cette plage ; au-delà, plus personne n'arbitre
+ * les tours de parole. Demandé par Jules le 2026-08-01 (plage 4-6), resserré
+ * à 5-7 le 2026-08-03, en complément du §4 (qui ne fixait qu'un minimum de 5,
+ * commun aux deux types de table).
+ */
+export const UNMODERATED_TABLE_MIN = 5
+export const UNMODERATED_TABLE_MAX = 7
+/**
+ * Anciens minimum dans une table sans modérateur — plancher dur qui remplace
+ * la formule de la règle 4 quand elle donnerait moins (tailles 4 et 5 : 2).
+ * Sans animateur, le groupe a besoin de plus d'expérience pour s'auto-réguler.
+ */
+export const UNMODERATED_VETERAN_FLOOR = 3
+/**
+ * Actifs minimum dans une table sans modérateur — plancher dur qui remplace
+ * la formule de la règle 1 quand elle donnerait moins (taille 4 : 2). Sans
+ * animateur, il faut plus de participants prêts à prendre la parole pour que
+ * la discussion s'auto-alimente. Demandé par Jules le 2026-08-03.
+ */
+export const UNMODERATED_ACTIVE_FLOOR = 3
 /** Règle 3 — part maximale du camp majoritaire dans une table. */
 export const MAJORITY_SHARE_CAP = 0.70
 /** Règle 3 — effectif minimal du 2ᵉ camp (nombre absolu, pas un %). */
@@ -273,6 +296,28 @@ export function veteranThreshold(size: number): number {
   return Math.ceil((2 / 5) * size)
 }
 
+/**
+ * Seuil d'anciens réellement appliqué à une table donnée : la formule de la
+ * règle 4, sauf pour une table **sans modérateur** où `UNMODERATED_VETERAN_FLOOR`
+ * remplace la formule quand elle est plus basse. Ne change rien pour les
+ * tables animées (la formule seule reste faisant foi).
+ */
+function resolvedVeteranThreshold(size: number, moderated: boolean): number {
+  const base = veteranThreshold(size)
+  return moderated ? base : Math.max(UNMODERATED_VETERAN_FLOOR, base)
+}
+
+/**
+ * Seuil d'actifs réellement appliqué à une table donnée : la formule de la
+ * règle 1, sauf pour une table **sans modérateur** où `UNMODERATED_ACTIVE_FLOOR`
+ * remplace la formule quand elle est plus basse. Ne change rien pour les
+ * tables animées.
+ */
+function resolvedActiveThreshold(size: number, moderated: boolean): number {
+  const base = activeThreshold(size)
+  return moderated ? base : Math.max(UNMODERATED_ACTIVE_FLOOR, base)
+}
+
 // ── PRNG déterministe (mulberry32) ───────────────────────────
 
 function mulberry32(seed: number): () => number {
@@ -343,21 +388,26 @@ interface Shape {
 }
 
 /**
- * Politique de dimensionnement (§4) :
- *  - les tables **modérées** sont remplies jusqu'au plafond en priorité ;
- *  - le reliquat est réparti **uniformément** sur les tables non modérées,
- *    pour les garder aussi près que possible du minimum de 5 (« deux tables
- *    de 5 sont préférables à une table de 10 sans animateur »).
- * Retourne null si aucune répartition valide n'existe pour ce nombre de tables.
+ * Politique de dimensionnement (§4, resserrée pour les tables sans modérateur) :
+ *  - les tables **modérées** sont remplies jusqu'au plafond `maxSize` en priorité ;
+ *  - les tables **sans modérateur** restent dans `[UNMODERATED_TABLE_MIN,
+ *    UNMODERATED_TABLE_MAX]` — le reliquat s'y répartit uniformément, sans
+ *    jamais dépasser ce plafond resserré (auto-régulation par `claim_floor`).
+ * Retourne null si aucune répartition valide n'existe pour ce nombre de tables
+ * (dégradation gérée par l'appelant : l'algorithme ne lève jamais).
  */
 function buildShape(n: number, tableCount: number, moderatorCapacity: number, maxSize: number): Shape | null {
   if (tableCount < 1) return null
-  if (tableCount * TABLE_MIN > n) return null
-  if (tableCount * maxSize < n) return null
 
   const moderatedCount = Math.min(tableCount, moderatorCapacity)
-  const sizes = new Array<number>(tableCount).fill(TABLE_MIN)
-  let rem = n - tableCount * TABLE_MIN
+  const unmoderatedCount = tableCount - moderatedCount
+  const minSum = moderatedCount * TABLE_MIN + unmoderatedCount * UNMODERATED_TABLE_MIN
+  const maxSum = moderatedCount * maxSize + unmoderatedCount * UNMODERATED_TABLE_MAX
+  if (n < minSum || n > maxSum) return null
+
+  const sizes = new Array<number>(tableCount)
+  for (let t = 0; t < tableCount; t++) sizes[t] = t < moderatedCount ? TABLE_MIN : UNMODERATED_TABLE_MIN
+  let rem = n - minSum
 
   // 1. Tables modérées : remplies jusqu'au plafond, dans l'ordre.
   for (let t = 0; t < moderatedCount && rem > 0; t++) {
@@ -366,11 +416,12 @@ function buildShape(n: number, tableCount: number, moderatorCapacity: number, ma
     rem -= add
   }
 
-  // 2. Reliquat : réparti au tour par tour sur les tables non modérées.
+  // 2. Reliquat : réparti au tour par tour sur les tables non modérées, sans
+  //    dépasser le plafond resserré.
   while (rem > 0) {
     let progressed = false
     for (let t = moderatedCount; t < tableCount && rem > 0; t++) {
-      if (sizes[t] < maxSize) { sizes[t] += 1; rem -= 1; progressed = true }
+      if (sizes[t] < UNMODERATED_TABLE_MAX) { sizes[t] += 1; rem -= 1; progressed = true }
     }
     if (!progressed) break
   }
@@ -379,10 +430,25 @@ function buildShape(n: number, tableCount: number, moderatorCapacity: number, ma
   return { sizes, moderatedCount }
 }
 
+/**
+ * Plus grand nombre de tables pour lequel une forme peut exister : les
+ * premières `moderatorCapacity` tables restent bornées à `TABLE_MIN`, les
+ * suivantes peuvent descendre à `UNMODERATED_TABLE_MIN`. Borne **exacte**
+ * (pas seulement large) — une borne trop généreuse ferait enumerer et
+ * rechercher des formes non gagnantes pour rien, ce qui coûte le budget de
+ * latence navigateur (§6, < 5 s à 200 personnes).
+ */
+function maxTableCount(n: number, moderatorCapacity: number): number {
+  const capacity = Math.max(0, moderatorCapacity)
+  if (capacity * TABLE_MIN > n) return Math.floor(n / TABLE_MIN)
+  const remaining = n - capacity * TABLE_MIN
+  return capacity + Math.floor(remaining / UNMODERATED_TABLE_MIN)
+}
+
 function enumerateShapes(n: number, moderatorCapacity: number, maxSize: number): Shape[] {
   const shapes: Shape[] = []
   const minTables = Math.max(1, Math.ceil(n / maxSize))
-  const maxTables = Math.floor(n / TABLE_MIN)
+  const maxTables = maxTableCount(n, moderatorCapacity)
   for (let t = minTables; t <= maxTables; t++) {
     const s = buildShape(n, t, moderatorCapacity, maxSize)
     if (s) shapes.push(s)
@@ -448,8 +514,8 @@ function shapeBound(
 ): number[] {
   const T = shape.sizes.length
   const T_ = T || 1
-  const thr1 = shape.sizes.map(activeThreshold)
-  const thr4 = shape.sizes.map(veteranThreshold)
+  const thr1 = shape.sizes.map((s, t) => resolvedActiveThreshold(s, t < shape.moderatedCount))
+  const thr4 = shape.sizes.map((s, t) => resolvedVeteranThreshold(s, t < shape.moderatedCount))
   const e1 = exactShortfall(thr1, prep.totalActive)
   const e4 = exactShortfall(thr4, prep.totalVeteran)
 
@@ -518,8 +584,8 @@ function quotas(thresholds: number[], sizes: number[], supply: number): number[]
 function quotaAssignment(shape: Shape, prep: Prepared): Int32Array {
   const T = shape.sizes.length
   const sizes = shape.sizes
-  const qV = quotas(sizes.map(veteranThreshold), sizes, prep.totalVeteran)
-  const qA = quotas(sizes.map(activeThreshold), sizes, prep.totalActive)
+  const qV = quotas(sizes.map((s, t) => resolvedVeteranThreshold(s, t < shape.moderatedCount)), sizes, prep.totalVeteran)
+  const qA = quotas(sizes.map((s, t) => resolvedActiveThreshold(s, t < shape.moderatedCount)), sizes, prep.totalActive)
 
   const assign = new Int32Array(prep.n).fill(-1)
   const room = [...sizes]
@@ -701,13 +767,13 @@ function evaluate(
     const size = shape.sizes[t]
 
     // Règle 1
-    const thr1 = activeThreshold(size)
+    const thr1 = resolvedActiveThreshold(size, t < shape.moderatedCount)
     const margin1 = ctr.actives[t] - thr1
     if (margin1 < 0) { fail1++; sumShort1 += -margin1 }
     if (margin1 < minMargin1) minMargin1 = margin1
 
     // Règle 4
-    const thr4 = veteranThreshold(size)
+    const thr4 = resolvedVeteranThreshold(size, t < shape.moderatedCount)
     const margin4 = ctr.veterans[t] - thr4
     if (margin4 < 0) { fail4++; sumShort4 += -margin4 }
     if (margin4 < minMargin4) minMargin4 = margin4
@@ -977,7 +1043,7 @@ function localSearch(
    * **à camp constant**, structurellement neutres pour la règle 3, entre une
    * table en excédent et une table en déficit.
    */
-  const repair = (attr: Uint8Array, threshold: (s: number) => number, campPreserving: boolean): boolean => {
+  const repair = (attr: Uint8Array, threshold: (s: number, t: number) => number, campPreserving: boolean): boolean => {
     let improved = false
     const byTable: number[][] = Array.from({ length: T }, () => [])
     for (let i = 0; i < prep.n; i++) byTable[assign[i]].push(i)
@@ -987,7 +1053,7 @@ function localSearch(
     for (let t = 0; t < T; t++) {
       let have = 0
       for (const i of byTable[t]) have += attr[i]
-      const margin = have - threshold(shape.sizes[t])
+      const margin = have - threshold(shape.sizes[t], t)
       if (margin > 0) surplus.push(t)
       else if (margin < 0) deficit.push(t)
     }
@@ -1015,8 +1081,8 @@ function localSearch(
     if (strategy.targetedNeighborhood) {
       // Règle 1 avant règle 4 (ordre lexicographique), camp constant d'abord.
       for (const preserve of [true, false]) {
-        if (repair(prep.active, activeThreshold, preserve)) improved = true
-        if (repair(prep.veteran, veteranThreshold, preserve)) improved = true
+        if (repair(prep.active, (s, t) => resolvedActiveThreshold(s, t < shape.moderatedCount), preserve)) improved = true
+        if (repair(prep.veteran, (s, t) => resolvedVeteranThreshold(s, t < shape.moderatedCount), preserve)) improved = true
       }
     }
 
@@ -1035,11 +1101,19 @@ function localSearch(
 
 // ── Diagnostics ──────────────────────────────────────────────
 
+/**
+ * `moderatedAt` découple « table modérée » de la convention interne
+ * `t < shape.moderatedCount` (vraie pendant la recherche, où les tables
+ * modérées sont toujours le préfixe) : `diagnoseAllocation` retouche des
+ * tables dans un ordre arbitraire après glisser-déposer et doit pouvoir
+ * indiquer le vrai statut de chacune indépendamment de sa position.
+ */
 function buildDiagnostics(
   shape: Shape,
   assign: Int32Array,
   prep: Prepared,
   opinionsAvailable: boolean,
+  moderatedAt: (t: number) => boolean = (t) => t < shape.moderatedCount,
 ): TableDiagnostics[] {
   const T = shape.sizes.length
   const ctr = buildCounters(assign, prep, T)
@@ -1058,14 +1132,15 @@ function buildDiagnostics(
       else if (v > second) { second = v }
     }
     const total = ctr.campTotal[t]
-    const thr1 = activeThreshold(size)
-    const thr4 = veteranThreshold(size)
+    const moderated = moderatedAt(t)
+    const thr1 = resolvedActiveThreshold(size, moderated)
+    const thr4 = resolvedVeteranThreshold(size, moderated)
     const nonHomogeneous = opinionsAvailable ? (total > 0 && first < total) : true
 
     out.push({
       table_number: t + 1,
       size,
-      moderated: t < shape.moderatedCount,
+      moderated,
       actives: ctr.actives[t],
       actives_threshold: thr1,
       rule1_ok: ctr.actives[t] >= thr1,
@@ -1210,8 +1285,12 @@ function solveFor(
   }
 
   if (!best) {
-    // Ne devrait pas arriver (n > 10 ⇒ au moins une forme valide existe),
-    // mais l'algorithme ne doit jamais échouer : repli sur une table unique.
+    // Rare depuis le resserrement des tables sans modérateur à [4, 6] :
+    // un reliquat non modéré qui ne se découpe en aucune combinaison de
+    // tables de 4 à 6 (ex. un reste de 7 avec 0 modérateur) peut ne trouver
+    // aucune forme valide pour un `n` donné. L'algorithme ne doit jamais
+    // échouer pour autant : repli sur une table unique, quelle que soit sa
+    // taille, avec avertissement.
     const shape: Shape = { sizes: [n], moderatedCount: moderatorCapacity > 0 ? 1 : 0 }
     const assign = new Int32Array(n)
     return {
@@ -1436,15 +1515,18 @@ export function diagnoseAllocation(
   const prep = prepare(placed)
   const shape: Shape = {
     sizes: ordered.map((_, tIdx) => assignList.filter(a => a === tIdx).length),
-    // Les tables modérées ne sont pas forcément les premières après retouche :
-    // on aligne `moderatedCount` sur le préfixe modéré, et on corrige ensuite
-    // le champ `moderated` table par table.
+    // Les tables modérées ne sont pas forcément les premières après retouche —
+    // `moderatedCount` (convention « préfixe ») ne peut donc pas s'appliquer
+    // ici. `moderatedAt` ci-dessous donne le vrai statut table par table
+    // (utilisé pour le seuil d'anciens resserré des tables sans modérateur).
     moderatedCount: 0,
   }
-  const diags = buildDiagnostics(shape, Int32Array.from(assignList), prep, opinionsAvailable)
+  const diags = buildDiagnostics(
+    shape, Int32Array.from(assignList), prep, opinionsAvailable,
+    (tIdx) => ordered[tIdx].moderated,
+  )
   return diags.map((d, tIdx) => ({
     ...d,
     table_number: ordered[tIdx].table_number,
-    moderated: ordered[tIdx].moderated,
   }))
 }

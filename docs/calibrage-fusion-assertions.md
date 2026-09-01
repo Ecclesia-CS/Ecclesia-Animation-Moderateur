@@ -159,13 +159,67 @@ classification binaire, beaucoup plus fiable — et l'appel devient plus court
 donc moins coûteux. Décision à prendre par Jules : ce n'est plus du calibrage
 de prompt mais un changement d'architecture de l'appel.
 
-## Reste à calibrer
+## Reste à calibrer — série B2, gradient d'intensité
 
-- **Gradient d'intensité (série B2)** — les verdicts 5, 6 et 7 posent que toute
-  différence d'intensité bloque, mais la frontière avec la simple synonymie n'est
-  pas tracée : « c'est mal » = « c'est pas bien » a été validé comme fusion alors
-  que « c'est mal » ≠ « c'est une catastrophe » bloque. Un jeu dédié reste à
-  arbitrer (voir la proposition en fin de session).
+**Le problème** : les verdicts 5, 6 et 7 posent que *toute* différence
+d'intensité bloque, mais « La publicité c'est mal » = « La communication
+publicitaire, c'est pas bien » est une fusion validée — et c'est *aussi* une
+différence d'intensité. Le prompt contient donc une règle absolue assortie d'une
+exception, sans critère pour les départager. La frontière entre « synonymie de
+registre » et « écart d'intensité » n'est pas tracée.
+
+**Statut : volontairement laissé ouvert** (décision du 2026-07-29). Motifs :
+- Aucune erreur d'intensité n'a été observée sur les deux tests réels. Le prompt
+  v13 fusionne « c'est mal » / « c'est pas bien » et rien d'autre sur cet axe :
+  le comportement mesuré est déjà conforme aux verdicts. La contradiction est
+  logique, pas manifeste.
+- Le mode d'échec réellement coûteux est ailleurs (regroupement thématique à
+  grande échelle : 28 faux positifs).
+- Calibrer sur des échelles fabriquées à l'avance reproduirait l'erreur du
+  chantier 7, dont le contre-exemple inventé (« c'est mal » ≠ « c'est pas bien »)
+  a été renversé dès le premier arbitrage réel. Les vraies paires d'intensité
+  viendront des séances.
+
+**Jeu prêt à arbitrer** — pour chaque échelle, indiquer quelles paires
+**adjacentes** fusionnent (ex. « échelle 1 : seules 2-3 »), et signaler tout
+couple non adjacent jugé fusionnable.
+
+*Échelle 1 — prescriptions, de la plus faible à la plus forte*
+1. Il faudrait un peu moins de publicité
+2. Il faut réduire la publicité
+3. Il faut diminuer la publicité
+4. Il faut fortement limiter la publicité
+5. Il faut réduire drastiquement la publicité
+6. Il faut interdire la publicité
+7. Il faut supprimer totalement la publicité
+
+*Échelle 2 — jugements* (2 = 3 est déjà acquis et sert de repère bas)
+1. La publicité, c'est pas terrible
+2. La publicité, c'est pas bien
+3. La publicité c'est mal
+4. La publicité est nuisible
+5. La publicité est très nocive
+6. La publicité est un fléau
+7. La publicité est une catastrophe pour la société
+8. La publicité est le plus grand mal du 21e siècle
+
+*Échelle 3 — quantificateurs* (axe distinct : fréquence, pas intensité)
+1. La publicité est parfois mensongère
+2. La publicité est souvent mensongère
+3. La publicité est généralement mensongère
+4. La publicité est toujours mensongère
+
+*Échelle 4 — force déontique* (le verdict 14 a tranché « il faut » ≠ « on
+pourrait envisager » ; reste le milieu)
+1. On pourrait réduire la publicité
+2. On devrait réduire la publicité
+3. Il faut réduire la publicité
+4. Il est urgent de réduire la publicité
+
+**Les deux réponses les plus structurantes** : échelle 1, paire 6-7 (interdire
+vs supprimer totalement — même action ou pas ?) et échelle 4, paire 2-3 (« on
+devrait » vs « il faut »). Elles décident si l'axe déontique se traite comme
+l'axe d'intensité ou séparément.
 
 ## Coût du prompt (mesuré, v12)
 

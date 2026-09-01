@@ -42,6 +42,26 @@ export async function confirmAttendance(
 }
 
 /**
+ * Chantier B3 — reconquête d'un profil pré-vote déjà inscrit (pseudo pris),
+ * par pseudo OU code de rappel. Contrairement à `confirmAttendance`, ne
+ * touche jamais `attending_in_person` : le vote reste à distance. Phase-safe
+ * côté serveur — n'agit que si la séance est encore en `pre_voting`.
+ */
+export async function reclaimPrevotingMember(
+  sessionId: string,
+  pseudo?: string,
+  code?: string
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('reclaim_prevoting_member', {
+    p_session_id: sessionId,
+    p_pseudo:     pseudo ?? null,
+    p_code:       code   ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as SessionMember
+}
+
+/**
  * Chantier 19 (G3) — onboarding à 3 questions.
  * Nécessite la migration 20260725_1_onboarding_3_questions.sql (l'ancienne
  * signature à 7 paramètres est supprimée en base).
@@ -190,38 +210,13 @@ export async function setSessionPhase(
   return data as Session
 }
 
-export async function runClusteringV1(
-  password: string,
-  sessionId: string,
-  targetSize = 7
-): Promise<{ table_count: number; member_count: number }> {
-  const { data, error } = await supabase.rpc('run_clustering_v1', {
-    p_password: password,
-    p_session_id: sessionId,
-    p_target_size: targetSize,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as { table_count: number; member_count: number }
-}
-
-export async function runClusteringV2(
-  password:   string,
-  sessionId:  string,
-  targetSize = 6,
-): Promise<{ table_count: number; member_count: number }> {
-  const { data, error } = await supabase.rpc('run_clustering_v2', {
-    p_password:    password,
-    p_session_id:  sessionId,
-    p_target_size: targetSize,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as { table_count: number; member_count: number }
-}
-
 // Chantier 19 (G5) — `runClusteringV3` (« allocation avancée ») et
 // `getModeratorResponses` supprimés : remplacés par l'allocation v2
-// ci-dessous. `runClusteringV1`/`V2` sont conservées le temps de valider
-// l'algorithme v2 en production.
+// ci-dessous. Chantier 37 : `runClusteringV1`/`V2` (répartition héritée,
+// modale « Répartir en tables ») supprimées à leur tour — l'algorithme v2
+// est en production sans incident depuis plusieurs chantiers, la double
+// entrée en phase allocating (RPC run_clustering_v1/v2 encore en base,
+// désormais inutilisées côté frontend) n'a plus de raison d'être.
 
 // ── Chantier 19 — Allocation v2 ───────────────────────────────
 
@@ -334,6 +329,28 @@ export async function createTablesBatch(
   })
   if (error) throw new Error(extractErr(error))
   return (data as { table_id: string; join_code: string; leaderless: boolean }[]) ?? []
+}
+
+/**
+ * Chantier 33 — assigne manuellement un membre comme modérateur d'une table
+ * précise (superadmin) : pose `is_moderator = true` et (dé)place sa ligne
+ * `table_assignments` sur cette table. Pour retirer un modérateur d'une
+ * table, réutiliser `setMemberModerator(..., false)` — il redevient un
+ * participant ordinaire, toujours assis à la même table.
+ */
+export async function assignModeratorToTable(
+  password: string,
+  sessionId: string,
+  tableNumber: number,
+  memberId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('assign_moderator_to_table', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_table_number: tableNumber,
+    p_member_id: memberId,
+  })
+  if (error) throw new Error(extractErr(error))
 }
 
 /** G4 — marque/démarque un membre comme modérateur de cette séance. */

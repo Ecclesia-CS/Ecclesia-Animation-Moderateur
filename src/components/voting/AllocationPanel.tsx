@@ -288,6 +288,18 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   const recorderGoal = recorderCount === '' ? 1 : Math.max(1, recorderCount)
   const surplus    = preview?.seatedModeratorIds.length ?? 0
 
+  /**
+   * J3 (chantier 30) — le bloc s'ouvre automatiquement dès qu'un surplus ou
+   * une exclusion apparaît, mais ne doit JAMAIS se refermer tout seul quand
+   * ce surplus retombe à 0 (ex : on recoche le dernier modérateur décoché).
+   * Seul le clic explicite sur la flèche de repli (`onToggle`) referme le bloc.
+   */
+  const detailsShouldAutoOpen = surplus > 0 || excluded.length > 0
+  const [detailsOpen, setDetailsOpen] = useState(detailsShouldAutoOpen)
+  useEffect(() => {
+    if (detailsShouldAutoOpen) setDetailsOpen(true)
+  }, [detailsShouldAutoOpen])
+
   return (
     <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -331,7 +343,8 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           {/* H16 / H12 — qui anime réellement ? */}
           {moderatorChoices.length > 0 && (
             <details
-              open={surplus > 0 || excluded.length > 0}
+              open={detailsOpen}
+              onToggle={e => setDetailsOpen(e.currentTarget.open)}
               className={`rounded-xl border ${
                 surplus > 0 ? 'border-amber-300 bg-amber-50/60' : 'border-gray-200 bg-gray-50/60'
               }`}

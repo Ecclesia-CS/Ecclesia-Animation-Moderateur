@@ -93,13 +93,15 @@ export default function EntryScreen({ onJoined }: Props) {
       .then(({ data }) => { if (data) setAvailableSessions(data) })
   }, [mode])
 
-  // Séances où l'auto-déclaration modérateur a un sens (avant le lancement du débat).
+  // Séances où l'auto-déclaration modérateur a un sens : jusqu'à la formation
+  // des groupes, et aussi pendant le débat (chantier 33, point 4) — une table
+  // animée peut encore attendre son modérateur une fois le débat commencé.
   useEffect(() => {
     if (mode !== 'moderator') return
     supabase
       .from('sessions')
       .select('id, title, join_code')
-      .in('phase', ['pre_voting', 'voting', 'allocating'])
+      .in('phase', ['pre_voting', 'voting', 'allocating', 'debating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setModeratorSessions(data) })
   }, [mode])
@@ -280,9 +282,10 @@ export default function EntryScreen({ onJoined }: Props) {
           {mode === 'moderator' && (
             <form onSubmit={handleClaimModerator} className="space-y-4">
               <p className="text-xs text-gray-500">
-                Déclare-toi modérateur d'une séance en cours (vote à distance, vote présentiel ou formation des groupes) avec le mot de passe Ecclesia.
+                Déclare-toi modérateur d'une séance en cours (vote à distance, vote présentiel, formation des groupes ou débat déjà commencé) avec le mot de passe Ecclesia.
                 Si tu es déjà inscrit·e sur cet appareil (tu as voté ou tu t'es déjà inscrit·e), on ajoute juste le badge modérateur à ton profil.
                 Sinon, ton profil est créé avec le nom ci-dessous, comme une inscription normale.
+                Si une table animée attend encore son modérateur, tu y seras assigné automatiquement.
               </p>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -290,7 +293,7 @@ export default function EntryScreen({ onJoined }: Props) {
                 </label>
                 {moderatorSessions.length === 0 ? (
                   <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                    Aucune séance en vote ou en formation des groupes actuellement.
+                    Aucune séance en vote, en formation des groupes ou en débat actuellement.
                   </p>
                 ) : (
                   <select
@@ -308,7 +311,7 @@ export default function EntryScreen({ onJoined }: Props) {
                   </select>
                 )}
               </div>
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
+              <Field label="Prénom Nom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">
                 Retiens bien ce que tu inscris ici — utilisé seulement si tu n'as pas encore de profil sur cette séance.
               </p>
@@ -331,7 +334,7 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleJoin} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Nom Prénom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
+              <Field label="Prénom Nom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -350,7 +353,7 @@ export default function EntryScreen({ onJoined }: Props) {
             <form onSubmit={handleReclaim} className="space-y-4">
               <Field label="Code de table" value={joinCode}
                 onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Votre nom Prénom" value={pseudo}
+              <Field label="Votre Prénom Nom" value={pseudo}
                 onChange={setPseudo} placeholder="Prénom Nom" />
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -369,7 +372,7 @@ export default function EntryScreen({ onJoined }: Props) {
 
           {mode === 'create' && (
             <form onSubmit={handleCreate} className="space-y-4">
-              <Field label={leaderless ? 'Votre nom Prénom' : 'Nom Prénom (modérateur)'} value={pseudo} onChange={setPseudo}
+              <Field label={leaderless ? 'Votre Prénom Nom' : 'Prénom Nom (modérateur)'} value={pseudo} onChange={setPseudo}
                 placeholder="Prénom Nom" />
               <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
               {!leaderless && (
