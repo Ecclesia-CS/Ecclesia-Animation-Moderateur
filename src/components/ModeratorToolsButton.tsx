@@ -19,11 +19,10 @@ interface Props {
 function isQuestionnaireComplete(r: QuestionnaireResponse | null): boolean {
   if (!r) return false
   return (
-    r.theme_ideas     !== null &&
-    r.debate_attended !== null &&
-    r.debate_rating   !== null &&
-    r.staff_interest  !== null &&
-    r.feedback        !== null &&
+    r.theme_ideas    !== null &&
+    r.debate_rating  !== null &&
+    r.staff_interest !== null &&
+    r.feedback       !== null &&
     QUESTIONNAIRE_THEMES.every(t => r.theme_ratings[t] !== undefined)
   )
 }
@@ -37,15 +36,24 @@ function isQuestionnaireComplete(r: QuestionnaireResponse | null): boolean {
 // suppression de la transcription (backend live abandonné, cf. CLAUDE.md).
 // Sections séparées par des lignes : Camps + Assertions groupés en premier
 // pour donner au modérateur un point de vue sur l'idéologie de sa table.
+// Chantier 44 : bouton "Ajouter une personne sans téléphone" dans la section
+// Table (aux côtés du QR code — les deux font entrer quelqu'un à la table,
+// juste par un canal différent) plutôt que Camps & assertions (analyse, pas
+// gestion de présence) ou Personnel (outils individuels du modérateur).
 export default function ModeratorToolsButton({ className = '', onError }: Props) {
   const { table, forceQuestionnaire, cancelForceQuestionnaire } = useTable()
   const [panelOpen,     setPanelOpen]     = useState(false)
   const [campsOpen,     setCampsOpen]     = useState(false)
   const [assertionsOpen, setAssertionsOpen] = useState(false)
   const [qrOpen,        setQrOpen]        = useState(false)
+  const [addPersonOpen, setAddPersonOpen] = useState(false)
   const [correctOpen,   setCorrectOpen]   = useState(false)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
+
+  const [addPersonName,    setAddPersonName]    = useState('')
+  const [addPersonLoading, setAddPersonLoading] = useState(false)
+  const [addPersonError,   setAddPersonError]   = useState<string | null>(null)
 
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
@@ -87,6 +95,33 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       .then(setVoteResults)
       .catch(() => {})
       .finally(() => setVoteResultsLoading(false))
+  }
+
+  // Chantier 44 — reprend le même schéma de collision que join_table (INSERT
+  // ... ON CONFLICT (table_id, pseudo) DO UPDATE user_id, cf. migration
+  // 20260902) : si quelqu'un rejoint plus tard avec le même nom, il reprend
+  // la main sur cette ligne exactement comme une reconnexion depuis un autre
+  // appareil. N'écrit que dans `participants` — ne compte ni dans les votes
+  // ni dans l'allocation (déjà clos quand ModeratorView existe).
+  async function handleAddOfflinePerson(e: React.FormEvent) {
+    e.preventDefault()
+    const pseudo = addPersonName.trim()
+    if (!pseudo) return
+    setAddPersonLoading(true)
+    setAddPersonError(null)
+    try {
+      const { error } = await supabase.rpc('add_offline_participant', {
+        p_table_id: table.id,
+        p_pseudo:   pseudo,
+      })
+      if (error) throw error
+      setAddPersonName('')
+      setAddPersonOpen(false)
+    } catch (e) {
+      setAddPersonError(extractErr(e))
+    } finally {
+      setAddPersonLoading(false)
+    }
   }
 
   const questionnaireDone = checkDone && isQuestionnaireComplete(savedResponse)
@@ -160,6 +195,18 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               QR code de la table
             </button>
 
+            <button
+              onClick={() => { setPanelOpen(false); setAddPersonError(null); setAddPersonOpen(true) }}
+              className={linkClass}
+            >
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="9" cy="8" r="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 19c.8-3.4 3.4-5.5 6.5-5.5s5.7 2.1 6.5 5.5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 5v6M13 8h6" />
+              </svg>
+              Ajouter une personne sans téléphone
+            </button>
+
             <button onClick={() => { setPanelOpen(false); setCorrectOpen(true) }} className={linkClass}>
               <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
@@ -226,6 +273,63 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           title={`Rejoindre la table ${table.join_code}`}
           onClose={() => setQrOpen(false)}
         />
+      )}
+
+      {addPersonOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
+          onMouseDown={e => { if (e.target === e.currentTarget) setAddPersonOpen(false) }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900">Ajouter une personne sans téléphone</h2>
+              <button
+                onClick={() => setAddPersonOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                aria-label="Fermer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleAddOfflinePerson} className="px-5 py-4 space-y-3">
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Elle apparaît dans la liste des présents à la table — tu pourras lui donner ou
+                retirer la parole comme n'importe quel participant.
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={addPersonName}
+                  onChange={e => setAddPersonName(e.target.value)}
+                  placeholder="Prénom Nom"
+                  className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                    placeholder:text-gray-300 transition-shadow"
+                />
+              </div>
+              {addPersonError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  {addPersonError}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={addPersonLoading}
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                  text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+                  focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                {addPersonLoading ? 'Ajout…' : 'Ajouter'}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
