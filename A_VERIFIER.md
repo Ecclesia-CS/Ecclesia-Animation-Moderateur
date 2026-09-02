@@ -357,6 +357,43 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   Sur une séance déjà utilisée pour les tests ci-dessus (ou une nouvelle) : recharger `#collab/<join_code>` avec le même navigateur/pseudo déjà enregistré → doit reconnaître automatiquement le pseudo (pas de ré-enregistrement demandé), afficher "Changer" à côté du pseudo dans l'en-tête, et permettre de modifier/supprimer ses propres sources (icônes crayon/poubelle visibles uniquement sur les sources dont `isOwn` est vrai). Changer de navigateur ou session anonyme (nouvel onglet privé) sur la **même séance** → la liste des sources reste visible (lecture publique de `session_sources`, non touchée par ce chantier), mais aucune source n'apparaît comme "à moi" (pas d'icônes crayon/poubelle) tant qu'aucun pseudo n'est enregistré sous cette nouvelle identité — s'enregistrer avec un pseudo déjà pris par un autre `user_id` doit transférer la propriété de ses sources (`register_collab_pseudo`, comportement inchangé par ce chantier, à vérifier non régressé).
 
+- [ ] **Chantier 67 (point 2) — `supabase/migrations/20260902_chantier67_claim_moderator_prevoting.sql`**
+
+  **Contenu du fichier** : redéfinit `claim_moderator_status(session_id, creation_code, pseudo?, reclaim_code?)` — nouveau 4e paramètre `p_reclaim_code text DEFAULT NULL`. Reprend exactement la règle de `register_session_member` (chantier 61) : `attending_in_person := v_phase != 'pre_voting'` (au lieu de toujours `true`), et le code de rappel n'est stocké que pour une inscription **créée** en `pre_voting` (branche « cas (a) », nouveau profil). La branche « cas (b) » (déjà inscrit sur cet appareil, simple `UPDATE is_moderator = true`) n'est pas concernée — elle ne touchait déjà ni l'un ni l'autre.
+
+  **Pourquoi** : un modérateur qui se déclare depuis chez lui pendant `pre_voting` (onglet « 🎙️ Modérateur » d'`EntryScreen`) était compté `attending_in_person = true` dès l'inscription — faussant les stats de présence et l'allocation, qui filtrent toutes deux sur cette colonne — et ne recevait jamais de code de rappel, contrairement à un inscrit classique via `register_session_member`.
+
+  **Signature changée (3 → 4 arguments)** : `DROP FUNCTION IF EXISTS claim_moderator_status(uuid, text, text)` explicite avant recréation (piège CLAUDE.md — un changement du nombre d'arguments crée une surcharge ambiguë au lieu de remplacer).
+
+  **Code frontend déjà livré** (compile et tourne indépendamment de l'application de la migration — tant que l'ancienne fonction 3-aire reste en base, PostgREST résout dessus et ignore silencieusement le `p_reclaim_code` envoyé par le client, donc aucun crash, juste l'ancien comportement) :
+  - `claimModeratorStatus()` (`src/lib/voting.ts`) accepte un 4e paramètre optionnel `reclaimCode`.
+  - `EntryScreen.handleClaimModerator` génère un code à 4 chiffres côté client — même génération que `VoteScreen` pour `register_session_member`, pas de second générateur — l'envoie, et si la réponse renvoie `reclaim_code === candidateCode` (signe que la branche « nouveau profil en pré-vote » a tourné), affiche l'écran `ReclaimCodeDisplay` avant de rediriger vers `#vote/<join_code>`. Sinon (déjà inscrit, ou phase ≠ `pre_voting`), redirection immédiate comme avant.
+  - `ReclaimCodeDisplay` extrait de `VoteScreen.tsx` vers `src/components/voting/ReclaimCodeDisplay.tsx` (composant partagé, réutilisé aux deux endroits — comportement visuel strictement identique à l'écran déjà existant en pré-vote classique).
+  - `SessionMember.reclaim_code?: string | null` ajouté à `src/lib/types.ts` pour lire ce champ (absent du type avant ce chantier, jamais lu depuis la réponse d'une RPC jusqu'ici).
+
+  **À faire (session de vérification)** :
+  1. Vérifier la signature avant application (requête en tête du fichier de migration) — attendu avant : `claim_moderator_status(uuid, text, text)` → `jsonb`.
+  2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  3. Rejouer la requête de signature : `claim_moderator_status(uuid, text, text, text)` → `jsonb`, une seule ligne.
+  4. Dérouler le test manuel « Chantier 67 (point 2) » — section Parcours Participant ci-dessous.
+
+  **Tant qu'elle n'est pas appliquée** : le comportement actuel (bug) reste actif — `attending_in_person = true` toujours posé, jamais de `reclaim_code` — et le nouvel écran `ReclaimCodeDisplay` ne s'affichera jamais côté `EntryScreen`, puisque `updated.reclaim_code` restera toujours différent de `candidateCode`.
+
+- [ ] **Chantier 67 (point 3) — `supabase/migrations/20260902_chantier67_sync_table_assignment_log.sql`**
+
+  **Contenu du fichier** : `sync_table_assignment` avalait silencieusement toute exception (`EXCEPTION WHEN OTHERS THEN NULL;`), y compris une collision de pseudo sur `session_members` (`UNIQUE(session_id, pseudo)`) — le participant rejoint bien physiquement sa table (`participants`) mais reste invisible du tableau de bord superadmin (`table_assignments` jamais posé), sans aucune trace de l'échec nulle part. Corrigé en remplaçant le `NULL;` par un `RAISE WARNING` (contexte : session/user/pseudo/table + `SQLERRM`), visible dans les logs Postgres/Supabase (dashboard → Logs). Signature et comportement transactionnel **inchangés** (`RETURNS void`, ne lève toujours jamais vers l'appelant) — voir la justification détaillée en tête du fichier de migration sur le choix « logger, pas lever » plutôt que faire échouer `join_table`/`create_table`/`switch_table`, qui ont déjà inséré la ligne `participants` dans la même transaction au moment où `sync_table_assignment` est appelée.
+
+  **Recouvrement signalé, pas résolu ici** : `join_table` est retravaillé en parallèle par le chantier 66 sur ce même fichier source (`20260727_6_chantier26_sync_table_assignments.sql`). Cette migration ne touche **que** le corps de `sync_table_assignment` — aucun de ses trois appelants (`join_table`, `create_table`, `switch_table`) n'est modifié, précisément pour ne pas empiéter sur ce chantier en cours.
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer la signature inchangée (`sync_table_assignment(uuid, uuid, uuid, text)` → `void`).
+  2. Provoquer une collision volontaire : inscrire un membre de séance avec un pseudo X (n'importe quel inscrit), puis depuis un **autre** profil anonyme, rejoindre une table de la même séance en tapant ce même pseudo X (via `join_table`/`JoinTableForm`, `create_table`, ou `switch_table`).
+  3. Vérifier que le join **réussit** normalement côté participant — aucun changement de comportement visible pour lui.
+  4. Vérifier dans l'onglet Logs du dashboard Supabase (niveau warning/Postgres) l'apparition d'une ligne `sync_table_assignment: échec pour session=..., pseudo=X...`.
+  5. Confirmer côté superadmin que ce participant reste bien absent de l'onglet 🪑 Tables — le bug lui-même (ligne `table_assignments` manquante en cas de collision) **n'est pas corrigé** par ce chantier, seule sa **visibilité** change (log au lieu de silence total).
+
+  **Tant qu'elle n'est pas appliquée** : comportement actuel inchangé (échec toujours totalement silencieux, aucun log).
+
 ## Résultats publics (chantier 46)
 
 *Nécessite la migration SQL ci-dessus appliquée pour tester le flux de bout en bout (nouvelle colonne `results_public` + nouvelle forme du payload `get_public_results`). Sans elle : le bouton "Résultats publics" du superadmin échoue avec l'erreur Postgres "column sessions.results_public does not exist" (vérifié en navigateur ci-dessous, échec propre — pas de crash) et `get_public_results` renvoie encore l'ancienne forme (`groups`/`consensus`) que le frontend ne lit plus, donc `points`/`assertions` restent vides même pour une séance déjà close.*
@@ -554,6 +591,50 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   **Test 3 — l'onglet « Créer » ne propose plus la séance** : depuis l'accueil (sans mot de passe), onglet "Créer", menu déroulant des séances → la séance de test en `draft` ne doit **pas** apparaître dans la liste (avant ce chantier, elle y figurait avec son titre et son `join_code`, visible à quiconque ouvre cet onglet).
 
   **Une fois les 3 tests validés** : faire passer la séance de test en `pre_voting` côté superadmin, recharger les mêmes deux liens (`#session/` et `#vote/`) → le formulaire d'inscription normal doit apparaître, comme avant ce chantier.
+
+- [ ] **2026-09-02 — Chantier 67 (point 1) — continuer à voter à distance au lieu de mentir sur sa présence** — `src/screens/VoteScreen.tsx` (`AttendanceConfirmScreen`, mode `known_user`)
+
+  **Aucune vérification navigateur faite** (session headless, consigne explicite de ne lancer aucun serveur de dev). Seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts.
+
+  **Le bug** : un pré-votant, au passage de la séance en phase `voting`, était basculé de force sur l'écran de confirmation de présence (« Tu avais voté à distance sous le nom X — Es-tu présent(e) au débat aujourd'hui ? »), avec seulement deux issues : confirmer sa présence (`attending_in_person → true`, alors qu'il n'est pas là) ou basculer vers l'écran de reconquête (pseudo/code/nouveau profil — qui mène, lui aussi, toujours à `attending_in_person = true`). Aucune voie ne permettait de rester à distance sans mentir.
+
+  **Le correctif** : nouveau bouton « Non, je continue à voter à distance » entre « ✓ Oui, je suis présent(e) » et « Ce n'est pas moi / utiliser un autre compte ». Au clic : `handleContinueRemote()` ne fait **aucun appel RPC** (pas de `confirmAttendance`), le membre reste inchangé (`attending_in_person` reste `false`), et le vote reprend directement (`loadVoteData`) — même chemin que `handlePseudoReclaimSuccess` (pas d'onboarding : la pré-vote n'en a pas).
+
+  **Allocation — non modifiée** (hors périmètre, consigne explicite de ce chantier). Vérifié par lecture de `get_allocation_inputs`/`run_clustering_v1`/`run_clustering_v2` : les trois filtrent déjà sur `attending_in_person = true` — un membre resté à `false` via ce nouveau bouton est donc déjà exclu de la répartition, sans changement nécessaire côté allocation (`src/lib/allocation.ts` non touché).
+
+  **Test minimal** :
+  1. Créer un pré-votant (phase `pre_voting`, vote via `#vote/<join_code>`), noter son pseudo.
+  2. Faire passer la séance en `voting` depuis le superadmin.
+  3. Recharger `#vote/<join_code>` avec **le même profil navigateur** que le pré-vote → observer l'écran « Tu avais voté à distance sous le nom X — Es-tu présent(e) au débat aujourd'hui ? » avec **trois** boutons désormais (présent / continuer à distance / pas moi).
+  4. Cliquer « Non, je continue à voter à distance » → observer : retour direct à l'écran de vote (assertions), pas d'écran d'onboarding, pas d'erreur.
+  5. Superadmin, onglet Membres : vérifier que `attending_in_person` de ce membre est resté `false`.
+  6. Lancer l'allocation (`AllocationPanel`, phase `allocating`) : vérifier que ce membre n'apparaît dans **aucune** table proposée.
+  7. **Non-régression** : reprendre les scénarios 1/2/3/5 du chantier 61 documentés ci-dessous (nouvel arrivant, reconquête par nom, par code, confirmation de présence classique) — vérifier qu'ils passent toujours, notamment que le bouton « ✓ Oui, je suis présent(e) » juste au-dessus du nouveau bouton fonctionne toujours normalement.
+
+- [ ] **2026-09-02 — Chantier 67 (point 2) — code de rappel pour un modérateur qui se déclare en pré-vote** — `src/screens/EntryScreen.tsx`, `src/components/voting/ReclaimCodeDisplay.tsx` *(migration `20260902_chantier67_claim_moderator_prevoting.sql` requise — voir « Migration SQL en attente » plus haut)*
+
+  **Aucune vérification navigateur faite** (session headless). `tsc`/`test`/`build` verts.
+
+  **Test minimal** (après application de la migration) :
+  1. Séance en phase `pre_voting`, avec un `join_code`. Depuis un profil navigateur neuf, aller sur l'accueil (`EntryScreen`), onglet « 🎙️ Modérateur ».
+  2. Sélectionner la séance, saisir un nom **jamais utilisé** sur cette séance, le Code Ecclesia → « Rejoindre en tant que modérateur ».
+  3. Observer : l'écran « Note ton code de rappel » (🔑) s'affiche — pseudo + code à 4 chiffres — **avant** la redirection vers le vote (nouveau comportement ; avant ce chantier, aucun code n'était jamais affiché pour ce parcours).
+  4. Cliquer « Continuer vers le vote → » → arrivée directe sur l'écran de vote (pas d'onboarding — la pré-vote n'en a pas).
+  5. Superadmin, onglet Membres : vérifier que ce membre a `attending_in_person = false` et `is_moderator = true`.
+  6. **Non-régression — phases `voting`/`allocating`/`debating`** : refaire le même parcours sur une séance dans une de ces phases → observer qu'**aucun** écran de code de rappel ne s'affiche (redirection immédiate comme avant), et que le membre créé a bien `attending_in_person = true`.
+  7. **Non-régression — déjà inscrit** : sur un profil déjà membre de la séance en `pre_voting` (a déjà voté), utiliser le même onglet « 🎙️ Modérateur » → observer une redirection immédiate (pas d'écran de code — cas (b) de la RPC, comportement inchangé) et `is_moderator` passé à `true` sur le membre existant, sans toucher son `attending_in_person`/`reclaim_code` d'origine.
+
+- [ ] **2026-09-02 — Chantier 67 (point 4) — message d'accueil aligné sur les 5 étapes de `PhaseIndicator`** — `src/screens/VoteScreen.tsx` (`AppIntroModal`)
+
+  **Le bug** : `AppIntroModal` (popup « Comment se déroule la séance ? », une fois par séance) annonçait 4 étapes (Vote / Répartition / Débat / Questionnaire) alors que `PhaseIndicator` (chantier 39) en affiche 5 : 1 Distanciel, 2 Vote en présentiel, 3 Allocation, 4 Débat, 5 Post-débat.
+
+  **Le correctif** : les 5 libellés numérotés de `AppIntroModal` reprennent mot pour mot ceux de `PARTICIPANT_PHASE_STEPS` (`src/lib/phaseLabels.ts`) — « 1. Distanciel », « 2. Vote en présentiel », « 3. Allocation », « 4. Débat », « 5. Post-débat » — avec une description courte par étape.
+
+  **Test minimal** :
+  1. Vider `localStorage['ecclesia_app_intro_<session.id>']` (ou utiliser une séance jamais visitée sur ce profil).
+  2. Ouvrir `#vote/<join_code>` → observer le popup « Comment se déroule la séance ? » avec **5** lignes numérotées 1 à 5, libellés strictement identiques à ceux de la pastille `PhaseIndicator` affichée sur les écrans suivants du parcours (comparer texte à texte : « 1 · Distanciel » en pré-vote, « 2 · Vote en présentiel » en vote, etc.).
+  3. Fermer (« Compris, c'est parti → ») → recharger la page → vérifier que le popup ne réapparaît pas (comportement `localStorage` inchangé).
+  4. **Non-régression** : vérifier que le popup `PreVotingAnnounceModal` (l'autre popup d'accueil, prioritaire en `pre_voting`) continue de s'afficher à sa place quand les deux conditions sont réunies — ce chantier n'a pas touché cette logique de priorité (`showPreVotingAnnounce ? ... : showAppIntro && ...`).
 
 - [ ] **2026-09-02 — Chantier 50 — écran d'affectation et lectures participant sous les policies self-only** *(migration SQL requise, voir plus haut)*
 
