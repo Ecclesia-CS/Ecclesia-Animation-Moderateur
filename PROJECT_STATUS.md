@@ -337,6 +337,30 @@ Branche `chantier-60-autorite-moderateur`, **non mergée**. Migration `supabase/
 
 ---
 
+## Chantier 64 — Une table sans modérateur devient une table modérée
+
+Branche `chantier-64-table-devient-moderee`, **non mergée**. Migration `supabase/migrations/20260902_chantier64_leaderless_becomes_moderated.sql`, **non appliquée** — à appliquer après celle du chantier 60 (pas de dépendance technique, ordre de test uniquement).
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| — | `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table` posent `tables.leaderless = false` quand ils affectent un modérateur à une table leaderless | Fait — migration écrite, **non appliquée** | Claude | Chantier 60 (ordre de test) |
+| — | Message d'accueil `ParticipantView` (table leaderless) précise qu'un participant peut devenir modérateur mais renonce alors à participer | Fait | Claude | — |
+| — | Correction de la ligne périmée de `CLAUDE.md` sur `isModerator`/tables leaderless | Fait | Claude | — |
+
+**La demande** : côté auto-désignation en cours de débat (`designate_moderator`, chantier 3/D2), tout fonctionnait déjà — bouton "🎙️ Devenir modérateur", confirmation, `leaderless → false`. Le trou était côté Bloc C : un membre affecté par le superadmin (`set_member_moderator`, `assign_moderator_to_table`) ou auto-déclaré (`claim_moderator_status`) obtenait déjà l'autorité d'animation réelle (chantier 60 : `is_table_moderator` ne fait pas d'exception pour `leaderless`) mais la table restait affichée « Sans modérateur » partout, et les autres participants continuaient de tenter l'auto-gestion par file (`claim_floor`, qui aurait échoué silencieusement une fois un vrai modérateur en place).
+
+**Correctif** : ciblé sur les 3 RPC Bloc C — si le membre a déjà un siège (`table_assignments`) sur une table `leaderless` au moment où `is_moderator` passe à `true`, cette table est convertie en place (`UPDATE tables SET leaderless = false`), sans déplacer personne. Priorité sur la recherche déjà existante (chantiers 33/37) d'une autre table animée sans modérateur. Signatures inchangées sur les 3 fonctions (`CREATE OR REPLACE` suffit).
+
+**Aucun changement frontend nécessaire pour les indicateurs superadmin** : l'onglet Groupes recalcule déjà `moderated` depuis `tables.leaderless` à chaque appel (immédiat après action superadmin, polling 10 s chantier 50 pour le cas auto-déclaré). Un défaut préexistant et plus large, non corrigé ici, est documenté dans A_VERIFIER.md : le tableau « En direct » (`list_session_tables.moderator_pseudo`) reste imprécis pour toute table Bloc C, convertie ou non — défaut hérité, hors périmètre.
+
+**Point tranché et documenté (demande explicite du brief)** : retirer un modérateur (`set_member_moderator(..., false)`) ne repose **pas** `leaderless = true` automatiquement — la table reste animée sans modérateur assis, état déjà supporté par l'app par ailleurs (`create_tables_batch`), et impossible à distinguer de manière fiable d'une table jamais `leaderless`. Risque documenté si le retrait a lieu en pleine phase `debating` (table bloquée jusqu'à réassignation) — voir l'en-tête de la migration et A_VERIFIER.md.
+
+**`allocation.ts` non touché**, comme demandé — l'algorithme continue de lire `leaderless` sans modification de comportement de sa part.
+
+**Vérifié** : `npx tsc --noEmit`, `npm test`, `npm run build` (voir résultats en fin de session). **Aucun test navigateur** (consigne : harnais partagé) et **migration non appliquée** (règle du 2026-09-01). Cas de test dans A_VERIFIER.md, section Migration SQL en attente + complément à la section « Point de sémantique à trancher » du chantier 60 (que ce chantier réduit sans le clore complètement — le cas du modérateur en surplus reste entier).
+
+---
+
 ## Chantier 50 — Fermer la lecture directe de `session_members` et `table_assignments`
 
 Branche `chantier-50-fermer-lecture-identite`, **non mergée**. Migration `supabase/migrations/20260902_chantier50_close_identity_tables.sql`, **non appliquée** — à appliquer après celle du chantier 60.
