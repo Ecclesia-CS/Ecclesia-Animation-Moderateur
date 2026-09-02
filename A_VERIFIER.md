@@ -186,6 +186,34 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. Vérification négative REST (clé anon publique, hors navigateur) — confirme que le trou `sessions_select` reste ouvert en lecture mais que les portes d'inscription sont bien fermées : créer une séance de test en `draft`, noter son `id`, puis `POST /rest/v1/rpc/register_session_member` et `POST /rest/v1/rpc/confirm_attendance` avec cet `id` → attendu : erreur 400 avec le message de phase, dans les deux cas.
   5. Dérouler les 3 scénarios de test manuel ci-dessous (Participant × 2, Superadmin × 1 — non-régression).
 
+- [ ] **Chantier 49 — `supabase/migrations/20260902_chantier49_purge_reclaim_codes.sql`** (jamais appliquée) ⚠️ **MIGRATION DESTRUCTIVE — IRRÉVERSIBLE, aucune sauvegarde de la base n'existe à ce jour**
+
+  **Contenu du fichier** :
+  1. Purge ponctuelle : `session_members.reclaim_code` → `NULL` pour tout membre d'une séance déjà en phase `closed` (rattrapage des séances passées, avant que la fermeture de lecture du chantier 50 n'existe).
+  2. `set_session_phase` réécrite pour purger automatiquement `reclaim_code` de la séance dès qu'elle passe en `closed` — plus jamais besoin de rejouer une purge ponctuelle par la suite. Ajout au passage d'un `SET search_path = public, extensions` explicite (absent de la version chantier 39) — la fonction appelle `crypt()`, et le projet s'est déjà fait piéger par ce piège précis (« mot de passe incorrect » trompeur quand `extensions` manque du search_path).
+
+  **Pourquoi c'est irréversible** : un `reclaim_code` effacé ne se retrouve pas — ni recalculable, ni dérivable d'une autre colonne. Jules a explicitement autorisé à procéder sans sauvegarde préalable (« je n'ai pas prévu d'utiliser l'appli jusqu'à ce que tout, y compris les sauvegardes, soit livré »).
+
+  **Pourquoi aucune régression attendue** (vérifié par lecture du SQL avant d'écrire la migration — inventaire complet des lecteurs de `reclaim_code`) :
+  - `confirm_attendance` (phase `voting`/`allocating`, `VoteScreen.tsx`) n'est jamais atteignable sur une séance `closed` côté frontend — le routeur redirige vers le questionnaire post-débat/résultats avant.
+  - `reclaim_prevoting_member` (chantier B3) est **phase-safe côté serveur** : il lève déjà une exception si `sessions.phase != 'pre_voting'`, indépendamment de cette purge.
+  - Le code affiché au participant à l'inscription (`ReclaimCodeDisplay`) est généré côté client (`Math.random()`), jamais relu depuis la base.
+
+  **À faire (session de vérification), dans cet ordre** :
+  1. **Avant toute application**, exécuter la requête de diagnostic en tête du fichier de migration (comptage par séance + total global des `reclaim_code` non-NULL sur des séances `closed`) et noter le résultat (nombre de lignes, capture d'écran si possible) — trace de ce qui va être effacé.
+  2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Le bloc `DO $purge$` émet deux `NOTICE` (compte avant purge, lignes effectivement mises à jour) — vérifier qu'ils correspondent au comptage de l'étape 1.
+  3. **Aucun code ne subsiste sur une séance close** :
+     ```sql
+     SELECT count(*) FROM session_members sm
+     JOIN sessions s ON s.id = sm.session_id
+     WHERE s.phase = 'closed' AND sm.reclaim_code IS NOT NULL;
+     ```
+     Attendu : `0`.
+  4. **Purge automatique à la clôture** — sur une séance de test en phase `debating` avec au moins un membre `reclaim_code IS NOT NULL` : `SELECT set_session_phase('<mot de passe superadmin>', '<session_id>', 'closed')`, puis relire `session_members.reclaim_code` pour cette séance → attendu `NULL` partout.
+  5. **Non-régression — reconquête pré-vote toujours fonctionnelle sur une séance encore ouverte** (phase `pre_voting`, ne pas confondre avec l'étape précédente) : inscrire un membre de test en `pre_voting`, noter son code de rappel, puis `SELECT reclaim_prevoting_member('<session_id>', NULL, '<code>')` depuis une autre identité (`auth.uid()` différent, ou simplement vérifier que le code n'a pas été touché par cette migration) → attendu : succès, transfert de `user_id`. Confirme que seules les séances `closed` sont purgées, pas les séances encore actives.
+
+  **Recommandation non implémentée, à trancher séparément** : envisager d'anonymiser aussi `session_members.pseudo` (nom + prénom réels) après un délai post-clôture — c'est, une fois `reclaim_code` purgé, la donnée la plus identifiante qui reste indéfiniment en base. Non tranché : durée du délai, et si l'app doit un jour pouvoir recontacter un participant après coup (support, litige). Voir section "Rétention des données" de `CLAUDE.md`.
+
 - [ ] **Chantier 48 — `supabase/migrations/20260902_chantier48_switch_table.sql`**
 
   **Contenu du fichier** : crée `switch_table(p_session_id uuid, p_join_code text, p_pseudo text) returns jsonb` — permet à un participant de rejoindre une autre table que celle qui lui a été assignée, depuis `AllocatingScreen`. Vérifie que le code correspond à une table de **cette** séance (sinon exception explicite), que le participant n'est pas déjà à cette table, puis **retire proprement** toute ligne `participants` de l'utilisateur dans les autres tables de la séance (libère le micro/clôt le tour en cours si besoin, même traitement que `kick_participant`) avant d'insérer la nouvelle ligne et de déplacer `table_assignments` via `sync_table_assignment` (déjà existante, chantier 26). Voir l'en-tête du fichier de migration pour le détail du raisonnement (pourquoi une RPC dédiée plutôt que réutiliser `join_table`).

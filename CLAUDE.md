@@ -88,7 +88,7 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 `id`, `table_id` (CASCADE), `participant_id` (CASCADE), `started_at` (NOT NULL, posé par serveur), `ended_at?` (NULL = en cours), `source` (`'long'`|`'interactive'`|`'manual'`)
 
 ### `session_members` — Bloc C
-`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`), `is_moderator` (boolean, défaut `false` — chantier 19)
+`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`. **Chantier 49** : purgé — `NULL` — dès que la séance passe en `closed`, voir « Rétention des données »), `is_moderator` (boolean, défaut `false` — chantier 19)
 Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
 - `attending_in_person = false` → inscrit en pré-vote depuis chez soi. Exclu du clustering.
 - `attending_in_person = true` → a confirmé sa présence physique (`confirm_attendance`). Inclus dans le clustering.
@@ -145,6 +145,21 @@ Les deux tables avaient une policy `SELECT USING (true)`. Comme il n'y a pas de 
 - Le superadmin n'étant membre d'aucune séance, il ne reçoit **plus aucun événement Realtime** sur ces deux tables. La vue Groupes compense par un polling 10 s (`allocating`/`debating`) ; l'abonnement Realtime est conservé mais dormant.
 - Effet de bord souhaitable : `REPLICA IDENTITY FULL` fait toujours transiter toutes les colonnes dans le WAL, mais Realtime applique la RLS avant livraison — `reclaim_code` ne part plus qu'au propriétaire de la ligne.
 
+### Rétention des données — codes de rappel (chantier 49)
+
+`session_members.reclaim_code` (PIN 4 chiffres, **en clair**) n'a d'utilité que pendant que la séance est encore ouverte au vote à distance ou présentiel (`confirm_attendance` et `reclaim_prevoting_member` sont les deux seuls lecteurs, tous deux sans usage possible sur une séance close — voir plus bas). Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma : elle permet de reprendre l'identité de quelqu'un.
+
+**Politique** : `reclaim_code` est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase` (migration `20260902_chantier49_purge_reclaim_codes.sql`), pas de tâche périodique séparée. Une purge ponctuelle (même migration) a aussi nettoyé les séances déjà closes au moment du chantier.
+
+**Pourquoi aucune régression fonctionnelle** :
+- `confirm_attendance` (phase `voting`/`allocating` uniquement côté frontend — `VoteScreen.tsx`, chemin `#vote/`) n'est jamais atteignable sur une séance `closed` : le routeur redirige vers le questionnaire post-débat ou les résultats avant d'y arriver.
+- `reclaim_prevoting_member` (chantier B3) est **phase-safe côté serveur** — il lève une exception si `sessions.phase != 'pre_voting'`, donc échoue déjà sur une séance close indépendamment de la purge.
+- Le code affiché au participant juste après inscription (`ReclaimCodeDisplay`, `VoteScreen.tsx`) est généré côté client (`Math.random()`) et jamais relu depuis la base — rien côté UI ne dépend de la persistance du code après affichage initial.
+
+**Ce qui n'est pas purgé, et pourquoi** : le reste de `session_members` (pseudo, réponses d'onboarding, votes, assertions) est conservé indéfiniment — c'est l'historique du débat, réutilisé par `ResultsMapScreen`/`PublicResultsScreen` sans limite de durée connue à ce jour. Pas de politique de rétention tranchée dessus ; voir la recommandation ci-dessous.
+
+**Recommandation (non implémentée)** : envisager, à la clôture, l'anonymisation du `pseudo` (remplacé par un identifiant type "Participant N") une fois passé un délai raisonnable après la clôture — le nom réel n'a plus d'usage fonctionnel une fois les résultats calculés et les camps nommés, alors que `pseudo` reste, avec `reclaim_code` avant cette purge, la donnée la plus identifiante du schéma. Différer l'anonymisation (plutôt que la faire à la clôture comme `reclaim_code`) pour laisser une fenêtre où le superadmin peut encore contacter un participant si besoin (support, litige). Non tranché : durée du délai, et si l'app a un jour besoin de recontacter un participant après coup.
+
 ### Fonctions SECURITY DEFINER
 
 | Fonction | Rôle |
@@ -181,7 +196,7 @@ Les deux tables avaient une policy `SELECT USING (true)`. Comme il n'y a pas de 
 | `get_vote_results(session_id)` | Retourne assertions approved avec consensus_score |
 | `approve_assertion(password, assertion_id)` | status → 'approved' |
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |
-| `set_session_phase(password, session_id, phase)` | Change la phase (inclut `pre_voting`) |
+| `set_session_phase(password, session_id, phase)` | Change la phase (inclut `pre_voting`). **Chantier 49** : passage à `closed` → purge aussi `reclaim_code` (NULL) pour tous les membres de la séance, voir « Rétention des données » |
 | `run_clustering_v1(password, session_id, target_size?)` | Répartition aléatoire — **filtre `attending_in_person = true`** → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. **Chantier 37** : plus appelée par le frontend (modale « Répartir en tables » supprimée, cf. section Phase de vote) — conservée en base, inutilisée. |
 | `run_clustering_v2(password, session_id, target_size?)` | Répartition hétérogène PCA — **filtre `attending_in_person = true`** → table_assignments, phase → 'allocating'. Retourne `{table_count, member_count}`. Les membres présents sans votes sont distribués aléatoirement. **Chantier 37** : idem, plus appelée par le frontend. |
 | `update_session_config(password, session_id, moderation_policy)` | Met à jour la politique de modération. `moderation_policy` ∈ `('open','closed','ai')`. **Chantier 22 / G14** : ne prend plus `vote_timer_minutes`/`vote_threshold_percent` — colonnes supprimées, timers de phase retirés de l'app (gestion de la durée entièrement manuelle, hors application) |
