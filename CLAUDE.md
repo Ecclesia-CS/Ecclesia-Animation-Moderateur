@@ -328,7 +328,7 @@ Réelle en DB : `endTurn()` → stocker `pausedSpeakerId`. Reprise : `grantFloor
 
 ### isModerator
 Stocké en localStorage au moment du create/join. Ne pas dériver de `table.created_by === userId` (incorrect si 2 onglets même userId).
-Pour les tables `leaderless`, `isModerator` est toujours `false` — le créateur rejoint en tant que participant normal. Le listener Realtime skipppe la mise à jour de `isModerator` si `row.leaderless`.
+Pour les tables `leaderless`, `isModerator` est toujours `false` **pour le créateur** — il rejoint en tant que participant normal. Le listener Realtime skipppe la mise à jour de `isModerator` si `row.leaderless`. **Exception confirmée par Jules (2026-09-02)** : un membre marqué `session_members.is_moderator = true` (notamment un modérateur en surplus au sens du chantier 25b, sans table à animer) assis sur une table leaderless obtient bien l'autorité d'animation dessus (`isModerator = physicalModerator || sessionMemberIsModerator`, chantier 41 ; le helper `is_table_moderator` du chantier 60 ne fait pas d'exception pour `leaderless` non plus) — comportement voulu, pas un bug.
 
 ### Tables leaderless (`table.leaderless = true`)
 Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
