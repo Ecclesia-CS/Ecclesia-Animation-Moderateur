@@ -15,7 +15,7 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 
 Les points sont groupés **par écran/parcours**, pas par chantier, pour permettre une seule passe par écran plutôt que d'aller-retour entre chantiers. Dans l'ordre suggéré :
 
-1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46 et 48.
+1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46, 48 et 61.
 2. **Résultats publics (chantier 46)** — accueil (bouton + modale), superadmin (pastille par séance), page publique `#results/<id>`.
 3. **Superadmin** — onglets Tables, Membres, phase voting.
 4. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
@@ -69,6 +69,31 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. Une fois la migration appliquée **et** les points « Parcours Superadmin » / « Parcours Participant » ci-dessous validés : supprimer le repli `loadTableAssignmentRows` dans `src/screens/SuperadminScreen.tsx` (le bloc `catch` et sa lecture directe) — il n'a plus de raison d'être et il est le dernier `.from('table_assignments')` du frontend. Entrée dédiée en section Superadmin ci-dessous.
 
   **Effet de bord souhaitable** : ce chantier referme aussi la question ouverte sur `REPLICA IDENTITY FULL` (`session_members`, migration chantier 35). Le WAL continue de transporter toutes les colonnes, `reclaim_code` compris, mais Realtime applique la RLS avant livraison : les événements ne partent plus qu'au propriétaire de la ligne.
+- [ ] **Chantier 61 — `supabase/migrations/20260902_chantier61_register_during_allocating.sql`**
+
+  **Contenu du fichier** :
+  1. `DROP FUNCTION IF EXISTS register_session_member(uuid, text)` — supprime la **surcharge historique à 2 arguments** (migrations `20260528_voting_app.sql` puis `20260531_superadmin_features.sql`). La version à 3 arguments introduite par `20260622_pre_voting.sql` ne l'a jamais remplacée : `CREATE OR REPLACE` sur une arité différente **crée une seconde fonction**. L'ancienne est morte du point de vue de l'app (le wrapper `registerSessionMember` de `src/lib/voting.ts` envoie toujours les 3 paramètres nommés, PostgREST résout donc sur la 3-aire) mais elle porte encore le garde de phase d'origine, qui ignore jusqu'à `pre_voting`.
+  2. `CREATE OR REPLACE FUNCTION register_session_member(uuid, text, text) RETURNS jsonb` — **même signature, mêmes noms de paramètres, même type de retour** que la version en place : seule la liste des phases autorisées change, `('draft','pre_voting','voting')` → `('draft','pre_voting','voting','allocating')`. `attending_in_person` reste calculé par `v_phase != 'pre_voting'`, donc `true` en `allocating` : quelqu'un qui s'inscrit pendant que les tables se forment est nécessairement sur place. `joined_phase` prendra la nouvelle valeur `'allocating'` (colonne `text` libre, sans CHECK).
+
+  **Pourquoi** : demande explicite de Jules — les retardataires doivent encore pouvoir rejoindre la séance et voter pendant que l'organisateur calcule la répartition. Aujourd'hui ils reçoivent « La séance n'est pas en phase d'inscription (phase: allocating) » en rouge, sans aucune issue.
+
+  **À faire (session de vérification)** :
+  1. **Avant** d'appliquer, confirmer la signature ciblée (piège Postgres documenté dans `CLAUDE.md`) :
+     ```sql
+     SELECT p.oid::regprocedure,
+            pg_get_function_identity_arguments(p.oid),
+            pg_get_function_result(p.oid)
+     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public' AND p.proname = 'register_session_member';
+     ```
+     Attendu : `register_session_member(uuid, text, text)` → `jsonb`, et **possiblement** une seconde ligne `register_session_member(uuid, text)` (celle que le DROP retire). Si le résultat montre autre chose — notamment un type de retour différent de `jsonb` — **ne pas appliquer** et remonter le point : le `CREATE OR REPLACE` échouerait.
+  2. Appliquer le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  3. Rejouer la requête ci-dessus : il ne doit rester **qu'une** ligne, la 3-aire.
+  4. Dérouler le test manuel de la section Participant ci-dessous.
+
+  **Tant qu'elle n'est pas appliquée** : le formulaire d'entrée s'affiche bien en phase `allocating` (partie React livrée), mais toute inscription d'un **nouveau** nom échoue avec l'ancien message d'erreur. Les **reconquêtes** (nom déjà inscrit, ou code de rappel) fonctionnent en revanche déjà sans la migration — elles passent par `confirm_attendance`, qui ne teste aucune phase.
+
+  **Point de conception tranché et vérifié par lecture du SQL** : `cast_vote`, `submit_assertion` et `submit_entry_response` (définitions courantes : `20260528_voting_app.sql` pour les deux premières, `20260725_1_onboarding_3_questions.sql` pour la troisième) **n'ont aucun garde de phase** — ils n'exigent qu'une ligne `session_members`. Le vote pendant l'allocation fonctionnait donc **déjà** côté serveur ; seul le chemin d'entrée bloquait. Aucune policy RLS ne teste la phase non plus (vérifié sur `session_members`, `entry_responses`, `assertions`, `assertion_votes`). C'est ce qui réduit ce chantier à une seule ligne de SQL utile plus deux conditions React.
 
 - [ ] **Chantier 48 — `supabase/migrations/20260902_chantier48_switch_table.sql`**
 
@@ -316,6 +341,56 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. **Reconquête d'un pseudo déjà pris** (`PseudoForm` en `pre_voting`, `VotingEntryForm` en `voting`) : saisir un pseudo déjà inscrit doit toujours proposer l'écran de reconquête et le mener à bien (par le nom **et** par le code de rappel). Ces chemins passent par des RPC, ils ne devraient pas bouger — mais c'est le seul endroit où le frontend raisonne sur des inscriptions qui ne sont pas les siennes.
   5. **Routeur** (`#session/<code>`) : en `debating`, un membre inscrit est redirigé vers `#vote/`, un visiteur non inscrit voit le message « pas membre ». En `closed`, un membre non répondant voit le questionnaire, un membre répondant voit la carte des résultats, un visiteur voit les résultats publics. C'est le test qui prouve que `SessionRouterScreen` distingue toujours membre et non-membre.
   6. **Entrée en débat** : rejoindre la table depuis l'écran d'affectation → `ParticipantView` s'affiche sans reload, avec le bon compte de présents.
+- [ ] **2026-09-02 — Chantier 61 — s'inscrire et voter pendant la phase `allocating`** — `src/screens/VoteScreen.tsx`, migration `20260902_chantier61_register_during_allocating.sql` *(voir « Migration SQL en attente » ci-dessus — les scénarios 1 et 4 ne passent qu'une fois appliquée ; 2 et 3 passent sans)*
+
+  **Aucune vérification navigateur n'a été faite** (session headless, harnais partagé avec d'autres chantiers) : seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts. Tout ce qui suit est à jouer à la main.
+
+  **Livré** : (a) migration ci-dessus ; (b) `VotingEntryForm` — le formulaire combiné « Mon nom » / « Mon code de rappel », avec reconquête automatique — est désormais monté en phase `voting` **et** `allocating`, au lieu de `voting` seul ; (c) un membre déjà connu sur cet appareil mais pas encore confirmé présent (`attending_in_person = false`, cas typique du pré-votant à distance) passe par l'écran de confirmation de présence en `allocating` comme il le faisait déjà en `voting` ; (d) un encart ambre à l'entrée prévient que les groupes sont en cours de formation et que le vote ne changera plus la répartition.
+
+  ⚠️ **À lire avant de tester — ce chantier déplace le mur, il ne l'enlève pas.** Un participant inscrit **après** que l'organisateur a appliqué l'allocation n'a aucune ligne `table_assignments` : une fois son vote terminé, il reste sur « Formation des groupes en cours… » sans porte de sortie. C'est l'objet du **chantier 62** (saisie manuelle d'un code de table), livré séparément. **Les deux doivent être vérifiés ensemble** pour que le parcours du retardataire tienne de bout en bout. Tant que 62 n'est pas livré, l'écran bloqué en fin de scénario 1 est le comportement attendu, pas une régression.
+
+  **Préparation commune** : une séance de test avec au moins une assertion `approved`, passée en phase `pre_voting` puis `voting` (pour créer un pré-votant), puis **`allocating`** depuis le superadmin. Prévoir 2 navigateurs/profils distincts (identités anonymes séparées).
+
+  **Scénario 1 — nouvel arrivant qui s'inscrit pendant l'allocation** *(migration requise)*
+  1. Séance en phase `allocating`. Ouvrir `#vote/<join_code>` dans un profil navigateur **neuf** (jamais inscrit à cette séance).
+  2. Observer : le formulaire « Vote présentiel » à deux onglets (**Mon nom** / **Mon code de rappel**) s'affiche — et **pas** l'ancien écran à un seul champ. Un encart ambre annonce que les groupes sont en cours de formation.
+  3. Onglet « Mon nom » → saisir un nom **jamais utilisé** sur cette séance → Continuer.
+  4. Observer : **aucune erreur rouge** « La séance n'est pas en phase d'inscription (phase: allocating) ». L'écran suivant doit être **le questionnaire d'entrée (onboarding)** — les 3 questions (consentement transcription / style de participation / déjà fait un débat Ecclesia). *C'est le point le plus important à contrôler : l'onboarding ne doit pas être sauté.*
+  5. Répondre aux 3 questions → l'écran de vote s'affiche, avec la bannière ambre « L'organisateur forme les groupes de débat… ».
+  6. Vérifier dans le superadmin, onglet participants : le nouveau membre apparaît, **coché présent** (`attending_in_person = true`) et avec la colonne onboarding à ✅. *(Note : la pastille de phase d'inscription affichera la valeur brute `allocating` — `PHASE_LABEL_MEMBER` dans `SuperadminScreen.tsx` ne traduit ni `pre_voting` ni `allocating`. Cosmétique, fichier laissé intact car occupé par le chantier 50.)*
+
+  **Scénario 2 — pré-votant qui se retrouve par son nom, pendant l'allocation** *(fonctionne même sans la migration)*
+  1. Depuis un profil navigateur **neuf** (pas celui qui a servi au pré-vote — c'est le cas « nouvel appareil »), séance en phase `allocating`, ouvrir `#vote/<join_code>`.
+  2. Onglet « Mon nom » → saisir **exactement** le nom utilisé lors du pré-vote.
+  3. Observer : écran vert « Bienvenue \<nom\> ! Tes votes ont bien été récupérés. » → Continuer.
+  4. Observer : comme ce pré-votant n'a jamais fait l'onboarding (la phase `pre_voting` n'en propose pas), le **questionnaire d'entrée doit s'afficher** avant le vote.
+  5. Après l'onboarding : l'écran de vote doit montrer **les votes déjà exprimés à distance** (les assertions déjà votées ne réapparaissent pas comme non votées).
+  6. Superadmin : le membre est maintenant **présent** (`attending_in_person` passé à `true`), sans doublon de ligne.
+
+  **Scénario 3 — le même, par code de rappel** *(fonctionne même sans la migration)*
+  1. Profil navigateur neuf, séance en `allocating`, `#vote/<join_code>`.
+  2. Onglet « **Mon code de rappel** » → saisir le code à 4 chiffres affiché lors de l'inscription au pré-vote.
+  3. Mêmes observations qu'au scénario 2 : écran vert de reconquête, puis onboarding, puis vote avec les votes d'origine.
+  4. Contrôle négatif : un code à 4 chiffres inexistant doit afficher « Code de rappel invalide » en rouge, sans navigation ni création de membre.
+
+  **Scénario 4 — le vote fonctionne réellement pour ces nouveaux venus** *(le cœur du chantier)*
+  1. Dans chacun des trois cas ci-dessus, une fois sur l'écran de vote en phase `allocating` : voter d'accord / pas d'accord / passer sur au moins 3 assertions.
+  2. Observer : chaque vote est accepté (l'assertion suivante s'affiche), **aucune erreur** de type « Cette assertion n'est pas approuvée » ou « Vous n'êtes pas inscrit à cette séance ».
+  3. Recharger la page : les votes sont bien conservés.
+  4. Bouton « ✏️ Proposer » → soumettre une assertion → vérifier qu'elle arrive côté superadmin (`pending` ou `approved` selon `moderation_policy`).
+  5. Superadmin, onglet Analyse : les votes de ces membres apparaissent dans les compteurs.
+
+  **Scénario 5 — pré-votant sur le même appareil (confirmation de présence)** *(fonctionne même sans la migration)*
+  1. Reprendre **le profil navigateur qui a servi au pré-vote** (identité anonyme conservée), séance en `allocating`, ouvrir `#vote/<join_code>`.
+  2. Observer : l'écran « Tu avais voté à distance sous le nom \<nom\> — Es-tu présent(e) au débat aujourd'hui ? » s'affiche, avec l'encart ambre. *Avant ce chantier, cet écran n'apparaissait qu'en phase `voting` : en `allocating` le membre filait au vote en restant compté absent.*
+  3. « ✓ Oui, je suis présent(e) » → onboarding (jamais fait) → vote.
+  4. Superadmin : `attending_in_person` du membre est passé à `true`.
+
+  **Scénario 6 — non-régression des phases voisines**
+  1. Phase `voting` : le parcours d'entrée doit être **strictement inchangé** (formulaire deux onglets, sans encart ambre).
+  2. Phase `pre_voting` : `PseudoForm` à un seul champ, code de rappel affiché après inscription, pas d'onboarding — inchangé.
+  3. Phase `debating` : un profil neuf sur `#vote/<join_code>` doit toujours voir « Le vote est terminé, tu ne peux plus rejoindre cette séance. » (l'inscription passe alors par `join_table`, pas par `register_session_member`).
+  4. Phase `closed` : inchangé (questionnaire post-débat puis résultats).
 
 - [ ] **2026-09-02 — Chantier 48 — « Je veux rejoindre une autre table »** — `src/components/voting/TableAssignmentCard.tsx`, `src/screens/AllocatingScreen.tsx`, migration `switch_table` *(voir « Migration SQL en attente » ci-dessus — le test complet de bascule réelle n'est possible qu'une fois appliquée)*
 
