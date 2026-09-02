@@ -22,7 +22,7 @@ interface VoteScreenProps {
   onTableJoined?: (tableId: string, participantId: string, isModerator: boolean) => void
 }
 
-type Step = 'loading' | 'error' | 'pseudo' | 'reclaim_code' | 'confirm_attendance' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended'
+type Step = 'loading' | 'error' | 'pseudo' | 'reclaim_code' | 'confirm_attendance' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended' | 'not_open'
 
 /** Fisher-Yates shuffle — immutable */
 function shuffle<T>(arr: T[]): T[] {
@@ -182,8 +182,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         .maybeSingle()
 
       if (!existingMember) {
+        // Chantier 65 — une séance en brouillon n'accepte encore aucune inscription
+        // (register_session_member la refuse côté serveur) : pas la peine de montrer
+        // le formulaire de pseudo pour échouer ensuite.
+        if (s.phase === 'draft') {
+          setStep('not_open')
+          return
+        }
         // Can't join if the vote phase is already over
-        if (s.phase !== 'draft' && s.phase !== 'pre_voting' && s.phase !== 'voting' && s.phase !== 'allocating') {
+        if (s.phase !== 'pre_voting' && s.phase !== 'voting' && s.phase !== 'allocating') {
           setErrorMsg('Le vote est terminé, tu ne peux plus rejoindre cette séance.')
           setStep('ended')
           return
@@ -667,6 +674,23 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <p className="text-sm text-gray-500">Chargement des résultats…</p>
         </div>
       </div>
+    )
+  }
+
+  if (step === 'not_open') {
+    return (
+      <>
+        <QuitLink />
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+          <div className="text-center space-y-4 max-w-sm">
+            <div className="text-5xl">🔒</div>
+            <h1 className="text-xl font-bold text-gray-900">Séance pas encore ouverte</h1>
+            <p className="text-sm text-gray-500">
+              Cette séance est encore en préparation. Reviens un peu plus tard, ou contacte l'organisateur si tu penses que c'est une erreur.
+            </p>
+          </div>
+        </div>
+      </>
     )
   }
 
