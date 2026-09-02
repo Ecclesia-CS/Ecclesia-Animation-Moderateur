@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { TableAssignment } from '../../lib/types'
 import type { Session } from '../../lib/types'
 
@@ -12,9 +13,20 @@ interface TableAssignmentCardProps {
   onJoin?: () => Promise<void>
   joinLoading?: boolean
   joinError?: string | null
+  /** Chantier 48 — rejoindre une autre table que celle assignée, par son code. */
+  onSwitch?: (joinCode: string) => Promise<void>
+  switchLoading?: boolean
+  switchError?: string | null
 }
 
-export default function TableAssignmentCard({ assignment, loading, phase, onJoin, joinLoading, joinError }: TableAssignmentCardProps) {
+export default function TableAssignmentCard({
+  assignment, loading, phase, onJoin, joinLoading, joinError,
+  onSwitch, switchLoading, switchError,
+}: TableAssignmentCardProps) {
+  const [showSwitchForm, setShowSwitchForm] = useState(false)
+  const [switchCode, setSwitchCode] = useState('')
+  const [localSwitchError, setLocalSwitchError] = useState<string | null>(null)
+
   if (loading || assignment === null) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
@@ -39,6 +51,17 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
 
   const joinCode = assignment.tables?.join_code ?? null
   const isDebating = phase === 'debating'
+
+  async function handleSwitchSubmit() {
+    const code = switchCode.trim().toUpperCase()
+    if (!code) return
+    if (joinCode && code === joinCode.toUpperCase()) {
+      setLocalSwitchError('Tu es déjà à cette table.')
+      return
+    }
+    setLocalSwitchError(null)
+    await onSwitch?.(code)
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -109,6 +132,57 @@ export default function TableAssignmentCard({ assignment, loading, phase, onJoin
                     recharger la page
                   </button>.
                 </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Chantier 48 — rejoindre une autre table que celle assignée */}
+        {isDebating && onSwitch && (
+          <div className="pt-2 text-center">
+            {!showSwitchForm ? (
+              <button
+                onClick={() => { setShowSwitchForm(true); setLocalSwitchError(null) }}
+                className="text-xs text-gray-500 hover:text-indigo-600 underline"
+              >
+                Je veux rejoindre une autre table
+              </button>
+            ) : (
+              <div className="mt-1 p-3 bg-gray-50 rounded-xl border border-gray-200 text-left space-y-2">
+                <p className="text-xs text-gray-500">
+                  Demande le code à 6 caractères de la table visée à un ami déjà installé
+                  là-bas, ou à son modérateur.
+                </p>
+                <input
+                  type="text"
+                  value={switchCode}
+                  onChange={e => { setSwitchCode(e.target.value.toUpperCase()); setLocalSwitchError(null) }}
+                  placeholder="A1B2C3"
+                  maxLength={6}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono
+                    tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
+                    placeholder:text-gray-300"
+                />
+                {(localSwitchError || switchError) && (
+                  <p className="text-xs text-red-600">{localSwitchError || switchError}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSwitchSubmit}
+                    disabled={switchLoading || switchCode.trim().length === 0}
+                    className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                      text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    {switchLoading ? 'Connexion…' : 'Rejoindre cette table'}
+                  </button>
+                  <button
+                    onClick={() => { setShowSwitchForm(false); setSwitchCode(''); setLocalSwitchError(null) }}
+                    disabled={switchLoading}
+                    className="py-2 px-3 text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Annuler
+                  </button>
+                </div>
               </div>
             )}
           </div>

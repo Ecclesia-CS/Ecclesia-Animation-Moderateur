@@ -29,6 +29,8 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [showAllResults,    setShowAllResults]    = useState(false)
   const [joinLoading,       setJoinLoading]       = useState(false)
   const [joinError,         setJoinError]         = useState<string | null>(null)
+  const [switchLoading,     setSwitchLoading]     = useState(false)
+  const [switchError,       setSwitchError]       = useState<string | null>(null)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
 
@@ -210,6 +212,38 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     }
   }
 
+  // ── Switch table (chantier 48 — « Je veux rejoindre une autre table ») ──
+  async function handleSwitchTable(targetJoinCode: string) {
+    setSwitchLoading(true)
+    setSwitchError(null)
+    try {
+      const { data, error } = await supabase.rpc('switch_table', {
+        p_session_id: session.id,
+        p_join_code:  targetJoinCode,
+        p_pseudo:     member.pseudo,
+      })
+      if (error) throw error
+      const r = data as TableResult
+      const isMod = member.is_moderator ?? false
+      tableStore.set({
+        tableId:       r.id,
+        participantId: r.participant_id,
+        joinCode:      r.join_code,
+        isModerator:   isMod,
+        pseudo:        member.pseudo,
+      })
+      if (onTableJoined) {
+        onTableJoined(r.id, r.participant_id, isMod)
+      } else {
+        window.location.href = window.location.pathname + window.location.search
+      }
+    } catch (err) {
+      setSwitchError(extractErr(err))
+    } finally {
+      setSwitchLoading(false)
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────
 
   if (showQuestionnaire) {
@@ -250,6 +284,9 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             onJoin={handleJoin}
             joinLoading={joinLoading}
             joinError={joinError}
+            onSwitch={handleSwitchTable}
+            switchLoading={switchLoading}
+            switchError={switchError}
           />
         </div>
 
