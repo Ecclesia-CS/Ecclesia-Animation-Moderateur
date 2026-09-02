@@ -693,6 +693,23 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   3. Revenir sur le même lien après avoir déjà répondu → vérifier l'accès direct à l'écran de résultats, sans repasser par le questionnaire.
   4. Séance en `debating` avec un participant connecté à sa table (`ParticipantView`) → superadmin clique "Passer en Clôturée" → vérifier le déclenchement **automatique** du modal questionnaire chez ce participant (couvert aussi par l'entrée superadmin ci-dessus) — ce test-ci vérifie spécifiquement qu'aucune étape de phase intermédiaire n'est nécessaire.
 
+- [ ] **2026-09-02 — Chantier 63 — questionnaire masqué par l'overlay de clôture + 2 des 3 portes en cul-de-sac (aucune vérification navigateur cette session)** — `ParticipantView.tsx`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`)
+
+  **Contexte** : le point 4 ci-dessus (chantier 39) n'avait jamais été vérifié en navigateur faute de mot de passe superadmin. En lisant le code, deux bugs confirmés : l'overlay "La séance est terminée" de `ParticipantView` (z-50) s'affichait **devant** le questionnaire forcé (z-50 aussi, mais rendu avant dans le JSX) au lieu de derrière ; et sur `VoteScreen`/`AllocatingScreen`, valider le questionnaire ne menait jamais aux résultats (message générique figé, ou bannière grise sur l'écran d'annonce de table). Corrigés — voir `PROJECT_STATUS.md` pour le détail technique. **Rien de ceci n'a été exercé en navigateur réel cette session** (consigne explicite : pas de serveur dev, une autre session travaillait en parallèle sur `main`).
+
+  **Recette — écran `ParticipantView`, overlay vs questionnaire** :
+  1. Table rattachée à une séance, participant connecté dedans (`ParticipantView`, pas `ModeratorView`). Superadmin fait passer la séance de `debating` à `closed`.
+  2. Observer chez le participant : le questionnaire post-débat doit apparaître **au premier plan**, utilisable (notes cliquables, bouton Envoyer actif). L'overlay "La séance est terminée" ne doit **pas** être visible tant que le questionnaire est ouvert.
+  3. Répondre et envoyer → le questionnaire se ferme (message de succès puis fermeture auto ~2s) → l'overlay "La séance est terminée" apparaît alors, avec le bouton "Voir vos résultats →".
+  4. Cliquer "Voir vos résultats →" → doit atterrir sur `ResultsMapScreen` (carte de son propre camp), pas sur un écran de chargement bloqué.
+
+  **Recette — les trois portes d'entrée, vers les résultats après soumission** : pour chacune des trois portes ci-dessous, avec un membre inscrit à une séance déjà `closed` et n'ayant pas encore répondu au questionnaire, vérifier que valider le formulaire amène bien à `ResultsMapScreen` (carte de camp + scatter), sans écran intermédiaire bloqué ni rechargement complet visible :
+  1. `#vote/<join_code>` (`VoteScreen`, step `questionnaire`) — cas le plus simple : membre inscrit, ouvre le lien de vote après clôture.
+  2. Membre resté sur `AllocatingScreen` (n'a pas encore rejoint sa table de débat) au moment où la séance passe à `closed`, détecté soit par Realtime soit par le polling 10s de secours — vérifier les deux déclencheurs si possible (couper le réseau un instant pour forcer le polling, ou simplement attendre >10s après la transition sans réagir au Realtime).
+  3. `#session/<join_code>` (`SessionRouterScreen`) — déjà fonctionnel avant ce chantier, à revérifier en même temps par cohérence (les trois doivent se comporter identiquement).
+
+  **Recette — double réponse, `hasQuestionnaireResponse` avec `.limit(1)`** : nécessite un membre ayant rempli le questionnaire forcé sur deux tables différentes de la même séance (deux lignes `questionnaire_responses`, une par `table_id`, même `session_id`/`user_id` — la table `6ABDC9`/pseudo "TestQ45" en section "Nettoyage des données de test" plus bas peut servir de point de départ si une deuxième réponse y est ajoutée sur une autre table de la même séance). Revenir sur `#vote/<join_code>` ou `#session/<join_code>` après clôture : le questionnaire ne doit **pas** être reproposé — accès direct aux résultats. Avant le fix, `.maybeSingle()` levait une erreur avalée sur ce cas précis et le redemandait indéfiniment.
+
 ## Synchronisation temps réel (chantier 35)
 
 *Nécessite deux onglets ou deux navigateurs en parallèle sur la même séance/table — ne peut pas se tester avec un seul client.*

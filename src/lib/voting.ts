@@ -149,12 +149,17 @@ export async function getVoteResults(sessionId: string): Promise<VoteResult[]> {
  * réponses (`user_id = auth.uid()`), inutile de filtrer dessus ici.
  */
 export async function hasQuestionnaireResponse(sessionId: string): Promise<boolean> {
+  // .limit(1) plutôt que .maybeSingle() : un participant qui a changé de table
+  // et rempli deux fois le questionnaire forcé (une ligne par `table_id`, cf.
+  // index unique `(user_id, table_id) WHERE table_id IS NOT NULL`) a deux lignes
+  // pour cette séance. .maybeSingle() lève alors une erreur sur "plusieurs lignes",
+  // error est ignorée ici, data devient null → on lui redemande le questionnaire.
   const { data } = await supabase
     .from('questionnaire_responses')
     .select('id')
     .eq('session_id', sessionId)
-    .maybeSingle()
-  return data != null
+    .limit(1)
+  return (data?.length ?? 0) > 0
 }
 
 // Chantier 20 (G7) — vue modérateur : composition idéologique de sa table +

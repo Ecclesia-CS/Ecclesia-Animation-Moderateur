@@ -645,7 +645,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <QuitLink />
         <SessionQuestionnaireForm
           sessionId={session.id}
-          onDone={() => setStep('ended')}
+          // 'closed' (pas 'ended') : réutilise la redirection déjà en place
+          // vers #session/<code>, qui enchaîne sur les résultats via
+          // SessionRouterScreen — pas de cul-de-sac.
+          onDone={() => setStep('closed')}
         />
       </>
     )
