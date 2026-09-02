@@ -133,12 +133,25 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 
 **Aucun hash ne quitte jamais la base.** RLS + SECURITY DEFINER uniquement. Auth anonyme (`signInAnonymously`).
 
+### `session_members` / `table_assignments` — lecture self-only (chantier 50)
+
+Les deux tables avaient une policy `SELECT USING (true)`. Comme il n'y a pas de backend et que la clé `anon` est dans le bundle JS public, `GET /rest/v1/session_members` retournait tous les inscrits de toutes les séances — `pseudo` (nom et prénom réels) et `reclaim_code` (4 chiffres, **en clair**) compris. Depuis la migration `20260902_chantier50_close_identity_tables.sql` :
+- `session_members_select_own` : `USING (user_id = auth.uid())`
+- `table_assignments_select_own` : `USING (is_own_session_member(member_id))`
+
+**Conséquences à connaître avant d'écrire une lecture** :
+- Toute lecture directe de ces tables ne voit que **ses propres lignes**. Les 4 lectures existantes (`TableContext`, `SessionRouterScreen` ×2, `VoteScreen`) sont déjà filtrées `.eq('user_id', userId)` — ne pas en ajouter d'autre sans passer par une RPC SECURITY DEFINER.
+- **Ne jamais lire ces tables via une jointure imbriquée PostgREST** (`table_assignments.select('…, session_members!member_id(…)')`) pour le compte du superadmin : sous ces policies, PostgREST **ne renvoie pas d'erreur**, l'objet imbriqué devient `null` et les listes se vident en silence. Utiliser `list_table_assignments_admin`.
+- Le superadmin n'étant membre d'aucune séance, il ne reçoit **plus aucun événement Realtime** sur ces deux tables. La vue Groupes compense par un polling 10 s (`allocating`/`debating`) ; l'abonnement Realtime est conservé mais dormant.
+- Effet de bord souhaitable : `REPLICA IDENTITY FULL` fait toujours transiter toutes les colonnes dans le WAL, mais Realtime applique la RLS avant livraison — `reclaim_code` ne part plus qu'au propriétaire de la ligne.
+
 ### Fonctions SECURITY DEFINER
 
 | Fonction | Rôle |
 |---|---|
 | `is_table_participant(uuid)` | Helper RLS anti-récursion |
 | `is_table_moderator(uuid)` | **Chantier 60** — helper d'autorité d'animation, anti-récursion (`SECURITY DEFINER STABLE`, `search_path = public, extensions`). Vrai si l'appelant est le **créateur** de la table (`tables.created_by`) **ou** un membre de la séance marqué `session_members.is_moderator` **et** affecté à **cette table précise** (`table_assignments`) — les deux conditions de la 2ᵉ branche sont cumulatives. Utilisé par `grant_floor`, `end_turn`, `end_turn_and_advance`, `kick_participant`, `add_offline_participant`, `add_to_queue`, `move_queue_entry`, `reorder_queue_entry`, `correct_turn`, et par 7 policies RLS (`tables_update_moderator`, `tables_delete_moderator`, `queue_entries_*`, `speaking_turns_*`). **Ne jamais réintroduire un test direct `created_by = auth.uid()` dans une garde d'animation** : `apply_allocation`/`create_tables_batch` posent `created_by` = l'uid du **superadmin**, pas celui du modérateur assis |
+| `is_own_session_member(uuid)` | **Chantier 50** — helper RLS anti-récursion pour `table_assignments` (`SECURITY DEFINER STABLE`, `search_path = public, extensions`). Vrai si la ligne `session_members` visée appartient à l'appelant. Nécessaire parce que la policy de `table_assignments` doit lire `session_members`, elle-même sous RLS |
 | `create_table(pseudo, creation_code, session_id?, leaderless?)` | Crée table + participant. Si `leaderless=true`, le code Ecclesia n'est pas vérifié et la table n'a pas d'animateur |
 | `join_table(join_code, pseudo)` | ON CONFLICT → transfère user_id (retour autre appareil) |
 | `reclaim_moderator(join_code, creation_code)` | Reprend la modération |
@@ -185,6 +198,7 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | `apply_allocation(password, session_id, tables)` | **Chantier 19** — persiste le résultat calculé côté client. Réutilise les tables déjà rattachées (ordre `join_code`), crée les manquantes, aligne `tables.leaderless` sur `moderated`, remplace `table_assignments`, phase → `allocating`. Les modérateurs sont écrits dans `table_assignments` comme les autres — c'est `session_members.is_moderator` qui les distingue. **Chantier 25 (H18)** : détache aussi (`session_id = NULL`) les tables excédentaires **vides** laissées par un calcul précédent plus large — sans ça elles restaient rattachées et ressurgissaient via `list_session_tables` alors qu'elles n'apparaissent pas dans l'onglet Groupes (construit depuis `table_assignments`). Une table déjà rejointe par un participant n'est jamais détachée, seulement comptée dans `tables_orphaned`. |
 | `create_tables_batch(password, session_id, leaderless[])` | **Chantier 19 / G2** — crée N tables vides (join codes générés, `session_id` renseigné, un `leaderless` par table). `create_table` exige un pseudo et crée un participant → inutilisable pour ça. Plafond 60 tables. |
 | `set_member_moderator(password, session_id, member_id, is_moderator)` | **Chantier 19 / G4** — marque/démarque un membre comme modérateur de la séance (fallback superadmin, depuis la liste des participants — distinct de `assign_moderator_to_table` qui cible une table précise). **Chantier 37** : quand `is_moderator=true`, assied aussi le membre sur la première table animée sans modérateur (même logique que `claim_moderator_status`) — avant ce fix, poser le flag depuis cette liste ne déplaçait jamais personne, un modérateur assis à une table déjà pourvue restait invisible côté tableau de bord tant que le superadmin ne le déplaçait pas à la main. |
+| `list_table_assignments_admin(password, session_id)` | **Chantier 50** — composition des tables d'une séance (`table_number`, `member_id`, `table_id`, `pseudo`, `is_moderator`), triée par `table_number`. Seule lecture croisée `table_assignments` × `session_members` possible depuis que les deux tables sont en self-only : le superadmin n'est membre d'aucune séance. Source de la vue Groupes (`SuperadminScreen.loadGroups`) |
 | `claim_moderator_status(session_id, creation_code)` | **Chantier 19 / G4** — auto-déclaration via le mot de passe Ecclesia. Le membre doit déjà être inscrit à la séance. Prêt pour le flow UI du chantier 21. |
 
 **RLS Realtime** : `REPLICA IDENTITY FULL` sur les tables suivantes — obligatoire pour que les événements filtrés (DELETE et UPDATE avec RLS) arrivent aux subscribers :
@@ -206,6 +220,7 @@ src/
 │   │                     + SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment
 │   │                     + ModerationPolicy, ModerationResult, MergeResult, GroupNameResult (sprint IA)
 │   ├── sessions.ts       Wrappers RPC séances (verifyPassword, createSession, closeSession, attach/detach, listSessionTables, listAvailableTables, updateSessionDocs)
+│   │                     + chantier 50 : listTableAssignmentsAdmin (composition des tables pour la vue Groupes)
 │   ├── voting.ts         Wrappers RPC Bloc C (registerSessionMember, confirmAttendance, submitEntryResponse, submitAssertion, castVote, getVoteResults, approve/rejectAssertion, setSessionPhase, updateSessionConfig, assignTableToGroup, listAssertionsAdmin)
 │   │                     + chantier 19 : loadAllocationInputs, applyAllocation, createTablesBatch, setMemberModerator, claimModeratorStatus
 │   ├── allocation.ts     **Chantier 19 (G1)** — algorithme d'allocation v2, 100 % pur (aucun React/Supabase), spec `docs/chantier-5-allocation-v2-spec.md`.
@@ -342,6 +357,7 @@ Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
 - **`service_role` key dans le frontend** — bypasse RLS entièrement
 - **Comparer codes côté client** — uniquement via `crypt()` en SECURITY DEFINER
 - **Garder une table pour animateur via `tables.created_by = auth.uid()`** (chantier 60) — `created_by` est l'uid du **superadmin** sur toute table créée par `apply_allocation`/`create_tables_batch`, jamais celui du modérateur assis. Une garde d'animation écrite ainsi refuse silencieusement tous les modérateurs du chemin nominal (RLS → zéro ligne, aucune erreur). Utiliser `is_table_moderator(<table_id>)`. Inversement, ne **jamais** relâcher ce helper à `is_moderator` seul (autorité sur toutes les tables de la séance) ni à `table_assignments` seul (autorité à tous les participants de la table) — les deux conditions sont cumulatives
+- **Lire `session_members` ou `table_assignments` par jointure imbriquée PostgREST pour le superadmin** (chantier 50) — les deux tables sont en self-only et le superadmin n'est membre d'aucune séance : PostgREST ne lève alors aucune erreur, l'objet imbriqué devient `null` et les listes se vident **en silence**. Utiliser `list_table_assignments_admin`. Toute nouvelle lecture directe de ces tables doit être filtrée `.eq('user_id', userId)` ; sinon, passer par une RPC SECURITY DEFINER
 - **`useLiveMs()` haut dans l'arbre** — re-render 500ms sur tout le sous-arbre. Toujours dans un composant feuille (pattern `SpeakerTimer`, `SessionTimerDisplay`)
 - **`setInterval` pour incrémenter un compteur** — utiliser `Date.now() - startedAt`
 - **Plusieurs channels Realtime** — 1 seul channel, plusieurs `.on()` chaînés

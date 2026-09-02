@@ -21,9 +21,9 @@ import {
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
   getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
-  adminCreateTable, updateGroupNames,
+  adminCreateTable, updateGroupNames, listTableAssignmentsAdmin,
 } from '../lib/sessions'
-import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow } from '../lib/sessions'
+import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
@@ -962,6 +962,55 @@ function defaultTab(phase: Session['phase']): AdminTab {
 
 // ── SessionDetail ─────────────────────────────────────────────────
 
+/**
+ * Chantier 50 — lignes `table_assignments` enrichies du pseudo, pour la vue
+ * Groupes du superadmin.
+ *
+ * Chemin nominal : la RPC `list_table_assignments_admin` (SECURITY DEFINER),
+ * seule lecture croisée possible une fois les policies self-only en place —
+ * le superadmin n'est membre d'aucune séance et ne possède donc aucune des
+ * deux tables.
+ *
+ * Repli : la lecture directe historique, tant que la migration
+ * `20260902_chantier50_close_identity_tables.sql` n'est pas appliquée. Le
+ * frontend et le SQL de ce chantier sont livrés séparément (règle du
+ * 2026-09-01 : une session de chantier n'applique jamais de migration) — sans
+ * ce repli, la vue Groupes serait cassée dans toute la fenêtre entre le
+ * déploiement du code et l'application du SQL. À SUPPRIMER une fois la
+ * migration appliquée et vérifiée (entrée dédiée dans A_VERIFIER.md).
+ *
+ * Le repli n'est emprunté que si la fonction est absente du schéma
+ * (PostgREST PGRST202) : toute autre erreur — mot de passe refusé, réseau —
+ * remonte, pour ne pas masquer un échec réel derrière une lecture qui
+ * renverrait des membres `null` sous les nouvelles policies.
+ */
+const GROUPS_LOAD_ERROR = 'Chargement des groupes impossible : '
+
+async function loadTableAssignmentRows(sessionId: string): Promise<TableAssignmentAdminRow[]> {
+  try {
+    return await listTableAssignmentsAdmin(getPwd()!, sessionId)
+  } catch (e) {
+    const msg = extractErr(e)
+    const rpcMissing = msg.includes('list_table_assignments_admin') || msg.includes('schema cache')
+    if (!rpcMissing) throw e
+    console.warn('[chantier 50] RPC list_table_assignments_admin absente — repli sur la lecture directe (migration non appliquée ?)')
+    const { data, error } = await supabase
+      .from('table_assignments')
+      .select('table_number, member_id, table_id, session_members!member_id(pseudo, is_moderator)')
+      .eq('session_id', sessionId)
+      .order('table_number')
+    if (error) throw new Error(extractErr(error))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((data ?? []) as any[]).map(r => ({
+      table_number: r.table_number as number,
+      member_id:    r.member_id as string,
+      table_id:     (r.table_id ?? null) as string | null,
+      pseudo:       (r.session_members?.pseudo ?? '?') as string,
+      is_moderator: r.session_members?.is_moderator === true,
+    }))
+  }
+}
+
 function SessionDetail({
   session,
   onBack,
@@ -1373,15 +1422,16 @@ function SessionDetail({
   }, [loadStats, showVotingSections])
 
   // ── C5 : loadGroups ──────────────────────────────────────────
-  const loadGroups = useCallback(async () => {
-    setGroupsLoading(true)
+  // `silent` : rafraîchissement de fond (polling). Met les données à jour en
+  // place SANS repasser le panneau en état de chargement — sinon le badge
+  // « à jour à HH:MM:SS » clignoterait en spinner toutes les 10 s.
+  const loadGroups = useCallback(async (silent = false) => {
+    if (!silent) setGroupsLoading(true)
     try {
-      const [{ data: rows }, sessionTbls, availTbls] = await Promise.all([
-        supabase
-          .from('table_assignments')
-          .select('table_number, member_id, table_id, session_members!member_id(pseudo, is_moderator)')
-          .eq('session_id', session.id)
-          .order('table_number'),
+      const [rows, sessionTbls, availTbls] = await Promise.all([
+        // Chantier 50 — table_assignments/session_members ne sont plus
+        // lisibles directement (policies self-only) : RPC dédiée.
+        loadTableAssignmentRows(session.id),
         listSessionTables(getPwd()!, session.id).catch(() => [] as Awaited<ReturnType<typeof listSessionTables>>),
         listAvailableTables(getPwd()!).catch(() => [] as Awaited<ReturnType<typeof listAvailableTables>>),
       ])
@@ -1390,10 +1440,8 @@ function SessionDetail({
       const leaderlessMap = new Map<string, boolean>(sessionTbls.map(t => [t.id, t.leaderless === true]))
 
       const map = new Map<number, GroupRow>()
-      for (const row of rows ?? []) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const r = row as any
-        const tableNum = r.table_number as number
+      for (const r of rows) {
+        const tableNum = r.table_number
         if (!map.has(tableNum)) {
           map.set(tableNum, {
             table_number: tableNum,
@@ -1406,9 +1454,9 @@ function SessionDetail({
         }
         const g = map.get(tableNum)!
         g.members.push({
-          pseudo: r.session_members?.pseudo ?? '?',
+          pseudo: r.pseudo ?? '?',
           member_id: r.member_id,
-          is_moderator: r.session_members?.is_moderator === true,
+          is_moderator: r.is_moderator === true,
         })
       }
       setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
@@ -1430,8 +1478,20 @@ function SessionDetail({
         setAllocInputs(null)
       }
       setGroupsSyncedAt(new Date())
+      // Un chargement réussi lève le bandeau d'un échec de chargement
+      // précédent (sinon un incident réseau transitoire le laisserait
+      // affiché indéfiniment, le polling ne le nettoyant jamais). On ne
+      // touche pas à une erreur de glisser-déposer non encore lue.
+      setAssignError(prev => (prev?.startsWith(GROUPS_LOAD_ERROR) ? null : prev))
+    } catch (e) {
+      // Chantier 50 — `loadGroups` est appelée en fire-and-forget (effet de
+      // montage, handler Realtime, polling) : elle ne doit jamais rejeter.
+      // Les données précédentes restent affichées (jamais de liste vidée en
+      // silence, cf. risque principal du chantier) et l'échec est visible.
+      console.error('[superadmin] échec du chargement des groupes', e)
+      setAssignError(GROUPS_LOAD_ERROR + extractErr(e))
     } finally {
-      setGroupsLoading(false)
+      if (!silent) setGroupsLoading(false)
     }
   }, [session.id])
 
@@ -1505,6 +1565,21 @@ function SessionDetail({
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [currentSession.phase, session.id, loadGroups])
+
+  // Chantier 50 — polling de secours pour `loadGroups()`. Le superadmin
+  // n'est membre d'aucune séance : sous les policies self-only posées par
+  // ce chantier sur table_assignments/session_members, l'abonnement
+  // Realtime ci-dessus ne lui livre plus jamais rien (il ne possède aucune
+  // ligne). `loadGroups()` met à jour les données en place — `groupsLoading`
+  // ne pilote qu'un petit spinner à côté du bouton Récapitulatif, jamais un
+  // état de chargement plein écran (cf. régression corrigée au chantier 38,
+  // à ne pas réintroduire).
+  useEffect(() => {
+    const p = currentSession.phase
+    if (p !== 'allocating' && p !== 'debating') return
+    const interval = setInterval(() => { void loadGroups(true) }, 10000)
+    return () => clearInterval(interval)
+  }, [currentSession.phase, loadGroups])
 
   // Chantier 19 (§7) — diagnostics recalculés à chaque changement de `groups`,
   // donc mis à jour en direct après un glisser-déposer.
