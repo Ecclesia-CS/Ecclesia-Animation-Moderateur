@@ -357,7 +357,7 @@ export default function ParticipantView() {
                   <span className="text-xl shrink-0">🤝</span>
                   <div>
                     <p className="font-semibold text-gray-900">Groupe auto-géré</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. L'un de vous peut aussi devenir modérateur ("🎙️ Devenir modérateur" en haut) — mais renoncera alors à participer au débat.</p>
                   </div>
                 </div>
               ) : (

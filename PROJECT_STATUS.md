@@ -339,6 +339,46 @@ Branche `chantier-60-autorite-moderateur`, **non mergée**. Migration `supabase/
 
 ---
 
+## Chantier 64 — Une table sans modérateur devient une table modérée
+
+Branche `chantier-64-table-devient-moderee`, **non mergée**. Trois migrations, à appliquer dans l'ordre : `supabase/migrations/20260902_chantier64_leaderless_becomes_moderated.sql` (après le chantier 60, ordre de test uniquement), puis `supabase/migrations/20260902_chantier64b_leaderless_origin_and_revert.sql` (après le chantier 48 — redéfinit `switch_table`), puis `supabase/migrations/20260902_chantier64c_move_member_to_group_revert.sql` (après le 64b — a besoin de `leaderless_by_design`).
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| — | `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table` posent `tables.leaderless = false` quand ils affectent un modérateur à une table leaderless | Fait — migration écrite, **non appliquée** | Claude | Chantier 60 (ordre de test) |
+| — | Message d'accueil `ParticipantView` (table leaderless) précise qu'un participant peut devenir modérateur mais renonce alors à participer | Fait | Claude | — |
+| — | Correction de la ligne périmée de `CLAUDE.md` sur `isModerator`/tables leaderless | Fait | Claude | — |
+| — | **Complément** : colonne `tables.leaderless_by_design` distinguant une table conçue modérée d'une table convertie | Fait — migration écrite, **non appliquée** | Claude | — |
+| — | **Complément** : `switch_table` bascule la table quittée en `leaderless=true` si le modérateur qui part la quittait ET qu'elle est `leaderless_by_design` | Fait — migration écrite, **non appliquée** | Claude | Chantier 48 (`switch_table`) |
+| — | **Complément 2** : `move_member_to_group` (déplacement par le superadmin) applique la même bascule que `switch_table` | Fait — migration écrite, **non appliquée** | Claude | Complément (`leaderless_by_design`) |
+| — | **Complément 2** : inventaire complet des chemins qui retirent un membre d'une table, demandé par Jules | Fait | Claude | — |
+
+**La demande** : côté auto-désignation en cours de débat (`designate_moderator`, chantier 3/D2), tout fonctionnait déjà — bouton "🎙️ Devenir modérateur", confirmation, `leaderless → false`. Le trou était côté Bloc C : un membre affecté par le superadmin (`set_member_moderator`, `assign_moderator_to_table`) ou auto-déclaré (`claim_moderator_status`) obtenait déjà l'autorité d'animation réelle (chantier 60 : `is_table_moderator` ne fait pas d'exception pour `leaderless`) mais la table restait affichée « Sans modérateur » partout, et les autres participants continuaient de tenter l'auto-gestion par file (`claim_floor`, qui aurait échoué silencieusement une fois un vrai modérateur en place).
+
+**Correctif** : ciblé sur les 3 RPC Bloc C — si le membre a déjà un siège (`table_assignments`) sur une table `leaderless` au moment où `is_moderator` passe à `true`, cette table est convertie en place (`UPDATE tables SET leaderless = false`), sans déplacer personne. Priorité sur la recherche déjà existante (chantiers 33/37) d'une autre table animée sans modérateur. Signatures inchangées sur les 3 fonctions (`CREATE OR REPLACE` suffit).
+
+**Aucun changement frontend nécessaire pour les indicateurs superadmin** : l'onglet Groupes recalcule déjà `moderated` depuis `tables.leaderless` à chaque appel (immédiat après action superadmin, polling 10 s chantier 50 pour le cas auto-déclaré). Un défaut préexistant et plus large, non corrigé ici, est documenté dans A_VERIFIER.md : le tableau « En direct » (`list_session_tables.moderator_pseudo`) reste imprécis pour toute table Bloc C, convertie ou non — défaut hérité, hors périmètre.
+
+**Point initialement laissé ouvert, tranché par Jules le jour même (complément)** : la migration initiale ne faisait jamais repasser `leaderless = true` au retrait d'un modérateur, faute de moyen de distinguer une table conçue pour avoir un modérateur d'une table devenue modérée en cours de route. Jules tranche : les deux cas existent et se comportent différemment.
+
+**Complément — `20260902_chantier64b_leaderless_origin_and_revert.sql`** : nouvelle colonne `tables.leaderless_by_design` (posée à la création par `create_table`/`admin_create_table`/`create_tables_batch`, reposée à chaque recalcul par `apply_allocation` — jamais par une conversion organique). Distingue :
+- **table conçue modérée** (`leaderless_by_design = false`) → le départ de son modérateur, en place ou vers une autre table, ne change rien. Jules considère qu'il va revenir.
+- **table convertie depuis leaderless** (`leaderless_by_design = true`) → rester assis après un retrait de flag ne change toujours rien (décision initiale inchangée), mais **partir rejoindre une autre table** via `switch_table` (chantier 48, seul déclencheur cité par Jules — le bouton "Quitter" est purement local et ne peut mécaniquement pas déclencher la bascule) fait **redevenir la table `leaderless = true`**.
+
+**Historique préservé** : vérifié par lecture qu'aucun trigger n'existe sur `tables` dans tout l'historique de migrations (`grep CREATE TRIGGER` : zéro résultat) — faire basculer `leaderless`/`leaderless_by_design` dans un sens ou l'autre est une simple UPDATE de colonnes booléennes, sans effet de bord sur `queue_entries`/`speaking_turns`/`participants`. Scénario de vérification explicite écrit dans A_VERIFIER.md (Jules a souligné ce point, à ne pas se contenter de vérifier par lecture de code).
+
+**Cas signalé plutôt qu'étendu (complément 1), puis tranché par Jules le jour même (complément 2)** : « oui, faisons la même chose si c'est le super admin qui l'enlève. Et oui bonne idée de classer créer modérée ! » — `move_member_to_group` (déplacement d'un membre par le superadmin, onglet Groupes) applique désormais la même bascule que `switch_table`. Le rétro-classement (tables existantes classées `leaderless_by_design = leaderless`, avec la limite documentée) est validé tel quel, aucun changement.
+
+**Complément 2 — `20260902_chantier64c_move_member_to_group_revert.sql`** : même garde exacte que `switch_table` sur `move_member_to_group`. Inventaire complet demandé par Jules (« vérifie s'il existe d'autres chemins ») — recherche exhaustive de toute écriture `table_assignments` et de tout `DELETE FROM participants`/`session_members` dans `supabase/migrations/` :
+- **Couverts** : `switch_table` (participant) et `move_member_to_group` (superadmin) — seuls chemins où un membre quitte une table pour une AUTRE table.
+- **Non couverts, chacun avec sa raison** : `set_member_moderator(false)` (retrait en place, pas de départ) ; `kick_participant` (supprime `participants` mais ne touche jamais `table_assignments`, pas de table de destination — défaut préexistant signalé, non traité) ; `assign_table_to_group` (rebind tout un groupe d'un coup, pas un membre) ; `apply_allocation` (déjà couvert autrement — reposition `leaderless_by_design` à chaque recalcul) ; `run_clustering_v1/v2/v3`/`auto_assign_tables` (confirmées mortes, ne touchent jamais `leaderless`) ; aucune RPC ne supprime jamais `session_members`.
+
+**`allocation.ts` non touché**, comme demandé — l'algorithme continue de lire `leaderless` sans modification de comportement de sa part. `apply_allocation` (RPC SQL, distincte du module TS) est en revanche modifiée pour reposer `leaderless_by_design` à chaque recalcul — cohérent avec le fait qu'un recalcul redésigne authentiquement la nature de chaque table.
+
+**Vérifié** : `npx tsc --noEmit`, `npm test`, `npm run build` (voir résultats en fin de session — les trois migrations sont du SQL pur, aucun changement TypeScript). **Aucun test navigateur** (consigne : harnais partagé) et **migrations non appliquées** (règle du 2026-09-01). Cas de test dans A_VERIFIER.md, section Migration SQL en attente + complément à la section « Point de sémantique à trancher » du chantier 60 (que ce chantier réduit sans le clore complètement — le cas du modérateur en surplus reste entier).
+
+---
+
 ## Chantier 50 — Fermer la lecture directe de `session_members` et `table_assignments`
 
 Branche `chantier-50-fermer-lecture-identite`, **non mergée**. Migration `supabase/migrations/20260902_chantier50_close_identity_tables.sql`, **non appliquée** — à appliquer après celle du chantier 60.
