@@ -13,12 +13,49 @@ interface TableAssignmentCardProps {
   onJoin?: () => Promise<void>
   joinLoading?: boolean
   joinError?: string | null
-  /** Chantier 48 — rejoindre une autre table que celle assignée, par son code. */
+  /**
+   * Chantier 48 — rejoindre une autre table que celle assignée, par son code
+   * (RPC `switch_table` : vérifie que le code appartient à la séance en
+   * cours, et retire proprement le participant de ses tables précédentes —
+   * contrairement à `join_table`, cf. JoinTableForm).
+   * Chantier 62 — également utilisé comme sortie de secours quand
+   * `assignment` est null : `switch_table` fonctionne à l'identique quand
+   * il n'y a aucune table précédente à quitter (la boucle de nettoyage ne
+   * trouve simplement rien à faire).
+   */
   onSwitch?: (joinCode: string) => Promise<void>
   switchLoading?: boolean
   switchError?: string | null
 }
 
+/**
+ * Chantier 62 — États possibles de (loading, assignment) selon la phase.
+ *
+ * Ce composant n'est monté que par `AllocatingScreen`, elle-même montée par
+ * `VoteScreen` uniquement quand `session.phase === 'debating'` (cf.
+ * `setStep('allocating')` dans VoteScreen.tsx — jamais déclenché par la
+ * phase `allocating` elle-même, qui reste sur l'écran de vote avec une
+ * bannière). Une fois montée, `phase` ne peut plus évoluer que vers
+ * `closed`. En pratique donc :
+ *
+ *   loading=true                              → toujours en cours de fetch (bref, RPC `get_my_table_assignment`)
+ *                                                → spinner légitime, quelle que soit la phase.
+ *   loading=false, assignment=null,  debating  → l'allocation a déjà tourné (apply_allocation a été appliqué
+ *                                                avant que le superadmin ouvre le débat) et n'a pas produit
+ *                                                de ligne pour ce membre — typiquement un inscrit tardif
+ *                                                (chantier 61 : inscription pendant `allocating`) resté hors
+ *                                                du calcul. Cul-de-sac réel → sortie de secours (code à 6 car.).
+ *   loading=false, assignment=null,  closed    → la séance a clôturé sans que ce membre n'ait jamais rejoint
+ *                                                de table. Rejoindre n'a plus de sens : message neutre, pas de
+ *                                                formulaire (la bannière de clôture d'AllocatingScreen prend
+ *                                                le relais pour la suite).
+ *   loading=false, assignment=null,  autre     → normalement inatteignable (draft/pre_voting/voting/allocating).
+ *                                                Traité défensivement comme "en cours" plutôt que comme un
+ *                                                cul-de-sac : si ce composant venait à être monté plus tôt un
+ *                                                jour, proposer un formulaire de code alors que l'allocation
+ *                                                n'a peut-être pas encore tourné serait pire que le spinner.
+ *   loading=false, assignment!==null           → cas nominal, inchangé (carte + CTA rejoindre + bouton switch).
+ */
 export default function TableAssignmentCard({
   assignment, loading, phase, onJoin, joinLoading, joinError,
   onSwitch, switchLoading, switchError,
@@ -27,26 +64,94 @@ export default function TableAssignmentCard({
   const [switchCode, setSwitchCode] = useState('')
   const [localSwitchError, setLocalSwitchError] = useState<string | null>(null)
 
-  if (loading || assignment === null) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
-        <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-        </svg>
-        <p className="text-sm text-gray-500 text-center">Formation des groupes en cours…</p>
-        <p className="text-xs text-gray-400 text-center max-w-[240px]">
-          L'organisateur répartit tous les participants en groupes aux avis variés à partir des votes.
-          Tu seras notifié(e) dès que ton groupe est prêt.
-        </p>
-        <p className="text-xs text-gray-400 text-center pt-1">
-          Ça ne bouge pas ?{' '}
-          <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
-            Recharge la page
-          </button>
-        </p>
-      </div>
-    )
+  async function handleRescueSubmit() {
+    const code = switchCode.trim().toUpperCase()
+    if (!code) return
+    setLocalSwitchError(null)
+    await onSwitch?.(code)
+  }
+
+  const waitingSpinner = (
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
+      <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+      <p className="text-sm text-gray-500 text-center">Formation des groupes en cours…</p>
+      <p className="text-xs text-gray-400 text-center max-w-[240px]">
+        L'organisateur répartit tous les participants en groupes aux avis variés à partir des votes.
+        Tu seras notifié(e) dès que ton groupe est prêt.
+      </p>
+      <p className="text-xs text-gray-400 text-center pt-1">
+        Ça ne bouge pas ?{' '}
+        <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
+          Recharge la page
+        </button>
+      </p>
+    </div>
+  )
+
+  if (loading) {
+    return waitingSpinner
+  }
+
+  if (assignment === null) {
+    // Chantier 62 — sortie de secours : phase de débat sans aucune affectation.
+    if (phase === 'debating') {
+      return (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-3">
+          <p className="text-sm text-gray-700 text-center font-medium">
+            Le débat a commencé, mais tu n'as pas encore de table.
+          </p>
+          <p className="text-xs text-gray-500 text-center max-w-[280px] mx-auto">
+            Ça arrive si tu t'es inscrit(e) pendant que l'organisateur répartissait les groupes.
+            Demande le code à 6 caractères d'une table à un ami déjà installé là-bas, ou à son
+            modérateur, pour la rejoindre.
+          </p>
+          <div className="pt-1 space-y-2">
+            <input
+              type="text"
+              value={switchCode}
+              onChange={e => { setSwitchCode(e.target.value.toUpperCase()); setLocalSwitchError(null) }}
+              placeholder="A1B2C3"
+              maxLength={6}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono
+                tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
+                placeholder:text-gray-300"
+            />
+            {(localSwitchError || switchError) && (
+              <p className="text-xs text-red-600 text-center">{localSwitchError || switchError}</p>
+            )}
+            <button
+              onClick={handleRescueSubmit}
+              disabled={switchLoading || switchCode.trim().length === 0}
+              className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              {switchLoading ? 'Connexion…' : 'Rejoindre cette table'}
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // Chantier 62 — séance clôturée sans qu'aucune table n'ait jamais été rejointe :
+    // rejoindre n'a plus de sens, message neutre (la bannière de clôture
+    // d'AllocatingScreen prend le relais juste en dessous).
+    if (phase === 'closed') {
+      return (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-2 min-h-[140px]">
+          <p className="text-sm text-gray-500 text-center">Le débat est terminé.</p>
+          <p className="text-xs text-gray-400 text-center max-w-[240px]">
+            Tu n'as rejoint aucune table pendant cette séance.
+          </p>
+        </div>
+      )
+    }
+
+    // Autre phase (théoriquement inatteignable, cf. commentaire au-dessus du composant) :
+    // même traitement que le chargement, jamais un cul-de-sac.
+    return waitingSpinner
   }
 
   const joinCode = assignment.tables?.join_code ?? null
