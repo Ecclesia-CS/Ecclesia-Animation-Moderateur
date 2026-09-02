@@ -315,4 +315,26 @@ Retours du test manuel de Jules sur l'algorithme d'allocation v2 (chantier 19), 
 
 ---
 
+## Chantier 60 — Découpler l'autorité du modérateur de la propriété de la table
+
+Branche `chantier-60-autorite-moderateur`, **non mergée**. Migration `supabase/migrations/20260902_chantier60_moderator_authority.sql`, **non appliquée** — à appliquer **en premier** parmi les migrations en attente.
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| — | Helper `is_table_moderator(uuid)` (créateur **ou** `is_moderator` + assis à cette table) | Fait — migration écrite, **non appliquée** | Claude | — |
+| — | 9 fonctions d'animation reprises sur le helper | Fait — migration écrite, **non appliquée** | Claude | helper |
+| — | 7 policies RLS reprises sur le helper | Fait — migration écrite, **non appliquée** | Claude | helper |
+
+**Le bloquant** : un participant marqué `session_members.is_moderator` par l'allocation voit la vue modérateur (chantier 41) mais **aucune de ses actions n'aboutit** — les gardes testent `tables.created_by = auth.uid()` alors qu'`apply_allocation`/`create_tables_batch` y posent l'uid du **superadmin**. Donner/retirer la parole et exclure remontent « Not authorized » ; forcer le questionnaire et supprimer la table échouent **silencieusement** (RLS → zéro ligne, aucune erreur).
+
+**Option retenue — (ii) élargir les gardes**, vérifiée dans le code avant application plutôt que suivie aveuglément. (i) — faire poser `created_by` par `apply_allocation` — a été écartée : colonne scalaire (pas de co-modération), ne couvre pas la désignation tardive (`claim_moderator_status` accepte `allocating` et `debating` depuis le chantier 33, plus `assign_moderator_to_table` et `set_member_moderator`), obligerait à gérer le remplacement de modérateur, et `created_by` sert aussi de donnée d'affichage dans `list_session_tables`. (ii) est purement additive : le créateur garde toute son autorité.
+
+**Inventaire — 4 gardes trouvées en plus des 5 citées au brief** : `add_to_queue` (mettre quelqu'un d'*autre* en file), `move_queue_entry`, `reorder_queue_entry`, `correct_turn`. Et **3 policies en plus** de `tables_update_moderator` : `tables_delete_moderator` (`endTable()`) et surtout `queue_entries_delete` — `removeFromQueue`/`changeQueueType` font un **DELETE direct** depuis `TableContext`, pas une RPC, donc un modérateur désigné ne pouvait retirer personne de la file, silencieusement.
+
+**Vérifié** : `npx tsc --noEmit` propre, `npm test` 94/95 (1 skip pré-existant), `npm run build` réussi. **Aucun changement frontend** — le chantier est 100 % SQL, il aligne l'autorisation serveur sur ce que l'interface montre déjà depuis le chantier 41. **Aucun test navigateur** (consigne : harnais partagé entre sessions parallèles) et **migration non appliquée** (règle du 2026-09-01). Cas de test explicites — dont les 5 cas négatifs et une requête SQL « table de vérité » qui les couvre d'un coup — dans A_VERIFIER.md, section Parcours Modérateur.
+
+**Point à arbitrer** : le helper ne fait pas d'exception pour `tables.leaderless` (l'y ajouter casserait `assign_moderator_to_table`/`set_member_moderator`, qui posent `is_moderator` sans retourner le flag). Conséquence : un modérateur **en surplus** (chantier 25b — redevenu participant ordinaire pour l'algo, mais `is_moderator` reste `true` en base) assis à une table leaderless y obtiendrait l'autorité d'animation. Pas une régression de ce chantier — l'`OR` du chantier 41 lui affiche déjà `ModeratorView` — mais à trancher. Voir A_VERIFIER.md.
+
+---
+
 *Pour référencer ce fichier depuis `CLAUDE.md`, ajouter une ligne du type : `Voir PROJECT_STATUS.md pour l'état courant des chantiers et ecclesia_plan_chantiers.md pour le détail des tâches.`*
