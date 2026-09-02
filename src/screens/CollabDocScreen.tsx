@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { extractErr } from '../lib/utils'
+import { extractErr, isSafeUrl } from '../lib/utils'
 import {
   registerCollabPseudo,
   addCollabSource,
@@ -191,12 +191,16 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session) return
-    setFormLoading(true)
     setFormErr(null)
+    const title   = formTitle.trim()
+    const url     = formUrl.trim() || null
+    const content = formContent.trim() || null
+    if (url && !isSafeUrl(url)) {
+      setFormErr('Lien invalide : seuls les liens http:// ou https:// sont acceptés.')
+      return
+    }
+    setFormLoading(true)
     try {
-      const title   = formTitle.trim()
-      const url     = formUrl.trim() || null
-      const content = formContent.trim() || null
       if (editingSource) {
         const updated = await updateCollabSource(editingSource.id, title, url, content)
         setSources(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s))
@@ -589,19 +593,25 @@ function SourceCard({
 
       {/* URL */}
       {source.url && (
-        <a
-          href={source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-indigo-600 hover:underline truncate"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          {source.url}
-        </a>
+        isSafeUrl(source.url) ? (
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-indigo-600 hover:underline truncate"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            {source.url}
+          </a>
+        ) : (
+          <p className="text-xs text-red-500 truncate" title={source.url}>
+            ⚠ Lien non affiché (schéma non autorisé)
+          </p>
+        )
       )}
 
       {/* Content */}

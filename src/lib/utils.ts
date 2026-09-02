@@ -1,5 +1,15 @@
 import type { Table, Participant, SpeakingTurn, QuestionnaireExportRow } from './types'
 
+/**
+ * True si l'URL peut être affichée comme lien cliquable — schéma http/https
+ * uniquement. Rejette `javascript:`, `data:`, etc., y compris pour des valeurs
+ * déjà en base jamais validées à l'écriture (chantier 52).
+ */
+export function isSafeUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  return /^https?:\/\//i.test(url.trim())
+}
+
 /** Extracts a human-readable message from any thrown value (Error, PostgrestError, string…). */
 export function extractErr(e: unknown): string {
   if (e instanceof Error) return e.message

@@ -194,6 +194,54 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   3. Dérouler le parcours de vote complet (`#vote/<join_code>`, séance `pre_voting` ou `voting`) : liste des assertions, compteur "X / Y votées" cohérent, proposer une assertion et vérifier qu'elle compte bien comme "la mienne" (`proposedCount` — cassé silencieusement avant l'application de la migration, cf. ci-dessus), polling de secours (approuver une assertion côté superadmin → apparition côté participant en moins de 15s), écran "Tu as tout voté", bouton "Voir toutes".
   4. Le point bloquant Realtime en tête de cette section — à faire avant de clore le chantier.
 
+- [ ] **Chantier 52 — `supabase/migrations/20260902_chantier52_valider_url_sources_fermer_collab_users.sql`** (jamais appliquée)
+
+  **Contexte (audit sécurité 2026-08-03)** : deux constats distincts sur les sources collaboratives.
+  1. Aucune validation de schéma sur `session_sources.url` — `add_collab_source`/`update_collab_source` acceptaient n'importe quelle chaîne, rendue ensuite cliquable dans un `<a href>` (`CollabDocScreen.tsx` et `SuperadminScreen.tsx`/`CollabSourcesList`). Un `javascript:`/`data:` inséré là exécute du script dans le navigateur de quiconque clique — le superadmin en premier lieu, puisqu'il consulte la liste des sources de toutes les tables.
+  2. `collab_session_users` avait une policy SELECT `USING (true)` — même défaut que celui fermé pour `session_members`/`table_assignments` par le chantier 50 (confirmé en base le 2026-09-02). Un `GET /rest/v1/collab_session_users` avec la clé anon retournait pseudo + user_id de tous les inscrits aux documents collaboratifs de toutes les séances.
+
+  **Contenu du fichier** :
+  1. `is_valid_source_url(p_url text) RETURNS boolean` — NULL/chaîne vide autorisés (pas de lien), sinon schéma `http(s)://` obligatoire (insensible à la casse).
+  2. `add_collab_source` et `update_collab_source` **redéfinies avec la signature inchangée** (5 et 4 arguments respectivement, `RETURNS public.session_sources`, vérifiée en relisant `20260527000006_collab_sources.sql` et `20260527130000_collab_table_join_code.sql`, seules migrations à toucher ces fonctions) — ajoutent la validation en tête, normalisent une URL vide/blanche en `NULL` avant écriture. Aucun autre comportement changé.
+  3. `collab_session_users_select` (`USING (true)`) remplacée par `collab_session_users_select_own` (`USING (user_id = auth.uid())`), avec le même bloc `DO $chk$` de garde-fou contre une policy permissive résiduelle que le chantier 50.
+
+  **Inventaire fait avant écriture** : une seule lecture directe de `collab_session_users` dans `src/` — `CollabDocScreen.tsx:83`, déjà filtrée `.eq('session_id', ...).eq('user_id', uid)` — non affectée par la fermeture. Pas d'abonnement Realtime sur cette table (elle n'est pas dans la publication `supabase_realtime`, contrairement à `session_sources`). Aucune fonction `SECURITY DEFINER` ne fait de lecture croisée dessus pour le superadmin : pas de RPC de remplacement nécessaire, contrairement au chantier 50.
+
+  **Ce qui n'a PAS été inspecté** : le contenu réel de `session_sources.url` en base — impossible sans accès MCP Supabase direct depuis cette session (règle du 2026-09-01). **À faire en priorité par la session de vérification**, avant même d'appliquer la migration :
+  ```sql
+  SELECT id, session_id, pseudo, url FROM session_sources
+  WHERE url IS NOT NULL AND btrim(url) <> '' AND url !~* '^https?://';
+  ```
+  Si cette requête retourne des lignes, **les signaler à Jules plutôt que de les modifier ou de les supprimer** (consigne explicite du brief de ce chantier).
+
+  **Côté frontend, déjà livré (ne dépend pas de la migration pour compiler)** : `isSafeUrl()` dans `src/lib/utils.ts`, utilisée à l'affichage dans `CollabDocScreen.tsx` (`SourceCard`) et `SuperadminScreen.tsx` (`CollabSourcesList`) — un lien dont le schéma n'est pas `http(s)` s'affiche en texte rouge non cliquable au lieu d'un `<a href>`, **y compris pour les lignes déjà en base jamais validées à l'écriture**. Le formulaire d'ajout/modification de `CollabDocScreen.tsx` fait aussi un contrôle client immédiat (message "Lien invalide : seuls les liens http:// ou https:// sont acceptés.") avant l'appel RPC — pure UX, la défense réelle reste côté serveur. `npx tsc --noEmit`, `npm test` (94 passants) et `npm run build` OK.
+
+  **À faire (session de vérification)** :
+  1. La requête de repérage des URL douteuses ci-dessus, en premier.
+  2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Vérifier au préalable la signature des deux fonctions (`pg_get_function_identity_arguments('add_collab_source'::regproc)` / `('update_collab_source'::regproc)`) au cas où une session parallèle y aurait touché depuis l'écriture de cette migration — le fichier suppose la signature de `20260527130000_collab_table_join_code.sql`.
+  3. Dérouler les requêtes de vérification en pied de fichier de migration (URL valide acceptée, `javascript:`/`data:`/bare hostname refusés, lecture publique de `collab_session_users` fermée, lecture self-only toujours fonctionnelle).
+  4. Dérouler le test manuel de la section "Sources collaboratives" ci-dessous.
+
+## Sources collaboratives (chantier 52)
+
+*Nécessite la migration SQL ci-dessus appliquée pour tester le refus serveur d'une URL à schéma non autorisé ; l'affichage sécurisé (lien masqué pour une ligne déjà en base) et le contrôle client sont eux indépendants de la migration — testables dès maintenant.*
+
+- [ ] **Ajout d'une source avec une URL valide** — `#collab/<join_code>` (`CollabDocScreen.tsx`)
+
+  Rejoindre le document collaboratif d'une séance (via le lien affiché dans une table de débat rattachée à une séance, ou en naviguant directement sur `#collab/<join_code>` avec un `join_code` de séance connu). S'enregistrer avec un pseudo. "+ Ajouter" → titre + `https://example.com` en lien → "Ajouter". Attendu : la source apparaît immédiatement dans la liste, groupée sous la bonne table (ou "Non assigné"), le lien est bleu et cliquable, ouvre un nouvel onglet vers `https://example.com`.
+
+- [ ] **Refus d'une URL à schéma non autorisé** — même écran, formulaire d'ajout
+
+  Saisir `javascript:alert(1)` (ou `data:text/html,<script>alert(1)</script>`) dans le champ Lien → "Ajouter". Attendu : message rouge "Lien invalide : seuls les liens http:// ou https:// sont acceptés." sous le formulaire, **aucune requête réseau vers le serveur** (contrôle client immédiat), le formulaire reste ouvert. Vérifier ensuite qu'un appel RPC direct (hors formulaire, ex. requête REST manuelle vers `add_collab_source`/`update_collab_source` avec la clé anon) est lui aussi refusé côté serveur — c'est la ligne de défense qui compte réellement, le contrôle client n'étant qu'un confort.
+
+- [ ] **Comportement à l'affichage d'une ligne douteuse déjà en base** — `CollabDocScreen.tsx` et `SuperadminScreen.tsx` (onglet sources, superadmin)
+
+  Si la requête de repérage ci-dessus (section migration) a trouvé des lignes avec un `url` non http(s) : ouvrir le document collaboratif de la séance concernée et l'onglet sources du superadmin pour cette même séance. Attendu dans les deux écrans : le titre et le contenu de la source s'affichent normalement, mais le lien apparaît en texte rouge "⚠ Lien non affiché (schéma non autorisé)", **non cliquable**, au lieu d'un lien bleu. Si aucune ligne douteuse n'existe en base au moment du test, simuler le cas en insérant une ligne de test via `add_collab_source` en base **avant** l'application de la migration de ce chantier (donc sans la validation), ou directement par `INSERT` SQL manuel avec `url = 'javascript:alert(1)'` sur une séance de test — puis nettoyer cette ligne après vérification.
+
+- [ ] **Non-régression de l'écran collaboratif après restriction de `collab_session_users`** — `CollabDocScreen.tsx`
+
+  Sur une séance déjà utilisée pour les tests ci-dessus (ou une nouvelle) : recharger `#collab/<join_code>` avec le même navigateur/pseudo déjà enregistré → doit reconnaître automatiquement le pseudo (pas de ré-enregistrement demandé), afficher "Changer" à côté du pseudo dans l'en-tête, et permettre de modifier/supprimer ses propres sources (icônes crayon/poubelle visibles uniquement sur les sources dont `isOwn` est vrai). Changer de navigateur ou session anonyme (nouvel onglet privé) sur la **même séance** → la liste des sources reste visible (lecture publique de `session_sources`, non touchée par ce chantier), mais aucune source n'apparaît comme "à moi" (pas d'icônes crayon/poubelle) tant qu'aucun pseudo n'est enregistré sous cette nouvelle identité — s'enregistrer avec un pseudo déjà pris par un autre `user_id` doit transférer la propriété de ses sources (`register_collab_pseudo`, comportement inchangé par ce chantier, à vérifier non régressé).
+
 ## Résultats publics (chantier 46)
 
 *Nécessite la migration SQL ci-dessus appliquée pour tester le flux de bout en bout (nouvelle colonne `results_public` + nouvelle forme du payload `get_public_results`). Sans elle : le bouton "Résultats publics" du superadmin échoue avec l'erreur Postgres "column sessions.results_public does not exist" (vérifié en navigateur ci-dessous, échec propre — pas de crash) et `get_public_results` renvoie encore l'ancienne forme (`groups`/`consensus`) que le frontend ne lit plus, donc `points`/`assertions` restent vides même pour une séance déjà close.*
