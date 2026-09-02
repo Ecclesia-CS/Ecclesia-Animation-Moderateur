@@ -371,3 +371,26 @@ export async function listSessionSources(sessionId: string): Promise<CollabSourc
   if (error) throw new Error(extractErr(error))
   return (data as CollabSource[]) ?? []
 }
+
+export type TableAssignmentAdminRow = {
+  table_number: number
+  member_id: string
+  table_id: string | null
+  pseudo: string
+  is_moderator: boolean
+}
+
+// Chantier 50 — session_members et table_assignments ne sont plus lisibles
+// directement (policies self-only). Remplace la jointure imbriquée
+// PostgREST utilisée par SuperadminScreen.loadGroups().
+export async function listTableAssignmentsAdmin(
+  password: string,
+  sessionId: string,
+): Promise<TableAssignmentAdminRow[]> {
+  const { data, error } = await supabase.rpc('list_table_assignments_admin', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as TableAssignmentAdminRow[]) ?? []
+}

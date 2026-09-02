@@ -42,6 +42,34 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **À faire (session de vérification)** : exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP) — surveiller les `NOTICE` éventuels du bloc `DO $guard$`, qui signalent une signature divergente en base et donc un écart entre les migrations et l'état réel. Puis dérouler les **5 requêtes de vérification en pied de fichier de migration** (helper présent avec le bon `search_path` ; aucune surcharge résiduelle sur les 9 fonctions ; plus aucun `created_by` dans leurs corps ; les 7 policies pointent sur le helper ; **table de vérité** du helper sur une vraie séance, qui liste membre par membre qui aurait l'autorité — la requête 5 permet de valider les cas négatifs sans avoir à se connecter sous chaque identité). Enfin dérouler le test manuel de la section **Parcours Modérateur** ci-dessous.
 
+- [ ] **Chantier 50 — `supabase/migrations/20260902_chantier50_close_identity_tables.sql`** ⚠️ **Fuite de données personnelles — à appliquer tôt, mais APRÈS le chantier 60**
+
+  **Le problème** : `session_members` et `table_assignments` ont chacune une policy `SELECT USING (true)` pour le rôle `public`, héritée de `20260528_voting_app.sql`. Il n'y a pas de backend : le navigateur parle directement à Supabase avec la clé `anon`, qui est dans le bundle JS public. Un simple `GET /rest/v1/session_members` avec cette clé retourne **toutes** les colonnes de **tous** les inscrits de **toutes** les séances — dont `pseudo` (nom et prénom réels) et `reclaim_code` (le code à 4 chiffres, **en clair**, qui permet de reprendre l'inscription de quelqu'un d'autre). `table_assignments` expose de la même façon la composition complète des tables. Confirmé en base le 2026-09-02.
+
+  **Contenu du fichier** :
+  1. Helper `is_own_session_member(p_member_id uuid) RETURNS boolean`, `SECURITY DEFINER STABLE SET search_path = public, extensions` — anti-récursion, mêmes conventions qu'`is_table_participant` / `is_table_moderator` : la policy de `table_assignments` doit lire `session_members`, elle-même sous RLS.
+  2. `session_members_select` (`USING (true)`) remplacée par `session_members_select_own` (`USING (user_id = auth.uid())`).
+  3. `table_assignments_select` (`USING (true)`) remplacée par `table_assignments_select_own` (`USING (is_own_session_member(member_id))`).
+  4. `list_table_assignments_admin(p_password, p_session_id) RETURNS jsonb`, SECURITY DEFINER + `check_superadmin_password` — la seule lecture croisée des deux tables dont l'app avait besoin (vue Groupes du superadmin). Retourne `table_number`, `member_id`, `table_id`, `pseudo`, `is_moderator`, triés par `table_number`.
+  5. Un bloc `DO $chk$` **qui lève une exception** s'il reste, après coup, une autre policy SELECT permissive sur l'une des deux tables. Les policies permissives se cumulent en OR : une seule `USING (true)` oubliée (ajoutée par un chantier parallèle) suffirait à tout rouvrir en silence. Mieux vaut un échec bruyant qu'une fermeture illusoire.
+
+  **Inventaire des policies fait avant écriture** (toutes les migrations du dépôt relues) — seule `20260528_voting_app.sql` crée des policies sur ces deux tables : `session_members_select` (SELECT, `true`), `session_members_insert` (INSERT, `WITH CHECK (false)`), `table_assignments_select` (SELECT, `true`). **Aucune policy UPDATE ni DELETE** : toutes les écritures passent déjà par des fonctions SECURITY DEFINER. Le **chantier 60**, mergé le même jour, n'a touché que les policies de `tables`, `queue_entries` et `speaking_turns` — aucun recouvrement ; son helper `is_table_moderator` lit bien `session_members` et `table_assignments`, mais en `SECURITY DEFINER`, donc **hors RLS** : ce chantier ne défait rien de son travail. Idem pour `get_my_table_assignment`, `list_session_members_admin`, `get_allocation_inputs`, `apply_allocation` et les `run_clustering_*`, toutes SECURITY DEFINER.
+
+  **Ordre d'application** : après le chantier 60 (qui reste prioritaire), sans dépendance technique entre les deux — c'est uniquement une question de priorité de test.
+
+  **Pourquoi le SQL peut être appliqué sans attendre le frontend, et réciproquement** : les deux sont livrés séparément (règle du 2026-09-01) et le code de ce chantier tient dans les deux sens. `SuperadminScreen.loadGroups()` appelle la RPC en chemin nominal et **retombe sur la lecture directe historique** si — et seulement si — PostgREST répond que la fonction est absente du schéma (`PGRST202`). Toute autre erreur (mot de passe refusé, réseau) remonte, pour ne pas masquer un échec réel derrière une lecture qui renverrait des membres `null` sous les nouvelles policies.
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Le bloc `DO $chk$` doit passer sans exception ; s'il en lève une, **ne pas contourner** — la lister et l'analyser, elle signale une policy permissive résiduelle inconnue de l'inventaire.
+  2. Dérouler les requêtes de vérification en pied de fichier de migration (fonction présente ; RPC fonctionnelle sur une vraie séance ; RPC qui refuse un mauvais mot de passe ; lecture self-only côté participant connecté).
+  3. **Vérification négative, clé anonyme, hors navigateur** (curl / Postman, en utilisant la clé `anon` publique du site, sans session utilisateur) — c'est le test qui prouve que la fuite est fermée :
+     - `GET /rest/v1/session_members?select=pseudo,reclaim_code` → attendu `[]`
+     - `GET /rest/v1/table_assignments?select=member_id` → attendu `[]`
+     Ces deux requêtes retournent aujourd'hui la base entière : **les jouer AVANT l'application** pour constater la fuite, et après pour constater sa fermeture.
+  4. Une fois la migration appliquée **et** les points « Parcours Superadmin » / « Parcours Participant » ci-dessous validés : supprimer le repli `loadTableAssignmentRows` dans `src/screens/SuperadminScreen.tsx` (le bloc `catch` et sa lecture directe) — il n'a plus de raison d'être et il est le dernier `.from('table_assignments')` du frontend. Entrée dédiée en section Superadmin ci-dessous.
+
+  **Effet de bord souhaitable** : ce chantier referme aussi la question ouverte sur `REPLICA IDENTITY FULL` (`session_members`, migration chantier 35). Le WAL continue de transporter toutes les colonnes, `reclaim_code` compris, mais Realtime applique la RLS avant livraison : les événements ne partent plus qu'au propriétaire de la ligne.
+
 - [ ] **Chantier 48 — `supabase/migrations/20260902_chantier48_switch_table.sql`**
 
   **Contenu du fichier** : crée `switch_table(p_session_id uuid, p_join_code text, p_pseudo text) returns jsonb` — permet à un participant de rejoindre une autre table que celle qui lui a été assignée, depuis `AllocatingScreen`. Vérifie que le code correspond à une table de **cette** séance (sinon exception explicite), que le participant n'est pas déjà à cette table, puis **retire proprement** toute ligne `participants` de l'utilisateur dans les autres tables de la séance (libère le micro/clôt le tour en cours si besoin, même traitement que `kick_participant`) avant d'insérer la nouvelle ligne et de déplacer `table_assignments` via `sync_table_assignment` (déjà existante, chantier 26). Voir l'en-tête du fichier de migration pour le détail du raisonnement (pourquoi une RPC dédiée plutôt que réutiliser `join_table`).
@@ -177,6 +205,36 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 ## Parcours Superadmin
 
+- [ ] **2026-09-02 — Chantier 50 — onglet 🪑 Tables sous les policies self-only** — `src/screens/SuperadminScreen.tsx` (`loadGroups`, `loadTableAssignmentRows`), `src/lib/sessions.ts` (`listTableAssignmentsAdmin`) *(migration SQL requise, voir plus haut)*
+
+  **Ce qui change** : la vue Groupes lisait `table_assignments` en direct avec une **jointure imbriquée PostgREST** (`session_members!member_id(pseudo, is_moderator)`), qui traversait les deux tables permissives d'un coup. Sous les policies self-only, PostgREST **ne renvoie pas d'erreur** dans ce cas : l'objet imbriqué devient `null` et les listes de membres se videraient en silence. La lecture passe désormais par la RPC `list_table_assignments_admin`. Le superadmin n'étant membre d'aucune séance, il perd aussi tous les événements Realtime sur `table_assignments` : un polling de secours de 10 s prend le relais (l'abonnement Realtime est conservé — il resservira si le superadmin est un jour membre, et il ne coûte rien).
+
+  **C'est une régression silencieuse qu'on cherche, pas un crash** : le symptôme d'un échec serait des tables affichées **vides** ou des pseudos remplacés par `?`, sans le moindre message d'erreur.
+
+  **Test — AVANT application de la migration** (état actuel de la base, repli actif) :
+  1. Ouvrir une séance en `allocating` (ou `debating`), onglet 🪑 Tables → la composition de chaque table doit s'afficher normalement (pseudos, badges modérateur, barre de camps, badges de seuil, badge « enregistrable »).
+  2. La console navigateur doit afficher **une fois par chargement** `[chantier 50] RPC list_table_assignments_admin absente — repli sur la lecture directe`. C'est le comportement attendu tant que le SQL n'est pas appliqué.
+  3. Glisser-déposer un membre d'une table à une autre → il change de table, et les badges de seuil des deux tables se recalculent immédiatement.
+
+  **Test — APRÈS application de la migration** (chemin nominal) :
+  1. Recharger la même séance, même onglet → **exactement les mêmes membres, mêmes pseudos, mêmes badges** qu'avant. C'est la comparaison qui compte : une table qui perd ses membres ou affiche des `?` est l'échec caractéristique.
+  2. Plus aucun message `[chantier 50] … repli …` en console (si le message revient, la RPC est absente ou son nom diffère → la migration n'a pas été appliquée, ou pas entièrement).
+  3. Glisser-déposer à nouveau un membre → fonctionne, diagnostics recalculés en direct.
+  4. Bouton « 🖨️ Récapitulatif » → la vue récapitulative liste bien tous les membres par table.
+  5. Assigner un modérateur à une table (glisser-déposer sur la zone « Ajouter un modérateur », **et** saisie du nom avec autocomplete) → le membre apparaît bien avec son badge modérateur.
+
+  **Test du polling de 10 s — trois choses à regarder ensemble** :
+  1. **Il fonctionne** : laisser l'onglet 🪑 Tables ouvert, faire un changement depuis un 2ᵉ onglet superadmin (déplacer un membre) → le 1ᵉʳ onglet doit refléter le changement seul, en ≤ 10 s, sans reload.
+  2. **Il ne réintroduit pas le bug du chantier 38** : scroller loin dans la fiche séance, ne plus toucher au clavier ni à la souris pendant ≥ 40 s → **la page ne doit jamais remonter en haut**. Le polling met les données à jour en place ; `groupsLoading` ne pilote qu'un petit spinner à côté du bouton Récapitulatif, jamais un état de chargement plein écran. C'est le point de vigilance principal de ce chantier côté UX.
+  3. **Il ne clignote pas** : le badge vert « à jour à HH:MM:SS » ne doit **pas** se transformer en spinner toutes les 10 s. Les rafraîchissements de fond sont volontairement silencieux (`loadGroups(true)`) ; seuls le chargement initial et les rechargements consécutifs à une action montrent le spinner. L'horodatage du badge, lui, doit bien avancer.
+  4. Quitter l'onglet 🪑 Tables / changer de phase (`closed`) → le polling doit s'arrêter (il n'est actif qu'en `allocating` et `debating`) : vérifiable dans l'onglet Réseau, plus d'appel `list_table_assignments_admin` toutes les 10 s.
+
+  **Course connue, non corrigée** (à signaler seulement si elle se manifeste vraiment) : un tick de polling parti **avant** un glisser-déposer peut arriver **après** lui et réafficher l'état antérieur pendant ≤ 10 s. Le glisser-déposer n'est pas optimiste (il attend la RPC puis recharge), donc rien n'est perdu en base — c'est un affichage transitoire. La même course existait déjà avec le rafraîchissement déclenché par Realtime ; elle n'a pas été traitée ici pour ne pas ajouter de machinerie d'annulation à un écran déjà dense.
+
+- [ ] **2026-09-02 — Chantier 50 — retirer le repli de lecture directe une fois la migration appliquée** — `src/screens/SuperadminScreen.tsx` (`loadTableAssignmentRows`)
+
+  Une fois la migration appliquée **et** les deux séries de tests ci-dessus passées, supprimer le bloc `catch` de `loadTableAssignmentRows` et n'y laisser que l'appel à `listTableAssignmentsAdmin`. Ce repli n'existe que pour couvrir la fenêtre entre le déploiement du frontend et l'application du SQL ; tant qu'il est là, il reste le **dernier `.from('table_assignments')` du frontend**, et il masquerait une future disparition de la RPC. À ne pas supprimer avant d'être certain que la migration est en base en production (pas seulement en local).
+
 - [ ] **2026-09-01 — Chantier 38 (2ème passe) — scroll qui remonte en haut sur la fiche séance** — `src/screens/SuperadminScreen.tsx` (`SessionDetail`)
 
   **Retour de Jules** : « toutes les 10 secondes ou moins » l'écran superadmin « nous remmène en haut de la page » — constaté sans aucune session Claude Code active, sur tous les onglets superadmin (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse), sans clignotement visible. Ce retour infirme l'hypothèse Vite HMR retenue par la 1ère passe (voir "Historique / notes de session" plus bas) — diagnostic repris de zéro.
@@ -246,6 +304,18 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. Vérifier qu'aucun bouton "Passer en Questionnaire" n'apparaît plus nulle part dans le `PhaseBar`.
 
 ## Parcours Participant
+
+- [ ] **2026-09-02 — Chantier 50 — écran d'affectation et lectures participant sous les policies self-only** *(migration SQL requise, voir plus haut)*
+
+  **Ce qui est en jeu** : les 4 lectures directes de `session_members` du frontend sont déjà filtrées `.eq('user_id', userId)` (`TableContext`, `SessionRouterScreen` ×2, `VoteScreen`) et `get_my_table_assignment` est SECURITY DEFINER — en théorie rien ne change côté participant. Ces tests servent à confirmer qu'aucune lecture n'avait été oubliée à l'inventaire. Aucun de ces fichiers n'a été modifié par ce chantier.
+
+  **À vérifier après application de la migration** (un participant réel, séance réelle) :
+  1. **Écran d'affectation** (`AllocatingScreen`, phase `allocating`) : le numéro de groupe et le code de la table s'affichent, et le bouton « Rejoindre » mène bien à la bonne table. C'est le point le plus exposé — il dépend de `get_my_table_assignment`.
+  2. **Attente d'affectation** : arriver sur l'écran d'affectation **avant** que le superadmin ait lancé l'allocation, puis le laisser la lancer → l'affectation doit apparaître seule en ≤ 10 s (Realtime sur sa propre ligne, ou polling de secours), sans reload.
+  3. **Vote** (`VoteScreen`, `pre_voting` et `voting`) : un participant déjà inscrit qui revient sur `#vote/<code>` est bien reconnu (pas de nouvelle demande de pseudo).
+  4. **Reconquête d'un pseudo déjà pris** (`PseudoForm` en `pre_voting`, `VotingEntryForm` en `voting`) : saisir un pseudo déjà inscrit doit toujours proposer l'écran de reconquête et le mener à bien (par le nom **et** par le code de rappel). Ces chemins passent par des RPC, ils ne devraient pas bouger — mais c'est le seul endroit où le frontend raisonne sur des inscriptions qui ne sont pas les siennes.
+  5. **Routeur** (`#session/<code>`) : en `debating`, un membre inscrit est redirigé vers `#vote/`, un visiteur non inscrit voit le message « pas membre ». En `closed`, un membre non répondant voit le questionnaire, un membre répondant voit la carte des résultats, un visiteur voit les résultats publics. C'est le test qui prouve que `SessionRouterScreen` distingue toujours membre et non-membre.
+  6. **Entrée en débat** : rejoindre la table depuis l'écran d'affectation → `ParticipantView` s'affiche sans reload, avec le bon compte de présents.
 
 - [ ] **2026-09-02 — Chantier 48 — « Je veux rejoindre une autre table »** — `src/components/voting/TableAssignmentCard.tsx`, `src/screens/AllocatingScreen.tsx`, migration `switch_table` *(voir « Migration SQL en attente » ci-dessus — le test complet de bascule réelle n'est possible qu'une fois appliquée)*
 
@@ -357,6 +427,15 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   - **Pas de restriction de phase côté serveur** sur `claim_moderator_status` pour un membre déjà inscrit (seul le cas "créer un nouveau profil" vérifie la phase) — cohérent avec le fait que ce nouveau bouton fonctionne dans les 3 phases demandées sans qu'aucun changement SQL n'ait été nécessaire.
 
 ## Parcours Modérateur (`ModeratorView`)
+
+- [ ] **2026-09-02 — Chantier 50 — détection d'un modérateur désigné pendant la séance** *(migration SQL requise ; à faire APRÈS la migration du chantier 60)*
+
+  **Pourquoi ce test ici** : `TableContext` lit `session_members.is_moderator` en direct pour savoir s'il doit afficher `ModeratorView` — lecture filtrée sur `user_id`, donc a priori intacte. Mais la garde d'autorité du chantier 60 (`is_table_moderator`) lit, elle, `session_members` **et** `table_assignments` pour quelqu'un d'autre que l'appelant. Elle est `SECURITY DEFINER`, donc hors RLS et non affectée — ce test le confirme concrètement plutôt que sur lecture de code. Les deux chantiers se croisent exactement ici.
+
+  1. Séance en `allocating`/`debating`, une table animée sans modérateur. Depuis un 2ᵉ navigateur : `#session/<code>` → « 🎙️ Modérateur » → se déclarer avec le code Ecclesia → il doit être assis à la table et **basculer sur `ModeratorView` sans reload**.
+  2. Une fois en `ModeratorView` : donner la parole, retirer la parole, passer au suivant, déplacer quelqu'un dans la file, exclure un participant. **Tout doit aboutir** — c'est ce que corrige le chantier 60, et ce que ce chantier ne doit pas re-casser.
+  3. Symétrique : le superadmin lui retire son statut depuis l'onglet Membres → bascule vers `ParticipantView` sans reload.
+  4. **Régression** : un modérateur « classique » (table créée via « Créer une table », donc `tables.created_by` posé, et **aucune ligne `session_members`**) garde toute son autorité. C'est le cas qui ne dépend d'aucune des deux tables fermées ici.
 
 *Nécessite un Code Ecclesia et une vraie table animée (avec modérateur) pour la plupart des points ci-dessous — pas testable avec une table `leaderless` seule.*
 
@@ -476,6 +555,15 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 ## Synchronisation temps réel (chantier 35)
 
 *Nécessite deux onglets ou deux navigateurs en parallèle sur la même séance/table — ne peut pas se tester avec un seul client.*
+
+- [ ] **2026-09-02 — Chantier 50 — Realtime ne livre plus que ses propres lignes** *(migration SQL requise, voir plus haut)*
+
+  **Ce qui change** : les abonnements Realtime sur `session_members` et `table_assignments` sont filtrés `session_id=eq.<id>`, c'est-à-dire à l'échelle de la séance entière, et les handlers rejettent ensuite côté client ce qui ne les concerne pas (`TableContext` : `if (r.user_id !== userId) return` ; `AllocatingScreen` : `if (row.member_id !== member.id) return`). Ces lignes transitaient donc jusque-là par le réseau de tous les participants avant d'être jetées — `reclaim_code` compris, puisque `session_members` est en `REPLICA IDENTITY FULL`. Sous les policies self-only, Realtime applique la RLS **avant** livraison : elles ne partent plus. Les abonnements reçoivent moins et utilisent autant ; aucun de ces deux fichiers n'a été modifié.
+
+  **Test (deux navigateurs, participants A et B inscrits à la même séance)** :
+  1. Sur B, ouvrir la console et instrumenter la réception (ou simplement observer l'onglet Réseau, frame WebSocket). Depuis le superadmin, modifier le membre **A** (cocher/décocher `is_moderator`, le déplacer de table) → **B ne doit recevoir aucun événement**. Avant la migration, il en recevait un et le jetait en silence.
+  2. Modifier ensuite le membre **B** → B doit toujours recevoir son propre événement et réagir : badge « Vous êtes modérateur » qui apparaît/disparaît en phase vote, bascule `ModeratorView`/`ParticipantView` en débat, changement de numéro de table sur l'écran d'affectation.
+  3. C'est le point 2 qui compte le plus : le risque n'est pas d'en recevoir trop, c'est de ne plus rien recevoir du tout parce que la policy est trop stricte.
 
 - [ ] **Chantier 35 — synchronisation temps réel du statut modérateur**
   Mergé sur `main` (`42ccae2`). Migration `supabase/migrations/20260803_chantier35_session_members_replica_identity.sql` **déjà appliquée et vérifiée par Jules côté Supabase** (`REPLICA IDENTITY FULL` confirmé sur `session_members`) — les deux abonnements realtime `session_members` sont donc actifs, seul le test manuel ci-dessous reste à faire.

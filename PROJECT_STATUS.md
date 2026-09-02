@@ -337,4 +337,32 @@ Branche `chantier-60-autorite-moderateur`, **non mergée**. Migration `supabase/
 
 ---
 
+## Chantier 50 — Fermer la lecture directe de `session_members` et `table_assignments`
+
+Branche `chantier-50-fermer-lecture-identite`, **non mergée**. Migration `supabase/migrations/20260902_chantier50_close_identity_tables.sql`, **non appliquée** — à appliquer après celle du chantier 60.
+
+| ID | Résumé | Statut | Contributeur | Dépend de |
+|---|---|---|---|---|
+| — | Policies self-only sur `session_members` et `table_assignments` | Fait — migration écrite, **non appliquée** | Claude | — |
+| — | Helper `is_own_session_member(uuid)` (anti-récursion) | Fait — migration écrite, **non appliquée** | Claude | — |
+| — | RPC `list_table_assignments_admin(password, session_id)` | Fait — migration écrite, **non appliquée** | Claude | — |
+| — | `listTableAssignmentsAdmin` + bascule de `SuperadminScreen.loadGroups()` | Fait | Claude | RPC |
+| — | Polling de secours 10 s sur la vue Groupes | Fait | Claude | — |
+
+**La fuite** : `session_members` et `table_assignments` portent chacune une policy `SELECT USING (true)` héritée de `20260528_voting_app.sql`. Il n'y a pas de backend — la clé `anon` est dans le bundle JS public — donc un simple `GET /rest/v1/session_members` retourne tous les inscrits de toutes les séances, avec `pseudo` (nom et prénom réels) et `reclaim_code` (code à 4 chiffres **en clair**, qui permet de reprendre l'inscription de quelqu'un d'autre). Confirmé en base le 2026-09-02.
+
+**Le seul point de casse frontend** : `SuperadminScreen.loadGroups()` lisait `table_assignments` avec une jointure imbriquée PostgREST (`session_members!member_id(...)`) qui traversait les deux tables permissives d'un coup. Sous une policy restrictive PostgREST **ne renvoie pas d'erreur** — l'objet imbriqué devient `null` et les listes de membres se vident en silence. D'où la RPC dédiée. Les 4 autres lectures directes de `session_members` (`TableContext`, `SessionRouterScreen` ×2, `VoteScreen`) sont déjà filtrées `.eq('user_id', userId)` — inventaire refait et confirmé, aucune n'est modifiée.
+
+**Inventaire des policies, refait avant écriture** : seule `20260528_voting_app.sql` en crée sur ces deux tables (`session_members_select`, `session_members_insert WITH CHECK (false)`, `table_assignments_select`) — aucune policy UPDATE ni DELETE, toutes les écritures passent déjà par des fonctions SECURITY DEFINER. Le chantier 60, mergé le même jour, n'a touché que `tables`/`queue_entries`/`speaking_turns` ; son helper `is_table_moderator` lit bien les deux tables fermées ici, mais en SECURITY DEFINER, donc hors RLS — **aucun recouvrement, rien de son travail n'est défait**. La migration ajoute un bloc `DO $chk$` qui lève une exception s'il reste une policy SELECT permissive résiduelle : les policies permissives se cumulant en OR, une seule oubliée rouvrirait tout en silence.
+
+**Deux ajouts au brief, assumés** :
+1. **Repli pré-migration** dans `loadTableAssignmentRows` : la RPC en chemin nominal, la lecture directe historique **si et seulement si** PostgREST répond que la fonction est absente du schéma (`PGRST202`). Le frontend et le SQL étant livrés séparément (règle du 2026-09-01), sans ce repli la vue Groupes serait cassée dans toute la fenêtre entre le déploiement et l'application du SQL. Toute autre erreur (mot de passe, réseau) remonte — pas de repli silencieux sur une lecture qui renverrait des membres `null`. **À supprimer une fois la migration appliquée** (entrée dédiée dans A_VERIFIER.md).
+2. **Rafraîchissements de fond silencieux** : `loadGroups(silent)` ne pose plus `groupsLoading` quand c'est le polling qui appelle — sinon le badge « à jour à HH:MM:SS » clignoterait en spinner toutes les 10 s. Le contenu n'est de toute façon jamais démonté (`groupsLoading` ne pilote qu'un petit spinner à côté du bouton Récapitulatif) : la régression de scroll du chantier 38 n'est pas réintroduite, ce point a été vérifié en lisant les deux sites de rendu.
+
+**Une correction sur le travail de la session précédente** : `loadGroups` n'avait ni `catch` ni repli. Comme elle est appelée en fire-and-forget (effet de montage, handler Realtime, et maintenant `setInterval`), une RPC en échec produisait une promesse rejetée non gérée toutes les 10 s, sans rien afficher. Elle intercepte désormais, journalise, et pose un message dans le bandeau d'erreur de la section Groupes — les données précédentes restent affichées plutôt qu'une liste vidée en silence, qui est précisément le risque de ce chantier. `onAuthError` n'a **pas** été appelé depuis ce `catch` à dessein : c'est une fonction recréée à chaque rendu du parent, l'ajouter aux dépendances de `loadGroups` ferait recréer le canal Realtime et l'intervalle à chaque rendu.
+
+**Vérifié** : `npx tsc --noEmit` propre, `npm test` 94/95 (1 skip pré-existant), `npm run build` réussi. **Aucun test navigateur** (consigne : vérification manuelle groupée par Jules) et **migration non appliquée** (règle du 2026-09-01). Recette complète dans A_VERIFIER.md, dont la vérification négative à la clé anonyme qui prouve la fermeture de la fuite.
+
+---
+
 *Pour référencer ce fichier depuis `CLAUDE.md`, ajouter une ligne du type : `Voir PROJECT_STATUS.md pour l'état courant des chantiers et ecclesia_plan_chantiers.md pour le détail des tâches.`*
