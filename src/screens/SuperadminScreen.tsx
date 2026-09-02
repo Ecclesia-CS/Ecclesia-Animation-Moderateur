@@ -1634,9 +1634,19 @@ function SessionDetail({
     }
   }
 
+  // Chantier 38 — `loading` ne doit gater l'écran entier (spinner plein écran,
+  // ligne ~2064) que le tout premier chargement. `load()` est aussi rappelée
+  // par le polling 15s et par le channel Realtime `tables` (ci-dessous) : sans
+  // ce garde, chaque rafraîchissement de fond vidait tout le contenu affiché
+  // (toutes les sections, quel que soit l'onglet actif) le temps de l'appel
+  // réseau, ce qui réduisait la hauteur du document et faisait remonter le
+  // scroll en haut de page sans jamais le restaurer au retour du contenu —
+  // symptôme rapporté par Jules ("l'écran remonte en haut toutes les 10s").
+  const hasLoadedTablesRef = useRef(false)
+
   const load = useCallback(async (filter: TableFilter = tableFilter, sinceDateStr: string = customSince) => {
     const password = getPwd()!
-    setLoading(true)
+    if (!hasLoadedTablesRef.current) setLoading(true)
     setError(null)
     try {
       let since: Date | null | undefined
@@ -1659,6 +1669,7 @@ function SessionDetail({
       }
       setError(msg)
     } finally {
+      hasLoadedTablesRef.current = true
       setLoading(false)
     }
   }, [session.id, onAuthError, tableFilter, customSince])
@@ -2144,7 +2155,7 @@ function SessionDetail({
                     onAnalysisComplete={handleAnalysisNaming}
                     groupNames={groupNames}
                     totalMembers={members.length > 0 ? members.length : undefined}
-                    sessionPhase={session.phase}
+                    sessionPhase={currentSession.phase}
                   />
                 )}
 
