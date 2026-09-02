@@ -3,10 +3,32 @@
 // gemini-proxy. Jamais d'appel direct à api.google.com.
 // =============================================================
 
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { extractErr } from './utils'
 import { isPartialInclusion } from './mergeGuards'
 import type { ModerationResult, MergeResult, GroupNameResult } from './types'
+
+// ── Extraction des erreurs gemini-proxy (chantier 57) ──────────
+//
+// Pour une réponse non-2xx, supabase-js lève une FunctionsHttpError dont
+// `.message` est un texte générique ("Edge Function returned a non-2xx
+// status code") — le message clair renvoyé par la fonction (quota
+// dépassé, charge trop volumineuse…) est dans le corps JSON de la
+// réponse HTTP d'origine, accessible via `error.context` (le Response
+// brut). Sans cette extraction, un utilisateur qui atteint la limite de
+// débit ou de taille ne verrait qu'un message opaque.
+async function extractGeminiError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError && error.context instanceof Response) {
+    try {
+      const body = await error.context.json()
+      if (typeof body?.error === 'string') return body.error
+    } catch {
+      // Corps non-JSON ou déjà consommé : on retombe sur le message générique.
+    }
+  }
+  return extractErr(error)
+}
 
 // ── Type de retour commun ─────────────────────────────────────
 
@@ -69,7 +91,7 @@ export async function moderateAssertions(payload: {
   const { data, error } = await supabase.functions.invoke('gemini-proxy', {
     body: { action: 'moderate', payload },
   })
-  if (error) throw new Error(extractErr(error))
+  if (error) throw new Error(await extractGeminiError(error))
   if (data?.error) throw new Error(data.error)
   return extractResponse<ModerationResult>(data)
 }
@@ -85,7 +107,7 @@ export async function mergeAssertions(payload: {
   const { data, error } = await supabase.functions.invoke('gemini-proxy', {
     body: { action: 'merge', payload },
   })
-  if (error) throw new Error(extractErr(error))
+  if (error) throw new Error(await extractGeminiError(error))
   if (data?.error) throw new Error(data.error)
   const res = extractResponse<MergeResult>(data)
   const byId = new Map(payload.assertions.map(a => [a.id, a.content]))
@@ -157,7 +179,7 @@ export async function nameIdeologicalGroups(payload: {
   const { data, error } = await supabase.functions.invoke('gemini-proxy', {
     body: { action: 'name_groups', payload: edgePayload },
   })
-  if (error) throw new Error(extractErr(error))
+  if (error) throw new Error(await extractGeminiError(error))
   if (data?.error) throw new Error(data.error)
   return extractResponse<GroupNameResult>(data)
 }
@@ -209,7 +231,7 @@ export async function nameSingleGroup(payload: {
   const { data, error } = await supabase.functions.invoke('gemini-proxy', {
     body: { action: 'name_single_group', payload: edgePayload },
   })
-  if (error) throw new Error(extractErr(error))
+  if (error) throw new Error(await extractGeminiError(error))
   if (data?.error) throw new Error(data.error)
 
   const d = data as { result: { name: string; description: string }; usage?: GeminiUsage }
