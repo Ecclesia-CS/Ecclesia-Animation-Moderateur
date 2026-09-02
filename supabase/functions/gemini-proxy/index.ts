@@ -72,6 +72,108 @@ const JSON_HEADERS = {
   'Content-Type': 'application/json',
 }
 
+// ── Anti-abus (chantier 57) ─────────────────────────────────────
+//
+// La clé anon Supabase est publique dans le bundle JS du site : n'importe
+// quel porteur de cette clé peut appeler cette fonction, qui relaie vers
+// une API Gemini payante — même un utilisateur qui n'a jamais ouvert
+// l'écran superadmin (rien ici ne vérifie le mot de passe superadmin,
+// seulement un JWT Supabase valide, que possède tout participant anonyme).
+//
+// Où stocker le compteur — Postgres vs mémoire (à trancher par chantier) :
+// une table dédiée serait durable et partagée entre toutes les instances
+// de la fonction, mais ajoute une écriture par appel et une migration.
+// Choix retenu ici : compteur EN MÉMOIRE, par instance. Ce projet ne sert
+// que quelques séances ponctuelles pour ~3 personnes (voir CLAUDE.md) ;
+// en pratique, seul le superadmin appelle cette fonction (LLMModerationPanel
+// et AnalysisPanel, tous deux dans SuperadminScreen — aucun écran
+// participant n'importe lib/gemini.ts), depuis un onglet de navigateur
+// qui reste ouvert toute la séance. Un compteur qui repart à zéro à un
+// cold start Deno Deploy, ou qui n'est pas partagé si plusieurs instances
+// tournent en parallèle, reste largement suffisant pour bloquer en
+// pratique un script qui bombarderait la fonction en boucle depuis un
+// même onglet — sans migration SQL ni écriture DB supplémentaire à
+// chaque appel Gemini. À revoir si le projet grandit (plusieurs
+// organisations, trafic soutenu justifiant un compteur partagé fiable).
+//
+// Calibrage de la limite — usage légitime maximal observé dans le code :
+//   - modération auto (LLMModerationPanel) : 1 appel Gemini / tick, tick
+//     configurable de 1 à 10 min (ai_auto_interval_<id>, défaut 3 min)
+//   - fusion auto périodique (LLMModerationPanel) : 1 appel Gemini / tick,
+//     tick configurable de 1 à 30 min (ai_auto_merge_interval_<id>, défaut
+//     10 min) — ne fait qu'empiler des propositions, jamais d'écriture
+//     directe (chantier 7 / B4)
+//   - fusion auto en fin de vote (SuperadminScreen.handlePhaseChange) :
+//     1 appel Gemini, déclenché une seule fois à la transition
+//     voting → allocating
+//   - nommage des camps (groupNaming.generateGroupNames), déclenché après
+//     chaque analyse (manuelle ou auto, 1 à 15 min, analysis_auto_interval_
+//     <id>, défaut 5 min) : 1 appel séquentiel par groupe avec jusqu'à 2
+//     tentatives, et au plus 5 groupes (kMax plafonné à 5 dans
+//     runKMeans/analysis.ts) → au plus 10 appels par nommage
+//   - actions manuelles superadmin (clics "Modérer maintenant", "Analyser
+//     les doublons") : ponctuelles, négligeables face à ce qui précède
+// Pire cas légitime théorique (toutes les automatisations réglées sur leur
+// intervalle le plus agressif, à 1 minute, ET une salve de nommage
+// complète à chaque tick) : ~1 (modération) + 1 (fusion) + 10 (nommage)
+// ≈ 12 appels/minute depuis le même onglet superadmin. La limite ci-dessous
+// (20 appels / 60 s, fenêtre glissante) laisse une marge confortable
+// au-dessus de ce pire cas tout en bornant fermement un script qui viserait
+// la fonction en boucle (des centaines d'appels/minute).
+const RATE_LIMIT_WINDOW_MS    = 60_000
+const RATE_LIMIT_MAX_REQUESTS = 20
+
+// Horodatages (ms) des appels récents, par user_id. Purgé au fil de l'eau
+// (fenêtre glissante) — pas de TTL global, la Map reste petite en pratique
+// (quelques utilisateurs distincts par instance à la fois).
+const callLog = new Map<string, number[]>()
+
+function checkRateLimit(userId: string): { allowed: boolean; retryAfterSeconds: number } {
+  const now         = Date.now()
+  const windowStart = now - RATE_LIMIT_WINDOW_MS
+  const timestamps  = (callLog.get(userId) ?? []).filter(t => t > windowStart)
+
+  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    callLog.set(userId, timestamps)
+    const oldest = timestamps[0]
+    const retryAfterSeconds = Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MS - now) / 1000))
+    return { allowed: false, retryAfterSeconds }
+  }
+
+  timestamps.push(now)
+  callLog.set(userId, timestamps)
+
+  // Nettoyage opportuniste : évite une fuite mémoire sur la durée de vie de
+  // l'instance si beaucoup d'utilisateurs distincts finissent par apparaître
+  // dans la Map (usage légitime normal : une poignée tout au plus).
+  if (callLog.size > 500) {
+    for (const [id, ts] of callLog) {
+      const fresh = ts.filter(t => t > windowStart)
+      if (fresh.length === 0) callLog.delete(id)
+      else callLog.set(id, fresh)
+    }
+  }
+
+  return { allowed: true, retryAfterSeconds: 0 }
+}
+
+// ── Plafond de charge utile (chantier 57) ────────────────────────
+//
+// 300 Ko : très au-dessus d'une charge légitime (au plus 5 groupes —
+// kMax plafonné dans analysis.ts —, contenu d'assertion limité à 500
+// caractères côté UI dans SubmitAssertionModal, quelques dizaines à
+// quelques centaines d'assertions par séance réelle), et assez bas pour
+// qu'un appel unique ne puisse pas, à lui seul, faire consommer un volume
+// de tokens Gemini disproportionné. Un appelant direct de la fonction
+// (hors app) peut ignorer la limite de 500 caractères de l'UI — ce
+// plafond est donc une défense indépendante de toute validation côté
+// client.
+const MAX_BODY_BYTES = 300_000
+
+function tooLarge(byteLength: number): boolean {
+  return byteLength > MAX_BODY_BYTES
+}
+
 // ── Sérialisation des placeholders ────────────────────────────
 
 function serializeAssertions(assertions: AssertionItem[]): string {
@@ -511,8 +613,43 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // ── Quota par utilisateur ──────────────────────────────────
+    // Compte toute requête authentifiée, même rejetée ensuite pour taille
+    // ou action inconnue — sinon un payload délibérément invalide
+    // permettrait de contourner la limite.
+    const rateLimit = checkRateLimit(user.id)
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: `Trop de requêtes IA depuis ce navigateur (limite : ${RATE_LIMIT_MAX_REQUESTS} par minute). Réessaie dans ${rateLimit.retryAfterSeconds} seconde(s).`,
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        }),
+        { status: 429, headers: { ...JSON_HEADERS, 'Retry-After': String(rateLimit.retryAfterSeconds) } },
+      )
+    }
+
+    // ── Plafond de taille de la charge utile ───────────────────
+    // Rejet rapide sur l'en-tête Content-Length quand il est présent et
+    // honnête ; re-vérifié sur la taille réelle lue ci-dessous en défense
+    // en profondeur (en-tête absent, incorrect, ou transfert chunké).
+    const declaredLength = Number(req.headers.get('content-length') ?? '')
+    if (Number.isFinite(declaredLength) && tooLarge(declaredLength)) {
+      return new Response(
+        JSON.stringify({ error: `Charge envoyée trop volumineuse (max ${Math.floor(MAX_BODY_BYTES / 1000)} Ko). Réduis le nombre d'assertions ou de groupes et réessaie.` }),
+        { status: 413, headers: JSON_HEADERS },
+      )
+    }
+
+    const rawBody = await req.text()
+    if (tooLarge(new TextEncoder().encode(rawBody).length)) {
+      return new Response(
+        JSON.stringify({ error: `Charge envoyée trop volumineuse (max ${Math.floor(MAX_BODY_BYTES / 1000)} Ko). Réduis le nombre d'assertions ou de groupes et réessaie.` }),
+        { status: 413, headers: JSON_HEADERS },
+      )
+    }
+
     // ── Parse body ────────────────────────────────────────────
-    const body = await req.json() as { action: Action; payload: unknown }
+    const body = JSON.parse(rawBody) as { action: Action; payload: unknown }
     const { action, payload } = body
 
     // ── Construire le prompt selon l'action ───────────────────
