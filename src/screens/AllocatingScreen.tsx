@@ -252,7 +252,19 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         <QuitLink />
         <SessionQuestionnaireForm
           sessionId={currentSession.id}
-          onDone={() => { setShowQuestionnaire(false); setSessionClosed(true) }}
+          // Route vers #session/<code> (SessionRouterScreen) qui enchaîne sur
+          // les résultats — au lieu de rester sur cet écran d'annonce de table
+          // avec une bannière de clôture (cul-de-sac, chantier 63). Repli sur
+          // l'ancien comportement si join_code est absent (ne devrait pas arriver :
+          // il a fallu ce code pour atteindre cet écran).
+          onDone={() => {
+            if (currentSession.join_code) {
+              window.location.hash = '#session/' + currentSession.join_code
+            } else {
+              setShowQuestionnaire(false)
+              setSessionClosed(true)
+            }
+          }}
         />
       </>
     )
