@@ -413,6 +413,25 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. **Point 3 (phase vote)** : participant avec badge "Vous êtes modérateur" visible → superadmin décoche depuis Membres → badge doit disparaître sans reload.
   5. **Régression** : un modérateur "classique" (table créée via `create_table`/`reclaim_moderator`, jamais inscrit au vote de cette séance, donc sans ligne `session_members`) doit garder son `ModeratorView` sans interruption.
 
+- [ ] **2026-09-02 — Chantier 53 — plafonner le refetch déclenché par broadcast Realtime** — `src/context/TableContext.tsx`
+
+  **Constat de sécurité à l'origine du chantier** : le canal Realtime `table:<id>` est ouvert (créé sans `{ config: { private: true } }`), donc n'importe quel porteur de la clé anonyme publique (présente dans le bundle JS) peut s'y abonner **et y émettre**, sans connaître aucun secret — seul le `table_id` (public) est nécessaire. Avant ce chantier, le handler `broadcast` du contexte déclenchait un `refetch()` complet (`tables`, `participants`, `queue_entries`, `speaking_turns`) sans aucun contrôle à chaque message `refresh` reçu : un attaquant qui en émet en boucle pouvait figer l'interface de tous les clients connectés à une table, sur tous les téléphones de la salle simultanément. La correction de fond (canaux privés) est un autre chantier, plus lourd — celui-ci dégrade l'attaque en simple nuisance.
+
+  **Correctif appliqué** (uniquement le handler de réception — le helper d'émission `broadcast()` n'a pas été touché) :
+  1. Debounce ~1 s (`REFRESH_DEBOUNCE_MS`) : les noms de table reçus dans la fenêtre sont accumulés dans un `Set`, un seul `refetch()` avec l'union est déclenché à l'expiration.
+  2. Plafond de fréquence (`REFRESH_RATE_LIMIT_PER_SECOND = 5`) : compteur glissant sur 1 s, tout message `refresh` au-delà de 5/s est silencieusement ignoré (pas de log en boucle, pas d'exception).
+  3. Timer nettoyé au démontage (`clearTimeout` + vidage du `Set` dans le `return` du `useEffect`) — pas de `setTimeout` orphelin.
+
+  **Déjà vérifié** : `npx tsc --noEmit` propre, `npm test` (94 tests, tous verts, aucune régression), `npm run build` réussi. **Non vérifiable en session headless** : tout effet réel sur le temps réel nécessite un navigateur — recette de test ci-dessous, à jouer par Jules.
+
+  **Risque de régression à surveiller** : latence perçue allant jusqu'à ~1 s sur l'octroi de la parole quand plusieurs actions s'enchaînent rapidement (le debounce regroupe et retarde le refetch déclenché par le broadcast — les 3 autres couches de rattrapage, mise à jour locale immédiate/polling 5s/monitoring WebSocket, ne changent pas).
+
+  **Test minimal** (deux onglets/navigateurs sur la même table, un modérateur + un participant, ou deux participants) :
+  1. Enchaîner rapidement côté modérateur : donner la parole à A → fin de tour → auto-avancement vers B → donner la parole à C manuellement. Vérifier qu'aucun écran ne se fige côté participant et que l'orateur affiché reste cohérent des deux côtés (au pire ~1 s de retard, jamais un état incohérent durable).
+  2. Glisser-déposer une entrée dans la file côté modérateur → vérifier que la vue participant reflète le nouvel ordre en moins de 2 s.
+  3. Exclure un participant côté modérateur → vérifier sa disparition côté participant.
+  4. Couper puis rétablir le réseau d'un des deux clients (mode avion ou DevTools offline) → vérifier la resynchronisation après reconnexion (monitoring WebSocket + polling 5s, couches inchangées par ce chantier).
+
 - [ ] **2026-09-01 — Chantier 41 — nomination d'un modérateur déjà assis, invisible sans quitter/rejoindre** — `src/context/TableContext.tsx`, branche `chantier-41-reload-moderateur`
 
   **Retour de Jules** : « Quand je suis déjà en phase débat, et que je nomme quelqu'un en modérateur sur une table, lorsque celui-ci fait un reload, la vue modérateur n'apparaît pas. Il faut pour cela qu'il quitte, avec le bouton quitter, puis revienne dans le débat. »

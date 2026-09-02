@@ -51,6 +51,14 @@ interface TableCtxValue {
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
 
+// Chantier 53 — le canal Realtime `table:<id>` est ouvert (ni privé ni signé,
+// audit A1) : n'importe quel porteur de la clé anon publique peut y émettre.
+// Ces deux constantes dégradent une rafale de `refresh` en simple nuisance
+// (le polling 5 s ci-dessous couvre déjà le cas nominal) sans changer le
+// fonctionnement du temps réel normal.
+const REFRESH_DEBOUNCE_MS = 1000
+const REFRESH_RATE_LIMIT_PER_SECOND = 5
+
 // ── Context ────────────────────────────────────────────────────
 
 const TableCtx = createContext<TableCtxValue | null>(null)
@@ -121,6 +129,12 @@ export function TableProvider({
   // Refs for Broadcast and WebSocket monitoring
   const channelRef      = useRef<RealtimeChannel | null>(null)
   const wasDisconnected = useRef(false)
+
+  // Chantier 53 — debounce + plafond de fréquence sur la réception des
+  // broadcasts `refresh` (voir constantes ci-dessus).
+  const pendingRefreshTables  = useRef<Set<TableName>>(new Set())
+  const refreshDebounceTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refreshTimestamps     = useRef<number[]>([])
 
   // ── Load (stable, reused for initial load, polling, reconnect) ──
   const load = useCallback(async () => {
@@ -266,10 +280,27 @@ export function TableProvider({
       },
     )
 
-    // Broadcast — instant refresh signal (no RLS check)
+    // Broadcast — instant refresh signal (no RLS check). Chantier 53 :
+    // le canal étant ouvert à l'émission (audit A1), on plafonne la
+    // fréquence puis on debounce avant de refetch — voir les constantes
+    // et refs déclarées plus haut.
     ch.on('broadcast', { event: 'refresh' }, ({ payload }) => {
       const tables = payload?.tables
-      if (Array.isArray(tables)) refetch(tables as TableName[])
+      if (!Array.isArray(tables)) return
+
+      const now = Date.now()
+      refreshTimestamps.current = refreshTimestamps.current.filter(t => now - t < 1000)
+      if (refreshTimestamps.current.length >= REFRESH_RATE_LIMIT_PER_SECOND) return
+      refreshTimestamps.current.push(now)
+
+      for (const t of tables) pendingRefreshTables.current.add(t as TableName)
+      if (refreshDebounceTimer.current) return
+      refreshDebounceTimer.current = setTimeout(() => {
+        refreshDebounceTimer.current = null
+        const toRefetch = Array.from(pendingRefreshTables.current)
+        pendingRefreshTables.current.clear()
+        refetch(toRefetch)
+      }, REFRESH_DEBOUNCE_MS)
     })
 
     // WebSocket monitoring — re-sync on reconnect after dropout
@@ -284,7 +315,12 @@ export function TableProvider({
       }
     })
 
-    return () => { supabase.removeChannel(ch) }
+    return () => {
+      supabase.removeChannel(ch)
+      if (refreshDebounceTimer.current) clearTimeout(refreshDebounceTimer.current)
+      refreshDebounceTimer.current = null
+      pendingRefreshTables.current.clear()
+    }
   }, [tableId, handleEnd, refetch, load, userId])
 
   // ── Polling fallback (5 s) — catches missed broadcasts ────────
