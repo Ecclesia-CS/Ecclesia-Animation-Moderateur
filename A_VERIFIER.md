@@ -23,6 +23,32 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 6. **Questionnaire post-débat** — les trois points d'entrée (table, `#vote/`, `#session/`) et leur déclenchement automatique à la clôture (chantier 39).
 7. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
 8. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
+9. **Sauvegardes DB** (ci-dessous, section Infrastructure) — indépendant des autres points, à faire dès que les deux secrets GitHub sont créés.
+
+## Infrastructure — Sauvegardes DB chiffrées (chantier sécurité, 2026-09-02)
+
+*Contexte : point F3 de l'audit sécurité du 02/09/2026 (le plus grave des 19 constats) — le projet Supabase tourne sur le plan gratuit, qui n'inclut aucune sauvegarde automatique restaurable. `.github/workflows/db-backup.yml` a été écrit et commité pour combler ça : dump quotidien chiffré (AES-256) stocké en artefact GitHub Actions (rétention 30 jours), suivi automatiquement d'une restauration de vérification dans un Postgres jetable. Détail complet (procédure de restauration réelle, secrets requis, limites) en tête du fichier de workflow.*
+
+- [ ] **2026-09-02 — Secrets GitHub à créer avant tout run réel**
+
+  Le workflow ne peut rien produire tant que Jules n'a pas créé, sur le dépôt GitHub (Settings → Secrets and variables → Actions → New repository secret) :
+  - `SUPABASE_DB_URL` — chaîne de connexion Postgres **directe** (pas le pooler pgbouncer) du projet `plpjiehqsxxakbuykmkm`, trouvable dans le dashboard Supabase → Project Settings → Database → Connection string → onglet "URI" → "Direct connection".
+  - `BACKUP_PASSPHRASE` — phrase de passe longue et aléatoire dédiée (ex. générée avec `openssl rand -base64 32`), à conserver aussi dans le gestionnaire de mots de passe partagé de l'équipe (si ce secret est perdu, les sauvegardes déjà produites deviennent illisibles).
+
+  **Non fait par la session de chantier** (ni migration ni secret ne sont posés par une session Claude Code — voir la règle en tête de ce fichier).
+
+- [ ] **2026-09-02 — Premier run réel du workflow (`workflow_dispatch`)**
+
+  Une fois les deux secrets créés : déclencher manuellement le workflow (onglet Actions → "Sauvegarde chiffrée de la base Supabase" → "Run workflow"). Vérifier :
+  1. Le job `backup` réussit, produit un artefact `db-backup-<run_id>` contenant `db-backup-YYYY-MM-DD.sql.gpg` d'une taille non nulle.
+  2. Le job `verify-restore` réussit — c'est la preuve que le dump du jour est effectivement restaurable (pas seulement produit). S'il échoue, lire les logs : erreur de déchiffrement → passphrase incorrecte dans le secret ; erreur de restauration Postgres → probablement un rôle/extension Supabase non anticipé par l'étape de préparation du job (à ajouter).
+  3. Après un ou deux jours, confirmer que le cron quotidien (05:00 UTC) s'est bien déclenché tout seul sans intervention.
+
+  **Non testable en session headless** : aucun secret disponible, donc jamais exécuté. Uniquement vérifié : la syntaxe YAML du workflow (cohérence avec `deploy.yml`/`supabase-ping.yml` du même dossier) et le raisonnement de chaque étape, relus à froid — pas un run réel.
+
+- [ ] **2026-09-02 — Test de restauration réelle grandeur nature (à faire une fois, pas à chaque run)**
+
+  Objectif : prouver que la procédure documentée en tête de `db-backup.yml` fonctionne vraiment de bout en bout sur un cas réel, pas seulement dans le Postgres jetable du CI. Créer un projet Supabase temporaire gratuit, y restaurer un dump téléchargé et déchiffré à la main en suivant la procédure du fichier, vérifier dans le Table Editor que les données correspondent à la base d'origine, puis supprimer le projet temporaire. À refaire si la structure de la base change significativement (nouvelles tables, nouveaux rôles).
 
 ## ⚠️ Migration SQL en attente d'application
 
