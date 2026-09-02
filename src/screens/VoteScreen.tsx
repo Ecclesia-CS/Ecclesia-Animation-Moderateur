@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse } from '../lib/voting'
+import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse, getMyAssertionIds } from '../lib/voting'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
@@ -302,7 +302,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   // ── Load assertions + votes ───────────────────────────────────────────────
   async function loadVoteData(s: Session, m: SessionMember) {
-    const [{ data: assertionRows }, { data: voteRows }, { data: myAssertions }] = await Promise.all([
+    const [{ data: assertionRows }, { data: voteRows }, myAssertionIds] = await Promise.all([
       supabase
         .from('assertions')
         .select('id, session_id, content, status, created_at') // pas member_id (E2 — anonymat des auteurs)
@@ -312,11 +312,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         .from('assertion_votes')
         .select('*')
         .eq('member_id', m.id),
-      supabase
-        .from('assertions')
-        .select('id')
-        .eq('session_id', s.id)
-        .eq('member_id', m.id),
+      // chantier 51 — RPC, la colonne member_id n'est plus lisible directement.
+      // .catch : un échec ne doit pas faire rejeter tout le Promise.all et bloquer
+      // le chargement des assertions/votes (cf. SuperadminScreen.loadGroups, même garde).
+      getMyAssertionIds(s.id).catch(() => [] as string[]),
     ])
 
     const allAssertions = (assertionRows ?? []) as Assertion[]
@@ -333,7 +332,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
     setAssertions(ordered)
     setMyVotes(voteMap)
-    setProposedCount((myAssertions ?? []).length)
+    setProposedCount(myAssertionIds.length)
     setAssertionIndex(0)
     // F3 — affiché une seule fois par séance, pas à chaque rechargement/re-vote.
     if (!localStorage.getItem(`ecclesia_vote_intro_${s.id}`)) setShowVoteIntro(true)

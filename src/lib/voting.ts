@@ -94,6 +94,21 @@ export async function submitAssertion(
   return data as Assertion
 }
 
+/**
+ * Chantier 51 — remplace la lecture directe de `assertions` filtrée sur
+ * `member_id` (désanonymisante côté REST, cf. migration
+ * 20260902_chantier51_hide_assertion_author.sql : la colonne member_id
+ * n'est plus accordée en lecture directe). Retourne les ids des assertions
+ * proposées par l'appelant sur cette séance.
+ */
+export async function getMyAssertionIds(sessionId: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_my_assertion_ids', {
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as string[]) ?? []
+}
+
 export async function mergeAssertionVotes(
   password: string,
   keepId: string,
