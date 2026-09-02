@@ -15,11 +15,11 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 
 Les points sont groupés **par écran/parcours**, pas par chantier, pour permettre une seule passe par écran plutôt que d'aller-retour entre chantiers. Dans l'ordre suggéré :
 
-1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 46 et 48.
+1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46 et 48.
 2. **Résultats publics (chantier 46)** — accueil (bouton + modale), superadmin (pastille par séance), page publique `#results/<id>`.
 3. **Superadmin** — onglets Tables, Membres, phase voting.
 4. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
-5. **Modérateur** (`ModeratorView`) — Code Ecclesia + vraie table animée requis.
+5. **Modérateur** (`ModeratorView`) — Code Ecclesia + vraie table animée requis. Couvre aussi le chantier 44 ("Ajouter une personne sans téléphone") et la refonte "Outils Modo" (chantier 43).
 6. **Questionnaire post-débat** — les trois points d'entrée (table, `#vote/`, `#session/`) et leur déclenchement automatique à la clôture (chantier 39).
 7. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
 8. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
@@ -59,6 +59,44 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   **Pourquoi retirer la phase plutôt que la garder mais inutilisée** : Jules a demandé explicitement la suppression (« on va supprimer cette phase ») — le questionnaire post-débat se déclenche désormais automatiquement à la sortie de `debating` (voir entrée dédiée, section "Questionnaire post-débat" plus bas) au lieu de nécessiter une étape de phase manuelle.
 
   **À faire (session de vérification)** : exécuter le fichier via le SQL Editor (ou MCP), puis `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'sessions_phase_check'` pour confirmer l'absence de `'questionnaire'` dans la définition, et `SELECT count(*) FROM sessions WHERE phase = 'questionnaire'` doit retourner 0. **Tant qu'elle n'est pas appliquée** : si une séance reste dans l'ancienne phase `questionnaire` (aucune trouvée dans la base de test au moment de l'écriture), `SuperadminScreen.tsx` ne la reconnaît plus dans `PHASE_SEQUENCE` (`indexOf` retourne -1) et affiche un `PhaseBar` incohérent (case courante non repérée, bouton suivant pointant vers `draft`) — appliquer la migration avant de rouvrir une telle séance dans le superadmin plutôt que de cliquer les boutons de phase pour la sortir de cet état.
+
+- [ ] **Chantier 44 — `supabase/migrations/20260902_chantier44_add_offline_participant.sql`** (nouvelle fonction, jamais appliquée)
+
+  **Contenu du fichier** : crée `add_offline_participant(p_table_id uuid, p_pseudo text) RETURNS jsonb`, `SECURITY DEFINER`. Garde d'autorisation identique à `kick_participant`/`grant_floor` (`tables.created_by = auth.uid()`). Reprend uniquement le cœur de `join_table` — `INSERT INTO participants (table_id, user_id, pseudo) VALUES (p_table_id, auth.uid(), btrim(p_pseudo)) ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id` — sans jamais appeler `sync_table_assignment` (voir justification détaillée dans l'entrée "Chantier 43/44" du parcours Modérateur ci-dessous : appelé sous l'identité du modérateur, ce mécanisme pollue par erreur `session_members` avec une ligne fantôme). SQL exact :
+
+    ```sql
+    CREATE OR REPLACE FUNCTION add_offline_participant(
+      p_table_id uuid,
+      p_pseudo   text
+    )
+    RETURNS jsonb
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    AS $$
+    DECLARE
+      v_participant_id uuid;
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM tables WHERE id = p_table_id AND created_by = auth.uid()
+      ) THEN
+        RAISE EXCEPTION 'Non autorisé';
+      END IF;
+
+      IF p_pseudo IS NULL OR btrim(p_pseudo) = '' THEN
+        RAISE EXCEPTION 'Pseudo requis';
+      END IF;
+
+      INSERT INTO participants (table_id, user_id, pseudo)
+      VALUES (p_table_id, auth.uid(), btrim(p_pseudo))
+      ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id
+      RETURNING id INTO v_participant_id;
+
+      RETURN jsonb_build_object('participant_id', v_participant_id);
+    END;
+    $$;
+    ```
+
+  **À faire (session de vérification)** : exécuter ce SQL (fichier ou copié ci-dessus) via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'add_offline_participant'` retourne la fonction, puis cocher cette entrée et dérouler le test du chantier 44 (section Parcours Modérateur, entrée "Chantier 43/44"). **Tant qu'elle n'est pas appliquée** : le bouton "Ajouter une personne sans téléphone" échoue à l'appel RPC (fonction PostgreSQL inexistante — erreur affichée dans le formulaire, rien de silencieux côté UI).
 
 ## Résultats publics (chantier 46)
 
@@ -283,6 +321,9 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 *Nécessite un Code Ecclesia et une vraie table animée (avec modérateur) pour la plupart des points ci-dessous — pas testable avec une table `leaderless` seule.*
 
+- [ ] ~~**Chantier 43 — Fusion "Outils Modo" + suppression transcription (vue modérateur)**~~ **(doublon — voir "Branche non mergée — Chantier 43/44" plus bas)**
+  Entrée initiale écrite avant la consolidation du 2026-09-01 puis avant l'élargissement au chantier 44 (2026-09-02). Conservée telle quelle par respect de la règle append-only, mais périmée — le contenu à jour (incluant le bouton "Ajouter une personne sans téléphone") est dans l'entrée consolidée ci-dessous. Ne pas la dérouler.
+
 - [ ] **Chantier 8 (rattrapage) — Fix DnD : l'entrée déposée n'arrive plus en dernier (A2)**
   Mergé sur `main` (`e1fb31a`), aucune migration.
 
@@ -290,16 +331,30 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Test minimal** (table animée réelle, Code Ecclesia requis) : avec plusieurs entrées dans une file, glisser une entrée (depuis le panneau participants ou une autre position) directement sur une ligne précise → vérifier qu'elle atterrit à la position visée.
 
-- [ ] **Branche non mergée — Chantier 43 — fusion "Outils Modo" + suppression transcription (vue modérateur)** — branche `chantier-43-outils-modo-transcription`, **pas mergée sur `main`** (en attente de la vérification manuelle ci-dessous avant merge)
+- [ ] **Branche non mergée — Chantier 43/44 — fusion "Outils Modo" + suppression transcription + "Ajouter une personne sans téléphone" (vue modérateur)** — branche `chantier-43-outils-modo-transcription`, **pas mergée sur `main`** (en attente de la vérification manuelle ci-dessous avant merge). Rebasée sur `origin/main` le 2026-09-02 (chantiers 40/42/45 inclus). **Ne contient pas** le fix `isModerator` du chantier 41 (`22078ff`, branche `chantier-41-reload-moderateur`) — pas encore mergé sur `main` au moment du rebase ; `TableContext.tsx` n'a pas été touché par ce chantier, rien à réconcilier pour l'instant, mais le prochain rebase avant merge devra le prendre en compte si chantier 41 est mergé entre-temps.
 
-  **Ce qui a été fait** : `NotesButton`, `AssertionsButton` et `QuestionnaireFab` (header de `ModeratorView`) retirés — leur contenu intégré comme entrées du menu `ModeratorToolsButton` ("Outils Modo"), organisé en 3 sections séparées par des lignes : **Camps & assertions** (Camps, Assertions votées — en premier, visible seulement si `table.session_id`), **Table** (QR code, Historique, Forçage questionnaire), **Personnel** (Mes notes, Questionnaire post-débat). Seul le bouton Documentation reste séparé dans le header. Le bouton et le code de transcription *live* (`useTranscription.ts`, backend WebSocket, déjà signalé mort dans `CLAUDE.md` depuis le 2026-06-30) sont supprimés — le sous-projet `transcription-debat/` (pipeline offline) n'est pas touché.
+  **Chantier 43 — ce qui a été fait** : `NotesButton`, `AssertionsButton` et `QuestionnaireFab` (header de `ModeratorView`) retirés — leur contenu intégré comme entrées du menu `ModeratorToolsButton` ("Outils Modo"), organisé en 3 sections séparées par des lignes : **Camps & assertions** (Camps, Assertions votées — en premier, visible seulement si `table.session_id`), **Table** (QR code, Historique, **Ajouter une personne sans téléphone** — chantier 44, voir ci-dessous, Forçage questionnaire), **Personnel** (Mes notes, Questionnaire post-débat). Seul le bouton Documentation reste séparé dans le header. Le bouton et le code de transcription *live* (`useTranscription.ts`, backend WebSocket, déjà signalé mort dans `CLAUDE.md` depuis le 2026-06-30) sont supprimés — le sous-projet `transcription-debat/` (pipeline offline) n'est pas touché.
 
-  **Déjà vérifié** : `tsc --noEmit` propre, tests verts sans régression, `npm run build` réussi, app chargée sans erreur console (EntryScreen, navigation vers une séance `debating` existante). **Aucun test en conditions réelles** — session headless sans Code Ecclesia ni mot de passe superadmin.
+  **Chantier 44 — ce qui a été fait** : nouveau bouton **"Ajouter une personne sans téléphone"** dans la section **Table** (placé juste après "QR code de la table") — ouvre un formulaire "Prénom Nom", appelle la nouvelle RPC `add_offline_participant(p_table_id, p_pseudo)` *(migration SQL non appliquée, voir section dédiée plus bas)*. La personne créée apparaît dans `participants` comme n'importe qui (Realtime déjà abonné, aucun changement côté `TableContext`) — le modérateur lui donne/retire la parole avec les outils existants (glisser-déposer, "Exclure" dans `ParticipantsTable`), rien de nouveau à ce niveau.
 
-  **Test minimal** (Code Ecclesia + vraie table modérateur requis) :
-  1. Rejoindre une table de débat en tant que modérateur → ouvrir "Outils Modo" → confirmer les 3 sections dans l'ordre (Camps & assertions en premier), tous les items s'ouvrent (Camps, Assertions votées, QR code, Historique, Forcer/Annuler questionnaire, Mes notes, Questionnaire post-débat) sans erreur console.
-  2. Confirmer qu'aucun bouton/mention "Transcription" ne subsiste dans la vue modérateur.
-  3. Cas sans séance rattachée (table créée hors séance) : confirmer que la section "Camps & assertions" est bien absente (conditionnée à `table.session_id`) et qu'il n'y a pas de ligne de séparation orpheline.
+  **Pourquoi une nouvelle RPC plutôt que réutiliser `join_table`** : `join_table` appelle aussi `sync_table_assignment(session_id, table_id, auth.uid(), pseudo)`, qui opère par **user_id**, pas par pseudo. Appelé sous l'identité du modérateur (c'est son appareil qui insère la ligne), ce mécanisme chercherait/créerait la ligne `session_members` du **modérateur lui-même** — pour un modérateur "classique" jamais inscrit au vote de cette séance (cas déjà documenté dans ce fichier, section chantier 35), ça insère une ligne `session_members` fantôme portant le user_id du modérateur mais le pseudo de la personne ajoutée, avec `attending_in_person=true` en trop (fausse les stats `get_session_voting_stats`). `add_offline_participant` reprend uniquement le cœur de `join_table` (`INSERT INTO participants ... ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id`, donc **exactement le même mécanisme de collision** — si quelqu'un rejoint plus tard avec le même nom, il reprend la main sur cette ligne, comme une reconnexion depuis un autre appareil) sans jamais toucher `session_members`/`table_assignments`/`entry_responses`.
+
+  **Deux hypothèses posées, non tranchées explicitement par Jules** :
+  1. **Comptage votes/allocation** : cette personne ne compte **jamais** dans les votes ni dans l'allocation. Ce n'est pas un choix arbitraire — `ModeratorToolsButton` n'existe que dans `ModeratorView`, qui n'existe qu'en phase `debating`, c'est-à-dire **après** que vote et allocation aient déjà eu lieu. Il n'y a structurellement rien à recompter. C'est aussi cohérent avec le fait que `add_offline_participant` n'écrit que dans `participants` — pas de ligne `session_members`/`entry_responses` créée, donc rien qui pourrait entrer dans une analyse ou un futur clustering.
+  2. **Persistance** : la ligne créée persiste en base normalement, exactement comme n'importe quel participant (même table `participants`, même CASCADE si la table de débat est supprimée, exclusion via `kick_participant` comme tout le monde). Pas de statut "éphémère"/session-only : ce concept n'existe nulle part ailleurs dans le schéma (`speaking_turns`, `queue_entries` persistent aussi), l'inventer pour ce seul cas aurait été une incohérence, pas une simplification.
+
+  Si l'une de ces deux hypothèses ne convient pas à Jules, la RPC `add_offline_participant` est le seul endroit à modifier (elle est volontairement isolée, ne réutilise pas `join_table`).
+
+  **Déjà vérifié** : `tsc --noEmit` propre (94 tests passés, 1 skip pré-existant, aucune régression), `npm run build` réussi, app rechargée dans le Browser pane sans erreur console après le rebase et l'ajout du bouton (EntryScreen, listing des séances). **Aucun test en conditions réelles sur `ModeratorView`/`ModeratorToolsButton`** — session headless sans Code Ecclesia ni mot de passe superadmin (volontaire, cf. consigne de Jules).
+
+  **Test minimal** (Code Ecclesia + vraie table animée avec modérateur requis — couvre les deux chantiers en une passe) :
+  1. **Migration SQL appliquée au préalable** (voir section dédiée ci-dessous) — sinon le bouton "Ajouter une personne sans téléphone" échoue à l'appel RPC (fonction inexistante).
+  2. Rejoindre une table de débat en tant que modérateur → ouvrir "Outils Modo" → confirmer les 3 sections dans l'ordre (Camps & assertions en premier, Table, Personnel), séparées par des lignes.
+  3. Section Table : cliquer "Ajouter une personne sans téléphone" → saisir "Prénom Nom" → "Ajouter" → modal se ferme, la personne apparaît dans la liste des participants (`ParticipantsTable`/sidebar) sans reload. Lui donner la parole (glisser dans une file, ou clic direct) → vérifier que ça fonctionne comme pour un participant normal. La retirer via "Exclure".
+  4. **Collision** : ajouter à nouveau une personne avec le **même** "Prénom Nom" qu'un participant déjà présent (ajouté par ce bouton ou ayant rejoint normalement) → vérifier qu'aucune erreur ne bloque, et que ça se comporte comme une reconnexion (même ligne participant, pas de doublon dans la liste).
+  5. Confirmer que tous les autres items s'ouvrent sans erreur console (Camps, Assertions votées, QR code, Historique, Forcer/Annuler questionnaire, Mes notes, Questionnaire post-débat) et qu'aucun bouton/mention "Transcription" ne subsiste.
+  6. Cas sans séance rattachée (table créée hors séance) : confirmer que la section "Camps & assertions" est bien absente (conditionnée à `table.session_id`) et qu'il n'y a pas de ligne de séparation orpheline. Le bouton "Ajouter une personne sans téléphone" doit lui rester visible (section Table, indépendante de `session_id`).
+  7. Si un avis tranche différemment les deux hypothèses ci-dessus (comptage votes/allocation, persistance) : le signaler, `add_offline_participant` est isolée pour être facile à ajuster.
 
   **Reste identifié mais volontairement non touché** : `src/hooks/useTranscription.ts` supprimé (mort après retrait de son unique appelant), mais `src/components/voting/OnboardingForm.tsx:158` mentionne encore la transcription dans un texte de consentement participant (anonymisation du pipeline offline, sans lien avec le hook supprimé) — non modifié, hors périmètre.
 
