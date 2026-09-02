@@ -211,8 +211,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         return
       }
 
-      // 3c. En phase voting : si le membre n'a pas confirmé sa présence → confirmation
-      if (s.phase === 'voting' && !m.attending_in_person) {
+      // 3c. En phase voting ou allocating : si le membre n'a pas confirmé sa
+      //     présence → confirmation. Chantier 61 : `allocating` ajouté — un
+      //     pré-votant qui ouvre le lien pendant que les groupes se forment
+      //     est sur place ; sans ça il restait `attending_in_person = false`
+      //     et n'était donc jamais compté comme présent.
+      if ((s.phase === 'voting' || s.phase === 'allocating') && !m.attending_in_person) {
         setConfirmPseudo(m.pseudo)
         setConfirmMode('known_user')   // identifié par user_id, même appareil
         setStep('confirm_attendance')
@@ -748,8 +752,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     const intro = showPreVotingAnnounce
       ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
       : showAppIntro ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} /> : null
-    // En phase voting : formulaire combiné pseudo OU code (pas de double écran)
-    if (session.phase === 'voting') {
+    // En phase voting ou allocating : formulaire combiné pseudo OU code (pas de
+    // double écran). Chantier 61 : `allocating` ajouté — c'est ce formulaire,
+    // et lui seul, qui sait retrouver une inscription existante par nom OU par
+    // code de rappel ; `PseudoForm` ne câble sa reconquête que pour `pre_voting`.
+    if (session.phase === 'voting' || session.phase === 'allocating') {
       return (
         <>
           <QuitLink />
@@ -1615,8 +1622,23 @@ function DocNudge({ session, memberPseudo }: DocNudgeProps) {
   )
 }
 
+// ── AllocatingEntryNotice ─────────────────────────────────────────────────────
+// Chantier 61 — quelqu'un peut désormais s'inscrire pendant que l'organisateur
+// forme les groupes. On le lui dit à l'entrée plutôt que de le laisser croire
+// qu'il arrive à temps pour peser sur la répartition.
+
+function AllocatingEntryNotice() {
+  return (
+    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-center">
+      Les groupes de débat sont en cours de formation. Tu peux quand même
+      t'inscrire et voter — ton vote ne changera plus la répartition des tables.
+    </div>
+  )
+}
+
 // ── VotingEntryForm ───────────────────────────────────────────────────────────
-// Formulaire unique pour la phase voting : pseudo OU code, en un seul écran.
+// Formulaire unique pour les phases voting et allocating (chantier 61) :
+// pseudo OU code, en un seul écran.
 // Si le pseudo est déjà pris → reclaim automatique sans étape supplémentaire.
 
 interface VotingEntryFormProps {
@@ -1706,6 +1728,8 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           <h1 className="text-xl font-bold text-gray-900">Vote présentiel</h1>
           <p className="mt-1 text-sm text-gray-500">{session.title}</p>
         </div>
+
+        {session.phase === 'allocating' && <AllocatingEntryNotice />}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Onglets pseudo / code */}
@@ -1911,6 +1935,9 @@ function AttendanceConfirmScreen({
       </div>
       <h1 className="text-xl font-bold text-gray-900">Vote présentiel</h1>
       <p className="mt-1 text-sm text-gray-500">{session.title}</p>
+      {session.phase === 'allocating' && (
+        <div className="mt-4 text-left"><AllocatingEntryNotice /></div>
+      )}
     </div>
   )
 
