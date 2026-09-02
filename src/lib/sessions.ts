@@ -146,6 +146,20 @@ export async function closeSession(
   return data as Session
 }
 
+export async function setSessionResultsPublic(
+  password: string,
+  sessionId: string,
+  resultsPublic: boolean,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('set_session_results_public', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_results_public: resultsPublic,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
 export async function listSessionTables(
   password: string,
   sessionId: string,

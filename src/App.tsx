@@ -10,6 +10,7 @@ import CollabDocScreen from './screens/CollabDocScreen'
 import VoteScreen from './screens/VoteScreen'
 import SessionRouterScreen from './screens/SessionRouterScreen'
 import JoinTableScreen from './screens/JoinTableScreen'
+import PublicResultsScreen from './screens/PublicResultsScreen'
 
 type AppPhase =
   | { type: 'loading' }
@@ -122,6 +123,15 @@ export default function App() {
   if (hash.startsWith('#vote/') && phase.type !== 'table') {
     const joinCode = hash.slice('#vote/'.length)
     return <VoteScreen sessionJoinCode={joinCode} onTableJoined={handleTableJoined} />
+  }
+
+  // Route #results/<session_id> — résultats publics d'une ancienne séance,
+  // accédée depuis la modale "Anciennes séances" de l'accueil (chantier 46) —
+  // pas de join_code nécessaire, direct par id. Gate réel côté RPC
+  // (get_public_results exige phase='closed' ET results_public=true).
+  if (hash.startsWith('#results/') && phase.type !== 'table') {
+    const resultsSessionId = hash.slice('#results/'.length)
+    return <PublicResultsScreen sessionId={resultsSessionId} />
   }
 
   // Route #table/<join_code> — rejoindre directement une table de débat via un code distribué (D8/D14)
