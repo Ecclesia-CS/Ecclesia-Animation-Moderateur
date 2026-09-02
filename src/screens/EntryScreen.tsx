@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import { claimModeratorStatus } from '../lib/voting'
+import ReclaimCodeDisplay from '../components/voting/ReclaimCodeDisplay'
 import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
 
@@ -71,6 +72,9 @@ export default function EntryScreen({ onJoined }: Props) {
   const [moderatorPassword, setModeratorPassword] = useState('')
   const [moderatorLoading, setModeratorLoading] = useState(false)
   const [moderatorError, setModeratorError] = useState<string | null>(null)
+  // Chantier 67 — code de rappel à afficher quand la déclaration modérateur
+  // vient de créer un profil en pré-vote (attending_in_person = false).
+  const [moderatorReclaim, setModeratorReclaim] = useState<{ pseudo: string; code: string; joinCode: string } | null>(null)
 
   useEffect(() => {
     function fetchActiveSessions() {
@@ -194,13 +198,22 @@ export default function EntryScreen({ onJoined }: Props) {
     setModeratorError(null)
     setModeratorLoading(true)
     try {
-      await claimModeratorStatus(moderatorSessionId, moderatorPassword, pseudo)
+      // Chantier 67 — généré côté client comme pour register_session_member :
+      // ignoré côté serveur si ce n'est pas une nouvelle inscription en
+      // pré-vote (profil déjà existant, ou séance pas en pre_voting).
+      const candidateCode = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+      const updated = await claimModeratorStatus(moderatorSessionId, moderatorPassword, pseudo, candidateCode)
       lastNameStore.set(pseudo)
       const sel = moderatorSessions.find(s => s.id === moderatorSessionId)
-      if (sel?.join_code) {
-        window.location.hash = '#vote/' + sel.join_code
-      } else {
+      if (!sel?.join_code) {
         setModeratorError('Séance sans code — contactez le superadmin.')
+        return
+      }
+      if (updated.reclaim_code === candidateCode) {
+        // Nouveau profil créé en pré-vote — montrer le code avant de partir.
+        setModeratorReclaim({ pseudo: updated.pseudo, code: candidateCode, joinCode: sel.join_code })
+      } else {
+        window.location.hash = '#vote/' + sel.join_code
       }
     } catch (err) {
       setModeratorError(extractErr(err))
@@ -214,6 +227,16 @@ export default function EntryScreen({ onJoined }: Props) {
     { id: 'join',      label: 'Rejoindre ou reprendre une table' },
     { id: 'create',    label: 'Créer' },
   ]
+
+  if (moderatorReclaim) {
+    return (
+      <ReclaimCodeDisplay
+        pseudo={moderatorReclaim.pseudo}
+        code={moderatorReclaim.code}
+        onContinue={() => { window.location.hash = '#vote/' + moderatorReclaim.joinCode }}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

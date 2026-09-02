@@ -132,6 +132,12 @@ export interface SessionMember {
    * séance, qui reste un signal de recrutement pour les séances futures.
    */
   is_moderator?: boolean
+  /**
+   * Chantier 67 — code de rappel en clair (4 chiffres), posé uniquement pour
+   * une inscription en `pre_voting` (`register_session_member`,
+   * `claim_moderator_status`). `null`/`undefined` sinon.
+   */
+  reclaim_code?: string | null
 }
 
 /** Chantier 19 (G3) — onboarding réduit à 3 questions. */

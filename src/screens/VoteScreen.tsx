@@ -10,6 +10,7 @@ import AssertionCard from '../components/voting/AssertionCard'
 import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
 import NotesModal from '../components/NotesModal'
+import ReclaimCodeDisplay from '../components/voting/ReclaimCodeDisplay'
 import AllocatingScreen from './AllocatingScreen'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 import QuitLink from '../components/QuitLink'
@@ -581,6 +582,16 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     }
   }
 
+  // Chantier 67 — un pré-votant qui ne veut pas mentir sur sa présence peut
+  // choisir de rester à distance : `attending_in_person` reste `false` (donc
+  // exclu de l'allocation), pas de RPC à appeler, juste reprendre le vote.
+  // Pas d'onboarding non plus, comme pour `handlePseudoReclaimSuccess` : la
+  // pré-vote n'en a pas et ce membre le reste tant qu'il ne confirme pas.
+  async function handleContinueRemote() {
+    if (!session || !member) return
+    await loadVoteData(session, member)
+  }
+
   async function handleOnboardingSuccess(_response: EntryResponse) {
     if (!session || !member) return
     // Re-fetch phase courante — peut avoir changé pendant l'onboarding
@@ -814,6 +825,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           pseudo={confirmPseudo}
           mode={confirmMode}
           onConfirmed={handleConfirmAttendanceSuccess}
+          onContinueRemote={handleContinueRemote}
           onSwitchToReclaim={() => setConfirmMode('reclaim')}
           onChangePseudo={() => {
             setConfirmPseudo('')
@@ -1294,7 +1306,22 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
     onClose()
   }
 
-  const voteDuration = "Prends le temps qu'il te faut pour voter sur les assertions."
+  // Chantier 67 — alignées sur les 5 étapes de PhaseIndicator/phaseLabels.ts
+  // (chantier 39), qui a introduit un palier « Distanciel » distinct du vote
+  // présentiel et fusionné le questionnaire dans « Post-débat » : ce modal en
+  // annonçait encore 4, la 5e (pré-vote) n'apparaissait nulle part.
+  const introSteps: Array<{ icon: string; label: string; description: string }> = [
+    { icon: '🏠', label: '1. Distanciel',
+      description: "Si le vote à distance est ouvert, tu peux voter depuis chez toi avant le jour J." },
+    { icon: '🗳️', label: '2. Vote en présentiel',
+      description: "Le jour J, prends le temps qu'il te faut pour voter sur les assertions." },
+    { icon: '🧩', label: '3. Allocation',
+      description: "L'app forme des groupes de débat variés à partir des votes de tout le monde." },
+    { icon: '💬', label: '4. Débat',
+      description: 'Tu rejoins ta table et débats avec ton groupe.' },
+    { icon: '📋', label: '5. Post-débat',
+      description: 'Un court questionnaire de fin, puis tes résultats.' },
+  ]
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
@@ -1307,34 +1334,15 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
           <p className="text-indigo-100 text-xs mt-1">{session.title}</p>
         </div>
         <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
-          <div className="flex items-start gap-3">
-            <span className="text-xl shrink-0">🗳️</span>
-            <div>
-              <p className="font-semibold text-gray-900">1. Vote</p>
-              <p className="text-gray-500 text-xs mt-0.5">{voteDuration}</p>
+          {introSteps.map(step => (
+            <div key={step.label} className="flex items-start gap-3">
+              <span className="text-xl shrink-0">{step.icon}</span>
+              <div>
+                <p className="font-semibold text-gray-900">{step.label}</p>
+                <p className="text-gray-500 text-xs mt-0.5">{step.description}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-xl shrink-0">🧩</span>
-            <div>
-              <p className="font-semibold text-gray-900">2. Répartition en groupes</p>
-              <p className="text-gray-500 text-xs mt-0.5">L'app forme des groupes de débat variés à partir des votes de tout le monde.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-xl shrink-0">💬</span>
-            <div>
-              <p className="font-semibold text-gray-900">3. Débat</p>
-              <p className="text-gray-500 text-xs mt-0.5">Tu rejoins ta table et débats avec ton groupe.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-xl shrink-0">📋</span>
-            <div>
-              <p className="font-semibold text-gray-900">4. Questionnaire</p>
-              <p className="text-gray-500 text-xs mt-0.5">Un court retour sur la séance, à la fin.</p>
-            </div>
-          </div>
+          ))}
         </div>
         <div className="px-6 pb-6">
           <button
@@ -1809,71 +1817,6 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
   )
 }
 
-// ── ReclaimCodeDisplay ────────────────────────────────────────────────────────
-
-interface ReclaimCodeDisplayProps {
-  pseudo: string
-  code: string
-  onContinue: () => void
-}
-
-function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProps) {
-  const [copied, setCopied] = useState(false)
-
-  function handleCopy() {
-    navigator.clipboard?.writeText(`Pseudo : ${pseudo} | Code : ${code}`).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100">
-          <span className="text-2xl">🔑</span>
-        </div>
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3">
-          <p className="text-base font-bold text-amber-700">📸 Fais un screen de cet écran !</p>
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Note ton code de rappel</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Si tu viens au débat et changes d'appareil, entre ton nom et prénom <strong>ou</strong> ce code pour retrouver tes votes.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Prénom Nom</p>
-            <p className="text-lg font-bold text-gray-900">{pseudo}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Code de rappel</p>
-            <p className="text-4xl font-mono font-bold tracking-widest text-amber-600">{code}</p>
-          </div>
-          <button
-            onClick={handleCopy}
-            className="w-full py-2 text-sm text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-colors"
-          >
-            {copied ? '✓ Copié !' : 'Copier pseudo + code'}
-          </button>
-        </div>
-
-        <p className="text-xs text-gray-400">
-          Il suffit de l'un ou de l'autre pour retrouver tes votes.
-        </p>
-
-        <button
-          onClick={onContinue}
-          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-        >
-          Continuer vers le vote →
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── AttendanceConfirmScreen ───────────────────────────────────────────────────
 
 interface AttendanceConfirmScreenProps {
@@ -1881,6 +1824,7 @@ interface AttendanceConfirmScreenProps {
   pseudo: string
   mode: 'known_user' | 'reclaim'
   onConfirmed: (member: SessionMember) => void
+  onContinueRemote: () => void
   onSwitchToReclaim: () => void
   onChangePseudo: () => void
 }
@@ -1890,6 +1834,7 @@ function AttendanceConfirmScreen({
   pseudo,
   mode,
   onConfirmed,
+  onContinueRemote,
   onSwitchToReclaim,
   onChangePseudo,
 }: AttendanceConfirmScreenProps) {
@@ -1907,6 +1852,16 @@ function AttendanceConfirmScreen({
       onConfirmed(member)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleContinueRemoteClick() {
+    setError(null)
+    setLoading(true)
+    try {
+      await onContinueRemote()
     } finally {
       setLoading(false)
     }
@@ -1967,6 +1922,13 @@ function AttendanceConfirmScreen({
               className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
             >
               {loading ? 'Confirmation…' : '✓ Oui, je suis présent(e)'}
+            </button>
+            <button
+              onClick={handleContinueRemoteClick}
+              disabled={loading}
+              className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-60 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+            >
+              {loading ? 'Un instant…' : 'Non, je continue à voter à distance'}
             </button>
             <button
               onClick={onSwitchToReclaim}
