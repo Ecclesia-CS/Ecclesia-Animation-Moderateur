@@ -11,6 +11,8 @@ import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 import QuitLink from '../components/QuitLink'
+import PhaseIndicator from '../components/PhaseIndicator'
+import { hasQuestionnaireResponse } from '../lib/voting'
 
 interface AllocatingScreenProps {
   session: Session
@@ -98,11 +100,16 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
           table: 'sessions',
           filter: `id=eq.${session.id}`,
         },
-        payload => {
+        async payload => {
           const updated = payload.new as Session
           setCurrentSession(updated)
-          if (updated.phase === 'questionnaire') setShowQuestionnaire(true)
-          if (updated.phase === 'closed')        setSessionClosed(true)
+          if (updated.phase === 'closed') {
+            // Chantier 39 — plus de phase 'questionnaire' dédiée : proposer
+            // le formulaire avant la bannière de clôture s'il manque encore.
+            const answered = await hasQuestionnaireResponse(updated.id)
+            if (answered) setSessionClosed(true)
+            else setShowQuestionnaire(true)
+          }
         },
       )
       .subscribe()
@@ -150,8 +157,12 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       const s = data as Session
       if (s.phase === currentSession.phase) return
       setCurrentSession(s)
-      if (s.phase === 'questionnaire') setShowQuestionnaire(true)
-      if (s.phase === 'closed')        setSessionClosed(true)
+      if (s.phase === 'closed') {
+        // Chantier 39 — plus de phase 'questionnaire' dédiée
+        const answered = await hasQuestionnaireResponse(s.id)
+        if (answered) setSessionClosed(true)
+        else setShowQuestionnaire(true)
+      }
     }, 10_000)
 
     return () => clearInterval(interval)
@@ -207,7 +218,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         <QuitLink />
         <SessionQuestionnaireForm
           sessionId={currentSession.id}
-          onDone={() => setShowQuestionnaire(false)}
+          onDone={() => { setShowQuestionnaire(false); setSessionClosed(true) }}
         />
       </>
     )
@@ -216,6 +227,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <QuitLink />
+      <PhaseIndicator phase={currentSession.phase} floating />
       {/* Header */}
       <header className="bg-white border-b border-gray-100 px-4 py-5 text-center">
         <div className="text-3xl mb-1">🎉</div>

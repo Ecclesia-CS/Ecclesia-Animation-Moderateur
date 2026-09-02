@@ -127,6 +127,21 @@ export async function getVoteResults(sessionId: string): Promise<VoteResult[]> {
   return (data as VoteResult[]) ?? []
 }
 
+/**
+ * Chantier 39 — remplace le gate sur `session.phase === 'questionnaire'`
+ * (phase supprimée) : un membre inscrit a déjà répondu au questionnaire
+ * post-débat de cette séance ? RLS restreint déjà la lecture à ses propres
+ * réponses (`user_id = auth.uid()`), inutile de filtrer dessus ici.
+ */
+export async function hasQuestionnaireResponse(sessionId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('questionnaire_responses')
+    .select('id')
+    .eq('session_id', sessionId)
+    .maybeSingle()
+  return data != null
+}
+
 // Chantier 20 (G7) — vue modérateur : composition idéologique de sa table +
 // assertions représentatives par camp + clivantes/consensuelles au sein de
 // la table. Aucun mot de passe : auth par participation à la table (RPC

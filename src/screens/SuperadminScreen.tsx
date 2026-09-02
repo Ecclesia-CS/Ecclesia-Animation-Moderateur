@@ -60,12 +60,11 @@ type AdminView = { type: 'list' } | { type: 'detail'; session: SessionRow }
 // ── Phase labels & badge colours ─────────────────────────────────
 
 const PHASE_LABEL: Record<string, string> = {
-  draft:         'Brouillon',
+  draft:         'Phase 0',
   pre_voting:    'Pré-vote',
   voting:        'Vote présentiel',
   allocating:    'Allocation',
   debating:      'Débat',
-  questionnaire: 'Questionnaire',
   closed:        'Clôturée',
 }
 
@@ -75,12 +74,11 @@ const PHASE_CLASS: Record<string, string> = {
   voting:        'bg-purple-100 text-purple-700',
   allocating:    'bg-orange-100 text-orange-700',
   debating:      'bg-indigo-100 text-indigo-700',
-  questionnaire: 'bg-teal-100 text-teal-700',
   closed:        'bg-slate-100 text-slate-500',
 }
 
 const PHASE_ORDER: Record<string, number> = {
-  draft: 0, voting: 1, allocating: 1, debating: 1, questionnaire: 1, closed: 2,
+  draft: 0, voting: 1, allocating: 1, debating: 1, closed: 2,
 }
 
 function sortSessions(list: SessionRow[]): SessionRow[] {
@@ -964,7 +962,7 @@ function SessionDetail({
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
 
   // ── Phase transitions ──────────────────────────────────────
-  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
+  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'closed']
   const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
   const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
   const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
@@ -1013,7 +1011,11 @@ function SessionDetail({
       }
       const updated = await setSessionPhase(password, currentSession.id, targetPhase)
       setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
-      if (targetPhase === 'questionnaire') {
+      // Chantier 39 — la phase 'questionnaire' a disparu de la machine à
+      // états : le questionnaire post-débat se déclenche désormais tout
+      // seul, au moment précis où le débat se termine (debating → closed),
+      // plutôt que sur une étape manuelle dédiée.
+      if (targetPhase === 'closed' && currentSession.phase === 'debating') {
         await forceSessionQuestionnaire(password, currentSession.id)
         setIsQForced(true)
       }
@@ -1027,7 +1029,7 @@ function SessionDetail({
   }
 
   // ── Assertions (C2) ────────────────────────────────────────
-  const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'questionnaire', 'closed']
+  const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
   const [assertions,        setAssertions]        = useState<AssertionAdmin[]>([])
@@ -3127,13 +3129,16 @@ function ModerationPolicyEditor({
 
 // ── PhaseBar ──────────────────────────────────────────────────────
 
+// Chantier 39 — la numérotation des cercles (voir `i` plus bas, pas `i + 1`)
+// est alignée sur la nomenclature participant : pre_voting=1 (Distanciel),
+// voting=2, allocating=3, debating=4, closed=5 (Post-débat). `draft` prend
+// donc naturellement le numéro 0 — d'où son libellé « Phase 0 ».
 const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
-  { phase: 'draft',         short: 'Brouillon' },
+  { phase: 'draft',         short: 'Phase 0' },
   { phase: 'pre_voting',    short: 'Pré-vote' },
   { phase: 'voting',        short: 'Vote présentiel' },
   { phase: 'allocating',    short: 'Allocation' },
   { phase: 'debating',      short: 'Débat' },
-  { phase: 'questionnaire', short: 'Questionnaire' },
   { phase: 'closed',        short: 'Clôturée' },
 ]
 
@@ -3169,7 +3174,7 @@ function PhaseBar({
               <div className="flex flex-col items-center flex-shrink-0">
                 {isCurrent ? (
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-600 text-white ring-2 ring-indigo-200">
-                    {i + 1}
+                    {i}
                   </div>
                 ) : (
                   <button
@@ -3182,7 +3187,7 @@ function PhaseBar({
                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
                     }`}
                   >
-                    {isPast ? '✓' : i + 1}
+                    {isPast ? '✓' : i}
                   </button>
                 )}
                 <span className={`mt-1 text-[10px] font-medium text-center leading-tight hidden sm:block ${
