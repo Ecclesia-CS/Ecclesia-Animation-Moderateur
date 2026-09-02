@@ -266,6 +266,12 @@ supabase/functions/
                              Actions : moderate | merge | name_groups
                              Auth : JWT Supabase via getUser()
                              Clé : GEMINI_API_KEY (secret Supabase)
+                             Chantier 57 : quota 20 appels/60s par user_id (compteur en
+                             mémoire, pas de table Postgres — voir commentaire en tête du
+                             fichier) → 429 ; plafond de charge utile 300 Ko → 413. Messages
+                             extraits côté client par `extractGeminiError()` (src/lib/gemini.ts)
+                             car `FunctionsHttpError` masque le corps JSON derrière un message
+                             générique pour toute réponse non-2xx.
 ```
 
 ### Hash routes (App.tsx)
