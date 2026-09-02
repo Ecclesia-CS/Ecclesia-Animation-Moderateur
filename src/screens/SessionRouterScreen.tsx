@@ -16,6 +16,7 @@ type Status =
   | 'loading'
   | 'redirecting'
   | 'not_found'
+  | 'not_open'
   | 'debating_no_member'
   | 'questionnaire'
   | 'closed'
@@ -56,6 +57,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       // 3. Branch per phase
       switch (s.phase) {
         case 'draft':
+          // Chantier 65 — une séance en brouillon n'est pas encore ouverte :
+          // pas de redirection vers #vote/, qui ne peut de toute façon aboutir
+          // (register_session_member la refuse côté serveur).
+          setStatus('not_open')
+          return
+
         case 'pre_voting':
         case 'voting':
         case 'allocating':
@@ -189,6 +196,11 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       icon: '❓',
       title: 'Séance introuvable',
       subtitle: 'Vérifie le lien ou scanne à nouveau le QR code.',
+    },
+    not_open: {
+      icon: '🔒',
+      title: 'Séance pas encore ouverte',
+      subtitle: "Cette séance est encore en préparation. Reviens un peu plus tard, ou contacte l'organisateur si tu penses que c'est une erreur.",
     },
     closed: {
       icon: '✅',

@@ -99,6 +99,35 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Point de conception tranché et vérifié par lecture du SQL** : `cast_vote`, `submit_assertion` et `submit_entry_response` (définitions courantes : `20260528_voting_app.sql` pour les deux premières, `20260725_1_onboarding_3_questions.sql` pour la troisième) **n'ont aucun garde de phase** — ils n'exigent qu'une ligne `session_members`. Le vote pendant l'allocation fonctionnait donc **déjà** côté serveur ; seul le chemin d'entrée bloquait. Aucune policy RLS ne teste la phase non plus (vérifié sur `session_members`, `entry_responses`, `assertions`, `assertion_votes`). C'est ce qui réduit ce chantier à une seule ligne de SQL utile plus deux conditions React.
 
+- [ ] **Chantier 65 — `supabase/migrations/20260902_chantier65_register_session_member_reject_draft.sql`** (nouvelle, jamais appliquée) — une séance en phase `draft` ne doit être accessible à personne.
+
+  **Le problème (revue de parcours du 2026-09-02)** : `create_session` attribue le `join_code` **dès la création** de la séance, en phase `draft`. Or `register_session_member` acceptait encore `draft` dans sa liste de phases autorisées (héritage jamais retiré, y compris par le chantier 61 juste au-dessus, qui a ajouté `allocating` sans retirer `draft`). Résultat : quiconque a le lien, ou repérait la séance dans l'onglet « Créer » de l'accueil (qui la listait), pouvait s'inscrire et voter avant que l'organisateur ait ouvert quoi que ce soit.
+
+  **Inventaire fait avant d'écrire** (comme demandé — chercher plus large que le brief) :
+  1. `register_session_member` acceptait `draft` → corrigé ci-dessous.
+  2. `SessionRouterScreen.tsx` redirigeait une séance `draft` vers `#vote/` comme les autres phases d'inscription → corrigé côté frontend (nouveau statut `not_open`, message "Séance pas encore ouverte" au lieu d'une redirection qui de toute façon échouerait maintenant à l'inscription).
+  3. `VoteScreen.tsx` (accessible directement via `#vote/<join_code>`, pas seulement via le routeur) affichait le formulaire de pseudo pour une séance `draft` → corrigé côté frontend (nouvelle étape `not_open`, même message).
+  4. L'onglet « Créer » de `EntryScreen.tsx` listait les séances `draft` (`.in('phase', ['draft', 'pre_voting', 'voting', 'debating'])`) → `draft` retiré de la liste.
+  5. **Trouvé en creusant, absent du brief initial** : `confirm_attendance` — appelée par `VoteScreen.tsx` uniquement en phase `voting`/`allocating` côté frontend, mais c'est une RPC `SECURITY DEFINER` appelable directement, et elle **ne testait strictement aucune phase** (déjà noté en passant par le chantier 61 juste au-dessus, ligne 98 : « elles passent par `confirm_attendance`, qui ne teste aucune phase »). Son cas 3 (pseudo non trouvé) fait un `INSERT` de tout nouveau `session_members`, sans jamais passer par `register_session_member` — donc sans jamais toucher le garde-fou du point 1. Et la table `sessions` a une policy `sessions_select ON sessions FOR SELECT USING (true)` (`20260526000001_sessions_schema.sql`, jamais restreinte depuis) : **n'importe qui peut lister toutes les séances, y compris en brouillon, par une requête REST directe avec la clé anon publique**, sans même passer par l'onglet « Créer ». Sans corriger `confirm_attendance`, retirer `draft` de `register_session_member` et de l'onglet « Créer » ne fermait donc rien : `confirm_attendance(session_id, pseudo:'Test')` sur une séance en brouillon créait quand même un membre `attending_in_person = true`. Corrigé dans le même fichier de migration (garde de phase ajouté en tête de fonction, comportement inchangé pour toutes les autres phases).
+  6. Vérifié et laissés **inchangés**, car déjà corrects ou non concernés : `claim_moderator_status` (déjà `IF v_phase NOT IN ('pre_voting', 'voting', 'allocating', 'debating')` — `draft` déjà exclu) ; `reclaim_prevoting_member` (déjà `IF v_phase != 'pre_voting'` — `draft` déjà exclu) ; `cast_vote`/`submit_assertion`/`submit_entry_response` (aucun garde de phase, mais exigent tous une ligne `session_members` existante — protégés transitivement une fois les points 1 et 5 fermés, aucun membre ne pouvant plus se créer pendant `draft`) ; `EntryScreen.tsx` "Séances en cours" et onglet "Modérateur" (excluaient déjà `draft` de leurs requêtes) ; `PastSessionsModal` (filtre déjà `phase = 'closed'`).
+
+  **Résidu non corrigé, à trancher par Jules** : la policy `sessions_select ON sessions FOR SELECT USING (true)` reste ouverte à la lecture complète pour tout le monde (même défaut que celui fermé par le chantier 50 sur `session_members`/`table_assignments`) — après ce chantier, lire une séance `draft` en REST direct ne permet plus de s'y inscrire ni d'y voter (portes fermées côté fonctions), mais son `title`/`description`/`join_code` restent lisibles par quiconque connaît ou devine son `id`. Restreindre cette policy est un chantier à part : plusieurs écrans (accueil, superadmin) lisent `sessions` sans mot de passe pour l'affichage, il faudrait vérifier chacun avant de resserrer la RLS sans rien casser.
+
+  **Le superadmin garde un accès complet à sa séance en brouillon** : toutes ses actions de préparation (`create_session`, `update_session_docs`, `attach_table_to_session`/`detach_table_from_session`, `set_session_phase`, `list_session_tables`) passent par des RPC `SECURITY DEFINER` à mot de passe superadmin, jamais par `register_session_member`/`confirm_attendance` — aucune de ces deux fonctions n'est touchée par ce chantier de son côté. Voir le scénario de non-régression en section Superadmin ci-dessous.
+
+  **À faire (session de vérification)** :
+  1. **Avant** d'appliquer, confirmer les deux signatures ciblées (piège Postgres, cf. `CLAUDE.md`) :
+     ```sql
+     SELECT p.oid::regprocedure, pg_get_function_identity_arguments(p.oid), pg_get_function_result(p.oid)
+     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public' AND p.proname IN ('register_session_member', 'confirm_attendance');
+     ```
+     Attendu : une seule ligne par fonction — `register_session_member(uuid, text, text)` → `jsonb` et `confirm_attendance(uuid, text, text)` → `jsonb`. Si une surcharge apparaît, s'arrêter et remonter le point avant d'appliquer.
+  2. Appliquer le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  3. Vérification directe en SQL : sur une séance de test en phase `draft`, `SELECT register_session_member('<id>', 'Test');` et `SELECT confirm_attendance('<id>', 'Test', NULL);` doivent tous deux lever « La séance n'est pas en phase d'inscription (phase: draft) ». Repasser la séance en `pre_voting` et rejouer les deux : succès, comme avant ce chantier.
+  4. Vérification négative REST (clé anon publique, hors navigateur) — confirme que le trou `sessions_select` reste ouvert en lecture mais que les portes d'inscription sont bien fermées : créer une séance de test en `draft`, noter son `id`, puis `POST /rest/v1/rpc/register_session_member` et `POST /rest/v1/rpc/confirm_attendance` avec cet `id` → attendu : erreur 400 avec le message de phase, dans les deux cas.
+  5. Dérouler les 3 scénarios de test manuel ci-dessous (Participant × 2, Superadmin × 1 — non-régression).
+
 - [ ] **Chantier 48 — `supabase/migrations/20260902_chantier48_switch_table.sql`**
 
   **Contenu du fichier** : crée `switch_table(p_session_id uuid, p_join_code text, p_pseudo text) returns jsonb` — permet à un participant de rejoindre une autre table que celle qui lui a été assignée, depuis `AllocatingScreen`. Vérifie que le code correspond à une table de **cette** séance (sinon exception explicite), que le participant n'est pas déjà à cette table, puis **retire proprement** toute ligne `participants` de l'utilisateur dans les autres tables de la séance (libère le micro/clôt le tour en cours si besoin, même traitement que `kick_participant`) avant d'insérer la nouvelle ligne et de déplacer `table_assignments` via `sync_table_assignment` (déjà existante, chantier 26). Voir l'en-tête du fichier de migration pour le détail du raisonnement (pourquoi une RPC dédiée plutôt que réutiliser `join_table`).
@@ -361,7 +390,36 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   3. **Refus d'une charge utile surdimensionnée** : depuis la console DevTools, appeler `supabase.functions.invoke('gemini-proxy', { body: { action: 'moderate', payload: { session_title: 't', session_description: null, assertions: [{ id: crypto.randomUUID(), content: 'x'.repeat(400000) }] } } })` → doit échouer immédiatement (413) avec un message contenant "trop volumineuse", sans avoir appelé Gemini (vérifiable en confirmant qu'aucune ligne n'apparaît dans le journal `ai_log_<id>`/compteur de tokens journalier pour cet appel).
   4. Vérifier qu'aucune des deux limites ne s'est déclenchée par erreur pendant le test 1 (usage nominal) une fois les tests 2 et 3 terminés — c'est-à-dire que la fenêtre de 60 s du test 2 n'a pas laissé le compteur de l'utilisateur de test dans un état qui bloquerait un usage normal ensuite (attendre 60 s après le test 2 avant de relancer un usage nominal si besoin).
 
+- [ ] **2026-09-02 — Chantier 65 — non-régression superadmin sur une séance en brouillon** — `src/screens/SuperadminScreen.tsx` *(migration SQL requise, voir "Migration SQL en attente" ci-dessus)*
+
+  **Pourquoi ce test** : ce chantier ferme l'accès à une séance `draft` pour tout le monde côté inscription (`register_session_member`, `confirm_attendance`) — le superadmin, lui, doit continuer à pouvoir préparer sa séance normalement, puisque tout son travail passe par des RPC à mot de passe séparées, jamais par ces deux fonctions.
+
+  **Test** :
+  1. Onglet Administration (`#superadmin`), mot de passe superadmin → créer une nouvelle séance de test (reste en `draft`).
+  2. Dans sa fiche : renseigner titre/description, ajouter les URLs de documentation (`update_session_docs`), rattacher/détacher une table existante (`attach_table_to_session`/`detach_table_from_session`) → tout doit fonctionner sans message d'erreur, exactement comme avant ce chantier.
+  3. Copier son `join_code` (visible dans la fiche superadmin) et l'ouvrir dans un **autre navigateur/onglet privé, non connecté superadmin** sur `#session/<join_code>` puis sur `#vote/<join_code>` → les deux doivent afficher le message "Séance pas encore ouverte" (voir scénario Participant ci-dessous), pas une erreur, pas un formulaire d'inscription.
+  4. Toujours côté superadmin : faire passer la séance en `pre_voting` (ou directement `voting`) via le bouton de phase → la fiche doit continuer de fonctionner normalement, et l'onglet ouvert à l'étape 3, une fois rechargé, doit désormais montrer le formulaire d'inscription normal (plus le message "pas encore ouverte").
+  5. Vérifier que la séance de test n'apparaît dans aucune liste publique **pendant qu'elle est encore en `draft`** : accueil onglet "Créer" (ne doit plus la lister), accueil "Séances en cours" (ne l'a jamais listée), accueil "Anciennes séances" (phase `closed` uniquement, non concerné ici).
+
 ## Parcours Participant
+
+- [ ] **2026-09-02 — Chantier 65 — visiteur ouvrant le lien d'une séance en brouillon** — `src/screens/SessionRouterScreen.tsx`, `src/screens/VoteScreen.tsx` *(migration SQL requise, voir "Migration SQL en attente" ci-dessus — sans elle, le message s'affiche déjà côté frontend mais l'inscription resterait possible en tentant quand même le formulaire par un autre chemin)*
+
+  **Contexte** : avant ce chantier, une séance `draft` (dont le `join_code` existe dès sa création) redirigeait silencieusement vers le formulaire d'inscription normal — n'importe qui avec le lien pouvait s'inscrire et voter avant l'ouverture. Deux points d'entrée à tester séparément, ils ne partagent pas de code.
+
+  **Test 1 — via `#session/<join_code>`** (le lien réellement partagé, cf. QR code / lien WhatsApp) :
+  1. Superadmin : créer une séance de test (reste en `draft`), noter son `join_code`.
+  2. Dans un autre navigateur/onglet privé (pas de session superadmin) : ouvrir `https://.../#session/<join_code>`.
+  3. Attendu : écran "🔒 Séance pas encore ouverte" avec un message invitant à revenir plus tard, **pas** de redirection vers un formulaire d'inscription, **pas** d'erreur JS en console. Bouton "← Retour à l'accueil" fonctionnel.
+
+  **Test 2 — via `#vote/<join_code>` directement** (lien bookmarké, ou tapé à la main) :
+  1. Même séance de test, même onglet privé : ouvrir directement `https://.../#vote/<join_code>` (en contournant le routeur).
+  2. Attendu : même écran "🔒 Séance pas encore ouverte" (variante locale à `VoteScreen`), pas le formulaire de pseudo.
+  3. Essayer de soumettre malgré tout une inscription (console DevTools : `supabase.rpc('register_session_member', { p_session_id: '<id>', p_pseudo: 'Test' })`) → doit échouer avec le message de phase, **une fois la migration SQL appliquée** (sans elle, ce test échoue — l'inscription réussirait encore, c'est le point qui prouve que le blocage frontend seul ne suffit pas).
+
+  **Test 3 — l'onglet « Créer » ne propose plus la séance** : depuis l'accueil (sans mot de passe), onglet "Créer", menu déroulant des séances → la séance de test en `draft` ne doit **pas** apparaître dans la liste (avant ce chantier, elle y figurait avec son titre et son `join_code`, visible à quiconque ouvre cet onglet).
+
+  **Une fois les 3 tests validés** : faire passer la séance de test en `pre_voting` côté superadmin, recharger les mêmes deux liens (`#session/` et `#vote/`) → le formulaire d'inscription normal doit apparaître, comme avant ce chantier.
 
 - [ ] **2026-09-02 — Chantier 50 — écran d'affectation et lectures participant sous les policies self-only** *(migration SQL requise, voir plus haut)*
 

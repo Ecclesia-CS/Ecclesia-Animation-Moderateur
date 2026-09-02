@@ -91,7 +91,9 @@ export default function EntryScreen({ onJoined }: Props) {
     supabase
       .from('sessions')
       .select('id, title, join_code')
-      .in('phase', ['draft', 'pre_voting', 'voting', 'debating'])
+      // Chantier 65 — une séance en brouillon n'est pas encore ouverte : ne pas la
+      // proposer ici, même à qui possède le code Ecclesia.
+      .in('phase', ['pre_voting', 'voting', 'debating'])
       .order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setAvailableSessions(data) })
   }, [mode])
