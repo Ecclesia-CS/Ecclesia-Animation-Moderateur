@@ -15,6 +15,7 @@ import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireF
 import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
+import ModeratorAccessPanel from '../components/voting/ModeratorAccessPanel'
 
 interface VoteScreenProps {
   sessionJoinCode: string
@@ -845,15 +846,23 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               {session.title}
             </h1>
             <p className="text-xs text-gray-500">{member.pseudo}</p>
-            {member.is_moderator && (
-              <button
-                type="button"
-                onClick={() => setShowModeratorInfo(true)}
-                className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
-              >
-                🎙️ Vous êtes modérateur
-              </button>
-            )}
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+              {member.is_moderator && (
+                <button
+                  type="button"
+                  onClick={() => setShowModeratorInfo(true)}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
+                >
+                  🎙️ Vous êtes modérateur
+                </button>
+              )}
+              <ModeratorAccessPanel
+                session={session}
+                member={member}
+                onMemberUpdated={setMember}
+                onTableJoined={onTableJoined}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <PhaseIndicator phase={session.phase} />
