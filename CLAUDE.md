@@ -138,6 +138,7 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 | Fonction | Rôle |
 |---|---|
 | `is_table_participant(uuid)` | Helper RLS anti-récursion |
+| `is_table_moderator(uuid)` | **Chantier 60** — helper d'autorité d'animation, anti-récursion (`SECURITY DEFINER STABLE`, `search_path = public, extensions`). Vrai si l'appelant est le **créateur** de la table (`tables.created_by`) **ou** un membre de la séance marqué `session_members.is_moderator` **et** affecté à **cette table précise** (`table_assignments`) — les deux conditions de la 2ᵉ branche sont cumulatives. Utilisé par `grant_floor`, `end_turn`, `end_turn_and_advance`, `kick_participant`, `add_offline_participant`, `add_to_queue`, `move_queue_entry`, `reorder_queue_entry`, `correct_turn`, et par 7 policies RLS (`tables_update_moderator`, `tables_delete_moderator`, `queue_entries_*`, `speaking_turns_*`). **Ne jamais réintroduire un test direct `created_by = auth.uid()` dans une garde d'animation** : `apply_allocation`/`create_tables_batch` posent `created_by` = l'uid du **superadmin**, pas celui du modérateur assis |
 | `create_table(pseudo, creation_code, session_id?, leaderless?)` | Crée table + participant. Si `leaderless=true`, le code Ecclesia n'est pas vérifié et la table n'a pas d'animateur |
 | `join_table(join_code, pseudo)` | ON CONFLICT → transfère user_id (retour autre appareil) |
 | `reclaim_moderator(join_code, creation_code)` | Reprend la modération |
@@ -340,6 +341,7 @@ Tout le monde voit `ParticipantView`. Pas de modérateur. Flux de parole :
 
 - **`service_role` key dans le frontend** — bypasse RLS entièrement
 - **Comparer codes côté client** — uniquement via `crypt()` en SECURITY DEFINER
+- **Garder une table pour animateur via `tables.created_by = auth.uid()`** (chantier 60) — `created_by` est l'uid du **superadmin** sur toute table créée par `apply_allocation`/`create_tables_batch`, jamais celui du modérateur assis. Une garde d'animation écrite ainsi refuse silencieusement tous les modérateurs du chemin nominal (RLS → zéro ligne, aucune erreur). Utiliser `is_table_moderator(<table_id>)`. Inversement, ne **jamais** relâcher ce helper à `is_moderator` seul (autorité sur toutes les tables de la séance) ni à `table_assignments` seul (autorité à tous les participants de la table) — les deux conditions sont cumulatives
 - **`useLiveMs()` haut dans l'arbre** — re-render 500ms sur tout le sous-arbre. Toujours dans un composant feuille (pattern `SpeakerTimer`, `SessionTimerDisplay`)
 - **`setInterval` pour incrémenter un compteur** — utiliser `Date.now() - startedAt`
 - **Plusieurs channels Realtime** — 1 seul channel, plusieurs `.on()` chaînés
