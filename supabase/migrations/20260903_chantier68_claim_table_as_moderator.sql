@@ -125,6 +125,43 @@
 --     ET `table_has_moderator` : la première appelle `crypt()` (vit dans
 --     `extensions`), l'omission se manifeste par un « Code Ecclesia
 --     incorrect » trompeur même avec le bon code.
+--
+-- ⚠️ DÉPENDANCE — À APPLIQUER APRÈS LE CHANTIER 66
+-- ------------------------------------------------------------------
+-- `20260903_chantier66_join_table_single_table.sql` (branche
+-- `chantier-66-une-seule-table`, pas encore mergée sur `main` au moment où
+-- ce fichier est écrit, mais dont la migration peut déjà avoir été
+-- appliquée en base indépendamment — vérifier `SELECT proname FROM
+-- pg_proc WHERE proname = 'leave_other_session_tables'` avant d'appliquer
+-- celle-ci) introduit l'invariant « un participant n'est présent que dans
+-- une table à la fois au sein d'une séance », via le helper
+-- `leave_other_session_tables(session_id, new_table_id, user_id)`, appelé
+-- par `join_table` et `switch_table` avant d'insérer la nouvelle ligne
+-- `participants`.
+--
+-- `claim_table_as_moderator` insère elle aussi une ligne `participants` —
+-- sans le même appel, un modérateur en retard déjà assis ailleurs dans la
+-- séance (ex. assigné par l'allocation à une autre table, ou simplement
+-- venu y jeter un œil) se retrouverait sur DEUX tables à la fois en
+-- prenant en charge celle-ci, réintroduisant exactement le bug que le
+-- chantier 66 corrige pour les deux autres chemins d'entrée. Le point 6 du
+-- corps de `claim_table_as_moderator` ci-dessous appelle donc
+-- `leave_other_session_tables(v_table.session_id, v_table.id, auth.uid())`
+-- — avec `v_table.session_id` (la séance de la table CIBLÉE), pas
+-- `p_session_id` (le paramètre optionnel de l'appelant, qui peut être
+-- NULL depuis `JoinTableScreen`/`EntryScreen` alors que la table visée
+-- appartient bel et bien à une séance).
+--
+-- Si cette migration est appliquée AVANT le chantier 66,
+-- `leave_other_session_tables` n'existe pas encore : `claim_table_as_moderator`
+-- échoue à la création (`CREATE FUNCTION` référence une fonction
+-- inexistante dans son corps `plpgsql` — erreur seulement à l'EXÉCUTION,
+-- pas à la création, `plpgsql` ne valide pas les noms de fonctions
+-- appelées au moment du `CREATE`). Concrètement : la fonction se crée sans
+-- erreur, mais tout appel échoue avec `function leave_other_session_tables
+-- (...) does not exist`. Vérifier son existence AVANT d'appliquer ce
+-- fichier (requête ci-dessus) — l'appliquer après le chantier 66 si elle
+-- ne retourne rien.
 -- =============================================================
 
 
@@ -242,6 +279,17 @@ BEGIN
       leaderless = false
   WHERE id = v_table.id;
 
+  -- Chantier 66 — un participant ne doit être présent que dans une table à
+  -- la fois au sein d'une même séance. Même appel que join_table/switch_table :
+  -- si l'appelant était déjà assis ailleurs dans CETTE séance (v_table.session_id,
+  -- pas p_session_id — cette dernière peut être NULL alors que la table cible
+  -- appartient bien à une séance, cf. JoinTableScreen/EntryScreen), il en est
+  -- retiré proprement (micro libéré, tour clos, ligne participants supprimée,
+  -- et bascule arrière leaderless si c'était lui le modérateur Bloc C d'une
+  -- table leaderless_by_design). No-op si l'appelant n'était nulle part
+  -- ailleurs dans cette séance, ou si la table cible n'a pas de séance.
+  PERFORM leave_other_session_tables(v_table.session_id, v_table.id, auth.uid());
+
   INSERT INTO participants (table_id, user_id, pseudo)
   VALUES (v_table.id, auth.uid(), btrim(p_pseudo))
   ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id
@@ -310,6 +358,15 @@ GRANT EXECUTE ON FUNCTION public.claim_table_as_moderator(text, text, text, uuid
 -- 7. reclaim_moderator inchangée — vraie reprise de main toujours permise :
 --    SELECT reclaim_moderator('<JOIN_CODE>', '<code ecclesia>', 'Même modérateur, nouvel appareil');
 --    → succès, comme avant ce chantier.
+--
+-- 8. Chantier 66 — le preneur était déjà assis ailleurs dans la MÊME séance
+--    (deux tables A et B rattachées à la même séance, l'appelant déjà
+--    participant de A, B sans modérateur) :
+--    SELECT count(*) FROM participants WHERE table_id = '<TABLE_A_ID>' AND user_id = '<USER_ID>'; -- 1, avant
+--    SELECT claim_table_as_moderator('<JOIN_CODE_B>', '<code ecclesia>', 'Test', '<SESSION_ID>');
+--    SELECT count(*) FROM participants WHERE table_id = '<TABLE_A_ID>' AND user_id = '<USER_ID>'; -- 0, après
+--    SELECT count(*) FROM participants WHERE table_id = '<TABLE_B_ID>' AND user_id = '<USER_ID>'; -- 1
+--    (nécessite que leave_other_session_tables existe déjà — chantier 66, voir plus haut)
 --
 -- =============================================================
 -- SQL D'ANNULATION (rollback)
