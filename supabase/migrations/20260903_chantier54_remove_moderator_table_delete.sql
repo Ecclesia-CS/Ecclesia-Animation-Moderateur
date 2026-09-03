@@ -1,0 +1,84 @@
+-- =============================================================
+-- Chantier 54 — Retirer au modérateur la possibilité de supprimer
+--               sa table
+--
+-- CONTEXTE
+-- --------
+-- `TableContext.endTable()` exécutait un DELETE direct côté client
+-- (`supabase.from('tables').delete().eq('id', tableId)`), autorisé par la
+-- policy RLS `tables_delete_moderator`. Le bouton correspondant dans
+-- `ModeratorView` ("Terminer la session") a déjà été retiré de l'UI le
+-- 2026-06-01 (commit 54b6b93, "supprime boutons modérateur") — Jules avait
+-- donc raison de croire l'UI nettoyée. Mais la fonction `endTable` restait
+-- exposée par `TableContext` (code mort, plus aucun appelant côté écrans)
+-- et surtout la policy RLS restait active en base : n'importe qui disposant
+-- de l'autorité de modération sur une table (`is_table_moderator`, chantier
+-- 60) pouvait toujours supprimer cette table par un appel REST direct
+-- (`DELETE /rest/v1/tables?id=eq.<id>`), sans passer par l'UI — l'app
+-- n'ayant pas de backend, la clé anon publique suffit à formuler cet appel.
+--
+-- Jules ne veut pas d'un garde-fou (fonction journalisée, suppression
+-- réversible) : il ne veut plus du tout que le modérateur puisse supprimer
+-- sa table, par quelque chemin que ce soit.
+--
+-- DÉCISION
+-- --------
+-- Supprimer purement et simplement la policy `tables_delete_moderator`,
+-- sans la remplacer. Plus aucune policy RLS n'autorise de DELETE sur
+-- `tables` pour un utilisateur authentifié via la clé anon : par défaut,
+-- RLS refuse toute opération non couverte par une policy. Le superadmin
+-- garde sa capacité de suppression via la RPC SECURITY DEFINER
+-- `delete_table_admin` (`supabase/migrations/20260527000005_superadmin_table_detail.sql`)
+-- qui s'exécute avec les droits du propriétaire de la fonction et
+-- contourne donc RLS entièrement — elle ne dépend pas de cette policy et
+-- n'est pas affectée par sa suppression.
+--
+-- BESOIN DE NETTOYAGE (table créée par erreur)
+-- ----------------------------------------------
+-- Le bouton modérateur ayant déjà disparu de l'UI en juin 2026, ce besoin
+-- n'était déjà plus couvert côté modérateur depuis 3 mois sans qu'aucun
+-- signalement ne remonte. Le superadmin peut nettoyer une table créée par
+-- erreur via l'onglet Tables de `SuperadminScreen` (bouton "Supprimer" →
+-- `deleteTableAdmin` → `delete_table_admin`). Aucun remplacement n'est
+-- introduit ici : le besoin, s'il existe, reste couvert côté superadmin.
+--
+-- CÔTÉ FRONTEND (fait dans ce même chantier, hors SQL)
+-- ------------------------------------------------------
+-- `TableContext.endTable()` et son entrée dans `TableCtxValue` sont
+-- supprimés (code mort — plus aucun composant ne l'appelait déjà).
+--
+-- VÉRIFICATION APRÈS APPLICATION
+-- --------------------------------
+-- 1. SELECT policyname, cmd FROM pg_policies
+--    WHERE schemaname = 'public' AND tablename = 'tables';
+--    → `tables_delete_moderator` absente. `tables_update_moderator` et les
+--      policies SELECT/INSERT restent inchangées.
+-- 2. En tant que modérateur assis (session avec anon key, pas service_role) :
+--    DELETE FROM tables WHERE id = '<table_id_du_modérateur>';
+--    → 0 ligne affectée (RLS refuse silencieusement, comportement standard
+--      PostgREST : la requête réussit mais ne touche aucune ligne).
+-- 3. Suppression superadmin (SQL Editor, ou via l'app) :
+--    SELECT delete_table_admin('<mot_de_passe_superadmin>', '<table_id>');
+--    → la table et ses dépendances (participants, queue_entries,
+--      speaking_turns, CASCADE) sont bien supprimées.
+--
+-- =============================================================
+
+BEGIN;
+
+DROP POLICY IF EXISTS tables_delete_moderator ON tables;
+
+COMMIT;
+
+-- =============================================================
+-- SQL D'ANNULATION (restaure l'état chantier 60 — modérateur peut à
+-- nouveau supprimer sa table via is_table_moderator)
+-- =============================================================
+--
+-- BEGIN;
+--
+-- CREATE POLICY tables_delete_moderator ON tables
+--   FOR DELETE
+--   USING (is_table_moderator(id));
+--
+-- COMMIT;
