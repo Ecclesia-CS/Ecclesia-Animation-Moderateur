@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getSessionByJoinCode } from '../lib/sessions'
 import type { Session } from '../lib/types'
 import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
@@ -40,18 +41,14 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       const userId = authSession?.user.id ?? null
 
       // 2. Fetch session by join_code
-      const { data: session } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('join_code', sessionJoinCode)
-        .maybeSingle()
+      const session = await getSessionByJoinCode(sessionJoinCode).catch(() => null)
 
       if (!session) {
         setStatus('not_found')
         return
       }
 
-      const s = session as Session
+      const s = session
       setSessionTitle(s.title)
 
       // 3. Branch per phase

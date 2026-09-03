@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse, getMyAssertionIds } from '../lib/voting'
+import { getSessionById, getSessionByJoinCode } from '../lib/sessions'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
@@ -150,18 +151,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       }
 
       // 2. Fetch session by join_code
-      const { data: sess, error: sessErr } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('join_code', sessionJoinCode)
-        .maybeSingle()
+      const sess = await getSessionByJoinCode(sessionJoinCode).catch(() => null)
 
-      if (sessErr || !sess) {
+      if (!sess) {
         setErrorMsg('Séance introuvable.')
         setStep('error')
         return
       }
-      const s = sess as Session
+      const s = sess
       setSession(s)
 
       // Message d'intro "comment fonctionne l'app" — une fois par séance
@@ -473,13 +470,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     const m = member
 
     const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .maybeSingle()
-      if (!data) return
-      const s = data as Session
+      const s = await getSessionById(sessionId).catch(() => null)
+      if (!s) return
       if (s.phase === knownPhase) return
 
       setSession(s)
@@ -602,12 +594,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   async function handleOnboardingSuccess(_response: EntryResponse) {
     if (!session || !member) return
     // Re-fetch phase courante — peut avoir changé pendant l'onboarding
-    const { data } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('id', session.id)
-      .maybeSingle()
-    const current = (data as Session | null) ?? session
+    const data = await getSessionById(session.id).catch(() => null)
+    const current = data ?? session
     setSession(current)
 
     if (current.phase === 'draft') {

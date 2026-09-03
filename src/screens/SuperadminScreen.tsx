@@ -21,7 +21,7 @@ import {
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
   getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
-  adminCreateTable, updateGroupNames, listTableAssignmentsAdmin,
+  adminCreateTable, updateGroupNames, listTableAssignmentsAdmin, listSessionsAdmin,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
@@ -120,13 +120,12 @@ export default function SuperadminScreen() {
     setListErr(null)
     try {
       const pwd = getPwd()!
-      const [{ data: sessData, error: sessErr }, countRows, memberRows] =
+      const [sessData, countRows, memberRows] =
         await Promise.all([
-          supabase.from('sessions').select('*').order('created_at', { ascending: false }),
+          listSessionsAdmin(pwd),
           getSessionTableCounts(pwd),
           getSessionMemberCounts(pwd),
         ])
-      if (sessErr) throw sessErr
 
       const counts: Record<string, number> = {}
       for (const row of countRows) {
@@ -138,7 +137,7 @@ export default function SuperadminScreen() {
       }
 
       const sorted = sortSessions(
-        (sessData ?? []).map(s => ({ ...s, tableCount: counts[s.id] ?? 0, memberCount: memberCounts[s.id] ?? 0 }))
+        sessData.map(s => ({ ...s, tableCount: counts[s.id] ?? 0, memberCount: memberCounts[s.id] ?? 0 }))
       )
       setSessions(sorted)
 
