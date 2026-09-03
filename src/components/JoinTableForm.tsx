@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { claimTableAsModerator } from '../lib/voting'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
@@ -7,13 +8,21 @@ import type { TableResult } from '../lib/supabase'
 interface Props {
   /** Code pré-rempli (ex: venu d'un lien #table/<code>). Si fourni, le champ est verrouillé. */
   initialJoinCode?: string
+  /**
+   * Chantier 68 — séance en cours, si connue (ex : `SessionRouterScreen`,
+   * état `debating_no_member`). Transmise à `claim_table_as_moderator` pour
+   * refuser un code de table appartenant à une autre séance. Omise par les
+   * appelants qui n'ont aucune séance en contexte (ex : `JoinTableScreen`,
+   * lien `#table/<code>` d'un ami).
+   */
+  sessionId?: string
   onJoined(tableId: string, participantId: string, isModerator: boolean): void
   submitLabel?: string
 }
 
 /** Formulaire de rattrapage : rejoindre une table de débat directement par son code,
  *  indépendamment de la séance de vote (D14 — rejoindre en retard, D8 — via un code distribué). */
-export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLabel = 'Rejoindre' }: Props) {
+export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoined, submitLabel = 'Rejoindre' }: Props) {
   const locked = !!initialJoinCode
   const [joinCode, setJoinCode] = useState(initialJoinCode)
   const [pseudo, setPseudo] = useState(() => lastNameStore.get())
@@ -29,18 +38,21 @@ export default function JoinTableForm({ initialJoinCode = '', onJoined, submitLa
     try {
       const code = joinCode.trim().toUpperCase()
       const name = pseudo.trim()
-      const { data, error: err } = asModerator
-        ? await supabase.rpc('reclaim_moderator', {
-            p_join_code: code,
-            p_moderator_code: moderatorCode,
-            p_pseudo: name,
-          })
-        : await supabase.rpc('join_table', {
-            p_join_code: code,
-            p_pseudo: name,
-          })
-      if (err) throw err
-      const r = data as TableResult
+      let r: TableResult
+      if (asModerator) {
+        // Chantier 68 — "Je suis modérateur de cette table" ne reprend plus
+        // la main sans condition (reclaim_moderator) : on passe par
+        // claim_table_as_moderator, qui refuse une table déjà modérée par
+        // quelqu'un d'autre.
+        r = await claimTableAsModerator(code, moderatorCode, name, sessionId)
+      } else {
+        const { data, error: err } = await supabase.rpc('join_table', {
+          p_join_code: code,
+          p_pseudo: name,
+        })
+        if (err) throw err
+        r = data as TableResult
+      }
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,

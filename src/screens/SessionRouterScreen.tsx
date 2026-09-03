@@ -26,6 +26,7 @@ type Status =
 export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: SessionRouterScreenProps) {
   const [status,       setStatus]       = useState<Status>('loading')
   const [sessionTitle, setSessionTitle] = useState<string | null>(null)
+  const [sessionId,    setSessionId]    = useState<string | null>(null)
   const [fullSession,  setFullSession]  = useState<Session | null>(null)
   const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
 
@@ -53,6 +54,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
 
       const s = session as Session
       setSessionTitle(s.title)
+      setSessionId(s.id)
 
       // 3. Branch per phase
       switch (s.phase) {
@@ -172,6 +174,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
             </p>
           </div>
           <JoinTableForm
+            sessionId={sessionId ?? undefined}
             onJoined={(tableId, participantId, isModerator) => {
               if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
             }}
