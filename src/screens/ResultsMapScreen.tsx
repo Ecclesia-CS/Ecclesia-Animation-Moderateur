@@ -10,6 +10,7 @@ import type { ResultsMapData } from '../lib/analysis'
 import type { Session, GroupNameResult, VoteResult } from '../lib/types'
 import type { AssignmentWithJoinCode } from '../lib/voting'
 import PhaseIndicator from '../components/PhaseIndicator'
+import PostVoteScreen from './PostVoteScreen'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED']
@@ -194,6 +195,8 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
   const [voteResults, setVoteResults] = useState<VoteResult[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
+  // Chantier 69 — écran de revote, atteint depuis cette page uniquement.
+  const [showPostVote, setShowPostVote] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -264,6 +267,16 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
 
   const consensus = data?.consensus ?? []
 
+  if (showPostVote) {
+    return (
+      <PostVoteScreen
+        session={session}
+        memberId={memberId}
+        onBack={() => setShowPostVote(false)}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
@@ -279,6 +292,20 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
             ← Retour au menu
           </button>
         </div>
+
+        {/* Chantier 69 — le débat a peut-être fait bouger les positions : proposer de revoter */}
+        <section className="bg-indigo-600 rounded-2xl px-5 py-5 text-center space-y-2">
+          <p className="text-white text-sm font-semibold">Le débat a peut-être changé ton avis.</p>
+          <p className="text-indigo-100 text-xs">
+            Revote sur tes propres assertions, propose-en une nouvelle, ou découvre celles que tu n'as pas encore vues.
+          </p>
+          <button
+            onClick={() => setShowPostVote(true)}
+            className="mt-1 w-full py-3 px-4 bg-white hover:bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-xl transition-colors"
+          >
+            ↻ Revoter
+          </button>
+        </section>
 
         {loading && (
           <div className="flex justify-center py-12">
