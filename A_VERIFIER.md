@@ -17,7 +17,7 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 
 Les points sont groupés **par écran/parcours**, pas par chantier, pour permettre une seule passe par écran plutôt que d'aller-retour entre chantiers. Dans l'ordre suggéré :
 
-1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46, 48, 60, 61, 62 et 64 (62 n'ajoute pas de migration propre mais dépend de celle du 48, `switch_table` ; 64 se compose de trois fichiers, à appliquer dans l'ordre : `20260902_chantier64_leaderless_becomes_moderated.sql`, puis `20260902_chantier64b_leaderless_origin_and_revert.sql` (après le 48), puis `20260902_chantier64c_move_member_to_group_revert.sql`).
+1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46, 48, 54, 60, 61, 62 et 64 (54 est indépendante de toutes les autres ; 62 n'ajoute pas de migration propre mais dépend de celle du 48, `switch_table` ; 64 se compose de trois fichiers, à appliquer dans l'ordre : `20260902_chantier64_leaderless_becomes_moderated.sql`, puis `20260902_chantier64b_leaderless_origin_and_revert.sql` (après le 48), puis `20260902_chantier64c_move_member_to_group_revert.sql`).
 2. **Résultats publics (chantier 46)** — accueil (bouton + modale), superadmin (pastille par séance), page publique `#results/<id>`.
 3. **Superadmin** — onglets Tables, Membres, phase voting.
 4. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
@@ -281,6 +281,17 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   3. Dérouler le parcours de vote complet (`#vote/<join_code>`, séance `pre_voting` ou `voting`) : liste des assertions, compteur "X / Y votées" cohérent, proposer une assertion et vérifier qu'elle compte bien comme "la mienne" (`proposedCount` — cassé silencieusement avant l'application de la migration, cf. ci-dessus), polling de secours (approuver une assertion côté superadmin → apparition côté participant en moins de 15s), écran "Tu as tout voté", bouton "Voir toutes".
   4. Le point bloquant Realtime en tête de cette section — à faire avant de clore le chantier.
 
+- [ ] **Chantier 54 — `supabase/migrations/20260903_chantier54_remove_moderator_table_delete.sql`** — supprime purement et simplement la policy RLS `tables_delete_moderator` (posée par le chantier 60 sur `is_table_moderator`), sans la remplacer. Aucune dépendance avec les autres migrations en attente ci-dessus, applicable indépendamment.
+
+  **Pourquoi** : Jules a découvert qu'un modérateur pouvait encore supprimer sa table (`TableContext.endTable()`, DELETE direct côté client), alors qu'il croyait ce chemin déjà fermé — le bouton correspondant avait bien été retiré de `ModeratorView` en juin 2026 (commit `54b6b93`), mais la policy RLS qui autorisait le DELETE en base restait active, donc l'action restait possible par un appel REST direct (`DELETE /rest/v1/tables?id=eq.<id>` avec la clé anon publique), sans passer par l'UI. Décision de Jules : le modérateur ne doit plus jamais pouvoir supprimer sa table, par aucun chemin. `endTable()` et son entrée dans `TableCtxValue` ont aussi été retirés de `TableContext.tsx` (code mort, plus aucun appelant côté écrans depuis juin).
+
+  **N'affecte pas** la suppression de table côté superadmin (`SuperadminScreen` → `deleteTableAdmin` → RPC `SECURITY DEFINER` `delete_table_admin`, indépendante de cette policy — elle contourne RLS entièrement).
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  2. `SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'tables' AND cmd = 'DELETE';` → **aucune ligne retournée**.
+  3. Voir les recettes détaillées dans les sections Parcours Modérateur et Parcours Superadmin ci-dessous.
+
 ## Résultats publics (chantier 46)
 
 *Nécessite la migration SQL ci-dessus appliquée pour tester le flux de bout en bout (nouvelle colonne `results_public` + nouvelle forme du payload `get_public_results`). Sans elle : le bouton "Résultats publics" du superadmin échoue avec l'erreur Postgres "column sessions.results_public does not exist" (vérifié en navigateur ci-dessous, échec propre — pas de crash) et `get_public_results` renvoie encore l'ancienne forme (`groups`/`consensus`) que le frontend ne lit plus, donc `points`/`assertions` restent vides même pour une séance déjà close.*
@@ -320,6 +331,13 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   **Test minimal (après migration, mot de passe superadmin pour préparer une séance de test)** : séance close avec au moins une analyse d'opinion lancée et quelques assertions votées → marquer `results_public=true` (bouton superadmin ci-dessus) → ouvrir `#results/<id>` (via la modale accueil) et `#session/<join_code>` (si le join_code est encore d'actualité) en visiteur non connecté (nouvel onglet privé / navigateur non inscrit à la séance) → vérifier l'affichage du nuage de points, des assertions avec compteurs, l'absence totale de nom/pseudo/table à l'écran, zéro erreur console. Démarquer `results_public=false` → revérifier que la page affiche "non disponibles publiquement" (le RPC renvoie NULL).
 
 ## Parcours Superadmin
+
+- [ ] **Chantier 54 — non-régression : le superadmin peut toujours supprimer une table** *(migration SQL requise, voir section « Migration SQL en attente d'application »)*
+
+  **Pourquoi ce test** : ce chantier a retiré au modérateur le droit RLS de supprimer une table (`tables_delete_moderator`). Le superadmin passe par un chemin entièrement différent (RPC `SECURITY DEFINER` `delete_table_admin`, indépendante de RLS) qui ne doit pas être affecté — ce test le confirme.
+
+  1. Onglet 🪑 Tables (ou l'écran équivalent listant les tables d'une séance), créer une table de test (bouton "+ Sans admin" ou via "Créer une table") puis la supprimer via le bouton "Supprimer" → confirmer dans la modale ("Supprimer définitivement la table ... ? Tous les participants, tours et files seront supprimés.") → la table disparaît de la liste, sans erreur.
+  2. Vérifier que les tables restantes de la séance ne sont pas affectées (composition, badges de seuil inchangés).
 
 - [ ] **2026-09-02 — Chantier 50 — onglet 🪑 Tables sous les policies self-only** — `src/screens/SuperadminScreen.tsx` (`loadGroups`, `loadTableAssignmentRows`), `src/lib/sessions.ts` (`listTableAssignmentsAdmin`) *(migration SQL requise, voir plus haut)*
 
@@ -693,6 +711,27 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. **Régression** : un modérateur « classique » (table créée via « Créer une table », donc `tables.created_by` posé, et **aucune ligne `session_members`**) garde toute son autorité. C'est le cas qui ne dépend d'aucune des deux tables fermées ici.
 
 *Nécessite un Code Ecclesia et une vraie table animée (avec modérateur) pour la plupart des points ci-dessous — pas testable avec une table `leaderless` seule.*
+
+- [ ] **Chantier 54 — le modérateur ne peut plus supprimer sa table** *(migration SQL requise, voir ci-dessus)*
+
+  **Déjà vérifié** : `npx tsc --noEmit` propre, `npm run build` réussi, `npm test` → 92 passés / 2 échecs / 1 skip. Les 2 échecs (`bench/strategy-sanity.test.ts`, seuils de latence à 5 s sur un calcul d'allocation à 200 personnes) sont préexistants et sans rapport avec ce chantier — le diff ne touche que `CLAUDE.md` et `src/context/TableContext.tsx`, jamais `src/lib/allocation.ts` ; probablement de la contention CPU due aux sessions en parallèle sur cette machine. Aucun test navigateur (consigne : plusieurs sessions se disputent le harnais).
+
+  1. **Bouton absent** : ouvrir `ModeratorView` sur une vraie table animée (Code Ecclesia). Chercher un bouton "Terminer la session" / "Supprimer la table" dans tout l'écran (header, footer, "Outils Modo") → **il ne doit apparaître nulle part**. C'était déjà vrai avant ce chantier (retiré en juin 2026) — ce point confirme la non-régression.
+  2. **Appel API direct bloqué** (le vrai test de ce chantier — c'est lui qui était cassé) : depuis la console DevTools du navigateur du modérateur, sur une table qu'il anime réellement :
+     ```js
+     const { data: { session } } = await window.supabase.auth.getSession()
+     await fetch('<VITE_SUPABASE_URL>/rest/v1/tables?id=eq.<table_id>', {
+       method: 'DELETE',
+       headers: {
+         apikey: '<VITE_SUPABASE_ANON_KEY>',
+         Authorization: `Bearer ${session.access_token}`,
+       },
+     }).then(r => r.status)
+     ```
+     (adapter si `window.supabase` n'est pas exposé globalement — sinon reproduire l'appel avec `fetch` et le token de session récupéré via `localStorage`). Avant la migration : `204` et la table disparaît. Après la migration : la requête réussit toujours au niveau HTTP (RLS filtre silencieusement, comportement standard PostgREST) mais **0 ligne affectée** — recharger la page confirme que la table existe toujours, avec tous ses participants, sa file et son historique de tours intacts.
+  3. **Aucun effet de bord** : après le test précédent, vérifier que la table est toujours pleinement fonctionnelle — donner la parole, retirer la parole, file d'attente — rien ne doit avoir été perturbé par la tentative de suppression avortée.
+
+
 
 - [ ] **Chantier 60 — le modérateur désigné par l'allocation peut enfin animer sa table** — branche `chantier-60-autorite-moderateur`, **pas mergée sur `main`**. Migration `supabase/migrations/20260902_chantier60_moderator_authority.sql`, **à appliquer avant tout autre test de cette section** (voir la section « Migration SQL en attente d'application » pour le détail du contenu et les 5 requêtes SQL de vérification).
 
