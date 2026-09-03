@@ -29,6 +29,25 @@
 -- `attending_in_person` (déjà false) et son `reclaim_code` (déjà généré)
 -- restent tels quels.
 --
+-- ── CORRECTIF APPLIQUÉ APRÈS COUP (signalé par Jules le 2026-09-03) ──────
+-- La première version de ce fichier reprenait le corps de
+-- `claim_moderator_status` tel qu'il existait au chantier 33
+-- (20260801_chantier33_moderator_table_assignment.sql). Entre-temps, le
+-- chantier 64 (20260902_chantier64_leaderless_becomes_moderated.sql,
+-- appliqué le 2026-09-03 avant celle-ci) avait déjà modifié cette même
+-- fonction : il y ajoute un bloc qui convertit en place une table
+-- `leaderless` si le membre y a déjà un siège (`table_assignments`), placé
+-- AVANT la recherche héritée du chantier 33/37 d'une autre table déjà
+-- animée sans modérateur — cette conversion a priorité. La première
+-- version de ce fichier ne reprenait pas ce bloc : l'appliquer telle
+-- quelle aurait, via le `DROP FUNCTION` ci-dessous, supprimé la version à
+-- jour et effacé silencieusement le comportement du chantier 64 pour
+-- cette fonction. Cette version repart du corps EXACT du chantier 64 et
+-- n'y ajoute QUE les trois changements propres à ce chantier : le 4e
+-- paramètre `p_reclaim_code`, le calcul `v_attending`, et le
+-- `reclaim_code` posé uniquement en pré-vote. Le bloc de conversion
+-- `leaderless` est conservé mot pour mot, à la même place.
+--
 -- ── Piège Postgres (cf. CLAUDE.md) ───────────────────────────────────
 -- Signature ciblée, à vérifier avant application :
 --   SELECT p.oid::regprocedure,
@@ -54,12 +73,13 @@ CREATE OR REPLACE FUNCTION claim_moderator_status(
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_hash      text;
-  v_member    session_members%ROWTYPE;
-  v_phase     text;
-  v_attending boolean;
-  v_table_num int;
-  v_table_id  uuid;
+  v_hash             text;
+  v_member           session_members%ROWTYPE;
+  v_phase            text;
+  v_attending        boolean;
+  v_table_num        int;
+  v_table_id         uuid;
+  v_current_table_id uuid;
 BEGIN
   SELECT value INTO v_hash FROM app_config WHERE key = 'creation_code_hash';
   IF v_hash IS NULL OR crypt(p_creation_code, v_hash) IS DISTINCT FROM v_hash THEN
@@ -106,32 +126,48 @@ BEGIN
     END;
   END IF;
 
-  -- Chantier 33 (point 3) : table animée déjà formée mais encore sans
-  -- modérateur assis → on y place directement ce nouveau modérateur.
-  -- Sans ça il resterait `is_moderator = true` sans aucune ligne dans
-  -- `table_assignments`, invisible du tableau de bord "Groupes".
-  SELECT ta.table_number, ta.table_id
-  INTO v_table_num, v_table_id
+  -- Chantier 64 — déjà assis à une table `leaderless` ? On la convertit en
+  -- place (cas (a) : v_member vient d'être créé, jamais encore assis nulle
+  -- part — cette recherche ne trouve simplement rien, no-op). Bloc conservé
+  -- mot pour mot depuis 20260902_chantier64_leaderless_becomes_moderated.sql,
+  -- à la même place (priorité sur la recherche chantier 33/37 ci-dessous).
+  SELECT ta.table_id INTO v_current_table_id
   FROM table_assignments ta
-  JOIN tables t ON t.id = ta.table_id
   WHERE ta.session_id = p_session_id
-    AND t.leaderless = false
-    AND NOT EXISTS (
-      SELECT 1
-      FROM table_assignments ta2
-      JOIN session_members sm2 ON sm2.id = ta2.member_id
-      WHERE ta2.session_id = ta.session_id
-        AND ta2.table_number = ta.table_number
-        AND sm2.is_moderator = true
-    )
-  ORDER BY ta.table_number
-  LIMIT 1;
+    AND ta.member_id  = v_member.id;
 
-  IF v_table_num IS NOT NULL THEN
-    INSERT INTO table_assignments (session_id, member_id, table_number, table_id)
-    VALUES (p_session_id, v_member.id, v_table_num, v_table_id)
-    ON CONFLICT (session_id, member_id)
-    DO UPDATE SET table_number = EXCLUDED.table_number, table_id = EXCLUDED.table_id;
+  IF v_current_table_id IS NOT NULL
+     AND EXISTS (SELECT 1 FROM tables WHERE id = v_current_table_id AND leaderless = true)
+  THEN
+    UPDATE tables SET leaderless = false WHERE id = v_current_table_id;
+  ELSE
+    -- Chantier 33 (point 3) : table animée déjà formée mais encore sans
+    -- modérateur assis → on y place directement ce nouveau modérateur.
+    -- Sans ça il resterait `is_moderator = true` sans aucune ligne dans
+    -- `table_assignments`, invisible du tableau de bord "Groupes".
+    SELECT ta.table_number, ta.table_id
+    INTO v_table_num, v_table_id
+    FROM table_assignments ta
+    JOIN tables t ON t.id = ta.table_id
+    WHERE ta.session_id = p_session_id
+      AND t.leaderless = false
+      AND NOT EXISTS (
+        SELECT 1
+        FROM table_assignments ta2
+        JOIN session_members sm2 ON sm2.id = ta2.member_id
+        WHERE ta2.session_id = ta.session_id
+          AND ta2.table_number = ta.table_number
+          AND sm2.is_moderator = true
+      )
+    ORDER BY ta.table_number
+    LIMIT 1;
+
+    IF v_table_num IS NOT NULL THEN
+      INSERT INTO table_assignments (session_id, member_id, table_number, table_id)
+      VALUES (p_session_id, v_member.id, v_table_num, v_table_id)
+      ON CONFLICT (session_id, member_id)
+      DO UPDATE SET table_number = EXCLUDED.table_number, table_id = EXCLUDED.table_id;
+    END IF;
   END IF;
 
   RETURN to_jsonb(v_member);
@@ -152,6 +188,10 @@ GRANT EXECUTE ON FUNCTION claim_moderator_status(uuid, text, text, text) TO anon
 -- est ignoré hors pré-vote).
 --
 -- ── SQL D'ANNULATION (revenir au comportement d'avant le chantier 67) ─
+-- Restaure le corps du CHANTIER 64 (PAS celui du chantier 33) : c'est
+-- l'état exact d'avant ce fichier, chantier 64 déjà appliqué inclus. Une
+-- annulation qui reviendrait au corps chantier 33 effacerait aussi le
+-- chantier 64, exactement l'erreur que ce fichier vient de corriger.
 -- DROP FUNCTION IF EXISTS claim_moderator_status(uuid, text, text, text);
 --
 -- CREATE OR REPLACE FUNCTION claim_moderator_status(
@@ -162,11 +202,12 @@ GRANT EXECUTE ON FUNCTION claim_moderator_status(uuid, text, text, text) TO anon
 -- RETURNS jsonb
 -- LANGUAGE plpgsql SECURITY DEFINER AS $$
 -- DECLARE
---   v_hash      text;
---   v_member    session_members%ROWTYPE;
---   v_phase     text;
---   v_table_num int;
---   v_table_id  uuid;
+--   v_hash             text;
+--   v_member           session_members%ROWTYPE;
+--   v_phase            text;
+--   v_table_num        int;
+--   v_table_id         uuid;
+--   v_current_table_id uuid;
 -- BEGIN
 --   SELECT value INTO v_hash FROM app_config WHERE key = 'creation_code_hash';
 --   IF v_hash IS NULL OR crypt(p_creation_code, v_hash) IS DISTINCT FROM v_hash THEN
@@ -201,28 +242,39 @@ GRANT EXECUTE ON FUNCTION claim_moderator_status(uuid, text, text, text) TO anon
 --     END;
 --   END IF;
 --
---   SELECT ta.table_number, ta.table_id
---   INTO v_table_num, v_table_id
+--   SELECT ta.table_id INTO v_current_table_id
 --   FROM table_assignments ta
---   JOIN tables t ON t.id = ta.table_id
 --   WHERE ta.session_id = p_session_id
---     AND t.leaderless = false
---     AND NOT EXISTS (
---       SELECT 1
---       FROM table_assignments ta2
---       JOIN session_members sm2 ON sm2.id = ta2.member_id
---       WHERE ta2.session_id = ta.session_id
---         AND ta2.table_number = ta.table_number
---         AND sm2.is_moderator = true
---     )
---   ORDER BY ta.table_number
---   LIMIT 1;
+--     AND ta.member_id  = v_member.id;
 --
---   IF v_table_num IS NOT NULL THEN
---     INSERT INTO table_assignments (session_id, member_id, table_number, table_id)
---     VALUES (p_session_id, v_member.id, v_table_num, v_table_id)
---     ON CONFLICT (session_id, member_id)
---     DO UPDATE SET table_number = EXCLUDED.table_number, table_id = EXCLUDED.table_id;
+--   IF v_current_table_id IS NOT NULL
+--      AND EXISTS (SELECT 1 FROM tables WHERE id = v_current_table_id AND leaderless = true)
+--   THEN
+--     UPDATE tables SET leaderless = false WHERE id = v_current_table_id;
+--   ELSE
+--     SELECT ta.table_number, ta.table_id
+--     INTO v_table_num, v_table_id
+--     FROM table_assignments ta
+--     JOIN tables t ON t.id = ta.table_id
+--     WHERE ta.session_id = p_session_id
+--       AND t.leaderless = false
+--       AND NOT EXISTS (
+--         SELECT 1
+--         FROM table_assignments ta2
+--         JOIN session_members sm2 ON sm2.id = ta2.member_id
+--         WHERE ta2.session_id = ta.session_id
+--           AND ta2.table_number = ta.table_number
+--           AND sm2.is_moderator = true
+--       )
+--     ORDER BY ta.table_number
+--     LIMIT 1;
+--
+--     IF v_table_num IS NOT NULL THEN
+--       INSERT INTO table_assignments (session_id, member_id, table_number, table_id)
+--       VALUES (p_session_id, v_member.id, v_table_num, v_table_id)
+--       ON CONFLICT (session_id, member_id)
+--       DO UPDATE SET table_number = EXCLUDED.table_number, table_id = EXCLUDED.table_id;
+--     END IF;
 --   END IF;
 --
 --   RETURN to_jsonb(v_member);
