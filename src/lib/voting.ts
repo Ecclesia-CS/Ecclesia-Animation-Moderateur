@@ -409,19 +409,25 @@ export async function setMemberModerator(
 /**
  * G4/H4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
  * Si l'appareil n'a pas encore de profil pour cette séance (n'a jamais voté/
- * inscrit), `pseudo` sert à en créer un à la volée (attending_in_person=true) ;
- * sinon le profil existant est simplement marqué is_moderator=true et `pseudo`
- * est ignoré côté serveur.
+ * inscrit), `pseudo` sert à en créer un à la volée ; sinon le profil existant
+ * est simplement marqué is_moderator=true et `pseudo`/`reclaimCode` sont
+ * ignorés côté serveur.
+ * Chantier 67 : `attending_in_person` suit désormais la même règle que
+ * `register_session_member` (false uniquement en `pre_voting`), et
+ * `reclaimCode` — généré côté client, jamais côté serveur — n'est stocké
+ * que dans ce cas ; ignoré hors pré-vote.
  */
 export async function claimModeratorStatus(
   sessionId: string,
   creationCode: string,
-  pseudo?: string
+  pseudo?: string,
+  reclaimCode?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('claim_moderator_status', {
     p_session_id: sessionId,
     p_creation_code: creationCode,
     p_pseudo: pseudo ?? null,
+    p_reclaim_code: reclaimCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember

@@ -11,7 +11,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
   attachTableToSession, detachTableFromSession,
@@ -4389,14 +4389,20 @@ function CollabSourcesList({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-800 truncate">{s.title}</p>
                   {s.url && (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-indigo-600 hover:underline truncate block"
-                    >
-                      {s.url}
-                    </a>
+                    isSafeUrl(s.url) ? (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 hover:underline truncate block"
+                      >
+                        {s.url}
+                      </a>
+                    ) : (
+                      <p className="text-xs text-red-500 truncate" title={s.url}>
+                        ⚠ Lien non affiché (schéma non autorisé)
+                      </p>
+                    )
                   )}
                   {s.content && (
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{s.content}</p>

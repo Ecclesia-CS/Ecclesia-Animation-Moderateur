@@ -44,7 +44,6 @@ interface TableCtxValue {
   reorderQueueEntry(entryId: string, newPosition: number): Promise<void>
   correctTurn(turnId: string, params: CorrectTurnParams): Promise<void>
   kickParticipant(participantId: string): Promise<void>
-  endTable(): Promise<void>
   forceQuestionnaire(): Promise<void>
   cancelForceQuestionnaire(): Promise<void>
 }
@@ -530,12 +529,6 @@ export function TableProvider({
     [rpc, tableId, broadcast],
   )
 
-  const endTable = useCallback(async () => {
-    const { error } = await supabase.from('tables').delete().eq('id', tableId)
-    if (error) throw error
-    handleEnd()
-  }, [tableId, handleEnd])
-
   const forceQuestionnaire = useCallback(async () => {
     const { error } = await supabase
       .from('tables')
@@ -610,7 +603,6 @@ export function TableProvider({
         kickParticipant,
         claimFloor,
         designateModerator,
-        endTable,
         forceQuestionnaire,
         cancelForceQuestionnaire,
       }}
