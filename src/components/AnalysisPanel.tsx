@@ -267,6 +267,8 @@ export default function AnalysisPanel({
   }
 
   // ── Conversion AnalysisResult → LoadedAnalysis (pour vue locale) ─
+  // Chantier 70 — vote_scope figé à 'current' : ce chemin ne calcule jamais
+  // depuis les votes reconstitués pré-clôture (aucun appelant ne le fait ici).
   function resultToLoaded(r: AnalysisResult): LoadedAnalysis {
     return {
       id: 'local',
@@ -276,6 +278,7 @@ export default function AnalysisPanel({
       repness: r.repness,
       group_consensus: r.groupConsensus,
       created_at: new Date().toISOString(),
+      vote_scope: 'current',
       members: r.members,
     }
   }
