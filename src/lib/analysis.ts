@@ -339,6 +339,14 @@ export function runOpinionAnalysis(
 
 // ── LoadedAnalysis ────────────────────────────────────────────
 
+/**
+ * Chantier 70 — quels votes ont nourri l'analyse : 'current' = tels qu'ils
+ * sont au moment du calcul (comportement historique, avant ce chantier) ;
+ * 'pre_closure' = reconstitués juste avant la clôture (via assertion_vote_history),
+ * pour comparer l'opinion avant/après débat une fois le postvote utilisé.
+ */
+export type VoteScope = 'current' | 'pre_closure'
+
 export interface LoadedAnalysis {
   id:                     string
   k_chosen:               number
@@ -347,7 +355,18 @@ export interface LoadedAnalysis {
   repness:                Record<string, Record<string, number>>
   group_consensus:        Record<string, number>
   created_at:             string
+  vote_scope:             VoteScope
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
+}
+
+/** Résumé d'une analyse, sans le détail des membres — pour lister les analyses d'une séance. */
+export interface SessionAnalysisSummary {
+  id:           string
+  created_at:   string
+  status:       'pending' | 'done' | 'error'
+  k_chosen:     number | null
+  vote_scope:   VoteScope
+  member_count: number
 }
 
 // ── PublicResultsData ─────────────────────────────────────────
@@ -379,17 +398,25 @@ export interface ResultsMapData {
 /**
  * Charge tous les votes d'une session via RPC get_all_votes_for_analysis.
  * Contourne la RLS (vérification mot de passe superadmin côté SQL).
+ *
+ * Chantier 70 — `voteScope`: 'current' (défaut, comportement historique) lit
+ * les votes tels qu'ils sont maintenant ; 'pre_closure' les reconstitue tels
+ * qu'ils étaient juste avant que la séance passe 'closed' (via
+ * assertion_vote_history côté serveur) — permet de relancer l'analyse sur
+ * l'état d'avant-débat pour la comparer à l'état courant.
  */
 export async function loadVotesForAnalysis(
   supabase:      SupabaseClient,
   password:      string,
   sessionId:     string,
   attendingOnly: boolean = false,
+  voteScope:     VoteScope = 'current',
 ): Promise<VoteRow[]> {
   const { data, error } = await supabase.rpc('get_all_votes_for_analysis', {
     p_password:       password,
     p_session_id:     sessionId,
     p_attending_only: attendingOnly,
+    p_vote_scope:     voteScope,
   })
   if (error) throw new Error(extractErr(error))
   return (data as VoteRow[]) ?? []
@@ -449,14 +476,61 @@ export async function loadLatestAnalysis(
 }
 
 /**
+ * Chantier 70 — liste toutes les analyses d'une session (pas seulement la
+ * dernière), triées de la plus récente à la plus ancienne, avec leur
+ * `vote_scope` ('current'/'pre_closure') et le nombre de membres placés.
+ * Sert à bâtir un futur écran de comparaison avant/après débat — ce module
+ * n'en fournit que les données, pas l'affichage.
+ */
+export async function listSessionAnalyses(
+  supabase:  SupabaseClient,
+  password:  string,
+  sessionId: string,
+): Promise<SessionAnalysisSummary[]> {
+  const { data, error } = await supabase.rpc('list_session_analyses', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as SessionAnalysisSummary[]) ?? []
+}
+
+/**
+ * Chantier 70 — charge une analyse précise par son id (pas seulement "la
+ * dernière", contrairement à `loadLatestAnalysis`). Retourne null si l'id
+ * n'existe pas ou si son statut n'est pas 'done'.
+ */
+export async function loadAnalysisById(
+  supabase:   SupabaseClient,
+  password:   string,
+  analysisId: string,
+): Promise<LoadedAnalysis | null> {
+  const { data, error } = await supabase.rpc('get_analysis_by_id', {
+    p_password:    password,
+    p_analysis_id: analysisId,
+  })
+  if (error) throw new Error(extractErr(error))
+  if (!data) return null
+  return data as LoadedAnalysis
+}
+
+/**
  * Sauvegarde le résultat de l'analyse via RPC save_analysis (transaction atomique).
- * Retourne l'uuid de la nouvelle ligne session_analysis.
+ * Retourne l'uuid de la nouvelle ligne session_analysis. N'écrase jamais une
+ * analyse précédente — save_analysis fait un INSERT, jamais un upsert ; chaque
+ * appel crée une nouvelle ligne `session_analysis`, consultable ensuite via
+ * `listSessionAnalyses`/`loadAnalysisById`.
+ *
+ * Chantier 70 — `voteScope` tague l'analyse selon les votes utilisés pour la
+ * calculer (voir `loadVotesForAnalysis`). Par défaut 'current', comme avant
+ * ce chantier.
  */
 export async function saveAnalysisResult(
   supabase:  SupabaseClient,
   password:  string,
   sessionId: string,
   result:    AnalysisResult,
+  voteScope: VoteScope = 'current',
 ): Promise<string> {
   const { data, error } = await supabase.rpc('save_analysis', {
     p_password:        password,
@@ -467,6 +541,7 @@ export async function saveAnalysisResult(
     p_repness:         result.repness,
     p_group_consensus: result.groupConsensus,
     p_members:         result.members,
+    p_vote_scope:      voteScope,
   })
   if (error) throw new Error(extractErr(error))
   return data as string
