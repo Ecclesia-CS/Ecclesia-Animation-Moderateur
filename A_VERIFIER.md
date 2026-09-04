@@ -17,7 +17,7 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 
 Les points sont groupés **par écran/parcours**, pas par chantier, pour permettre une seule passe par écran plutôt que d'aller-retour entre chantiers. Dans l'ordre suggéré :
 
-1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46, 48, 54, 60, 61, 62 et 64 (54 est indépendante de toutes les autres ; 62 n'ajoute pas de migration propre mais dépend de celle du 48, `switch_table` ; 64 se compose de trois fichiers, à appliquer dans l'ordre : `20260902_chantier64_leaderless_becomes_moderated.sql`, puis `20260902_chantier64b_leaderless_origin_and_revert.sql` (après le 48), puis `20260902_chantier64c_move_member_to_group_revert.sql`).
+1. **Migration SQL en attente** (ci-dessous) — à appliquer avant de tester les chantiers 33, 39, 44, 46, 48, 54, 60, 61, 62, 64 et 66 (54 est indépendante de toutes les autres ; 62 n'ajoute pas de migration propre mais dépend de celle du 48, `switch_table` ; 64 se compose de trois fichiers, à appliquer dans l'ordre : `20260902_chantier64_leaderless_becomes_moderated.sql`, puis `20260902_chantier64b_leaderless_origin_and_revert.sql` (après le 48), puis `20260902_chantier64c_move_member_to_group_revert.sql` ; 66 s'applique après le 48 et toute sa suite 64b/64c, repart de leur dernière version de `switch_table`).
 2. **Résultats publics (chantier 46)** — accueil (bouton + modale), superadmin (pastille par séance), page publique `#results/<id>`.
 3. **Superadmin** — onglets Tables, Membres, phase voting.
 4. **Participant** — vote/pré-vote, écran "Débat en cours", entrée en débat, résultats de fin de séance.
@@ -393,6 +393,43 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   5. Confirmer côté superadmin que ce participant reste bien absent de l'onglet 🪑 Tables — le bug lui-même (ligne `table_assignments` manquante en cas de collision) **n'est pas corrigé** par ce chantier, seule sa **visibilité** change (log au lieu de silence total).
 
   **Tant qu'elle n'est pas appliquée** : comportement actuel inchangé (échec toujours totalement silencieux, aucun log).
+
+- [ ] **Chantier 66 — `supabase/migrations/20260903_chantier66_join_table_single_table.sql`** (nouvelle, jamais appliquée) — **à appliquer après le chantier 48 et sa suite** (`20260902_chantier48_switch_table.sql`, `20260902_chantier64b_...`, `20260902_chantier64c_...`) : elle redéfinit `switch_table` en repartant de sa dernière version, et suppose donc que `tables.leaderless_by_design` existe déjà. Indépendante du chantier 67 (point 3) juste au-dessus : les deux touchent des fonctions différentes du même fichier source d'origine sans se chevaucher (l'une `sync_table_assignment`, l'autre `join_table`/`switch_table`).
+
+  **Symptôme corrigé** : `join_table` ne retirait jamais le participant de ses tables précédentes dans la même séance (simple upsert) — rejoindre une nouvelle table AJOUTAIT une ligne `participants` sans supprimer l'ancienne. Deux identités de test étaient encore listées comme présentes à la table `589D79` le 02/09 alors qu'elles l'avaient quittée. Le trou n'avait été bouché que pour `switch_table` (chantier 48/64b), jamais pour `join_table`.
+
+  **Contenu du fichier** : nouvelle fonction `leave_other_session_tables(p_session_id, p_new_table_id, p_user_id)` — extraction du nettoyage déjà présent dans `switch_table` (libère le micro, clôt le tour en cours, supprime la ligne `participants`, bascule arrière `leaderless_by_design` si l'utilisateur en était le modérateur Bloc C) — **hors table de destination**, exclusion nécessaire pour que reprendre le code de sa table actuelle ne se coupe pas soi-même le micro. `join_table` l'appelle désormais avant l'INSERT (nouveauté) ; `switch_table` est refactorisée pour l'appeler aussi (comportement observable inchangé — sa garde « Tu es déjà à cette table » rendait déjà l'exclusion redondante). Signatures de `join_table` et `switch_table` inchangées.
+
+  **Décision de Jules, non modifiée par ce chantier** : le bouton "Quitter" (`leaveTable()`) reste purement local, ne supprime rien, aucun appel RPC — le nettoyage ne se déclenche qu'à l'entrée dans une nouvelle table.
+
+  **Question ouverte, non traitée par cette migration** — lignes fantômes déjà présentes en base (créées par le bug avant ce correctif, ex. table `589D79`). Requête de **diagnostic seulement** (aucune suppression) :
+  ```sql
+  -- Participants qui ont, dans une même séance, plusieurs lignes `participants`
+  -- (donc plusieurs tables) au même moment — le symptôme du bug.
+  SELECT
+    t.session_id,
+    p.user_id,
+    array_agg(DISTINCT p.pseudo)   AS pseudos,
+    array_agg(DISTINCT t.join_code) AS tables_join_codes,
+    count(DISTINCT p.table_id)      AS nb_tables
+  FROM participants p
+  JOIN tables t ON t.id = p.table_id
+  WHERE t.session_id IS NOT NULL
+  GROUP BY t.session_id, p.user_id
+  HAVING count(DISTINCT p.table_id) > 1
+  ORDER BY nb_tables DESC;
+  ```
+  Ne pas supprimer ces lignes sans confirmation explicite de Jules — pas de sauvegarde active de la base à ce jour (`chantier-secu-sauvegardes`, non mergée).
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Vérifier au préalable `tables.leaderless_by_design` existe (`SELECT column_name FROM information_schema.columns WHERE table_name='tables' AND column_name='leaderless_by_design';`).
+  2. **Rejoindre le lien d'un ami après en avoir déjà une** — un participant déjà dans TABLE_A (via `join_table` ou `switch_table`) reçoit/tape le code de TABLE_B (même séance). Rejoindre TABLE_B via l'onglet "Rejoindre" de l'accueil ou le lien `#table/<code_B>`. **Observer** : `SELECT * FROM participants WHERE table_id = '<TABLE_A_ID>'` ne montre plus ce participant ; il apparaît dans TABLE_B. Sur l'appareil du modérateur de TABLE_A (`ModeratorView`/`ParticipantsTable`), il doit disparaître de la liste sans action de sa part (Realtime).
+  3. **Rejoindre la table où l'on est déjà, sans perte** — reprendre le même code de table avec le même pseudo (ex. recharger `App.tsx` après un vidage du localStorage Supabase auth, ou retaper son propre code dans "Rejoindre"). **Observer** : l'`id` de la ligne `participants` est inchangé (pas de suppression/réinsertion), et si le participant avait la parole, il ne la perd pas.
+  4. **Arrivée d'un retardataire en phase `debating`** (jamais passé par l'allocation) — via `VoteScreen`/`SessionRouterScreen` ("le vote est terminé, mais tu peux rejoindre une table directement avec le code") ou `#table/<code>`. **Observer** : aucune régression — le participant rejoint normalement, une ligne `session_members`/`table_assignments` est créée pour lui (`sync_table_assignment`, best-effort, inchangé par ce chantier).
+  5. **"Quitter" laisse toujours la ligne en place** — un participant clique "Quitter" (retour au menu) sans rejoindre d'autre table. **Observer** : `SELECT * FROM participants WHERE table_id = '<TABLE_ID>' AND user_id = '<USER_ID>'` renvoie toujours la ligne — comportement volontaire (décision de Jules), pas un oubli. Le modérateur voit toujours ce participant dans sa liste tant qu'il ne l'exclut pas via "Exclure" ou qu'il ne rejoint pas une autre table.
+  6. **Bascule arrière d'une table leaderless** — répéter le test 2 avec un participant qui est le modérateur Bloc C (`session_members.is_moderator`) d'une table `leaderless_by_design = true`, en utilisant `join_table` (pas `switch_table`) pour changer de table. **Observer** : la table quittée repasse `leaderless = true` — même comportement que si le départ s'était fait via `switch_table` (chantier 64b).
+
+  **Tant qu'elle n'est pas appliquée** : comportement actuel inchangé (rejoindre une nouvelle table via `join_table` laisse l'ancienne ligne `participants` en place).
 
 - [ ] **Chantier 54 — `supabase/migrations/20260903_chantier54_remove_moderator_table_delete.sql`** — supprime purement et simplement la policy RLS `tables_delete_moderator` (posée par le chantier 60 sur `is_table_moderator`), sans la remplacer. Aucune dépendance avec les autres migrations en attente ci-dessus, applicable indépendamment.
 
