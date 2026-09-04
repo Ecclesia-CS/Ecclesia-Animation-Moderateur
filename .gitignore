@@ -33,8 +33,14 @@ supabase/.temp
 # TypeScript incremental build cache
 *.tsbuildinfo
 
-# Claude Code local settings (chemins absolus spécifiques à la machine)
-.claude/settings.local.json
+# Claude Code — état local (sessions, verrous, worktrees imbriqués, chemins
+# spécifiques à la machine) ; launch.json reste versionné (partagé entre
+# contributeurs, voir CLAUDE.md §Test navigateur automatisé)
+.claude/*
+!.claude/launch.json
+
+# Fichiers de vérification temporaires (scratch de session, non versionnés)
+.tmp-verif/
 
 # Dumps de données participants (RGPD) — sauvegardes avant migration
 entry_responses_backup_*.sql
