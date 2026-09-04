@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
-import { claimModeratorStatus } from '../lib/voting'
+import { claimModeratorStatus, claimTableAsModerator } from '../lib/voting'
 import ReclaimCodeDisplay from '../components/voting/ReclaimCodeDisplay'
 import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
@@ -174,13 +174,11 @@ export default function EntryScreen({ onJoined }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const { data, error: err } = await supabase.rpc('reclaim_moderator', {
-        p_join_code: joinCode,
-        p_moderator_code: reclaimCode,
-        p_pseudo: pseudo.trim(),
-      })
-      if (err) throw err
-      const r = data as TableResult
+      // Chantier 68 — écran d'accueil générique, aucune séance en contexte
+      // (rejoindre une table par simple code) : claim_table_as_moderator
+      // refuse une table déjà modérée par quelqu'un d'autre, mais ne peut
+      // pas vérifier l'appartenance à une séance précise ici.
+      const r = await claimTableAsModerator(joinCode, reclaimCode, pseudo.trim())
       tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: true, pseudo: pseudo.trim() })
       lastNameStore.set(pseudo)
       onJoined(r.id, r.participant_id, true)

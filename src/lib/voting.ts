@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { TableResult } from './supabase'
 import { extractErr } from './utils'
 import type {
   Session,
@@ -430,6 +431,35 @@ export async function claimModeratorStatus(
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember
+}
+
+/**
+ * Chantier 68 — un modérateur en retard prend en charge une table encore
+ * sans modérateur, en saisissant son code. Refusé côté serveur si le Code
+ * Ecclesia est invalide, si `sessionId` est fourni et ne correspond pas à la
+ * séance de cette table, ou si la table a déjà un modérateur (créateur
+ * physique assis, ou modérateur Bloc C désigné assis à cette table précise).
+ * `sessionId` est optionnel : `SessionRouterScreen` le connaît (état
+ * `debating_no_member`) et bénéficie donc aussi du refus "code d'une autre
+ * séance" ; `JoinTableScreen`/`EntryScreen` n'ont aucune séance en contexte
+ * (rejoindre une table par simple code) et l'omettent.
+ * Distinct de `reclaim_moderator`, qui reste le chemin de VRAIE reprise de
+ * main par le modérateur déjà en place sur cette table précise.
+ */
+export async function claimTableAsModerator(
+  joinCode: string,
+  creationCode: string,
+  pseudo: string,
+  sessionId?: string
+): Promise<TableResult> {
+  const { data, error } = await supabase.rpc('claim_table_as_moderator', {
+    p_join_code: joinCode,
+    p_creation_code: creationCode,
+    p_pseudo: pseudo,
+    p_session_id: sessionId ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as TableResult
 }
 
 // --- Admin wrappers (C2) ---

@@ -442,6 +442,87 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   2. `SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'tables' AND cmd = 'DELETE';` → **aucune ligne retournée**.
   3. Voir les recettes détaillées dans les sections Parcours Modérateur et Parcours Superadmin ci-dessous.
 
+- [ ] **Chantier 68 — `supabase/migrations/20260903_chantier68_claim_table_as_moderator.sql`** (jamais appliquée) ⚠️ **à appliquer APRÈS le chantier 66** (`20260903_chantier66_join_table_single_table.sql`, branche `chantier-66-une-seule-table` — dépendance dure, voir plus bas)
+
+  **Aucune vérification navigateur faite** (session headless, consigne explicite de ne lancer aucun serveur de dev). Seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts.
+
+  **Le problème** : `JoinTableForm` (case « Je suis modérateur de cette table ») et un chemin dupliqué dans `EntryScreen` (onglet « Rejoindre ou reprendre une table », même case) appelaient tous deux `reclaim_moderator`, qui écrase `tables.created_by` **sans aucune vérification** dès lors que le Code Ecclesia est valide. Le Code Ecclesia étant partagé entre tous les modérateurs, quiconque le connaît pouvait reprendre la main sur une table qui a déjà un modérateur actif et l'en déposséder silencieusement, en pleine séance.
+
+  **Le correctif** : nouvelle RPC `claim_table_as_moderator(p_join_code, p_creation_code, p_pseudo, p_session_id?)`, appelée à la place de `reclaim_moderator` par `JoinTableForm` et `EntryScreen`. Vérifie dans l'ordre : (1) le Code Ecclesia, (2) que la table appartient bien à la séance précisée par l'appelant (`p_session_id`, optionnel — voir plus bas), (3) qu'aucun modérateur n'a déjà autorité sur cette table (nouveau helper `table_has_moderator`, généralisation de `is_table_moderator` du chantier 60 : « quelqu'un a-t-il déjà autorité ? » plutôt que « l'appelant a-t-il autorité ? », nécessaire ici puisqu'un nouvel arrivant n'a par construction aucun historique avec son `auth.uid()` sur cette table). Chaque échec lève un message dédié. Sur succès : devient créateur physique + siège comme participant, et pose `leaderless = false` (une table `leaderless` est une cible légitime — voir plus bas).
+
+  **`reclaim_moderator` n'est PAS modifiée** — elle reste le seul chemin de vraie reprise de main (quelqu'un qui était déjà le modérateur de cette table précise et revient sur un nouvel appareil), sans la nouvelle vérification. Voir l'en-tête de la migration pour le détail complet du raisonnement, l'inventaire des appelants migrés (`JoinTableForm`, `EntryScreen` — `TestScreen` est du code mort, non touché) et pourquoi une table `leaderless` est ciblable par ce chemin (cohérent avec le chantier 64).
+
+  **⚠️ Dépendance dure sur le chantier 66, découverte pendant l'écriture de cette migration (pas au premier passage — main a bougé entre-temps)** : le chantier 66 (`leave_other_session_tables`, appelé par `join_table`/`switch_table`) impose l'invariant « un participant n'est présent que dans une table à la fois au sein d'une séance ». `claim_table_as_moderator` insère elle aussi une ligne `participants` : sans le même appel, un modérateur en retard déjà assis ailleurs dans la séance (assigné par l'allocation à une autre table, par exemple) se retrouverait sur deux tables à la fois en prenant en charge celle-ci — exactement le bug que le chantier 66 vient de fermer pour les deux autres chemins d'entrée. Le corps de la fonction appelle donc `leave_other_session_tables(v_table.session_id, v_table.id, auth.uid())` avant l'insertion. **Si cette migration est appliquée avant le chantier 66** : `leave_other_session_tables` n'existe pas encore, la fonction se crée sans erreur (plpgsql ne valide pas les appels au moment du `CREATE`) mais **tout appel échoue à l'exécution** (`function leave_other_session_tables(...) does not exist`) — vérifier son existence avant d'appliquer (requête en tête de fichier de migration).
+
+  **Point à trancher explicitement par la session de vérification, faute d'accès Supabase pour le confirmer ici** : `p_session_id` est optionnel — `SessionRouterScreen` (état `debating_no_member`) le transmet et bénéficie donc du refus « code d'une autre séance », mais `JoinTableScreen` (lien `#table/<code>` d'un ami) et `EntryScreen` (accueil générique) n'ont aucune séance en contexte et l'omettent : sur ces deux écrans, un code de table valide d'une AUTRE séance que celle visée par l'utilisateur serait accepté tant que la table elle-même n'a pas de modérateur. Décision assumée dans la migration (pas de séance à vérifier là où l'écran n'en connaît aucune) — signaler à Jules si ce comportement doit être resserré (ex. exiger une séance partout, quitte à perdre le cas `JoinTableScreen`/`EntryScreen`).
+
+  **À faire (session de vérification)** :
+  1. Vérifier `SELECT proname FROM pg_proc WHERE proname = 'leave_other_session_tables'` retourne une ligne (chantier 66 déjà appliqué) — sinon appliquer d'abord `20260903_chantier66_join_table_single_table.sql`.
+  2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  3. Dérouler les 8 requêtes SQL de vérification en pied de fichier de migration (table sans modérateur → succès ; table déjà modérée, créateur physique assis → refus ; table modérée via Bloc C (`session_members.is_moderator` + `table_assignments`) → refus ; code d'une autre séance → refus ; table `leaderless` jamais réclamée → succès et bascule `leaderless = false` ; `reclaim_moderator` inchangée ; preneur déjà assis ailleurs dans la même séance → nettoyé par `leave_other_session_tables`).
+  4. Dérouler les scénarios navigateur de la section « Prendre en charge une table en retard, par son code (chantier 68) » ci-dessous.
+
+## Prendre en charge une table en retard, par son code (chantier 68)
+
+*Nécessite la migration `20260903_chantier68_claim_table_as_moderator.sql` ci-dessus appliquée. Sans elle, les trois écrans ci-dessous continuent d'appeler une fonction PostgreSQL inexistante côté RPC (`claim_table_as_moderator`) — erreur affichée dans le formulaire, rien de silencieux.*
+
+- [ ] **Cas nominal — `SessionRouterScreen`, séance en `debating`, jamais inscrit** — `#session/<join_code_séance>`
+
+  1. Préparer une séance en phase `debating` avec au moins une table Bloc C rattachée (allocation appliquée), animée (`moderated: true` au calcul) mais **sans personne assise dessus** — l'état « table animée déjà formée mais encore sans modérateur assis » (chantiers 33/37/64). Noter le `join_code` de cette table précise et le `join_code` de la séance.
+  2. Depuis un profil navigateur neuf (jamais inscrit à cette séance) : ouvrir `#session/<join_code_séance>`. Attendu : écran « 🗣️ Débat en cours » avec le formulaire de rattrapage (`JoinTableForm`).
+  3. Cocher « Je suis modérateur de cette table », saisir le code de la table notée à l'étape 1, un nom, le Code Ecclesia → « Reprendre la main ».
+  4. Attendu : navigation directe vers `ModeratorView` de cette table (pas d'erreur). Superadmin, onglet Groupes : la table n'affiche plus le badge « Sans modérateur », son `leaderless` est passé à `false` en base.
+
+- [ ] **Refus — table déjà modérée, créateur physique assis** — même écran
+
+  1. Table créée directement via « Créer une table » (Code Ecclesia, checkbox « Table sans admin » décochée) — un vrai modérateur y est donc déjà assis physiquement. Noter son `join_code`.
+  2. Depuis un autre profil navigateur, même parcours que ci-dessus (case cochée, ce code, un nom, le Code Ecclesia) → « Reprendre la main ».
+  3. Attendu : message d'erreur explicite « Cette table a déjà un modérateur — choisis-en une autre ou contacte le superadmin », **aucune navigation**, le modérateur en place n'est pas affecté (vérifier qu'il continue d'animer normalement sur son propre appareil pendant ce test).
+
+- [ ] **Refus — table déjà modérée via Bloc C (désignation par l'allocation, pas de créateur physique)** — même écran
+
+  1. Table Bloc C dont un membre a été désigné modérateur et **assis** dessus (`claim_moderator_status`, `set_member_moderator` ou `assign_moderator_to_table` — vérifier en base que `table_has_moderator('<id>')` retourne `true` avant le test, via le SQL Editor).
+  2. Même tentative de prise en charge que ci-dessus, avec le code de cette table.
+  3. Attendu : même refus explicite, alors que `tables.created_by` de cette table pointe encore vers le superadmin (pas vers le modérateur désigné) — c'est le point qui prouve que la vérification couvre bien les deux formes d'autorité du chantier 60, pas seulement `created_by`.
+
+- [ ] **Refus — code d'une autre séance** — même écran
+
+  1. Deux séances en `debating` en parallèle (A et B), chacune avec au moins une table sans modérateur assis. Ouvrir `#session/<join_code_séance_A>`.
+  2. Dans le formulaire de rattrapage, saisir le code d'une table appartenant à la séance **B** (pas A).
+  3. Attendu : message d'erreur explicite « Ce code de table n'appartient pas à cette séance », aucune navigation — même si cette table de B n'a elle-même aucun modérateur.
+
+- [ ] **Table `leaderless` ciblée volontairement — devient modérée** — même écran ou `JoinTableScreen`
+
+  1. Table créée « sans admin » (`leaderless = true`, jamais réclamée par personne).
+  2. Prise en charge par ce chemin (case cochée, code de cette table, nom, Code Ecclesia).
+  3. Attendu : succès — la table bascule `leaderless = false` en base, comme une désignation Bloc C (chantier 64). Un participant resté sur `ParticipantView` pour cette table doit basculer sur la vue modérateur pour le preneur, et perdre la proposition d'auto-gestion par file (plus de tentative silencieuse de `claimFloor()`) pour les autres.
+
+- [ ] **`JoinTableScreen` — lien `#table/<code>` d'un ami, sans séance en contexte** — `#table/<join_code_table>`
+
+  1. Reprendre le scénario « Cas nominal » ci-dessus, mais en ouvrant directement `#table/<join_code_table>` (lien de type D8, pas de passage par `#session/`).
+  2. Attendu : même succès pour une table sans modérateur, même refus explicite pour une table déjà modérée (créateur physique ou Bloc C) — **sans** vérification d'appartenance à une séance (aucune séance n'est connue à cet endroit, `p_session_id` est omis). Un code de table valide appartenant à n'importe quelle séance est accepté tant que la table elle-même n'a pas de modérateur — comportement assumé, voir le point signalé dans l'entrée de migration ci-dessus.
+
+- [ ] **`EntryScreen` — onglet « Rejoindre ou reprendre une table », accueil générique** — hash vide, onglet « Rejoindre »
+
+  1. Depuis l'accueil (pas de séance sélectionnée), onglet « Rejoindre ou reprendre une table », cocher « Je suis modérateur de cette table ».
+  2. Reprendre les scénarios « Cas nominal » et les deux refus (table déjà modérée, l'une ou l'autre forme) avec les codes de table correspondants.
+  3. Attendu : mêmes résultats que sur `JoinTableScreen` — pas de vérification de séance ici non plus.
+
+- [ ] **Non-régression — vraie reprise de main toujours permise** — n'importe lequel des trois écrans ci-dessus
+
+  1. Table dont le modérateur physique a perdu sa session (nouvel onglet privé = nouvel `auth.uid()` anonyme), ou changé d'appareil. Depuis ce nouveau profil : case cochée, le code de SA table, un nom, le Code Ecclesia.
+  2. Attendu : succès (même si la table « a déjà un modérateur » au sens de `table_has_moderator`, `reclaim_moderator` reste le chemin appelé pour cette action précise si un jour elle est réexposée dans l'UI — actuellement l'UI n'expose plus que `claim_table_as_moderator` sur ces trois écrans, donc **ce scénario passe par le même refus explicite que « table déjà modérée »** ci-dessus tant qu'aucun écran dédié à la vraie reprise de main n'existe. **Point à confirmer avec Jules** : si un modérateur légitime qui a perdu sa session doit pouvoir reprendre sa propre table depuis ces écrans, il se heurtera désormais au même refus qu'un voleur — la distinction entre « reprise légitime » et « vol » n'est plus faite côté UI depuis ce chantier, seule la RPC `reclaim_moderator` (non appelée par aucun écran restant) sait encore le faire sans vérification. À trancher : faut-il un chemin UI dédié pour la vraie reprise de main (ex. un mode distinct, ou une question posée à l'utilisateur), ou ce cas est-il jugé assez rare pour rester au superadmin (`assign_moderator_to_table`) ?
+
+- [ ] **Interaction avec le chantier 66 — le preneur était déjà assis à une autre table de la même séance** — n'importe lequel des trois écrans
+
+  **Contexte** : `join_table`/`switch_table` (chantier 66) garantissent qu'un participant n'est jamais présent sur deux tables à la fois au sein d'une même séance, via le helper `leave_other_session_tables`. `claim_table_as_moderator` insère elle aussi une ligne `participants` — ce scénario vérifie qu'elle respecte le même invariant plutôt que de dupliquer le participant sur deux tables.
+
+  1. Séance en `debating` avec deux tables A et B rattachées, toutes deux sans modérateur assis sur B. L'appareil de test est déjà participant (simple, pas modérateur) de la table A — par exemple via son affectation d'allocation.
+  2. Depuis cet appareil : prendre en charge la table B par ce chemin (code de B, nom, Code Ecclesia).
+  3. Attendu : succès sur B (nouveau modérateur, `leaderless = false` si elle l'était). **Et** : l'appareil disparaît de la table A — plus de ligne dans `participants` pour ce `user_id` à la table A, micro libéré s'il parlait, tour en cours clos. Si l'appareil était le modérateur Bloc C d'une table A `leaderless_by_design = true`, A redevient `leaderless = true` (même bascule que `switch_table`).
+  4. **Non-régression** : sur une table A `leaderless_by_design = false` (conçue modérée dès l'origine), répéter le test — A doit rester `leaderless = false` après le départ, comme pour `switch_table`/`move_member_to_group` (chantier 64b/64c).
+  5. **Table sans séance** : répéter avec une table B `leaderless` standalone (`session_id` NULL, jamais rattachée à une séance) — le nettoyage ne doit rien tenter côté table A (early return de `leave_other_session_tables` sur `p_session_id IS NULL`), donc si A et B ne partagent pas de séance, l'appareil reste normalement sur A (aucune notion de « même séance » ne s'applique).
+
 ## Résultats publics (chantier 46)
 
 *Nécessite la migration SQL ci-dessus appliquée pour tester le flux de bout en bout (nouvelle colonne `results_public` + nouvelle forme du payload `get_public_results`). Sans elle : le bouton "Résultats publics" du superadmin échoue avec l'erreur Postgres "column sessions.results_public does not exist" (vérifié en navigateur ci-dessous, échec propre — pas de crash) et `get_public_results` renvoie encore l'ancienne forme (`groups`/`consensus`) que le frontend ne lit plus, donc `points`/`assertions` restent vides même pour une séance déjà close.*
