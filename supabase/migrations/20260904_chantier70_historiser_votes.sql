@@ -230,6 +230,21 @@ $$;
 -- dernier paramètre avec valeur par défaut 'current' : tout appel
 -- existant (nommé, comme le fait toujours PostgREST/le client JS)
 -- continue de fonctionner à l'identique sans le passer.
+--
+-- CORRECTION APPLIQUÉE À LA RELECTURE (orchestration, 04/09/2026) —
+-- `CREATE OR REPLACE FUNCTION` avec un NOMBRE D'ARGUMENTS DIFFÉRENT ne
+-- remplace pas : il crée une SURCHARGE. La base contient aujourd'hui DEUX
+-- versions de cette fonction (2 arguments et 3 arguments, vérifié via
+-- pg_get_function_identity_arguments) ; en ajouter une troisième à 4
+-- arguments avec défauts rend les appels nommés ambigus. On supprime donc
+-- explicitement les deux anciennes signatures. La nouvelle version à 4
+-- arguments, tous les suivants ayant un défaut, couvre tous les appels
+-- existants — y compris la vieille version à 2 arguments, qui ne filtrait
+-- rien et ne renvoyait pas `attending_in_person` (le nouveau retour en est
+-- un sur-ensemble, aucun appelant ne perd de champ).
+DROP FUNCTION IF EXISTS get_all_votes_for_analysis(text, uuid);
+DROP FUNCTION IF EXISTS get_all_votes_for_analysis(text, uuid, boolean);
+
 CREATE OR REPLACE FUNCTION get_all_votes_for_analysis(
   p_password       text,
   p_session_id     uuid,
@@ -300,6 +315,14 @@ $$;
 -- tout appel existant (saveAnalysisResult, analysis.ts) continue de
 -- fonctionner sans le passer, et tague 'current' comme avant ce
 -- chantier (comportement identique).
+--
+-- CORRECTION APPLIQUÉE À LA RELECTURE (orchestration, 04/09/2026) — même
+-- piège que ci-dessus : passer de 8 à 9 arguments crée une surcharge au
+-- lieu de remplacer. On supprime explicitement la signature à 8 arguments ;
+-- la nouvelle, dont le 9e argument a un défaut, couvre tous les appels
+-- existants à l'identique.
+DROP FUNCTION IF EXISTS save_analysis(text, uuid, int, float, jsonb, jsonb, jsonb, jsonb);
+
 CREATE OR REPLACE FUNCTION save_analysis(
   p_password        text,
   p_session_id      uuid,
