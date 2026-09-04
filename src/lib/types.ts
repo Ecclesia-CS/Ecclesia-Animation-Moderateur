@@ -40,6 +40,10 @@ export interface Session {
   // agrégés + nuage de points anonyme). false par défaut, colonne SQL en
   // attente d'application — voir A_VERIFIER.md.
   results_public: boolean
+  // Chantier 71 — bascule superadmin par séance : true par défaut (comportement
+  // actuel préservé). false → la phase `voting` saute l'onboarding (entry_responses)
+  // et va directement au vote, comme le fait déjà `pre_voting` de façon permanente.
+  onboarding_enabled: boolean
 }
 
 export interface Table {

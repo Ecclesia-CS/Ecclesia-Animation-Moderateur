@@ -42,6 +42,7 @@ export async function createSession(
   docInfoUrl?: string,
   docSummaryUrl?: string,
   docCollabUrl?: string,
+  onboardingEnabled?: boolean,
 ): Promise<Session> {
   const { data, error } = await supabase.rpc('create_session', {
     p_password: password,
@@ -51,6 +52,22 @@ export async function createSession(
     p_doc_info_url: docInfoUrl ?? null,
     p_doc_summary_url: docSummaryUrl ?? null,
     p_doc_collab_url: docCollabUrl ?? null,
+    p_onboarding_enabled: onboardingEnabled ?? true,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
+// Chantier 71 — bascule superadmin par séance (même forme que setSessionResultsPublic).
+export async function setSessionOnboardingEnabled(
+  password: string,
+  sessionId: string,
+  onboardingEnabled: boolean,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('set_session_onboarding_enabled', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_onboarding_enabled: onboardingEnabled,
   })
   if (error) throw new Error(extractErr(error))
   return data as Session
