@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase'
 import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
+  setSessionOnboardingEnabled,
   attachTableToSession, detachTableFromSession,
   listSessionTables, listAvailableTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
@@ -252,6 +253,30 @@ export default function SuperadminScreen() {
     }
   }
 
+  // ── Bascule onboarding (chantier 71) ────────────────────────────
+  const [onboardingErr, setOnboardingErr] = useState<Record<string, string>>({})
+
+  async function handleToggleOnboardingEnabled(target: SessionRow, next: boolean) {
+    const password = getPwd()!
+    setOnboardingErr(prev => {
+      const { [target.id]: _omit, ...rest } = prev
+      return rest
+    })
+    // Optimiste, même schéma que handleToggleResultsPublic.
+    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, onboarding_enabled: next } : s))
+    try {
+      await setSessionOnboardingEnabled(password, target.id, next)
+    } catch (e) {
+      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, onboarding_enabled: !next } : s))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+        return
+      }
+      setOnboardingErr(prev => ({ ...prev, [target.id]: msg }))
+    }
+  }
+
   // ── Session created ────────────────────────────────────────────
   function handleCreated(s: Session) {
     setSessions(prev => sortSessions([{ ...s, tableCount: 0, memberCount: 0 }, ...prev]))
@@ -451,6 +476,8 @@ export default function SuperadminScreen() {
                 onClick={() => { sessionStorage.setItem('ecclesia_superadmin_session', s.id); setView({ type: 'detail', session: s }) }}
                 onResultsPublicChange={next => handleToggleResultsPublic(s, next)}
                 resultsPublicError={resultsPublicErr[s.id]}
+                onOnboardingChange={next => handleToggleOnboardingEnabled(s, next)}
+                onboardingError={onboardingErr[s.id]}
               />
             ))}
           </div>
@@ -493,6 +520,7 @@ export default function SuperadminScreen() {
 
 function SessionCard({
   session, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
+  onOnboardingChange, onboardingError,
 }: {
   session: SessionRow
   onClose(): void
@@ -500,6 +528,8 @@ function SessionCard({
   onClick(): void
   onResultsPublicChange(next: boolean): void
   resultsPublicError?: string
+  onOnboardingChange(next: boolean): void
+  onboardingError?: string
 }) {
   const isClosed = session.phase === 'closed'
   const [expanded, setExpanded]   = useState(false)
@@ -608,6 +638,39 @@ function SessionCard({
               )}
             </div>
           )}
+
+          {/* Onboarding (chantier 71) */}
+          <div onClick={e => e.stopPropagation()} className="pt-0.5">
+            <button
+              onClick={() => onOnboardingChange(!session.onboarding_enabled)}
+              title={
+                session.onboarding_enabled
+                  ? 'Les participants répondent au questionnaire d\'entrée (3 questions) avant de voter'
+                  : 'Les participants passent directement au vote, sans questionnaire d\'entrée'
+              }
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                session.onboarding_enabled
+                  ? 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              <span
+                className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
+                  session.onboarding_enabled ? 'bg-gray-300' : 'bg-amber-500'
+                }`}
+              >
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                    session.onboarding_enabled ? 'translate-x-3' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+              {session.onboarding_enabled ? 'Onboarding activé' : 'Onboarding désactivé'}
+            </button>
+            {onboardingError && (
+              <p className="text-xs text-red-600 mt-1">{onboardingError}</p>
+            )}
+          </div>
         </div>
 
         {/* Action buttons */}
@@ -704,6 +767,7 @@ function CreateModal({
   const [docInfoUrl, setDocInfoUrl]     = useState('')
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
+  const [onboardingEnabled, setOnboardingEnabled] = useState(true)
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -720,6 +784,8 @@ function CreateModal({
         scheduledAt ? fromDateTimeLocal(scheduledAt) : undefined,
         docInfoUrl || undefined,
         docSummaryUrl || undefined,
+        undefined,
+        onboardingEnabled,
       )
       // Apply moderation policy if not the default
       if (moderationPolicy !== 'closed') {
@@ -825,6 +891,16 @@ function CreateModal({
                 ))}
               </div>
             </div>
+
+            <label className="mt-3 flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onboardingEnabled}
+                onChange={e => setOnboardingEnabled(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Onboarding (questionnaire d'entrée avant le vote)
+            </label>
           </div>
 
           {error && (

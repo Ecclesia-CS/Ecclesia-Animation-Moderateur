@@ -240,8 +240,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         .maybeSingle()
 
       if (!existingResponse) {
-        // En pré-vote : pas d'onboarding — aller directement au vote
-        if (s.phase === 'pre_voting') {
+        // En pré-vote : pas d'onboarding — aller directement au vote.
+        // Chantier 71 : idem si l'onboarding est désactivé pour cette séance.
+        if (s.phase === 'pre_voting' || !s.onboarding_enabled) {
           await loadVoteData(s, m)
           return
         }
@@ -555,6 +556,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     if (session?.phase === 'pre_voting') {
       // Montrer le code de rappel, puis voter directement (pas d'onboarding)
       setStep('reclaim_code')
+    } else if (session && !session.onboarding_enabled) {
+      // Chantier 71 — onboarding désactivé pour cette séance : pas de code de
+      // rappel non plus (celui-ci n'existe que pour l'inscription pre_voting,
+      // cf. ci-dessus), directement au vote.
+      await loadVoteData(session, m)
     } else {
       // Phase voting (nouveau membre) : questionnaire d'entrée avant le vote
       setStep('onboarding')
@@ -575,6 +581,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   async function handleConfirmAttendanceSuccess(m: SessionMember) {
     if (!session) return
     setMember(m)
+    // Chantier 71 — onboarding désactivé pour cette séance : pas la peine de
+    // vérifier entry_responses, direct au vote.
+    if (!session.onboarding_enabled) {
+      await loadVoteData(session, m)
+      return
+    }
     // Vérifier si l'onboarding est déjà fait (ex : reclaim depuis un pré-vote)
     const { data: existingResponse } = await supabase
       .from('entry_responses')
