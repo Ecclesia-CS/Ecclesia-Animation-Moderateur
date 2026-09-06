@@ -2,7 +2,9 @@
 
 > **Terminologie** : "table" = cercle de débat modéré. "session"/"séance" (`sessions`) = conteneur optionnel regroupant plusieurs tables.
 
-Voir [PROJECT_STATUS.md](./PROJECT_STATUS.md) pour l'état courant des chantiers (statut, contributeur, dépendances) et `ecclesia_plan_chantiers.md` pour le détail des tâches. À tenir à jour au fil des PR — sert de point de synchronisation entre contributeurs.
+Voir [PROJECT_STATUS.md](./PROJECT_STATUS.md) pour l'état courant des chantiers (statut, contributeur, dépendances) et `ecclesia_plan_chantiers.md` pour le détail des tâches. À tenir à jour au fil des PR — sert de point de synchronisation entre contributeurs. **Attention : `PROJECT_STATUS.md` était périmé de 15 chantiers au 2026-09-04 et se contredisait avec l'historique git — le vérifier contre `git log` avant de s'y fier.**
+
+> ⚠️ **Avant de merger une branche sur `main`, lire [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md).** Certaines branches sont **volontairement** retenues hors de `main` (une migration qui casserait l'existant tant que le code n'est pas déployé, un workflow qui attend des secrets GitHub), et des périodes de gel s'appliquent au parcours de vote avant chaque utilisation en production réelle. Une branche non mergée n'est pas forcément un oubli. Ce fichier liste aussi les chantiers en cours et leur découpage par fichier, à respecter quand plusieurs sessions travaillent en parallèle.
 
 Ce dépôt contient **deux projets** :
 1. **L'app web de modération** (racine `src/`) — le présent CLAUDE.md.
