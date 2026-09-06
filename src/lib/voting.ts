@@ -724,3 +724,39 @@ export async function moveMemberToGroup(
 
 // Re-export types for convenience
 export type { SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment }
+
+/** Chantier 72 — compte rendu de `release_table_moderation`. */
+export interface ReleaseTableModerationResult {
+  /** `tables.created_by` pointait sur un modérateur physique, il a été libéré. */
+  released_physical: boolean
+  /** Nombre de membres `session_members.is_moderator` retirés de cette table. */
+  released_members: number
+  /** État de `table_has_moderator` APRÈS libération — doit valoir `false`. */
+  has_moderator: boolean
+}
+
+/**
+ * Chantier 72 — le superadmin libère la modération d'une TABLE.
+ *
+ * `setMemberModerator(..., false)` part d'un membre et ne peut donc pas
+ * atteindre un modérateur « physique » (table prise via
+ * `designate_moderator` ou `claim_table_as_moderator`) : celui-ci n'a aucun
+ * flag `session_members.is_moderator`, donc aucun `member_id` à viser, et
+ * n'apparaît nulle part dans la carte de groupe. Tant que
+ * `tables.created_by` pointe sur lui et qu'il reste assis, la table répond
+ * « déjà un modérateur » à toute tentative de reprise.
+ *
+ * Cette RPC coupe les deux branches de `table_has_moderator` d'un coup.
+ * Migration `20260906_chantier72_1_reprise_moderation.sql` (§2).
+ */
+export async function releaseTableModeration(
+  password: string,
+  tableId: string,
+): Promise<ReleaseTableModerationResult> {
+  const { data, error } = await supabase.rpc('release_table_moderation', {
+    p_password: password,
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as ReleaseTableModerationResult
+}
