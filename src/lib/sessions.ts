@@ -411,3 +411,26 @@ export async function listTableAssignmentsAdmin(
   if (error) throw new Error(extractErr(error))
   return (data as TableAssignmentAdminRow[]) ?? []
 }
+
+/**
+ * Chantier 72 — édition du titre et de la description d'une séance après sa
+ * création (onglet Préparation du superadmin). Titre obligatoire côté SQL
+ * (colonne NOT NULL) ; une description vide y est normalisée en NULL.
+ * RPC `update_session_meta`, migration
+ * `20260906_chantier72_4_update_session_meta.sql`.
+ */
+export async function updateSessionMeta(
+  password: string,
+  sessionId: string,
+  title: string,
+  description: string | null,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('update_session_meta', {
+    p_password:    password,
+    p_session_id:  sessionId,
+    p_title:       title,
+    p_description: description,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}

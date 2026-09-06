@@ -23,6 +23,7 @@ import {
   listSessionSources, deleteCollabSourceAdmin,
   getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
   adminCreateTable, updateGroupNames, listTableAssignmentsAdmin,
+  updateSessionMeta,
 } from '../lib/sessions'
 import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
@@ -32,6 +33,7 @@ import {
   getVoteCountsAdmin, getThemeStatsAll, assignTableToGroup,
   listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
+  releaseTableModeration,
 } from '../lib/voting'
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
@@ -1618,6 +1620,39 @@ function SessionDetail({
     }
   }, [currentSession.id, onAuthError, loadGroups, loadMembers])
 
+  /**
+   * Chantier 72 (défaut A) — libère la modération d'une TABLE.
+   *
+   * `handleRemoveTableModerator` ci-dessus part d'un `member_id` : elle ne
+   * voit que les modérateurs Bloc C (`session_members.is_moderator`). Un
+   * modérateur qui a pris la table par « Devenir modérateur »
+   * (`designate_moderator`) ou par le formulaire de rattrapage
+   * (`claim_table_as_moderator`) n'a AUCUN flag — il n'apparaît pas dans la
+   * carte, et pourtant `tables.created_by` pointe sur lui : la table répond
+   * « déjà un modérateur » à toute reprise, définitivement.
+   *
+   * `release_table_moderation` coupe les deux branches d'un coup. Elle est
+   * aussi le filet du cas ordinaire : cliquer « Retirer » puis, si la table
+   * reste bloquée, « Libérer la modération ».
+   */
+  const handleReleaseTableModeration = useCallback(async (tableId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await releaseTableModeration(password, tableId)
+      await loadGroups()
+      await loadMembers()
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [onAuthError, loadGroups, loadMembers])
+
   useEffect(() => {
     const p = currentSession.phase
     if (p === 'allocating' || p === 'debating') loadGroups()
@@ -1805,6 +1840,54 @@ function SessionDetail({
       setAssignError(msg)
     } finally {
       setAssigningGroup(null)
+    }
+  }
+
+  // ── Chantier 72 — édition du titre / de la description ─────
+  // « Il peut être intéressant, dans vue superadmin onglet préparation, de
+  //   rendre possible de modifier la description et le titre de la séance. »
+  // Même forme que l'édition de documentation juste en dessous : un mode
+  // lecture, un bouton « Modifier », un formulaire. La valeur affichée vient
+  // de `currentSession` (et non de la prop `session`, figée au montage) pour
+  // que l'en-tête reflète l'édition immédiatement ; la liste des séances,
+  // elle, est rechargée par `onBack` → `loadSessions()`.
+  const [editingMeta,  setEditingMeta]  = useState(false)
+  const [metaTitle,    setMetaTitle]    = useState(() => session.title)
+  const [metaDesc,     setMetaDesc]     = useState(() => session.description ?? '')
+  const [metaLoading,  setMetaLoading]  = useState(false)
+  const [metaErr,      setMetaErr]      = useState<string | null>(null)
+
+  async function handleSaveMeta(e: React.FormEvent) {
+    e.preventDefault()
+    const password = getPwd()!
+    if (!metaTitle.trim()) {
+      setMetaErr('Le titre ne peut pas être vide.')
+      return
+    }
+    setMetaLoading(true)
+    setMetaErr(null)
+    try {
+      const updated = await updateSessionMeta(
+        password,
+        currentSession.id,
+        metaTitle.trim(),
+        metaDesc.trim() || null,
+      )
+      setCurrentSession(prev => ({
+        ...prev,
+        title:       updated.title,
+        description: updated.description,
+      }))
+      setEditingMeta(false)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setMetaErr(msg)
+    } finally {
+      setMetaLoading(false)
     }
   }
 
@@ -2226,7 +2309,10 @@ function SessionDetail({
             </svg>
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
+            {/* Chantier 72 — `currentSession` et non la prop `session` (figée au
+                montage) : l'en-tête doit refléter une édition du titre faite dans
+                l'onglet Préparation, sans repasser par la liste des séances. */}
+            <span className="text-sm font-semibold text-gray-900 truncate">{currentSession.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[currentSession.phase] ?? 'bg-gray-100 text-gray-600'}`}>
               {PHASE_LABEL[currentSession.phase] ?? currentSession.phase}
             </span>
@@ -2235,12 +2321,12 @@ function SessionDetail({
             )}
           </div>
         </div>
-        {(session.description || session.scheduled_at) && (
+        {(currentSession.description || session.scheduled_at) && (
           <div className="max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-gray-400 space-y-0.5">
             {session.scheduled_at && (
               <div>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             )}
-            {session.description && <div>{session.description}</div>}
+            {currentSession.description && <div>{currentSession.description}</div>}
           </div>
         )}
       </header>
@@ -2376,22 +2462,6 @@ function SessionDetail({
                   />
                 )}
 
-                {showVotingSections && (
-                  <SectionAccordion
-                    title="Participants inscrits"
-                    open={membersOpen}
-                    onToggle={() => setMembersOpen(o => !o)}
-                    badge={membersLoading ? '…' : `${members.length}`}
-                    onRefresh={loadMembers}
-                  >
-                    <MembersPanel
-                      members={members}
-                      loading={membersLoading}
-                      onToggleModerator={handleToggleModerator}
-                    />
-                  </SectionAccordion>
-                )}
-
                 {showVotingSections && voteResults.length > 0 && (
                   <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <button
@@ -2425,6 +2495,29 @@ function SessionDetail({
             {/* ── Onglet Tables ────────────────────────────── */}
             {activeTab === 'tables' && (
               <div className="space-y-4">
+                {/* Chantier 72 (retour 6 de Jules) — « mettre l'accordéon
+                    participants inscrits dans l'onglet Table, bcp plus pratique ».
+                    Déplacé depuis l'onglet « En direct » : c'est ici qu'on
+                    compose les tables, et c'est cette liste qui sert à retrouver
+                    le nom exact d'un participant à saisir dans « ajouter un
+                    modérateur », ou à le repérer avant de le glisser d'un groupe
+                    à l'autre. */}
+                {showVotingSections && (
+                  <SectionAccordion
+                    title="Participants inscrits"
+                    open={membersOpen}
+                    onToggle={() => setMembersOpen(o => !o)}
+                    badge={membersLoading ? '…' : `${members.length}`}
+                    onRefresh={loadMembers}
+                  >
+                    <MembersPanel
+                      members={members}
+                      loading={membersLoading}
+                      onToggleModerator={handleToggleModerator}
+                    />
+                  </SectionAccordion>
+                )}
+
                 {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
                     `allocating` (§7). Le panneau « Réponses modérateur » (E4)
                     a été supprimé : la demande d'encadrement est traitée par
@@ -2547,39 +2640,65 @@ function SessionDetail({
                                 dans la liste de puces ci-dessous (cf. filtre sur `g.members`). */}
                             {(() => {
                               const mods = g.members.filter(m => m.is_moderator)
-                              if (mods.length > 0) {
-                                return (
-                                  <div className="mb-2 flex items-center gap-1.5 flex-wrap">
-                                    {mods.map(mod => (
-                                      <span key={mod.member_id}
-                                        className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
-                                        🎙️ Modérateur : <strong>{mod.pseudo}</strong>
-                                        <button
-                                          onClick={() => handleRemoveTableModerator(mod.member_id)}
-                                          disabled={movingMember}
-                                          className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
-                                          title="Redevient un participant ordinaire de cette table"
-                                        >
-                                          Retirer
-                                        </button>
-                                      </span>
-                                    ))}
-                                  </div>
-                                )
-                              }
-                              if (g.moderated) {
-                                return (
-                                  <div className="mb-2">
+                              return (
+                                <div className="mb-2 space-y-1.5">
+                                  {mods.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {mods.map(mod => (
+                                        <span key={mod.member_id}
+                                          className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
+                                          🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                          <button
+                                            onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                            disabled={movingMember}
+                                            className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                            title="Redevient un participant ordinaire de cette table"
+                                          >
+                                            Retirer
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Chantier 72 (retour 2 de Jules) — « rendre possible
+                                      d'ajouter un modérateur dans une table qui a été créée
+                                      sans modérateur ». La condition `g.moderated` qui
+                                      encadrait ce bloc a été RETIRÉE : elle masquait
+                                      l'encart sur exactement les tables visées par la
+                                      demande (`tables.leaderless = true`). Aucune RPC
+                                      nouvelle n'était nécessaire —
+                                      `assign_moderator_to_table` convertit déjà la table
+                                      (`leaderless = false`) depuis le chantier 64 ; seul le
+                                      chemin d'accès manquait. */}
+                                  {mods.length === 0 && (
                                     <AddModeratorControl
                                       tableNumber={g.table_number}
                                       candidates={members}
                                       onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
                                       disabled={movingMember}
+                                      leaderless={!g.moderated}
                                     />
-                                  </div>
-                                )
-                              }
-                              return null
+                                  )}
+                                  {/* Chantier 72 (défaut A du bug 1) — filet quand la table
+                                      reste bloquée : un modérateur « physique »
+                                      (tables.created_by, posé par « Devenir modérateur » ou
+                                      par le formulaire de rattrapage) n'a aucun flag
+                                      is_moderator, n'apparaît donc pas ci-dessus, et rend
+                                      pourtant la table non reprenable. */}
+                                  {g.table_id && (
+                                    <button
+                                      onClick={() => handleReleaseTableModeration(g.table_id!)}
+                                      disabled={movingMember}
+                                      className="text-xs text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                      title={"Remet la table à disposition : quiconque a le Code Ecclesia pourra la prendre en charge "
+                                        + "avec son code. À utiliser si un modérateur est parti et que la table refuse encore "
+                                        + "toute reprise (« cette table a déjà un modérateur »)."}
+                                    >
+                                      Libérer la modération de cette table
+                                    </button>
+                                  )}
+                                </div>
+                              )
                             })()}
                             {/* Chantier 20 (G6) — composition par camp visible directement sur la
                                 carte, sans avoir à déplier « Santé des tables » plus bas. */}
@@ -2869,6 +2988,92 @@ function SessionDetail({
             {activeTab === 'prep' && (
               <div className="space-y-6">
                 {session.join_code && <ShareLinkBanner joinCode={session.join_code} />}
+
+                {/* Chantier 72 (retour 5 de Jules) — « rendre possible de modifier
+                    la description et le titre de la séance ». Placé en tête de
+                    l'onglet Préparation, avant la documentation : c'est
+                    l'identité de la séance, elle est reprise partout (accueil
+                    participant, en-tête de vote, résultats publics) et une faute
+                    de frappe y restait jusqu'ici définitive. */}
+                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-4 flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Titre et description
+                    </span>
+                    {!editingMeta && (
+                      <button
+                        onClick={() => {
+                          setMetaTitle(currentSession.title)
+                          setMetaDesc(currentSession.description ?? '')
+                          setMetaErr(null)
+                          setEditingMeta(true)
+                        }}
+                        className="text-xs text-indigo-600 hover:underline"
+                      >
+                        Modifier
+                      </button>
+                    )}
+                  </div>
+                  <div className="border-t border-gray-100 px-5 py-4">
+                    {editingMeta ? (
+                      <form onSubmit={handleSaveMeta} className="space-y-3">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1" htmlFor="session-meta-title">
+                            Titre
+                          </label>
+                          <input
+                            id="session-meta-title"
+                            type="text"
+                            value={metaTitle}
+                            onChange={e => setMetaTitle(e.target.value)}
+                            maxLength={200}
+                            autoFocus
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl
+                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1" htmlFor="session-meta-desc">
+                            Description <span className="text-gray-400">(optionnelle)</span>
+                          </label>
+                          <textarea
+                            id="session-meta-desc"
+                            value={metaDesc}
+                            onChange={e => setMetaDesc(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl resize-y
+                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        </div>
+                        {metaErr && <p className="text-xs text-red-600">{metaErr}</p>}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingMeta(false); setMetaErr(null) }}
+                            className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={metaLoading || !metaTitle.trim()}
+                            className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                              text-white rounded-xl transition-colors"
+                          >
+                            {metaLoading ? 'Enregistrement…' : 'Enregistrer'}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <p className="text-sm font-medium text-gray-900">{currentSession.title}</p>
+                        {currentSession.description
+                          ? <p className="text-xs text-gray-500 whitespace-pre-wrap">{currentSession.description}</p>
+                          : <p className="text-xs text-gray-400">Aucune description</p>}
+                      </div>
+                    )}
+                  </div>
+                </section>
 
                 {/* Documentation (accordion) */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -3636,12 +3841,18 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
  * UNIQUE(session_id, pseudo), donc un pseudo désigne au plus un membre.
  */
 function AddModeratorControl({
-  tableNumber, candidates, onAssign, disabled,
+  tableNumber, candidates, onAssign, disabled, leaderless,
 }: {
   tableNumber: number
   candidates: SessionMemberAdmin[]
   onAssign(memberId: string): void
   disabled?: boolean
+  /**
+   * Chantier 72 — la table est `tables.leaderless` : elle n'attend personne,
+   * elle a été créée pour tourner sans animateur. Le libellé le dit, au lieu
+   * du « en attente » qui laisserait croire à un oubli d'allocation.
+   */
+  leaderless?: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `add-moderator-${tableNumber}` })
   const [name,  setName]  = useState('')
@@ -3670,7 +3881,7 @@ function AddModeratorControl({
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className="text-xs text-amber-800 inline-flex items-center gap-1">
-          ⏳ En attente de modérateur
+          {leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
         </span>
         <span className="text-xs text-gray-400">glisse un participant ici, ou :</span>
       </div>

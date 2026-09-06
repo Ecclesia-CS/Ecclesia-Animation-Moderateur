@@ -1347,6 +1347,96 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   5. **Non-régression** — même séance avec `onboarding_enabled = true` (valeur par défaut) : comportement strictement identique à avant ce chantier (onboarding proposé aux nouveaux arrivants en phase `voting`, jamais en `pre_voting`).
   6. **Non-régression allocation** (si le temps le permet avant jeudi, pas bloquant pour la séance vote-only) : séance avec au moins un membre sans `entry_responses` (onboarding sauté) qui atteint la phase `allocating` → `AllocationPanel` doit calculer une proposition sans planter, ce membre traité comme non-actif/non-consentant/nouveau.
 
+- [ ] **2026-09-06 — Chantier 72 — 4 migrations, jamais appliquées** — modération superadmin (bug de reprise de table, ajout de modérateur, défaut d'allocation, faille `add_collab_source`, édition titre/description, déplacement d'accordéon)
+
+  **Périmètre imposé** : SQL + `src/screens/SuperadminScreen.tsx`. `VoteScreen.tsx`, `EntryScreen.tsx`, `ParticipantView.tsx` (chantier 73) et `PhaseIndicator.tsx`, `ModeratorView.tsx` (chantier 74) **non touchés**. `src/lib/allocation.ts` non touché (hors périmètre permanent). Deux écarts assumés au périmètre, tous deux en ajout pur en fin de fichier (aucune ligne existante modifiée, risque de conflit minimal avec les sessions parallèles) : `src/lib/sessions.ts` (+`updateSessionMeta`) et `src/lib/voting.ts` (+`releaseTableModeration`, +`ReleaseTableModerationResult`) — les wrappers RPC vivent dans `lib/` par convention du projet, appeler `supabase.rpc` directement depuis un écran aurait été le vrai écart.
+
+  **Aucun accès MCP Supabase dans cette session.** Les corps de fonctions recopiés dans les migrations viennent des fichiers de `supabase/migrations/`, **pas de la base**. Chaque fichier porte en tête la requête `pg_get_functiondef` à jouer **avant** application pour confirmer qu'aucune version plus récente n'existe en base (règle « la vérité est en base », incident chantier 67).
+
+  ---
+
+  ### Bug 1 — « Cette table a déjà un modérateur » — diagnostic
+
+  Retour de Jules : après un retrait de modération par le superadmin, plus personne ne peut prendre la table ; et lui-même, en resaisissant **exactement le pseudo du modérateur** (`T33 Mod1`, table `A10001`) avec le bon Code Ecclesia, se voit répondre qu'il y a déjà un modérateur.
+
+  Le message vient d'un seul endroit : le point 4 de `claim_table_as_moderator` (chantier 68) → `table_has_moderator(table_id)`, dont les deux branches sont **(a)** `NOT tables.leaderless` ET `tables.created_by` physiquement assis, **(b)** un `session_members.is_moderator` affecté à cette table via `table_assignments`. **Les deux branches sont en cause, pour deux raisons distinctes** :
+
+  - **Défaut A — le retrait ne libère que la branche (b).** `set_member_moderator(..., false)` (dernière définition : chantier 64, section 1), appelée par le bouton « Retirer » de l'onglet Tables, ne fait qu'un `UPDATE session_members SET is_moderator = false`. Elle ne touche jamais `tables.created_by`. Si le modérateur avait pris la table par `designate_moderator` (bouton « Devenir modérateur ») ou par `claim_table_as_moderator` — les deux posent `created_by = auth.uid()` **et** insèrent une ligne `participants` —, la branche (a) reste vraie après le retrait : la table est « pourvue » alors que plus personne ne l'anime, **définitivement**. Aggravant : ces deux chemins ne posent jamais `is_moderator`, donc un tel modérateur n'apparaît même pas dans la carte de groupe du superadmin (`g.members.filter(m => m.is_moderator)`) — aucun bouton, aucune RPC ne permettait de le viser.
+  - **Défaut B — plus aucun chemin de vraie reprise de main.** C'est le test exact de Jules. `table_has_moderator` répond « quelqu'un a-t-il autorité ? », jamais « est-ce l'appelant ? ». Le modérateur en place est donc refusé **par sa propre présence** dès qu'il revient avec un `auth.uid()` différent (autre appareil/navigateur, session anonyme perdue — User ID anonyme instable, cf. chantier B3). Avant le chantier 68 ce cas passait par `reclaim_moderator` ; le 68 a migré `JoinTableForm`/`EntryScreen` vers `claim_table_as_moderator` sans laisser de chemin pour la reprise légitime. Point déjà signalé comme ouvert dans `CLAUDE.md` et dans l'entrée chantier 68 de ce fichier.
+
+  **Cas que Jules n'a pas pu tester (« utilisateur déjà existant, le superadmin le rajoute »)** : **constat par lecture du code, à confirmer à l'écran** — ce chemin fonctionne, et pour une raison structurelle : `AddModeratorControl` → `assign_moderator_to_table` pose `is_moderator` et déplace `table_assignments` **sans jamais interroger `table_has_moderator`**. Le modérateur obtient ensuite son autorité par la branche (b) d'`is_table_moderator` (chantier 60), lue par `TableContext.isModerator` via `sessionMemberIsModerator` (chantier 41). Aucune des deux branches en cause n'est sur ce trajet.
+
+  ### ⚠️ Arbitrage tranché par hypothèse — à valider par Jules
+
+  Le correctif du **défaut B** relâche `claim_table_as_moderator` : le refus ne tombe plus que si le modérateur en place n'est **pas** l'appelant (`table_has_moderator` ET `NOT table_moderator_is`). Reconnaître « c'est moi qui reviens » sur un appareil neuf étant impossible par `auth.uid()`, la preuve retenue est le **pseudo** — convention d'identité déjà employée par `join_table` (`ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id`, commentaire « retour autre appareil », cf. `CLAUDE.md`).
+
+  **Conséquence de sécurité, énoncée franchement** : connaître le Code Ecclesia + le code de la table + **le pseudo affiché** du modérateur en place suffit pour lui prendre la table. C'est strictement **plus** strict qu'avant le chantier 68 (`reclaim_moderator` : Code Ecclesia + code de table, sans pseudo) et strictement **moins** strict que le chantier 68 (refus absolu, qui est le bug). Le pseudo du modérateur est visible de tous les participants (`ParticipantsSidebar`) : ce n'est pas un secret, c'est un discriminant.
+
+  **Alternative non retenue** : un chemin d'UI dédié à la reprise de main (« je suis DÉJÀ le modérateur de cette table ») branché sur `reclaim_moderator`, distinct de la prise en charge d'une table libre. Elle exige de modifier `src/screens/EntryScreen.tsx` et `src/components/JoinTableForm.tsx` — `EntryScreen.tsx` est explicitement hors périmètre (chantier 73). Le correctif retenu est 100 % SQL : les deux écrans transmettent **déjà** le pseudo à `claim_table_as_moderator`, aucun changement frontend n'est requis. **Si Jules préfère l'alternative, le §3 de la migration 1/4 se retire seul** (rollback documenté en pied de fichier) sans toucher aux §1/§2.
+
+  ---
+
+  ### Migrations à appliquer (dans cet ordre, indépendantes entre elles)
+
+  1. **`supabase/migrations/20260906_chantier72_1_reprise_moderation.sql`** — bug 1. §1 `set_member_moderator(..., false)` libère aussi `tables.created_by` quand il pointait sur ce membre (garde `AND created_by = v_member.user_id` : on ne déposssède jamais un autre modérateur) ; `tables.leaderless` **n'est pas touché**, conformément à la décision de Jules au chantier 64 (« retirer le modérateur en place ne change rien, il va revenir »). §2 nouvelle RPC `release_table_moderation(password, table_id)`, seul levier atteignant un modérateur « physique » sans flag. §3 nouveau helper `table_moderator_is(table_id, pseudo)` + assouplissement de `claim_table_as_moderator` (voir arbitrage ci-dessus). `SET search_path = public, extensions` ajouté sur `set_member_moderator`, qui n'en avait aucun alors qu'elle appelle `check_superadmin_password` → `crypt()`.
+  2. **`20260906_chantier72_2_allocation_actif_par_defaut.sql`** — retour 3. `get_allocation_inputs` : `COALESCE(er.participation_style = 'active', false)` → `true`. **Seul le cas « pas de ligne `entry_responses` » change** ; un `'listener'` explicite fait valoir l'égalité `false` (pas `NULL`), le COALESCE n'intervient pas, il reste passif. `consents` et `is_veteran` inchangés à `false`. `SET search_path` ajouté (absent).
+  3. **`20260906_chantier72_3_drop_add_collab_source_4args.sql`** — retour 4, sécurité. `DROP FUNCTION IF EXISTS public.add_collab_source(uuid, text, text, text);`. Vérification faite avant écriture : un seul site d'appel RPC (`src/lib/sessions.ts:248`), qui envoie **toujours** les 5 paramètres nommés dont `p_table_join_code: tableJoinCode ?? null` (jamais omis) ; un seul appelant du wrapper (`src/screens/CollabDocScreen.tsx:208`). PostgREST résout la surcharge par l'ensemble des noms reçus → seule la signature à 5 arguments peut matcher. Le fichier contient la requête de contrôle « les 2 signatures coexistent-elles encore ? » à jouer avant.
+  4. **`20260906_chantier72_4_update_session_meta.sql`** — retour 5. Nouvelle RPC `update_session_meta(password, session_id, title, description)`, même forme que `update_session_docs`/`set_session_onboarding_enabled`. Titre obligatoire (colonne NOT NULL), description vide normalisée en `NULL`, aucune restriction de phase. `scheduled_at` **volontairement exclu** (non demandé ; son édition pose une question distincte de fuseau horaire) — ajoutable plus tard en 4ᵉ paramètre optionnel, avec `DROP FUNCTION` explicite de la signature à 3 arguments.
+
+  ### Changements frontend
+
+  - `src/screens/SuperadminScreen.tsx` — (2) la condition `g.moderated` qui encadrait `AddModeratorControl` est **retirée** : elle masquait l'encart « ajouter un modérateur » sur exactement les tables visées par la demande de Jules (`tables.leaderless = true`). **Aucune RPC nouvelle n'était nécessaire** — `assign_moderator_to_table` convertit déjà la table (`leaderless = false`) depuis le chantier 64, seul le chemin d'accès manquait. Nouveau libellé « 🙌 Table sans animateur » (prop `leaderless`) au lieu de « ⏳ En attente de modérateur », qui laisserait croire à un oubli d'allocation. — (1) nouveau bouton **« Libérer la modération de cette table »** sur chaque groupe rattaché à une table physique (`handleReleaseTableModeration`). — (5) section « Titre et description » en tête de l'onglet Préparation (mode lecture / bouton Modifier / formulaire), et l'en-tête de `SessionDetail` lit désormais `currentSession.title`/`.description` au lieu de la prop `session` figée au montage, pour refléter l'édition sans repasser par la liste. — (6) accordéon « Participants inscrits » **déplacé** de l'onglet « En direct » vers l'onglet « Tables ».
+  - `src/lib/sessions.ts` — `updateSessionMeta` (ajout en fin de fichier).
+  - `src/lib/voting.ts` — `releaseTableModeration` + type `ReleaseTableModerationResult` (ajout en fin de fichier).
+
+  ### ⚠️ Commentaire devenu faux, non corrigé (hors périmètre)
+
+  `src/lib/allocation.ts`, l. 185 — doc du champ `isActive` : « Sans onboarding → false (conservateur, §6) ». **Faux après la migration 2/4** : le défaut est posé côté SQL et vaut désormais `true`. Le **code** TypeScript ne fait aucune supposition (il consomme le booléen déjà résolu par `get_allocation_inputs`), il n'y a **aucune ligne de logique à changer** — seulement ce commentaire. Fichier interdit de modification (piloté par une autre conversation) : à corriger par la session qui en a la charge.
+
+  ### Autre lecteur de `participation_style` — inventorié, délibérément non touché
+
+  `run_clustering_v3` (`20260721_clustering_v3.sql`, l. 81 et 100) trie par `COALESCE(er.participation_style, 'zzz')`, c'est-à-dire place les membres sans onboarding **en dernier** du round-robin sans jamais les assimiler à actif ou passif — ce n'est donc pas la même supposition. Et surtout : cette fonction n'est plus appelée par le frontend (comme `run_clustering_v1/v2`, chantier 37). La modifier reviendrait à réanimer un chemin mort. `get_table_opinion_summary` et `run_clustering_v1/v2` ne lisent pas du tout `participation_style` (vérifié par grep).
+
+  ### Déjà vérifié — et rien de plus
+
+  `npx tsc --noEmit` : propre. `npm test` : **94 passés / 1 skip préexistant** (aucun test ajouté : les changements sont soit du SQL, soit du branchement JSX — aucune fonction pure nouvelle à unit-tester). `npm run build` : propre (avertissement de taille de bundle préexistant, sans rapport). **Aucune vérification navigateur, aucun SQL appliqué** (consignes explicites de la session).
+
+  ---
+
+  ### Recette de vérification
+
+  **Prérequis** : appliquer les 4 migrations après avoir joué, pour chacune, la requête de contrôle de son en-tête. Puis dérouler les requêtes de vérification en pied de chaque fichier (elles couvrent les cas SQL purs, y compris les non-régressions).
+
+  **A. Bug 1 — défaut A, retrait ordinaire** (séance en `debating`, une table avec un modérateur Bloc C) :
+  1. Onglet Tables → sur la carte du groupe, cliquer « Retirer » à côté du modérateur.
+  2. Depuis un **autre navigateur** (session anonyme neuve), accueil → « Rejoindre ou reprendre une table » → cocher « Je suis modérateur de cette table », saisir le code de la table, un pseudo **nouveau**, le Code Ecclesia → **doit réussir** (avant : « cette table a déjà un modérateur »).
+  3. Vérifier que le nouveau venu voit bien `ModeratorView` et que la file d'attente, les tours de parole et les temps cumulés de la table sont **intacts**.
+
+  **B. Bug 1 — défaut A aggravé, modérateur « physique »** (le cas qu'aucun bouton n'atteignait) :
+  1. Sur une table `leaderless` en débat, un participant clique « 🎙️ Devenir modérateur » (`designate_moderator`) — ou une table est prise via le formulaire de rattrapage.
+  2. Superadmin, onglet Tables : ce modérateur **n'apparaît pas** comme « Modérateur : … » sur la carte (attendu : il n'a pas de flag `is_moderator`). Cliquer **« Libérer la modération de cette table »**.
+  3. Depuis un autre navigateur : reprendre la table par son code + Code Ecclesia → **doit réussir**.
+  4. Vérifier en base que `tables.leaderless` **n'a pas changé** au passage (décision chantier 64) et qu'aucun tour de parole / entrée de file n'a disparu.
+
+  **C. Bug 1 — défaut B, vraie reprise de main (le test de Jules)** :
+  1. Table animée par « T33 Mod1 », séance en `debating`. **Sans rien retirer** côté superadmin.
+  2. Depuis un **autre navigateur/appareil** : « Je suis modérateur de cette table », code de la table, pseudo **exactement `T33 Mod1`**, Code Ecclesia → **doit réussir** et rendre la main sur cet appareil.
+  3. **Non-régression, le point le plus important de cette recette** : refaire la même chose avec un pseudo **différent** de celui du modérateur en place → **doit être refusé** avec « Cette table a déjà un modérateur ». Si ce cas passe, l'arbitrage est cassé — le signaler avant de déployer.
+  4. Vérifier au passage la casse/les espaces : `t33 mod1` et ` T33 Mod1 ` doivent être acceptés comme le même pseudo (comparaison `lower(btrim(...))`).
+
+  **D. Bug 1 — le cas que Jules n'a pas pu tester** (à confirmer, constat par lecture seule) : sur une table sans modérateur, superadmin → onglet Tables → glisser un participant déjà inscrit sur l'encart « ajouter un modérateur » (ou saisir son nom) → il devient modérateur, et **côté participant** sa vue doit basculer sur `ModeratorView` sans rechargement. Vérifier aussi que la table passe `leaderless = false` si elle l'était (chantier 64).
+
+  **E. Retour 2 — ajouter un modérateur à une table créée sans modérateur** : séance avec au moins une table `leaderless` rattachée → onglet Tables : l'encart d'ajout doit maintenant **apparaître** sur cette carte, libellé « 🙌 Table sans animateur ». Assigner quelqu'un par glisser-déposer **et** par saisie du nom (les deux chemins). Vérifier en base : `session_members.is_moderator = true`, `table_assignments` déplacé, `tables.leaderless = false`.
+
+  **F. Retour 3 — actif par défaut** : séance en `allocating` avec au moins un membre présentiel **sans** ligne `entry_responses` (onboarding désactivé, chantier 71) et au moins un membre ayant répondu `listener`. Jouer la requête n° 2 du pied de la migration 2/4 : le premier doit ressortir `is_active = true`, le second `is_active = false`. Puis `AllocationPanel` → « Calculer » : la proposition doit se calculer sans erreur, et les badges de seuil « actifs n/N » doivent refléter le nouveau décompte.
+
+  **G. Retour 4 — faille `add_collab_source`** : après le DROP, ouvrir `#collab/<join_code>` et ajouter une source avec une URL valide → doit fonctionner exactement comme avant. Puis jouer les requêtes 3 et 4 du pied de la migration 3/4 (URL `javascript:` refusée sur la signature à 5 arguments ; signature à 4 arguments introuvable).
+
+  **H. Retour 5 — titre/description** : onglet Préparation → section « Titre et description » → « Modifier » → changer les deux → « Enregistrer ». Vérifier : l'en-tête de la page se met à jour **immédiatement** (sans rechargement) ; revenir à la liste des séances → le nouveau titre y apparaît ; vider entièrement la description → doit s'afficher « Aucune description » et valoir `NULL` en base ; vider le titre → le bouton « Enregistrer » doit être désactivé. Vérifier aussi l'effet côté participant (accueil « Séances en cours », en-tête de `#vote/`).
+
+  **I. Retour 6 — accordéon déplacé** : « Participants inscrits » ne doit plus figurer dans l'onglet « En direct » et doit apparaître **en tête** de l'onglet « Tables ». Vérifier que le bouton de rafraîchissement, le badge de compte et la bascule « + modérateur » de la liste fonctionnent toujours depuis leur nouvel emplacement.
+
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->

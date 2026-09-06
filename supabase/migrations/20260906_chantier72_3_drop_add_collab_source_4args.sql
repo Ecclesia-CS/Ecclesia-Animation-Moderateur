@@ -1,0 +1,124 @@
+-- =============================================================
+-- Chantier 72 (3/4) — SÉCURITÉ : supprimer la surcharge orpheline
+--                     `add_collab_source` à 4 arguments
+--
+-- LA FAILLE
+-- =============================================================
+-- `add_collab_source` existe en base en DEUX signatures (vérifié en base
+-- par Jules avant l'ouverture de ce chantier) :
+--
+--   (1) add_collab_source(uuid, text, text, text)
+--       — version d'origine, 20260527000006_collab_sources.sql
+--   (2) add_collab_source(uuid, text, text, text, text)
+--       — ajout de p_table_join_code, 20260527130000_collab_table_join_code.sql
+--
+-- La deuxième est née d'un `CREATE OR REPLACE FUNCTION` avec un nombre
+-- d'arguments DIFFÉRENT : Postgres a créé une SURCHARGE au lieu de
+-- remplacer. C'est exactement le piège documenté en tête de CLAUDE.md, et
+-- la version à 4 arguments est restée exécutable depuis, oubliée.
+--
+-- Le chantier 52 (20260902_chantier52_valider_url_sources_fermer_collab_users.sql)
+-- a ajouté la validation d'URL — refus des schémas dangereux, `javascript:`
+-- en tête — mais l'a appliquée à la SEULE signature à 5 arguments, la
+-- seule que le frontend appelle. La surcharge à 4 arguments a donc gardé
+-- son corps d'origine, SANS validation : un appel RPC direct de la forme
+--
+--   POST /rest/v1/rpc/add_collab_source
+--   { "p_session_id": "...", "p_title": "...", "p_url": "javascript:..." }
+--
+-- insère encore aujourd'hui un lien `javascript:` dans `session_sources`,
+-- rendu ensuite comme lien cliquable dans `CollabDocScreen` pour tous les
+-- participants de la séance. La clé `anon` étant publique (dans le bundle
+-- JS, pas de backend), n'importe qui peut former cet appel.
+--
+-- Un correctif de validation qui laisse une porte non validée à côté n'est
+-- pas un correctif : c'est la porte qu'on supprime.
+--
+-- POURQUOI SUPPRIMER PLUTÔT QUE VALIDER AUSSI
+-- =============================================================
+-- Plus aucun appelant ne passe 4 arguments. Vérification faite avant
+-- d'écrire ce fichier, par recherche exhaustive sur `src/` :
+--   · un seul site d'appel RPC : `src/lib/sessions.ts:248`
+--     (`addCollabSource`), qui envoie TOUJOURS les 5 paramètres nommés,
+--     y compris `p_table_join_code: tableJoinCode ?? null` — jamais omis ;
+--   · un seul appelant de ce wrapper : `src/screens/CollabDocScreen.tsx:208`,
+--     qui passe bien `myTableJoinCode` en 5ᵉ position.
+-- PostgREST résout la surcharge par l'ENSEMBLE DES NOMS de paramètres
+-- reçus : avec les 5 noms présents, seule la signature à 5 arguments
+-- correspond. La supprimer ne peut donc pas dérouter un appel légitime —
+-- et si un appel à 4 arguments réapparaissait un jour, il échouerait
+-- bruyamment (PGRST202, fonction introuvable) plutôt que de contourner
+-- silencieusement la validation. C'est le bon sens de l'échec.
+--
+-- Dupliquer la validation dans la version à 4 arguments aurait au
+-- contraire pérennisé deux corps à maintenir en parallèle — la cause même
+-- de cette faille.
+--
+-- PIÈGE DU PROJET
+-- =============================================================
+-- `DROP FUNCTION` sur un nom surchargé EXIGE la signature exacte, sinon
+-- Postgres refuse (« function name is not unique »). D'où la signature
+-- complète ci-dessous, et non un `DROP FUNCTION add_collab_source`.
+-- =============================================================
+
+-- Contrôle préalable recommandé (à exécuter AVANT le DROP, pour vérifier
+-- que les deux signatures coexistent toujours au moment de l'application) :
+--
+--   SELECT p.oid::regprocedure AS signature
+--   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--   WHERE n.nspname = 'public' AND p.proname = 'add_collab_source';
+--   → attendu AVANT : 2 lignes
+--       add_collab_source(uuid,text,text,text)
+--       add_collab_source(uuid,text,text,text,text)
+--   → si une seule ligne (celle à 5 arguments) : la surcharge a déjà été
+--     supprimée entre-temps, le DROP ci-dessous est un no-op grâce au
+--     IF EXISTS. Rien d'autre à faire.
+
+DROP FUNCTION IF EXISTS public.add_collab_source(uuid, text, text, text);
+
+
+-- =============================================================
+-- REQUÊTES DE VÉRIFICATION (après application)
+-- =============================================================
+--
+-- 1. Une seule signature subsiste, celle validée par le chantier 52 :
+--    SELECT p.oid::regprocedure
+--    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--    WHERE n.nspname = 'public' AND p.proname = 'add_collab_source';
+--    → 1 ligne : add_collab_source(uuid,text,text,text,text)
+--
+-- 2. Le chemin nominal (5 arguments) fonctionne toujours :
+--    SELECT add_collab_source('<SESSION_ID>', 'Test', 'https://example.com', NULL, NULL);
+--    → une ligne session_sources insérée
+--
+-- 3. La validation d'URL du chantier 52 est bien la seule porte d'entrée :
+--    SELECT add_collab_source('<SESSION_ID>', 'Test', 'javascript:alert(1)', NULL, NULL);
+--    → exception (URL refusée)
+--
+-- 4. L'ancienne porte est fermée :
+--    SELECT add_collab_source('<SESSION_ID>'::uuid, 'Test', 'javascript:alert(1)', NULL);
+--    → ERROR: function add_collab_source(uuid, unknown, unknown, unknown) does not exist
+--
+-- 5. Côté application : ouvrir #collab/<join_code>, ajouter une source avec
+--    une URL valide → doit fonctionner exactement comme avant (le frontend
+--    n'appelle que la signature à 5 arguments).
+--
+-- =============================================================
+-- SQL D'ANNULATION (rollback)
+-- =============================================================
+--
+-- Aucun rollback n'est souhaitable : recréer la surcharge rouvrirait la
+-- faille. Si un appelant tiers inconnu devait absolument être dépanné,
+-- recréer la fonction en la faisant DÉLÉGUER à la version validée plutôt
+-- qu'en recopiant son ancien corps :
+--
+--   CREATE FUNCTION public.add_collab_source(
+--     p_session_id uuid, p_title text,
+--     p_url text DEFAULT NULL, p_content text DEFAULT NULL
+--   ) RETURNS public.session_sources
+--   LANGUAGE sql SECURITY INVOKER SET search_path = public, extensions AS
+--   $wrap$ SELECT public.add_collab_source(p_session_id, p_title, p_url, p_content, NULL); $wrap$;
+--
+-- (SECURITY INVOKER volontaire : c'est la fonction déléguée, SECURITY
+-- DEFINER, qui porte les droits et la validation.)
+-- =============================================================
