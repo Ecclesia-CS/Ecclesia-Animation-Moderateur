@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { registerSessionMember, reclaimPrevotingMember } from '../../lib/voting'
+import { registerSessionMember, reclaimPrevotingMember, tryClaimModeratorStatus } from '../../lib/voting'
 import { lastNameStore } from '../../lib/storage'
+import ModeratorDeclareField from './ModeratorDeclareField'
 import type { Session, SessionMember } from '../../lib/types'
 
 interface PseudoFormProps {
@@ -23,6 +24,13 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Chantier 73 — déclaration modérateur dès l'inscription : l'inscription se
+  // fait d'abord, la déclaration ensuite, dans la foulée (voir tryClaimModeratorStatus).
+  const [asModerator, setAsModerator] = useState(false)
+  const [moderatorPassword, setModeratorPassword] = useState('')
+  const [pendingMember, setPendingMember] = useState<SessionMember | null>(null)
+  const [moderatorError, setModeratorError] = useState<string | null>(null)
+
   // Chantier B3 — pseudo déjà inscrit en pré-vote : proposer une reconquête
   // plutôt que bloquer avec une simple erreur.
   const [showReclaim, setShowReclaim] = useState(false)
@@ -40,7 +48,17 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
     try {
       const member = await registerSessionMember(session.id, trimmed, reclaimCode)
       lastNameStore.set(trimmed)
-      onSuccess(member)
+      if (asModerator && moderatorPassword.trim()) {
+        const { member: updated, error: modErr } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
+        if (updated) {
+          onSuccess(updated)
+        } else {
+          setModeratorError(modErr)
+          setPendingMember(member)
+        }
+      } else {
+        onSuccess(member)
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur inattendue'
       if (session.phase === 'pre_voting' && msg.includes('Pseudo déjà pris')) {
@@ -73,6 +91,30 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
     } finally {
       setReclaimLoading(false)
     }
+  }
+
+  if (pendingMember) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center space-y-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Bienvenue {pendingMember.pseudo} !</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Ton inscription est bien enregistrée, mais la déclaration modérateur a échoué : {moderatorError}
+            </p>
+          </div>
+          <button
+            onClick={() => onSuccess(pendingMember)}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            Continuer →
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (showReclaim) {
@@ -201,6 +243,13 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
               {error}
             </div>
           )}
+
+          <ModeratorDeclareField
+            checked={asModerator}
+            onCheckedChange={setAsModerator}
+            password={moderatorPassword}
+            onPasswordChange={setModeratorPassword}
+          />
 
           <button
             type="submit"
