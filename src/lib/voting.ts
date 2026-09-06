@@ -434,6 +434,25 @@ export async function claimModeratorStatus(
 }
 
 /**
+ * Chantier 73 — variante non-levante de `claimModeratorStatus`, pour les
+ * formulaires d'inscription (PseudoForm, VotingEntryForm, AttendanceConfirmScreen) :
+ * un mot de passe invalide ne doit jamais faire échouer l'inscription elle-même,
+ * seulement la déclaration modérateur qui la suit.
+ */
+export async function tryClaimModeratorStatus(
+  sessionId: string,
+  creationCode: string,
+  pseudo: string
+): Promise<{ member: SessionMember | null; error: string | null }> {
+  try {
+    const member = await claimModeratorStatus(sessionId, creationCode, pseudo)
+    return { member, error: null }
+  } catch (err) {
+    return { member: null, error: err instanceof Error ? err.message : 'Erreur inattendue' }
+  }
+}
+
+/**
  * Chantier 68 — un modérateur en retard prend en charge une table encore
  * sans modérateur, en saisissant son code. Refusé côté serveur si le Code
  * Ecclesia est invalide, si `sessionId` est fourni et ne correspond pas à la

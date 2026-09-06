@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse, getMyAssertionIds } from '../lib/voting'
+import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse, getMyAssertionIds, tryClaimModeratorStatus } from '../lib/voting'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
@@ -16,7 +16,8 @@ import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireF
 import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
-import ModeratorAccessPanel from '../components/voting/ModeratorAccessPanel'
+import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
+import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
 
 interface VoteScreenProps {
   sessionJoinCode: string
@@ -82,6 +83,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Outils panel
   const [showToolsPanel,  setShowToolsPanel]  = useState(false)
   const [showNotesModal,  setShowNotesModal]  = useState(false)
+  // Chantier 73 — déclaration modérateur, déplacée du header (ModeratorAccessPanel)
+  // vers le panneau Outils. Même piège que showNotesModal (voir CLAUDE.md) : l'état
+  // vit dans le parent, pas dans VoteToolsPanel, sinon onClose() démonte le panneau
+  // avant que la modale ne s'ouvre.
+  const [showModeratorClaimModal, setShowModeratorClaimModal] = useState(false)
 
   // Message d'intro affiché une fois par séance : explique les phases de l'app
   const [showAppIntro, setShowAppIntro] = useState(false)
@@ -768,9 +774,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       <>
         <QuitLink />
         <PhaseIndicator phase={session.phase} floating />
-        {showPreVotingAnnounce
-          ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
-          : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        {showAppIntro
+          ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />
+          : showPreVotingAnnounce && <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />}
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">⏳</div>
@@ -798,9 +804,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   if (step === 'pseudo' && session) {
-    const intro = showPreVotingAnnounce
-      ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
-      : showAppIntro ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} /> : null
+    const intro = showAppIntro
+      ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />
+      : showPreVotingAnnounce ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} /> : null
     // En phase voting ou allocating : formulaire combiné pseudo OU code (pas de
     // double écran). Chantier 61 : `allocating` ajouté — c'est ce formulaire,
     // et lui seul, qui sait retrouver une inscription existante par nom OU par
@@ -853,9 +859,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       <>
         <QuitLink />
         <PhaseIndicator phase={session.phase} floating />
-        {showPreVotingAnnounce
-          ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
-          : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        {showAppIntro
+          ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />
+          : showPreVotingAnnounce && <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />}
         <AttendanceConfirmScreen
           session={session}
           pseudo={confirmPseudo}
@@ -913,12 +919,6 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   🎙️ Vous êtes modérateur
                 </button>
               )}
-              <ModeratorAccessPanel
-                session={session}
-                member={member}
-                onMemberUpdated={setMember}
-                onTableJoined={onTableJoined}
-              />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1279,12 +1279,24 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             memberPseudo={member.pseudo}
             onClose={() => setShowToolsPanel(false)}
             onOpenNotes={() => setShowNotesModal(true)}
+            onOpenModeratorClaim={() => setShowModeratorClaimModal(true)}
           />
         )}
 
         {/* Notes modal (ouvert depuis VoteToolsPanel) */}
         {showNotesModal && session && (
           <NotesModal sessionId={session.id} onClose={() => setShowNotesModal(false)} />
+        )}
+
+        {/* Déclaration modérateur (ouvert depuis VoteToolsPanel — chantier 73) */}
+        {showModeratorClaimModal && (
+          <ModeratorClaimModal
+            sessionId={session.id}
+            pseudo={member.pseudo}
+            alreadyModerator={member.is_moderator}
+            onClose={() => setShowModeratorClaimModal(false)}
+            onClaimed={setMember}
+          />
         )}
 
         {/* Nudge proposition toutes les 10 assertions */}
@@ -1316,9 +1328,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           </div>
         )}
 
-        {showPreVotingAnnounce
-          ? <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />
-          : showAppIntro && <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />}
+        {showAppIntro
+          ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />
+          : showPreVotingAnnounce && <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />}
       </div>
     )
   }
@@ -1493,9 +1505,10 @@ interface VoteToolsPanelProps {
   memberPseudo: string
   onClose: () => void
   onOpenNotes: () => void
+  onOpenModeratorClaim: () => void
 }
 
-function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes }: VoteToolsPanelProps) {
+function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenModeratorClaim }: VoteToolsPanelProps) {
 
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
@@ -1588,6 +1601,20 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes }: VoteToo
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
             Mes notes
+          </button>
+
+          {/* Chantier 73 — déclaration modérateur, déplacée ici depuis le header
+              (trop apparent). Reste proposée même à un modérateur déjà déclaré :
+              un second appel est sans effet côté serveur. */}
+          <button
+            onClick={() => { onClose(); onOpenModeratorClaim() }}
+            className={linkClass}
+          >
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
+            </svg>
+            Me déclarer modérateur
           </button>
 
           <div className="pb-2" />
@@ -1701,7 +1728,14 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
   const [codeInput,    setCodeInput]    = useState('')
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
-  const [reclaimDone,  setReclaimDone]  = useState<SessionMember | null>(null)
+  // Chantier 73 — déclaration modérateur dès l'inscription/reclaim.
+  const [asModerator,       setAsModerator]       = useState(false)
+  const [moderatorPassword, setModeratorPassword] = useState('')
+  const [moderatorError,    setModeratorError]    = useState<string | null>(null)
+  // Écran de succès unifié : toujours affiché après un reclaim (comme avant),
+  // et désormais aussi après une inscription neuve si la déclaration modérateur
+  // a échoué (pour rendre l'échec visible avant de continuer).
+  const [completed, setCompleted] = useState<{ member: SessionMember; isNew: boolean } | null>(null)
 
   const input = tab === 'pseudo' ? pseudoInput : codeInput
   const setInput = tab === 'pseudo' ? setPseudoInput : setCodeInput
@@ -1713,26 +1747,40 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
     setError(null)
     setLoading(true)
     try {
+      let member: SessionMember
+      let isNew = false
       if (tab === 'code') {
         // Reclaim par code
-        const member = await confirmAttendance(session.id, undefined, val)
-        setReclaimDone(member)
+        member = await confirmAttendance(session.id, undefined, val)
       } else {
         // Pseudo : d'abord tenter l'inscription normale
         try {
-          const member = await registerSessionMember(session.id, val)
+          member = await registerSessionMember(session.id, val)
           lastNameStore.set(val)
-          onNewMember(member)
+          isNew = true
         } catch (regErr: unknown) {
           const msg = regErr instanceof Error ? regErr.message : ''
           if (msg.includes('Pseudo déjà pris')) {
             // Reclaim automatique par pseudo — pas de deuxième écran
-            const member = await confirmAttendance(session.id, val)
-            setReclaimDone(member)
+            member = await confirmAttendance(session.id, val)
           } else {
             throw regErr
           }
         }
+      }
+
+      let modErr: string | null = null
+      if (asModerator && moderatorPassword.trim()) {
+        const result = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
+        if (result.member) member = result.member
+        else modErr = result.error
+      }
+
+      if (isNew && !modErr) {
+        onNewMember(member)
+      } else {
+        setModeratorError(modErr)
+        setCompleted({ member, isNew })
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
@@ -1741,20 +1789,28 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
     }
   }
 
-  // Écran de succès du reclaim — s'affiche 1,5s avant de continuer
-  if (reclaimDone) {
+  // Écran de succès — reclaim, ou inscription neuve dont la déclaration
+  // modérateur a échoué (message visible avant de continuer).
+  if (completed) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm text-center space-y-5">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
-            <span className="text-3xl">✅</span>
+          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${moderatorError ? 'bg-amber-100' : 'bg-green-100'}`}>
+            <span className="text-3xl">{moderatorError ? '⚠️' : '✅'}</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Bienvenue {reclaimDone.pseudo} !</h1>
-            <p className="mt-2 text-sm text-gray-500">Tes votes ont bien été récupérés.</p>
+            <h1 className="text-xl font-bold text-gray-900">Bienvenue {completed.member.pseudo} !</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              {completed.isNew ? 'Ton inscription est bien enregistrée.' : 'Tes votes ont bien été récupérés.'}
+            </p>
+            {moderatorError && (
+              <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                La déclaration modérateur a échoué : {moderatorError}
+              </p>
+            )}
           </div>
           <button
-            onClick={() => onConfirmed(reclaimDone)}
+            onClick={() => (completed.isNew ? onNewMember(completed.member) : onConfirmed(completed.member))}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
           >
             Continuer →
@@ -1840,6 +1896,13 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
             </div>
           )}
 
+          <ModeratorDeclareField
+            checked={asModerator}
+            onCheckedChange={setAsModerator}
+            password={moderatorPassword}
+            onPasswordChange={setModeratorPassword}
+          />
+
           <button
             type="submit"
             disabled={loading || !input.trim()}
@@ -1878,14 +1941,33 @@ function AttendanceConfirmScreen({
   const [reclaimInput, setReclaimInput] = useState(() => lastNameStore.get())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Chantier 73 — déclaration modérateur dès la confirmation de présence.
+  const [asModerator,       setAsModerator]       = useState(false)
+  const [moderatorPassword, setModeratorPassword] = useState('')
+  const [moderatorError,    setModeratorError]    = useState<string | null>(null)
+  const [pendingConfirmed,  setPendingConfirmed]  = useState<SessionMember | null>(null)
+
+  // Ne lève jamais : un mot de passe erroné ne doit pas bloquer la confirmation
+  // de présence elle-même (voir tryClaimModeratorStatus).
+  async function tryClaimIfChecked(member: SessionMember): Promise<{ member: SessionMember; error: string | null }> {
+    if (!asModerator || !moderatorPassword.trim()) return { member, error: null }
+    const result = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
+    return result.member ? { member: result.member, error: null } : { member, error: result.error }
+  }
 
   async function handleKnownUserConfirm() {
     setError(null)
     setLoading(true)
     try {
       // L'identité est connue par user_id — pas besoin de pseudo ni code
-      const member = await confirmAttendance(session.id)
-      onConfirmed(member)
+      const confirmed = await confirmAttendance(session.id)
+      const { member, error: modErr } = await tryClaimIfChecked(confirmed)
+      if (modErr) {
+        setModeratorError(modErr)
+        setPendingConfirmed(member)
+      } else {
+        onConfirmed(member)
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
     } finally {
@@ -1909,17 +1991,56 @@ function AttendanceConfirmScreen({
     setError(null)
     setLoading(true)
     try {
-      const member = reclaimTab === 'code'
+      const raw = reclaimTab === 'code'
         ? await confirmAttendance(session.id, undefined, val)
         : await confirmAttendance(session.id, val)
       if (reclaimTab === 'pseudo') lastNameStore.set(val)
-      onConfirmed(member)
+      const { member, error: modErr } = await tryClaimIfChecked(raw)
+      if (modErr) {
+        setModeratorError(modErr)
+        setPendingConfirmed(member)
+      } else {
+        onConfirmed(member)
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
     } finally {
       setLoading(false)
     }
   }
+
+  if (pendingConfirmed) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center space-y-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Présence confirmée</h1>
+            <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              La déclaration modérateur a échoué : {moderatorError}
+            </p>
+          </div>
+          <button
+            onClick={() => onConfirmed(pendingConfirmed)}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            Continuer →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const moderatorField = (
+    <ModeratorDeclareField
+      checked={asModerator}
+      onCheckedChange={setAsModerator}
+      password={moderatorPassword}
+      onPasswordChange={setModeratorPassword}
+    />
+  )
 
   const header = (
     <div className="text-center">
@@ -1950,6 +2071,8 @@ function AttendanceConfirmScreen({
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
           )}
+
+          {moderatorField}
 
           <div className="space-y-2">
             <button
@@ -2039,6 +2162,8 @@ function AttendanceConfirmScreen({
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
           )}
         </div>
+
+        {moderatorField}
 
         <div className="space-y-2">
           <button

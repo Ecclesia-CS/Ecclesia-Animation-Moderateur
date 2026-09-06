@@ -493,7 +493,8 @@ export default function EntryScreen({ onJoined }: Props) {
           </a>
           <button
             onClick={() => setShowPastSessions(true)}
-            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+            className="w-full text-center py-2.5 px-4 border border-gray-200 rounded-xl
+              text-sm font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
           >
             Voir les votes des anciennes séances
           </button>
