@@ -1623,24 +1623,29 @@ function SessionDetail({
     if (p === 'allocating' || p === 'debating') loadGroups()
   }, [currentSession.phase, loadGroups])
 
-  // Chantier 20 (G6) — état « live » : un déplacement de membre fait par un
-  // autre onglet/superadmin (ou l'auto-fusion, etc.) doit se refléter ici
-  // sans réaction manuelle. `table_assignments` est déjà en REPLICA IDENTITY
-  // FULL (migration 20260530) — un seul channel, comme partout ailleurs dans
-  // l'app (cf. règle « plusieurs .on() chaînés, jamais plusieurs channels »).
-  useEffect(() => {
-    const p = currentSession.phase
-    if (p !== 'allocating' && p !== 'debating') return
-    const channel = supabase
-      .channel(`table_assignments:${session.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'table_assignments', filter: `session_id=eq.${session.id}` },
-        () => { loadGroups() },
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [currentSession.phase, session.id, loadGroups])
+  // Chantier 20 (G6) → Chantier 59 — abonnement Realtime `table_assignments`
+  // SUPPRIMÉ.
+  //
+  // Il était déjà **mort** avant ce chantier, et CLAUDE.md le documentait
+  // comme tel (« l'abonnement Realtime est conservé mais dormant ») depuis
+  // le chantier 50 : celui-ci a posé une policy self-only
+  // (`is_own_session_member`) sur `table_assignments`, et le superadmin
+  // n'est membre d'AUCUNE séance. Realtime applique la RLS avant livraison
+  // → il ne recevait plus jamais aucun événement ici. Le polling 10 s
+  // juste en dessous, posé par ce même chantier 50, est ce qui fait
+  // réellement vivre la vue Groupes depuis.
+  //
+  // Le chantier 59 le retire pour de bon : sous les canaux privés, un
+  // abonnement sans autorisation possible échouerait au `join` au lieu de
+  // rester silencieux. Et il n'y a AUCUNE policy écrivable pour le
+  // superadmin — il s'authentifie par un mot de passe bcrypt jamais
+  // transmis à Realtime, son `auth.uid()` est un uid anonyme ordinaire,
+  // indiscernable de celui d'un attaquant. Rétablir du temps réel ici
+  // exigerait d'abord de matérialiser sa session en base (voir l'en-tête
+  // de 20260906_chantier59_realtime_canaux_prives.sql, §2).
+  //
+  // Aucune perte fonctionnelle : le polling ci-dessous couvre exactement
+  // le même besoin, et c'est lui qui le couvrait déjà.
 
   // Chantier 50 — polling de secours pour `loadGroups()`. Le superadmin
   // n'est membre d'aucune séance : sous les policies self-only posées par
@@ -1904,17 +1909,16 @@ function SessionDetail({
     return () => clearInterval(interval)
   }, [load])
 
-  useEffect(() => {
-    const channel = supabase
-      .channel(`session-tables:${session.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tables', filter: `session_id=eq.${session.id}` },
-        () => { load() },
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [session.id, load])
+  // Chantier 59 — abonnement Realtime `tables` SUPPRIMÉ, même raison que
+  // celui de `table_assignments` plus haut, mais jamais relevée jusqu'ici :
+  // la policy SELECT de `tables` est `is_table_participant(id)`, et le
+  // superadmin n'a AUCUNE ligne `participants`. Les tables qu'il crée via
+  // `apply_allocation`/`create_tables_batch` lui donnent `created_by`, pas
+  // un siège — `is_table_participant` regarde `participants`, pas
+  // `created_by`. Il ne recevait donc rien non plus sur ce canal.
+  //
+  // C'est le `setInterval(load, 15000)` juste au-dessus qui tient cette
+  // vue à jour, et qui la tenait déjà. Rien à compenser.
 
   const loadResponses = useCallback(async () => {
     const password = getPwd()!

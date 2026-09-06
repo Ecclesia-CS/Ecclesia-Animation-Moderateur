@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { privateChannel } from '../lib/realtime'
 import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse, getMyAssertionIds } from '../lib/voting'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
@@ -123,8 +124,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // AllocatingScreen) : sans ça, seul un reload le rattrapait.
   useEffect(() => {
     if (!member) return
-    const channel = supabase
-      .channel(`session-member:${member.id}`)
+    const channel = privateChannel(`session-member:${member.id}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'session_members', filter: `id=eq.${member.id}` },
@@ -272,8 +272,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   function subscribeForWaiting(s: Session, m: SessionMember) {
     if (channelRef.current) supabase.removeChannel(channelRef.current)
 
-    const channel = supabase
-      .channel(`vote-wait:${s.id}`)
+    const channel = privateChannel(`vote-wait:${s.id}`)
       .on(
         'postgres_changes',
         {
@@ -366,8 +365,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       supabase.removeChannel(channelRef.current)
     }
 
-    const channel = supabase
-      .channel(`vote:${s.id}`)
+    const channel = privateChannel(`vote:${s.id}`)
       // New approved assertions
       .on(
         'postgres_changes',
