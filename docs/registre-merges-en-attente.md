@@ -3,6 +3,7 @@
 > **À lire par toute session Claude Code qui reprend le projet, et impérativement avant de merger une branche sur `main`.**
 > Ce fichier est la seule trace durable de ce qui est **volontairement retenu** hors de `main`, de ce qui est livré mais pas fusionné, et de ce qui reste à faire. Une branche non mergée n'est pas forcément un oubli.
 > La conversation d'orchestration qui a produit tout ce qui suit **a été supprimée le 2026-09-07**. Ce document la remplace : il est écrit pour être lu à froid, sans aucun contexte préalable.
+> **Voir aussi** [`docs/chantiers.md`](./chantiers.md) — l'index chronologique complet des chantiers 34 à 77 (titre, ce qui a été fait, statut, branche, fichier/RPC principal). Ce registre-ci reste le tableau de bord du moment ; `chantiers.md` est la référence pour retrouver ce qu'un chantier passé a fait sans reconstituer l'historique.
 
 Dernière mise à jour : **2026-09-06, fin de journée**.
 
