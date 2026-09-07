@@ -39,9 +39,13 @@ VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<clé publique anon>
 ```
 
-### Accès MCP Supabase — règle SQL (2026-09-01)
+### Règle SQL — révisée le 2026-09-07
 
-**Une session de chantier n'applique plus jamais de migration SQL elle-même**, qu'un accès MCP Supabase soit disponible ou non dans la session. Elle écrit la migration dans `supabase/migrations/` et **documente dans `A_VERIFIER.md`** le chemin du fichier et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard ou MCP) et met à jour l'entrée correspondante. Ne pas présumer d'un accès MCP Supabase direct pour une session de chantier — l'affirmation inverse, qui figurait ici, était périmée.
+**Une session de chantier peut appliquer sa propre migration**, décision de Jules : « une session peut appliquer ses migrations, et si elle supprime du travail précédent, ça devait être une exception. » Cela annule la règle du 01/09 qui réservait l'application à une session de vérification dédiée.
+
+**La garde qui avait motivé cette règle reste, elle :** avant d'appliquer une migration qui **réécrit une fonction existante**, comparer son corps à la **définition courante en base** (`pg_get_functiondef`), et non aux anciens fichiers de migration. Plusieurs fonctions ont été modifiées en base par des chantiers dont le code n'était pas encore sur `main` : repartir du fichier les efface silencieusement. Deux cas réels en trois jours — le chantier 67 aurait effacé le 64, et le 70 aurait créé deux surcharges ambiguës au lieu de remplacer (`get_all_votes_for_analysis` avait déjà deux versions en base). Ça ne coûte qu'une requête.
+
+Documenter dans `A_VERIFIER.md` le chemin du fichier, ce qu'il change, et le fait qu'il a été appliqué.
 
 `vite.config.ts` a `base: '/Ecclesia-Animation-Moderateur/'` — **ne pas supprimer**.
 
