@@ -18,6 +18,7 @@ type Status =
   | 'not_found'
   | 'not_open'
   | 'debating_no_member'
+  | 'post_voting_no_member'
   | 'questionnaire'
   | 'closed'
   | 'results_map'
@@ -93,6 +94,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           return
         }
 
+        // Chantier 89 — 'post_voting' : le débat est fini, un membre inscrit
+        // voit ses résultats et peut revoter (ResultsMapScreen). Un visiteur
+        // non inscrit n'a en revanche pas droit au résumé public : celui-ci
+        // reste gated en base sur phase='closed' (get_public_results) —
+        // les votes peuvent encore bouger tant que le revote est ouvert.
+        case 'post_voting':
         case 'closed': {
           if (userId) {
             const { data: member } = await supabase
@@ -113,7 +120,11 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               return
             }
           }
-          // Visiteur non inscrit → résumé public (groupes + assertions, sans scatter)
+          if (s.phase === 'post_voting') {
+            setStatus('post_voting_no_member')
+            return
+          }
+          // Visiteur non inscrit, séance clôturée → résumé public (groupes + assertions, sans scatter)
           setFullSession(s)
           setStatus('public_results')
           return
@@ -190,7 +201,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     )
   }
 
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'questionnaire'>, {
+  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'post_voting_no_member' | 'questionnaire'>, {
     icon: string
     title: string
     subtitle: string
@@ -212,7 +223,30 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     },
   }
 
-  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'questionnaire'>]
+  // Visiteur non inscrit pendant 'post_voting' : pas de compte à créer a posteriori,
+  // et le résumé public n'existe qu'à partir de 'closed' (votes encore mouvants).
+  if (status === 'post_voting_no_member') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+          <div className="text-5xl mb-4">🗳️</div>
+          <h1 className="text-lg font-bold text-gray-900">Le débat vient de se terminer</h1>
+          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
+          <p className="text-sm text-gray-400 mt-3">
+            Les résultats publics seront disponibles une fois la séance clôturée par l'organisateur.
+          </p>
+          <button
+            onClick={() => { window.location.hash = '' }}
+            className="mt-6 text-xs text-indigo-600 hover:underline"
+          >
+            ← Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'post_voting_no_member' | 'questionnaire'>]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

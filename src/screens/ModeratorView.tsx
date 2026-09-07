@@ -750,8 +750,8 @@ export default function ModeratorView() {
         </div>
       )}
 
-      {/* Séance terminée */}
-      {session?.phase === 'closed' && (
+      {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini) */}
+      {(session?.phase === 'closed' || session?.phase === 'post_voting') && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">La séance a été clôturée par le superadmin.</p>

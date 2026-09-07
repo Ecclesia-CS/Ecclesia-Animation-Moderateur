@@ -105,7 +105,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         async payload => {
           const updated = payload.new as Session
           setCurrentSession(updated)
-          if (updated.phase === 'closed') {
+          if (updated.phase === 'closed' || updated.phase === 'post_voting') {
             // Chantier 39 — plus de phase 'questionnaire' dédiée : proposer
             // le formulaire avant la bannière de clôture s'il manque encore.
             const answered = await hasQuestionnaireResponse(updated.id)
@@ -159,7 +159,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       const s = data as Session
       if (s.phase === currentSession.phase) return
       setCurrentSession(s)
-      if (s.phase === 'closed') {
+      if (s.phase === 'closed' || s.phase === 'post_voting') {
         // Chantier 39 — plus de phase 'questionnaire' dédiée
         const answered = await hasQuestionnaireResponse(s.id)
         if (answered) setSessionClosed(true)

@@ -217,9 +217,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         setStep('allocating')
         return
       }
-      if (s.phase === 'closed') {
+      if (s.phase === 'closed' || s.phase === 'post_voting') {
         // Chantier 39 — plus de phase 'questionnaire' dédiée : le formulaire
         // se propose avant l'écran de clôture tant qu'il n'a pas été rempli.
+        // Chantier 89 — 'post_voting' (débat fini, revote possible) suit le
+        // même chemin que 'closed' : les deux mènent à l'écran de résultats.
         const answered = await hasQuestionnaireResponse(s.id)
         setStep(answered ? 'closed' : 'questionnaire')
         return
@@ -304,7 +306,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             }
           } else if (updated.phase === 'debating') {
             setStep('allocating')
-          } else if (updated.phase === 'closed') {
+          } else if (updated.phase === 'closed' || updated.phase === 'post_voting') {
             // Chantier 39 — plus de phase 'questionnaire' dédiée
             const answered = await hasQuestionnaireResponse(updated.id)
             setStep(answered ? 'closed' : 'questionnaire')
@@ -410,7 +412,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           setSession(updated)
           if (updated.phase === 'debating') {
             setStep('allocating')
-          } else if (updated.phase === 'closed') {
+          } else if (updated.phase === 'closed' || updated.phase === 'post_voting') {
             // Chantier 39 — plus de phase 'questionnaire' dédiée
             const answered = await hasQuestionnaireResponse(updated.id)
             setStep(answered ? 'closed' : 'questionnaire')
@@ -510,7 +512,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         }
       } else if (s.phase === 'debating') {
         setStep('allocating')
-      } else if (s.phase === 'closed') {
+      } else if (s.phase === 'closed' || s.phase === 'post_voting') {
         // Chantier 39 — plus de phase 'questionnaire' dédiée
         const answered = await hasQuestionnaireResponse(s.id)
         setStep(answered ? 'closed' : 'questionnaire')

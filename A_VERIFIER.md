@@ -32,6 +32,21 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 7. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
 8. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
 
+## Chantier 89 — phase `post_voting` (2026-09-07)
+
+Nouvelle phase insérée entre `debating` et `closed` (demande de Jules : le revote post-débat doit être une fenêtre, pas un accès permanent — coupée dès la clôture). Détail dans `CLAUDE.md` § Ordre des phases / § Phase de vote (Bloc C).
+
+- **Migration appliquée** le 2026-09-07 via MCP Supabase (règle SQL révisée du jour — une session peut appliquer sa propre migration) : `supabase/migrations/20260907_chantier89_post_voting_phase.sql`. Compare la fonction réécrite (`set_session_phase`) à sa définition courante en base avant application (`pg_get_functiondef`), pas de divergence trouvée. Change uniquement : ajout de `'post_voting'` à la contrainte `sessions_phase_check` et à la liste blanche de `set_session_phase` — le reste de la fonction (purge `reclaim_code` sur `closed`) est inchangé.
+- **Non vérifié au navigateur** — implémentation faite en session headless (pas de jeton de serveur de dev). À dérouler entièrement à la main :
+  - [ ] Superadmin : depuis `debating`, le bouton "Passer en Post-vote →" apparaît (PhaseBar) ; cliquer déclenche bien `force_session_questionnaire` (vérifier que les participants encore sur une table voient le questionnaire forcé, comme avant pour `debating → closed`).
+  - [ ] Participant sur une table (`ParticipantView`/`ModeratorView`) : dès le passage en `post_voting`, l'overlay "La séance est terminée" apparaît (avant : seulement à `closed`) et redirige vers les résultats.
+  - [ ] `ResultsMapScreen` : le bouton "↻ Revoter" est visible en `post_voting`, absent en `closed` (revote coupé). Vérifier avec une séance passée manuellement en `closed` depuis le superadmin après un passage en `post_voting`.
+  - [ ] `PostVoteScreen` (revote) fonctionne toujours de bout en bout (revoter sur ses assertions, en proposer une nouvelle, voter sur les non-vues) — comportement inchangé, seul l'accès est maintenant conditionné à la phase.
+  - [ ] Visiteur non inscrit sur `#session/<code>` pendant `post_voting` : message "Le débat vient de se terminer" (pas le résumé public, qui reste réservé à `closed` — `get_public_results` gated en base).
+  - [ ] `VoteScreen`/`AllocatingScreen` (participant encore sur `#vote/<code>` au moment du passage en `post_voting`) : redirection vers le questionnaire puis les résultats, comme pour l'ancien `debating → closed`.
+  - [ ] `PhaseIndicator` affiche bien "5 · Post-débat" en `post_voting` et "6 · Résultats" en `closed` (la modale liste maintenant 6 étapes au lieu de 5).
+  - [ ] Purge de `reclaim_code` : toujours déclenchée uniquement sur l'entrée en `closed`, pas en `post_voting` — vérifier qu'un membre garde son code de rappel pendant la fenêtre de revote.
+
 ## ⚠️ Migration SQL en attente d'application
 
 > **✅ Mise à jour 2026-09-02 (session de consolidation)** : les 4 migrations des chantiers **60, 50, 51 et 61** ont été **appliquées par l'orchestration le 2026-09-02**. Les entrées ci-dessous pour ces 4 chantiers restent en place (append-only) mais ne bloquent plus sur l'application SQL — seuls les tests navigateur listés dans chacune restent à dérouler. Les migrations des chantiers **48, 46, 33, 39, 44 et 64** ci-dessous, elles, **n'ont pas de statut d'application confirmé** — ne pas les rejouer depuis une session de chantier (règle du 2026-09-01 ci-dessus), et ne pas présumer qu'elles sont passées : à vérifier en base avant de tester leur comportement.

@@ -68,6 +68,7 @@ const PHASE_LABEL: Record<string, string> = {
   voting:        'Vote présentiel',
   allocating:    'Allocation',
   debating:      'Débat',
+  post_voting:   'Post-vote',
   closed:        'Clôturée',
 }
 
@@ -77,6 +78,7 @@ const PHASE_CLASS: Record<string, string> = {
   voting:        'bg-purple-100 text-purple-700',
   allocating:    'bg-orange-100 text-orange-700',
   debating:      'bg-indigo-100 text-indigo-700',
+  post_voting:   'bg-teal-100 text-teal-700',
   closed:        'bg-slate-100 text-slate-500',
 }
 
@@ -1034,7 +1036,7 @@ type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
 
 function defaultTab(phase: Session['phase']): AdminTab {
   if (phase === 'draft') return 'prep'
-  if (phase === 'pre_voting' || phase === 'voting' || phase === 'allocating' || phase === 'debating') return 'live'
+  if (phase === 'pre_voting' || phase === 'voting' || phase === 'allocating' || phase === 'debating' || phase === 'post_voting') return 'live'
   return 'analysis'
 }
 
@@ -1153,7 +1155,7 @@ function SessionDetail({
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
 
   // ── Phase transitions ──────────────────────────────────────
-  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'closed']
+  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
   const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
   const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
   const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
@@ -1204,9 +1206,12 @@ function SessionDetail({
       setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
       // Chantier 39 — la phase 'questionnaire' a disparu de la machine à
       // états : le questionnaire post-débat se déclenche désormais tout
-      // seul, au moment précis où le débat se termine (debating → closed),
-      // plutôt que sur une étape manuelle dédiée.
-      if (targetPhase === 'closed' && currentSession.phase === 'debating') {
+      // seul, au moment précis où le débat se termine (debating → post_voting),
+      // plutôt que sur une étape manuelle dédiée. Chantier 89 — post_voting
+      // s'est intercalée avant 'closed' : c'est cette transition-là qui
+      // marque la fin réelle du débat, pas le passage en 'closed' (qui ne
+      // fait plus que couper le revote, cf. registre-merges-en-attente.md).
+      if (targetPhase === 'post_voting' && currentSession.phase === 'debating') {
         await forceSessionQuestionnaire(password, currentSession.id)
         setIsQForced(true)
       }
@@ -1220,7 +1225,7 @@ function SessionDetail({
   }
 
   // ── Assertions (C2) ────────────────────────────────────────
-  const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'closed']
+  const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
 
   const [assertions,        setAssertions]        = useState<AssertionAdmin[]>([])
@@ -1799,7 +1804,7 @@ function SessionDetail({
   // terminée (l'écran de résultats participant en dépend).
   useEffect(() => {
     const p = currentSession.phase
-    if (p !== 'allocating' && p !== 'debating' && p !== 'closed') return
+    if (p !== 'allocating' && p !== 'debating' && p !== 'post_voting' && p !== 'closed') return
     let cancelled = false
     ;(async () => {
       const pwd = getPwd()
@@ -3551,14 +3556,18 @@ function ModerationPolicyEditor({
 
 // Chantier 39 — la numérotation des cercles (voir `i` plus bas, pas `i + 1`)
 // est alignée sur la nomenclature participant : pre_voting=1 (Distanciel),
-// voting=2, allocating=3, debating=4, closed=5 (Post-débat). `draft` prend
-// donc naturellement le numéro 0 — d'où son libellé « Phase 0 ».
+// voting=2, allocating=3, debating=4, post_voting=5 (Post-débat), closed=6
+// (Résultats). `draft` prend donc naturellement le numéro 0 — d'où son
+// libellé « Phase 0 ». Chantier 89 — post_voting insérée avant closed :
+// le débat terminé donne d'abord accès au revote (post_voting), la
+// clôture définitive (closed) le coupe.
 const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
   { phase: 'draft',         short: 'Phase 0' },
   { phase: 'pre_voting',    short: 'Pré-vote' },
   { phase: 'voting',        short: 'Vote présentiel' },
   { phase: 'allocating',    short: 'Allocation' },
   { phase: 'debating',      short: 'Débat' },
+  { phase: 'post_voting',   short: 'Post-vote' },
   { phase: 'closed',        short: 'Clôturée' },
 ]
 
