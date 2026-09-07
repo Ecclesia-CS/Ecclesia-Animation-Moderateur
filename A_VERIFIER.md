@@ -1,5 +1,7 @@
 # À vérifier
 
+> ⚠️ **Avant de considérer un point ci-dessous comme encore ouvert, croiser avec [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md).** Jules a fait une passe de validation manuelle le 06/09/2026 : 33 entrées y sont marquées validées à l'écran. Cette passe **n'est pas encore réintégrée ici** — les chantiers 72, 73, 74 et 59 ont ajouté leurs sections dans ce fichier depuis, et la fusion des deux versions demande un arbitrage avec Jules. Les deux fichiers coexistent tant que cet arbitrage n'a pas eu lieu.
+
 Liste des points nécessitant une validation humaine, générés lors des sessions Claude Code.
 Ne pas supprimer une entrée sans validation explicite de Jules — se contenter de la déplacer en section "Validé" une fois confirmée. Si un point semble obsolète, le marquer comme tel plutôt que l'effacer.
 
