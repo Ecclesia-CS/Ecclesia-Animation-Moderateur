@@ -95,7 +95,7 @@ Donc : **retirer les trois onglets**. Mais il dit « on **doit pouvoir** », ce 
 
 ## 8. Vérifications : l'angle mort du projet
 
-`A_VERIFIER.md` est le fichier de suivi le plus fiable du dépôt — bien plus que `PROJECT_STATUS.md`, périmé de quinze chantiers et en contradiction avec `git log`.
+`A_VERIFIER.md` est le fichier de suivi le plus fiable du dépôt pour les **vérifications**. (`PROJECT_STATUS.md`, périmé de quinze chantiers et en contradiction avec `git log`, a été supprimé au chantier 78 — son contenu unique est passé en annexes A et B de [`docs/chantiers.md`](./chantiers.md), désormais le seul fichier de suivi de l'avancement.)
 
 Jules a fait une passe de validation le 06/09 : 33 entrées déplacées vers « Validé », aucune supprimée. **Cette passe n'était pas commitée** ; elle l'est désormais, sous la forme du fichier [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./A_VERIFIER-passe-validation-jules-20260906.md) versionné (commit `234827a`) — c'est la sauvegarde durable, la seule sur laquelle compter. `A_VERIFIER.md` renvoie vers ce fichier en tête de page. Il existe aussi un `git stash` local `5dc234f` qui contient la même chose, mais un stash ne se pousse pas et ne survivra pas à un nettoyage du dépôt : ne pas s'y fier. **Il reste à la réintégrer proprement dans `A_VERIFIER.md`**, ce qui demande de la fusionner avec les sections ajoutées depuis par les chantiers 72, 73, 74 et 59 — à faire avec Jules, pas seul.
 
