@@ -1,6 +1,10 @@
 # À vérifier
 
-> ⚠️ **Avant de considérer un point ci-dessous comme encore ouvert, croiser avec [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md).** Jules a fait une passe de validation manuelle le 06/09/2026 : 33 entrées y sont marquées validées à l'écran. Cette passe **n'est pas encore réintégrée ici** — les chantiers 72, 73, 74 et 59 ont ajouté leurs sections dans ce fichier depuis, et la fusion des deux versions demande un arbitrage avec Jules. Les deux fichiers coexistent tant que cet arbitrage n'a pas eu lieu.
+> ✅ **La passe de validation manuelle de Jules du 06/09/2026 a été réintégrée ici le 2026-09-07** (chantier 78). Ses 37 entrées sont passées en section « Validé » en bas de page, chacune portant la mention « validé le 2026-09-06 » — **avec leur recette complète**, rien n'a été condensé, et l'annotation qu'il avait écrite dans sa passe est reportée sous chaque entrée. Ce fichier fait donc foi à lui seul : plus besoin de croiser avec un autre.
+>
+> ⚠️ **Douze de ces entrées portent la réserve « validé avant la refonte des chantiers 73/74 du 06/09, à revalider ».** Jules a validé sur le code déployé le matin du 06/09 ; les chantiers 73 et 74 ont été mergés **après**, et ont réécrit en profondeur `VoteScreen.tsx`, `EntryScreen.tsx`, `ParticipantToolsButton.tsx`, `PseudoForm.tsx`, `PhaseIndicator.tsx` et le composant d'ajout hors ligne. Une validation portant sur l'un de ces écrans a donc pu être invalidée depuis : la traiter comme un point rouvert, pas comme un acquis.
+>
+> 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
 Liste des points nécessitant une validation humaine, générés lors des sessions Claude Code.
 Ne pas supprimer une entrée sans validation explicite de Jules — se contenter de la déplacer en section "Validé" une fois confirmée. Si un point semble obsolète, le marquer comme tel plutôt que l'effacer.
@@ -32,28 +36,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 > **✅ Mise à jour 2026-09-02 (session de consolidation)** : les 4 migrations des chantiers **60, 50, 51 et 61** ont été **appliquées par l'orchestration le 2026-09-02**. Les entrées ci-dessous pour ces 4 chantiers restent en place (append-only) mais ne bloquent plus sur l'application SQL — seuls les tests navigateur listés dans chacune restent à dérouler. Les migrations des chantiers **48, 46, 33, 39, 44 et 64** ci-dessous, elles, **n'ont pas de statut d'application confirmé** — ne pas les rejouer depuis une session de chantier (règle du 2026-09-01 ci-dessus), et ne pas présumer qu'elles sont passées : à vérifier en base avant de tester leur comportement.
 
-- [ ] **Chantier 64 — `supabase/migrations/20260902_chantier64_leaderless_becomes_moderated.sql`** — **à appliquer APRÈS le chantier 60** (touche `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table`, dont les dernières définitions en date sont antérieures au 60 mais indépendantes de lui — pas de dépendance technique, seulement l'ordre déjà établi pour ce chantier de test).
-
-  **Ce qu'elle change** : quand `set_member_moderator`, `claim_moderator_status` ou `assign_moderator_to_table` pose `session_members.is_moderator = true` pour un membre déjà assis (`table_assignments`) sur une table `leaderless`, cette table passe désormais `leaderless = false` dans la même transaction — au lieu de laisser le flag inchangé pendant que le membre obtient déjà, silencieusement, l'autorité d'animation (chantier 60). Voir l'en-tête du fichier de migration pour le détail complet (symptôme, correctif, décision documentée sur le retrait d'un modérateur — pas de bascule arrière automatique).
-
-  **Aucun changement frontend requis** pour refléter la bascule côté superadmin : l'onglet Groupes (`SuperadminScreen.loadGroups`) relit déjà `tables.leaderless` à chaque appel et est rafraîchi après les actions superadmin + par le polling 10 s (chantier 50) pour le cas auto-déclaré. Un changement ciblé a en revanche été fait dans `ParticipantView.tsx` (texte du panorama d'accueil, table `leaderless`) et dans `CLAUDE.md` (section `isModerator`/Tables leaderless, corrigée — elle affirmait à tort que `isModerator` est toujours `false` sur une table leaderless, périmé depuis les chantiers 41/60).
-
-  **Recette de vérification** (voir aussi la section « Point de sémantique à trancher » du chantier 60 juste en dessous, dont ce chantier ne change qu'une partie) :
-
-  1. **Bascule par le superadmin** — séance en `allocating`/`debating` avec une table `leaderless` rattachée et au moins un participant assis dessus (`table_assignments`, pas seulement `participants` — passer par une allocation ou une assignation manuelle, pas par un simple `join_table`). Onglet Groupes → poser le flag modérateur sur ce membre (`set_member_moderator` via l'accordéon participant, ou glisser-déposer sur cette table via `assign_moderator_to_table`). **Observer** : le badge « Sans modérateur » de cette table disparaît (immédiatement après l'action superadmin, `loadGroups()` est appelé en séquence — pas besoin d'attendre le polling).
-  2. **Bascule automatique du participant** — sur l'appareil du participant concerné (déjà sur la table au moment de l'étape 1, `ParticipantView` ouvert) : sans recharger la page, il doit basculer sur `ModeratorView` (Realtime `session_members` déjà branché depuis le chantier 41 — l'OR de `isModerator` ne dépend pas de ce chantier, seul `tables.leaderless` est nouveau ici).
-  3. **Les autres participants de la table** — sur un 2ᵉ appareil resté sur `ParticipantView` : après la bascule, il ne doit plus proposer l'auto-gestion par file (plus de tentative silencieuse de `claimFloor()` — vérifier l'absence d'erreur réseau `claim_floor` dans la console) ; le nouveau modérateur doit pouvoir donner la parole normalement depuis `ModeratorView`.
-  4. **Auto-déclaration côté participant** (`claim_moderator_status`, onglet "🎙️ Modérateur" de l'accueil ou `ModeratorAccessPanel`) — même test que 1-3, mais déclenché par le participant lui-même avec le Code Ecclesia plutôt que par le superadmin. Le superadmin doit voir la bascule dans les 10 s (polling de secours), sans action de sa part.
-  5. **Message d'accueil de la table leaderless** — nouveau participant qui rejoint une table `leaderless` **avant** toute désignation : le panorama d'accueil (« Bienvenue dans le débat », bloc « Groupe auto-géré ») doit mentionner qu'un participant peut devenir modérateur mais renoncera alors à participer. Vérifier le texte affiché, pas seulement sa présence dans le code.
-  6. **Retrait en place du modérateur** (`set_member_moderator(..., false)`, le membre reste assis à la même table) : la table reste `leaderless = false` (pas de retour à l'auto-gestion) et n'a plus personne avec l'autorité d'animation tant que le superadmin n'y réassigne pas un modérateur. *Mis à jour le 2026-09-02 : Jules a tranché le cas du DÉPART (pas du simple retrait en place) — voir l'entrée « Chantier 64 (complément) » juste en dessous, qui NUANCE ce point sans le contredire : rester assis ne bascule jamais, partir peut basculer.*
-
-- [ ] **Chantier 64 (complément) — `supabase/migrations/20260902_chantier64b_leaderless_origin_and_revert.sql`** — **à appliquer après la migration chantier 64 ci-dessus** (redéfinit les mêmes fonctions Bloc C, plus `create_table`/`admin_create_table`/`create_tables_batch`/`apply_allocation`/`switch_table`) et **après le chantier 48** (`switch_table` doit déjà exister — cette migration la redéfinit intégralement, pas un patch incrémental).
-
-  **Ce qu'elle change** : Jules a tranché le point resté ouvert par la migration chantier 64 initiale (retrait du modérateur). Nouvelle colonne `tables.leaderless_by_design` (posée à la création ou à chaque recalcul d'allocation, jamais par une conversion organique) qui distingue :
-  - une table **conçue pour avoir un modérateur** (`leaderless_by_design = false`) — son départ, qu'il soit en place ou vers une autre table, ne change jamais rien, Jules considère qu'il va revenir ;
-  - une table **devenue modérée** en cours de route (`leaderless_by_design = true`, convertie depuis `leaderless=true` par la migration chantier 64 initiale) — si son modérateur **part rejoindre une autre table** via `switch_table` (chantier 48), elle **redevient `leaderless = true`**. Rester assis à la même table (`set_member_moderator(..., false)`) ne bascule toujours rien — seul le DÉPART physique via `switch_table` compte.
-
-  Le bouton "Quitter" (`leaveTable()`) reste hors de tout ça — action purement locale (vide le cache `tableStore`), aucune ligne supprimée, aucun appel RPC, donc ne peut mécaniquement pas déclencher la bascule. Voir l'en-tête du fichier de migration pour le détail complet. *Mis à jour le 2026-09-02 : le cas laissé de côté ci-dessous (`move_member_to_group`) a été tranché par Jules — « oui, faisons la même chose si c'est le super admin qui l'enlève » — et est maintenant couvert par l'entrée « Chantier 64 (complément 2) » juste en dessous. Le rétro-classement (tables existantes classées `leaderless_by_design = leaderless`) est validé tel quel par Jules, sans changement.*
 
 - [ ] **Chantier 64 (complément 2) — `supabase/migrations/20260902_chantier64c_move_member_to_group_revert.sql`** — **à appliquer après la migration chantier 64b ci-dessus** (a besoin de `tables.leaderless_by_design`).
 
@@ -90,148 +72,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   6. Avant la bascule du test 4 : noter le nombre de lignes dans `speaking_turns` pour cette table (`SELECT count(*) FROM speaking_turns WHERE table_id = '<id>'`), et le contenu de la file d'attente des AUTRES participants restés sur la table (`queue_entries`).
   7. Déclencher la bascule (test 4). **Observer** : le compte de `speaking_turns` est identique après (aucune ligne supprimée) ; les entrées de file des participants restés sont intactes (seule celle du modérateur parti, s'il en avait une, disparaît — cascade normale de la suppression de SA ligne `participants`, comme pour n'importe quel départ via `switch_table`, inchangé par ce chantier) ; les temps de parole cumulés affichés dans `ParticipantsTable`/export CSV restent corrects pour tout le monde.
 
-- [x] **Chantier 60 — `supabase/migrations/20260902_chantier60_moderator_authority.sql`** ✅ **appliquée le 2026-09-02** — corrige le bloquant le plus grave du projet (un modérateur désigné par l'allocation ne peut rien faire), et modifie des fonctions/policies utilisées par tous les autres tests du parcours Modérateur. Reste à faire : le test manuel complet (section Parcours Modérateur ci-dessous) — jamais joué à l'écran.
-
-  **Le bug corrigé** : un participant marqué `session_members.is_moderator` (allocation v2, `claim_moderator_status`, `assign_moderator_to_table`, `set_member_moderator`) voit bien la vue modérateur depuis le chantier 41, mais **aucune de ses actions n'aboutit** : donner/retirer la parole → « Not authorized » ; exclure → « Non autorisé » ; ajouter une personne sans téléphone → « Non autorisé » ; forcer le questionnaire et supprimer la table → **échec silencieux** (une policy RLS qui refuse un UPDATE/DELETE n'est pas une erreur, elle affecte simplement zéro ligne). Cause : toutes les gardes testent `tables.created_by = auth.uid()`, alors que `apply_allocation`/`create_tables_batch` posent `created_by` = l'identifiant anonyme du **superadmin** qui déclenche l'allocation. Les seuls modérateurs qui fonctionnent aujourd'hui sont ceux passés par « Créer une table » ou par « Je suis modérateur de cette table » (`reclaim_moderator`) — les deux seuls chemins qui posent `created_by`, ce qui explique que le défaut n'ait jamais explosé en séance réelle.
-
-  **Contenu du fichier** :
-  1. Nouveau helper `is_table_moderator(p_table_id uuid) RETURNS boolean`, `SECURITY DEFINER STABLE SET search_path = public, extensions` (mêmes conventions anti-récursion qu'`is_table_participant`). Vrai si l'appelant est **soit** le créateur physique de la table (`tables.created_by`, chemin historique inchangé), **soit** un membre de la séance de cette table marqué `session_members.is_moderator = true` **ET** affecté à **cette table précise** via `table_assignments` (les deux conditions sont cumulatives — c'est le point de régression critique).
-  2. Les **9 fonctions** d'animation reprises pour utiliser ce helper : `grant_floor`, `end_turn`, `end_turn_and_advance`, `kick_participant`, `add_offline_participant` (les 5 du périmètre initial) **+ 4 trouvées à l'inventaire** : `add_to_queue` (mettre quelqu'un d'*autre* en file), `move_queue_entry` (↑/↓), `reorder_queue_entry` (réordonnancement DnD), `correct_turn` (modale « Corriger un tour »). Corps strictement identiques, seule la garde change.
-  3. Les **7 policies RLS** reprises de la même façon : `tables_update_moderator` (forçage questionnaire, UPDATE direct depuis `TableContext`) et `tables_delete_moderator` (`endTable()`, DELETE direct) — les deux « échecs silencieux » ; `queue_entries_delete` (**`removeFromQueue` et `changeQueueType` font un DELETE DIRECT, pas une RPC** → un modérateur désigné ne peut retirer personne de la file, silencieusement) ; plus `queue_entries_insert`, `queue_entries_update_moderator`, `speaking_turns_insert_moderator`, `speaking_turns_update_moderator` par cohérence (leurs écritures passent aujourd'hui par des RPC `SECURITY DEFINER`, donc hors RLS).
-  4. Un bloc `DO $guard$` en tête qui compare `pg_get_function_identity_arguments` + `pg_get_function_result` de chaque fonction à ce qui va être créé, et DROP toute surcharge divergente — protection contre le piège `CREATE OR REPLACE` (refus si un nom de paramètre change, surcharge ambiguë si le nombre/type change) qui a déjà mordu le projet deux fois. Sans perte de droits : aucune de ces fonctions n'a de GRANT explicite dans l'historique, et la migration repose un `GRANT EXECUTE ... TO anon, authenticated` après chaque création.
-
-  **Ce qui n'est PAS touché** (inventaire complet fait avant modification) : `create_table`, `create_tables_batch`, `apply_allocation`, `admin_create_table`, `run_clustering_*` → INSERT de `created_by` (attribution, pas autorisation) ; `reclaim_moderator`, `designate_moderator` → UPDATE d'attribution, chemins de *promotion*, hors périmètre ; `list_session_tables`/`list_available_tables`/`get_questionnaire_responses` → `p.user_id = t.created_by` en JOIN d'*affichage* (pseudo de l'animateur) ; `end_turn_as_speaker` et `claim_floor` → gardes fondées sur `participants`/`leaderless`, aucune notion de `created_by`.
-
-  **Pourquoi l'option (ii) — élargir les gardes — plutôt que (i) — faire poser `created_by` par `apply_allocation`** : vérifié dans le code avant application. `created_by` est une colonne **scalaire** → (i) interdit toute co-modération ; un modérateur peut être désigné **après** la création des tables (`claim_moderator_status` accepte `allocating` ET `debating` depuis le chantier 33, plus `assign_moderator_to_table` et `set_member_moderator`) → (i) obligerait à patcher ces chemins **et** à gérer le remplacement (retirer `created_by` à l'ancien) ; `created_by` sert aussi de donnée d'affichage dans `list_session_tables` ; et (i) laisse à découvert les tables créées par `create_tables_batch` avant qu'un modérateur ne soit assis. (ii) est purement **additive** — le créateur garde toute son autorité, rien de ce qui marche aujourd'hui ne régresse.
-
-  **À faire (session de vérification)** : exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP) — surveiller les `NOTICE` éventuels du bloc `DO $guard$`, qui signalent une signature divergente en base et donc un écart entre les migrations et l'état réel. Puis dérouler les **5 requêtes de vérification en pied de fichier de migration** (helper présent avec le bon `search_path` ; aucune surcharge résiduelle sur les 9 fonctions ; plus aucun `created_by` dans leurs corps ; les 7 policies pointent sur le helper ; **table de vérité** du helper sur une vraie séance, qui liste membre par membre qui aurait l'autorité — la requête 5 permet de valider les cas négatifs sans avoir à se connecter sous chaque identité). Enfin dérouler le test manuel de la section **Parcours Modérateur** ci-dessous.
-
-- [x] **Chantier 50 — `supabase/migrations/20260902_chantier50_close_identity_tables.sql`** ✅ **appliquée le 2026-09-02** — corrigeait une fuite de données personnelles. Reste à faire : les tests navigateur ci-dessous (jamais joués à l'écran) — notamment la comparaison avant/après sur l'onglet 🪑 Tables et le retrait du repli `loadTableAssignmentRows` (voir entrée dédiée, section Parcours Superadmin, **désormais actionnable puisque la migration est en place**).
-
-  **Le problème** : `session_members` et `table_assignments` ont chacune une policy `SELECT USING (true)` pour le rôle `public`, héritée de `20260528_voting_app.sql`. Il n'y a pas de backend : le navigateur parle directement à Supabase avec la clé `anon`, qui est dans le bundle JS public. Un simple `GET /rest/v1/session_members` avec cette clé retourne **toutes** les colonnes de **tous** les inscrits de **toutes** les séances — dont `pseudo` (nom et prénom réels) et `reclaim_code` (le code à 4 chiffres, **en clair**, qui permet de reprendre l'inscription de quelqu'un d'autre). `table_assignments` expose de la même façon la composition complète des tables. Confirmé en base le 2026-09-02.
-
-  **Contenu du fichier** :
-  1. Helper `is_own_session_member(p_member_id uuid) RETURNS boolean`, `SECURITY DEFINER STABLE SET search_path = public, extensions` — anti-récursion, mêmes conventions qu'`is_table_participant` / `is_table_moderator` : la policy de `table_assignments` doit lire `session_members`, elle-même sous RLS.
-  2. `session_members_select` (`USING (true)`) remplacée par `session_members_select_own` (`USING (user_id = auth.uid())`).
-  3. `table_assignments_select` (`USING (true)`) remplacée par `table_assignments_select_own` (`USING (is_own_session_member(member_id))`).
-  4. `list_table_assignments_admin(p_password, p_session_id) RETURNS jsonb`, SECURITY DEFINER + `check_superadmin_password` — la seule lecture croisée des deux tables dont l'app avait besoin (vue Groupes du superadmin). Retourne `table_number`, `member_id`, `table_id`, `pseudo`, `is_moderator`, triés par `table_number`.
-  5. Un bloc `DO $chk$` **qui lève une exception** s'il reste, après coup, une autre policy SELECT permissive sur l'une des deux tables. Les policies permissives se cumulent en OR : une seule `USING (true)` oubliée (ajoutée par un chantier parallèle) suffirait à tout rouvrir en silence. Mieux vaut un échec bruyant qu'une fermeture illusoire.
-
-  **Inventaire des policies fait avant écriture** (toutes les migrations du dépôt relues) — seule `20260528_voting_app.sql` crée des policies sur ces deux tables : `session_members_select` (SELECT, `true`), `session_members_insert` (INSERT, `WITH CHECK (false)`), `table_assignments_select` (SELECT, `true`). **Aucune policy UPDATE ni DELETE** : toutes les écritures passent déjà par des fonctions SECURITY DEFINER. Le **chantier 60**, mergé le même jour, n'a touché que les policies de `tables`, `queue_entries` et `speaking_turns` — aucun recouvrement ; son helper `is_table_moderator` lit bien `session_members` et `table_assignments`, mais en `SECURITY DEFINER`, donc **hors RLS** : ce chantier ne défait rien de son travail. Idem pour `get_my_table_assignment`, `list_session_members_admin`, `get_allocation_inputs`, `apply_allocation` et les `run_clustering_*`, toutes SECURITY DEFINER.
-
-  **Ordre d'application** : après le chantier 60 (qui reste prioritaire), sans dépendance technique entre les deux — c'est uniquement une question de priorité de test.
-
-  **Pourquoi le SQL peut être appliqué sans attendre le frontend, et réciproquement** : les deux sont livrés séparément (règle du 2026-09-01) et le code de ce chantier tient dans les deux sens. `SuperadminScreen.loadGroups()` appelle la RPC en chemin nominal et **retombe sur la lecture directe historique** si — et seulement si — PostgREST répond que la fonction est absente du schéma (`PGRST202`). Toute autre erreur (mot de passe refusé, réseau) remonte, pour ne pas masquer un échec réel derrière une lecture qui renverrait des membres `null` sous les nouvelles policies.
-
-  **À faire (session de vérification)** :
-  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Le bloc `DO $chk$` doit passer sans exception ; s'il en lève une, **ne pas contourner** — la lister et l'analyser, elle signale une policy permissive résiduelle inconnue de l'inventaire.
-  2. Dérouler les requêtes de vérification en pied de fichier de migration (fonction présente ; RPC fonctionnelle sur une vraie séance ; RPC qui refuse un mauvais mot de passe ; lecture self-only côté participant connecté).
-  3. **Vérification négative, clé anonyme, hors navigateur** (curl / Postman, en utilisant la clé `anon` publique du site, sans session utilisateur) — c'est le test qui prouve que la fuite est fermée :
-     - `GET /rest/v1/session_members?select=pseudo,reclaim_code` → attendu `[]`
-     - `GET /rest/v1/table_assignments?select=member_id` → attendu `[]`
-     Ces deux requêtes retournent aujourd'hui la base entière : **les jouer AVANT l'application** pour constater la fuite, et après pour constater sa fermeture.
-  4. Une fois la migration appliquée **et** les points « Parcours Superadmin » / « Parcours Participant » ci-dessous validés : supprimer le repli `loadTableAssignmentRows` dans `src/screens/SuperadminScreen.tsx` (le bloc `catch` et sa lecture directe) — il n'a plus de raison d'être et il est le dernier `.from('table_assignments')` du frontend. Entrée dédiée en section Superadmin ci-dessous.
-
-  **Effet de bord souhaitable** : ce chantier referme aussi la question ouverte sur `REPLICA IDENTITY FULL` (`session_members`, migration chantier 35). Le WAL continue de transporter toutes les colonnes, `reclaim_code` compris, mais Realtime applique la RLS avant livraison : les événements ne partent plus qu'au propriétaire de la ligne.
-- [x] **Chantier 61 — `supabase/migrations/20260902_chantier61_register_during_allocating.sql`** ✅ **appliquée le 2026-09-02**. Reste à faire : les 6 scénarios de test manuel ci-dessous (jamais joués à l'écran), y compris les scénarios 1 et 4 qui ne pouvaient pas passer avant cette application.
-
-  **Contenu du fichier** :
-  1. `DROP FUNCTION IF EXISTS register_session_member(uuid, text)` — supprime la **surcharge historique à 2 arguments** (migrations `20260528_voting_app.sql` puis `20260531_superadmin_features.sql`). La version à 3 arguments introduite par `20260622_pre_voting.sql` ne l'a jamais remplacée : `CREATE OR REPLACE` sur une arité différente **crée une seconde fonction**. L'ancienne est morte du point de vue de l'app (le wrapper `registerSessionMember` de `src/lib/voting.ts` envoie toujours les 3 paramètres nommés, PostgREST résout donc sur la 3-aire) mais elle porte encore le garde de phase d'origine, qui ignore jusqu'à `pre_voting`.
-  2. `CREATE OR REPLACE FUNCTION register_session_member(uuid, text, text) RETURNS jsonb` — **même signature, mêmes noms de paramètres, même type de retour** que la version en place : seule la liste des phases autorisées change, `('draft','pre_voting','voting')` → `('draft','pre_voting','voting','allocating')`. `attending_in_person` reste calculé par `v_phase != 'pre_voting'`, donc `true` en `allocating` : quelqu'un qui s'inscrit pendant que les tables se forment est nécessairement sur place. `joined_phase` prendra la nouvelle valeur `'allocating'` (colonne `text` libre, sans CHECK).
-
-  **Pourquoi** : demande explicite de Jules — les retardataires doivent encore pouvoir rejoindre la séance et voter pendant que l'organisateur calcule la répartition. Aujourd'hui ils reçoivent « La séance n'est pas en phase d'inscription (phase: allocating) » en rouge, sans aucune issue.
-
-  **À faire (session de vérification)** :
-  1. **Avant** d'appliquer, confirmer la signature ciblée (piège Postgres documenté dans `CLAUDE.md`) :
-     ```sql
-     SELECT p.oid::regprocedure,
-            pg_get_function_identity_arguments(p.oid),
-            pg_get_function_result(p.oid)
-     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-     WHERE n.nspname = 'public' AND p.proname = 'register_session_member';
-     ```
-     Attendu : `register_session_member(uuid, text, text)` → `jsonb`, et **possiblement** une seconde ligne `register_session_member(uuid, text)` (celle que le DROP retire). Si le résultat montre autre chose — notamment un type de retour différent de `jsonb` — **ne pas appliquer** et remonter le point : le `CREATE OR REPLACE` échouerait.
-  2. Appliquer le fichier via le SQL Editor du dashboard Supabase (ou MCP).
-  3. Rejouer la requête ci-dessus : il ne doit rester **qu'une** ligne, la 3-aire.
-  4. Dérouler le test manuel de la section Participant ci-dessous.
-
-  **Tant qu'elle n'est pas appliquée** : le formulaire d'entrée s'affiche bien en phase `allocating` (partie React livrée), mais toute inscription d'un **nouveau** nom échoue avec l'ancien message d'erreur. Les **reconquêtes** (nom déjà inscrit, ou code de rappel) fonctionnent en revanche déjà sans la migration — elles passent par `confirm_attendance`, qui ne teste aucune phase.
-
-  **Point de conception tranché et vérifié par lecture du SQL** : `cast_vote`, `submit_assertion` et `submit_entry_response` (définitions courantes : `20260528_voting_app.sql` pour les deux premières, `20260725_1_onboarding_3_questions.sql` pour la troisième) **n'ont aucun garde de phase** — ils n'exigent qu'une ligne `session_members`. Le vote pendant l'allocation fonctionnait donc **déjà** côté serveur ; seul le chemin d'entrée bloquait. Aucune policy RLS ne teste la phase non plus (vérifié sur `session_members`, `entry_responses`, `assertions`, `assertion_votes`). C'est ce qui réduit ce chantier à une seule ligne de SQL utile plus deux conditions React.
-
-- [ ] **Chantier 65 — `supabase/migrations/20260902_chantier65_register_session_member_reject_draft.sql`** (nouvelle, jamais appliquée) — une séance en phase `draft` ne doit être accessible à personne.
-
-  **Le problème (revue de parcours du 2026-09-02)** : `create_session` attribue le `join_code` **dès la création** de la séance, en phase `draft`. Or `register_session_member` acceptait encore `draft` dans sa liste de phases autorisées (héritage jamais retiré, y compris par le chantier 61 juste au-dessus, qui a ajouté `allocating` sans retirer `draft`). Résultat : quiconque a le lien, ou repérait la séance dans l'onglet « Créer » de l'accueil (qui la listait), pouvait s'inscrire et voter avant que l'organisateur ait ouvert quoi que ce soit.
-
-  **Inventaire fait avant d'écrire** (comme demandé — chercher plus large que le brief) :
-  1. `register_session_member` acceptait `draft` → corrigé ci-dessous.
-  2. `SessionRouterScreen.tsx` redirigeait une séance `draft` vers `#vote/` comme les autres phases d'inscription → corrigé côté frontend (nouveau statut `not_open`, message "Séance pas encore ouverte" au lieu d'une redirection qui de toute façon échouerait maintenant à l'inscription).
-  3. `VoteScreen.tsx` (accessible directement via `#vote/<join_code>`, pas seulement via le routeur) affichait le formulaire de pseudo pour une séance `draft` → corrigé côté frontend (nouvelle étape `not_open`, même message).
-  4. L'onglet « Créer » de `EntryScreen.tsx` listait les séances `draft` (`.in('phase', ['draft', 'pre_voting', 'voting', 'debating'])`) → `draft` retiré de la liste.
-  5. **Trouvé en creusant, absent du brief initial** : `confirm_attendance` — appelée par `VoteScreen.tsx` uniquement en phase `voting`/`allocating` côté frontend, mais c'est une RPC `SECURITY DEFINER` appelable directement, et elle **ne testait strictement aucune phase** (déjà noté en passant par le chantier 61 juste au-dessus, ligne 98 : « elles passent par `confirm_attendance`, qui ne teste aucune phase »). Son cas 3 (pseudo non trouvé) fait un `INSERT` de tout nouveau `session_members`, sans jamais passer par `register_session_member` — donc sans jamais toucher le garde-fou du point 1. Et la table `sessions` a une policy `sessions_select ON sessions FOR SELECT USING (true)` (`20260526000001_sessions_schema.sql`, jamais restreinte depuis) : **n'importe qui peut lister toutes les séances, y compris en brouillon, par une requête REST directe avec la clé anon publique**, sans même passer par l'onglet « Créer ». Sans corriger `confirm_attendance`, retirer `draft` de `register_session_member` et de l'onglet « Créer » ne fermait donc rien : `confirm_attendance(session_id, pseudo:'Test')` sur une séance en brouillon créait quand même un membre `attending_in_person = true`. Corrigé dans le même fichier de migration (garde de phase ajouté en tête de fonction, comportement inchangé pour toutes les autres phases).
-  6. Vérifié et laissés **inchangés**, car déjà corrects ou non concernés : `claim_moderator_status` (déjà `IF v_phase NOT IN ('pre_voting', 'voting', 'allocating', 'debating')` — `draft` déjà exclu) ; `reclaim_prevoting_member` (déjà `IF v_phase != 'pre_voting'` — `draft` déjà exclu) ; `cast_vote`/`submit_assertion`/`submit_entry_response` (aucun garde de phase, mais exigent tous une ligne `session_members` existante — protégés transitivement une fois les points 1 et 5 fermés, aucun membre ne pouvant plus se créer pendant `draft`) ; `EntryScreen.tsx` "Séances en cours" et onglet "Modérateur" (excluaient déjà `draft` de leurs requêtes) ; `PastSessionsModal` (filtre déjà `phase = 'closed'`).
-
-  **Résidu non corrigé, à trancher par Jules** : la policy `sessions_select ON sessions FOR SELECT USING (true)` reste ouverte à la lecture complète pour tout le monde (même défaut que celui fermé par le chantier 50 sur `session_members`/`table_assignments`) — après ce chantier, lire une séance `draft` en REST direct ne permet plus de s'y inscrire ni d'y voter (portes fermées côté fonctions), mais son `title`/`description`/`join_code` restent lisibles par quiconque connaît ou devine son `id`. Restreindre cette policy est un chantier à part : plusieurs écrans (accueil, superadmin) lisent `sessions` sans mot de passe pour l'affichage, il faudrait vérifier chacun avant de resserrer la RLS sans rien casser.
-
-  **Le superadmin garde un accès complet à sa séance en brouillon** : toutes ses actions de préparation (`create_session`, `update_session_docs`, `attach_table_to_session`/`detach_table_from_session`, `set_session_phase`, `list_session_tables`) passent par des RPC `SECURITY DEFINER` à mot de passe superadmin, jamais par `register_session_member`/`confirm_attendance` — aucune de ces deux fonctions n'est touchée par ce chantier de son côté. Voir le scénario de non-régression en section Superadmin ci-dessous.
-
-  **À faire (session de vérification)** :
-  1. **Avant** d'appliquer, confirmer les deux signatures ciblées (piège Postgres, cf. `CLAUDE.md`) :
-     ```sql
-     SELECT p.oid::regprocedure, pg_get_function_identity_arguments(p.oid), pg_get_function_result(p.oid)
-     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-     WHERE n.nspname = 'public' AND p.proname IN ('register_session_member', 'confirm_attendance');
-     ```
-     Attendu : une seule ligne par fonction — `register_session_member(uuid, text, text)` → `jsonb` et `confirm_attendance(uuid, text, text)` → `jsonb`. Si une surcharge apparaît, s'arrêter et remonter le point avant d'appliquer.
-  2. Appliquer le fichier via le SQL Editor du dashboard Supabase (ou MCP).
-  3. Vérification directe en SQL : sur une séance de test en phase `draft`, `SELECT register_session_member('<id>', 'Test');` et `SELECT confirm_attendance('<id>', 'Test', NULL);` doivent tous deux lever « La séance n'est pas en phase d'inscription (phase: draft) ». Repasser la séance en `pre_voting` et rejouer les deux : succès, comme avant ce chantier.
-  4. Vérification négative REST (clé anon publique, hors navigateur) — confirme que le trou `sessions_select` reste ouvert en lecture mais que les portes d'inscription sont bien fermées : créer une séance de test en `draft`, noter son `id`, puis `POST /rest/v1/rpc/register_session_member` et `POST /rest/v1/rpc/confirm_attendance` avec cet `id` → attendu : erreur 400 avec le message de phase, dans les deux cas.
-  5. Dérouler les 3 scénarios de test manuel ci-dessous (Participant × 2, Superadmin × 1 — non-régression).
-
-- [ ] **Chantier 49 — `supabase/migrations/20260902_chantier49_purge_reclaim_codes.sql`** (jamais appliquée) ⚠️ **MIGRATION DESTRUCTIVE — IRRÉVERSIBLE, aucune sauvegarde de la base n'existe à ce jour**
-
-  **Contenu du fichier** :
-  1. Purge ponctuelle : `session_members.reclaim_code` → `NULL` pour tout membre d'une séance déjà en phase `closed` (rattrapage des séances passées, avant que la fermeture de lecture du chantier 50 n'existe).
-  2. `set_session_phase` réécrite pour purger automatiquement `reclaim_code` de la séance dès qu'elle passe en `closed` — plus jamais besoin de rejouer une purge ponctuelle par la suite. Ajout au passage d'un `SET search_path = public, extensions` explicite (absent de la version chantier 39) — la fonction appelle `crypt()`, et le projet s'est déjà fait piéger par ce piège précis (« mot de passe incorrect » trompeur quand `extensions` manque du search_path).
-
-  **Pourquoi c'est irréversible** : un `reclaim_code` effacé ne se retrouve pas — ni recalculable, ni dérivable d'une autre colonne. Jules a explicitement autorisé à procéder sans sauvegarde préalable (« je n'ai pas prévu d'utiliser l'appli jusqu'à ce que tout, y compris les sauvegardes, soit livré »).
-
-  **Pourquoi aucune régression attendue** (vérifié par lecture du SQL avant d'écrire la migration — inventaire complet des lecteurs de `reclaim_code`) :
-  - `confirm_attendance` (phase `voting`/`allocating`, `VoteScreen.tsx`) n'est jamais atteignable sur une séance `closed` côté frontend — le routeur redirige vers le questionnaire post-débat/résultats avant.
-  - `reclaim_prevoting_member` (chantier B3) est **phase-safe côté serveur** : il lève déjà une exception si `sessions.phase != 'pre_voting'`, indépendamment de cette purge.
-  - Le code affiché au participant à l'inscription (`ReclaimCodeDisplay`) est généré côté client (`Math.random()`), jamais relu depuis la base.
-
-  **À faire (session de vérification), dans cet ordre** :
-  1. **Avant toute application**, exécuter la requête de diagnostic en tête du fichier de migration (comptage par séance + total global des `reclaim_code` non-NULL sur des séances `closed`) et noter le résultat (nombre de lignes, capture d'écran si possible) — trace de ce qui va être effacé.
-  2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Le bloc `DO $purge$` émet deux `NOTICE` (compte avant purge, lignes effectivement mises à jour) — vérifier qu'ils correspondent au comptage de l'étape 1.
-  3. **Aucun code ne subsiste sur une séance close** :
-     ```sql
-     SELECT count(*) FROM session_members sm
-     JOIN sessions s ON s.id = sm.session_id
-     WHERE s.phase = 'closed' AND sm.reclaim_code IS NOT NULL;
-     ```
-     Attendu : `0`.
-  4. **Purge automatique à la clôture** — sur une séance de test en phase `debating` avec au moins un membre `reclaim_code IS NOT NULL` : `SELECT set_session_phase('<mot de passe superadmin>', '<session_id>', 'closed')`, puis relire `session_members.reclaim_code` pour cette séance → attendu `NULL` partout.
-  5. **Non-régression — reconquête pré-vote toujours fonctionnelle sur une séance encore ouverte** (phase `pre_voting`, ne pas confondre avec l'étape précédente) : inscrire un membre de test en `pre_voting`, noter son code de rappel, puis `SELECT reclaim_prevoting_member('<session_id>', NULL, '<code>')` depuis une autre identité (`auth.uid()` différent, ou simplement vérifier que le code n'a pas été touché par cette migration) → attendu : succès, transfert de `user_id`. Confirme que seules les séances `closed` sont purgées, pas les séances encore actives.
-
-  **Recommandation non implémentée, à trancher séparément** : envisager d'anonymiser aussi `session_members.pseudo` (nom + prénom réels) après un délai post-clôture — c'est, une fois `reclaim_code` purgé, la donnée la plus identifiante qui reste indéfiniment en base. Non tranché : durée du délai, et si l'app doit un jour pouvoir recontacter un participant après coup (support, litige). Voir section "Rétention des données" de `CLAUDE.md`.
-
-- [ ] **Chantier 48 — `supabase/migrations/20260902_chantier48_switch_table.sql`**
-
-  **Contenu du fichier** : crée `switch_table(p_session_id uuid, p_join_code text, p_pseudo text) returns jsonb` — permet à un participant de rejoindre une autre table que celle qui lui a été assignée, depuis `AllocatingScreen`. Vérifie que le code correspond à une table de **cette** séance (sinon exception explicite), que le participant n'est pas déjà à cette table, puis **retire proprement** toute ligne `participants` de l'utilisateur dans les autres tables de la séance (libère le micro/clôt le tour en cours si besoin, même traitement que `kick_participant`) avant d'insérer la nouvelle ligne et de déplacer `table_assignments` via `sync_table_assignment` (déjà existante, chantier 26). Voir l'en-tête du fichier de migration pour le détail du raisonnement (pourquoi une RPC dédiée plutôt que réutiliser `join_table`).
-
-  **À faire (session de vérification)** : exécuter le contenu du fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'switch_table'` retourne la fonction, puis dérouler le test manuel ci-dessous (section Participant). **Avant d'appliquer**, nettoyer si possible les 2 lignes `participants` orphelines laissées dans la table `589D79` par la vérification navigateur de ce chantier (voir section Nettoyage plus bas) — pas strictement nécessaire pour tester, mais ça fausse le compte de présents affiché en `ParticipantView`.
-
-- [ ] **Chantier 46 — `supabase/migrations/20260901_chantier46_public_results_visibility.sql`**
-
-  **Contenu du fichier** :
-  1. `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS results_public boolean NOT NULL DEFAULT false` — opt-in explicite par séance, aucune séance existante ne devient publique automatiquement.
-  2. `set_session_results_public(password, session_id, results_public)` — RPC superadmin (mot de passe requis) qui bascule la colonne. Utilisée par le nouveau bouton "Résultats publics" / "Résultats privés" sur chaque séance close du superadmin (`SessionCard`, écran de liste).
-  3. `get_public_results(session_id)` **remplacé** — durci pour exiger `phase='closed' AND results_public=true` (avant : `phase='closed'` seul, donc *toute* séance close était déjà publique — comportement qui n'avait jamais été demandé). Charge utile changée : au lieu d'un résumé filtré (top-3 assertions par camp + consensus > seuil), retourne désormais la liste complète des assertions approuvées avec leurs compteurs `agree_count`/`disagree_count`/`pass_count`, et le nuage de points PCA (`pca_x`, `pca_y`, `group_id` — **sans** `member_id` ni aucun identifiant, contrairement à `get_results_map` qui est réservée aux membres inscrits). Le fichier de migration contient en pied de page les requêtes SQL de vérification (colonne, séance non-publique → NULL, séance publique → payload sans identifiant, appel anonyme, mauvais mot de passe).
-
-  **Pourquoi cette migration change le comportement de l'existant** : la fonction `get_public_results` existait déjà (chantier antérieur, migration `20260613_public_results.sql`) et rendait **toute** séance close consultable publiquement dès sa clôture — sans bascule de visibilité. Le retour de test de Jules du 2026-09-01 demande explicitement à restreindre l'accès aux séances *explicitement marquées visibles*, pas à tout l'historique clos. Tant que cette migration n'est pas appliquée, l'ancien comportement (tout closed = public) reste actif en base, et l'ancienne forme de payload (`groups`/`consensus`) ne correspond plus à ce qu'attend le frontend (`points`/`assertions`) — voir le point "Résultats publics" ci-dessous pour l'impact exact sur les tests.
-
-  **À faire (session de vérification)** : appliquer le fichier, dérouler les 5 requêtes de vérification en pied de fichier (colonne + défaut, séance non-publique → NULL, séance publique → payload strictement `k_chosen`/`points`/`assertions` sans `member_id`/`user_id`/`pseudo`, appel anonyme fonctionnel, mauvais mot de passe rejeté), puis dérouler le test manuel de la section "Résultats publics (chantier 46)" plus bas.
 
 - [ ] **Chantier 33 — `supabase/migrations/20260801_chantier33_moderator_table_assignment.sql`** (statut d'application non confirmé — aucune trace de vérification post-application dans l'historique, contrairement aux migrations chantier-35 et chantier-37 ci-dessous)
 
@@ -239,77 +79,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **À faire (session de vérification)** : exécuter le contenu du fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname IN ('claim_moderator_status','assign_moderator_to_table')` retourne bien les deux fonctions à jour, puis cocher cette entrée et dérouler le test manuel du chantier 33 ci-dessous (section Superadmin). **Tant qu'elle n'est pas appliquée** : le contrôle d'ajout/retrait de modérateur par table (`AddModeratorControl`) échoue silencieusement côté RPC, et l'auto-assise en phase `debating` reste bloquée par l'ancienne signature de `claim_moderator_status`.
 
-- [ ] **Chantier 39 — `supabase/migrations/20260901_chantier39_remove_questionnaire_phase.sql`** (jamais appliquée)
-
-  **Contenu du fichier** :
-  1. `UPDATE sessions SET phase = 'closed', phase_changed_at = now() WHERE phase = 'questionnaire'` — au moment de l'écriture, aucune séance de la base de test n'était dans cet état (vérifié par requête REST anon `select id,title,phase,join_code`), mais la migration doit rester idempotente/défensive pour toute séance réelle qui y serait encore.
-  2. Contrainte `sessions_phase_check` réécrite sans `'questionnaire'` (`draft`, `pre_voting`, `voting`, `allocating`, `debating`, `closed`).
-  3. `set_session_phase(password, session_id, phase)` réécrite avec la même liste sans `'questionnaire'` — sinon la fonction acceptait toujours l'ancienne valeur alors que le frontend ne l'envoie plus jamais.
-
-  **Pourquoi retirer la phase plutôt que la garder mais inutilisée** : Jules a demandé explicitement la suppression (« on va supprimer cette phase ») — le questionnaire post-débat se déclenche désormais automatiquement à la sortie de `debating` (voir entrée dédiée, section "Questionnaire post-débat" plus bas) au lieu de nécessiter une étape de phase manuelle.
-
-  **À faire (session de vérification)** : exécuter le fichier via le SQL Editor (ou MCP), puis `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'sessions_phase_check'` pour confirmer l'absence de `'questionnaire'` dans la définition, et `SELECT count(*) FROM sessions WHERE phase = 'questionnaire'` doit retourner 0. **Tant qu'elle n'est pas appliquée** : si une séance reste dans l'ancienne phase `questionnaire` (aucune trouvée dans la base de test au moment de l'écriture), `SuperadminScreen.tsx` ne la reconnaît plus dans `PHASE_SEQUENCE` (`indexOf` retourne -1) et affiche un `PhaseBar` incohérent (case courante non repérée, bouton suivant pointant vers `draft`) — appliquer la migration avant de rouvrir une telle séance dans le superadmin plutôt que de cliquer les boutons de phase pour la sortir de cet état.
-
-- [ ] **Chantier 44 — `supabase/migrations/20260902_chantier44_add_offline_participant.sql`** (nouvelle fonction, jamais appliquée)
-
-  **Contenu du fichier** : crée `add_offline_participant(p_table_id uuid, p_pseudo text) RETURNS jsonb`, `SECURITY DEFINER`. Garde d'autorisation identique à `kick_participant`/`grant_floor` (`tables.created_by = auth.uid()`). Reprend uniquement le cœur de `join_table` — `INSERT INTO participants (table_id, user_id, pseudo) VALUES (p_table_id, auth.uid(), btrim(p_pseudo)) ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id` — sans jamais appeler `sync_table_assignment` (voir justification détaillée dans l'entrée "Chantier 43/44" du parcours Modérateur ci-dessous : appelé sous l'identité du modérateur, ce mécanisme pollue par erreur `session_members` avec une ligne fantôme). SQL exact :
-
-    ```sql
-    CREATE OR REPLACE FUNCTION add_offline_participant(
-      p_table_id uuid,
-      p_pseudo   text
-    )
-    RETURNS jsonb
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    AS $$
-    DECLARE
-      v_participant_id uuid;
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM tables WHERE id = p_table_id AND created_by = auth.uid()
-      ) THEN
-        RAISE EXCEPTION 'Non autorisé';
-      END IF;
-
-      IF p_pseudo IS NULL OR btrim(p_pseudo) = '' THEN
-        RAISE EXCEPTION 'Pseudo requis';
-      END IF;
-
-      INSERT INTO participants (table_id, user_id, pseudo)
-      VALUES (p_table_id, auth.uid(), btrim(p_pseudo))
-      ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id
-      RETURNING id INTO v_participant_id;
-
-      RETURN jsonb_build_object('participant_id', v_participant_id);
-    END;
-    $$;
-    ```
-
-  **À faire (session de vérification)** : exécuter ce SQL (fichier ou copié ci-dessus) via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'add_offline_participant'` retourne la fonction, puis cocher cette entrée et dérouler le test du chantier 44 (section Parcours Modérateur, entrée "Chantier 43/44"). **Tant qu'elle n'est pas appliquée** : le bouton "Ajouter une personne sans téléphone" échoue à l'appel RPC (fonction PostgreSQL inexistante — erreur affichée dans le formulaire, rien de silencieux côté UI).
-
-- [x] **Chantier 51 — `supabase/migrations/20260902_chantier51_hide_assertion_author.sql`** ✅ **appliquée le 2026-09-02** — anonymat réel des auteurs d'assertions. Le point bloquant Realtime ci-dessous (fuite possible de `member_id` par WebSocket) et le reste du test manuel n'ont **toujours pas été joués à l'écran** — c'est désormais possible puisque la migration est en place.
-
-  **⚠️ Point bloquant non tranchable sans accès DB, à vérifier EN PREMIER (avant de considérer ce chantier clos)** : ce correctif retire `member_id` de la lecture REST directe de `assertions`, mais on ne sait pas si Supabase Realtime applique les mêmes privilèges de colonne aux charges utiles `postgres_changes` — si le WebSocket continue de pousser `member_id` dans ses payloads, la fuite subsiste par ce canal et ce correctif est insuffisant à lui seul.
-  **Manipulation exacte** : une fois la migration appliquée, dans `src/screens/VoteScreen.tsx` l.365 (`payload => { const a = payload.new as Assertion`), ajouter temporairement `console.log('[chantier51] payload.new', payload.new)` juste après. Recharger `#vote/<join_code>` sur une séance en phase `voting` avec des assertions `pending`, ouvrir la console DevTools du participant, puis côté superadmin approuver une assertion (`approve_assertion`) pour déclencher l'événement UPDATE. Lire l'objet loggé : présence ou non de la clé `member_id`.
-  - Si **absent** : le correctif est complet, rien à faire de plus. Retirer le `console.log` et cocher cette entrée.
-  - Si **présent** : la fuite passe par le WebSocket — ne pas improviser de correctif côté client. Solution de repli connue : une vue `assertions_public` (sans `member_id`) avec sa propre policy, lue à la place de la table par `VoteScreen.tsx` — chantier distinct à ouvrir. Documenter le résultat ici avant de considérer le chantier 51 clos.
-
-  **Contexte (audit sécurité 2026-08-03, constat B5)** : `assertions_select_approved` (`FOR SELECT USING (status = 'approved')`) filtre les LIGNES mais laisse passer toutes les colonnes, dont `member_id`. Comme `session_members` est lisible publiquement (nom/prénom réels), une simple requête REST anonyme (`GET /rest/v1/assertions?select=member_id,...`) suivie d'une jointure sur `session_members` désanonymise l'auteur de n'importe quelle assertion approuvée — sur des sujets clivants, dans une école où les gens se croisent. Le front est déjà discipliné (`VoteScreen.tsx` liste ses colonnes et exclut `member_id` depuis la migration `20260721_hide_assertion_author.sql`, commentaire "E2 — anonymat des auteurs") mais ce masquage front ne protège pas un appel REST direct.
-
-  **Contenu du fichier** :
-  1. `REVOKE SELECT ON assertions FROM anon, authenticated` puis `GRANT SELECT (id, session_id, content, status, created_at) ON assertions TO anon, authenticated` — retire l'accès à la colonne `member_id` en lecture directe, sans toucher la policy de ligne existante. Colonnes de `assertions` vérifiées exhaustivement dans `supabase/migrations/` (créées par `20260528_voting_app.sql`, jamais modifiées depuis) : `id, session_id, member_id, content, status, created_at` — seule `member_id` est retirée, c'est le seul identifiant reliant une assertion à son auteur.
-  2. `get_my_assertion_ids(p_session_id uuid) RETURNS uuid[]`, `SECURITY DEFINER` — remplace la requête `VoteScreen.tsx` qui lisait `member_id` dans une clause `WHERE` pour compter "mes propositions" (`proposedCount`) ; un `GRANT SELECT` restreint à certaines colonnes interdit aussi d'utiliser les colonnes non accordées dans `WHERE`, d'où le passage par une RPC (comme tous les autres accès à `assertions` qui touchent `member_id` : `submit_assertion`, `approve_assertion`, etc., déjà `SECURITY DEFINER`, non modifiées ici).
-
-  **Code frontend déjà livré (ne dépend pas de la migration pour compiler/charger)** : `getMyAssertionIds(sessionId)` ajouté dans `src/lib/voting.ts`, appelé depuis `loadVoteData` (`src/screens/VoteScreen.tsx` l.~305-320) à la place de l'ancienne requête `.from('assertions').select('id').eq('member_id', m.id)`, avec un `.catch(() => [])` (même garde que `SuperadminScreen.loadGroups`) pour qu'un échec RPC ne fasse pas rejeter tout le `Promise.all` et bloquer aussi le chargement des assertions/votes. `npx tsc -b` OK. **Tant que la migration n'est pas appliquée**, cet appel RPC échoue silencieusement (`PGRST202` — fonction inexistante, absorbée par le `.catch`) : le compteur "mes propositions" (`proposedCount`) reste à 0 en permanence, mais le reste du flux (liste des assertions, vote, polling) continue de fonctionner normalement — pas de blocage total, juste ce compteur faux tant que la migration n'est pas en place.
-
-  **À faire (session de vérification)** :
-  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'get_my_assertion_ids'` retourne la fonction.
-  2. Vérification négative REST (clé anon publique, hors navigateur) :
-     - `GET /rest/v1/assertions?select=member_id` → attendu `42501`/403.
-     - `GET /rest/v1/assertions?select=id,session_id,content,status,created_at` → doit continuer à fonctionner normalement.
-  3. Dérouler le parcours de vote complet (`#vote/<join_code>`, séance `pre_voting` ou `voting`) : liste des assertions, compteur "X / Y votées" cohérent, proposer une assertion et vérifier qu'elle compte bien comme "la mienne" (`proposedCount` — cassé silencieusement avant l'application de la migration, cf. ci-dessus), polling de secours (approuver une assertion côté superadmin → apparition côté participant en moins de 15s), écran "Tu as tout voté", bouton "Voir toutes".
-  4. Le point bloquant Realtime en tête de cette section — à faire avant de clore le chantier.
 
 - [ ] **Chantier 52 — `supabase/migrations/20260902_chantier52_valider_url_sources_fermer_collab_users.sql`** (jamais appliquée)
 
@@ -343,21 +112,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 *Nécessite la migration SQL ci-dessus appliquée pour tester le refus serveur d'une URL à schéma non autorisé ; l'affichage sécurisé (lien masqué pour une ligne déjà en base) et le contrôle client sont eux indépendants de la migration — testables dès maintenant.*
 
-- [ ] **Ajout d'une source avec une URL valide** — `#collab/<join_code>` (`CollabDocScreen.tsx`)
-
-  Rejoindre le document collaboratif d'une séance (via le lien affiché dans une table de débat rattachée à une séance, ou en naviguant directement sur `#collab/<join_code>` avec un `join_code` de séance connu). S'enregistrer avec un pseudo. "+ Ajouter" → titre + `https://example.com` en lien → "Ajouter". Attendu : la source apparaît immédiatement dans la liste, groupée sous la bonne table (ou "Non assigné"), le lien est bleu et cliquable, ouvre un nouvel onglet vers `https://example.com`.
-
-- [ ] **Refus d'une URL à schéma non autorisé** — même écran, formulaire d'ajout
-
-  Saisir `javascript:alert(1)` (ou `data:text/html,<script>alert(1)</script>`) dans le champ Lien → "Ajouter". Attendu : message rouge "Lien invalide : seuls les liens http:// ou https:// sont acceptés." sous le formulaire, **aucune requête réseau vers le serveur** (contrôle client immédiat), le formulaire reste ouvert. Vérifier ensuite qu'un appel RPC direct (hors formulaire, ex. requête REST manuelle vers `add_collab_source`/`update_collab_source` avec la clé anon) est lui aussi refusé côté serveur — c'est la ligne de défense qui compte réellement, le contrôle client n'étant qu'un confort.
-
-- [ ] **Comportement à l'affichage d'une ligne douteuse déjà en base** — `CollabDocScreen.tsx` et `SuperadminScreen.tsx` (onglet sources, superadmin)
-
-  Si la requête de repérage ci-dessus (section migration) a trouvé des lignes avec un `url` non http(s) : ouvrir le document collaboratif de la séance concernée et l'onglet sources du superadmin pour cette même séance. Attendu dans les deux écrans : le titre et le contenu de la source s'affichent normalement, mais le lien apparaît en texte rouge "⚠ Lien non affiché (schéma non autorisé)", **non cliquable**, au lieu d'un lien bleu. Si aucune ligne douteuse n'existe en base au moment du test, simuler le cas en insérant une ligne de test via `add_collab_source` en base **avant** l'application de la migration de ce chantier (donc sans la validation), ou directement par `INSERT` SQL manuel avec `url = 'javascript:alert(1)'` sur une séance de test — puis nettoyer cette ligne après vérification.
-
-- [ ] **Non-régression de l'écran collaboratif après restriction de `collab_session_users`** — `CollabDocScreen.tsx`
-
-  Sur une séance déjà utilisée pour les tests ci-dessus (ou une nouvelle) : recharger `#collab/<join_code>` avec le même navigateur/pseudo déjà enregistré → doit reconnaître automatiquement le pseudo (pas de ré-enregistrement demandé), afficher "Changer" à côté du pseudo dans l'en-tête, et permettre de modifier/supprimer ses propres sources (icônes crayon/poubelle visibles uniquement sur les sources dont `isOwn` est vrai). Changer de navigateur ou session anonyme (nouvel onglet privé) sur la **même séance** → la liste des sources reste visible (lecture publique de `session_sources`, non touchée par ce chantier), mais aucune source n'apparaît comme "à moi" (pas d'icônes crayon/poubelle) tant qu'aucun pseudo n'est enregistré sous cette nouvelle identité — s'enregistrer avec un pseudo déjà pris par un autre `user_id` doit transférer la propriété de ses sources (`register_collab_pseudo`, comportement inchangé par ce chantier, à vérifier non régressé).
 
 - [ ] **Chantier 67 (point 2) — `supabase/migrations/20260902_chantier67_claim_moderator_prevoting.sql`**
 
@@ -396,53 +150,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Tant qu'elle n'est pas appliquée** : comportement actuel inchangé (échec toujours totalement silencieux, aucun log).
 
-- [ ] **Chantier 66 — `supabase/migrations/20260903_chantier66_join_table_single_table.sql`** (nouvelle, jamais appliquée) — **à appliquer après le chantier 48 et sa suite** (`20260902_chantier48_switch_table.sql`, `20260902_chantier64b_...`, `20260902_chantier64c_...`) : elle redéfinit `switch_table` en repartant de sa dernière version, et suppose donc que `tables.leaderless_by_design` existe déjà. Indépendante du chantier 67 (point 3) juste au-dessus : les deux touchent des fonctions différentes du même fichier source d'origine sans se chevaucher (l'une `sync_table_assignment`, l'autre `join_table`/`switch_table`).
-
-  **Symptôme corrigé** : `join_table` ne retirait jamais le participant de ses tables précédentes dans la même séance (simple upsert) — rejoindre une nouvelle table AJOUTAIT une ligne `participants` sans supprimer l'ancienne. Deux identités de test étaient encore listées comme présentes à la table `589D79` le 02/09 alors qu'elles l'avaient quittée. Le trou n'avait été bouché que pour `switch_table` (chantier 48/64b), jamais pour `join_table`.
-
-  **Contenu du fichier** : nouvelle fonction `leave_other_session_tables(p_session_id, p_new_table_id, p_user_id)` — extraction du nettoyage déjà présent dans `switch_table` (libère le micro, clôt le tour en cours, supprime la ligne `participants`, bascule arrière `leaderless_by_design` si l'utilisateur en était le modérateur Bloc C) — **hors table de destination**, exclusion nécessaire pour que reprendre le code de sa table actuelle ne se coupe pas soi-même le micro. `join_table` l'appelle désormais avant l'INSERT (nouveauté) ; `switch_table` est refactorisée pour l'appeler aussi (comportement observable inchangé — sa garde « Tu es déjà à cette table » rendait déjà l'exclusion redondante). Signatures de `join_table` et `switch_table` inchangées.
-
-  **Décision de Jules, non modifiée par ce chantier** : le bouton "Quitter" (`leaveTable()`) reste purement local, ne supprime rien, aucun appel RPC — le nettoyage ne se déclenche qu'à l'entrée dans une nouvelle table.
-
-  **Question ouverte, non traitée par cette migration** — lignes fantômes déjà présentes en base (créées par le bug avant ce correctif, ex. table `589D79`). Requête de **diagnostic seulement** (aucune suppression) :
-  ```sql
-  -- Participants qui ont, dans une même séance, plusieurs lignes `participants`
-  -- (donc plusieurs tables) au même moment — le symptôme du bug.
-  SELECT
-    t.session_id,
-    p.user_id,
-    array_agg(DISTINCT p.pseudo)   AS pseudos,
-    array_agg(DISTINCT t.join_code) AS tables_join_codes,
-    count(DISTINCT p.table_id)      AS nb_tables
-  FROM participants p
-  JOIN tables t ON t.id = p.table_id
-  WHERE t.session_id IS NOT NULL
-  GROUP BY t.session_id, p.user_id
-  HAVING count(DISTINCT p.table_id) > 1
-  ORDER BY nb_tables DESC;
-  ```
-  Ne pas supprimer ces lignes sans confirmation explicite de Jules — pas de sauvegarde active de la base à ce jour (`chantier-secu-sauvegardes`, non mergée).
-
-  **À faire (session de vérification)** :
-  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Vérifier au préalable `tables.leaderless_by_design` existe (`SELECT column_name FROM information_schema.columns WHERE table_name='tables' AND column_name='leaderless_by_design';`).
-  2. **Rejoindre le lien d'un ami après en avoir déjà une** — un participant déjà dans TABLE_A (via `join_table` ou `switch_table`) reçoit/tape le code de TABLE_B (même séance). Rejoindre TABLE_B via l'onglet "Rejoindre" de l'accueil ou le lien `#table/<code_B>`. **Observer** : `SELECT * FROM participants WHERE table_id = '<TABLE_A_ID>'` ne montre plus ce participant ; il apparaît dans TABLE_B. Sur l'appareil du modérateur de TABLE_A (`ModeratorView`/`ParticipantsTable`), il doit disparaître de la liste sans action de sa part (Realtime).
-  3. **Rejoindre la table où l'on est déjà, sans perte** — reprendre le même code de table avec le même pseudo (ex. recharger `App.tsx` après un vidage du localStorage Supabase auth, ou retaper son propre code dans "Rejoindre"). **Observer** : l'`id` de la ligne `participants` est inchangé (pas de suppression/réinsertion), et si le participant avait la parole, il ne la perd pas.
-  4. **Arrivée d'un retardataire en phase `debating`** (jamais passé par l'allocation) — via `VoteScreen`/`SessionRouterScreen` ("le vote est terminé, mais tu peux rejoindre une table directement avec le code") ou `#table/<code>`. **Observer** : aucune régression — le participant rejoint normalement, une ligne `session_members`/`table_assignments` est créée pour lui (`sync_table_assignment`, best-effort, inchangé par ce chantier).
-  5. **"Quitter" laisse toujours la ligne en place** — un participant clique "Quitter" (retour au menu) sans rejoindre d'autre table. **Observer** : `SELECT * FROM participants WHERE table_id = '<TABLE_ID>' AND user_id = '<USER_ID>'` renvoie toujours la ligne — comportement volontaire (décision de Jules), pas un oubli. Le modérateur voit toujours ce participant dans sa liste tant qu'il ne l'exclut pas via "Exclure" ou qu'il ne rejoint pas une autre table.
-  6. **Bascule arrière d'une table leaderless** — répéter le test 2 avec un participant qui est le modérateur Bloc C (`session_members.is_moderator`) d'une table `leaderless_by_design = true`, en utilisant `join_table` (pas `switch_table`) pour changer de table. **Observer** : la table quittée repasse `leaderless = true` — même comportement que si le départ s'était fait via `switch_table` (chantier 64b).
-
-  **Tant qu'elle n'est pas appliquée** : comportement actuel inchangé (rejoindre une nouvelle table via `join_table` laisse l'ancienne ligne `participants` en place).
-
-- [ ] **Chantier 54 — `supabase/migrations/20260903_chantier54_remove_moderator_table_delete.sql`** — supprime purement et simplement la policy RLS `tables_delete_moderator` (posée par le chantier 60 sur `is_table_moderator`), sans la remplacer. Aucune dépendance avec les autres migrations en attente ci-dessus, applicable indépendamment.
-
-  **Pourquoi** : Jules a découvert qu'un modérateur pouvait encore supprimer sa table (`TableContext.endTable()`, DELETE direct côté client), alors qu'il croyait ce chemin déjà fermé — le bouton correspondant avait bien été retiré de `ModeratorView` en juin 2026 (commit `54b6b93`), mais la policy RLS qui autorisait le DELETE en base restait active, donc l'action restait possible par un appel REST direct (`DELETE /rest/v1/tables?id=eq.<id>` avec la clé anon publique), sans passer par l'UI. Décision de Jules : le modérateur ne doit plus jamais pouvoir supprimer sa table, par aucun chemin. `endTable()` et son entrée dans `TableCtxValue` ont aussi été retirés de `TableContext.tsx` (code mort, plus aucun appelant côté écrans depuis juin).
-
-  **N'affecte pas** la suppression de table côté superadmin (`SuperadminScreen` → `deleteTableAdmin` → RPC `SECURITY DEFINER` `delete_table_admin`, indépendante de cette policy — elle contourne RLS entièrement).
-
-  **À faire (session de vérification)** :
-  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
-  2. `SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'tables' AND cmd = 'DELETE';` → **aucune ligne retournée**.
-  3. Voir les recettes détaillées dans les sections Parcours Modérateur et Parcours Superadmin ci-dessous.
 
 - [ ] **Chantier 68 — `supabase/migrations/20260903_chantier68_claim_table_as_moderator.sql`** (jamais appliquée) ⚠️ **à appliquer APRÈS le chantier 66** (`20260903_chantier66_join_table_single_table.sql`, branche `chantier-66-une-seule-table` — dépendance dure, voir plus bas)
 
@@ -525,64 +232,11 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. **Non-régression** : sur une table A `leaderless_by_design = false` (conçue modérée dès l'origine), répéter le test — A doit rester `leaderless = false` après le départ, comme pour `switch_table`/`move_member_to_group` (chantier 64b/64c).
   5. **Table sans séance** : répéter avec une table B `leaderless` standalone (`session_id` NULL, jamais rattachée à une séance) — le nettoyage ne doit rien tenter côté table A (early return de `leave_other_session_tables` sur `p_session_id IS NULL`), donc si A et B ne partagent pas de séance, l'appareil reste normalement sur A (aucune notion de « même séance » ne s'applique).
 
-- [ ] **2026-09-04 — Chantier 70 — `supabase/migrations/20260904_chantier70_historiser_votes.sql`** (jamais appliquée) — historiser les votes pour mesurer le déplacement des opinions après le débat, suite directe du point signalé par le chantier 69
-
-  **Contexte / décision de Jules** : `cast_vote` (chantier 69) écrase l'ancien vote par upsert, sans historique — la comparaison avant/après débat que la démarche Ecclesia veut mesurer était impossible. Jules a tranché : « il faut faire une "sauvegarde" de l'ancien vote pour pouvoir le comparer au nouveau vote [...] on pourra relancer l'analyse, et voir comment les positions idéologiques ont bougé après le débat. » Ce chantier ne fait QUE la partie serveur et données — **aucun écran de comparaison n'a été conçu**, c'est volontaire (Jules veut son mot à dire sur cette visualisation). Voir « Ce que ces données permettent, et ce qu'il reste à faire » en fin d'entrée.
-
-  **Choix de conception — table d'historique plutôt qu'élargissement de la contrainte d'unicité** (justification complète en tête du fichier de migration) : `assertion_votes` reste structurellement et comportementalement identique à aujourd'hui (une ligne par paire assertion×membre = le vote courant). L'ancien vote est détourné vers une nouvelle table `assertion_vote_history`, alimentée par `cast_vote` juste avant chaque écrasement réel (pas de ligne si le nouveau vote est identique à l'ancien — évite le bruit d'un re-clic sur le même bouton). Alternative rejetée : élargir `UNIQUE(assertion_id, member_id)` sur `assertion_votes` lui-même aurait obligé à retoucher tous ses lecteurs existants (inventaire fait avant d'écrire la migration : `get_vote_results`, `get_vote_counts_admin`, `get_all_votes_for_analysis`, `get_session_voting_stats`, `get_table_opinion_summary`, `get_public_results`, `get_vote_results_all`, les gardes "has_voted" de `list_session_members_admin`/`get_allocation_inputs`, et côté client `VoteScreen.tsx`/`PostVoteScreen.tsx`) — aucun ne filtre aujourd'hui sur une notion de version, tous supposent au plus une ligne par paire. La table à part laisse ces lecteurs **strictement inchangés**.
-
-  **Contenu du fichier** (détail et rationale complets en commentaires en tête du fichier) :
-  1. Table `assertion_vote_history` (RLS self-only, même policy que `assertion_votes_select_own`) — capture `vote`, `voted_at` (created_at de la ligne remplacée), `superseded_at`, `phase_at_change` (`sessions.phase` au moment de l'écrasement, `text` libre sans CHECK — même convention que `session_members.joined_phase`).
-  2. Colonne `assertion_votes.first_cast_phase` (nouvelle, `NOT NULL`) — phase au moment du tout premier vote sur cette paire, jamais retouchée par un upsert ultérieur. Backfill `'legacy'` sur toutes les lignes déjà en base.
-  3. Colonne `session_analysis.vote_scope` (nouvelle, `NOT NULL DEFAULT 'current'`) — `'current'` ou `'pre_closure'`, tague quels votes ont nourri l'analyse.
-  4. `cast_vote` redéfinie — historise avant d'écraser (voir ci-dessus). Mêmes vérifications et même valeur de retour qu'avant pour l'appelant.
-  5. `get_all_votes_for_analysis` redéfinie — nouveau paramètre `p_vote_scope` (défaut `'current'`, donc tout appel existant continue à fonctionner à l'identique sans le passer). `p_vote_scope = 'pre_closure'` reconstitue, pour chaque paire, la valeur juste avant le premier écrasement en phase `'closed'` ; exclut les paires dont le tout premier vote a été posé en `'closed'` (n'existaient pas avant la clôture — ex. une assertion votée pour la première fois via la section "3 · Assertions non vues" du postvote).
-  6. `save_analysis` redéfinie — nouveau paramètre `p_vote_scope` (défaut `'current'`, même comportement qu'avant si omis). `session_analysis` était **déjà append-only** (simple `INSERT`, jamais un upsert, depuis sa création en `20260610_opinion_analysis.sql`) — relancer une analyse n'a donc jamais écrasé la précédente, avant comme après ce chantier.
-  7. `get_latest_analysis`, `get_results_map`, `get_public_results` redéfinies — ajout de `AND vote_scope = 'current'` à leur sélection de "dernière analyse `done`". **Point tranché sans consultation, à valider par Jules** (voir note dédiée en tête du fichier de migration) : sans ce filtre, lancer une analyse `'pre_closure'` après une analyse `'current'` la rendrait chronologiquement plus récente et donc, silencieusement, celle montrée aux participants sur `ResultsMapScreen`/`PublicResultsScreen` — jugé absurde, d'où le filtre. Comportement strictement inchangé pour toutes les analyses déjà en base (`vote_scope` vaut `'current'` par défaut dessus).
-  8. Deux nouvelles RPC : `list_session_analyses(password, session_id)` (toutes les analyses d'une séance, triées par date, avec `vote_scope` et nombre de membres placés) et `get_analysis_by_id(password, analysis_id)` (relit une analyse précise, pas seulement "la dernière"). Nécessaires pour qu'un futur écran de comparaison puisse charger une analyse `'current'` et une `'pre_closure'` côte à côte.
-
-  **Côté frontend, déjà livré (ne dépend pas de la migration pour compiler)** — `src/lib/analysis.ts` : type `VoteScope`, `LoadedAnalysis.vote_scope` (nouveau champ), `SessionAnalysisSummary` (nouveau type) ; `loadVotesForAnalysis`/`saveAnalysisResult` acceptent un `voteScope` optionnel (défaut `'current'`) ; nouvelles fonctions `listSessionAnalyses`/`loadAnalysisById`. Seul changement hors `analysis.ts` : `src/components/AnalysisPanel.tsx`, `resultToLoaded()` pose `vote_scope: 'current'` sur l'objet qu'elle construit localement (mécanique, pour satisfaire le type étendu — ce chemin ne calcule jamais depuis les votes pré-clôture, aucune UI ne le déclenche). **Aucun autre changement dans `AnalysisPanel.tsx`/`SuperadminScreen.tsx`** — le bouton "Lancer une analyse" continue d'appeler `loadVotesForAnalysis`/`saveAnalysisResult` sans le nouveau paramètre, donc toujours en `vote_scope='current'`, comportement identique à avant ce chantier. `npx tsc --noEmit`, `npm test` (94 passants, 1 skip) et `npm run build` propres.
-
-  **⚠️ Fenêtre de contamination, à savoir avant d'exploiter les données** : le chantier 69 (écran postvote) est déjà mergé et déployé, et permettait déjà de revoter en phase `closed` **sans** historisation avant cette migration. Le backfill `first_cast_phase = 'legacy'` suppose qu'aucune ligne déjà en base n'a été posée/modifiée pendant que la séance était `closed` — vrai pour tout ce qui précède le chantier 69, potentiellement faux pour une poignée de votes passés entre le déploiement du chantier 69 et l'application de cette migration. Aucune parade a posteriori (l'information n'a jamais été capturée) — l'appliquer au plus tôt réduit la fenêtre.
-
-  **À faire (session de vérification)** :
-  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
-  2. Vérifier le backfill : `SELECT COUNT(*) FROM assertion_votes WHERE first_cast_phase IS NULL` → attendu `0` (contrainte `NOT NULL` posée en fin de section 2, donc cette requête ne peut de toute façon plus remonter de ligne — sert à confirmer qu'aucune erreur n'a interrompu le backfill avant la contrainte).
-  3. Scénario minimal d'historisation — sur une séance de test `closed` avec au moins un membre inscrit et une assertion approuvée :
-     - Nettoyer une paire de test si besoin, voter une première fois (`SELECT cast_vote('<assertion_id>', 'agree')` en simulant l'appelant, ou via l'écran postvote réel).
-     - Revoter différemment (`cast_vote('<assertion_id>', 'disagree')`).
-     - `SELECT * FROM assertion_vote_history WHERE assertion_id = '<assertion_id>' AND member_id = '<member_id>'` → attendu une ligne, `vote = 'agree'`, `phase_at_change = 'closed'`.
-     - Revoter une troisième fois avec la **même** valeur (`cast_vote('<assertion_id>', 'disagree')` à nouveau) → attendu : toujours une seule ligne d'historique (pas de doublon sur un re-vote identique).
-  4. `SELECT get_all_votes_for_analysis('<mot de passe>', '<session_id>', false, 'pre_closure')` sur cette même séance → attendu : la paire de test apparaît avec `vote = 'agree'` (la valeur d'avant l'écrasement), pas `'disagree'`.
-  5. Vérifier l'exclusion des votes nés en postvote : voter pour la toute première fois sur une paire jamais votée, pendant que la séance est `closed` → `SELECT get_all_votes_for_analysis(..., 'pre_closure')` ne doit **pas** contenir cette paire (alors que `get_all_votes_for_analysis(..., 'current')`, ou l'omission du 4ᵉ paramètre, la contient normalement).
-  6. Lancer une analyse via le panneau superadmin existant (`AnalysisPanel`, bouton "Lancer une analyse") **avant et après** avoir appliqué cette migration si possible, sinon juste après : vérifier que le comportement est identique à avant (aucun changement visible), et que `SELECT vote_scope FROM session_analysis ORDER BY created_at DESC LIMIT 1` retourne bien `'current'`.
-  7. `SELECT list_session_analyses('<mot de passe>', '<session_id>')` → toutes les analyses de la séance apparaissent, triées par date décroissante, avec leur `vote_scope`.
-  8. `SELECT get_analysis_by_id('<mot de passe>', '<id d'une analyse ancienne, pas la dernière>')` → retourne cette analyse précise (pas la plus récente).
-
-  **Ce que ces données permettent, et ce qu'il reste à faire (pour Jules, avant d'ouvrir l'écran de comparaison)** :
-  - Il est maintenant possible d'appeler `loadVotesForAnalysis(supabase, password, sessionId, false, 'pre_closure')` puis `runOpinionAnalysis(...)` puis `saveAnalysisResult(..., 'pre_closure')` pour calculer et conserver une analyse "avant clôture", à tout moment après que des votes ont commencé à être révisés en postvote — **sans jamais toucher** à l'analyse `'current'` existante (ligne distincte, jamais écrasée).
-  - `listSessionAnalyses`/`loadAnalysisById` permettent de charger deux analyses précises (une `'current'`, une `'pre_closure'`) pour les comparer — même structure de données que ce que `ResultsMapScreen`/`AnalysisPanel` savent déjà afficher côté scatter/repness/consensus pour une analyse individuelle.
-  - **Ce qui manque, hors périmètre de ce chantier** : (a) un bouton dans `AnalysisPanel` pour déclencher explicitement une analyse `'pre_closure'` (aujourd'hui uniquement possible via un appel direct aux fonctions `analysis.ts`, aucun déclencheur UI) ; (b) un écran ou un mode de `ResultsMapScreen`/`AnalysisPanel` juxtaposant les deux scatters ou calculant un delta par membre (ex. `group_id` avant vs après, ou distance PCA parcourue) ; (c) une réflexion sur la présentation aux **participants** eux-mêmes (voient-ils leur propre déplacement, ou seulement le superadmin ?) — non tranchée, à décider par Jules.
 
 ## Résultats publics (chantier 46)
 
 *Nécessite la migration SQL ci-dessus appliquée pour tester le flux de bout en bout (nouvelle colonne `results_public` + nouvelle forme du payload `get_public_results`). Sans elle : le bouton "Résultats publics" du superadmin échoue avec l'erreur Postgres "column sessions.results_public does not exist" (vérifié en navigateur ci-dessous, échec propre — pas de crash) et `get_public_results` renvoie encore l'ancienne forme (`groups`/`consensus`) que le frontend ne lit plus, donc `points`/`assertions` restent vides même pour une séance déjà close.*
 
-- [ ] **2026-09-01 — Bouton "Voir tous les débats" (accueil)** — `src/screens/EntryScreen.tsx`
-
-  Lien externe vers `https://ecclesia-centralesupelec.vercel.app/#debats` (site public Ecclesia, hébergé à part sur Vercel), `target="_blank" rel="noopener noreferrer"`. Placé en pied de carte d'accueil, au-dessus du lien "Administration".
-
-  **Déjà vérifié en navigateur** : présent sur l'écran d'accueil, `href`/`target`/`rel` corrects (lu via le DOM), zéro erreur console au chargement de l'écran.
-
-  **Non vérifiable en session headless** : l'ouverture réelle d'un nouvel onglet vers un domaine externe (Vercel) n'a pas été cliquée pour de vrai — seuls les attributs du lien ont été inspectés.
-
-- [ ] **2026-09-01 — Modale "Anciennes séances" (accueil)** — `src/screens/EntryScreen.tsx` (`PastSessionsModal`)
-
-  Bouton "Voir les votes des anciennes séances" en pied de carte d'accueil → modale listant les séances `phase='closed' AND results_public=true` (titre, date, description), triées par date décroissante. Clic sur une séance → `#results/<id>` (nouvelle route directe par id, pas de join_code — un `join_code` de séance close peut être réutilisé par une séance non-close plus récente, donc le routage par id évite toute ambiguïté).
-
-  **Déjà vérifié en navigateur (avant migration)** : la modale s'ouvre, affiche "Anciennes séances" avec bouton de fermeture, la requête échoue proprement avec le message Postgres explicite affiché à l'écran ("column sessions.results_public does not exist") — pas de page blanche, pas d'exception React non gérée. Fermeture de la modale (✕) fonctionne.
-
-  **Test minimal (après migration)** : au moins une séance `closed` avec `results_public=true` créée par la session de vérification (via le nouveau bouton superadmin ci-dessous) → vérifier son apparition dans la liste, triée correctement si plusieurs. Cliquer dessus → arrivée sur `#results/<id>` (voir section dédiée ci-dessous). Vérifier aussi le cas vide ("Aucune séance aux résultats publics pour l'instant.") si aucune séance n'est encore marquée visible.
 
 - [ ] **2026-09-01 — Bouton "Résultats publics" par séance (superadmin)** — `src/screens/SuperadminScreen.tsx` (`SessionCard`)
 
@@ -592,15 +246,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Test minimal (mot de passe superadmin requis, migration appliquée au préalable)** : ouvrir une séance close depuis la liste, cliquer la pastille → passe à "Résultats publics" sans reload ; recharger la page → l'état persiste (relu depuis `sessions.results_public`) ; cliquer à nouveau → repasse à "Résultats privés". Vérifier qu'aucune pastille n'apparaît sur les séances non closes.
 
-- [ ] **2026-09-01 — Page de résultats publics** — `src/screens/PublicResultsScreen.tsx`, routes `#results/<session_id>` et `#session/<join_code>` (phase closed, visiteur non inscrit)
-
-  Page unique : nuage de points PCA anonyme (aucun `member_id`, mêmes couleurs/légende que l'onglet Analyse du superadmin) si une analyse existe, puis liste complète des assertions approuvées avec barre agree/disagree/pass et compteurs. Accessible sans connexion (auth anonyme uniquement). Aucune table, aucun pseudo, aucun découpage par table de débat — vérifié en lisant le payload exact retourné par `get_public_results` (voir requêtes de vérification dans le fichier de migration) : seulement `k_chosen`, `points[].{pca_x,pca_y,group_id}`, `assertions[].{content,agree_count,disagree_count,pass_count}`.
-
-  **Déjà vérifié en navigateur (avant migration)** : `#results/<uuid inexistant>` → "Séance introuvable." affiché proprement (pas de crash), zéro exception React. `#results/<id>` sans `session` prop résout bien la séance par id avant de charger les résultats (chemin de code distinct de l'usage existant via `SessionRouterScreen`, qui passe toujours `session` directement).
-
-  **Non testable avant migration** : le rendu réel avec des données (nuage de points + assertions) — la fonction `get_public_results` encore déployée renvoie l'ancienne forme (`groups`/`consensus`), donc `data.points`/`data.assertions` restent vides même pour une séance close existante avec `results_public` inexistant en base.
-
-  **Test minimal (après migration, mot de passe superadmin pour préparer une séance de test)** : séance close avec au moins une analyse d'opinion lancée et quelques assertions votées → marquer `results_public=true` (bouton superadmin ci-dessus) → ouvrir `#results/<id>` (via la modale accueil) et `#session/<join_code>` (si le join_code est encore d'actualité) en visiteur non connecté (nouvel onglet privé / navigateur non inscrit à la séance) → vérifier l'affichage du nuage de points, des assertions avec compteurs, l'absence totale de nom/pseudo/table à l'écran, zéro erreur console. Démarquer `results_public=false` → revérifier que la page affiche "non disponibles publiquement" (le RPC renvoie NULL).
 
 ## Parcours Superadmin
 
@@ -769,24 +414,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Une fois les 3 tests validés** : faire passer la séance de test en `pre_voting` côté superadmin, recharger les mêmes deux liens (`#session/` et `#vote/`) → le formulaire d'inscription normal doit apparaître, comme avant ce chantier.
 
-- [ ] **2026-09-02 — Chantier 67 (point 1) — continuer à voter à distance au lieu de mentir sur sa présence** — `src/screens/VoteScreen.tsx` (`AttendanceConfirmScreen`, mode `known_user`)
-
-  **Aucune vérification navigateur faite** (session headless, consigne explicite de ne lancer aucun serveur de dev). Seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts.
-
-  **Le bug** : un pré-votant, au passage de la séance en phase `voting`, était basculé de force sur l'écran de confirmation de présence (« Tu avais voté à distance sous le nom X — Es-tu présent(e) au débat aujourd'hui ? »), avec seulement deux issues : confirmer sa présence (`attending_in_person → true`, alors qu'il n'est pas là) ou basculer vers l'écran de reconquête (pseudo/code/nouveau profil — qui mène, lui aussi, toujours à `attending_in_person = true`). Aucune voie ne permettait de rester à distance sans mentir.
-
-  **Le correctif** : nouveau bouton « Non, je continue à voter à distance » entre « ✓ Oui, je suis présent(e) » et « Ce n'est pas moi / utiliser un autre compte ». Au clic : `handleContinueRemote()` ne fait **aucun appel RPC** (pas de `confirmAttendance`), le membre reste inchangé (`attending_in_person` reste `false`), et le vote reprend directement (`loadVoteData`) — même chemin que `handlePseudoReclaimSuccess` (pas d'onboarding : la pré-vote n'en a pas).
-
-  **Allocation — non modifiée** (hors périmètre, consigne explicite de ce chantier). Vérifié par lecture de `get_allocation_inputs`/`run_clustering_v1`/`run_clustering_v2` : les trois filtrent déjà sur `attending_in_person = true` — un membre resté à `false` via ce nouveau bouton est donc déjà exclu de la répartition, sans changement nécessaire côté allocation (`src/lib/allocation.ts` non touché).
-
-  **Test minimal** :
-  1. Créer un pré-votant (phase `pre_voting`, vote via `#vote/<join_code>`), noter son pseudo.
-  2. Faire passer la séance en `voting` depuis le superadmin.
-  3. Recharger `#vote/<join_code>` avec **le même profil navigateur** que le pré-vote → observer l'écran « Tu avais voté à distance sous le nom X — Es-tu présent(e) au débat aujourd'hui ? » avec **trois** boutons désormais (présent / continuer à distance / pas moi).
-  4. Cliquer « Non, je continue à voter à distance » → observer : retour direct à l'écran de vote (assertions), pas d'écran d'onboarding, pas d'erreur.
-  5. Superadmin, onglet Membres : vérifier que `attending_in_person` de ce membre est resté `false`.
-  6. Lancer l'allocation (`AllocationPanel`, phase `allocating`) : vérifier que ce membre n'apparaît dans **aucune** table proposée.
-  7. **Non-régression** : reprendre les scénarios 1/2/3/5 du chantier 61 documentés ci-dessous (nouvel arrivant, reconquête par nom, par code, confirmation de présence classique) — vérifier qu'ils passent toujours, notamment que le bouton « ✓ Oui, je suis présent(e) » juste au-dessus du nouveau bouton fonctionne toujours normalement.
 
 - [ ] **2026-09-02 — Chantier 67 (point 2) — code de rappel pour un modérateur qui se déclare en pré-vote** — `src/screens/EntryScreen.tsx`, `src/components/voting/ReclaimCodeDisplay.tsx` *(migration `20260902_chantier67_claim_moderator_prevoting.sql` requise — voir « Migration SQL en attente » plus haut)*
 
@@ -801,17 +428,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   6. **Non-régression — phases `voting`/`allocating`/`debating`** : refaire le même parcours sur une séance dans une de ces phases → observer qu'**aucun** écran de code de rappel ne s'affiche (redirection immédiate comme avant), et que le membre créé a bien `attending_in_person = true`.
   7. **Non-régression — déjà inscrit** : sur un profil déjà membre de la séance en `pre_voting` (a déjà voté), utiliser le même onglet « 🎙️ Modérateur » → observer une redirection immédiate (pas d'écran de code — cas (b) de la RPC, comportement inchangé) et `is_moderator` passé à `true` sur le membre existant, sans toucher son `attending_in_person`/`reclaim_code` d'origine.
 
-- [ ] **2026-09-02 — Chantier 67 (point 4) — message d'accueil aligné sur les 5 étapes de `PhaseIndicator`** — `src/screens/VoteScreen.tsx` (`AppIntroModal`)
-
-  **Le bug** : `AppIntroModal` (popup « Comment se déroule la séance ? », une fois par séance) annonçait 4 étapes (Vote / Répartition / Débat / Questionnaire) alors que `PhaseIndicator` (chantier 39) en affiche 5 : 1 Distanciel, 2 Vote en présentiel, 3 Allocation, 4 Débat, 5 Post-débat.
-
-  **Le correctif** : les 5 libellés numérotés de `AppIntroModal` reprennent mot pour mot ceux de `PARTICIPANT_PHASE_STEPS` (`src/lib/phaseLabels.ts`) — « 1. Distanciel », « 2. Vote en présentiel », « 3. Allocation », « 4. Débat », « 5. Post-débat » — avec une description courte par étape.
-
-  **Test minimal** :
-  1. Vider `localStorage['ecclesia_app_intro_<session.id>']` (ou utiliser une séance jamais visitée sur ce profil).
-  2. Ouvrir `#vote/<join_code>` → observer le popup « Comment se déroule la séance ? » avec **5** lignes numérotées 1 à 5, libellés strictement identiques à ceux de la pastille `PhaseIndicator` affichée sur les écrans suivants du parcours (comparer texte à texte : « 1 · Distanciel » en pré-vote, « 2 · Vote en présentiel » en vote, etc.).
-  3. Fermer (« Compris, c'est parti → ») → recharger la page → vérifier que le popup ne réapparaît pas (comportement `localStorage` inchangé).
-  4. **Non-régression** : vérifier que le popup `PreVotingAnnounceModal` (l'autre popup d'accueil, prioritaire en `pre_voting`) continue de s'afficher à sa place quand les deux conditions sont réunies — ce chantier n'a pas touché cette logique de priorité (`showPreVotingAnnounce ? ... : showAppIntro && ...`).
 
 - [ ] **2026-09-02 — Chantier 50 — écran d'affectation et lectures participant sous les policies self-only** *(migration SQL requise, voir plus haut)*
 
@@ -824,117 +440,7 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   4. **Reconquête d'un pseudo déjà pris** (`PseudoForm` en `pre_voting`, `VotingEntryForm` en `voting`) : saisir un pseudo déjà inscrit doit toujours proposer l'écran de reconquête et le mener à bien (par le nom **et** par le code de rappel). Ces chemins passent par des RPC, ils ne devraient pas bouger — mais c'est le seul endroit où le frontend raisonne sur des inscriptions qui ne sont pas les siennes.
   5. **Routeur** (`#session/<code>`) : en `debating`, un membre inscrit est redirigé vers `#vote/`, un visiteur non inscrit voit le message « pas membre ». En `closed`, un membre non répondant voit le questionnaire, un membre répondant voit la carte des résultats, un visiteur voit les résultats publics. C'est le test qui prouve que `SessionRouterScreen` distingue toujours membre et non-membre.
   6. **Entrée en débat** : rejoindre la table depuis l'écran d'affectation → `ParticipantView` s'affiche sans reload, avec le bon compte de présents.
-- [ ] **2026-09-02 — Chantier 61 — s'inscrire et voter pendant la phase `allocating`** — `src/screens/VoteScreen.tsx`, migration `20260902_chantier61_register_during_allocating.sql` *(voir « Migration SQL en attente » ci-dessus — les scénarios 1 et 4 ne passent qu'une fois appliquée ; 2 et 3 passent sans)*
 
-  **Aucune vérification navigateur n'a été faite** (session headless, harnais partagé avec d'autres chantiers) : seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts. Tout ce qui suit est à jouer à la main.
-
-  **Livré** : (a) migration ci-dessus ; (b) `VotingEntryForm` — le formulaire combiné « Mon nom » / « Mon code de rappel », avec reconquête automatique — est désormais monté en phase `voting` **et** `allocating`, au lieu de `voting` seul ; (c) un membre déjà connu sur cet appareil mais pas encore confirmé présent (`attending_in_person = false`, cas typique du pré-votant à distance) passe par l'écran de confirmation de présence en `allocating` comme il le faisait déjà en `voting` ; (d) un encart ambre à l'entrée prévient que les groupes sont en cours de formation et que le vote ne changera plus la répartition.
-
-  ⚠️ **À lire avant de tester — ce chantier déplaçait le mur, il ne l'enlevait pas à lui seul.** Un participant inscrit **après** que l'organisateur a appliqué l'allocation n'a aucune ligne `table_assignments` : une fois son vote terminé et la phase passée en `debating`, il se serait retrouvé sur « Formation des groupes en cours… » sans porte de sortie. C'est l'objet du **chantier 62** (sortie de secours — saisie manuelle d'un code de table sur `TableAssignmentCard`), livré séparément mais désormais présent sur cette branche. **Les deux doivent être vérifiés ensemble** — voir l'entrée dédiée « Chantier 62 » juste en dessous, qui prolonge le scénario 1 ci-dessous jusqu'au passage en phase `debating`.
-
-  **Préparation commune** : une séance de test avec au moins une assertion `approved`, passée en phase `pre_voting` puis `voting` (pour créer un pré-votant), puis **`allocating`** depuis le superadmin. Prévoir 2 navigateurs/profils distincts (identités anonymes séparées).
-
-  **Scénario 1 — nouvel arrivant qui s'inscrit pendant l'allocation** *(migration requise)*
-  1. Séance en phase `allocating`. Ouvrir `#vote/<join_code>` dans un profil navigateur **neuf** (jamais inscrit à cette séance).
-  2. Observer : le formulaire « Vote présentiel » à deux onglets (**Mon nom** / **Mon code de rappel**) s'affiche — et **pas** l'ancien écran à un seul champ. Un encart ambre annonce que les groupes sont en cours de formation.
-  3. Onglet « Mon nom » → saisir un nom **jamais utilisé** sur cette séance → Continuer.
-  4. Observer : **aucune erreur rouge** « La séance n'est pas en phase d'inscription (phase: allocating) ». L'écran suivant doit être **le questionnaire d'entrée (onboarding)** — les 3 questions (consentement transcription / style de participation / déjà fait un débat Ecclesia). *C'est le point le plus important à contrôler : l'onboarding ne doit pas être sauté.*
-  5. Répondre aux 3 questions → l'écran de vote s'affiche, avec la bannière ambre « L'organisateur forme les groupes de débat… ».
-  6. Vérifier dans le superadmin, onglet participants : le nouveau membre apparaît, **coché présent** (`attending_in_person = true`) et avec la colonne onboarding à ✅. *(Note : la pastille de phase d'inscription affichera la valeur brute `allocating` — `PHASE_LABEL_MEMBER` dans `SuperadminScreen.tsx` ne traduit ni `pre_voting` ni `allocating`. Cosmétique, fichier laissé intact car occupé par le chantier 50.)*
-
-  **Scénario 2 — pré-votant qui se retrouve par son nom, pendant l'allocation** *(fonctionne même sans la migration)*
-  1. Depuis un profil navigateur **neuf** (pas celui qui a servi au pré-vote — c'est le cas « nouvel appareil »), séance en phase `allocating`, ouvrir `#vote/<join_code>`.
-  2. Onglet « Mon nom » → saisir **exactement** le nom utilisé lors du pré-vote.
-  3. Observer : écran vert « Bienvenue \<nom\> ! Tes votes ont bien été récupérés. » → Continuer.
-  4. Observer : comme ce pré-votant n'a jamais fait l'onboarding (la phase `pre_voting` n'en propose pas), le **questionnaire d'entrée doit s'afficher** avant le vote.
-  5. Après l'onboarding : l'écran de vote doit montrer **les votes déjà exprimés à distance** (les assertions déjà votées ne réapparaissent pas comme non votées).
-  6. Superadmin : le membre est maintenant **présent** (`attending_in_person` passé à `true`), sans doublon de ligne.
-
-  **Scénario 3 — le même, par code de rappel** *(fonctionne même sans la migration)*
-  1. Profil navigateur neuf, séance en `allocating`, `#vote/<join_code>`.
-  2. Onglet « **Mon code de rappel** » → saisir le code à 4 chiffres affiché lors de l'inscription au pré-vote.
-  3. Mêmes observations qu'au scénario 2 : écran vert de reconquête, puis onboarding, puis vote avec les votes d'origine.
-  4. Contrôle négatif : un code à 4 chiffres inexistant doit afficher « Code de rappel invalide » en rouge, sans navigation ni création de membre.
-
-  **Scénario 4 — le vote fonctionne réellement pour ces nouveaux venus** *(le cœur du chantier)*
-  1. Dans chacun des trois cas ci-dessus, une fois sur l'écran de vote en phase `allocating` : voter d'accord / pas d'accord / passer sur au moins 3 assertions.
-  2. Observer : chaque vote est accepté (l'assertion suivante s'affiche), **aucune erreur** de type « Cette assertion n'est pas approuvée » ou « Vous n'êtes pas inscrit à cette séance ».
-  3. Recharger la page : les votes sont bien conservés.
-  4. Bouton « ✏️ Proposer » → soumettre une assertion → vérifier qu'elle arrive côté superadmin (`pending` ou `approved` selon `moderation_policy`).
-  5. Superadmin, onglet Analyse : les votes de ces membres apparaissent dans les compteurs.
-
-  **Scénario 5 — pré-votant sur le même appareil (confirmation de présence)** *(fonctionne même sans la migration)*
-  1. Reprendre **le profil navigateur qui a servi au pré-vote** (identité anonyme conservée), séance en `allocating`, ouvrir `#vote/<join_code>`.
-  2. Observer : l'écran « Tu avais voté à distance sous le nom \<nom\> — Es-tu présent(e) au débat aujourd'hui ? » s'affiche, avec l'encart ambre. *Avant ce chantier, cet écran n'apparaissait qu'en phase `voting` : en `allocating` le membre filait au vote en restant compté absent.*
-  3. « ✓ Oui, je suis présent(e) » → onboarding (jamais fait) → vote.
-  4. Superadmin : `attending_in_person` du membre est passé à `true`.
-
-  **Scénario 6 — non-régression des phases voisines**
-  1. Phase `voting` : le parcours d'entrée doit être **strictement inchangé** (formulaire deux onglets, sans encart ambre).
-  2. Phase `pre_voting` : `PseudoForm` à un seul champ, code de rappel affiché après inscription, pas d'onboarding — inchangé.
-  3. Phase `debating` : un profil neuf sur `#vote/<join_code>` doit toujours voir « Le vote est terminé, tu ne peux plus rejoindre cette séance. » (l'inscription passe alors par `join_table`, pas par `register_session_member`).
-  4. Phase `closed` : inchangé (questionnaire post-débat puis résultats).
-
-- [ ] **2026-09-02 — Chantier 62 — sortie de secours pour le participant inscrit sans affectation de table** — `src/components/voting/TableAssignmentCard.tsx` *(pas de migration SQL — réutilise `switch_table`, chantier 48)*
-
-  **Aucune vérification navigateur n'a été faite** (consigne explicite : session headless, harnais partagé avec d'autres chantiers en cours de merge). Seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts. Tout ce qui suit est à jouer à la main, **après application de la migration `switch_table` du chantier 48** (voir « Migration SQL en attente » — pas de nouveau fichier SQL pour ce chantier, mais la sortie de secours dépend de la même RPC).
-
-  **Le bug corrigé** : `TableAssignmentCard` affichait « Formation des groupes en cours… » dès que `loading` était vrai **ou** que `assignment` était `null`, sans distinction — un participant inscrit après que l'allocation a tourné (typiquement via le **chantier 61**, inscription pendant `allocating`) n'a aucune ligne `table_assignments` et restait bloqué indéfiniment sur ce spinner une fois la phase passée en `debating`, sans aucune porte de sortie.
-
-  **États réellement atteignables, établis avant d'écrire le correctif** (documentés en commentaire en tête du composant) : `TableAssignmentCard` n'est monté que par `AllocatingScreen`, elle-même montée par `VoteScreen` uniquement quand `session.phase === 'debating'` au moment du montage (jamais pendant `allocating` elle-même, qui reste sur l'écran de vote avec une bannière ambre). Une fois montée, la phase ne peut plus évoluer que vers `closed`. D'où trois branches désormais distinctes :
-  - `loading === true`, ou `assignment === null` dans une phase autre que `debating`/`closed` (en pratique inatteignable, traité par précaution comme "en cours") → spinner inchangé.
-  - `assignment === null` **et** `phase === 'debating'` → **nouveau** : formulaire de sortie de secours (message expliquant la situation + champ code à 6 caractères + bouton "Rejoindre cette table").
-  - `assignment === null` **et** `phase === 'closed'` → **nouveau** : message neutre "Le débat est terminé. Tu n'as rejoint aucune table pendant cette séance." — pas de formulaire (rejoindre n'a plus de sens une fois le débat clos ; la bannière de clôture existante d'`AllocatingScreen` prend le relais juste en dessous).
-  - `assignment !== null` → cas nominal, **strictement inchangé** (carte "Tu es à la Table N" + CTA + lien "Je veux rejoindre une autre table" du chantier 48).
-
-  **Mécanisme réutilisé, pas réinventé** : le formulaire de sortie de secours appelle la même prop `onSwitch` → `AllocatingScreen.handleSwitchTable` → RPC `switch_table` (chantier 48), déjà câblée pour le cas "je suis déjà à une table mais j'en veux une autre". Choix justifié par lecture de code plutôt que par supposition : `switch_table` (a) vérifie que le code appartient à la séance en cours (`tables.session_id = p_session_id`, sinon exception explicite) — contrairement à `join_table`/`JoinTableForm`, dont le docstring du chantier 48 documente explicitement l'absence de cette vérification ; (b) retire proprement le participant de ses tables précédentes dans la séance avant d'insérer la nouvelle — non pertinent ici puisqu'il n'y en a aucune, mais la boucle de nettoyage ne fait simplement rien dans ce cas (`FOR ... LOOP` sur un ensemble vide), sans erreur ; (c) crée la ligne `table_assignments` manquante via `sync_table_assignment` (chantier 26), exactement ce qu'il faut puisque c'est l'absence de cette ligne qui cause le bug. Un succès déclenche `onTableJoined(...)` comme le flux "switch" existant : navigation directe vers `TableView`/`ParticipantView`, sans attendre que `AllocatingScreen` ne rafraîchisse son état `assignment`.
-
-  **Non touché** : `AllocatingScreen.tsx` — le câblage `onSwitch`/`switchLoading`/`switchError` existait déjà intégralement pour le chantier 48 et fonctionne à l'identique pour ce nouveau cas, aucune modification nécessaire.
-
-  **Test minimal** (nécessite la migration `switch_table` appliquée — voir chantier 48 ci-dessous — et complète le scénario 1 du chantier 61 ci-dessus) :
-  1. **Cas cible — sortie de secours affichée** : reprendre le scénario 1 du chantier 61 (nouvel arrivant inscrit et ayant voté pendant `allocating`, sans être passé par l'allocation) jusqu'à son terme, puis faire passer la séance en `debating` depuis le superadmin. Sur l'écran de ce participant : vérifier qu'il voit désormais le message "Le débat a commencé, mais tu n'as pas encore de table." avec le champ de code — **et non plus le spinner "Formation des groupes en cours…"**.
-  2. **Code valide** : saisir le code à 6 caractères d'une vraie table de la séance (demandé à un autre participant déjà assis, ou via l'onglet Tables du superadmin) → vérifier l'arrivée directe dans `ParticipantView`/`ModeratorView` de cette table, et que `table_assignments` reflète la nouvelle affectation côté superadmin (onglet 🪑 Tables).
-  3. **Code invalide** : saisir un code inexistant → vérifier le message "Aucune table ne correspond à ce code." affiché en rouge sous le champ, sans navigation ni crash.
-  4. **Code d'une autre séance** : saisir le code d'une table réelle mais rattachée à une autre séance → vérifier "Ce code correspond à une table d'une autre séance."
-  5. **Non-régression — cas nominal** : un participant correctement inclus dans l'allocation (présent avant que le superadmin ne clique "Appliquer") doit voir sa carte "Tu es à la Table N" normalement en phase `debating`, sans jamais croiser ce nouveau formulaire.
-  6. **Non-régression — séance clôturée sans table** : si un participant reste sans affectation jusqu'à la clôture de la séance, vérifier qu'il voit le message neutre "Le débat est terminé. Tu n'as rejoint aucune table pendant cette séance." (pas le formulaire de code, pas le spinner).
-
-- [ ] **2026-09-02 — Chantier 48 — « Je veux rejoindre une autre table »** — `src/components/voting/TableAssignmentCard.tsx`, `src/screens/AllocatingScreen.tsx`, migration `switch_table` *(voir « Migration SQL en attente » ci-dessus — le test complet de bascule réelle n'est possible qu'une fois appliquée)*
-
-  **Retour de Jules** : « Dans l'écran qui nous annonce notre table, il faut un bouton : je veux rejoindre une autre table. […] Il faut un message pour lui dire de demander à son ami dans la nouvelle table, ou au modérateur de la nouvelle table, de lui donner le code de la table. »
-
-  **Livré** : sur `AllocatingScreen` (l'écran "Vote terminé ! / Tu es à la Table N"), en phase `debating`, un lien "Je veux rejoindre une autre table" sous le bouton "Accéder à la table →". Au clic : petit formulaire avec le message d'aide demandé par Jules ("Demande le code à 6 caractères de la table visée à un ami déjà installé là-bas, ou à son modérateur") et un champ de code à 6 caractères, réutilisant le même mécanisme que les join codes existants — aucun second système créé.
-
-  **Gestion des cas limites** (répond aux points soulevés dans le dispatch de ce chantier) :
-  - **Code identique à la table déjà assignée** : bloqué **côté client**, sans appel réseau (`Tu es déjà à cette table.`) — vérifié en navigateur, `read_network_requests` confirme zéro requête.
-  - **Code invalide** : `switch_table` lève `Aucune table ne correspond à ce code.` — non vérifié en conditions réelles (migration non appliquée), mais message écrit et testé par lecture de code.
-  - **Code d'une table d'une autre séance** : `switch_table` compare `tables.session_id` à la séance courante et lève `Ce code correspond à une table d'une autre séance.` avant tout effet de bord — idem, à vérifier une fois la migration appliquée.
-  - **Appartenance à l'ancienne table** : `switch_table` retire la/les ligne(s) `participants` de l'utilisateur dans les autres tables de la séance avant d'insérer la nouvelle (jamais dans les deux à la fois). Nécessaire car `leaveTable()` (bouton "Quitter" côté participant) **ne supprime jamais** la ligne `participants` en base — seulement le cache local (`tableStore.clear()`) — un fait **confirmé en conditions réelles** pendant la vérification de ce chantier (voir "Déjà vérifié" ci-dessous et la section Nettoyage).
-
-  **Arbitrage produit laissé ouvert par Jules, tranché par défaut faute de réponse** : le déplacement est **libre** — aucune limite de place, aucune restriction aux tables non modérées. Recherché dans le code : rien dans `src/lib/allocation.ts` (non modifié, hors périmètre de ce chantier) ni ailleurs ne contraint la composition d'une table après l'allocation initiale — la seule contrainte existante est calculée **une fois**, au moment de `apply_allocation`. Conséquence assumée : un participant qui change de table de son propre chef peut défaire l'équilibre idéologique/répartition des anciens/taille de table calculé par l'algorithme, sans aucun garde-fou. À trancher avec Jules si ça pose problème en pratique (ex : limite de place par table, ou blocage des tables déjà équilibrées) — pas anticipé ici pour ne pas complexifier une fonctionnalité qu'il a demandée simple.
-
-  **Déjà vérifié en navigateur réel** (séance partagée "Test manuel — Vote & bascule modérateur (chantiers 35/37)", table `589D79`, deux identités de test "TestChantier48A" et "TestChantier48B") : bouton absent tant qu'on n'est pas en phase `debating` (code inchangé par rapport à l'existant, non re-testé isolément) ; visible et fonctionnel une fois sur `AllocatingScreen` avec une vraie affectation (`table_assignments` réelle, join_code réel `589D79`) ; formulaire s'ouvre/se ferme (bouton "Annuler") sans effet de bord ; garde côté client sur le code déjà assigné confirmée (voir ci-dessus) ; soumission d'un code différent mais réel de la même séance (`6ABDC9`) déclenche bien `switch_table(p_join_code, p_pseudo, p_session_id)` avec les bons paramètres — Postgrest répond proprement `Could not find the function public.switch_table(...)` puisque la migration n'est pas appliquée, affiché en rouge dans le formulaire sans crash, bouton réactivé ensuite. Zéro erreur console au-delà de ce 404 attendu (confirmé par `read_console_messages`). En reproduisant le parcours de Jules (rejoindre → Quitter → revenir sur `AllocatingScreen`), le problème de ligne `participants` orpheline visé par ce chantier a été **observé réellement**, pas seulement supposé : "TestChantier48A" reste listé comme présent de la table `589D79` après être passé par "Quitter", sans avoir jamais rejoint aucune autre table entre-temps.
-
-  **Non testable cette session** (migration non appliquée, voir ci-dessus) : le succès réel d'une bascule (nouvelle ligne `participants` créée, ancienne(s) supprimée(s), `table_assignments` déplacé, arrivée directe en `ParticipantView`/`ModeratorView` de la nouvelle table) et les deux messages d'erreur serveur (code invalide, autre séance).
-
-  **Test minimal restant** (après application de la migration) :
-  1. Un membre avec une table assignée réelle, en phase `debating`, sur `AllocatingScreen` → cliquer "Je veux rejoindre une autre table" → code d'une **vraie** table de la même séance → vérifier l'arrivée directe dans la nouvelle table (`ParticipantView`/`ModeratorView` selon le cas), et que l'ancienne table ne le liste plus dans ses présents.
-  2. Même parcours avec un code inexistant → vérifier le message "Aucune table ne correspond à ce code." sans navigation.
-  3. Même parcours avec le code d'une table réelle mais d'une **autre** séance → vérifier "Ce code correspond à une table d'une autre séance."
-  4. Vérifier dans l'onglet 🪑 Tables du superadmin que `table_assignments` reflète bien la nouvelle table après la bascule (pas les deux).
-
-- [ ] **2026-08-01 — Chantier 34 — carte "Votre groupe" affichée à tort pour les non-votants** — `src/screens/ResultsMapScreen.tsx`
-
-  **Bug** : sur l'écran de résultats de fin de séance (`ResultsMapScreen`, `#session/<join_code>` en phase `closed`, membre inscrit), la carte "Votre groupe" s'affichait dès que `assignment != null` — or `table_assignments` inclut tous les présents, votants ou non. Un membre inscrit mais n'ayant jamais voté a un `assignment` mais aucun point dans l'analyse PCA → `selfGroupId` reste `null` → il tombait sur "L'organisateur n'a pas encore nommé les groupes.", un texte qui n'a de sens que pour un vrai camp pas encore nommé.
-
-  **Correctif** : condition d'affichage passée de `assignment != null` à `assignment != null && selfGroupId !== null`. Trois cas attendus :
-  - Jamais voté → `selfGroupId === null` → carte "Votre groupe" totalement absente.
-  - Voté, camp pas encore nommé → carte affichée avec "Camp pas encore nommé" (titre porté par le chantier 30/J6, fusionné sans conflit avec ce correctif).
-  - Voté, camp nommé → nom/description du camp affichés normalement.
-
-  **Déjà vérifié** : uniquement via une route de debug temporaire (`#debug-results-map`) + mock de `window.fetch` sur les 3 RPC consommées (`get_my_table_assignment`, `get_results_map`, `get_vote_results`), retirée avant commit. Les 3 rendus correspondent à la spec, zéro erreur console. **Jamais testé contre une vraie séance Supabase.**
-
-  **Test minimal** (nécessite une séance `closed` avec un mix membre votant / membre non-votant — mot de passe superadmin pour créer/clôturer la séance de test, ou une vraie séance passée qui a ce mix) : membre n'ayant jamais voté → `#session/<join_code>` → vérifier l'absence totale de la carte "Votre groupe" (reste de la page — scatter, autres camps, consensus/clivage — inchangé). Membre ayant voté, camp pas encore nommé par Gemini → carte présente avec "Camp pas encore nommé". Membre ayant voté, camp nommé → nom/description corrects.
 
 - [ ] **Chantier 36 — Point 2 : case "Je suis modérateur" sur l'écran "Débat en cours"**
   Mergé sur `main` (`0c98775`), aucune migration.
@@ -945,47 +451,10 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Test minimal** : "Séances en cours" → "Rejoindre →" sur une séance `debating`, compte n'ayant jamais rejoint cette séance → cocher la case, code de table réel + Code Ecclesia réel → vérifier l'arrivée en `ModeratorView`.
 
-- [ ] **2026-09-01 — Chantier 40 — ordre des modales d'entrée en débat** — `src/screens/ParticipantView.tsx`, `src/components/DebateRulesModal.tsx`
-
-  Retour de Jules : à l'entrée en débat, les deux modales successives ("Bienvenue dans le débat" puis les règles) n'étaient pas clairement présentées comme une séquence voulue. Trois changements purement front, aucune logique de phase touchée :
-  1. Ordre inversé : "Bienvenue dans le débat" s'affiche désormais **avant** les règles.
-  2. Titre de la 2ᵉ modale changé de "Règles du débat" à "Règles d'Ecclesia lors des débats".
-  3. Bouton bleu de la 1ʳᵉ modale changé de "C'est parti ! →" à "Lire les règles de débat Ecclesia →".
-
-  **Déjà vérifié en navigateur** (table `leaderless` de test, séance partagée "Test manuel — Vote & bascule modérateur") : parcours complet accueil → "Bienvenue dans le débat" (nouveau texte de bouton) → clic → modale règles (nouveau titre) → "J'ai lu" → retour vue débat normale, aucune 3ᵉ modale. Rechargement de page : les deux `localStorage` (`debate_welcome_<id>`, `debate_rules_read_<id>`) empêchent bien toute réapparition. Zéro erreur console.
-
-  **Non testé** : rendu sur une table non-`leaderless` (avec modérateur) — risque de régression jugé nul, la logique ne dépend pas de `leaderless` ; parcours mobile réel (uniquement viewport desktop testé).
-
-  **Test minimal** : reproduire le parcours ci-dessus sur une table **avec modérateur** (pas seulement leaderless), et sur mobile (`resize_window` ou vrai appareil) pour couvrir les deux angles non testés.
-
-- [ ] **2026-09-01 — Chantier 42 — notes participant perdues (retour de test Jules)** — `src/components/NotesModal.tsx`
-
-  **Cause identifiée** : les 3 chemins de fermeture de la modale (croix, clic hors modale, Échap) appelaient `onClose()` sans vider le debounce de 800ms qui déclenche l'écriture en base (`saveNote`). Fermer puis rouvrir juste après une frappe pouvait recharger la base *avant* que l'écriture différée n'ait abouti → la note paraissait perdue (course, pas une perte réelle). Risque aggravant identifié en même temps : au premier enregistrement, deux écritures concurrentes pouvaient se percuter sur la contrainte unique partielle `(session_id, user_id)` / `(table_id, user_id)` de `private_notes`.
-
-  **Correctif appliqué** : `handleClose()` vide et exécute immédiatement le debounce en attente (`await saveNote(...)`) avant d'appeler `onClose()`, sur les 3 chemins de fermeture.
-
-  **Déjà vérifié en navigateur** : frappe dans l'éditeur → fermeture ~200ms après la frappe → réouverture ~150ms après la fermeture → contenu bien présent au rechargement. Zéro erreur console, zéro message "Erreur :" affiché dans la modale.
-
-  **Point non couvert par ce correctif — à vérifier humainement** : la fermeture *dure* du navigateur/onglet (pas la modale) pendant l'écriture différée — le flush est déclenché par `onClose()` React, qui ne s'exécute pas si l'onglet/la page est fermé(e) avant. Reste une perte possible dans ce cas précis (`beforeunload`/`pagehide` non gérés) — scénario différent de celui rapporté par Jules ("écrit, fermé, rouvert" la modale, pas l'onglet), donc hors scope du fix. À évaluer si ça revient.
-
-  **Test minimal** : reproduire le scénario original de Jules (écrire une note, fermer, rouvrir rapidement) sur `NotesModal` en phase vote et en phase débat (table rattachée à une séance, notes partagées vote→débat). Optionnel : tester le cas non couvert (fermeture d'onglet pendant l'écriture) pour évaluer si ça vaut la peine de gérer `beforeunload`.
 
 - [ ] **Chantier 35 — synchronisation temps réel du statut modérateur (volet participant)**
   Voir la section dédiée **"Synchronisation temps réel (chantier 35)"** plus bas.
 
-- [ ] **2026-09-01 — Chantier 39 — repère de phase participant (`PhaseIndicator`)** — `src/components/PhaseIndicator.tsx`, `src/lib/phaseLabels.ts`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `ParticipantView.tsx`, `ResultsMapScreen.tsx`, `SessionQuestionnaireForm.tsx`
-
-  **Livré** : pastille "Étape N · Libellé" affichée tout au long du parcours participant — 1 Distanciel (`pre_voting`), 2 Vote en présentiel (`voting`), 3 Allocation (`allocating`), 4 Débat (`debating`), 5 Post-débat (`closed`). Absente en phase `draft` (jamais vue par un participant) et dans `PublicResultsScreen`/`ModeratorView` (hors périmètre). Rendu flottant façon `QuitLink` (coin opposé, en haut à droite) sur les écrans sans en-tête propre (pseudo, onboarding, attente, reconquête de code, confirmation de présence, questionnaire) ; rendu inline dans l'en-tête existant sur les écrans qui en ont un (`VoteScreen` étape vote, `AllocatingScreen`, `ParticipantView`, `ResultsMapScreen`).
-
-  **Déjà vérifié en navigateur** (séance de test réelle "Esai 24/08", phase `draft`, inscription avec pseudo "Chantier39 Verif") : étapes pseudo → onboarding (Question 1/3) → aucune pastille affichée nulle part, conforme (phase `draft` = pas de numéro participant), zéro erreur console. **Non testé faute d'accès superadmin pour faire avancer une séance de test à travers les phases** : l'apparition réelle de la pastille elle-même (1 à 5) sur `pre_voting`/`voting`/`allocating`/`debating`/`closed`, ainsi que son intégration visuelle dans les en-têtes de `VoteScreen` (étape vote)/`AllocatingScreen`/`ParticipantView`/`ResultsMapScreen` (collision potentielle avec les boutons existants, notamment le header dense de `VoteScreen` en phase vote).
-
-  **Test minimal** (mot de passe superadmin requis pour faire avancer une séance de test) : dérouler pre_voting → voting → allocating → debating → closed avec un même compte participant, vérifier à chaque étape le texte et le numéro corrects, l'absence de chevauchement avec les boutons de header (`Quitter`/`Outils`/`Proposer` en phase vote, `Devenir modérateur`/`Outils`/`Quitter` dans `ParticipantView`), et la disparition complète en phase `draft`. Vérifier aussi l'apparition dans `SessionQuestionnaireForm` (voir entrée dédiée ci-dessous, section "Questionnaire post-débat").
-
-- [ ] **2026-09-02 — Incohérence de nommage entre `AppIntroModal` et `PhaseIndicator`** — `src/screens/VoteScreen.tsx` (`AppIntroModal`, fonction interne l.~1288) vs `src/components/PhaseIndicator.tsx`/`src/lib/phaseLabels.ts` (chantier 39)
-
-  **Constat (lecture de code, pas de correction faite ici — à trancher par Jules)** : `AppIntroModal` (modale "Comment se déroule la séance ?", affichée une fois à la connexion, D5) annonce **4 étapes** — 1. Vote, 2. Répartition en groupes, 3. Débat, 4. Questionnaire — tandis que `PhaseIndicator` (pastille "Étape N · Libellé" affichée en continu, chantier 39) en annonce **5** — 1 Distanciel, 2 Vote en présentiel, 3 Allocation, 4 Débat, 5 Post-débat. Le mapping n'est pas qu'une histoire de vocabulaire : `AppIntroModal` fusionne "Distanciel" et "Vote en présentiel" en une seule étape "1. Vote", ce qui décale toute la numérotation (son "2" = allocation = le "3" de `PhaseIndicator` ; son "3" = débat = le "4" de `PhaseIndicator` ; etc.). Un participant qui a vu la modale d'intro puis regarde la pastille en cours de séance peut légitimement se demander pourquoi les numéros ne correspondent pas.
-
-  **Ne pas corriger dans cette session** — juste le signaler. À trancher avec Jules : soit aligner `AppIntroModal` sur les 5 étapes de `PhaseIndicator` (probablement le plus cohérent, `PhaseIndicator` étant le repère affiché en continu), soit assumer que ce sont deux granularités différentes à dessein (l'intro simplifie, la pastille détaille) et le documenter comme tel.
 
 - [ ] **2026-09-02 — Chantier 47 — déclaration modérateur "à l'heure" + créer une table depuis le vote** — nouveau `src/components/voting/ModeratorAccessPanel.tsx`, branché dans `src/screens/VoteScreen.tsx` (header, étape `vote`)
 
@@ -1015,36 +484,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   - **"Créer une table" reste accessible en phase `allocating`** — l'onglet "Créer" de l'accueil (`EntryScreen`) exclut délibérément cette phase de sa liste de séances proposées (probablement pour ne pas interférer avec le calcul d'allocation en cours dans `AllocationPanel`). Cette nouvelle modale ne réplique pas cette restriction : le bouton reste actif en `allocating`. Si une table créée manuellement pendant que le superadmin lance l'allocation pose problème (collision avec `apply_allocation`), il faudra masquer/désactiver le bouton pour cette phase spécifiquement.
   - **Pas de restriction de phase côté serveur** sur `claim_moderator_status` pour un membre déjà inscrit (seul le cas "créer un nouveau profil" vérifie la phase) — cohérent avec le fait que ce nouveau bouton fonctionne dans les 3 phases demandées sans qu'aucun changement SQL n'ait été nécessaire.
 
-- [ ] **2026-09-03 — Chantier 69 — écran postvote (revoter après le débat)** — nouveau `src/screens/PostVoteScreen.tsx`, branché dans `src/screens/ResultsMapScreen.tsx` (bouton "↻ Revoter")
-
-  **Contexte / demande de Jules** : après le débat et le questionnaire, le participant arrive sur `ResultsMapScreen` (carte d'opinion) et le parcours s'arrêtait là. Le postvote lui offre trois actions, dans l'ordre demandé : 1) revoter sur ses propres assertions, 2) proposer une nouvelle assertion, 3) voter sur les assertions jamais vues — objectif : mesurer si le débat a fait bouger les opinions.
-
-  **Point de vérification serveur fait avant d'écrire l'écran** : `cast_vote` et `submit_assertion` (`supabase/migrations/20260528_voting_app.sql`, jamais redéfinies depuis — confirmé par recherche sur tout `supabase/migrations/`) n'ont **aucun garde de phase**, seulement une vérification d'appartenance à la séance (`session_members`) et, pour `cast_vote`, que l'assertion visée est `status = 'approved'`. Voter et proposer après la clôture fonctionnait donc déjà côté serveur, sans migration à écrire pour ce chantier.
-
-  **Modération en postvote — décision de Jules respectée** : `SubmitAssertionModal` est réutilisé tel quel (aucune branche postvote), donc une assertion proposée depuis cet écran suit exactement le même circuit que pendant le vote (`moderation_policy` de la séance : `open` → approuvée directement, `closed`/`ai` → `pending` jusqu'à validation superadmin ou Gemini). **Panneau de modération vérifié accessible en phase `closed`** : `SuperadminScreen.VOTE_PHASES` inclut `'closed'`, donc `showVotingSections` reste vrai et l'onglet "🟢 En direct" (Assertions, `LLMModerationPanel`, `AnalysisPanel`) reste rendu et son polling 10 s actif — seul `defaultTab(phase)` change (ouvre sur "📊 Analyse" par défaut plutôt que "🟢 En direct"), l'onglet lui-même n'est ni cassé ni masqué. **Aucun blocage à signaler.**
-
-  **⚠️ Point de mesure — pas de fix appliqué, décision à prendre par Jules** : `cast_vote` fait un `INSERT ... ON CONFLICT (assertion_id, member_id) DO UPDATE SET vote = EXCLUDED.vote` — un revote **écrase** la ligne `assertion_votes` existante. La table n'a pas de colonne `updated_at`, et `created_at` n'est posé qu'à l'`INSERT` initial (jamais retouché par l'`UPDATE`). Concrètement : après un revote en postvote, **il est impossible de distinguer en base "un membre a voté agree dès le prévote, jamais changé" de "un membre a voté disagree en prévote, puis agree en postvote"** — la valeur d'avant-débat est perdue sans laisser de trace, et rien ne permet de savoir qu'un changement a eu lieu. Ce comportement n'est pas nouveau (le chantier D16 l'exploite déjà volontairement pour "changer son vote" en cours de vote), mais son effet est plus lourd en postvote : la comparaison avant/après débat que Jules veut mesurer ne peut pas être reconstituée avec le schéma actuel. Un correctif possible serait d'historiser (nouvelle ligne par vote au lieu d'un upsert, ou colonne `previous_vote`/`revoted_at`), mais ce chantier n'y touche pas — **décision produit à prendre par Jules avant d'envisager une migration**.
-
-  **Ce qui a été fait** (aucune RPC nouvelle, aucune migration) :
-  1. **Section 1 — Tes assertions** : combine `getMyAssertionIds(session.id)` (RPC chantier 51, retourne tous les ids de l'auteur quel que soit le statut) avec la liste des assertions approuvées de la séance (RLS `assertions_select_approved` ne laisse de toute façon passer que celles-là) → n'affiche donc que les assertions de l'auteur déjà approuvées. Bouton "Voter"/"Changer" ouvre la modale "Changer mon vote" (composant `AssertionCard` réutilisé, même pattern que la modale D16 de `VoteScreen.tsx`).
-  2. **Section 2 — Proposer une nouvelle assertion** : bouton ouvrant `SubmitAssertionModal` (composant existant, non modifié) avec la `session` courante.
-  3. **Section 3 — Assertions non vues** : même requête que `VoteScreen.loadVoteData` (assertions approuvées de la séance − celles déjà présentes dans `assertion_votes` pour ce `member_id`), présentées une par une via `AssertionCard` (`VoteProgress` au-dessus). Un abonnement Realtime léger sur `assertions` (filtre `session_id`) fait apparaître les assertions nouvellement approuvées sans recharger la page.
-  4. **Entrée** : bouton "↻ Revoter" ajouté en haut de `ResultsMapScreen`, juste sous le header — bascule un état local (`showPostVote`) vers `<PostVoteScreen session={session} memberId={memberId} onBack={...} />`, sans hash/route dédiée. `onBack` revient à la carte de résultats sans perdre l'état déjà chargé de celle-ci.
-
-  **Non-régression volontaire** : le bouton "↻ Revoter" est une simple invite, jamais un passage obligé — un participant qui reste sur `ResultsMapScreen` et clique "← Retour au menu" suit exactement le chemin de clôture existant (aucune modification de ce chemin).
-
-  **Effet non couvert, à connaître** : revoter (section 1 ou 3) ou faire approuver une nouvelle assertion (section 2) après la clôture **ne recalcule rien automatiquement** — le scatter PCA / repness affiché sur `ResultsMapScreen` reste l'instantané de la dernière analyse lancée par le superadmin (`AnalysisPanel`, action manuelle). Un participant qui revote puis retourne "← Retour aux résultats" ne verra donc pas sa nouvelle position immédiatement ; c'est le comportement déjà existant pour tout changement de vote (pas spécifique au postvote), mais son importance augmente ici puisque le postvote est vendu comme le moment de mesurer le changement.
-
-  **Non testé — session headless, aucun serveur de dev lancé (consigne explicite)** : rendu réel dans le navigateur, y compris le bouton "↻ Revoter" sur `ResultsMapScreen`, les trois sections de `PostVoteScreen`, la modale "Changer mon vote", la modale de proposition, et l'apparition Realtime d'une assertion nouvellement approuvée pendant que l'écran est ouvert. **Déjà vérifié** : `npx tsc --noEmit`, `npm test` (94 passés, 1 skip — le seul échec observé lors d'un run précédent, `bench/strategy-sanity.test.ts` sur le seuil 5000 ms, est un test de performance dépendant de la charge machine, non lié à ce chantier, et repasse au vert sur un run propre) et `npm run build` propres après rebase sur `main` (670c981).
-
-  **Test minimal** (mot de passe superadmin utile pour vérifier la section modération, sinon compte participant suffisant) :
-  1. Séance `closed` avec un membre inscrit ayant déjà répondu au questionnaire post-débat → `#session/<join_code>` → `ResultsMapScreen` s'affiche normalement → vérifier la présence du bandeau "↻ Revoter" juste sous le header, avant le chargement de la carte d'opinion.
-  2. Cliquer "↻ Revoter" → `PostVoteScreen` s'affiche. Section 1 : si ce membre a une assertion approuvée à son nom, vérifier l'icône de vote actuel (✅/❌/⏭) et que "Changer" ouvre la modale avec le bon vote pré-sélectionné ; voter → vérifier la mise à jour immédiate de l'icône dans la liste.
-  3. Section 2 : proposer une assertion → si `moderation_policy = 'closed'` ou `'ai'`, vérifier le message "en attente de validation" ; côté superadmin (même séance, onglet "🟢 En direct" malgré la phase `closed`), vérifier que l'assertion apparaît bien `pending` dans `AssertionsPanel` et peut être approuvée/rejetée normalement.
-  4. Une fois approuvée côté superadmin, revenir sur `PostVoteScreen` (sans recharger la page si possible, pour tester le canal Realtime) → vérifier qu'elle apparaît dans la section 3 "Assertions non vues" et peut être votée.
-  5. Cliquer "← Retour aux résultats" → vérifier le retour sur `ResultsMapScreen` sans rechargement complet (état déjà chargé conservé).
-  6. **Non-régression** : un membre qui n'ouvre jamais "↻ Revoter" et clique directement "← Retour au menu" depuis `ResultsMapScreen` doit suivre le comportement inchangé (retour à l'accueil, hash vidé).
-  7. **Cas limite** : membre sans aucune assertion approuvée à son nom → section 1 affiche "Aucune de tes assertions n'a été approuvée dans cette séance." sans erreur. Membre ayant déjà voté sur toutes les assertions approuvées → section 3 affiche "Tu as déjà voté sur toutes les assertions disponibles." sans erreur.
 
 ## Parcours Modérateur (`ModeratorView`)
 
@@ -1077,7 +516,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
      ```
      (adapter si `window.supabase` n'est pas exposé globalement — sinon reproduire l'appel avec `fetch` et le token de session récupéré via `localStorage`). Avant la migration : `204` et la table disparaît. Après la migration : la requête réussit toujours au niveau HTTP (RLS filtre silencieusement, comportement standard PostgREST) mais **0 ligne affectée** — recharger la page confirme que la table existe toujours, avec tous ses participants, sa file et son historique de tours intacts.
   3. **Aucun effet de bord** : après le test précédent, vérifier que la table est toujours pleinement fonctionnelle — donner la parole, retirer la parole, file d'attente — rien ne doit avoir été perturbé par la tentative de suppression avortée.
-
 
 
 - [ ] **Chantier 60 — le modérateur désigné par l'allocation peut enfin animer sa table** — branche `chantier-60-autorite-moderateur`, **pas mergée sur `main`**. Migration `supabase/migrations/20260902_chantier60_moderator_authority.sql`, **à appliquer avant tout autre test de cette section** (voir la section « Migration SQL en attente d'application » pour le détail du contenu et les 5 requêtes SQL de vérification).
@@ -1182,39 +620,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Test minimal** : dérouler le même parcours que "Déjà vérifié" ci-dessus, une fois depuis `ModeratorView` (table animée, Code Ecclesia) et une fois depuis `SessionQuestionnaireForm` — **note chantier 39 ci-dessous : ses points d'entrée ont changé, ce n'est plus `allocating`/`voting`**.
 
-- [ ] **2026-09-01 — Chantier 39 — déclenchement de `SessionQuestionnaireForm` déplacé de la phase `questionnaire` (supprimée) vers `closed`** — `VoteScreen.tsx`, `AllocatingScreen.tsx`, `SessionRouterScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`) *(migration SQL requise, voir "Migration SQL en attente" — mais sans effet sur ce comportement frontend tant qu'aucune séance réelle n'est restée bloquée en phase `questionnaire`)*
-
-  **Pourquoi** : la phase `questionnaire` disparaît de la machine à états (demande explicite de Jules). Le formulaire `SessionQuestionnaireForm` (déjà repositionné par le chantier 45 ci-dessus) doit donc se déclencher autrement : désormais, dès qu'une séance passe en `closed`, `SessionQuestionnaireForm` s'affiche à la place de l'écran de résultats **pour un membre inscrit qui n'a pas encore de ligne dans `questionnaire_responses` pour cette séance** (nouvelle fonction `hasQuestionnaireResponse(sessionId)`, RLS `user_id = auth.uid()` déjà en place — pas de filtre supplémentaire nécessaire). Une fois répondu (`onDone`), l'écran de résultats normal s'affiche. Un visiteur non inscrit (`PublicResultsScreen`) n'est **jamais** concerné par ce gate — volontaire, il n'a jamais voté.
-
-  **Trois points d'entrée concernés, tous avec la même logique** :
-  1. `VoteScreen` (`#vote/<join_code>`) — au chargement initial, sur les mises à jour Realtime (2 canaux distincts) et sur le polling 10s de secours.
-  2. `AllocatingScreen` (rendu par `VoteScreen` en phase `debating`/`allocating` pour qui n'a pas encore rejoint de table) — sur Realtime et sur le polling 10s.
-  3. `SessionRouterScreen` (`#session/<join_code>`) — anciennement un texte statique non fonctionnel ("Réponds au questionnaire", sans formulaire réel, cf. TODO `CLAUDE.md` désormais retiré) ; affiche maintenant le vrai `SessionQuestionnaireForm`. C'est probablement le point d'entrée le plus emprunté en pratique (lien QR code / WhatsApp stable tout au long de la séance).
-
-  **Déjà vérifié** (`tsc -b`, `npm run build`, `npm test`, tous OK) + navigateur, séances de test réelles : `#session/DEBAT8` (`closed`, visiteur non inscrit) → `PublicResultsScreen` normal, aucun questionnaire proposé (comportement attendu, visiteur jamais voté), zéro erreur console. **Non testé faute de compte membre dans une séance `closed` réelle** : l'apparition effective du formulaire pour un membre inscrit sans réponse, ni la disparition après soumission (`onDone` → écran de résultats).
-
-  **Test minimal** (mot de passe superadmin requis pour clôturer une séance de test avec un membre inscrit n'ayant pas encore répondu) :
-  1. Membre inscrit, séance passée en `closed`, jamais répondu au questionnaire → `#vote/<join_code>` **et** `#session/<join_code>` (les deux, séparément, avec des comptes/sessions différents si besoin) → vérifier l'apparition de `SessionQuestionnaireForm` dans les deux cas, pastille "Étape 5 · Post-débat" visible dans son en-tête (chantier 39, voir entrée `PhaseIndicator` ci-dessus).
-  2. Répondre et envoyer → vérifier la transition vers l'écran de résultats normal (`ResultsMapScreen`) sans reload.
-  3. Revenir sur le même lien après avoir déjà répondu → vérifier l'accès direct à l'écran de résultats, sans repasser par le questionnaire.
-  4. Séance en `debating` avec un participant connecté à sa table (`ParticipantView`) → superadmin clique "Passer en Clôturée" → vérifier le déclenchement **automatique** du modal questionnaire chez ce participant (couvert aussi par l'entrée superadmin ci-dessus) — ce test-ci vérifie spécifiquement qu'aucune étape de phase intermédiaire n'est nécessaire.
-
-- [ ] **2026-09-02 — Chantier 63 — questionnaire masqué par l'overlay de clôture + 2 des 3 portes en cul-de-sac (aucune vérification navigateur cette session)** — `ParticipantView.tsx`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`)
-
-  **Contexte** : le point 4 ci-dessus (chantier 39) n'avait jamais été vérifié en navigateur faute de mot de passe superadmin. En lisant le code, deux bugs confirmés : l'overlay "La séance est terminée" de `ParticipantView` (z-50) s'affichait **devant** le questionnaire forcé (z-50 aussi, mais rendu avant dans le JSX) au lieu de derrière ; et sur `VoteScreen`/`AllocatingScreen`, valider le questionnaire ne menait jamais aux résultats (message générique figé, ou bannière grise sur l'écran d'annonce de table). Corrigés — voir `PROJECT_STATUS.md` pour le détail technique. **Rien de ceci n'a été exercé en navigateur réel cette session** (consigne explicite : pas de serveur dev, une autre session travaillait en parallèle sur `main`).
-
-  **Recette — écran `ParticipantView`, overlay vs questionnaire** :
-  1. Table rattachée à une séance, participant connecté dedans (`ParticipantView`, pas `ModeratorView`). Superadmin fait passer la séance de `debating` à `closed`.
-  2. Observer chez le participant : le questionnaire post-débat doit apparaître **au premier plan**, utilisable (notes cliquables, bouton Envoyer actif). L'overlay "La séance est terminée" ne doit **pas** être visible tant que le questionnaire est ouvert.
-  3. Répondre et envoyer → le questionnaire se ferme (message de succès puis fermeture auto ~2s) → l'overlay "La séance est terminée" apparaît alors, avec le bouton "Voir vos résultats →".
-  4. Cliquer "Voir vos résultats →" → doit atterrir sur `ResultsMapScreen` (carte de son propre camp), pas sur un écran de chargement bloqué.
-
-  **Recette — les trois portes d'entrée, vers les résultats après soumission** : pour chacune des trois portes ci-dessous, avec un membre inscrit à une séance déjà `closed` et n'ayant pas encore répondu au questionnaire, vérifier que valider le formulaire amène bien à `ResultsMapScreen` (carte de camp + scatter), sans écran intermédiaire bloqué ni rechargement complet visible :
-  1. `#vote/<join_code>` (`VoteScreen`, step `questionnaire`) — cas le plus simple : membre inscrit, ouvre le lien de vote après clôture.
-  2. Membre resté sur `AllocatingScreen` (n'a pas encore rejoint sa table de débat) au moment où la séance passe à `closed`, détecté soit par Realtime soit par le polling 10s de secours — vérifier les deux déclencheurs si possible (couper le réseau un instant pour forcer le polling, ou simplement attendre >10s après la transition sans réagir au Realtime).
-  3. `#session/<join_code>` (`SessionRouterScreen`) — déjà fonctionnel avant ce chantier, à revérifier en même temps par cohérence (les trois doivent se comporter identiquement).
-
-  **Recette — double réponse, `hasQuestionnaireResponse` avec `.limit(1)`** : nécessite un membre ayant rempli le questionnaire forcé sur deux tables différentes de la même séance (deux lignes `questionnaire_responses`, une par `table_id`, même `session_id`/`user_id` — la table `6ABDC9`/pseudo "TestQ45" en section "Nettoyage des données de test" plus bas peut servir de point de départ si une deuxième réponse y est ajoutée sur une autre table de la même séance). Revenir sur `#vote/<join_code>` ou `#session/<join_code>` après clôture : le questionnaire ne doit **pas** être reproposé — accès direct aux résultats. Avant le fix, `.maybeSingle()` levait une erreur avalée sur ce cas précis et le redemandait indéfiniment.
 
 ## Synchronisation temps réel (chantier 35)
 
@@ -1263,31 +668,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   3. Exclure un participant côté modérateur → vérifier sa disparition côté participant.
   4. Couper puis rétablir le réseau d'un des deux clients (mode avion ou DevTools offline) → vérifier la resynchronisation après reconnexion (monitoring WebSocket + polling 5s, couches inchangées par ce chantier).
 
-- [ ] **2026-09-01 — Chantier 41 — nomination d'un modérateur déjà assis, invisible sans quitter/rejoindre** — `src/context/TableContext.tsx`, branche `chantier-41-reload-moderateur`
-
-  **Retour de Jules** : « Quand je suis déjà en phase débat, et que je nomme quelqu'un en modérateur sur une table, lorsque celui-ci fait un reload, la vue modérateur n'apparaît pas. Il faut pour cela qu'il quitte, avec le bouton quitter, puis revienne dans le débat. »
-
-  **Diagnostic — ce n'est PAS une régression de 35/36/37, c'est l'asymétrie que chantier 35 avait explicitement documentée et volontairement laissée de côté** (ligne "Volontairement pas traité" ci-dessus, maintenant retirée puisque couverte par ce correctif) : `isModerator` était calculé `physicalModerator && !moderatorRevoked` — un pur véto qui ne peut que *dégrader*. `moderatorRevoked` se recalcule bien à chaque `load()` (montage + polling 5s) et via un abonnement realtime sur `session_members`, mais dans les deux cas il ne fait que poser `true`/`false` sur le véto, jamais remonter `physicalModerator` de `false` à `true`. Un participant nommé modérateur *après* avoir déjà rejoint sa table reste donc bloqué, en direct **et** après un simple reload — `physicalModerator` ne vient que du prop `initialIsModerator`, lui-même figé au moment du join initial (`AllocatingScreen.handleJoin` / cache `tableStore` restauré tel quel par `App.tsx` au montage, sans re-vérification). Seul un `leaveTable()` + retour (qui repasse par `AllocatingScreen.handleJoin`, lequel relit `member.is_moderator` à neuf) recalculait correctement — exactement le contournement que Jules a trouvé.
-
-  **Correctif** : `isModerator = physicalModerator || sessionMemberIsModerator` (OR, plus de véto). `sessionMemberIsModerator` reflète `session_members.is_moderator` en direct (realtime, déjà existant côté chantier 35) et à chaque `load()`/reload — dans les deux sens désormais. Ne réintroduit pas de régression sur le cas que chantier 35 ciblait (démodération d'un modérateur assigné côté Bloc C) : pour les tables issues de l'allocation, `tables.created_by` est l'uid du superadmin qui a appelé `apply_allocation`/`create_tables_batch`, jamais celui du participant assigné — `physicalModerator` y est donc déjà `false`, et `session_members.is_moderator = false` suffit seul à garder `isModerator` à `false`.
-
-  **Constat annexe, confirmé en navigateur réel (voir "Déjà vérifié" ci-dessous)** : en creusant ce mécanisme, la même veto asymétrique de chantier 35 casse aussi l'auto-désignation "Désigner comme animateur" (`designate_moderator`, table `leaderless` rattachée à une séance) : cette RPC pose `tables.created_by` mais ne touche jamais `session_members.is_moderator` (qui reste `false` par défaut) — au prochain `load()` (5s ou reload), l'ancien véto retombait systématiquement à `false` pour *tout* auto-désigné sur une table leaderless rattachée à une séance, sans intervention du superadmin. Le passage à l'OR corrige ce cas (il ne dépend plus que de `physicalModerator`) — **reproduit et corrigé en conditions réelles**, pas seulement en théorie.
-
-  **Déjà vérifié** : `tsc --noEmit` propre, `npm run build` réussi, `npm test` (204/206, 2 skips préexistants, aucune régression sur `allocation.ts`/`groupNaming.ts`).
-
-  **Vérifié en navigateur réel (2026-09-01)**, sur la table `589D79` (leaderless, séance "Test manuel — Vote & bascule modérateur", participant "Test Chantier40" — voir note dans "Nettoyage des données de test" : cette table n'est plus leaderless suite à ce test) :
-  - Join de la table → `ParticipantView` correcte ("Groupe auto-géré"), zéro erreur console.
-  - Clic "🎙️ Devenir modérateur" → confirmation → `designate_moderator` → bascule immédiate vers `ModeratorView` ("Micro libre", panneau Participants). Ceci exerce exactement le mécanisme du "constat annexe" ci-dessus : `physicalModerator=true`, `session_members.is_moderator=false` (jamais posé par cette RPC).
-  - **Sans le correctif, l'ancien code aurait dû redescendre en `ParticipantView` au bout de 5s** (véto `moderatorRevoked` recalculé par le polling `load()`, `is_moderator === false` trouvé). Attendu 7s : **toujours `ModeratorView`**, zéro nouvelle erreur console.
-  - Reload complet de la page (scénario exact de Jules — recharger sans quitter/rejoindre) : **`ModeratorView` toujours affichée immédiatement**, zéro erreur console.
-  - Les 2 erreurs console visibles (404, 401) proviennent de requêtes de diagnostic que j'ai faites moi-même dans la console du navigateur pour retrouver un `join_code` de test (pas de MCP Supabase, clé anon publique lue depuis `.env` — usage en lecture seule, cf. `CLAUDE.md`) ; confirmé sans rapport avec l'app via `read_network_requests` (uniquement des requêtes locales Vite dans la fenêtre capturée). Aucune erreur émise par le code applicatif lui-même à aucune étape.
-
-  **Non testé en conditions réelles — bloqué par l'absence de mot de passe superadmin dans cette session headless** : le scénario exact décrit par Jules (promotion via `session_members.is_moderator`, posée par `set_member_moderator`/`assign_moderator_to_table`, pas par `designate_moderator`). Le code qui consomme ce flag (`setSessionMemberIsModerator`, dans `load()` et dans l'abonnement realtime) est strictement le même que celui exercé ci-dessus — seule la RPC qui écrit `session_members.is_moderator=true` diffère — mais la session de vérification devrait dérouler ce chemin exact avant merge, pas seulement l'analogue.
-
-  **Test minimal restant** (mot de passe superadmin requis) :
-  1. **Scénario exact de Jules** : séance `debating`, participant déjà assis à une table (`ParticipantView`). Superadmin → onglet Membres, cocher "modérateur" sur ce participant (assis à une table déjà pourvue **ou** sans modérateur, peu importe — cf. chantier 37 point 2 pour la logique de placement). Sans que le participant ne fasse quoi que ce soit : recharger sa page → vérifier l'apparition immédiate de `ModeratorView` (plus besoin de quitter/rejoindre).
-  2. **Variante en direct** : même mise en place, mais sans reload — laisser tourner ~5s (polling `load()`) ou vérifier que le realtime `session_members` (déjà actif, chantier 35) bascule l'écran instantanément.
-  3. **Non-régression démodération (chantier 35, point 2 déjà listé ci-dessus)** : toujours vérifier avec ce correctif en place.
 
 ## Nettoyage des données de test (séances partagées)
 
@@ -1328,26 +708,6 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
 
 ## Onboarding optionnel (chantier 71)
 
-- [ ] **2026-09-04 — Chantier 71 — `supabase/migrations/20260904_chantier71_onboarding_optionnel.sql`** (jamais appliquée) — désactiver l'onboarding par séance
-
-  **Demande de Jules** : « Le vote ne doit pas servir de référence. […] mettre un bouton dans la vue superadmin pour activer ou désactiver le onboarding […] je dois juste pouvoir créer une session sans onboarding. » Bloquant pour la séance de production de jeudi prochain (vote en présentiel uniquement, onboarding désactivé, on ne va pas plus loin dans le flux).
-
-  **Contenu de la migration** : colonne `sessions.onboarding_enabled boolean NOT NULL DEFAULT true` (défaut préserve le comportement de toutes les séances existantes) ; nouvelle RPC `set_session_onboarding_enabled(password, session_id, onboarding_enabled)` (même forme que `set_session_results_public` du chantier 46) ; `create_session` redéfinie avec un 8ᵉ paramètre `p_onboarding_enabled boolean DEFAULT true` (tout appel existant qui l'omet continue de créer une séance identique à avant ce chantier). Aucune autre fonction touchée — voir justification détaillée en tête du fichier de migration pour les 3 pièges signalés par Jules :
-  1. `get_session_by_id`/`get_session_by_join_code`/`list_sessions_admin` (chantier 58, déjà appliquées en base) sont `RETURNS sessions`/`SETOF sessions` avec `SELECT * FROM sessions` en interne — le type de retour est le type ligne de la table, étendu automatiquement par Postgres à `onboarding_enabled` sans redéfinition. Vérifié en lisant leur corps (branche `chantier-58-colonnes-sessions`) avant d'écrire cette migration.
-  2. La même branche contient un `REVOKE SELECT ON sessions` + `GRANT` restreint à 6 colonnes, **non appliqué à ce jour** (vérifié : aucun écran de `src/` n'appelle encore les RPC du chantier 58, tous lisent encore `sessions` par `select('*')` direct sous le GRANT actuel non restreint) — donc sans impact sur ce chantier aujourd'hui. **Si cette restriction est appliquée un jour telle quelle, il faudra ajouter `onboarding_enabled` à la liste de colonnes accordées** dans le fichier de cette branche (non modifiée ici, sur consigne explicite).
-  3. `get_allocation_inputs` (chantier 19, `20260725_2_allocation_v2.sql`) fait déjà un `LEFT JOIN entry_responses` avec des valeurs par défaut conservatrices (`is_active`/`consents`/`is_veteran` → `false`) pour un membre sans ligne `entry_responses` — un participant qui a sauté l'onboarding est donc déjà géré sans plantage de l'allocation/clustering. Rien changé côté SQL ni côté `src/lib/allocation.ts` (non touché, hors périmètre).
-
-  **Côté frontend** : `src/lib/types.ts` (`Session.onboarding_enabled`), `src/lib/sessions.ts` (`createSession` accepte un 8ᵉ argument optionnel, nouvelle fonction `setSessionOnboardingEnabled`), `src/screens/SuperadminScreen.tsx` (case à cocher dans le formulaire de création + interrupteur sur chaque carte de séance, toggle optimiste avec rollback sur erreur — même schéma que le toggle « Résultats publics » du chantier 46), `src/screens/VoteScreen.tsx` (3 points de décision modifiés : le gate principal `!existingResponse` à l'ouverture/reload, `handlePseudoSuccess` pour un nouveau membre en phase `voting`, `handleConfirmAttendanceSuccess` pour une confirmation de présence — les trois sautent l'onboarding et vont directement au vote quand `onboarding_enabled = false`, exactement comme le fait déjà `pre_voting` en permanence). `pre_voting` non touché (déjà sans onboarding, indépendamment de ce flag).
-
-  **`npx tsc --noEmit`** : propre. **`npm test`** : 94/95, 1 skip préexistant (aucun test dédié écrit pour ce chantier — logique de branchement simple, testée par lecture + build, pas de nouvelle fonction pure isolée à unit-tester). **`npm run build`** : propre (avertissement pré-existant sur la taille du bundle, sans rapport). **Aucune vérification navigateur faite** (consigne explicite : session headless, aucun serveur de dev lancé).
-
-  **Recette de vérification (session de vérification dédiée)** :
-  1. Appliquer la migration (SQL Editor du dashboard ou MCP), puis dérouler les 6 requêtes de vérification en pied de fichier de migration (colonne posée avec le bon défaut, création avec/sans le flag, toggle sur une séance existante, mauvais mot de passe refusé, RPC du chantier 58 si déjà appliquées séparément).
-  2. Superadmin → « Nouvelle séance » : la case « Onboarding » est cochée par défaut ; la décocher puis créer la séance → vérifier en base que `onboarding_enabled = false` sur la ligne créée.
-  3. Sur une séance déjà existante (n'importe quelle phase) : cliquer l'interrupteur « Onboarding activé »/« Onboarding désactivé » sur sa carte → vérifier le changement d'état visuel immédiat (optimiste) et sa persistance après rechargement de la liste.
-  4. **Scénario cible jeudi** — séance en phase `voting`, `onboarding_enabled = false` : un nouveau participant qui s'inscrit via `VotingEntryForm` (nom/prénom) doit arriver directement sur l'écran de vote, sans jamais voir `OnboardingForm`. Un participant déjà inscrit en `pre_voting` qui confirme sa présence (`AttendanceConfirmScreen`) doit lui aussi passer directement au vote. Recharger la page en cours de vote (re-déclenche le gate principal `init()`) : toujours pas d'onboarding proposé.
-  5. **Non-régression** — même séance avec `onboarding_enabled = true` (valeur par défaut) : comportement strictement identique à avant ce chantier (onboarding proposé aux nouveaux arrivants en phase `voting`, jamais en `pre_voting`).
-  6. **Non-régression allocation** (si le temps le permet avant jeudi, pas bloquant pour la séance vote-only) : séance avec au moins un membre sans `entry_responses` (onboarding sauté) qui atteint la phase `allocating` → `AllocationPanel` doit calculer une proposition sans planter, ce membre traité comme non-actif/non-consentant/nouveau.
 
 - [ ] **2026-09-06 — Chantier 72 — 4 migrations, jamais appliquées** — modération superadmin (bug de reprise de table, ajout de modérateur, défaut d'allocation, faille `add_collab_source`, édition titre/description, déplacement d'accordéon)
 
@@ -1503,6 +863,749 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   2. **Texte invisible (point 3)** : en tant que modérateur (`ModeratorView`), Outils Modo → "Ajouter une personne sans téléphone" → taper un nom → le texte doit maintenant être visible (gris foncé sur fond blanc) pendant la frappe, pas seulement après coup.
   3. **session_members (point 2, nécessite la migration appliquée)** : sur une séance de test en phase `debating`, ajouter une personne sans téléphone depuis `ModeratorView` → vérifier en base qu'une ligne `session_members` est créée pour elle (`joined_phase = 'debating'`, `attending_in_person = true`, `user_id` distinct du modérateur), en plus de sa ligne `participants`. Vérifier aussi qu'ajouter quelqu'un portant le même pseudo qu'un membre déjà réellement inscrit à la séance ne modifie **pas** la ligne existante de ce membre. Sur une table standalone (sans séance), vérifier qu'aucune ligne `session_members` n'apparaît.
 
+
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
+
+- [x] **Chantier 64 — `supabase/migrations/20260902_chantier64_leaderless_becomes_moderated.sql`** *(validé le 2026-09-06)* — **à appliquer APRÈS le chantier 60** (touche `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table`, dont les dernières définitions en date sont antérieures au 60 mais indépendantes de lui — pas de dépendance technique, seulement l'ordre déjà établi pour ce chantier de test).
+
+  **Ce qu'elle change** : quand `set_member_moderator`, `claim_moderator_status` ou `assign_moderator_to_table` pose `session_members.is_moderator = true` pour un membre déjà assis (`table_assignments`) sur une table `leaderless`, cette table passe désormais `leaderless = false` dans la même transaction — au lieu de laisser le flag inchangé pendant que le membre obtient déjà, silencieusement, l'autorité d'animation (chantier 60). Voir l'en-tête du fichier de migration pour le détail complet (symptôme, correctif, décision documentée sur le retrait d'un modérateur — pas de bascule arrière automatique).
+
+  **Aucun changement frontend requis** pour refléter la bascule côté superadmin : l'onglet Groupes (`SuperadminScreen.loadGroups`) relit déjà `tables.leaderless` à chaque appel et est rafraîchi après les actions superadmin + par le polling 10 s (chantier 50) pour le cas auto-déclaré. Un changement ciblé a en revanche été fait dans `ParticipantView.tsx` (texte du panorama d'accueil, table `leaderless`) et dans `CLAUDE.md` (section `isModerator`/Tables leaderless, corrigée — elle affirmait à tort que `isModerator` est toujours `false` sur une table leaderless, périmé depuis les chantiers 41/60).
+
+  **Recette de vérification** (voir aussi la section « Point de sémantique à trancher » du chantier 60 juste en dessous, dont ce chantier ne change qu'une partie) :
+
+  1. **Bascule par le superadmin** — séance en `allocating`/`debating` avec une table `leaderless` rattachée et au moins un participant assis dessus (`table_assignments`, pas seulement `participants` — passer par une allocation ou une assignation manuelle, pas par un simple `join_table`). Onglet Groupes → poser le flag modérateur sur ce membre (`set_member_moderator` via l'accordéon participant, ou glisser-déposer sur cette table via `assign_moderator_to_table`). **Observer** : le badge « Sans modérateur » de cette table disparaît (immédiatement après l'action superadmin, `loadGroups()` est appelé en séquence — pas besoin d'attendre le polling).
+  2. **Bascule automatique du participant** — sur l'appareil du participant concerné (déjà sur la table au moment de l'étape 1, `ParticipantView` ouvert) : sans recharger la page, il doit basculer sur `ModeratorView` (Realtime `session_members` déjà branché depuis le chantier 41 — l'OR de `isModerator` ne dépend pas de ce chantier, seul `tables.leaderless` est nouveau ici).
+  3. **Les autres participants de la table** — sur un 2ᵉ appareil resté sur `ParticipantView` : après la bascule, il ne doit plus proposer l'auto-gestion par file (plus de tentative silencieuse de `claimFloor()` — vérifier l'absence d'erreur réseau `claim_floor` dans la console) ; le nouveau modérateur doit pouvoir donner la parole normalement depuis `ModeratorView`.
+  4. **Auto-déclaration côté participant** (`claim_moderator_status`, onglet "🎙️ Modérateur" de l'accueil ou `ModeratorAccessPanel`) — même test que 1-3, mais déclenché par le participant lui-même avec le Code Ecclesia plutôt que par le superadmin. Le superadmin doit voir la bascule dans les 10 s (polling de secours), sans action de sa part.
+  5. **Message d'accueil de la table leaderless** — nouveau participant qui rejoint une table `leaderless` **avant** toute désignation : le panorama d'accueil (« Bienvenue dans le débat », bloc « Groupe auto-géré ») doit mentionner qu'un participant peut devenir modérateur mais renoncera alors à participer. Vérifier le texte affiché, pas seulement sa présence dans le code.
+  6. **Retrait en place du modérateur** (`set_member_moderator(..., false)`, le membre reste assis à la même table) : la table reste `leaderless = false` (pas de retour à l'auto-gestion) et n'a plus personne avec l'autorité d'animation tant que le superadmin n'y réassigne pas un modérateur. *Mis à jour le 2026-09-02 : Jules a tranché le cas du DÉPART (pas du simple retrait en place) — voir l'entrée « Chantier 64 (complément) » juste en dessous, qui NUANCE ce point sans le contredire : rester assis ne bascule jamais, partir peut basculer.*
+
+  **Validation de Jules (06/09)** : ✅ **appliquée (confirmée en base)** (touche `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table`, dont les dernières définitions en date sont antérieures au 60 mais indépendantes de lui — pas de dépendance technique, seulement l'ordre déjà établi pour ce chantier de test).
+
+- [x] **Chantier 64 (complément) — `supabase/migrations/20260902_chantier64b_leaderless_origin_and_revert.sql`** *(validé le 2026-09-06)* — **à appliquer après la migration chantier 64 ci-dessus** (redéfinit les mêmes fonctions Bloc C, plus `create_table`/`admin_create_table`/`create_tables_batch`/`apply_allocation`/`switch_table`) et **après le chantier 48** (`switch_table` doit déjà exister — cette migration la redéfinit intégralement, pas un patch incrémental).
+
+  **Ce qu'elle change** : Jules a tranché le point resté ouvert par la migration chantier 64 initiale (retrait du modérateur). Nouvelle colonne `tables.leaderless_by_design` (posée à la création ou à chaque recalcul d'allocation, jamais par une conversion organique) qui distingue :
+  - une table **conçue pour avoir un modérateur** (`leaderless_by_design = false`) — son départ, qu'il soit en place ou vers une autre table, ne change jamais rien, Jules considère qu'il va revenir ;
+  - une table **devenue modérée** en cours de route (`leaderless_by_design = true`, convertie depuis `leaderless=true` par la migration chantier 64 initiale) — si son modérateur **part rejoindre une autre table** via `switch_table` (chantier 48), elle **redevient `leaderless = true`**. Rester assis à la même table (`set_member_moderator(..., false)`) ne bascule toujours rien — seul le DÉPART physique via `switch_table` compte.
+
+  Le bouton "Quitter" (`leaveTable()`) reste hors de tout ça — action purement locale (vide le cache `tableStore`), aucune ligne supprimée, aucun appel RPC, donc ne peut mécaniquement pas déclencher la bascule. Voir l'en-tête du fichier de migration pour le détail complet. *Mis à jour le 2026-09-02 : le cas laissé de côté ci-dessous (`move_member_to_group`) a été tranché par Jules — « oui, faisons la même chose si c'est le super admin qui l'enlève » — et est maintenant couvert par l'entrée « Chantier 64 (complément 2) » juste en dessous. Le rétro-classement (tables existantes classées `leaderless_by_design = leaderless`) est validé tel quel par Jules, sans changement.*
+
+  **Validation de Jules (06/09)** : ✅ **appliquée et vérifiée par une session Claude Code le 2026-09-06** — voir « Ce qu'elle change » (redéfinit les mêmes fonctions Bloc C, plus `create_table`/`admin_create_table`/`create_tables_batch`/`apply_allocation`/`switch_table`) et **après le chantier 48** (`switch_table` doit déjà exister — cette migration la redéfinit intégralement, pas un patch incrémental).
+
+- [x] **Chantier 60 — `supabase/migrations/20260902_chantier60_moderator_authority.sql`** *(validé le 2026-09-06)* ✅ **appliquée le 2026-09-02** — corrige le bloquant le plus grave du projet (un modérateur désigné par l'allocation ne peut rien faire), et modifie des fonctions/policies utilisées par tous les autres tests du parcours Modérateur. Reste à faire : le test manuel complet (section Parcours Modérateur ci-dessous) — jamais joué à l'écran.
+
+  **Le bug corrigé** : un participant marqué `session_members.is_moderator` (allocation v2, `claim_moderator_status`, `assign_moderator_to_table`, `set_member_moderator`) voit bien la vue modérateur depuis le chantier 41, mais **aucune de ses actions n'aboutit** : donner/retirer la parole → « Not authorized » ; exclure → « Non autorisé » ; ajouter une personne sans téléphone → « Non autorisé » ; forcer le questionnaire et supprimer la table → **échec silencieux** (une policy RLS qui refuse un UPDATE/DELETE n'est pas une erreur, elle affecte simplement zéro ligne). Cause : toutes les gardes testent `tables.created_by = auth.uid()`, alors que `apply_allocation`/`create_tables_batch` posent `created_by` = l'identifiant anonyme du **superadmin** qui déclenche l'allocation. Les seuls modérateurs qui fonctionnent aujourd'hui sont ceux passés par « Créer une table » ou par « Je suis modérateur de cette table » (`reclaim_moderator`) — les deux seuls chemins qui posent `created_by`, ce qui explique que le défaut n'ait jamais explosé en séance réelle.
+
+  **Contenu du fichier** :
+  1. Nouveau helper `is_table_moderator(p_table_id uuid) RETURNS boolean`, `SECURITY DEFINER STABLE SET search_path = public, extensions` (mêmes conventions anti-récursion qu'`is_table_participant`). Vrai si l'appelant est **soit** le créateur physique de la table (`tables.created_by`, chemin historique inchangé), **soit** un membre de la séance de cette table marqué `session_members.is_moderator = true` **ET** affecté à **cette table précise** via `table_assignments` (les deux conditions sont cumulatives — c'est le point de régression critique).
+  2. Les **9 fonctions** d'animation reprises pour utiliser ce helper : `grant_floor`, `end_turn`, `end_turn_and_advance`, `kick_participant`, `add_offline_participant` (les 5 du périmètre initial) **+ 4 trouvées à l'inventaire** : `add_to_queue` (mettre quelqu'un d'*autre* en file), `move_queue_entry` (↑/↓), `reorder_queue_entry` (réordonnancement DnD), `correct_turn` (modale « Corriger un tour »). Corps strictement identiques, seule la garde change.
+  3. Les **7 policies RLS** reprises de la même façon : `tables_update_moderator` (forçage questionnaire, UPDATE direct depuis `TableContext`) et `tables_delete_moderator` (`endTable()`, DELETE direct) — les deux « échecs silencieux » ; `queue_entries_delete` (**`removeFromQueue` et `changeQueueType` font un DELETE DIRECT, pas une RPC** → un modérateur désigné ne peut retirer personne de la file, silencieusement) ; plus `queue_entries_insert`, `queue_entries_update_moderator`, `speaking_turns_insert_moderator`, `speaking_turns_update_moderator` par cohérence (leurs écritures passent aujourd'hui par des RPC `SECURITY DEFINER`, donc hors RLS).
+  4. Un bloc `DO $guard$` en tête qui compare `pg_get_function_identity_arguments` + `pg_get_function_result` de chaque fonction à ce qui va être créé, et DROP toute surcharge divergente — protection contre le piège `CREATE OR REPLACE` (refus si un nom de paramètre change, surcharge ambiguë si le nombre/type change) qui a déjà mordu le projet deux fois. Sans perte de droits : aucune de ces fonctions n'a de GRANT explicite dans l'historique, et la migration repose un `GRANT EXECUTE ... TO anon, authenticated` après chaque création.
+
+  **Ce qui n'est PAS touché** (inventaire complet fait avant modification) : `create_table`, `create_tables_batch`, `apply_allocation`, `admin_create_table`, `run_clustering_*` → INSERT de `created_by` (attribution, pas autorisation) ; `reclaim_moderator`, `designate_moderator` → UPDATE d'attribution, chemins de *promotion*, hors périmètre ; `list_session_tables`/`list_available_tables`/`get_questionnaire_responses` → `p.user_id = t.created_by` en JOIN d'*affichage* (pseudo de l'animateur) ; `end_turn_as_speaker` et `claim_floor` → gardes fondées sur `participants`/`leaderless`, aucune notion de `created_by`.
+
+  **Pourquoi l'option (ii) — élargir les gardes — plutôt que (i) — faire poser `created_by` par `apply_allocation`** : vérifié dans le code avant application. `created_by` est une colonne **scalaire** → (i) interdit toute co-modération ; un modérateur peut être désigné **après** la création des tables (`claim_moderator_status` accepte `allocating` ET `debating` depuis le chantier 33, plus `assign_moderator_to_table` et `set_member_moderator`) → (i) obligerait à patcher ces chemins **et** à gérer le remplacement (retirer `created_by` à l'ancien) ; `created_by` sert aussi de donnée d'affichage dans `list_session_tables` ; et (i) laisse à découvert les tables créées par `create_tables_batch` avant qu'un modérateur ne soit assis. (ii) est purement **additive** — le créateur garde toute son autorité, rien de ce qui marche aujourd'hui ne régresse.
+
+  **À faire (session de vérification)** : exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP) — surveiller les `NOTICE` éventuels du bloc `DO $guard$`, qui signalent une signature divergente en base et donc un écart entre les migrations et l'état réel. Puis dérouler les **5 requêtes de vérification en pied de fichier de migration** (helper présent avec le bon `search_path` ; aucune surcharge résiduelle sur les 9 fonctions ; plus aucun `created_by` dans leurs corps ; les 7 policies pointent sur le helper ; **table de vérité** du helper sur une vraie séance, qui liste membre par membre qui aurait l'autorité — la requête 5 permet de valider les cas négatifs sans avoir à se connecter sous chaque identité). Enfin dérouler le test manuel de la section **Parcours Modérateur** ci-dessous.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée le 2026-09-02** — corrige le bloquant le plus grave du projet (un modérateur désigné par l'allocation ne peut rien faire), et modifie des fonctions/policies utilisées par tous les autres tests du parcours Modérateur. Reste à faire : le test manuel complet (section Parcours Modérateur ci-dessous) — jamais joué à l'écran.
+
+- [x] **Chantier 50 — `supabase/migrations/20260902_chantier50_close_identity_tables.sql`** *(validé le 2026-09-06)* ✅ **appliquée le 2026-09-02** — corrigeait une fuite de données personnelles. Reste à faire : les tests navigateur ci-dessous (jamais joués à l'écran) — notamment la comparaison avant/après sur l'onglet 🪑 Tables et le retrait du repli `loadTableAssignmentRows` (voir entrée dédiée, section Parcours Superadmin, **désormais actionnable puisque la migration est en place**).
+
+  **Le problème** : `session_members` et `table_assignments` ont chacune une policy `SELECT USING (true)` pour le rôle `public`, héritée de `20260528_voting_app.sql`. Il n'y a pas de backend : le navigateur parle directement à Supabase avec la clé `anon`, qui est dans le bundle JS public. Un simple `GET /rest/v1/session_members` avec cette clé retourne **toutes** les colonnes de **tous** les inscrits de **toutes** les séances — dont `pseudo` (nom et prénom réels) et `reclaim_code` (le code à 4 chiffres, **en clair**, qui permet de reprendre l'inscription de quelqu'un d'autre). `table_assignments` expose de la même façon la composition complète des tables. Confirmé en base le 2026-09-02.
+
+  **Contenu du fichier** :
+  1. Helper `is_own_session_member(p_member_id uuid) RETURNS boolean`, `SECURITY DEFINER STABLE SET search_path = public, extensions` — anti-récursion, mêmes conventions qu'`is_table_participant` / `is_table_moderator` : la policy de `table_assignments` doit lire `session_members`, elle-même sous RLS.
+  2. `session_members_select` (`USING (true)`) remplacée par `session_members_select_own` (`USING (user_id = auth.uid())`).
+  3. `table_assignments_select` (`USING (true)`) remplacée par `table_assignments_select_own` (`USING (is_own_session_member(member_id))`).
+  4. `list_table_assignments_admin(p_password, p_session_id) RETURNS jsonb`, SECURITY DEFINER + `check_superadmin_password` — la seule lecture croisée des deux tables dont l'app avait besoin (vue Groupes du superadmin). Retourne `table_number`, `member_id`, `table_id`, `pseudo`, `is_moderator`, triés par `table_number`.
+  5. Un bloc `DO $chk$` **qui lève une exception** s'il reste, après coup, une autre policy SELECT permissive sur l'une des deux tables. Les policies permissives se cumulent en OR : une seule `USING (true)` oubliée (ajoutée par un chantier parallèle) suffirait à tout rouvrir en silence. Mieux vaut un échec bruyant qu'une fermeture illusoire.
+
+  **Inventaire des policies fait avant écriture** (toutes les migrations du dépôt relues) — seule `20260528_voting_app.sql` crée des policies sur ces deux tables : `session_members_select` (SELECT, `true`), `session_members_insert` (INSERT, `WITH CHECK (false)`), `table_assignments_select` (SELECT, `true`). **Aucune policy UPDATE ni DELETE** : toutes les écritures passent déjà par des fonctions SECURITY DEFINER. Le **chantier 60**, mergé le même jour, n'a touché que les policies de `tables`, `queue_entries` et `speaking_turns` — aucun recouvrement ; son helper `is_table_moderator` lit bien `session_members` et `table_assignments`, mais en `SECURITY DEFINER`, donc **hors RLS** : ce chantier ne défait rien de son travail. Idem pour `get_my_table_assignment`, `list_session_members_admin`, `get_allocation_inputs`, `apply_allocation` et les `run_clustering_*`, toutes SECURITY DEFINER.
+
+  **Ordre d'application** : après le chantier 60 (qui reste prioritaire), sans dépendance technique entre les deux — c'est uniquement une question de priorité de test.
+
+  **Pourquoi le SQL peut être appliqué sans attendre le frontend, et réciproquement** : les deux sont livrés séparément (règle du 2026-09-01) et le code de ce chantier tient dans les deux sens. `SuperadminScreen.loadGroups()` appelle la RPC en chemin nominal et **retombe sur la lecture directe historique** si — et seulement si — PostgREST répond que la fonction est absente du schéma (`PGRST202`). Toute autre erreur (mot de passe refusé, réseau) remonte, pour ne pas masquer un échec réel derrière une lecture qui renverrait des membres `null` sous les nouvelles policies.
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Le bloc `DO $chk$` doit passer sans exception ; s'il en lève une, **ne pas contourner** — la lister et l'analyser, elle signale une policy permissive résiduelle inconnue de l'inventaire.
+  2. Dérouler les requêtes de vérification en pied de fichier de migration (fonction présente ; RPC fonctionnelle sur une vraie séance ; RPC qui refuse un mauvais mot de passe ; lecture self-only côté participant connecté).
+  3. **Vérification négative, clé anonyme, hors navigateur** (curl / Postman, en utilisant la clé `anon` publique du site, sans session utilisateur) — c'est le test qui prouve que la fuite est fermée :
+     - `GET /rest/v1/session_members?select=pseudo,reclaim_code` → attendu `[]`
+     - `GET /rest/v1/table_assignments?select=member_id` → attendu `[]`
+     Ces deux requêtes retournent aujourd'hui la base entière : **les jouer AVANT l'application** pour constater la fuite, et après pour constater sa fermeture.
+  4. Une fois la migration appliquée **et** les points « Parcours Superadmin » / « Parcours Participant » ci-dessous validés : supprimer le repli `loadTableAssignmentRows` dans `src/screens/SuperadminScreen.tsx` (le bloc `catch` et sa lecture directe) — il n'a plus de raison d'être et il est le dernier `.from('table_assignments')` du frontend. Entrée dédiée en section Superadmin ci-dessous.
+
+  **Effet de bord souhaitable** : ce chantier referme aussi la question ouverte sur `REPLICA IDENTITY FULL` (`session_members`, migration chantier 35). Le WAL continue de transporter toutes les colonnes, `reclaim_code` compris, mais Realtime applique la RLS avant livraison : les événements ne partent plus qu'au propriétaire de la ligne.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée le 2026-09-02** — corrigeait une fuite de données personnelles. Reste à faire : les tests navigateur ci-dessous (jamais joués à l'écran) — notamment la comparaison avant/après sur l'onglet 🪑 Tables et le retrait du repli `loadTableAssignmentRows` (voir entrée dédiée, section Parcours Superadmin, **désormais actionnable puisque la migration est en place**).
+
+- [x] **Chantier 61 — `supabase/migrations/20260902_chantier61_register_during_allocating.sql`** *(validé le 2026-09-06)* ✅ **appliquée le 2026-09-02**. Reste à faire : les 6 scénarios de test manuel ci-dessous (jamais joués à l'écran), y compris les scénarios 1 et 4 qui ne pouvaient pas passer avant cette application.
+
+  **Contenu du fichier** :
+  1. `DROP FUNCTION IF EXISTS register_session_member(uuid, text)` — supprime la **surcharge historique à 2 arguments** (migrations `20260528_voting_app.sql` puis `20260531_superadmin_features.sql`). La version à 3 arguments introduite par `20260622_pre_voting.sql` ne l'a jamais remplacée : `CREATE OR REPLACE` sur une arité différente **crée une seconde fonction**. L'ancienne est morte du point de vue de l'app (le wrapper `registerSessionMember` de `src/lib/voting.ts` envoie toujours les 3 paramètres nommés, PostgREST résout donc sur la 3-aire) mais elle porte encore le garde de phase d'origine, qui ignore jusqu'à `pre_voting`.
+  2. `CREATE OR REPLACE FUNCTION register_session_member(uuid, text, text) RETURNS jsonb` — **même signature, mêmes noms de paramètres, même type de retour** que la version en place : seule la liste des phases autorisées change, `('draft','pre_voting','voting')` → `('draft','pre_voting','voting','allocating')`. `attending_in_person` reste calculé par `v_phase != 'pre_voting'`, donc `true` en `allocating` : quelqu'un qui s'inscrit pendant que les tables se forment est nécessairement sur place. `joined_phase` prendra la nouvelle valeur `'allocating'` (colonne `text` libre, sans CHECK).
+
+  **Pourquoi** : demande explicite de Jules — les retardataires doivent encore pouvoir rejoindre la séance et voter pendant que l'organisateur calcule la répartition. Aujourd'hui ils reçoivent « La séance n'est pas en phase d'inscription (phase: allocating) » en rouge, sans aucune issue.
+
+  **À faire (session de vérification)** :
+  1. **Avant** d'appliquer, confirmer la signature ciblée (piège Postgres documenté dans `CLAUDE.md`) :
+     ```sql
+     SELECT p.oid::regprocedure,
+            pg_get_function_identity_arguments(p.oid),
+            pg_get_function_result(p.oid)
+     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public' AND p.proname = 'register_session_member';
+     ```
+     Attendu : `register_session_member(uuid, text, text)` → `jsonb`, et **possiblement** une seconde ligne `register_session_member(uuid, text)` (celle que le DROP retire). Si le résultat montre autre chose — notamment un type de retour différent de `jsonb` — **ne pas appliquer** et remonter le point : le `CREATE OR REPLACE` échouerait.
+  2. Appliquer le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  3. Rejouer la requête ci-dessus : il ne doit rester **qu'une** ligne, la 3-aire.
+  4. Dérouler le test manuel de la section Participant ci-dessous.
+
+  **Tant qu'elle n'est pas appliquée** : le formulaire d'entrée s'affiche bien en phase `allocating` (partie React livrée), mais toute inscription d'un **nouveau** nom échoue avec l'ancien message d'erreur. Les **reconquêtes** (nom déjà inscrit, ou code de rappel) fonctionnent en revanche déjà sans la migration — elles passent par `confirm_attendance`, qui ne teste aucune phase.
+
+  **Point de conception tranché et vérifié par lecture du SQL** : `cast_vote`, `submit_assertion` et `submit_entry_response` (définitions courantes : `20260528_voting_app.sql` pour les deux premières, `20260725_1_onboarding_3_questions.sql` pour la troisième) **n'ont aucun garde de phase** — ils n'exigent qu'une ligne `session_members`. Le vote pendant l'allocation fonctionnait donc **déjà** côté serveur ; seul le chemin d'entrée bloquait. Aucune policy RLS ne teste la phase non plus (vérifié sur `session_members`, `entry_responses`, `assertions`, `assertion_votes`). C'est ce qui réduit ce chantier à une seule ligne de SQL utile plus deux conditions React.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée le 2026-09-02**. Reste à faire : les 6 scénarios de test manuel ci-dessous (jamais joués à l'écran), y compris les scénarios 1 et 4 qui ne pouvaient pas passer avant cette application.
+
+- [x] **Chantier 65 — `supabase/migrations/20260902_chantier65_register_session_member_reject_draft.sql`** *(validé le 2026-09-06)* (nouvelle, jamais appliquée) — une séance en phase `draft` ne doit être accessible à personne.
+
+  **Le problème (revue de parcours du 2026-09-02)** : `create_session` attribue le `join_code` **dès la création** de la séance, en phase `draft`. Or `register_session_member` acceptait encore `draft` dans sa liste de phases autorisées (héritage jamais retiré, y compris par le chantier 61 juste au-dessus, qui a ajouté `allocating` sans retirer `draft`). Résultat : quiconque a le lien, ou repérait la séance dans l'onglet « Créer » de l'accueil (qui la listait), pouvait s'inscrire et voter avant que l'organisateur ait ouvert quoi que ce soit.
+
+  **Inventaire fait avant d'écrire** (comme demandé — chercher plus large que le brief) :
+  1. `register_session_member` acceptait `draft` → corrigé ci-dessous.
+  2. `SessionRouterScreen.tsx` redirigeait une séance `draft` vers `#vote/` comme les autres phases d'inscription → corrigé côté frontend (nouveau statut `not_open`, message "Séance pas encore ouverte" au lieu d'une redirection qui de toute façon échouerait maintenant à l'inscription).
+  3. `VoteScreen.tsx` (accessible directement via `#vote/<join_code>`, pas seulement via le routeur) affichait le formulaire de pseudo pour une séance `draft` → corrigé côté frontend (nouvelle étape `not_open`, même message).
+  4. L'onglet « Créer » de `EntryScreen.tsx` listait les séances `draft` (`.in('phase', ['draft', 'pre_voting', 'voting', 'debating'])`) → `draft` retiré de la liste.
+  5. **Trouvé en creusant, absent du brief initial** : `confirm_attendance` — appelée par `VoteScreen.tsx` uniquement en phase `voting`/`allocating` côté frontend, mais c'est une RPC `SECURITY DEFINER` appelable directement, et elle **ne testait strictement aucune phase** (déjà noté en passant par le chantier 61 juste au-dessus, ligne 98 : « elles passent par `confirm_attendance`, qui ne teste aucune phase »). Son cas 3 (pseudo non trouvé) fait un `INSERT` de tout nouveau `session_members`, sans jamais passer par `register_session_member` — donc sans jamais toucher le garde-fou du point 1. Et la table `sessions` a une policy `sessions_select ON sessions FOR SELECT USING (true)` (`20260526000001_sessions_schema.sql`, jamais restreinte depuis) : **n'importe qui peut lister toutes les séances, y compris en brouillon, par une requête REST directe avec la clé anon publique**, sans même passer par l'onglet « Créer ». Sans corriger `confirm_attendance`, retirer `draft` de `register_session_member` et de l'onglet « Créer » ne fermait donc rien : `confirm_attendance(session_id, pseudo:'Test')` sur une séance en brouillon créait quand même un membre `attending_in_person = true`. Corrigé dans le même fichier de migration (garde de phase ajouté en tête de fonction, comportement inchangé pour toutes les autres phases).
+  6. Vérifié et laissés **inchangés**, car déjà corrects ou non concernés : `claim_moderator_status` (déjà `IF v_phase NOT IN ('pre_voting', 'voting', 'allocating', 'debating')` — `draft` déjà exclu) ; `reclaim_prevoting_member` (déjà `IF v_phase != 'pre_voting'` — `draft` déjà exclu) ; `cast_vote`/`submit_assertion`/`submit_entry_response` (aucun garde de phase, mais exigent tous une ligne `session_members` existante — protégés transitivement une fois les points 1 et 5 fermés, aucun membre ne pouvant plus se créer pendant `draft`) ; `EntryScreen.tsx` "Séances en cours" et onglet "Modérateur" (excluaient déjà `draft` de leurs requêtes) ; `PastSessionsModal` (filtre déjà `phase = 'closed'`).
+
+  **Résidu non corrigé, à trancher par Jules** : la policy `sessions_select ON sessions FOR SELECT USING (true)` reste ouverte à la lecture complète pour tout le monde (même défaut que celui fermé par le chantier 50 sur `session_members`/`table_assignments`) — après ce chantier, lire une séance `draft` en REST direct ne permet plus de s'y inscrire ni d'y voter (portes fermées côté fonctions), mais son `title`/`description`/`join_code` restent lisibles par quiconque connaît ou devine son `id`. Restreindre cette policy est un chantier à part : plusieurs écrans (accueil, superadmin) lisent `sessions` sans mot de passe pour l'affichage, il faudrait vérifier chacun avant de resserrer la RLS sans rien casser.
+
+  **Le superadmin garde un accès complet à sa séance en brouillon** : toutes ses actions de préparation (`create_session`, `update_session_docs`, `attach_table_to_session`/`detach_table_from_session`, `set_session_phase`, `list_session_tables`) passent par des RPC `SECURITY DEFINER` à mot de passe superadmin, jamais par `register_session_member`/`confirm_attendance` — aucune de ces deux fonctions n'est touchée par ce chantier de son côté. Voir le scénario de non-régression en section Superadmin ci-dessous.
+
+  **À faire (session de vérification)** :
+  1. **Avant** d'appliquer, confirmer les deux signatures ciblées (piège Postgres, cf. `CLAUDE.md`) :
+     ```sql
+     SELECT p.oid::regprocedure, pg_get_function_identity_arguments(p.oid), pg_get_function_result(p.oid)
+     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public' AND p.proname IN ('register_session_member', 'confirm_attendance');
+     ```
+     Attendu : une seule ligne par fonction — `register_session_member(uuid, text, text)` → `jsonb` et `confirm_attendance(uuid, text, text)` → `jsonb`. Si une surcharge apparaît, s'arrêter et remonter le point avant d'appliquer.
+  2. Appliquer le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  3. Vérification directe en SQL : sur une séance de test en phase `draft`, `SELECT register_session_member('<id>', 'Test');` et `SELECT confirm_attendance('<id>', 'Test', NULL);` doivent tous deux lever « La séance n'est pas en phase d'inscription (phase: draft) ». Repasser la séance en `pre_voting` et rejouer les deux : succès, comme avant ce chantier.
+  4. Vérification négative REST (clé anon publique, hors navigateur) — confirme que le trou `sessions_select` reste ouvert en lecture mais que les portes d'inscription sont bien fermées : créer une séance de test en `draft`, noter son `id`, puis `POST /rest/v1/rpc/register_session_member` et `POST /rest/v1/rpc/confirm_attendance` avec cet `id` → attendu : erreur 400 avec le message de phase, dans les deux cas.
+  5. Dérouler les 3 scénarios de test manuel ci-dessous (Participant × 2, Superadmin × 1 — non-régression).
+
+  **Validation de Jules (06/09)** : ✅ **appliquée (confirmée en base 2026-09-06) et vérifiée par une session Claude Code le 2026-09-06** — une séance en phase `draft` ne doit être accessible à personne.
+
+- [x] **Chantier 49 — `supabase/migrations/20260902_chantier49_purge_reclaim_codes.sql`** *(validé le 2026-09-06)* (jamais appliquée) ⚠️ **MIGRATION DESTRUCTIVE — IRRÉVERSIBLE, aucune sauvegarde de la base n'existe à ce jour**
+
+  **Contenu du fichier** :
+  1. Purge ponctuelle : `session_members.reclaim_code` → `NULL` pour tout membre d'une séance déjà en phase `closed` (rattrapage des séances passées, avant que la fermeture de lecture du chantier 50 n'existe).
+  2. `set_session_phase` réécrite pour purger automatiquement `reclaim_code` de la séance dès qu'elle passe en `closed` — plus jamais besoin de rejouer une purge ponctuelle par la suite. Ajout au passage d'un `SET search_path = public, extensions` explicite (absent de la version chantier 39) — la fonction appelle `crypt()`, et le projet s'est déjà fait piéger par ce piège précis (« mot de passe incorrect » trompeur quand `extensions` manque du search_path).
+
+  **Pourquoi c'est irréversible** : un `reclaim_code` effacé ne se retrouve pas — ni recalculable, ni dérivable d'une autre colonne. Jules a explicitement autorisé à procéder sans sauvegarde préalable (« je n'ai pas prévu d'utiliser l'appli jusqu'à ce que tout, y compris les sauvegardes, soit livré »).
+
+  **Pourquoi aucune régression attendue** (vérifié par lecture du SQL avant d'écrire la migration — inventaire complet des lecteurs de `reclaim_code`) :
+  - `confirm_attendance` (phase `voting`/`allocating`, `VoteScreen.tsx`) n'est jamais atteignable sur une séance `closed` côté frontend — le routeur redirige vers le questionnaire post-débat/résultats avant.
+  - `reclaim_prevoting_member` (chantier B3) est **phase-safe côté serveur** : il lève déjà une exception si `sessions.phase != 'pre_voting'`, indépendamment de cette purge.
+  - Le code affiché au participant à l'inscription (`ReclaimCodeDisplay`) est généré côté client (`Math.random()`), jamais relu depuis la base.
+
+  **À faire (session de vérification), dans cet ordre** :
+  1. **Avant toute application**, exécuter la requête de diagnostic en tête du fichier de migration (comptage par séance + total global des `reclaim_code` non-NULL sur des séances `closed`) et noter le résultat (nombre de lignes, capture d'écran si possible) — trace de ce qui va être effacé.
+  2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Le bloc `DO $purge$` émet deux `NOTICE` (compte avant purge, lignes effectivement mises à jour) — vérifier qu'ils correspondent au comptage de l'étape 1.
+  3. **Aucun code ne subsiste sur une séance close** :
+     ```sql
+     SELECT count(*) FROM session_members sm
+     JOIN sessions s ON s.id = sm.session_id
+     WHERE s.phase = 'closed' AND sm.reclaim_code IS NOT NULL;
+     ```
+     Attendu : `0`.
+  4. **Purge automatique à la clôture** — sur une séance de test en phase `debating` avec au moins un membre `reclaim_code IS NOT NULL` : `SELECT set_session_phase('<mot de passe superadmin>', '<session_id>', 'closed')`, puis relire `session_members.reclaim_code` pour cette séance → attendu `NULL` partout.
+  5. **Non-régression — reconquête pré-vote toujours fonctionnelle sur une séance encore ouverte** (phase `pre_voting`, ne pas confondre avec l'étape précédente) : inscrire un membre de test en `pre_voting`, noter son code de rappel, puis `SELECT reclaim_prevoting_member('<session_id>', NULL, '<code>')` depuis une autre identité (`auth.uid()` différent, ou simplement vérifier que le code n'a pas été touché par cette migration) → attendu : succès, transfert de `user_id`. Confirme que seules les séances `closed` sont purgées, pas les séances encore actives.
+
+  **Recommandation non implémentée, à trancher séparément** : envisager d'anonymiser aussi `session_members.pseudo` (nom + prénom réels) après un délai post-clôture — c'est, une fois `reclaim_code` purgé, la donnée la plus identifiante qui reste indéfiniment en base. Non tranché : durée du délai, et si l'app doit un jour pouvoir recontacter un participant après coup (support, litige). Voir section "Rétention des données" de `CLAUDE.md`.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée (confirmée en base) et vérifiée par une session Claude Code le 2026-09-06** ⚠️ était une migration destructive/irréversible
+
+- [x] **Chantier 48 — `supabase/migrations/20260902_chantier48_switch_table.sql`** *(validé le 2026-09-06)*
+
+  **Contenu du fichier** : crée `switch_table(p_session_id uuid, p_join_code text, p_pseudo text) returns jsonb` — permet à un participant de rejoindre une autre table que celle qui lui a été assignée, depuis `AllocatingScreen`. Vérifie que le code correspond à une table de **cette** séance (sinon exception explicite), que le participant n'est pas déjà à cette table, puis **retire proprement** toute ligne `participants` de l'utilisateur dans les autres tables de la séance (libère le micro/clôt le tour en cours si besoin, même traitement que `kick_participant`) avant d'insérer la nouvelle ligne et de déplacer `table_assignments` via `sync_table_assignment` (déjà existante, chantier 26). Voir l'en-tête du fichier de migration pour le détail du raisonnement (pourquoi une RPC dédiée plutôt que réutiliser `join_table`).
+
+  **À faire (session de vérification)** : exécuter le contenu du fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'switch_table'` retourne la fonction, puis dérouler le test manuel ci-dessous (section Participant). **Avant d'appliquer**, nettoyer si possible les 2 lignes `participants` orphelines laissées dans la table `589D79` par la vérification navigateur de ce chantier (voir section Nettoyage plus bas) — pas strictement nécessaire pour tester, mais ça fausse le compte de présents affiché en `ParticipantView`.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée et vérifiée par une session Claude Code le 2026-09-06**
+
+- [x] **Chantier 39 — `supabase/migrations/20260901_chantier39_remove_questionnaire_phase.sql`** *(validé le 2026-09-06)* (jamais appliquée)
+
+  **Contenu du fichier** :
+  1. `UPDATE sessions SET phase = 'closed', phase_changed_at = now() WHERE phase = 'questionnaire'` — au moment de l'écriture, aucune séance de la base de test n'était dans cet état (vérifié par requête REST anon `select id,title,phase,join_code`), mais la migration doit rester idempotente/défensive pour toute séance réelle qui y serait encore.
+  2. Contrainte `sessions_phase_check` réécrite sans `'questionnaire'` (`draft`, `pre_voting`, `voting`, `allocating`, `debating`, `closed`).
+  3. `set_session_phase(password, session_id, phase)` réécrite avec la même liste sans `'questionnaire'` — sinon la fonction acceptait toujours l'ancienne valeur alors que le frontend ne l'envoie plus jamais.
+
+  **Pourquoi retirer la phase plutôt que la garder mais inutilisée** : Jules a demandé explicitement la suppression (« on va supprimer cette phase ») — le questionnaire post-débat se déclenche désormais automatiquement à la sortie de `debating` (voir entrée dédiée, section "Questionnaire post-débat" plus bas) au lieu de nécessiter une étape de phase manuelle.
+
+  **À faire (session de vérification)** : exécuter le fichier via le SQL Editor (ou MCP), puis `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'sessions_phase_check'` pour confirmer l'absence de `'questionnaire'` dans la définition, et `SELECT count(*) FROM sessions WHERE phase = 'questionnaire'` doit retourner 0. **Tant qu'elle n'est pas appliquée** : si une séance reste dans l'ancienne phase `questionnaire` (aucune trouvée dans la base de test au moment de l'écriture), `SuperadminScreen.tsx` ne la reconnaît plus dans `PHASE_SEQUENCE` (`indexOf` retourne -1) et affiche un `PhaseBar` incohérent (case courante non repérée, bouton suivant pointant vers `draft`) — appliquer la migration avant de rouvrir une telle séance dans le superadmin plutôt que de cliquer les boutons de phase pour la sortir de cet état.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée (confirmée en base) et vérifiée par une session Claude Code le 2026-09-06**
+
+- [x] **Chantier 44 — `supabase/migrations/20260902_chantier44_add_offline_participant.sql`** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* (nouvelle fonction, jamais appliquée)
+
+  **Contenu du fichier** : crée `add_offline_participant(p_table_id uuid, p_pseudo text) RETURNS jsonb`, `SECURITY DEFINER`. Garde d'autorisation identique à `kick_participant`/`grant_floor` (`tables.created_by = auth.uid()`). Reprend uniquement le cœur de `join_table` — `INSERT INTO participants (table_id, user_id, pseudo) VALUES (p_table_id, auth.uid(), btrim(p_pseudo)) ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id` — sans jamais appeler `sync_table_assignment` (voir justification détaillée dans l'entrée "Chantier 43/44" du parcours Modérateur ci-dessous : appelé sous l'identité du modérateur, ce mécanisme pollue par erreur `session_members` avec une ligne fantôme). SQL exact :
+
+    ```sql
+    CREATE OR REPLACE FUNCTION add_offline_participant(
+      p_table_id uuid,
+      p_pseudo   text
+    )
+    RETURNS jsonb
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    AS $$
+    DECLARE
+      v_participant_id uuid;
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM tables WHERE id = p_table_id AND created_by = auth.uid()
+      ) THEN
+        RAISE EXCEPTION 'Non autorisé';
+      END IF;
+
+      IF p_pseudo IS NULL OR btrim(p_pseudo) = '' THEN
+        RAISE EXCEPTION 'Pseudo requis';
+      END IF;
+
+      INSERT INTO participants (table_id, user_id, pseudo)
+      VALUES (p_table_id, auth.uid(), btrim(p_pseudo))
+      ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id
+      RETURNING id INTO v_participant_id;
+
+      RETURN jsonb_build_object('participant_id', v_participant_id);
+    END;
+    $$;
+    ```
+
+  **À faire (session de vérification)** : exécuter ce SQL (fichier ou copié ci-dessus) via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'add_offline_participant'` retourne la fonction, puis cocher cette entrée et dérouler le test du chantier 44 (section Parcours Modérateur, entrée "Chantier 43/44"). **Tant qu'elle n'est pas appliquée** : le bouton "Ajouter une personne sans téléphone" échoue à l'appel RPC (fonction PostgreSQL inexistante — erreur affichée dans le formulaire, rien de silencieux côté UI).
+
+  **Validation de Jules (06/09)** : ✅ **appliquée et vérifiée par une session Claude Code le 2026-09-06**
+
+- [x] **Chantier 51 — `supabase/migrations/20260902_chantier51_hide_assertion_author.sql`** *(validé le 2026-09-06)* ✅ **appliquée le 2026-09-02** — anonymat réel des auteurs d'assertions. Le point bloquant Realtime ci-dessous (fuite possible de `member_id` par WebSocket) et le reste du test manuel n'ont **toujours pas été joués à l'écran** — c'est désormais possible puisque la migration est en place.
+
+  **⚠️ Point bloquant non tranchable sans accès DB, à vérifier EN PREMIER (avant de considérer ce chantier clos)** : ce correctif retire `member_id` de la lecture REST directe de `assertions`, mais on ne sait pas si Supabase Realtime applique les mêmes privilèges de colonne aux charges utiles `postgres_changes` — si le WebSocket continue de pousser `member_id` dans ses payloads, la fuite subsiste par ce canal et ce correctif est insuffisant à lui seul.
+  **Manipulation exacte** : une fois la migration appliquée, dans `src/screens/VoteScreen.tsx` l.365 (`payload => { const a = payload.new as Assertion`), ajouter temporairement `console.log('[chantier51] payload.new', payload.new)` juste après. Recharger `#vote/<join_code>` sur une séance en phase `voting` avec des assertions `pending`, ouvrir la console DevTools du participant, puis côté superadmin approuver une assertion (`approve_assertion`) pour déclencher l'événement UPDATE. Lire l'objet loggé : présence ou non de la clé `member_id`.
+  - Si **absent** : le correctif est complet, rien à faire de plus. Retirer le `console.log` et cocher cette entrée.
+  - Si **présent** : la fuite passe par le WebSocket — ne pas improviser de correctif côté client. Solution de repli connue : une vue `assertions_public` (sans `member_id`) avec sa propre policy, lue à la place de la table par `VoteScreen.tsx` — chantier distinct à ouvrir. Documenter le résultat ici avant de considérer le chantier 51 clos.
+
+  **Contexte (audit sécurité 2026-08-03, constat B5)** : `assertions_select_approved` (`FOR SELECT USING (status = 'approved')`) filtre les LIGNES mais laisse passer toutes les colonnes, dont `member_id`. Comme `session_members` est lisible publiquement (nom/prénom réels), une simple requête REST anonyme (`GET /rest/v1/assertions?select=member_id,...`) suivie d'une jointure sur `session_members` désanonymise l'auteur de n'importe quelle assertion approuvée — sur des sujets clivants, dans une école où les gens se croisent. Le front est déjà discipliné (`VoteScreen.tsx` liste ses colonnes et exclut `member_id` depuis la migration `20260721_hide_assertion_author.sql`, commentaire "E2 — anonymat des auteurs") mais ce masquage front ne protège pas un appel REST direct.
+
+  **Contenu du fichier** :
+  1. `REVOKE SELECT ON assertions FROM anon, authenticated` puis `GRANT SELECT (id, session_id, content, status, created_at) ON assertions TO anon, authenticated` — retire l'accès à la colonne `member_id` en lecture directe, sans toucher la policy de ligne existante. Colonnes de `assertions` vérifiées exhaustivement dans `supabase/migrations/` (créées par `20260528_voting_app.sql`, jamais modifiées depuis) : `id, session_id, member_id, content, status, created_at` — seule `member_id` est retirée, c'est le seul identifiant reliant une assertion à son auteur.
+  2. `get_my_assertion_ids(p_session_id uuid) RETURNS uuid[]`, `SECURITY DEFINER` — remplace la requête `VoteScreen.tsx` qui lisait `member_id` dans une clause `WHERE` pour compter "mes propositions" (`proposedCount`) ; un `GRANT SELECT` restreint à certaines colonnes interdit aussi d'utiliser les colonnes non accordées dans `WHERE`, d'où le passage par une RPC (comme tous les autres accès à `assertions` qui touchent `member_id` : `submit_assertion`, `approve_assertion`, etc., déjà `SECURITY DEFINER`, non modifiées ici).
+
+  **Code frontend déjà livré (ne dépend pas de la migration pour compiler/charger)** : `getMyAssertionIds(sessionId)` ajouté dans `src/lib/voting.ts`, appelé depuis `loadVoteData` (`src/screens/VoteScreen.tsx` l.~305-320) à la place de l'ancienne requête `.from('assertions').select('id').eq('member_id', m.id)`, avec un `.catch(() => [])` (même garde que `SuperadminScreen.loadGroups`) pour qu'un échec RPC ne fasse pas rejeter tout le `Promise.all` et bloquer aussi le chargement des assertions/votes. `npx tsc -b` OK. **Tant que la migration n'est pas appliquée**, cet appel RPC échoue silencieusement (`PGRST202` — fonction inexistante, absorbée par le `.catch`) : le compteur "mes propositions" (`proposedCount`) reste à 0 en permanence, mais le reste du flux (liste des assertions, vote, polling) continue de fonctionner normalement — pas de blocage total, juste ce compteur faux tant que la migration n'est pas en place.
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP), confirmer `SELECT proname FROM pg_proc WHERE proname = 'get_my_assertion_ids'` retourne la fonction.
+  2. Vérification négative REST (clé anon publique, hors navigateur) :
+     - `GET /rest/v1/assertions?select=member_id` → attendu `42501`/403.
+     - `GET /rest/v1/assertions?select=id,session_id,content,status,created_at` → doit continuer à fonctionner normalement.
+  3. Dérouler le parcours de vote complet (`#vote/<join_code>`, séance `pre_voting` ou `voting`) : liste des assertions, compteur "X / Y votées" cohérent, proposer une assertion et vérifier qu'elle compte bien comme "la mienne" (`proposedCount` — cassé silencieusement avant l'application de la migration, cf. ci-dessus), polling de secours (approuver une assertion côté superadmin → apparition côté participant en moins de 15s), écran "Tu as tout voté", bouton "Voir toutes".
+  4. Le point bloquant Realtime en tête de cette section — à faire avant de clore le chantier.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée le 2026-09-02** — anonymat réel des auteurs d'assertions. Le point bloquant Realtime ci-dessous (fuite possible de `member_id` par WebSocket) et le reste du test manuel n'ont **toujours pas été joués à l'écran** — c'est désormais possible puisque la migration est en place.
+
+- [x] **Ajout d'une source avec une URL valide** *(validé le 2026-09-06)* — `#collab/<join_code>` (`CollabDocScreen.tsx`)
+
+  Rejoindre le document collaboratif d'une séance (via le lien affiché dans une table de débat rattachée à une séance, ou en naviguant directement sur `#collab/<join_code>` avec un `join_code` de séance connu). S'enregistrer avec un pseudo. "+ Ajouter" → titre + `https://example.com` en lien → "Ajouter". Attendu : la source apparaît immédiatement dans la liste, groupée sous la bonne table (ou "Non assigné"), le lien est bleu et cliquable, ouvre un nouvel onglet vers `https://example.com`.
+
+  **Validation de Jules (06/09)** : `#collab/<join_code>` (`CollabDocScreen.tsx`) — ✅ vérifié le 2026-09-06 sur `#collab/65155A` : source acceptée, affichée avec lien bleu cliquable.
+
+- [x] **Comportement à l'affichage d'une ligne douteuse déjà en base** *(validé le 2026-09-06)* — `CollabDocScreen.tsx` et `SuperadminScreen.tsx` (onglet sources, superadmin)
+
+  Si la requête de repérage ci-dessus (section migration) a trouvé des lignes avec un `url` non http(s) : ouvrir le document collaboratif de la séance concernée et l'onglet sources du superadmin pour cette même séance. Attendu dans les deux écrans : le titre et le contenu de la source s'affichent normalement, mais le lien apparaît en texte rouge "⚠ Lien non affiché (schéma non autorisé)", **non cliquable**, au lieu d'un lien bleu. Si aucune ligne douteuse n'existe en base au moment du test, simuler le cas en insérant une ligne de test via `add_collab_source` en base **avant** l'application de la migration de ce chantier (donc sans la validation), ou directement par `INSERT` SQL manuel avec `url = 'javascript:alert(1)'` sur une séance de test — puis nettoyer cette ligne après vérification.
+
+  **Validation de Jules (06/09)** : ✅ **vérifié par une session Claude Code le 2026-09-06** — `CollabDocScreen.tsx` et `SuperadminScreen.tsx` (onglet sources, superadmin)
+
+- [x] **Non-régression de l'écran collaboratif après restriction de `collab_session_users`** *(validé le 2026-09-06)* — `CollabDocScreen.tsx`
+
+  Sur une séance déjà utilisée pour les tests ci-dessus (ou une nouvelle) : recharger `#collab/<join_code>` avec le même navigateur/pseudo déjà enregistré → doit reconnaître automatiquement le pseudo (pas de ré-enregistrement demandé), afficher "Changer" à côté du pseudo dans l'en-tête, et permettre de modifier/supprimer ses propres sources (icônes crayon/poubelle visibles uniquement sur les sources dont `isOwn` est vrai). Changer de navigateur ou session anonyme (nouvel onglet privé) sur la **même séance** → la liste des sources reste visible (lecture publique de `session_sources`, non touchée par ce chantier), mais aucune source n'apparaît comme "à moi" (pas d'icônes crayon/poubelle) tant qu'aucun pseudo n'est enregistré sous cette nouvelle identité — s'enregistrer avec un pseudo déjà pris par un autre `user_id` doit transférer la propriété de ses sources (`register_collab_pseudo`, comportement inchangé par ce chantier, à vérifier non régressé).
+
+  **Validation de Jules (06/09)** : ✅ **vérifié par une session Claude Code le 2026-09-06** — `CollabDocScreen.tsx`
+
+- [x] **Chantier 66 — `supabase/migrations/20260903_chantier66_join_table_single_table.sql`** *(validé le 2026-09-06)* (nouvelle, jamais appliquée) — **à appliquer après le chantier 48 et sa suite** (`20260902_chantier48_switch_table.sql`, `20260902_chantier64b_...`, `20260902_chantier64c_...`) : elle redéfinit `switch_table` en repartant de sa dernière version, et suppose donc que `tables.leaderless_by_design` existe déjà. Indépendante du chantier 67 (point 3) juste au-dessus : les deux touchent des fonctions différentes du même fichier source d'origine sans se chevaucher (l'une `sync_table_assignment`, l'autre `join_table`/`switch_table`).
+
+  **Symptôme corrigé** : `join_table` ne retirait jamais le participant de ses tables précédentes dans la même séance (simple upsert) — rejoindre une nouvelle table AJOUTAIT une ligne `participants` sans supprimer l'ancienne. Deux identités de test étaient encore listées comme présentes à la table `589D79` le 02/09 alors qu'elles l'avaient quittée. Le trou n'avait été bouché que pour `switch_table` (chantier 48/64b), jamais pour `join_table`.
+
+  **Contenu du fichier** : nouvelle fonction `leave_other_session_tables(p_session_id, p_new_table_id, p_user_id)` — extraction du nettoyage déjà présent dans `switch_table` (libère le micro, clôt le tour en cours, supprime la ligne `participants`, bascule arrière `leaderless_by_design` si l'utilisateur en était le modérateur Bloc C) — **hors table de destination**, exclusion nécessaire pour que reprendre le code de sa table actuelle ne se coupe pas soi-même le micro. `join_table` l'appelle désormais avant l'INSERT (nouveauté) ; `switch_table` est refactorisée pour l'appeler aussi (comportement observable inchangé — sa garde « Tu es déjà à cette table » rendait déjà l'exclusion redondante). Signatures de `join_table` et `switch_table` inchangées.
+
+  **Décision de Jules, non modifiée par ce chantier** : le bouton "Quitter" (`leaveTable()`) reste purement local, ne supprime rien, aucun appel RPC — le nettoyage ne se déclenche qu'à l'entrée dans une nouvelle table.
+
+  **Question ouverte, non traitée par cette migration** — lignes fantômes déjà présentes en base (créées par le bug avant ce correctif, ex. table `589D79`). Requête de **diagnostic seulement** (aucune suppression) :
+  ```sql
+  -- Participants qui ont, dans une même séance, plusieurs lignes `participants`
+  -- (donc plusieurs tables) au même moment — le symptôme du bug.
+  SELECT
+    t.session_id,
+    p.user_id,
+    array_agg(DISTINCT p.pseudo)   AS pseudos,
+    array_agg(DISTINCT t.join_code) AS tables_join_codes,
+    count(DISTINCT p.table_id)      AS nb_tables
+  FROM participants p
+  JOIN tables t ON t.id = p.table_id
+  WHERE t.session_id IS NOT NULL
+  GROUP BY t.session_id, p.user_id
+  HAVING count(DISTINCT p.table_id) > 1
+  ORDER BY nb_tables DESC;
+  ```
+  Ne pas supprimer ces lignes sans confirmation explicite de Jules — pas de sauvegarde active de la base à ce jour (`chantier-secu-sauvegardes`, non mergée).
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Vérifier au préalable `tables.leaderless_by_design` existe (`SELECT column_name FROM information_schema.columns WHERE table_name='tables' AND column_name='leaderless_by_design';`).
+  2. **Rejoindre le lien d'un ami après en avoir déjà une** — un participant déjà dans TABLE_A (via `join_table` ou `switch_table`) reçoit/tape le code de TABLE_B (même séance). Rejoindre TABLE_B via l'onglet "Rejoindre" de l'accueil ou le lien `#table/<code_B>`. **Observer** : `SELECT * FROM participants WHERE table_id = '<TABLE_A_ID>'` ne montre plus ce participant ; il apparaît dans TABLE_B. Sur l'appareil du modérateur de TABLE_A (`ModeratorView`/`ParticipantsTable`), il doit disparaître de la liste sans action de sa part (Realtime).
+  3. **Rejoindre la table où l'on est déjà, sans perte** — reprendre le même code de table avec le même pseudo (ex. recharger `App.tsx` après un vidage du localStorage Supabase auth, ou retaper son propre code dans "Rejoindre"). **Observer** : l'`id` de la ligne `participants` est inchangé (pas de suppression/réinsertion), et si le participant avait la parole, il ne la perd pas.
+  4. **Arrivée d'un retardataire en phase `debating`** (jamais passé par l'allocation) — via `VoteScreen`/`SessionRouterScreen` ("le vote est terminé, mais tu peux rejoindre une table directement avec le code") ou `#table/<code>`. **Observer** : aucune régression — le participant rejoint normalement, une ligne `session_members`/`table_assignments` est créée pour lui (`sync_table_assignment`, best-effort, inchangé par ce chantier).
+  5. **"Quitter" laisse toujours la ligne en place** — un participant clique "Quitter" (retour au menu) sans rejoindre d'autre table. **Observer** : `SELECT * FROM participants WHERE table_id = '<TABLE_ID>' AND user_id = '<USER_ID>'` renvoie toujours la ligne — comportement volontaire (décision de Jules), pas un oubli. Le modérateur voit toujours ce participant dans sa liste tant qu'il ne l'exclut pas via "Exclure" ou qu'il ne rejoint pas une autre table.
+  6. **Bascule arrière d'une table leaderless** — répéter le test 2 avec un participant qui est le modérateur Bloc C (`session_members.is_moderator`) d'une table `leaderless_by_design = true`, en utilisant `join_table` (pas `switch_table`) pour changer de table. **Observer** : la table quittée repasse `leaderless = true` — même comportement que si le départ s'était fait via `switch_table` (chantier 64b).
+
+  **Tant qu'elle n'est pas appliquée** : comportement actuel inchangé (rejoindre une nouvelle table via `join_table` laisse l'ancienne ligne `participants` en place).
+
+  **Validation de Jules (06/09)** : ✅ **appliquée (confirmée en base) et vérifiée par une session Claude Code le 2026-09-06** (`20260902_chantier48_switch_table.sql`, `20260902_chantier64b_...`, `20260902_chantier64c_...`) : elle redéfinit `switch_table` en repartant de sa dernière version, et suppose donc que `tables.leaderless_by_design` existe déjà. Indépendante du chantier 67 (point 3) juste au-dessus : les deux touchent des fonctions différentes du même fichier source d'origine sans se chevaucher (l'une `sync_table_assignment`, l'autre `join_table`/`switch_table`).
+
+- [x] **Chantier 54 — `supabase/migrations/20260903_chantier54_remove_moderator_table_delete.sql`** *(validé le 2026-09-06)* — supprime purement et simplement la policy RLS `tables_delete_moderator` (posée par le chantier 60 sur `is_table_moderator`), sans la remplacer. Aucune dépendance avec les autres migrations en attente ci-dessus, applicable indépendamment.
+
+  **Pourquoi** : Jules a découvert qu'un modérateur pouvait encore supprimer sa table (`TableContext.endTable()`, DELETE direct côté client), alors qu'il croyait ce chemin déjà fermé — le bouton correspondant avait bien été retiré de `ModeratorView` en juin 2026 (commit `54b6b93`), mais la policy RLS qui autorisait le DELETE en base restait active, donc l'action restait possible par un appel REST direct (`DELETE /rest/v1/tables?id=eq.<id>` avec la clé anon publique), sans passer par l'UI. Décision de Jules : le modérateur ne doit plus jamais pouvoir supprimer sa table, par aucun chemin. `endTable()` et son entrée dans `TableCtxValue` ont aussi été retirés de `TableContext.tsx` (code mort, plus aucun appelant côté écrans depuis juin).
+
+  **N'affecte pas** la suppression de table côté superadmin (`SuperadminScreen` → `deleteTableAdmin` → RPC `SECURITY DEFINER` `delete_table_admin`, indépendante de cette policy — elle contourne RLS entièrement).
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  2. `SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'tables' AND cmd = 'DELETE';` → **aucune ligne retournée**.
+  3. Voir les recettes détaillées dans les sections Parcours Modérateur et Parcours Superadmin ci-dessous.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée et vérifiée par une session Claude Code le 2026-09-06** — supprime purement et simplement la policy RLS `tables_delete_moderator` (posée par le chantier 60 sur `is_table_moderator`), sans la remplacer. Aucune dépendance avec les autres migrations en attente ci-dessus, applicable indépendamment.
+
+- [x] **2026-09-04 — Chantier 70 — `supabase/migrations/20260904_chantier70_historiser_votes.sql`** *(validé le 2026-09-06)* (jamais appliquée) — historiser les votes pour mesurer le déplacement des opinions après le débat, suite directe du point signalé par le chantier 69
+
+  **Contexte / décision de Jules** : `cast_vote` (chantier 69) écrase l'ancien vote par upsert, sans historique — la comparaison avant/après débat que la démarche Ecclesia veut mesurer était impossible. Jules a tranché : « il faut faire une "sauvegarde" de l'ancien vote pour pouvoir le comparer au nouveau vote [...] on pourra relancer l'analyse, et voir comment les positions idéologiques ont bougé après le débat. » Ce chantier ne fait QUE la partie serveur et données — **aucun écran de comparaison n'a été conçu**, c'est volontaire (Jules veut son mot à dire sur cette visualisation). Voir « Ce que ces données permettent, et ce qu'il reste à faire » en fin d'entrée.
+
+  **Choix de conception — table d'historique plutôt qu'élargissement de la contrainte d'unicité** (justification complète en tête du fichier de migration) : `assertion_votes` reste structurellement et comportementalement identique à aujourd'hui (une ligne par paire assertion×membre = le vote courant). L'ancien vote est détourné vers une nouvelle table `assertion_vote_history`, alimentée par `cast_vote` juste avant chaque écrasement réel (pas de ligne si le nouveau vote est identique à l'ancien — évite le bruit d'un re-clic sur le même bouton). Alternative rejetée : élargir `UNIQUE(assertion_id, member_id)` sur `assertion_votes` lui-même aurait obligé à retoucher tous ses lecteurs existants (inventaire fait avant d'écrire la migration : `get_vote_results`, `get_vote_counts_admin`, `get_all_votes_for_analysis`, `get_session_voting_stats`, `get_table_opinion_summary`, `get_public_results`, `get_vote_results_all`, les gardes "has_voted" de `list_session_members_admin`/`get_allocation_inputs`, et côté client `VoteScreen.tsx`/`PostVoteScreen.tsx`) — aucun ne filtre aujourd'hui sur une notion de version, tous supposent au plus une ligne par paire. La table à part laisse ces lecteurs **strictement inchangés**.
+
+  **Contenu du fichier** (détail et rationale complets en commentaires en tête du fichier) :
+  1. Table `assertion_vote_history` (RLS self-only, même policy que `assertion_votes_select_own`) — capture `vote`, `voted_at` (created_at de la ligne remplacée), `superseded_at`, `phase_at_change` (`sessions.phase` au moment de l'écrasement, `text` libre sans CHECK — même convention que `session_members.joined_phase`).
+  2. Colonne `assertion_votes.first_cast_phase` (nouvelle, `NOT NULL`) — phase au moment du tout premier vote sur cette paire, jamais retouchée par un upsert ultérieur. Backfill `'legacy'` sur toutes les lignes déjà en base.
+  3. Colonne `session_analysis.vote_scope` (nouvelle, `NOT NULL DEFAULT 'current'`) — `'current'` ou `'pre_closure'`, tague quels votes ont nourri l'analyse.
+  4. `cast_vote` redéfinie — historise avant d'écraser (voir ci-dessus). Mêmes vérifications et même valeur de retour qu'avant pour l'appelant.
+  5. `get_all_votes_for_analysis` redéfinie — nouveau paramètre `p_vote_scope` (défaut `'current'`, donc tout appel existant continue à fonctionner à l'identique sans le passer). `p_vote_scope = 'pre_closure'` reconstitue, pour chaque paire, la valeur juste avant le premier écrasement en phase `'closed'` ; exclut les paires dont le tout premier vote a été posé en `'closed'` (n'existaient pas avant la clôture — ex. une assertion votée pour la première fois via la section "3 · Assertions non vues" du postvote).
+  6. `save_analysis` redéfinie — nouveau paramètre `p_vote_scope` (défaut `'current'`, même comportement qu'avant si omis). `session_analysis` était **déjà append-only** (simple `INSERT`, jamais un upsert, depuis sa création en `20260610_opinion_analysis.sql`) — relancer une analyse n'a donc jamais écrasé la précédente, avant comme après ce chantier.
+  7. `get_latest_analysis`, `get_results_map`, `get_public_results` redéfinies — ajout de `AND vote_scope = 'current'` à leur sélection de "dernière analyse `done`". **Point tranché sans consultation, à valider par Jules** (voir note dédiée en tête du fichier de migration) : sans ce filtre, lancer une analyse `'pre_closure'` après une analyse `'current'` la rendrait chronologiquement plus récente et donc, silencieusement, celle montrée aux participants sur `ResultsMapScreen`/`PublicResultsScreen` — jugé absurde, d'où le filtre. Comportement strictement inchangé pour toutes les analyses déjà en base (`vote_scope` vaut `'current'` par défaut dessus).
+  8. Deux nouvelles RPC : `list_session_analyses(password, session_id)` (toutes les analyses d'une séance, triées par date, avec `vote_scope` et nombre de membres placés) et `get_analysis_by_id(password, analysis_id)` (relit une analyse précise, pas seulement "la dernière"). Nécessaires pour qu'un futur écran de comparaison puisse charger une analyse `'current'` et une `'pre_closure'` côte à côte.
+
+  **Côté frontend, déjà livré (ne dépend pas de la migration pour compiler)** — `src/lib/analysis.ts` : type `VoteScope`, `LoadedAnalysis.vote_scope` (nouveau champ), `SessionAnalysisSummary` (nouveau type) ; `loadVotesForAnalysis`/`saveAnalysisResult` acceptent un `voteScope` optionnel (défaut `'current'`) ; nouvelles fonctions `listSessionAnalyses`/`loadAnalysisById`. Seul changement hors `analysis.ts` : `src/components/AnalysisPanel.tsx`, `resultToLoaded()` pose `vote_scope: 'current'` sur l'objet qu'elle construit localement (mécanique, pour satisfaire le type étendu — ce chemin ne calcule jamais depuis les votes pré-clôture, aucune UI ne le déclenche). **Aucun autre changement dans `AnalysisPanel.tsx`/`SuperadminScreen.tsx`** — le bouton "Lancer une analyse" continue d'appeler `loadVotesForAnalysis`/`saveAnalysisResult` sans le nouveau paramètre, donc toujours en `vote_scope='current'`, comportement identique à avant ce chantier. `npx tsc --noEmit`, `npm test` (94 passants, 1 skip) et `npm run build` propres.
+
+  **⚠️ Fenêtre de contamination, à savoir avant d'exploiter les données** : le chantier 69 (écran postvote) est déjà mergé et déployé, et permettait déjà de revoter en phase `closed` **sans** historisation avant cette migration. Le backfill `first_cast_phase = 'legacy'` suppose qu'aucune ligne déjà en base n'a été posée/modifiée pendant que la séance était `closed` — vrai pour tout ce qui précède le chantier 69, potentiellement faux pour une poignée de votes passés entre le déploiement du chantier 69 et l'application de cette migration. Aucune parade a posteriori (l'information n'a jamais été capturée) — l'appliquer au plus tôt réduit la fenêtre.
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  2. Vérifier le backfill : `SELECT COUNT(*) FROM assertion_votes WHERE first_cast_phase IS NULL` → attendu `0` (contrainte `NOT NULL` posée en fin de section 2, donc cette requête ne peut de toute façon plus remonter de ligne — sert à confirmer qu'aucune erreur n'a interrompu le backfill avant la contrainte).
+  3. Scénario minimal d'historisation — sur une séance de test `closed` avec au moins un membre inscrit et une assertion approuvée :
+     - Nettoyer une paire de test si besoin, voter une première fois (`SELECT cast_vote('<assertion_id>', 'agree')` en simulant l'appelant, ou via l'écran postvote réel).
+     - Revoter différemment (`cast_vote('<assertion_id>', 'disagree')`).
+     - `SELECT * FROM assertion_vote_history WHERE assertion_id = '<assertion_id>' AND member_id = '<member_id>'` → attendu une ligne, `vote = 'agree'`, `phase_at_change = 'closed'`.
+     - Revoter une troisième fois avec la **même** valeur (`cast_vote('<assertion_id>', 'disagree')` à nouveau) → attendu : toujours une seule ligne d'historique (pas de doublon sur un re-vote identique).
+  4. `SELECT get_all_votes_for_analysis('<mot de passe>', '<session_id>', false, 'pre_closure')` sur cette même séance → attendu : la paire de test apparaît avec `vote = 'agree'` (la valeur d'avant l'écrasement), pas `'disagree'`.
+  5. Vérifier l'exclusion des votes nés en postvote : voter pour la toute première fois sur une paire jamais votée, pendant que la séance est `closed` → `SELECT get_all_votes_for_analysis(..., 'pre_closure')` ne doit **pas** contenir cette paire (alors que `get_all_votes_for_analysis(..., 'current')`, ou l'omission du 4ᵉ paramètre, la contient normalement).
+  6. Lancer une analyse via le panneau superadmin existant (`AnalysisPanel`, bouton "Lancer une analyse") **avant et après** avoir appliqué cette migration si possible, sinon juste après : vérifier que le comportement est identique à avant (aucun changement visible), et que `SELECT vote_scope FROM session_analysis ORDER BY created_at DESC LIMIT 1` retourne bien `'current'`.
+  7. `SELECT list_session_analyses('<mot de passe>', '<session_id>')` → toutes les analyses de la séance apparaissent, triées par date décroissante, avec leur `vote_scope`.
+  8. `SELECT get_analysis_by_id('<mot de passe>', '<id d'une analyse ancienne, pas la dernière>')` → retourne cette analyse précise (pas la plus récente).
+
+  **Ce que ces données permettent, et ce qu'il reste à faire (pour Jules, avant d'ouvrir l'écran de comparaison)** :
+  - Il est maintenant possible d'appeler `loadVotesForAnalysis(supabase, password, sessionId, false, 'pre_closure')` puis `runOpinionAnalysis(...)` puis `saveAnalysisResult(..., 'pre_closure')` pour calculer et conserver une analyse "avant clôture", à tout moment après que des votes ont commencé à être révisés en postvote — **sans jamais toucher** à l'analyse `'current'` existante (ligne distincte, jamais écrasée).
+  - `listSessionAnalyses`/`loadAnalysisById` permettent de charger deux analyses précises (une `'current'`, une `'pre_closure'`) pour les comparer — même structure de données que ce que `ResultsMapScreen`/`AnalysisPanel` savent déjà afficher côté scatter/repness/consensus pour une analyse individuelle.
+  - **Ce qui manque, hors périmètre de ce chantier** : (a) un bouton dans `AnalysisPanel` pour déclencher explicitement une analyse `'pre_closure'` (aujourd'hui uniquement possible via un appel direct aux fonctions `analysis.ts`, aucun déclencheur UI) ; (b) un écran ou un mode de `ResultsMapScreen`/`AnalysisPanel` juxtaposant les deux scatters ou calculant un delta par membre (ex. `group_id` avant vs après, ou distance PCA parcourue) ; (c) une réflexion sur la présentation aux **participants** eux-mêmes (voient-ils leur propre déplacement, ou seulement le superadmin ?) — non tranchée, à décider par Jules.
+
+  **Validation de Jules (06/09)** : ✅ **appliquée et vérifiée par une session Claude Code le 2026-09-06** — historiser les votes pour mesurer le déplacement des opinions après le débat, suite directe du point signalé par le chantier 69
+
+- [x] **2026-09-01 — Bouton "Voir tous les débats" (accueil)** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/screens/EntryScreen.tsx`
+
+  Lien externe vers `https://ecclesia-centralesupelec.vercel.app/#debats` (site public Ecclesia, hébergé à part sur Vercel), `target="_blank" rel="noopener noreferrer"`. Placé en pied de carte d'accueil, au-dessus du lien "Administration".
+
+  **Déjà vérifié en navigateur** : présent sur l'écran d'accueil, `href`/`target`/`rel` corrects (lu via le DOM), zéro erreur console au chargement de l'écran.
+
+  **Non vérifiable en session headless** : l'ouverture réelle d'un nouvel onglet vers un domaine externe (Vercel) n'a pas été cliquée pour de vrai — seuls les attributs du lien ont été inspectés.
+
+  **Validation de Jules (06/09)** : `src/screens/EntryScreen.tsx` — ✅ présence confirmée en navigateur le 2026-09-06
+
+- [x] **2026-09-01 — Modale "Anciennes séances" (accueil)** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/screens/EntryScreen.tsx` (`PastSessionsModal`)
+
+  Bouton "Voir les votes des anciennes séances" en pied de carte d'accueil → modale listant les séances `phase='closed' AND results_public=true` (titre, date, description), triées par date décroissante. Clic sur une séance → `#results/<id>` (nouvelle route directe par id, pas de join_code — un `join_code` de séance close peut être réutilisé par une séance non-close plus récente, donc le routage par id évite toute ambiguïté).
+
+  **Déjà vérifié en navigateur (avant migration)** : la modale s'ouvre, affiche "Anciennes séances" avec bouton de fermeture, la requête échoue proprement avec le message Postgres explicite affiché à l'écran ("column sessions.results_public does not exist") — pas de page blanche, pas d'exception React non gérée. Fermeture de la modale (✕) fonctionne.
+
+  **Test minimal (après migration)** : au moins une séance `closed` avec `results_public=true` créée par la session de vérification (via le nouveau bouton superadmin ci-dessous) → vérifier son apparition dans la liste, triée correctement si plusieurs. Cliquer dessus → arrivée sur `#results/<id>` (voir section dédiée ci-dessous). Vérifier aussi le cas vide ("Aucune séance aux résultats publics pour l'instant.") si aucune séance n'est encore marquée visible.
+
+  **Validation de Jules (06/09)** : ✅ **vérifiée par une session Claude Code le 2026-09-06** — `src/screens/EntryScreen.tsx` (`PastSessionsModal`)
+
+- [x] **2026-09-01 — Page de résultats publics** *(validé le 2026-09-06)* — `src/screens/PublicResultsScreen.tsx`, routes `#results/<session_id>` et `#session/<join_code>` (phase closed, visiteur non inscrit)
+
+  Page unique : nuage de points PCA anonyme (aucun `member_id`, mêmes couleurs/légende que l'onglet Analyse du superadmin) si une analyse existe, puis liste complète des assertions approuvées avec barre agree/disagree/pass et compteurs. Accessible sans connexion (auth anonyme uniquement). Aucune table, aucun pseudo, aucun découpage par table de débat — vérifié en lisant le payload exact retourné par `get_public_results` (voir requêtes de vérification dans le fichier de migration) : seulement `k_chosen`, `points[].{pca_x,pca_y,group_id}`, `assertions[].{content,agree_count,disagree_count,pass_count}`.
+
+  **Déjà vérifié en navigateur (avant migration)** : `#results/<uuid inexistant>` → "Séance introuvable." affiché proprement (pas de crash), zéro exception React. `#results/<id>` sans `session` prop résout bien la séance par id avant de charger les résultats (chemin de code distinct de l'usage existant via `SessionRouterScreen`, qui passe toujours `session` directement).
+
+  **Non testable avant migration** : le rendu réel avec des données (nuage de points + assertions) — la fonction `get_public_results` encore déployée renvoie l'ancienne forme (`groups`/`consensus`), donc `data.points`/`data.assertions` restent vides même pour une séance close existante avec `results_public` inexistant en base.
+
+  **Test minimal (après migration, mot de passe superadmin pour préparer une séance de test)** : séance close avec au moins une analyse d'opinion lancée et quelques assertions votées → marquer `results_public=true` (bouton superadmin ci-dessus) → ouvrir `#results/<id>` (via la modale accueil) et `#session/<join_code>` (si le join_code est encore d'actualité) en visiteur non connecté (nouvel onglet privé / navigateur non inscrit à la séance) → vérifier l'affichage du nuage de points, des assertions avec compteurs, l'absence totale de nom/pseudo/table à l'écran, zéro erreur console. Démarquer `results_public=false` → revérifier que la page affiche "non disponibles publiquement" (le RPC renvoie NULL).
+
+  **Validation de Jules (06/09)** : ✅ **vérifiée par une session Claude Code le 2026-09-06** — `src/screens/PublicResultsScreen.tsx`, routes `#results/<session_id>` et `#session/<join_code>` (phase closed, visiteur non inscrit)
+
+- [x] **2026-09-02 — Chantier 67 (point 1) — continuer à voter à distance au lieu de mentir sur sa présence** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/screens/VoteScreen.tsx` (`AttendanceConfirmScreen`, mode `known_user`)
+
+  **Aucune vérification navigateur faite** (session headless, consigne explicite de ne lancer aucun serveur de dev). Seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts.
+
+  **Le bug** : un pré-votant, au passage de la séance en phase `voting`, était basculé de force sur l'écran de confirmation de présence (« Tu avais voté à distance sous le nom X — Es-tu présent(e) au débat aujourd'hui ? »), avec seulement deux issues : confirmer sa présence (`attending_in_person → true`, alors qu'il n'est pas là) ou basculer vers l'écran de reconquête (pseudo/code/nouveau profil — qui mène, lui aussi, toujours à `attending_in_person = true`). Aucune voie ne permettait de rester à distance sans mentir.
+
+  **Le correctif** : nouveau bouton « Non, je continue à voter à distance » entre « ✓ Oui, je suis présent(e) » et « Ce n'est pas moi / utiliser un autre compte ». Au clic : `handleContinueRemote()` ne fait **aucun appel RPC** (pas de `confirmAttendance`), le membre reste inchangé (`attending_in_person` reste `false`), et le vote reprend directement (`loadVoteData`) — même chemin que `handlePseudoReclaimSuccess` (pas d'onboarding : la pré-vote n'en a pas).
+
+  **Allocation — non modifiée** (hors périmètre, consigne explicite de ce chantier). Vérifié par lecture de `get_allocation_inputs`/`run_clustering_v1`/`run_clustering_v2` : les trois filtrent déjà sur `attending_in_person = true` — un membre resté à `false` via ce nouveau bouton est donc déjà exclu de la répartition, sans changement nécessaire côté allocation (`src/lib/allocation.ts` non touché).
+
+  **Test minimal** :
+  1. Créer un pré-votant (phase `pre_voting`, vote via `#vote/<join_code>`), noter son pseudo.
+  2. Faire passer la séance en `voting` depuis le superadmin.
+  3. Recharger `#vote/<join_code>` avec **le même profil navigateur** que le pré-vote → observer l'écran « Tu avais voté à distance sous le nom X — Es-tu présent(e) au débat aujourd'hui ? » avec **trois** boutons désormais (présent / continuer à distance / pas moi).
+  4. Cliquer « Non, je continue à voter à distance » → observer : retour direct à l'écran de vote (assertions), pas d'écran d'onboarding, pas d'erreur.
+  5. Superadmin, onglet Membres : vérifier que `attending_in_person` de ce membre est resté `false`.
+  6. Lancer l'allocation (`AllocationPanel`, phase `allocating`) : vérifier que ce membre n'apparaît dans **aucune** table proposée.
+  7. **Non-régression** : reprendre les scénarios 1/2/3/5 du chantier 61 documentés ci-dessous (nouvel arrivant, reconquête par nom, par code, confirmation de présence classique) — vérifier qu'ils passent toujours, notamment que le bouton « ✓ Oui, je suis présent(e) » juste au-dessus du nouveau bouton fonctionne toujours normalement.
+
+  **Validation de Jules (06/09)** : ✅ **entièrement vérifié par une session Claude Code le 2026-09-06** — `src/screens/VoteScreen.tsx` (`AttendanceConfirmScreen`, mode `known_user`)
+
+- [x] **2026-09-02 — Chantier 67 (point 4) — message d'accueil aligné sur les 5 étapes de `PhaseIndicator`** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/screens/VoteScreen.tsx` (`AppIntroModal`)
+
+  **Le bug** : `AppIntroModal` (popup « Comment se déroule la séance ? », une fois par séance) annonçait 4 étapes (Vote / Répartition / Débat / Questionnaire) alors que `PhaseIndicator` (chantier 39) en affiche 5 : 1 Distanciel, 2 Vote en présentiel, 3 Allocation, 4 Débat, 5 Post-débat.
+
+  **Le correctif** : les 5 libellés numérotés de `AppIntroModal` reprennent mot pour mot ceux de `PARTICIPANT_PHASE_STEPS` (`src/lib/phaseLabels.ts`) — « 1. Distanciel », « 2. Vote en présentiel », « 3. Allocation », « 4. Débat », « 5. Post-débat » — avec une description courte par étape.
+
+  **Test minimal** :
+  1. Vider `localStorage['ecclesia_app_intro_<session.id>']` (ou utiliser une séance jamais visitée sur ce profil).
+  2. Ouvrir `#vote/<join_code>` → observer le popup « Comment se déroule la séance ? » avec **5** lignes numérotées 1 à 5, libellés strictement identiques à ceux de la pastille `PhaseIndicator` affichée sur les écrans suivants du parcours (comparer texte à texte : « 1 · Distanciel » en pré-vote, « 2 · Vote en présentiel » en vote, etc.).
+  3. Fermer (« Compris, c'est parti → ») → recharger la page → vérifier que le popup ne réapparaît pas (comportement `localStorage` inchangé).
+  4. **Non-régression** : vérifier que le popup `PreVotingAnnounceModal` (l'autre popup d'accueil, prioritaire en `pre_voting`) continue de s'afficher à sa place quand les deux conditions sont réunies — ce chantier n'a pas touché cette logique de priorité (`showPreVotingAnnounce ? ... : showAppIntro && ...`).
+
+  **Validation de Jules (06/09)** : ✅ **vérifié par une session Claude Code le 2026-09-06** — `src/screens/VoteScreen.tsx` (`AppIntroModal`)
+
+- [x] **2026-09-02 — Chantier 61 — s'inscrire et voter pendant la phase `allocating`** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/screens/VoteScreen.tsx`, migration `20260902_chantier61_register_during_allocating.sql` *(voir « Migration SQL en attente » ci-dessus — les scénarios 1 et 4 ne passent qu'une fois appliquée ; 2 et 3 passent sans)*
+
+  **Aucune vérification navigateur n'a été faite** (session headless, harnais partagé avec d'autres chantiers) : seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts. Tout ce qui suit est à jouer à la main.
+
+  **Livré** : (a) migration ci-dessus ; (b) `VotingEntryForm` — le formulaire combiné « Mon nom » / « Mon code de rappel », avec reconquête automatique — est désormais monté en phase `voting` **et** `allocating`, au lieu de `voting` seul ; (c) un membre déjà connu sur cet appareil mais pas encore confirmé présent (`attending_in_person = false`, cas typique du pré-votant à distance) passe par l'écran de confirmation de présence en `allocating` comme il le faisait déjà en `voting` ; (d) un encart ambre à l'entrée prévient que les groupes sont en cours de formation et que le vote ne changera plus la répartition.
+
+  ⚠️ **À lire avant de tester — ce chantier déplaçait le mur, il ne l'enlevait pas à lui seul.** Un participant inscrit **après** que l'organisateur a appliqué l'allocation n'a aucune ligne `table_assignments` : une fois son vote terminé et la phase passée en `debating`, il se serait retrouvé sur « Formation des groupes en cours… » sans porte de sortie. C'est l'objet du **chantier 62** (sortie de secours — saisie manuelle d'un code de table sur `TableAssignmentCard`), livré séparément mais désormais présent sur cette branche. **Les deux doivent être vérifiés ensemble** — voir l'entrée dédiée « Chantier 62 » juste en dessous, qui prolonge le scénario 1 ci-dessous jusqu'au passage en phase `debating`.
+
+  **Préparation commune** : une séance de test avec au moins une assertion `approved`, passée en phase `pre_voting` puis `voting` (pour créer un pré-votant), puis **`allocating`** depuis le superadmin. Prévoir 2 navigateurs/profils distincts (identités anonymes séparées).
+
+  **Scénario 1 — nouvel arrivant qui s'inscrit pendant l'allocation** *(migration requise)*
+  1. Séance en phase `allocating`. Ouvrir `#vote/<join_code>` dans un profil navigateur **neuf** (jamais inscrit à cette séance).
+  2. Observer : le formulaire « Vote présentiel » à deux onglets (**Mon nom** / **Mon code de rappel**) s'affiche — et **pas** l'ancien écran à un seul champ. Un encart ambre annonce que les groupes sont en cours de formation.
+  3. Onglet « Mon nom » → saisir un nom **jamais utilisé** sur cette séance → Continuer.
+  4. Observer : **aucune erreur rouge** « La séance n'est pas en phase d'inscription (phase: allocating) ». L'écran suivant doit être **le questionnaire d'entrée (onboarding)** — les 3 questions (consentement transcription / style de participation / déjà fait un débat Ecclesia). *C'est le point le plus important à contrôler : l'onboarding ne doit pas être sauté.*
+  5. Répondre aux 3 questions → l'écran de vote s'affiche, avec la bannière ambre « L'organisateur forme les groupes de débat… ».
+  6. Vérifier dans le superadmin, onglet participants : le nouveau membre apparaît, **coché présent** (`attending_in_person = true`) et avec la colonne onboarding à ✅. *(Note : la pastille de phase d'inscription affichera la valeur brute `allocating` — `PHASE_LABEL_MEMBER` dans `SuperadminScreen.tsx` ne traduit ni `pre_voting` ni `allocating`. Cosmétique, fichier laissé intact car occupé par le chantier 50.)*
+
+  **Scénario 2 — pré-votant qui se retrouve par son nom, pendant l'allocation** *(fonctionne même sans la migration)*
+  1. Depuis un profil navigateur **neuf** (pas celui qui a servi au pré-vote — c'est le cas « nouvel appareil »), séance en phase `allocating`, ouvrir `#vote/<join_code>`.
+  2. Onglet « Mon nom » → saisir **exactement** le nom utilisé lors du pré-vote.
+  3. Observer : écran vert « Bienvenue \<nom\> ! Tes votes ont bien été récupérés. » → Continuer.
+  4. Observer : comme ce pré-votant n'a jamais fait l'onboarding (la phase `pre_voting` n'en propose pas), le **questionnaire d'entrée doit s'afficher** avant le vote.
+  5. Après l'onboarding : l'écran de vote doit montrer **les votes déjà exprimés à distance** (les assertions déjà votées ne réapparaissent pas comme non votées).
+  6. Superadmin : le membre est maintenant **présent** (`attending_in_person` passé à `true`), sans doublon de ligne.
+
+  **Scénario 3 — le même, par code de rappel** *(fonctionne même sans la migration)*
+  1. Profil navigateur neuf, séance en `allocating`, `#vote/<join_code>`.
+  2. Onglet « **Mon code de rappel** » → saisir le code à 4 chiffres affiché lors de l'inscription au pré-vote.
+  3. Mêmes observations qu'au scénario 2 : écran vert de reconquête, puis onboarding, puis vote avec les votes d'origine.
+  4. Contrôle négatif : un code à 4 chiffres inexistant doit afficher « Code de rappel invalide » en rouge, sans navigation ni création de membre.
+
+  **Scénario 4 — le vote fonctionne réellement pour ces nouveaux venus** *(le cœur du chantier)*
+  1. Dans chacun des trois cas ci-dessus, une fois sur l'écran de vote en phase `allocating` : voter d'accord / pas d'accord / passer sur au moins 3 assertions.
+  2. Observer : chaque vote est accepté (l'assertion suivante s'affiche), **aucune erreur** de type « Cette assertion n'est pas approuvée » ou « Vous n'êtes pas inscrit à cette séance ».
+  3. Recharger la page : les votes sont bien conservés.
+  4. Bouton « ✏️ Proposer » → soumettre une assertion → vérifier qu'elle arrive côté superadmin (`pending` ou `approved` selon `moderation_policy`).
+  5. Superadmin, onglet Analyse : les votes de ces membres apparaissent dans les compteurs.
+
+  **Scénario 5 — pré-votant sur le même appareil (confirmation de présence)** *(fonctionne même sans la migration)*
+  1. Reprendre **le profil navigateur qui a servi au pré-vote** (identité anonyme conservée), séance en `allocating`, ouvrir `#vote/<join_code>`.
+  2. Observer : l'écran « Tu avais voté à distance sous le nom \<nom\> — Es-tu présent(e) au débat aujourd'hui ? » s'affiche, avec l'encart ambre. *Avant ce chantier, cet écran n'apparaissait qu'en phase `voting` : en `allocating` le membre filait au vote en restant compté absent.*
+  3. « ✓ Oui, je suis présent(e) » → onboarding (jamais fait) → vote.
+  4. Superadmin : `attending_in_person` du membre est passé à `true`.
+
+  **Scénario 6 — non-régression des phases voisines**
+  1. Phase `voting` : le parcours d'entrée doit être **strictement inchangé** (formulaire deux onglets, sans encart ambre).
+  2. Phase `pre_voting` : `PseudoForm` à un seul champ, code de rappel affiché après inscription, pas d'onboarding — inchangé.
+  3. Phase `debating` : un profil neuf sur `#vote/<join_code>` doit toujours voir « Le vote est terminé, tu ne peux plus rejoindre cette séance. » (l'inscription passe alors par `join_table`, pas par `register_session_member`).
+  4. Phase `closed` : inchangé (questionnaire post-débat puis résultats).
+
+  **Validation de Jules (06/09)** : ✅ **scénario principal vérifié par une session Claude Code le 2026-09-06 (voir chantiers 61 et 62 plus haut)** — `src/screens/VoteScreen.tsx`, migration `20260902_chantier61_register_during_allocating.sql`
+
+- [x] **2026-09-02 — Chantier 62 — sortie de secours pour le participant inscrit sans affectation de table** *(validé le 2026-09-06)* — `src/components/voting/TableAssignmentCard.tsx` *(pas de migration SQL — réutilise `switch_table`, chantier 48)*
+
+  **Aucune vérification navigateur n'a été faite** (consigne explicite : session headless, harnais partagé avec d'autres chantiers en cours de merge). Seuls `npx tsc --noEmit`, `npm test` (94 tests) et `npm run build` ont été joués, tous verts. Tout ce qui suit est à jouer à la main, **après application de la migration `switch_table` du chantier 48** (voir « Migration SQL en attente » — pas de nouveau fichier SQL pour ce chantier, mais la sortie de secours dépend de la même RPC).
+
+  **Le bug corrigé** : `TableAssignmentCard` affichait « Formation des groupes en cours… » dès que `loading` était vrai **ou** que `assignment` était `null`, sans distinction — un participant inscrit après que l'allocation a tourné (typiquement via le **chantier 61**, inscription pendant `allocating`) n'a aucune ligne `table_assignments` et restait bloqué indéfiniment sur ce spinner une fois la phase passée en `debating`, sans aucune porte de sortie.
+
+  **États réellement atteignables, établis avant d'écrire le correctif** (documentés en commentaire en tête du composant) : `TableAssignmentCard` n'est monté que par `AllocatingScreen`, elle-même montée par `VoteScreen` uniquement quand `session.phase === 'debating'` au moment du montage (jamais pendant `allocating` elle-même, qui reste sur l'écran de vote avec une bannière ambre). Une fois montée, la phase ne peut plus évoluer que vers `closed`. D'où trois branches désormais distinctes :
+  - `loading === true`, ou `assignment === null` dans une phase autre que `debating`/`closed` (en pratique inatteignable, traité par précaution comme "en cours") → spinner inchangé.
+  - `assignment === null` **et** `phase === 'debating'` → **nouveau** : formulaire de sortie de secours (message expliquant la situation + champ code à 6 caractères + bouton "Rejoindre cette table").
+  - `assignment === null` **et** `phase === 'closed'` → **nouveau** : message neutre "Le débat est terminé. Tu n'as rejoint aucune table pendant cette séance." — pas de formulaire (rejoindre n'a plus de sens une fois le débat clos ; la bannière de clôture existante d'`AllocatingScreen` prend le relais juste en dessous).
+  - `assignment !== null` → cas nominal, **strictement inchangé** (carte "Tu es à la Table N" + CTA + lien "Je veux rejoindre une autre table" du chantier 48).
+
+  **Mécanisme réutilisé, pas réinventé** : le formulaire de sortie de secours appelle la même prop `onSwitch` → `AllocatingScreen.handleSwitchTable` → RPC `switch_table` (chantier 48), déjà câblée pour le cas "je suis déjà à une table mais j'en veux une autre". Choix justifié par lecture de code plutôt que par supposition : `switch_table` (a) vérifie que le code appartient à la séance en cours (`tables.session_id = p_session_id`, sinon exception explicite) — contrairement à `join_table`/`JoinTableForm`, dont le docstring du chantier 48 documente explicitement l'absence de cette vérification ; (b) retire proprement le participant de ses tables précédentes dans la séance avant d'insérer la nouvelle — non pertinent ici puisqu'il n'y en a aucune, mais la boucle de nettoyage ne fait simplement rien dans ce cas (`FOR ... LOOP` sur un ensemble vide), sans erreur ; (c) crée la ligne `table_assignments` manquante via `sync_table_assignment` (chantier 26), exactement ce qu'il faut puisque c'est l'absence de cette ligne qui cause le bug. Un succès déclenche `onTableJoined(...)` comme le flux "switch" existant : navigation directe vers `TableView`/`ParticipantView`, sans attendre que `AllocatingScreen` ne rafraîchisse son état `assignment`.
+
+  **Non touché** : `AllocatingScreen.tsx` — le câblage `onSwitch`/`switchLoading`/`switchError` existait déjà intégralement pour le chantier 48 et fonctionne à l'identique pour ce nouveau cas, aucune modification nécessaire.
+
+  **Test minimal** (nécessite la migration `switch_table` appliquée — voir chantier 48 ci-dessous — et complète le scénario 1 du chantier 61 ci-dessus) :
+  1. **Cas cible — sortie de secours affichée** : reprendre le scénario 1 du chantier 61 (nouvel arrivant inscrit et ayant voté pendant `allocating`, sans être passé par l'allocation) jusqu'à son terme, puis faire passer la séance en `debating` depuis le superadmin. Sur l'écran de ce participant : vérifier qu'il voit désormais le message "Le débat a commencé, mais tu n'as pas encore de table." avec le champ de code — **et non plus le spinner "Formation des groupes en cours…"**.
+  2. **Code valide** : saisir le code à 6 caractères d'une vraie table de la séance (demandé à un autre participant déjà assis, ou via l'onglet Tables du superadmin) → vérifier l'arrivée directe dans `ParticipantView`/`ModeratorView` de cette table, et que `table_assignments` reflète la nouvelle affectation côté superadmin (onglet 🪑 Tables).
+  3. **Code invalide** : saisir un code inexistant → vérifier le message "Aucune table ne correspond à ce code." affiché en rouge sous le champ, sans navigation ni crash.
+  4. **Code d'une autre séance** : saisir le code d'une table réelle mais rattachée à une autre séance → vérifier "Ce code correspond à une table d'une autre séance."
+  5. **Non-régression — cas nominal** : un participant correctement inclus dans l'allocation (présent avant que le superadmin ne clique "Appliquer") doit voir sa carte "Tu es à la Table N" normalement en phase `debating`, sans jamais croiser ce nouveau formulaire.
+  6. **Non-régression — séance clôturée sans table** : si un participant reste sans affectation jusqu'à la clôture de la séance, vérifier qu'il voit le message neutre "Le débat est terminé. Tu n'as rejoint aucune table pendant cette séance." (pas le formulaire de code, pas le spinner).
+
+  **Validation de Jules (06/09)** : ✅ **entièrement vérifié par une session Claude Code le 2026-09-06** — `src/components/voting/TableAssignmentCard.tsx` *(pas de migration SQL — réutilise `switch_table`, chantier 48)*
+
+- [x] **2026-09-02 — Chantier 48 — « Je veux rejoindre une autre table »** *(validé le 2026-09-06)* — `src/components/voting/TableAssignmentCard.tsx`, `src/screens/AllocatingScreen.tsx`, migration `switch_table` *(voir « Migration SQL en attente » ci-dessus — le test complet de bascule réelle n'est possible qu'une fois appliquée)*
+
+  **Retour de Jules** : « Dans l'écran qui nous annonce notre table, il faut un bouton : je veux rejoindre une autre table. […] Il faut un message pour lui dire de demander à son ami dans la nouvelle table, ou au modérateur de la nouvelle table, de lui donner le code de la table. »
+
+  **Livré** : sur `AllocatingScreen` (l'écran "Vote terminé ! / Tu es à la Table N"), en phase `debating`, un lien "Je veux rejoindre une autre table" sous le bouton "Accéder à la table →". Au clic : petit formulaire avec le message d'aide demandé par Jules ("Demande le code à 6 caractères de la table visée à un ami déjà installé là-bas, ou à son modérateur") et un champ de code à 6 caractères, réutilisant le même mécanisme que les join codes existants — aucun second système créé.
+
+  **Gestion des cas limites** (répond aux points soulevés dans le dispatch de ce chantier) :
+  - **Code identique à la table déjà assignée** : bloqué **côté client**, sans appel réseau (`Tu es déjà à cette table.`) — vérifié en navigateur, `read_network_requests` confirme zéro requête.
+  - **Code invalide** : `switch_table` lève `Aucune table ne correspond à ce code.` — non vérifié en conditions réelles (migration non appliquée), mais message écrit et testé par lecture de code.
+  - **Code d'une table d'une autre séance** : `switch_table` compare `tables.session_id` à la séance courante et lève `Ce code correspond à une table d'une autre séance.` avant tout effet de bord — idem, à vérifier une fois la migration appliquée.
+  - **Appartenance à l'ancienne table** : `switch_table` retire la/les ligne(s) `participants` de l'utilisateur dans les autres tables de la séance avant d'insérer la nouvelle (jamais dans les deux à la fois). Nécessaire car `leaveTable()` (bouton "Quitter" côté participant) **ne supprime jamais** la ligne `participants` en base — seulement le cache local (`tableStore.clear()`) — un fait **confirmé en conditions réelles** pendant la vérification de ce chantier (voir "Déjà vérifié" ci-dessous et la section Nettoyage).
+
+  **Arbitrage produit laissé ouvert par Jules, tranché par défaut faute de réponse** : le déplacement est **libre** — aucune limite de place, aucune restriction aux tables non modérées. Recherché dans le code : rien dans `src/lib/allocation.ts` (non modifié, hors périmètre de ce chantier) ni ailleurs ne contraint la composition d'une table après l'allocation initiale — la seule contrainte existante est calculée **une fois**, au moment de `apply_allocation`. Conséquence assumée : un participant qui change de table de son propre chef peut défaire l'équilibre idéologique/répartition des anciens/taille de table calculé par l'algorithme, sans aucun garde-fou. À trancher avec Jules si ça pose problème en pratique (ex : limite de place par table, ou blocage des tables déjà équilibrées) — pas anticipé ici pour ne pas complexifier une fonctionnalité qu'il a demandée simple.
+
+  **Déjà vérifié en navigateur réel** (séance partagée "Test manuel — Vote & bascule modérateur (chantiers 35/37)", table `589D79`, deux identités de test "TestChantier48A" et "TestChantier48B") : bouton absent tant qu'on n'est pas en phase `debating` (code inchangé par rapport à l'existant, non re-testé isolément) ; visible et fonctionnel une fois sur `AllocatingScreen` avec une vraie affectation (`table_assignments` réelle, join_code réel `589D79`) ; formulaire s'ouvre/se ferme (bouton "Annuler") sans effet de bord ; garde côté client sur le code déjà assigné confirmée (voir ci-dessus) ; soumission d'un code différent mais réel de la même séance (`6ABDC9`) déclenche bien `switch_table(p_join_code, p_pseudo, p_session_id)` avec les bons paramètres — Postgrest répond proprement `Could not find the function public.switch_table(...)` puisque la migration n'est pas appliquée, affiché en rouge dans le formulaire sans crash, bouton réactivé ensuite. Zéro erreur console au-delà de ce 404 attendu (confirmé par `read_console_messages`). En reproduisant le parcours de Jules (rejoindre → Quitter → revenir sur `AllocatingScreen`), le problème de ligne `participants` orpheline visé par ce chantier a été **observé réellement**, pas seulement supposé : "TestChantier48A" reste listé comme présent de la table `589D79` après être passé par "Quitter", sans avoir jamais rejoint aucune autre table entre-temps.
+
+  **Non testable cette session** (migration non appliquée, voir ci-dessus) : le succès réel d'une bascule (nouvelle ligne `participants` créée, ancienne(s) supprimée(s), `table_assignments` déplacé, arrivée directe en `ParticipantView`/`ModeratorView` de la nouvelle table) et les deux messages d'erreur serveur (code invalide, autre séance).
+
+  **Test minimal restant** (après application de la migration) :
+  1. Un membre avec une table assignée réelle, en phase `debating`, sur `AllocatingScreen` → cliquer "Je veux rejoindre une autre table" → code d'une **vraie** table de la même séance → vérifier l'arrivée directe dans la nouvelle table (`ParticipantView`/`ModeratorView` selon le cas), et que l'ancienne table ne le liste plus dans ses présents.
+  2. Même parcours avec un code inexistant → vérifier le message "Aucune table ne correspond à ce code." sans navigation.
+  3. Même parcours avec le code d'une table réelle mais d'une **autre** séance → vérifier "Ce code correspond à une table d'une autre séance."
+  4. Vérifier dans l'onglet 🪑 Tables du superadmin que `table_assignments` reflète bien la nouvelle table après la bascule (pas les deux).
+
+  **Validation de Jules (06/09)** : ✅ **vérifié par une session Claude Code le 2026-09-06 (voir chantier 48 en section Migration SQL)** — `src/components/voting/TableAssignmentCard.tsx`, `src/screens/AllocatingScreen.tsx`, migration `switch_table`
+
+- [x] **2026-08-01 — Chantier 34 — carte "Votre groupe" affichée à tort pour les non-votants** *(validé le 2026-09-06)* — `src/screens/ResultsMapScreen.tsx`
+
+  **Bug** : sur l'écran de résultats de fin de séance (`ResultsMapScreen`, `#session/<join_code>` en phase `closed`, membre inscrit), la carte "Votre groupe" s'affichait dès que `assignment != null` — or `table_assignments` inclut tous les présents, votants ou non. Un membre inscrit mais n'ayant jamais voté a un `assignment` mais aucun point dans l'analyse PCA → `selfGroupId` reste `null` → il tombait sur "L'organisateur n'a pas encore nommé les groupes.", un texte qui n'a de sens que pour un vrai camp pas encore nommé.
+
+  **Correctif** : condition d'affichage passée de `assignment != null` à `assignment != null && selfGroupId !== null`. Trois cas attendus :
+  - Jamais voté → `selfGroupId === null` → carte "Votre groupe" totalement absente.
+  - Voté, camp pas encore nommé → carte affichée avec "Camp pas encore nommé" (titre porté par le chantier 30/J6, fusionné sans conflit avec ce correctif).
+  - Voté, camp nommé → nom/description du camp affichés normalement.
+
+  **Déjà vérifié** : uniquement via une route de debug temporaire (`#debug-results-map`) + mock de `window.fetch` sur les 3 RPC consommées (`get_my_table_assignment`, `get_results_map`, `get_vote_results`), retirée avant commit. Les 3 rendus correspondent à la spec, zéro erreur console. **Jamais testé contre une vraie séance Supabase.**
+
+  **Test minimal** (nécessite une séance `closed` avec un mix membre votant / membre non-votant — mot de passe superadmin pour créer/clôturer la séance de test, ou une vraie séance passée qui a ce mix) : membre n'ayant jamais voté → `#session/<join_code>` → vérifier l'absence totale de la carte "Votre groupe" (reste de la page — scatter, autres camps, consensus/clivage — inchangé). Membre ayant voté, camp pas encore nommé par Gemini → carte présente avec "Camp pas encore nommé". Membre ayant voté, camp nommé → nom/description corrects.
+
+  **Validation de Jules (06/09)** : ✅ **vérifié contre une vraie séance Supabase par une session Claude Code le 2026-09-06** — `src/screens/ResultsMapScreen.tsx`
+
+- [x] **2026-09-01 — Chantier 40 — ordre des modales d'entrée en débat** *(validé le 2026-09-06)* — `src/screens/ParticipantView.tsx`, `src/components/DebateRulesModal.tsx`
+
+  Retour de Jules : à l'entrée en débat, les deux modales successives ("Bienvenue dans le débat" puis les règles) n'étaient pas clairement présentées comme une séquence voulue. Trois changements purement front, aucune logique de phase touchée :
+  1. Ordre inversé : "Bienvenue dans le débat" s'affiche désormais **avant** les règles.
+  2. Titre de la 2ᵉ modale changé de "Règles du débat" à "Règles d'Ecclesia lors des débats".
+  3. Bouton bleu de la 1ʳᵉ modale changé de "C'est parti ! →" à "Lire les règles de débat Ecclesia →".
+
+  **Déjà vérifié en navigateur** (table `leaderless` de test, séance partagée "Test manuel — Vote & bascule modérateur") : parcours complet accueil → "Bienvenue dans le débat" (nouveau texte de bouton) → clic → modale règles (nouveau titre) → "J'ai lu" → retour vue débat normale, aucune 3ᵉ modale. Rechargement de page : les deux `localStorage` (`debate_welcome_<id>`, `debate_rules_read_<id>`) empêchent bien toute réapparition. Zéro erreur console.
+
+  **Non testé** : rendu sur une table non-`leaderless` (avec modérateur) — risque de régression jugé nul, la logique ne dépend pas de `leaderless` ; parcours mobile réel (uniquement viewport desktop testé).
+
+  **Test minimal** : reproduire le parcours ci-dessus sur une table **avec modérateur** (pas seulement leaderless), et sur mobile (`resize_window` ou vrai appareil) pour couvrir les deux angles non testés.
+
+  **Validation de Jules (06/09)** : ✅ **entièrement vérifié par une session Claude Code le 2026-09-06** — `src/screens/ParticipantView.tsx`, `src/components/DebateRulesModal.tsx`
+
+- [x] **2026-09-01 — Chantier 42 — notes participant perdues (retour de test Jules)** *(validé le 2026-09-06)* — `src/components/NotesModal.tsx`
+
+  **Cause identifiée** : les 3 chemins de fermeture de la modale (croix, clic hors modale, Échap) appelaient `onClose()` sans vider le debounce de 800ms qui déclenche l'écriture en base (`saveNote`). Fermer puis rouvrir juste après une frappe pouvait recharger la base *avant* que l'écriture différée n'ait abouti → la note paraissait perdue (course, pas une perte réelle). Risque aggravant identifié en même temps : au premier enregistrement, deux écritures concurrentes pouvaient se percuter sur la contrainte unique partielle `(session_id, user_id)` / `(table_id, user_id)` de `private_notes`.
+
+  **Correctif appliqué** : `handleClose()` vide et exécute immédiatement le debounce en attente (`await saveNote(...)`) avant d'appeler `onClose()`, sur les 3 chemins de fermeture.
+
+  **Déjà vérifié en navigateur** : frappe dans l'éditeur → fermeture ~200ms après la frappe → réouverture ~150ms après la fermeture → contenu bien présent au rechargement. Zéro erreur console, zéro message "Erreur :" affiché dans la modale.
+
+  **Point non couvert par ce correctif — à vérifier humainement** : la fermeture *dure* du navigateur/onglet (pas la modale) pendant l'écriture différée — le flush est déclenché par `onClose()` React, qui ne s'exécute pas si l'onglet/la page est fermé(e) avant. Reste une perte possible dans ce cas précis (`beforeunload`/`pagehide` non gérés) — scénario différent de celui rapporté par Jules ("écrit, fermé, rouvert" la modale, pas l'onglet), donc hors scope du fix. À évaluer si ça revient.
+
+  **Test minimal** : reproduire le scénario original de Jules (écrire une note, fermer, rouvrir rapidement) sur `NotesModal` en phase vote et en phase débat (table rattachée à une séance, notes partagées vote→débat). Optionnel : tester le cas non couvert (fermeture d'onglet pendant l'écriture) pour évaluer si ça vaut la peine de gérer `beforeunload`.
+
+  **Validation de Jules (06/09)** : ✅ **vérifié par une session Claude Code le 2026-09-06** — `src/components/NotesModal.tsx`
+
+- [x] **2026-09-01 — Chantier 39 — repère de phase participant (`PhaseIndicator`)** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/components/PhaseIndicator.tsx`, `src/lib/phaseLabels.ts`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `ParticipantView.tsx`, `ResultsMapScreen.tsx`, `SessionQuestionnaireForm.tsx`
+
+  **Livré** : pastille "Étape N · Libellé" affichée tout au long du parcours participant — 1 Distanciel (`pre_voting`), 2 Vote en présentiel (`voting`), 3 Allocation (`allocating`), 4 Débat (`debating`), 5 Post-débat (`closed`). Absente en phase `draft` (jamais vue par un participant) et dans `PublicResultsScreen`/`ModeratorView` (hors périmètre). Rendu flottant façon `QuitLink` (coin opposé, en haut à droite) sur les écrans sans en-tête propre (pseudo, onboarding, attente, reconquête de code, confirmation de présence, questionnaire) ; rendu inline dans l'en-tête existant sur les écrans qui en ont un (`VoteScreen` étape vote, `AllocatingScreen`, `ParticipantView`, `ResultsMapScreen`).
+
+  **Déjà vérifié en navigateur** (séance de test réelle "Esai 24/08", phase `draft`, inscription avec pseudo "Chantier39 Verif") : étapes pseudo → onboarding (Question 1/3) → aucune pastille affichée nulle part, conforme (phase `draft` = pas de numéro participant), zéro erreur console. **Non testé faute d'accès superadmin pour faire avancer une séance de test à travers les phases** : l'apparition réelle de la pastille elle-même (1 à 5) sur `pre_voting`/`voting`/`allocating`/`debating`/`closed`, ainsi que son intégration visuelle dans les en-têtes de `VoteScreen` (étape vote)/`AllocatingScreen`/`ParticipantView`/`ResultsMapScreen` (collision potentielle avec les boutons existants, notamment le header dense de `VoteScreen` en phase vote).
+
+  **Test minimal** (mot de passe superadmin requis pour faire avancer une séance de test) : dérouler pre_voting → voting → allocating → debating → closed avec un même compte participant, vérifier à chaque étape le texte et le numéro corrects, l'absence de chevauchement avec les boutons de header (`Quitter`/`Outils`/`Proposer` en phase vote, `Devenir modérateur`/`Outils`/`Quitter` dans `ParticipantView`), et la disparition complète en phase `draft`. Vérifier aussi l'apparition dans `SessionQuestionnaireForm` (voir entrée dédiée ci-dessous, section "Questionnaire post-débat").
+
+  **Validation de Jules (06/09)** : ✅ **entièrement vérifié par une session Claude Code le 2026-09-06** — `src/components/PhaseIndicator.tsx`, `src/lib/phaseLabels.ts`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `ParticipantView.tsx`, `ResultsMapScreen.tsx`, `SessionQuestionnaireForm.tsx`
+
+- [x] **2026-09-02 — Incohérence de nommage entre `AppIntroModal` et `PhaseIndicator`** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `src/screens/VoteScreen.tsx` (`AppIntroModal`, fonction interne l.~1288) vs `src/components/PhaseIndicator.tsx`/`src/lib/phaseLabels.ts` (chantier 39)
+
+  **Constat (lecture de code, pas de correction faite ici — à trancher par Jules)** : `AppIntroModal` (modale "Comment se déroule la séance ?", affichée une fois à la connexion, D5) annonce **4 étapes** — 1. Vote, 2. Répartition en groupes, 3. Débat, 4. Questionnaire — tandis que `PhaseIndicator` (pastille "Étape N · Libellé" affichée en continu, chantier 39) en annonce **5** — 1 Distanciel, 2 Vote en présentiel, 3 Allocation, 4 Débat, 5 Post-débat. Le mapping n'est pas qu'une histoire de vocabulaire : `AppIntroModal` fusionne "Distanciel" et "Vote en présentiel" en une seule étape "1. Vote", ce qui décale toute la numérotation (son "2" = allocation = le "3" de `PhaseIndicator` ; son "3" = débat = le "4" de `PhaseIndicator` ; etc.). Un participant qui a vu la modale d'intro puis regarde la pastille en cours de séance peut légitimement se demander pourquoi les numéros ne correspondent pas.
+
+  **Ne pas corriger dans cette session** — juste le signaler. À trancher avec Jules : soit aligner `AppIntroModal` sur les 5 étapes de `PhaseIndicator` (probablement le plus cohérent, `PhaseIndicator` étant le repère affiché en continu), soit assumer que ce sont deux granularités différentes à dessein (l'intro simplifie, la pastille détaille) et le documenter comme tel.
+
+  **Validation de Jules (06/09)** : **résolue** : le chantier 67 (point 4, voir plus haut) a aligné `AppIntroModal` sur les 5 étapes de `PhaseIndicator`, exactement l'option recommandée ici. Plus d'incohérence à trancher. — `src/screens/VoteScreen.tsx` (`AppIntroModal`, fonction interne l.~1288) vs `src/components/PhaseIndicator.tsx`/`src/lib/phaseLabels.ts` (chantier 39)
+
+- [x] **2026-09-03 — Chantier 69 — écran postvote (revoter après le débat)** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — nouveau `src/screens/PostVoteScreen.tsx`, branché dans `src/screens/ResultsMapScreen.tsx` (bouton "↻ Revoter")
+
+  **Contexte / demande de Jules** : après le débat et le questionnaire, le participant arrive sur `ResultsMapScreen` (carte d'opinion) et le parcours s'arrêtait là. Le postvote lui offre trois actions, dans l'ordre demandé : 1) revoter sur ses propres assertions, 2) proposer une nouvelle assertion, 3) voter sur les assertions jamais vues — objectif : mesurer si le débat a fait bouger les opinions.
+
+  **Point de vérification serveur fait avant d'écrire l'écran** : `cast_vote` et `submit_assertion` (`supabase/migrations/20260528_voting_app.sql`, jamais redéfinies depuis — confirmé par recherche sur tout `supabase/migrations/`) n'ont **aucun garde de phase**, seulement une vérification d'appartenance à la séance (`session_members`) et, pour `cast_vote`, que l'assertion visée est `status = 'approved'`. Voter et proposer après la clôture fonctionnait donc déjà côté serveur, sans migration à écrire pour ce chantier.
+
+  **Modération en postvote — décision de Jules respectée** : `SubmitAssertionModal` est réutilisé tel quel (aucune branche postvote), donc une assertion proposée depuis cet écran suit exactement le même circuit que pendant le vote (`moderation_policy` de la séance : `open` → approuvée directement, `closed`/`ai` → `pending` jusqu'à validation superadmin ou Gemini). **Panneau de modération vérifié accessible en phase `closed`** : `SuperadminScreen.VOTE_PHASES` inclut `'closed'`, donc `showVotingSections` reste vrai et l'onglet "🟢 En direct" (Assertions, `LLMModerationPanel`, `AnalysisPanel`) reste rendu et son polling 10 s actif — seul `defaultTab(phase)` change (ouvre sur "📊 Analyse" par défaut plutôt que "🟢 En direct"), l'onglet lui-même n'est ni cassé ni masqué. **Aucun blocage à signaler.**
+
+  **⚠️ Point de mesure — pas de fix appliqué, décision à prendre par Jules** : `cast_vote` fait un `INSERT ... ON CONFLICT (assertion_id, member_id) DO UPDATE SET vote = EXCLUDED.vote` — un revote **écrase** la ligne `assertion_votes` existante. La table n'a pas de colonne `updated_at`, et `created_at` n'est posé qu'à l'`INSERT` initial (jamais retouché par l'`UPDATE`). Concrètement : après un revote en postvote, **il est impossible de distinguer en base "un membre a voté agree dès le prévote, jamais changé" de "un membre a voté disagree en prévote, puis agree en postvote"** — la valeur d'avant-débat est perdue sans laisser de trace, et rien ne permet de savoir qu'un changement a eu lieu. Ce comportement n'est pas nouveau (le chantier D16 l'exploite déjà volontairement pour "changer son vote" en cours de vote), mais son effet est plus lourd en postvote : la comparaison avant/après débat que Jules veut mesurer ne peut pas être reconstituée avec le schéma actuel. Un correctif possible serait d'historiser (nouvelle ligne par vote au lieu d'un upsert, ou colonne `previous_vote`/`revoted_at`), mais ce chantier n'y touche pas — **décision produit à prendre par Jules avant d'envisager une migration**.
+
+  **Ce qui a été fait** (aucune RPC nouvelle, aucune migration) :
+  1. **Section 1 — Tes assertions** : combine `getMyAssertionIds(session.id)` (RPC chantier 51, retourne tous les ids de l'auteur quel que soit le statut) avec la liste des assertions approuvées de la séance (RLS `assertions_select_approved` ne laisse de toute façon passer que celles-là) → n'affiche donc que les assertions de l'auteur déjà approuvées. Bouton "Voter"/"Changer" ouvre la modale "Changer mon vote" (composant `AssertionCard` réutilisé, même pattern que la modale D16 de `VoteScreen.tsx`).
+  2. **Section 2 — Proposer une nouvelle assertion** : bouton ouvrant `SubmitAssertionModal` (composant existant, non modifié) avec la `session` courante.
+  3. **Section 3 — Assertions non vues** : même requête que `VoteScreen.loadVoteData` (assertions approuvées de la séance − celles déjà présentes dans `assertion_votes` pour ce `member_id`), présentées une par une via `AssertionCard` (`VoteProgress` au-dessus). Un abonnement Realtime léger sur `assertions` (filtre `session_id`) fait apparaître les assertions nouvellement approuvées sans recharger la page.
+  4. **Entrée** : bouton "↻ Revoter" ajouté en haut de `ResultsMapScreen`, juste sous le header — bascule un état local (`showPostVote`) vers `<PostVoteScreen session={session} memberId={memberId} onBack={...} />`, sans hash/route dédiée. `onBack` revient à la carte de résultats sans perdre l'état déjà chargé de celle-ci.
+
+  **Non-régression volontaire** : le bouton "↻ Revoter" est une simple invite, jamais un passage obligé — un participant qui reste sur `ResultsMapScreen` et clique "← Retour au menu" suit exactement le chemin de clôture existant (aucune modification de ce chemin).
+
+  **Effet non couvert, à connaître** : revoter (section 1 ou 3) ou faire approuver une nouvelle assertion (section 2) après la clôture **ne recalcule rien automatiquement** — le scatter PCA / repness affiché sur `ResultsMapScreen` reste l'instantané de la dernière analyse lancée par le superadmin (`AnalysisPanel`, action manuelle). Un participant qui revote puis retourne "← Retour aux résultats" ne verra donc pas sa nouvelle position immédiatement ; c'est le comportement déjà existant pour tout changement de vote (pas spécifique au postvote), mais son importance augmente ici puisque le postvote est vendu comme le moment de mesurer le changement.
+
+  **Non testé — session headless, aucun serveur de dev lancé (consigne explicite)** : rendu réel dans le navigateur, y compris le bouton "↻ Revoter" sur `ResultsMapScreen`, les trois sections de `PostVoteScreen`, la modale "Changer mon vote", la modale de proposition, et l'apparition Realtime d'une assertion nouvellement approuvée pendant que l'écran est ouvert. **Déjà vérifié** : `npx tsc --noEmit`, `npm test` (94 passés, 1 skip — le seul échec observé lors d'un run précédent, `bench/strategy-sanity.test.ts` sur le seuil 5000 ms, est un test de performance dépendant de la charge machine, non lié à ce chantier, et repasse au vert sur un run propre) et `npm run build` propres après rebase sur `main` (670c981).
+
+  **Test minimal** (mot de passe superadmin utile pour vérifier la section modération, sinon compte participant suffisant) :
+  1. Séance `closed` avec un membre inscrit ayant déjà répondu au questionnaire post-débat → `#session/<join_code>` → `ResultsMapScreen` s'affiche normalement → vérifier la présence du bandeau "↻ Revoter" juste sous le header, avant le chargement de la carte d'opinion.
+  2. Cliquer "↻ Revoter" → `PostVoteScreen` s'affiche. Section 1 : si ce membre a une assertion approuvée à son nom, vérifier l'icône de vote actuel (✅/❌/⏭) et que "Changer" ouvre la modale avec le bon vote pré-sélectionné ; voter → vérifier la mise à jour immédiate de l'icône dans la liste.
+  3. Section 2 : proposer une assertion → si `moderation_policy = 'closed'` ou `'ai'`, vérifier le message "en attente de validation" ; côté superadmin (même séance, onglet "🟢 En direct" malgré la phase `closed`), vérifier que l'assertion apparaît bien `pending` dans `AssertionsPanel` et peut être approuvée/rejetée normalement.
+  4. Une fois approuvée côté superadmin, revenir sur `PostVoteScreen` (sans recharger la page si possible, pour tester le canal Realtime) → vérifier qu'elle apparaît dans la section 3 "Assertions non vues" et peut être votée.
+  5. Cliquer "← Retour aux résultats" → vérifier le retour sur `ResultsMapScreen` sans rechargement complet (état déjà chargé conservé).
+  6. **Non-régression** : un membre qui n'ouvre jamais "↻ Revoter" et clique directement "← Retour au menu" depuis `ResultsMapScreen` doit suivre le comportement inchangé (retour à l'accueil, hash vidé).
+  7. **Cas limite** : membre sans aucune assertion approuvée à son nom → section 1 affiche "Aucune de tes assertions n'a été approuvée dans cette séance." sans erreur. Membre ayant déjà voté sur toutes les assertions approuvées → section 3 affiche "Tu as déjà voté sur toutes les assertions disponibles." sans erreur.
+
+  **Validation de Jules (06/09)** : ✅ **vérifié en conditions réelles par une session Claude Code le 2026-09-06** — nouveau `src/screens/PostVoteScreen.tsx`, branché dans `src/screens/ResultsMapScreen.tsx` (bouton "↻ Revoter")
+
+- [x] **2026-09-01 — Chantier 39 — déclenchement de `SessionQuestionnaireForm` déplacé de la phase `questionnaire` (supprimée) vers `closed`** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `VoteScreen.tsx`, `AllocatingScreen.tsx`, `SessionRouterScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`) *(migration SQL requise, voir "Migration SQL en attente" — mais sans effet sur ce comportement frontend tant qu'aucune séance réelle n'est restée bloquée en phase `questionnaire`)*
+
+  **Pourquoi** : la phase `questionnaire` disparaît de la machine à états (demande explicite de Jules). Le formulaire `SessionQuestionnaireForm` (déjà repositionné par le chantier 45 ci-dessus) doit donc se déclencher autrement : désormais, dès qu'une séance passe en `closed`, `SessionQuestionnaireForm` s'affiche à la place de l'écran de résultats **pour un membre inscrit qui n'a pas encore de ligne dans `questionnaire_responses` pour cette séance** (nouvelle fonction `hasQuestionnaireResponse(sessionId)`, RLS `user_id = auth.uid()` déjà en place — pas de filtre supplémentaire nécessaire). Une fois répondu (`onDone`), l'écran de résultats normal s'affiche. Un visiteur non inscrit (`PublicResultsScreen`) n'est **jamais** concerné par ce gate — volontaire, il n'a jamais voté.
+
+  **Trois points d'entrée concernés, tous avec la même logique** :
+  1. `VoteScreen` (`#vote/<join_code>`) — au chargement initial, sur les mises à jour Realtime (2 canaux distincts) et sur le polling 10s de secours.
+  2. `AllocatingScreen` (rendu par `VoteScreen` en phase `debating`/`allocating` pour qui n'a pas encore rejoint de table) — sur Realtime et sur le polling 10s.
+  3. `SessionRouterScreen` (`#session/<join_code>`) — anciennement un texte statique non fonctionnel ("Réponds au questionnaire", sans formulaire réel, cf. TODO `CLAUDE.md` désormais retiré) ; affiche maintenant le vrai `SessionQuestionnaireForm`. C'est probablement le point d'entrée le plus emprunté en pratique (lien QR code / WhatsApp stable tout au long de la séance).
+
+  **Déjà vérifié** (`tsc -b`, `npm run build`, `npm test`, tous OK) + navigateur, séances de test réelles : `#session/DEBAT8` (`closed`, visiteur non inscrit) → `PublicResultsScreen` normal, aucun questionnaire proposé (comportement attendu, visiteur jamais voté), zéro erreur console. **Non testé faute de compte membre dans une séance `closed` réelle** : l'apparition effective du formulaire pour un membre inscrit sans réponse, ni la disparition après soumission (`onDone` → écran de résultats).
+
+  **Test minimal** (mot de passe superadmin requis pour clôturer une séance de test avec un membre inscrit n'ayant pas encore répondu) :
+  1. Membre inscrit, séance passée en `closed`, jamais répondu au questionnaire → `#vote/<join_code>` **et** `#session/<join_code>` (les deux, séparément, avec des comptes/sessions différents si besoin) → vérifier l'apparition de `SessionQuestionnaireForm` dans les deux cas, pastille "Étape 5 · Post-débat" visible dans son en-tête (chantier 39, voir entrée `PhaseIndicator` ci-dessus).
+  2. Répondre et envoyer → vérifier la transition vers l'écran de résultats normal (`ResultsMapScreen`) sans reload.
+  3. Revenir sur le même lien après avoir déjà répondu → vérifier l'accès direct à l'écran de résultats, sans repasser par le questionnaire.
+  4. Séance en `debating` avec un participant connecté à sa table (`ParticipantView`) → superadmin clique "Passer en Clôturée" → vérifier le déclenchement **automatique** du modal questionnaire chez ce participant (couvert aussi par l'entrée superadmin ci-dessus) — ce test-ci vérifie spécifiquement qu'aucune étape de phase intermédiaire n'est nécessaire.
+
+  **Validation de Jules (06/09)** : ✅ **vérifié en conditions réelles par une session Claude Code le 2026-09-06** — `VoteScreen.tsx`, `AllocatingScreen.tsx`, `SessionRouterScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`)
+
+- [x] **2026-09-02 — Chantier 63 — questionnaire masqué par l'overlay de clôture + 2 des 3 portes en cul-de-sac (aucune vérification navigateur cette session)** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* — `ParticipantView.tsx`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`)
+
+  **Contexte** : le point 4 ci-dessus (chantier 39) n'avait jamais été vérifié en navigateur faute de mot de passe superadmin. En lisant le code, deux bugs confirmés : l'overlay "La séance est terminée" de `ParticipantView` (z-50) s'affichait **devant** le questionnaire forcé (z-50 aussi, mais rendu avant dans le JSX) au lieu de derrière ; et sur `VoteScreen`/`AllocatingScreen`, valider le questionnaire ne menait jamais aux résultats (message générique figé, ou bannière grise sur l'écran d'annonce de table). Corrigés — voir `PROJECT_STATUS.md` pour le détail technique. **Rien de ceci n'a été exercé en navigateur réel cette session** (consigne explicite : pas de serveur dev, une autre session travaillait en parallèle sur `main`).
+
+  **Recette — écran `ParticipantView`, overlay vs questionnaire** :
+  1. Table rattachée à une séance, participant connecté dedans (`ParticipantView`, pas `ModeratorView`). Superadmin fait passer la séance de `debating` à `closed`.
+  2. Observer chez le participant : le questionnaire post-débat doit apparaître **au premier plan**, utilisable (notes cliquables, bouton Envoyer actif). L'overlay "La séance est terminée" ne doit **pas** être visible tant que le questionnaire est ouvert.
+  3. Répondre et envoyer → le questionnaire se ferme (message de succès puis fermeture auto ~2s) → l'overlay "La séance est terminée" apparaît alors, avec le bouton "Voir vos résultats →".
+  4. Cliquer "Voir vos résultats →" → doit atterrir sur `ResultsMapScreen` (carte de son propre camp), pas sur un écran de chargement bloqué.
+
+  **Recette — les trois portes d'entrée, vers les résultats après soumission** : pour chacune des trois portes ci-dessous, avec un membre inscrit à une séance déjà `closed` et n'ayant pas encore répondu au questionnaire, vérifier que valider le formulaire amène bien à `ResultsMapScreen` (carte de camp + scatter), sans écran intermédiaire bloqué ni rechargement complet visible :
+  1. `#vote/<join_code>` (`VoteScreen`, step `questionnaire`) — cas le plus simple : membre inscrit, ouvre le lien de vote après clôture.
+  2. Membre resté sur `AllocatingScreen` (n'a pas encore rejoint sa table de débat) au moment où la séance passe à `closed`, détecté soit par Realtime soit par le polling 10s de secours — vérifier les deux déclencheurs si possible (couper le réseau un instant pour forcer le polling, ou simplement attendre >10s après la transition sans réagir au Realtime).
+  3. `#session/<join_code>` (`SessionRouterScreen`) — déjà fonctionnel avant ce chantier, à revérifier en même temps par cohérence (les trois doivent se comporter identiquement).
+
+  **Recette — double réponse, `hasQuestionnaireResponse` avec `.limit(1)`** : nécessite un membre ayant rempli le questionnaire forcé sur deux tables différentes de la même séance (deux lignes `questionnaire_responses`, une par `table_id`, même `session_id`/`user_id` — la table `6ABDC9`/pseudo "TestQ45" en section "Nettoyage des données de test" plus bas peut servir de point de départ si une deuxième réponse y est ajoutée sur une autre table de la même séance). Revenir sur `#vote/<join_code>` ou `#session/<join_code>` après clôture : le questionnaire ne doit **pas** être reproposé — accès direct aux résultats. Avant le fix, `.maybeSingle()` levait une erreur avalée sur ce cas précis et le redemandait indéfiniment.
+
+  **Validation de Jules (06/09)** : ✅ **entièrement vérifié en conditions réelles par une session Claude Code le 2026-09-06** — `ParticipantView.tsx`, `VoteScreen.tsx`, `AllocatingScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`)
+
+- [x] **2026-09-01 — Chantier 41 — nomination d'un modérateur déjà assis, invisible sans quitter/rejoindre** *(validé le 2026-09-06)* — `src/context/TableContext.tsx`, branche `chantier-41-reload-moderateur`
+
+  **Retour de Jules** : « Quand je suis déjà en phase débat, et que je nomme quelqu'un en modérateur sur une table, lorsque celui-ci fait un reload, la vue modérateur n'apparaît pas. Il faut pour cela qu'il quitte, avec le bouton quitter, puis revienne dans le débat. »
+
+  **Diagnostic — ce n'est PAS une régression de 35/36/37, c'est l'asymétrie que chantier 35 avait explicitement documentée et volontairement laissée de côté** (ligne "Volontairement pas traité" ci-dessus, maintenant retirée puisque couverte par ce correctif) : `isModerator` était calculé `physicalModerator && !moderatorRevoked` — un pur véto qui ne peut que *dégrader*. `moderatorRevoked` se recalcule bien à chaque `load()` (montage + polling 5s) et via un abonnement realtime sur `session_members`, mais dans les deux cas il ne fait que poser `true`/`false` sur le véto, jamais remonter `physicalModerator` de `false` à `true`. Un participant nommé modérateur *après* avoir déjà rejoint sa table reste donc bloqué, en direct **et** après un simple reload — `physicalModerator` ne vient que du prop `initialIsModerator`, lui-même figé au moment du join initial (`AllocatingScreen.handleJoin` / cache `tableStore` restauré tel quel par `App.tsx` au montage, sans re-vérification). Seul un `leaveTable()` + retour (qui repasse par `AllocatingScreen.handleJoin`, lequel relit `member.is_moderator` à neuf) recalculait correctement — exactement le contournement que Jules a trouvé.
+
+  **Correctif** : `isModerator = physicalModerator || sessionMemberIsModerator` (OR, plus de véto). `sessionMemberIsModerator` reflète `session_members.is_moderator` en direct (realtime, déjà existant côté chantier 35) et à chaque `load()`/reload — dans les deux sens désormais. Ne réintroduit pas de régression sur le cas que chantier 35 ciblait (démodération d'un modérateur assigné côté Bloc C) : pour les tables issues de l'allocation, `tables.created_by` est l'uid du superadmin qui a appelé `apply_allocation`/`create_tables_batch`, jamais celui du participant assigné — `physicalModerator` y est donc déjà `false`, et `session_members.is_moderator = false` suffit seul à garder `isModerator` à `false`.
+
+  **Constat annexe, confirmé en navigateur réel (voir "Déjà vérifié" ci-dessous)** : en creusant ce mécanisme, la même veto asymétrique de chantier 35 casse aussi l'auto-désignation "Désigner comme animateur" (`designate_moderator`, table `leaderless` rattachée à une séance) : cette RPC pose `tables.created_by` mais ne touche jamais `session_members.is_moderator` (qui reste `false` par défaut) — au prochain `load()` (5s ou reload), l'ancien véto retombait systématiquement à `false` pour *tout* auto-désigné sur une table leaderless rattachée à une séance, sans intervention du superadmin. Le passage à l'OR corrige ce cas (il ne dépend plus que de `physicalModerator`) — **reproduit et corrigé en conditions réelles**, pas seulement en théorie.
+
+  **Déjà vérifié** : `tsc --noEmit` propre, `npm run build` réussi, `npm test` (204/206, 2 skips préexistants, aucune régression sur `allocation.ts`/`groupNaming.ts`).
+
+  **Vérifié en navigateur réel (2026-09-01)**, sur la table `589D79` (leaderless, séance "Test manuel — Vote & bascule modérateur", participant "Test Chantier40" — voir note dans "Nettoyage des données de test" : cette table n'est plus leaderless suite à ce test) :
+  - Join de la table → `ParticipantView` correcte ("Groupe auto-géré"), zéro erreur console.
+  - Clic "🎙️ Devenir modérateur" → confirmation → `designate_moderator` → bascule immédiate vers `ModeratorView` ("Micro libre", panneau Participants). Ceci exerce exactement le mécanisme du "constat annexe" ci-dessus : `physicalModerator=true`, `session_members.is_moderator=false` (jamais posé par cette RPC).
+  - **Sans le correctif, l'ancien code aurait dû redescendre en `ParticipantView` au bout de 5s** (véto `moderatorRevoked` recalculé par le polling `load()`, `is_moderator === false` trouvé). Attendu 7s : **toujours `ModeratorView`**, zéro nouvelle erreur console.
+  - Reload complet de la page (scénario exact de Jules — recharger sans quitter/rejoindre) : **`ModeratorView` toujours affichée immédiatement**, zéro erreur console.
+  - Les 2 erreurs console visibles (404, 401) proviennent de requêtes de diagnostic que j'ai faites moi-même dans la console du navigateur pour retrouver un `join_code` de test (pas de MCP Supabase, clé anon publique lue depuis `.env` — usage en lecture seule, cf. `CLAUDE.md`) ; confirmé sans rapport avec l'app via `read_network_requests` (uniquement des requêtes locales Vite dans la fenêtre capturée). Aucune erreur émise par le code applicatif lui-même à aucune étape.
+
+  **Non testé en conditions réelles — bloqué par l'absence de mot de passe superadmin dans cette session headless** : le scénario exact décrit par Jules (promotion via `session_members.is_moderator`, posée par `set_member_moderator`/`assign_moderator_to_table`, pas par `designate_moderator`). Le code qui consomme ce flag (`setSessionMemberIsModerator`, dans `load()` et dans l'abonnement realtime) est strictement le même que celui exercé ci-dessus — seule la RPC qui écrit `session_members.is_moderator=true` diffère — mais la session de vérification devrait dérouler ce chemin exact avant merge, pas seulement l'analogue.
+
+  **Test minimal restant** (mot de passe superadmin requis) :
+  1. **Scénario exact de Jules** : séance `debating`, participant déjà assis à une table (`ParticipantView`). Superadmin → onglet Membres, cocher "modérateur" sur ce participant (assis à une table déjà pourvue **ou** sans modérateur, peu importe — cf. chantier 37 point 2 pour la logique de placement). Sans que le participant ne fasse quoi que ce soit : recharger sa page → vérifier l'apparition immédiate de `ModeratorView` (plus besoin de quitter/rejoindre).
+  2. **Variante en direct** : même mise en place, mais sans reload — laisser tourner ~5s (polling `load()`) ou vérifier que le realtime `session_members` (déjà actif, chantier 35) bascule l'écran instantanément.
+  3. **Non-régression démodération (chantier 35, point 2 déjà listé ci-dessus)** : toujours vérifier avec ce correctif en place.
+
+  **Validation de Jules (06/09)** : ✅ **scénario exact de Jules vérifié par une session Claude Code le 2026-09-06** — `src/context/TableContext.tsx`, branche `chantier-41-reload-moderateur`
+
+- [x] **Chantier 46 — `supabase/migrations/20260901_chantier46_public_results_visibility.sql`** *(validé le 2026-09-06)*
+
+  **Contenu du fichier** :
+  1. `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS results_public boolean NOT NULL DEFAULT false` — opt-in explicite par séance, aucune séance existante ne devient publique automatiquement.
+  2. `set_session_results_public(password, session_id, results_public)` — RPC superadmin (mot de passe requis) qui bascule la colonne. Utilisée par le nouveau bouton "Résultats publics" / "Résultats privés" sur chaque séance close du superadmin (`SessionCard`, écran de liste).
+  3. `get_public_results(session_id)` **remplacé** — durci pour exiger `phase='closed' AND results_public=true` (avant : `phase='closed'` seul, donc *toute* séance close était déjà publique — comportement qui n'avait jamais été demandé). Charge utile changée : au lieu d'un résumé filtré (top-3 assertions par camp + consensus > seuil), retourne désormais la liste complète des assertions approuvées avec leurs compteurs `agree_count`/`disagree_count`/`pass_count`, et le nuage de points PCA (`pca_x`, `pca_y`, `group_id` — **sans** `member_id` ni aucun identifiant, contrairement à `get_results_map` qui est réservée aux membres inscrits). Le fichier de migration contient en pied de page les requêtes SQL de vérification (colonne, séance non-publique → NULL, séance publique → payload sans identifiant, appel anonyme, mauvais mot de passe).
+
+  **Pourquoi cette migration change le comportement de l'existant** : la fonction `get_public_results` existait déjà (chantier antérieur, migration `20260613_public_results.sql`) et rendait **toute** séance close consultable publiquement dès sa clôture — sans bascule de visibilité. Le retour de test de Jules du 2026-09-01 demande explicitement à restreindre l'accès aux séances *explicitement marquées visibles*, pas à tout l'historique clos. Tant que cette migration n'est pas appliquée, l'ancien comportement (tout closed = public) reste actif en base, et l'ancienne forme de payload (`groups`/`consensus`) ne correspond plus à ce qu'attend le frontend (`points`/`assertions`) — voir le point "Résultats publics" ci-dessous pour l'impact exact sur les tests.
+
+  **À faire (session de vérification)** : appliquer le fichier, dérouler les 5 requêtes de vérification en pied de fichier (colonne + défaut, séance non-publique → NULL, séance publique → payload strictement `k_chosen`/`points`/`assertions` sans `member_id`/`user_id`/`pseudo`, appel anonyme fonctionnel, mauvais mot de passe rejeté), puis dérouler le test manuel de la section "Résultats publics (chantier 46)" plus bas.
+
+  **Validation de Jules (06/09)** : résultats publics opt-in par séance (`results_public`, `set_session_results_public`, `get_public_results` durci sans identifiant). Vérifié en base et navigateur (visiteur anonyme, séance `🧪 TEST46`) par une session Claude Code le 2026-09-06 : `NULL` si non-publique, payload sans identifiant si publique. **Confirmé par Jules** : bouton "Résultats publics"/"Résultats privés" du superadmin testé directement, fonctionne.
+
+- [x] **2026-09-04 — Chantier 71 — `supabase/migrations/20260904_chantier71_onboarding_optionnel.sql`** *(validé le 2026-09-06 — ⚠️ validé avant la refonte des chantiers 73/74 du 06/09, à revalider)* (jamais appliquée) — désactiver l'onboarding par séance
+
+  **Demande de Jules** : « Le vote ne doit pas servir de référence. […] mettre un bouton dans la vue superadmin pour activer ou désactiver le onboarding […] je dois juste pouvoir créer une session sans onboarding. » Bloquant pour la séance de production de jeudi prochain (vote en présentiel uniquement, onboarding désactivé, on ne va pas plus loin dans le flux).
+
+  **Contenu de la migration** : colonne `sessions.onboarding_enabled boolean NOT NULL DEFAULT true` (défaut préserve le comportement de toutes les séances existantes) ; nouvelle RPC `set_session_onboarding_enabled(password, session_id, onboarding_enabled)` (même forme que `set_session_results_public` du chantier 46) ; `create_session` redéfinie avec un 8ᵉ paramètre `p_onboarding_enabled boolean DEFAULT true` (tout appel existant qui l'omet continue de créer une séance identique à avant ce chantier). Aucune autre fonction touchée — voir justification détaillée en tête du fichier de migration pour les 3 pièges signalés par Jules :
+  1. `get_session_by_id`/`get_session_by_join_code`/`list_sessions_admin` (chantier 58, déjà appliquées en base) sont `RETURNS sessions`/`SETOF sessions` avec `SELECT * FROM sessions` en interne — le type de retour est le type ligne de la table, étendu automatiquement par Postgres à `onboarding_enabled` sans redéfinition. Vérifié en lisant leur corps (branche `chantier-58-colonnes-sessions`) avant d'écrire cette migration.
+  2. La même branche contient un `REVOKE SELECT ON sessions` + `GRANT` restreint à 6 colonnes, **non appliqué à ce jour** (vérifié : aucun écran de `src/` n'appelle encore les RPC du chantier 58, tous lisent encore `sessions` par `select('*')` direct sous le GRANT actuel non restreint) — donc sans impact sur ce chantier aujourd'hui. **Si cette restriction est appliquée un jour telle quelle, il faudra ajouter `onboarding_enabled` à la liste de colonnes accordées** dans le fichier de cette branche (non modifiée ici, sur consigne explicite).
+  3. `get_allocation_inputs` (chantier 19, `20260725_2_allocation_v2.sql`) fait déjà un `LEFT JOIN entry_responses` avec des valeurs par défaut conservatrices (`is_active`/`consents`/`is_veteran` → `false`) pour un membre sans ligne `entry_responses` — un participant qui a sauté l'onboarding est donc déjà géré sans plantage de l'allocation/clustering. Rien changé côté SQL ni côté `src/lib/allocation.ts` (non touché, hors périmètre).
+
+  **Côté frontend** : `src/lib/types.ts` (`Session.onboarding_enabled`), `src/lib/sessions.ts` (`createSession` accepte un 8ᵉ argument optionnel, nouvelle fonction `setSessionOnboardingEnabled`), `src/screens/SuperadminScreen.tsx` (case à cocher dans le formulaire de création + interrupteur sur chaque carte de séance, toggle optimiste avec rollback sur erreur — même schéma que le toggle « Résultats publics » du chantier 46), `src/screens/VoteScreen.tsx` (3 points de décision modifiés : le gate principal `!existingResponse` à l'ouverture/reload, `handlePseudoSuccess` pour un nouveau membre en phase `voting`, `handleConfirmAttendanceSuccess` pour une confirmation de présence — les trois sautent l'onboarding et vont directement au vote quand `onboarding_enabled = false`, exactement comme le fait déjà `pre_voting` en permanence). `pre_voting` non touché (déjà sans onboarding, indépendamment de ce flag).
+
+  **`npx tsc --noEmit`** : propre. **`npm test`** : 94/95, 1 skip préexistant (aucun test dédié écrit pour ce chantier — logique de branchement simple, testée par lecture + build, pas de nouvelle fonction pure isolée à unit-tester). **`npm run build`** : propre (avertissement pré-existant sur la taille du bundle, sans rapport). **Aucune vérification navigateur faite** (consigne explicite : session headless, aucun serveur de dev lancé).
+
+  **Recette de vérification (session de vérification dédiée)** :
+  1. Appliquer la migration (SQL Editor du dashboard ou MCP), puis dérouler les 6 requêtes de vérification en pied de fichier de migration (colonne posée avec le bon défaut, création avec/sans le flag, toggle sur une séance existante, mauvais mot de passe refusé, RPC du chantier 58 si déjà appliquées séparément).
+  2. Superadmin → « Nouvelle séance » : la case « Onboarding » est cochée par défaut ; la décocher puis créer la séance → vérifier en base que `onboarding_enabled = false` sur la ligne créée.
+  3. Sur une séance déjà existante (n'importe quelle phase) : cliquer l'interrupteur « Onboarding activé »/« Onboarding désactivé » sur sa carte → vérifier le changement d'état visuel immédiat (optimiste) et sa persistance après rechargement de la liste.
+  4. **Scénario cible jeudi** — séance en phase `voting`, `onboarding_enabled = false` : un nouveau participant qui s'inscrit via `VotingEntryForm` (nom/prénom) doit arriver directement sur l'écran de vote, sans jamais voir `OnboardingForm`. Un participant déjà inscrit en `pre_voting` qui confirme sa présence (`AttendanceConfirmScreen`) doit lui aussi passer directement au vote. Recharger la page en cours de vote (re-déclenche le gate principal `init()`) : toujours pas d'onboarding proposé.
+  5. **Non-régression** — même séance avec `onboarding_enabled = true` (valeur par défaut) : comportement strictement identique à avant ce chantier (onboarding proposé aux nouveaux arrivants en phase `voting`, jamais en `pre_voting`).
+  6. **Non-régression allocation** (si le temps le permet avant jeudi, pas bloquant pour la séance vote-only) : séance avec au moins un membre sans `entry_responses` (onboarding sauté) qui atteint la phase `allocating` → `AllocationPanel` doit calculer une proposition sans planter, ce membre traité comme non-actif/non-consentant/nouveau.
+
+  **Validation de Jules (06/09)** : désactiver l'onboarding par séance
+
+- [x] **Refus d'une URL à schéma non autorisé (contrôle client)** *(validé le 2026-09-06)* — `#collab/<join_code>`, formulaire d'ajout — ✅ vérifié le 2026-09-06 par Jules : `javascript:alert(1)` → message rouge, formulaire resté ouvert, aucune requête réseau émise.
+
+  ⚠️ **Validation partielle — le volet serveur reste ouvert.** L'entrée d'origine couvrait deux contrôles ; Jules n'a validé que le premier. Le second n'a jamais été joué et reste à faire : vérifier qu'un appel RPC direct hors formulaire (requête REST manuelle vers `add_collab_source` / `update_collab_source` avec la clé anon) est lui aussi refusé **côté serveur** — c'est la ligne de défense qui compte réellement, le contrôle client n'étant qu'un confort. Le chantier 72 a supprimé depuis la surcharge à 4 arguments d'`add_collab_source` qui contournait cette validation ; ce test-là non plus n'a pas été rejoué.
+
+  <details><summary>Texte d'origine de l'entrée, conservé</summary>
+
+  - [ ] **Refus d'une URL à schéma non autorisé** — même écran, formulaire d'ajout
+  
+    Saisir `javascript:alert(1)` (ou `data:text/html,<script>alert(1)</script>`) dans le champ Lien → "Ajouter". Attendu : message rouge "Lien invalide : seuls les liens http:// ou https:// sont acceptés." sous le formulaire, **aucune requête réseau vers le serveur** (contrôle client immédiat), le formulaire reste ouvert. Vérifier ensuite qu'un appel RPC direct (hors formulaire, ex. requête REST manuelle vers `add_collab_source`/`update_collab_source` avec la clé anon) est lui aussi refusé côté serveur — c'est la ligne de défense qui compte réellement, le contrôle client n'étant qu'un confort.
+
+  </details>
