@@ -864,30 +864,15 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   3. **session_members (point 2, nécessite la migration appliquée)** : sur une séance de test en phase `debating`, ajouter une personne sans téléphone depuis `ModeratorView` → vérifier en base qu'une ligne `session_members` est créée pour elle (`joined_phase = 'debating'`, `attending_in_person = true`, `user_id` distinct du modérateur), en plus de sa ligne `participants`. Vérifier aussi qu'ajouter quelqu'un portant le même pseudo qu'un membre déjà réellement inscrit à la séance ne modifie **pas** la ligne existante de ce membre. Sur une table standalone (sans séance), vérifier qu'aucune ligne `session_members` n'apparaît.
 
 
-## Comparaison avant / après débat (chantier 79)
-
-- [ ] **Écran de comparaison avant/après débat** — `src/components/AnalysisPanel.tsx` (`AnalysisComparisonPanel`), `src/lib/analysis.ts` (`pairGroups`, `computeMemberMovements`, `computeConsensusMovements`), `src/screens/SuperadminScreen.tsx` (onglet 📊 Analyse)
-
-  **Contexte** : le chantier 70 a posé toute l'infrastructure (`assertion_vote_history`, `vote_scope`, `get_all_votes_for_analysis(..., p_vote_scope)`, `list_session_analyses`, `get_analysis_by_id`) mais s'était arrêté avant l'écran. Ce chantier construit l'écran : un nouvel accordéon "Comparaison avant / après débat" en tête de l'onglet 📊 Analyse, avec deux sélecteurs (Avant / Après) présélectionnés sur la dernière analyse `pre_closure` et la dernière `current` s'il y en a.
-
-  **Piège traité** : deux calculs k-means successifs ne numérotent pas les camps pareil (`group_id` est un artefact d'exécution, k peut même différer). `pairGroups` apparie donc les groupes des deux analyses par **chevauchement de membres réels** (glouton, pas d'appariement optimal global — suffisant pour k ≤ 5, le nombre de membres en commun est affiché à côté de chaque paire pour rester vérifiable à l'œil). `computeConsensusMovements` compare `group_consensus` directement (scalaire par assertion, indépendant du numéro de groupe — pas besoin d'appariement). `computeMemberMovements` distingue explicitement "resté dans son camp apparié" / "changé de camp" / "absent de l'analyse après" (un membre qui n'a pas revoté ne doit jamais apparaître comme ayant quitté son camp).
-
-  **Ce qui n'a pas été touché** : aucune fonction SQL modifiée, aucune migration — tout le nécessaire existait déjà côté chantier 70. `AnalysisPanel` (composant par défaut, utilisé dans l'onglet 🟢 En direct) est inchangé ; le nouveau composant est un export nommé séparé dans le même fichier.
-
-  **`npx tsc -b`** : propre. **`npm test`** : 98/99 (94 préexistants + 4 nouveaux dans `src/lib/analysis.test.ts`, 1 skip préexistant sans rapport). **`npm run build`** : propre (avertissement préexistant sur la taille du bundle, sans rapport). **Aucune vérification navigateur faite** — consigne du chantier : « ne lance aucun serveur de dev sans le demander, une seule session à la fois en a le droit ».
-
-  **Recette de vérification navigateur (session dédiée, avec le dev server)** :
-  1. Séance sans aucune analyse (ou une seule) → ouvrir l'onglet 📊 Analyse → déplier "Comparaison avant / après débat" → message "il faut au moins deux analyses terminées…", pas de sélecteurs.
-  2. Séance avec au moins une analyse `current` et une `pre_closure` (nécessite un membre ayant revoté via le postvote, chantier 69, sur une séance déjà `closed` — sinon relancer "Analyser les camps" pour obtenir une `current`, et calculer manuellement une reconstitution `pre_closure` n'est pour l'instant possible que par un appel direct à `get_all_votes_for_analysis(..., p_vote_scope := 'pre_closure')` + `save_analysis(..., p_vote_scope := 'pre_closure')`, aucun bouton dans l'UI ne le déclenche encore — **à noter comme manque probable de l'UI, pas testé ici**) : les deux sélecteurs se présélectionnent correctement, le nombre de "resté(s)"/"changé(s) de camp" s'affiche, les paires de camps montrent un nombre de membres en commun cohérent avec les tailles annoncées, les assertions à consensus mouvant s'affichent triées par écart absolu décroissant.
-  3. Choisir deux fois la même analyse dans "Avant" et "Après" → message "Choisissez deux analyses différentes."
-  4. Vérifier que l'onglet 🟢 En direct (bouton "Analyser les camps", scatter, toggle présentiels) est strictement inchangé — aucune régression du composant par défaut `AnalysisPanel`.
-
-  **Point ouvert, à trancher par Jules avant d'aller plus loin** : rien dans l'UI ne déclenche aujourd'hui le calcul d'une analyse `pre_closure` — `AnalysisPanel` (bouton "Analyser les camps") ne calcule que du `vote_scope='current'`. Sans un moyen superadmin de lancer ce calcul (bouton dédié, ou déclenchement automatique à la clôture de la séance), l'écran de comparaison n'aura jamais de second terme à comparer en pratique. Hors périmètre de ce chantier (touchait `AnalysisPanel.tsx`/`lib/analysis.ts`/onglet Analyse, pas la clôture de séance) — à chantierer séparément si Jules le confirme.
-
-
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
+
+- [x] **Chantier 79 — Écran de comparaison avant/après débat** *(validé le 2026-09-07)* — `src/components/AnalysisPanel.tsx` (`AnalysisComparisonPanel`), `src/lib/analysis.ts` (`pairGroups`, `computeMemberMovements`, `computeConsensusMovements`), `src/screens/SuperadminScreen.tsx` (onglet 📊 Analyse) — ✅ vérifié au navigateur par Jules sur une séance de test générée directement en base (16 membres fictifs, deux camps, votes avant/après débat avec un mouvement de camp réel et une assertion passant de clivante à consensuelle, analyse `pre_closure` calculée avec le vrai pipeline PCA/k-means du projet). Donnée de test supprimée après validation (cascade sur `sessions`).
+
+  **Piège traité** : deux calculs k-means successifs ne numérotent pas les camps pareil (`group_id` est un artefact d'exécution, k peut même différer). `pairGroups` apparie donc les groupes des deux analyses par **chevauchement de membres réels** (glouton, pas d'appariement optimal global — suffisant pour k ≤ 5). `computeConsensusMovements` compare `group_consensus` directement (scalaire par assertion, indépendant du numéro de groupe). `computeMemberMovements` distingue "resté dans son camp apparié" / "changé de camp" / "absent de l'analyse après".
+
+  **Point resté ouvert, non tranché ici** : rien dans l'UI ne déclenche aujourd'hui le calcul d'une analyse `pre_closure` en conditions réelles (seul un membre qui revote via le postvote, chantier 69, sur une séance déjà `closed`, en produit une automatiquement). Sans un moyen superadmin dédié, l'écran de comparaison n'a un second terme à comparer que dans ce cas précis. À chantierer séparément si Jules le confirme.
 
 - [x] **Chantier 64 — `supabase/migrations/20260902_chantier64_leaderless_becomes_moderated.sql`** *(validé le 2026-09-06)* — **à appliquer APRÈS le chantier 60** (touche `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table`, dont les dernières définitions en date sont antérieures au 60 mais indépendantes de lui — pas de dépendance technique, seulement l'ordre déjà établi pour ce chantier de test).
 
