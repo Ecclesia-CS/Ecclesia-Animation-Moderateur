@@ -247,18 +247,6 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
   **Test minimal (mot de passe superadmin requis, migration appliquée au préalable)** : ouvrir une séance close depuis la liste, cliquer la pastille → passe à "Résultats publics" sans reload ; recharger la page → l'état persiste (relu depuis `sessions.results_public`) ; cliquer à nouveau → repasse à "Résultats privés". Vérifier qu'aucune pastille n'apparaît sur les séances non closes.
 
 
-- [ ] **2026-09-07 — Réserves sécurité `get_public_results` (chantier 80)** — `supabase/migrations/20260907_chantier80_reserves_public_results.sql`
-
-  Jules, 07/09 : « pour la page publique, il ne faut pas qu'on puisse remonter aux participants, ou alors, il faut le rendre dur (et l'anonymat et changement de l'ordre des points comme tu l'as écrit est largement suffisant) ». Vérification de la définition en base (`pg_get_functiondef`, avant migration) : aucun identifiant ni pseudo ne sortait déjà de `get_public_results` — seuls `pca_x`/`pca_y`/`group_id` par point, et `content`/compteurs par assertion. Deux trous corrigés par cette migration, **appliquée en base le 2026-09-07** (nouvelle règle SQL du même jour — session autorisée à appliquer sa propre migration) :
-  1. Les points sortaient dans l'ordre d'agrégation de `jsonb_agg` (ordre physique de `analysis_members`, qui suit l'ordre d'inscription) faute d'`ORDER BY` — ajout de `ORDER BY random()` dans le sous-`SELECT` des points.
-  2. `SET search_path = public, extensions` manquant sur cette fonction `SECURITY DEFINER` — ajouté.
-
-  Explicitement refusé par Jules, non touché : seuil de k-anonymat, compteurs par assertion, coupure d'une séance déjà publique en production, écran participant (résultats persos), colonnes `sessions` (hors périmètre).
-
-  **Vérifié** : `pg_get_functiondef` relu après application — la nouvelle définition est bien en base, signature et type de retour inchangés (`CREATE OR REPLACE` simple, pas de `DROP` nécessaire). Advisors sécurité Supabase : les deux seules alertes restantes sur `get_public_results` (`anon`/`authenticated` peuvent l'appeler en `SECURITY DEFINER`) sont attendues — c'est une RPC volontairement publique — et n'ont pas changé après la migration.
-
-  **Non vérifié — nécessite le jeton de serveur de dev** : rejouer `#results/<id>` sur une séance publique existante et confirmer à l'œil que l'ordre des points au rechargement change entre deux appels (preuve que le désordre est actif), et qu'aucune régression visuelle sur le nuage de points ou la liste d'assertions.
-
 ## Parcours Superadmin
 
 - [ ] **Chantier 54 — non-régression : le superadmin peut toujours supprimer une table** *(migration SQL requise, voir section « Migration SQL en attente d'application »)*
@@ -879,6 +867,18 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
+
+- [x] **2026-09-07 — Réserves sécurité `get_public_results` (chantier 80)** — `supabase/migrations/20260907_chantier80_reserves_public_results.sql` *(validé le 2026-09-07)*
+
+  Jules, 07/09 : « pour la page publique, il ne faut pas qu'on puisse remonter aux participants, ou alors, il faut le rendre dur (et l'anonymat et changement de l'ordre des points comme tu l'as écrit est largement suffisant) ». Vérification de la définition en base (`pg_get_functiondef`, avant migration) : aucun identifiant ni pseudo ne sortait déjà de `get_public_results` — seuls `pca_x`/`pca_y`/`group_id` par point, et `content`/compteurs par assertion. Deux trous corrigés par cette migration, **appliquée en base le 2026-09-07** (nouvelle règle SQL du même jour — session autorisée à appliquer sa propre migration) :
+  1. Les points sortaient dans l'ordre d'agrégation de `jsonb_agg` (ordre physique de `analysis_members`, qui suit l'ordre d'inscription) faute d'`ORDER BY` — ajout de `ORDER BY random()` dans le sous-`SELECT` des points.
+  2. `SET search_path = public, extensions` manquant sur cette fonction `SECURITY DEFINER` — ajouté.
+
+  Explicitement refusé par Jules, non touché : seuil de k-anonymat, compteurs par assertion, coupure d'une séance déjà publique en production, écran participant (résultats persos), colonnes `sessions` (hors périmètre).
+
+  **Vérifié en base** : `pg_get_functiondef` relu après application — nouvelle définition bien en place, signature/type de retour inchangés (`CREATE OR REPLACE` simple). Advisors sécurité Supabase : les deux seules alertes restantes sur `get_public_results` (`anon`/`authenticated` peuvent l'appeler en `SECURITY DEFINER`) sont attendues — RPC volontairement publique — et inchangées après migration.
+
+  **Vérifié au navigateur le 2026-09-07** (worktree `Ecclesia-chantier-80`, port 5215) sur les deux séances publiques réelles : `#results/5fcdcb3a-b537-4694-a137-48c511a48d93` (« Multiculturalisme », 21 points, k=4) rend le nuage et les 37 assertions sans aucun identifiant ; `#results/92c648d7-2fa7-4aaf-b316-1f0f9a815a2c` (« Retraite », aucune analyse) affiche proprement "Aucune assertion approuvée", pas de blocage. Désordre confirmé directement en base : deux appels successifs de `get_public_results(...)` sur la séance Multiculturalisme renvoient deux ordres de `group_id` différents. Aucune régression console.
 
 - [x] **Chantier 64 — `supabase/migrations/20260902_chantier64_leaderless_becomes_moderated.sql`** *(validé le 2026-09-06)* — **à appliquer APRÈS le chantier 60** (touche `set_member_moderator`/`claim_moderator_status`/`assign_moderator_to_table`, dont les dernières définitions en date sont antérieures au 60 mais indépendantes de lui — pas de dépendance technique, seulement l'ordre déjà établi pour ce chantier de test).
 
