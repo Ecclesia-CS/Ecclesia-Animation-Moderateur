@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { privateChannel } from '../lib/realtime'
 import { extractErr, isSafeUrl } from '../lib/utils'
 import {
   registerCollabPseudo,
@@ -133,8 +134,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   // ── Realtime : session_sources ─────────────────────────────────
   useEffect(() => {
     if (!session) return
-    const ch = supabase
-      .channel(`collab:${session.id}`)
+    const ch = privateChannel(`collab:${session.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'session_sources', filter: `session_id=eq.${session.id}` },

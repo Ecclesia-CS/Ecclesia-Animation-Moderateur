@@ -20,6 +20,7 @@
 // Jules, pas corrigé ici (décision produit).
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { privateChannel } from '../lib/realtime'
 import { castVote, getMyAssertionIds } from '../lib/voting'
 import { extractErr } from '../lib/utils'
 import type { Assertion, AssertionVote, Session } from '../lib/types'
@@ -105,8 +106,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
   // rechargement de page ; sans ça, la section 3 resterait figée sur
   // l'instantané du chargement initial.
   useEffect(() => {
-    const channel = supabase
-      .channel(`postvote:${session.id}:${memberId}`)
+    const channel = privateChannel(`postvote:${session.id}:${memberId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'assertions', filter: `session_id=eq.${session.id}` },

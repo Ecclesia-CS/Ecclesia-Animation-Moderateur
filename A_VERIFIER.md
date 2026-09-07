@@ -1186,6 +1186,8 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   - Si **absent** : le correctif est complet, rien à faire de plus. Retirer le `console.log` et cocher cette entrée.
   - Si **présent** : la fuite passe par le WebSocket — ne pas improviser de correctif côté client. Solution de repli connue : une vue `assertions_public` (sans `member_id`) avec sa propre policy, lue à la place de la table par `VoteScreen.tsx` — chantier distinct à ouvrir. Documenter le résultat ici avant de considérer le chantier 51 clos.
 
+  **✅ Vérifié au navigateur le 2026-09-07 (chantier 86)** — **`member_id` absent du payload Realtime.** Manipulation reproduite à l'identique (`console.log` temporaire l.387, Browser pane + serveur `ecclesia-dev`), avec une séance de test créée et supprimée par SQL (`sessions.join_code = 'TST86X'`, id `fa171e66-90e5-472c-8ea8-248e2bfd9138` — nettoyée après coup) pour ne dépendre d'aucun mot de passe. Participant inscrit via `#vote/TST86X`, assertion soumise (`pending`, `moderation_policy='closed'`), puis `UPDATE assertions SET status='approved'` exécuté en base (même effet que `approve_assertion`, qui ne fait que ce seul UPDATE). Payload capté côté participant : `{id, status, content, created_at, session_id}` — pas de `member_id`. La `GRANT SELECT (colonnes)` de la migration s'applique donc aussi aux charges `postgres_changes`, pas seulement à la lecture REST directe. Point bloquant levé, chantier 51 peut être considéré clos sur ce volet. `console.log` retiré après vérification.
+
   **Contexte (audit sécurité 2026-08-03, constat B5)** : `assertions_select_approved` (`FOR SELECT USING (status = 'approved')`) filtre les LIGNES mais laisse passer toutes les colonnes, dont `member_id`. Comme `session_members` est lisible publiquement (nom/prénom réels), une simple requête REST anonyme (`GET /rest/v1/assertions?select=member_id,...`) suivie d'une jointure sur `session_members` désanonymise l'auteur de n'importe quelle assertion approuvée — sur des sujets clivants, dans une école où les gens se croisent. Le front est déjà discipliné (`VoteScreen.tsx` liste ses colonnes et exclut `member_id` depuis la migration `20260721_hide_assertion_author.sql`, commentaire "E2 — anonymat des auteurs") mais ce masquage front ne protège pas un appel REST direct.
 
   **Contenu du fichier** :
@@ -1683,6 +1685,113 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   6. **Non-régression allocation** (si le temps le permet avant jeudi, pas bloquant pour la séance vote-only) : séance avec au moins un membre sans `entry_responses` (onboarding sauté) qui atteint la phase `allocating` → `AllocationPanel` doit calculer une proposition sans planter, ce membre traité comme non-actif/non-consentant/nouveau.
 
   **Validation de Jules (06/09)** : désactiver l'onboarding par séance
+
+- [ ] **2026-09-06 — Chantier 59 — `supabase/migrations/20260906_chantier59_realtime_canaux_prives.sql`** (appliquée le 2026-09-07) — canaux Realtime privés, F6 à la racine
+
+  **⛔ NE RIEN APPLIQUER NI DÉPLOYER AVANT LA SÉANCE DU JEUDI 10 SEPTEMBRE.** — avertissement d'origine, **explicitement levé par Jules le 2026-09-07** : il a demandé de dérouler ce chantier ce jour-là plutôt que d'attendre la fin de la séance de vote. Voir ci-dessous ce qui a réellement été fait.
+
+  **Mise à jour du 2026-09-07 (session Claude Code)** :
+  - Migration cherry-pickée depuis la branche `chantier-59-realtime-prive` (les deux commits `a3a509c`/`78bc938`) sur `main` à jour (le merge direct de la branche entière aurait régressé tout le ménage documentaire des chantiers 73-89, la branche datant d'avant). Un seul conflit réel : l'import de `VoteScreen.tsx` (fusionné à la main, le reste s'est auto-mergé proprement).
+  - **Corps de `is_table_participant` comparé à `pg_get_functiondef` en base avant application** : identique à celui recopié dans la migration, seul le `SET search_path` est nouveau. `can_join_realtime_topic` et les deux policies n'existaient pas encore. Migration appliquée telle quelle via MCP (`apply_migration`).
+  - **Vérifications post-application** : les 2 policies existent (`ecclesia_realtime_read`/SELECT, `ecclesia_realtime_write`/INSERT) ; `can_join_realtime_topic` répond `false` sur les 4 cas de fail-closed du fichier (uuid bidon, topic malformé, table sans uuid valide, `NULL`) sans jamais lever.
+  - `npx tsc --noEmit`, `npm test` (98 passés / 1 skip préexistant — 4 tests de plus qu'au moment d'écriture du chantier, ajoutés entre-temps par d'autres chantiers), `npm run build` : tous propres.
+  - **Frontend mergé sur `main` et déployé** (commit `c2d06c7`, tag de rollback `pre-merge-chantier59-20260907` posé avant le merge).
+  - **Recette navigateur partielle** (étape 3 de l'ordre — avant désactivation du réglage dashboard) : table de test créée directement en base (`T59TEST`, `leaderless=true`, supprimée après coup), rejointe depuis deux onglets du même navigateur (donc deux connexions WebSocket distinctes sur le canal `table:<id>`, même s'ils partagent le même `auth.uid()` via le `localStorage` de la session anonyme — **limite connue de ce test**, pas un vrai deuxième participant). **Résultat** : jointure réussie, aucune `CHANNEL_ERROR` ni erreur console sur les deux onglets — les canaux privés autorisent bien le participant légitime. **Non testé** : la propagation effective d'un broadcast (le clic sur "Demander la parole" n'a pas déclenché de changement observable dans cette session — à investiguer séparément, ce n'est probablement qu'un souci d'interaction UI dans le test, pas une régression du chantier, puisque aucune requête réseau ni erreur n'a été émise). Les scénarios C à I (vote, allocation, post-vote, collab, bascule modération, non-régression superadmin, Messenger/JWT) n'ont **pas** été déroulés — session sans mot de passe superadmin et sans deuxième identité `auth.uid()` distincte disponible.
+  - **⛔ Ce qui reste bloquant, non fait par cette session** : désactiver « Allow public access » dans le dashboard Supabase (Project Settings → Realtime → Settings). C'est un réglage web, hors SQL/MCP — cette session n'a pas de session dashboard authentifiée. **Ne pas le faire avant d'avoir rejoué la recette complète A→H avec deux vraies identités distinctes** (deux navigateurs/profils différents, pas deux onglets du même profil). Une fois fait, rejouer le scénario B (`c.subscribe()` sans `private:true` doit échouer) et le scénario I (JWT anonyme sur séance longue).
+
+  ### État établi en base avant d'écrire quoi que ce soit (MCP lecture, 2026-09-06)
+
+  Le périmètre annoncé dans le plan sécurité (« `private: true` sur tous les canaux ») repose sur une prémisse que la base **contredit en partie**. Mesuré, pas supposé :
+
+  1. **Les 10 tables de la publication `supabase_realtime` ont toutes RLS activée**, et la doc Supabase (« Interaction with Postgres Changes ») est explicite : les lignes ne sont livrées qu'aux clients autorisés par les policies, et *« private and public channels can subscribe to Postgres Changes »*. Donc **`private: true` ne change rien au `postgres_changes`** — ni en protection, ni en régression. Policies SELECT effectives : `tables`/`participants`/`queue_entries`/`speaking_turns` → `is_table_participant` ✅ ; `session_members` → `user_id = auth.uid()` ✅ ; `table_assignments` → `is_own_session_member` ✅ ; `assertion_votes` → ses propres votes ✅ ; **`assertions` → `status='approved'`**, **`sessions` → `true`**, **`session_sources` → `true`** ⚠️. Le chantier 50 avait donc déjà fait l'essentiel du travail.
+  2. **`realtime.messages` : RLS activée, ZÉRO policy**, et les `GRANT SELECT/INSERT/UPDATE` sont déjà en place pour `anon` et `authenticated`. Infrastructure d'autorisation présente et **inerte** — état « disponible, non activé ».
+  3. `realtime.topic()`, `realtime.send()`, `realtime.broadcast_changes()` existent (support complet).
+
+  **Conclusion : le trou réel est le BROADCAST, et lui seul.** Un seul canal de toute l'app en émet — `table:<table_id>` (`TableContext`, événement `refresh`) — et le broadcast n'est soumis à **aucune** RLS sur un canal public. N'importe qui connaissant un `table_id` peut s'y abonner (métadonnée : rythme de la séance) et surtout **émettre** des `refresh`, déclenchant un refetch REST chez tous les clients de la table. C'est exactement F6. Le payload lui-même ne fuit rien (`{tables:[...]}`, une liste de noms de tables à refetcher). Le chantier 53 a plafonné la réception ; la porte d'émission est restée ouverte.
+
+  Les trois policies ⚠️ (`sessions`, `assertions`, `session_sources`) sont des **décisions produit assumées ailleurs** (la liste des séances en cours avec leur `join_code` est le parcours d'entrée voulu, §1.4 du plan ; assertions approuvées et sources = matériau public du débat). `private: true` ne les fermerait pas — seul un resserrement de leurs policies le ferait, périmètre du **chantier 58**. Non touchées ici.
+
+  ### ⚠️⚠️ Le point le plus important : une action humaine hors SQL conditionne tout
+
+  La doc Supabase : *« To enforce private channels you need to disable the "Allow public access" setting in Realtime Settings. »* C'est un réglage **projet** (dashboard → Realtime → Settings), inaccessible depuis une migration.
+
+  **Tant qu'il est activé, ce chantier ne ferme PAS F6** : un attaquant rejoint le même topic `table:<id>` en mode **public** et y émet quand même — le nom du topic est identique, `private` n'est qu'une assertion par connexion. Les policies et le `private: true` sont **nécessaires mais pas suffisants**.
+
+  Et ce réglage est **global** : une fois désactivé, tout canal resté public est refusé partout, immédiatement.
+
+  **ORDRE D'APPLICATION — NON NÉGOCIABLE.** L'inverser casse la production d'un coup (tous les canaux déployés aujourd'hui sont publics) :
+  1. Appliquer la migration → **aucun effet observable**, c'est normal et voulu (les policies ne sont consultées que par les canaux privés, et aucun ne l'est encore).
+  2. Déployer le frontend de cette branche (`private: true` partout).
+  3. Dérouler les scénarios A→H ci-dessous. **C'est l'étape où une policy trop stricte se voit.**
+  4. **Seulement ensuite**, désactiver « Allow public access ».
+  5. Re-dérouler A→H + le scénario I. C'est à cette étape, et pas avant, que F6 est fermé.
+
+  **Rollback d'urgence si le temps réel casse en séance** : réactiver « Allow public access » dans le dashboard. Effet immédiat, sans redéploiement ni migration — les canaux privés continuent de fonctionner et les publics redeviennent acceptés. **Levier à connaître avant d'y toucher.**
+
+  ### Contenu de la migration
+
+  - **§1** `is_table_participant` — ajout du `SET search_path = public, extensions`, qu'elle n'avait pas (sa jumelle `is_own_session_member` l'a depuis le chantier 50). Corps recopié depuis `pg_get_functiondef` **en base**, pas depuis un ancien fichier. Signature et type de retour inchangés → `CREATE OR REPLACE` suffit. Elle devient la clé de voûte de l'autorisation Realtime en plus des 4 policies de table qu'elle porte déjà.
+  - **§2** `can_join_realtime_topic(topic)` — carte unique des 8 topics, **fail-closed** (tout topic inconnu → `false`), robuste aux topics malformés (une exception dans une policy remonte au client comme un échec de connexion opaque). Table de correspondance : `table:` et `session-member-status:` → participant de la table ; `allocating:`, `vote:`, `vote-wait:` → membre de la séance ; `session-member:` et `postvote:<session>:<member>` → ce membre est le mien ; `collab:` → tout authentifié.
+  - **§3** deux policies sur `realtime.messages` : **lecture** au niveau du topic (volontairement *sans* filtre sur `extension` — nos topics sont majoritairement `postgres_changes` seuls, un filtre trop fin risquerait de leur refuser le `join` pour un gain nul, et le risque est asymétrique) ; **émission** restreinte à `extension = 'broadcast'` — c'est le vecteur réel de F6. Aucune policy pour `anon` : tous les écrans appellent `signInAnonymously()` avant d'ouvrir un canal.
+
+  ### Hypothèses tranchées seul (session de nuit, Jules dort) — à confirmer
+
+  1. **`collab:<session_id>` ouvert à tout authentifié.** `session_sources` a une policy SELECT `USING (true)` : le contenu qui transite y est déjà lisible par n'importe qui en REST. Une règle plus stricte sur le canal donnerait l'illusion d'une protection sans en apporter. Si Jules veut fermer les sources collaboratives, c'est la policy de `session_sources` qu'il faut resserrer d'abord — ce canal suivra tout seul, sans retoucher la migration.
+  2. **Lecture non filtrée sur `extension`** (voir §3 ci-dessus) : arbitrage prudence/rigueur, assumé au profit de la prudence parce que je ne peux pas mesurer l'effet sans navigateur.
+  3. **Suppression des deux canaux superadmin** (voir juste en dessous) plutôt que création d'une table `superadmin_sessions`. Le besoin n'existe pas aujourd'hui.
+
+  ### Changements frontend
+
+  - **`src/lib/realtime.ts` (nouveau)** — helper `privateChannel(name)`. Un seul endroit porte `{ config: { private: true } }` : point unique de rollback, et garantie qu'aucun canal n'est oublié en public. Il **enveloppe `subscribe()`** pour journaliser un `CHANNEL_ERROR`/`TIMED_OUT` en `console.error` : **6 des 8 canaux appelaient `.subscribe()` sans aucun callback**, un refus de `join` aurait donc été totalement muet et l'écran serait resté figé sans erreur — précisément le mode de régression identifié comme risque n°1 de ce chantier dans le plan sécurité. Le callback d'origine est relayé intact (`TableContext` s'en sert pour sa resynchronisation après coupure). Volontairement `console.error` et rien d'autre : aucune UI d'erreur, aucun retrait de canal, aucune reconnexion « intelligente » — les 4 couches de rattrapage restent seules maîtres du comportement.
+  - **8 canaux basculés** en privé : `TableContext` (`table:`, `session-member-status:`), `AllocatingScreen` (`allocating:`), `CollabDocScreen` (`collab:`), `PostVoteScreen` (`postvote:`), `VoteScreen` (`session-member:`, `vote-wait:`, `vote:`).
+  - **2 canaux superadmin SUPPRIMÉS**, parce qu'ils étaient **déjà morts avant ce chantier** :
+    - `table_assignments:<session_id>` — CLAUDE.md le documente déjà comme « conservé mais dormant » depuis le chantier 50 (policy self-only, le superadmin n'est membre d'aucune séance, Realtime applique la RLS avant livraison). Le polling 10 s de `loadGroups` est ce qui fait vivre la vue Groupes depuis.
+    - `session-tables:<session_id>` — **même situation, jamais relevée jusqu'ici** : la policy SELECT de `tables` est `is_table_participant(id)`, et le superadmin n'a **aucune ligne `participants`** (les tables créées par `apply_allocation`/`create_tables_batch` lui donnent `created_by`, pas un siège — et `is_table_participant` regarde `participants`, pas `created_by`). Il ne recevait donc rien non plus. Le `setInterval(load, 15000)` posé juste au-dessus dans le même fichier tenait déjà cette vue à jour.
+    - **Aucune perte fonctionnelle**, et ça dissout le seul cas d'autorisation réellement insoluble : le superadmin s'authentifie par un mot de passe bcrypt **jamais transmis à Realtime**, et son `auth.uid()` est un uid anonyme ordinaire, **indiscernable de celui d'un attaquant**. Aucune policy ne peut le reconnaître. Si un besoin de temps réel superadmin apparaît un jour, il faudra d'abord matérialiser sa session en base (table `superadmin_sessions(user_id, expires_at)` remplie par une RPC SECURITY DEFINER à la saisie du mot de passe) — chantier à part entière, sans urgence tant que les pollings tiennent.
+  - **Les 4 couches de rattrapage de latence sont intactes** — aucune touchée : mise à jour locale après RPC, broadcast, polling 5 s (`TableContext`), surveillance WebSocket. Idem pour les pollings 10 s de `VoteScreen`/`AllocatingScreen` et les 5 `setInterval` du superadmin. C'est ce qui permet aux navigateurs in-app (Messenger) de fonctionner WebSocket coupé, et rien ici ne le dégrade.
+
+  ### ⚠️ Piège légué à la prochaine session
+
+  `can_join_realtime_topic` est **fail-closed**. **Ajouter un `.channel()` dans `src/` sans ajouter la branche correspondante dans cette fonction SQL** produira un canal qui ne se connecte jamais, une fois « Allow public access » désactivé. Signalé aussi en tête de `src/lib/realtime.ts`. Le `console.error` du helper est le garde-fou qui rend l'oubli visible.
+
+  ### Déjà vérifié — et rien de plus
+
+  `npx tsc --noEmit` : propre. `npm test` : 94 passés / 1 skip préexistant (aucun test ajouté : la logique est en SQL et en configuration de canal, rien d'unit-testable sans base ni navigateur). `npm run build` : propre (avertissement de taille de bundle préexistant). **Aucune migration appliquée, aucune vérification navigateur, aucun serveur de dev lancé** (consignes de la session). Le réglage « Allow public access » n'a **pas** été touché — je n'y ai pas accès et il ne doit pas l'être avant l'étape 4 ci-dessus.
+
+  ---
+
+  ### Recette de vérification
+
+  **Étape SQL (après application, avant tout déploiement)** — dérouler les requêtes 1 à 4 du pied du fichier de migration. La n° 2 est jouable telle quelle et vérifie le fail-closed (`auth.uid()` vaut NULL dans le SQL Editor → tout doit répondre `false`, **sans jamais lever**). La n° 3 usurpe une identité réelle via `SET LOCAL request.jwt.claims` et prouve qu'un participant obtient bien `true` sur SA table et `false` sur une autre.
+
+  **Étapes navigateur — à faire DEUX FOIS : une fois « Allow public access » encore activé (étape 3 de l'ordre), une fois après l'avoir désactivé (étape 5).** Garder la console ouverte en permanence : tout `[realtime] canal privé "…" — CHANNEL_ERROR` est un échec, même si l'écran a l'air normal (les pollings masquent).
+
+  **A. Débat, cœur du chantier** (table animée, 2 navigateurs) : modérateur donne la parole → l'écran participant doit refléter le changement **en moins d'une seconde** (c'est le broadcast, pas le polling 5 s). Demander la parole, réordonner la file en glisser-déposer, terminer un tour : chaque action doit se propager instantanément dans l'autre navigateur. Si tout arrive avec ~5 s de retard, **le broadcast est cassé** — le polling compense et rend la panne quasi invisible, d'où l'importance de chronométrer.
+
+  **B. Le test qui prouve que F6 est fermé** (à faire à l'étape 5 uniquement) : depuis un 3ᵉ navigateur **non participant**, en console sur le site :
+  ```js
+  const c = supabase.channel('table:<TABLE_ID>', { config: { private: true } })
+  c.on('broadcast', { event: 'refresh' }, p => console.log('REÇU', p))
+   .subscribe(s => console.log('statut', s))
+  ```
+  → attendu : `CHANNEL_ERROR`, aucun message reçu. Puis retenter **sans** `{ config: { private: true } }` (canal public) : attendu `CHANNEL_ERROR` également une fois « Allow public access » désactivé — **c'est ce second essai qui valide le réglage dashboard**, le premier ne valide que les policies. Enfin, tenter `c.send({ type:'broadcast', event:'refresh', payload:{ tables:['tables'] } })` : ne doit produire aucun refetch chez les participants légitimes.
+
+  **C. Vote** (`#vote/<join_code>`) : proposer une assertion depuis un 2ᵉ navigateur → elle doit apparaître chez les autres votants sans rechargement (canal `vote:`). Changer la phase depuis le superadmin → l'écran participant doit suivre (canal `vote-wait:`). Poser/retirer `is_moderator` sur un membre depuis le superadmin pendant qu'il est sur l'écran de vote → son état doit changer (canal `session-member:`).
+
+  **D. Allocation** : passer en `allocating` et appliquer une allocation → chaque participant doit voir son groupe apparaître sans recharger (canal `allocating:`).
+
+  **E. Post-vote** (`PostVoteScreen`) : approuver une assertion depuis le superadmin → elle doit apparaître chez le membre (canal `postvote:`).
+
+  **F. Document collaboratif** (`#collab/<join_code>`) : ajouter une source depuis un 2ᵉ navigateur → apparition immédiate chez le premier (canal `collab:`).
+
+  **G. Bascule de modération en cours de débat** : sur une table `leaderless`, un participant clique « Devenir modérateur » → sa vue et celle des autres doivent basculer (canal `session-member-status:`, et `table:` pour l'UPDATE de `tables`).
+
+  **H. Non-régression superadmin — la plus importante des suppressions.** Onglet Tables en phase `allocating`/`debating` : déplacer un membre d'un groupe à l'autre depuis un 2ᵉ onglet superadmin → le premier doit se mettre à jour **en ≤ 10 s** (polling `loadGroups`). Rattacher/détacher une table → la liste doit se mettre à jour **en ≤ 15 s** (polling `load`). C'est plus lent qu'un temps réel, mais c'était **déjà** le comportement réel avant ce chantier : les deux canaux supprimés ne livraient rien. **Si une de ces deux vues ne se met plus du tout à jour, c'est une vraie régression** — le signaler.
+
+  **I. Messenger / navigateur in-app** (à l'étape 5, après désactivation du réglage) : ouvrir un lien de séance depuis Messenger, dérouler vote → allocation → débat. Le WebSocket y est souvent coupé : l'app doit rester utilisable via les pollings seuls. **Point d'attention spécifique aux canaux privés** : ils exigent un JWT valide, et la doc précise que *« if a new JWT is never received on the Channel, the client will be disconnected when the JWT expires »*. Sur une séance longue (>1 h), vérifier qu'un client resté ouvert continue de recevoir après expiration/refresh du JWT anonyme. **C'est le risque de régression le plus difficile à voir et le seul qui soit propre aux canaux privés** — si un écran se fige après une heure sans que le polling le rattrape, c'est là qu'il faut chercher.
+
+
+## Validé
 
 - [x] **Refus d'une URL à schéma non autorisé (contrôle client)** *(validé le 2026-09-06)* — `#collab/<join_code>`, formulaire d'ajout — ✅ vérifié le 2026-09-06 par Jules : `javascript:alert(1)` → message rouge, formulaire resté ouvert, aucune requête réseau émise.
 

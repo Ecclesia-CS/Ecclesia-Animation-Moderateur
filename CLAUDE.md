@@ -125,7 +125,7 @@ Les deux tables avaient une policy `SELECT USING (true)`. Comme il n'y a pas de 
 **Conséquences à connaître avant d'écrire une lecture** :
 - Toute lecture directe de ces tables ne voit que **ses propres lignes**. Les 4 lectures existantes (`TableContext`, `SessionRouterScreen` ×2, `VoteScreen`) sont déjà filtrées `.eq('user_id', userId)` — ne pas en ajouter d'autre sans passer par une RPC SECURITY DEFINER.
 - **Ne jamais lire ces tables via une jointure imbriquée PostgREST** (`table_assignments.select('…, session_members!member_id(…)')`) pour le compte du superadmin : sous ces policies, PostgREST **ne renvoie pas d'erreur**, l'objet imbriqué devient `null` et les listes se vident en silence. Utiliser `list_table_assignments_admin`.
-- Le superadmin n'étant membre d'aucune séance, il ne reçoit **plus aucun événement Realtime** sur ces deux tables. La vue Groupes compense par un polling 10 s (`allocating`/`debating`) ; l'abonnement Realtime est conservé mais dormant.
+- Le superadmin n'étant membre d'aucune séance, il ne reçoit **plus aucun événement Realtime** sur ces deux tables. La vue Groupes compense par un polling 10 s (`allocating`/`debating`). **Chantier 59** : l'abonnement Realtime dormant (`table_assignments:<session_id>`) a été **supprimé**, ainsi que `session-tables:<session_id>` — ce dernier était mort pour une raison voisine jamais relevée jusque-là (la policy de `tables` est `is_table_participant(id)`, et le superadmin n'a aucune ligne `participants` : `apply_allocation` lui donne `created_by`, pas un siège). Les pollings 10 s et 15 s tenaient déjà ces deux vues à jour.
 - Effet de bord souhaitable : `REPLICA IDENTITY FULL` fait toujours transiter toutes les colonnes dans le WAL, mais Realtime applique la RLS avant livraison — `reclaim_code` ne part plus qu'au propriétaire de la ligne.
 
 ### Rétention des données — codes de rappel (chantier 49)
@@ -164,6 +164,25 @@ Les trois helpers d'autorisation, à connaître de mémoire parce que les contou
 URL de production : `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/#session/<join_code>`
 URL locale : `http://localhost:5173/Ecclesia-Animation-Moderateur/#session/<join_code>`
 
+### Canaux Realtime privés (chantier 59)
+
+**Tout canal s'ouvre via `privateChannel()` (`src/lib/realtime.ts`), jamais via `supabase.channel()` directement.** Le helper pose `{ config: { private: true } }` et journalise en `console.error` tout `CHANNEL_ERROR`/`TIMED_OUT` — 6 des 8 canaux appellent `.subscribe()` sans callback, un refus d'autorisation serait sinon totalement muet.
+
+L'autorisation est décrite par `can_join_realtime_topic(topic)` (migration `20260906_chantier59_realtime_canaux_prives.sql`), appelée par deux policies sur `realtime.messages` : lecture au niveau du topic, émission restreinte à `extension = 'broadcast'`. Les 8 topics et leur règle :
+
+| topic | règle |
+|---|---|
+| `table:<table_id>` · `session-member-status:<table_id>` | participant de la table |
+| `allocating:<session_id>` · `vote:<session_id>` · `vote-wait:<session_id>` | membre de la séance |
+| `session-member:<member_id>` · `postvote:<session_id>:<member_id>` | ce membre est le mien |
+| `collab:<session_id>` | tout authentifié (aussi ouvert que `session_sources`, RLS `true`) |
+
+⚠️ **`can_join_realtime_topic` est fail-closed** : ajouter un `.channel()` sans ajouter la branche correspondante dans cette fonction SQL produit un canal qui ne se connecte jamais.
+
+⚠️ **`private: true` ne protège que le broadcast.** Le `postgres_changes` est filtré par la RLS des tables, sur canal privé comme public (doc Supabase) — le passage en privé ne lui apporte ni protection ni régression. Et **fermer F6 exige en plus de désactiver « Allow public access »** (dashboard → Realtime → Settings), réglage projet global : sans lui, un attaquant rejoint le même topic en mode public. Ce réglage n'est **pas** appliqué à ce jour — voir `A_VERIFIER.md`, chantier 59, pour l'ordre d'application (l'inverser casse toute la production d'un coup) et le rollback d'urgence.
+
+---
+
 ## Règles critiques
 
 ### Chrono
@@ -192,6 +211,8 @@ Tout le monde voit `ParticipantView` tant qu'aucun modérateur n'a été désign
 2. Broadcast `{event:'refresh', payload:{tables}}` → tous les clients refetch
 3. Polling 5s (rattrapage broadcasts manqués)
 4. Monitoring WebSocket (`CHANNEL_ERROR`/`TIMED_OUT` → reload complet)
+
+Les 4 couches sont **inchangées par le chantier 59** — elles sont ce qui rend l'app utilisable dans les navigateurs in-app (Messenger), où le WebSocket est souvent coupé. Seule la couche 2 est désormais soumise à autorisation : seuls les participants de la table peuvent émettre un `refresh`. Le plafonnement côté réception (chantier 53) reste en place.
 
 ### Broadcast par action
 `grantFloor`/`endTurn`/`endTurnAndAdvance` → `tables, queue_entries, speaking_turns`

@@ -11,6 +11,7 @@ import {
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
+import { privateChannel } from '../lib/realtime'
 import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
 
 // ── Public types ───────────────────────────────────────────────
@@ -206,7 +207,7 @@ export function TableProvider({
 
   // ── Realtime subscriptions ────────────────────────────────────
   useEffect(() => {
-    const ch: RealtimeChannel = supabase.channel(`table:${tableId}`)
+    const ch: RealtimeChannel = privateChannel(`table:${tableId}`)
     channelRef.current = ch
 
     // tables — UPDATE / DELETE
@@ -341,8 +342,7 @@ export function TableProvider({
   useEffect(() => {
     const sessionId = table?.session_id
     if (!sessionId) return
-    const ch = supabase
-      .channel(`session-member-status:${tableId}`)
+    const ch = privateChannel(`session-member-status:${tableId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'session_members', filter: `session_id=eq.${sessionId}` },

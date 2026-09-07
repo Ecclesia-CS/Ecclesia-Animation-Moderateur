@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { privateChannel } from '../lib/realtime'
 import { getVoteResults, getMyTableAssignment } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
@@ -61,8 +62,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
   // ── Realtime ──────────────────────────────────────────────────────
   useEffect(() => {
-    const channel = supabase
-      .channel(`allocating:${session.id}`)
+    const channel = privateChannel(`allocating:${session.id}`)
       .on(
         'postgres_changes',
         {
