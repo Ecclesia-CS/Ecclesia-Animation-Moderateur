@@ -514,6 +514,133 @@ export async function loadAnalysisById(
   return data as LoadedAnalysis
 }
 
+// ── Comparaison avant / après débat (chantier 79) ────────────
+//
+// Piège central (voir docs/chantiers-a-faire.md, chantier 79) : deux calculs
+// k-means successifs ne numérotent pas les camps pareil — `group_id` est un
+// artefact de l'exécution (ordre d'initialisation kmeans++, k peut même
+// différer). Comparer deux analyses en supposant que "groupe 0" désigne le
+// même camp des deux côtés produirait un résultat FAUX ET CONVAINCANT.
+// On apparie donc les groupes de deux analyses sur leur COMPOSITION réelle
+// (chevauchement de member_id), jamais sur leur numéro.
+
+export interface GroupPairing {
+  aGroupId:     number
+  bGroupId:     number | null  // null si aucun groupe de b ne partage de membre avec aGroupId
+  overlapCount: number
+  aSize:        number
+  bSize:        number
+}
+
+/**
+ * Apparie les groupes de `a` à ceux de `b` par chevauchement maximal de
+ * membres (glouton : pour chaque groupe de `a`, dans l'ordre, choisit le
+ * groupe de `b` encore disponible avec le plus de membres en commun).
+ * Heuristique volontairement simple (pas d'appariement optimal global type
+ * Hongrois) — suffisant pour k ≤ 5, et le nombre de membres en commun est
+ * affiché à côté de chaque paire pour que l'appariement reste vérifiable
+ * à l'œil plutôt que de se fier aveuglément à l'algorithme.
+ */
+export function pairGroups(a: LoadedAnalysis, b: LoadedAnalysis): GroupPairing[] {
+  const aGroupIds = [...new Set(a.members.map(m => m.group_id))].sort((x, y) => x - y)
+
+  const bMembersByGroup = new Map<number, Set<string>>()
+  for (const m of b.members) {
+    if (!bMembersByGroup.has(m.group_id)) bMembersByGroup.set(m.group_id, new Set())
+    bMembersByGroup.get(m.group_id)!.add(m.member_id)
+  }
+
+  const usedB: Set<number> = new Set()
+  const pairings: GroupPairing[] = []
+
+  for (const ag of aGroupIds) {
+    const aMembers = new Set(a.members.filter(m => m.group_id === ag).map(m => m.member_id))
+
+    let bestB: number | null = null
+    let bestOverlap = 0
+    for (const [bg, bMembers] of bMembersByGroup) {
+      if (usedB.has(bg)) continue
+      let overlap = 0
+      for (const mid of aMembers) if (bMembers.has(mid)) overlap++
+      if (overlap > bestOverlap) {
+        bestOverlap = overlap
+        bestB = bg
+      }
+    }
+    if (bestB !== null) usedB.add(bestB)
+
+    pairings.push({
+      aGroupId:     ag,
+      bGroupId:     bestB,
+      overlapCount: bestOverlap,
+      aSize:        aMembers.size,
+      bSize:        bestB !== null ? (bMembersByGroup.get(bestB)?.size ?? 0) : 0,
+    })
+  }
+
+  return pairings
+}
+
+export interface MemberMovement {
+  memberId:  string
+  aGroupId:  number
+  bGroupId:  number | null  // null = membre absent de b (n'a pas revoté / exclu du second calcul)
+  stayed:    boolean        // bGroupId est bien le groupe apparié à aGroupId
+}
+
+/**
+ * Pour chaque membre présent dans `a`, dit s'il est resté dans le camp
+ * apparié (`pairGroups`) ou s'il en a changé entre les deux analyses.
+ * `bGroupId: null` distingue explicitement "n'a pas de vote dans b" de
+ * "a changé de camp" — un membre qui n'a pas revoté au postvote ne doit
+ * pas apparaître comme ayant quitté son camp.
+ */
+export function computeMemberMovements(
+  a:         LoadedAnalysis,
+  b:         LoadedAnalysis,
+  pairings:  GroupPairing[],
+): MemberMovement[] {
+  const bGroupByMember = new Map(b.members.map(m => [m.member_id, m.group_id]))
+  const expectedB = new Map(pairings.map(p => [p.aGroupId, p.bGroupId]))
+
+  return a.members.map(m => {
+    const bGroupId = bGroupByMember.get(m.member_id) ?? null
+    return {
+      memberId: m.member_id,
+      aGroupId: m.group_id,
+      bGroupId,
+      stayed:   bGroupId !== null && bGroupId === expectedB.get(m.group_id),
+    }
+  })
+}
+
+export interface ConsensusMovement {
+  assertionId: string
+  scoreA:      number
+  scoreB:      number
+  delta:       number  // scoreB - scoreA ; positif = plus consensuelle après
+}
+
+/**
+ * Écart de `group_consensus` par assertion entre deux analyses. Contrairement
+ * à `repness` (clé par group_id, donc sujet au même piège de numérotation que
+ * pairGroups ci-dessus), `group_consensus` est un score par assertion
+ * indépendant du numéro de groupe — comparable directement sans appariement.
+ * Ne retourne que les assertions présentes dans les deux analyses.
+ */
+export function computeConsensusMovements(
+  a: LoadedAnalysis,
+  b: LoadedAnalysis,
+): ConsensusMovement[] {
+  const result: ConsensusMovement[] = []
+  for (const [aid, scoreA] of Object.entries(a.group_consensus)) {
+    const scoreB = b.group_consensus[aid]
+    if (scoreB === undefined) continue
+    result.push({ assertionId: aid, scoreA, scoreB, delta: scoreB - scoreA })
+  }
+  return result
+}
+
 /**
  * Sauvegarde le résultat de l'analyse via RPC save_analysis (transaction atomique).
  * Retourne l'uuid de la nouvelle ligne session_analysis. N'écrase jamais une

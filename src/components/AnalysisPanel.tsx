@@ -11,8 +11,13 @@ import {
   saveAnalysisResult,
   runOpinionAnalysis,
   AnalysisError,
+  listSessionAnalyses,
+  loadAnalysisById,
+  pairGroups,
+  computeMemberMovements,
+  computeConsensusMovements,
 } from '../lib/analysis'
-import type { LoadedAnalysis, AnalysisResult } from '../lib/analysis'
+import type { LoadedAnalysis, AnalysisResult, SessionAnalysisSummary } from '../lib/analysis'
 import type { AssertionAdmin } from '../lib/voting'
 import type { GroupNameResult } from '../lib/types'
 
@@ -625,6 +630,303 @@ export default function AnalysisPanel({
               </p>
             )}
           </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// =============================================================
+// AnalysisComparisonPanel — chantier 79
+// Compare deux analyses d'une même séance (typiquement une 'pre_closure'
+// et une 'current') pour voir comment les positions ont bougé après le
+// débat. Infrastructure posée par le chantier 70 (assertion_vote_history,
+// vote_scope, list_session_analyses, get_analysis_by_id) — cet écran est
+// la première consommation de ces données.
+//
+// ⚠️ Piège central (voir pairGroups dans lib/analysis.ts) : deux analyses
+// ne numérotent pas leurs camps pareil. Tout ce qui est affiché ici passe
+// par l'appariement sur composition réelle, jamais par le group_id brut.
+// =============================================================
+
+interface AnalysisComparisonPanelProps {
+  sessionId: string
+  password:  string
+  assertions: AssertionAdmin[]
+  onAuthError(): void
+}
+
+const CONSENSUS_MOVE_MIN_DELTA = 0.15
+
+export function AnalysisComparisonPanel({
+  sessionId,
+  password,
+  assertions,
+  onAuthError,
+}: AnalysisComparisonPanelProps) {
+  const [open, setOpen] = useState(false)
+  const [summaries, setSummaries] = useState<SessionAnalysisSummary[]>([])
+  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const [beforeId, setBeforeId] = useState<string>('')
+  const [afterId, setAfterId]   = useState<string>('')
+  const [before, setBefore]     = useState<LoadedAnalysis | null>(null)
+  const [after, setAfter]       = useState<LoadedAnalysis | null>(null)
+  const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+
+  const assertionMap = new Map<string, string>(assertions.map(a => [a.id, a.content]))
+
+  function handleAuthOrError(e: unknown, fallback: (msg: string) => void) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+      onAuthError()
+    } else {
+      fallback(msg)
+    }
+  }
+
+  // ── Chargement de la liste des analyses (à l'ouverture) ────
+  const loadSummaries = useCallback(async () => {
+    setLoadStatus('loading')
+    setErrorMsg(null)
+    try {
+      const data = await listSessionAnalyses(supabase, password, sessionId)
+      setSummaries(data)
+      setLoadStatus('loaded')
+
+      // Sélection par défaut : la plus récente 'pre_closure' comme "avant",
+      // la plus récente 'current' comme "après" — c'est le cas d'usage visé
+      // par le chantier 70 (« voir comment les positions ont bougé après le
+      // débat »). Laissé vide si l'une des deux n'existe pas encore, plutôt
+      // que de deviner une paire non pertinente.
+      const latestPreClosure = data.find(s => s.vote_scope === 'pre_closure' && s.status === 'done')
+      const latestCurrent    = data.find(s => s.vote_scope === 'current' && s.status === 'done')
+      if (latestPreClosure) setBeforeId(prev => prev || latestPreClosure.id)
+      if (latestCurrent)    setAfterId(prev => prev || latestCurrent.id)
+    } catch (e) {
+      handleAuthOrError(e, msg => { setErrorMsg(msg); setLoadStatus('error') })
+    }
+  }, [password, sessionId])
+
+  useEffect(() => {
+    if (open && loadStatus === 'idle') loadSummaries()
+  }, [open, loadStatus, loadSummaries])
+
+  // ── Chargement des deux analyses sélectionnées ─────────────
+  useEffect(() => {
+    if (!beforeId || !afterId) {
+      setBefore(null)
+      setAfter(null)
+      setCompareStatus('idle')
+      return
+    }
+    if (beforeId === afterId) {
+      setCompareStatus('error')
+      setErrorMsg('Choisissez deux analyses différentes.')
+      return
+    }
+    let cancelled = false
+    setCompareStatus('loading')
+    setErrorMsg(null)
+    ;(async () => {
+      try {
+        const [b, a] = await Promise.all([
+          loadAnalysisById(supabase, password, beforeId),
+          loadAnalysisById(supabase, password, afterId),
+        ])
+        if (cancelled) return
+        if (!b || !a) {
+          setCompareStatus('error')
+          setErrorMsg('Une des deux analyses est introuvable.')
+          return
+        }
+        setBefore(b)
+        setAfter(a)
+        setCompareStatus('done')
+      } catch (e) {
+        if (cancelled) return
+        handleAuthOrError(e, msg => { setErrorMsg(msg); setCompareStatus('error') })
+      }
+    })()
+    return () => { cancelled = true }
+  }, [beforeId, afterId, password])
+
+  const pairings = before && after ? pairGroups(before, after) : []
+  const movements = before && after ? computeMemberMovements(before, after, pairings) : []
+  const consensusMovements = before && after ? computeConsensusMovements(before, after) : []
+
+  const votedInAfter   = movements.filter(m => m.bGroupId !== null)
+  const stayedCount    = votedInAfter.filter(m => m.stayed).length
+  const movedCount     = votedInAfter.filter(m => !m.stayed).length
+  const notRevotedCount = movements.length - votedInAfter.length
+
+  const topMoved = [...consensusMovements]
+    .filter(m => Math.abs(m.delta) >= CONSENSUS_MOVE_MIN_DELTA)
+    .sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta))
+    .slice(0, 8)
+
+  function analysisLabel(s: SessionAnalysisSummary): string {
+    const scopeLabel = s.vote_scope === 'pre_closure' ? 'avant débat' : 'courant'
+    const date = new Date(s.created_at).toLocaleString('fr-FR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    })
+    return `${date} · ${scopeLabel} · k=${s.k_chosen ?? '?'} · ${s.member_count} membre(s)`
+  }
+
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          Comparaison avant / après débat
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-100 px-5 py-4 space-y-5">
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+              {errorMsg}
+            </div>
+          )}
+
+          {loadStatus === 'loading' && (
+            <p className="text-sm text-gray-400">Chargement des analyses disponibles…</p>
+          )}
+
+          {loadStatus === 'loaded' && summaries.filter(s => s.status === 'done').length < 2 && (
+            <p className="text-sm text-gray-400">
+              Il faut au moins deux analyses terminées (une "avant débat" reconstituée depuis
+              l'historique des votes, une "courante") pour comparer. Relancez l'analyse depuis
+              "Analyse des camps" pour en obtenir une nouvelle si besoin.
+            </p>
+          )}
+
+          {loadStatus === 'loaded' && summaries.filter(s => s.status === 'done').length >= 2 && (
+            <>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <label className="flex-1 text-xs text-gray-500">
+                  Avant
+                  <select
+                    value={beforeId}
+                    onChange={e => setBeforeId(e.target.value)}
+                    className="mt-1 w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5"
+                  >
+                    <option value="">— choisir —</option>
+                    {summaries.filter(s => s.status === 'done').map(s => (
+                      <option key={s.id} value={s.id}>{analysisLabel(s)}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex-1 text-xs text-gray-500">
+                  Après
+                  <select
+                    value={afterId}
+                    onChange={e => setAfterId(e.target.value)}
+                    className="mt-1 w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5"
+                  >
+                    <option value="">— choisir —</option>
+                    {summaries.filter(s => s.status === 'done').map(s => (
+                      <option key={s.id} value={s.id}>{analysisLabel(s)}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {compareStatus === 'loading' && (
+                <p className="text-sm text-gray-400">Calcul de la comparaison…</p>
+              )}
+
+              {compareStatus === 'done' && before && after && (
+                <div className="space-y-5">
+                  {/* Mouvement des membres */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Mouvement entre camps
+                    </h4>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+                      <span><strong>{stayedCount}</strong> resté(s) dans leur camp</span>
+                      <span><strong>{movedCount}</strong> changé(s) de camp</span>
+                      {notRevotedCount > 0 && (
+                        <span className="text-gray-400">{notRevotedCount} sans vote correspondant après</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Appariement des groupes */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Camps appariés
+                      <span className="ml-1.5 font-normal normal-case text-gray-400">
+                        (par composition réelle, pas par numéro)
+                      </span>
+                    </h4>
+                    <ul className="space-y-1 text-sm text-gray-700">
+                      {pairings.map(p => (
+                        <li key={p.aGroupId} className="flex items-center gap-2">
+                          <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100">
+                            Avant #{p.aGroupId + 1} ({p.aSize})
+                          </span>
+                          <span className="text-gray-400">→</span>
+                          {p.bGroupId !== null ? (
+                            <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100">
+                              Après #{p.bGroupId + 1} ({p.bSize})
+                            </span>
+                          ) : (
+                            <span className="text-xs text-amber-600">aucun camp correspondant après</span>
+                          )}
+                          <span className="text-xs text-gray-400">{p.overlapCount} membre(s) en commun</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Assertions dont le consensus a le plus bougé */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                      Assertions dont le consensus a le plus bougé
+                    </h4>
+                    <p className="text-xs text-gray-400 mb-3">
+                      Comparaison directe du score de consensus (indépendante du numéro de camp) —
+                      seuil d'affichage : écart ≥ {CONSENSUS_MOVE_MIN_DELTA}.
+                    </p>
+                    {topMoved.length === 0 ? (
+                      <p className="text-xs text-gray-400">Aucun mouvement de consensus notable.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {topMoved.map(m => (
+                          <li key={m.assertionId} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span
+                              className={`flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 rounded ${
+                                m.delta > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                              }`}
+                            >
+                              {m.delta > 0 ? '+' : ''}{m.delta.toFixed(2)}
+                            </span>
+                            <span>
+                              {assertionMap.get(m.assertionId) ?? '(assertion supprimée)'}
+                              <span className="text-gray-400 ml-1">
+                                ({m.scoreA.toFixed(2)} → {m.scoreB.toFixed(2)})
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </section>

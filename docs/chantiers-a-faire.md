@@ -33,12 +33,6 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 
 ## À faire, dans l'ordre
 
-### 79 — Écran de comparaison avant / après débat
-**Parcours superadmin.** Le chantier 70 a construit toute l'infrastructure (`assertion_vote_history`, `vote_scope`, `get_all_votes_for_analysis(..., p_vote_scope)`, `list_session_analyses`, `get_analysis_by_id`) et s'est arrêté avant l'écran. Jules : « on pourra relancer l'analyse, et voir comment les positions idéologiques ont bougé après le débat », puis « oui je veux bien que tu construises l'écran de comparaison ».
-Périmètre : `AnalysisPanel.tsx`, `lib/analysis.ts`, onglet Analyse de `SuperadminScreen.tsx`.
-⚠️ Piège central : deux analyses successives ne numérotent pas les camps pareil (`group_id` k-means, k peut différer). Apparier sur la composition réelle, jamais sur le numéro — sinon le résultat est faux et convaincant.
-Branche `chantier-79-comparaison-avant-apres` déjà créée.
-
 ### 80 — Résultats publics : ne pas pouvoir remonter aux participants
 **Sécurité.** Jules, 07/09 : « pour la page publique, il ne faut pas qu'on puisse remonter aux participants, ou alors, il faut le rendre dur (et l'anonymat et changement de l'ordre des points comme tu l'as écrit est largement suffisant) ».
 Trois choses, et rien d'autre : vérifier qu'aucun identifiant ni pseudo ne sort de `get_public_results` ; **désordonner les points côté serveur** (leur ordre d'insertion trahit l'ordre d'inscription) ; poser le `SET search_path` manquant.

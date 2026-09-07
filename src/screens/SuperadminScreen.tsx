@@ -42,7 +42,7 @@ import TableDiagnosticsList, { CampCompositionBar, campColor } from '../componen
 import { diagnoseAllocation, type AllocationMember } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
-import AnalysisPanel from '../components/AnalysisPanel'
+import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import { mergeAssertions } from '../lib/gemini'
 import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
@@ -3163,6 +3163,16 @@ function SessionDetail({
             {/* ── Onglet Analyse ───────────────────────────── */}
             {activeTab === 'analysis' && (
               <div className="space-y-6">
+                {/* Comparaison avant / après débat — chantier 79 */}
+                {showVotingSections && (
+                  <AnalysisComparisonPanel
+                    sessionId={session.id}
+                    password={getPwd()!}
+                    assertions={assertions}
+                    onAuthError={onAuthError}
+                  />
+                )}
+
                 {/* Synthèse des votes */}
                 {showVotingSections && voteResults.length > 0 && (
                   <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
