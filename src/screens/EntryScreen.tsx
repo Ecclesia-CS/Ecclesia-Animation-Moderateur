@@ -4,6 +4,7 @@ import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import { claimModeratorStatus, claimTableAsModerator } from '../lib/voting'
 import ReclaimCodeDisplay from '../components/voting/ReclaimCodeDisplay'
+import { listPublicClosedSessions } from '../lib/sessions'
 import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
 
@@ -523,16 +524,9 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase
-      .from('sessions')
-      .select('id, title, description, scheduled_at')
-      .eq('phase', 'closed')
-      .eq('results_public', true)
-      .order('scheduled_at', { ascending: false, nullsFirst: false })
-      .then(({ data, error: err }) => {
-        if (err) { setError(extractErr(err)); return }
-        setSessions(data ?? [])
-      })
+    listPublicClosedSessions()
+      .then(data => setSessions(data))
+      .catch(err => setError(extractErr(err)))
   }, [])
 
   return (

@@ -34,6 +34,38 @@ export async function verifyPassword(password: string): Promise<void> {
   if (error) throw new Error(extractErr(error))
 }
 
+// Chantier 58 — `sessions` a une policy SELECT USING (true) (voulu, pour
+// que l'accueil liste id/title/phase/join_code de toute séance), mais
+// description/doc_*_url/moderation_policy/phase_changed_at/group_names/
+// results_public ne sont plus lisibles directement (privilèges de colonne
+// restreints). Ces 4 RPC remplacent les lectures directes qui en avaient
+// besoin — voir supabase/migrations/20260903_chantier58_restrict_session_columns.sql.
+export async function getSessionById(sessionId: string): Promise<Session | null> {
+  const { data, error } = await supabase.rpc('get_session_by_id', { p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  return (data as Session | null) ?? null
+}
+
+export async function getSessionByJoinCode(joinCode: string): Promise<Session | null> {
+  const { data, error } = await supabase.rpc('get_session_by_join_code', { p_join_code: joinCode })
+  if (error) throw new Error(extractErr(error))
+  return (data as Session | null) ?? null
+}
+
+export async function listSessionsAdmin(password: string): Promise<Session[]> {
+  const { data, error } = await supabase.rpc('list_sessions_admin', { p_password: password })
+  if (error) throw new Error(extractErr(error))
+  return (data as Session[]) ?? []
+}
+
+export type PublicClosedSession = Pick<Session, 'id' | 'title' | 'description' | 'scheduled_at'>
+
+export async function listPublicClosedSessions(): Promise<PublicClosedSession[]> {
+  const { data, error } = await supabase.rpc('list_public_closed_sessions')
+  if (error) throw new Error(extractErr(error))
+  return (data as PublicClosedSession[]) ?? []
+}
+
 export async function createSession(
   password: string,
   title: string,

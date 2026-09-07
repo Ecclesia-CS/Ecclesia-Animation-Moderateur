@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
+import { getSessionById } from '../lib/sessions'
 import { extractErr } from '../lib/utils'
 import { tableStore } from '../lib/storage'
 import type { QuestionnaireResponse } from '../lib/types'
@@ -90,12 +91,8 @@ export default function ParticipantView() {
 
   useEffect(() => {
     if (!table.session_id) return
-    supabase
-      .from('sessions')
-      .select('title, join_code, doc_info_url, doc_summary_url, doc_collab_url')
-      .eq('id', table.session_id)
-      .maybeSingle()
-      .then(({ data }) => {
+    getSessionById(table.session_id)
+      .then(data => {
         if (data) {
           setSessionTitle(data.title)
           setSessionDocs({
@@ -106,6 +103,7 @@ export default function ParticipantView() {
           })
         }
       })
+      .catch(() => {})
   }, [table.session_id])
 
   const iAmSpeaking   = table.current_speaker_id === myParticipant.id

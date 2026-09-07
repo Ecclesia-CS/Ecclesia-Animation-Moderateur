@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { getSessionById } from '../lib/sessions'
 import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
 
 // ── Public types ───────────────────────────────────────────────
@@ -150,8 +151,8 @@ export function TableProvider({
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
     if (tbl.session_id) {
-      const { data: sess } = await supabase.from('sessions').select('*').eq('id', tbl.session_id).maybeSingle()
-      setSession(sess as Session | null)
+      const sess = await getSessionById(tbl.session_id).catch(() => null)
+      setSession(sess)
       // Chantier 35/41 — rattrape un octroi ou un retrait de modération fait
       // pendant que ce client était hors ligne / avant montage (sinon on ne
       // le saurait qu'au prochain UPDATE realtime, qui peut ne jamais arriver

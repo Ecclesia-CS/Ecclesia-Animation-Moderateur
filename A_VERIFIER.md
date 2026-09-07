@@ -86,7 +86,6 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
   6. Avant la bascule du test 4 : noter le nombre de lignes dans `speaking_turns` pour cette table (`SELECT count(*) FROM speaking_turns WHERE table_id = '<id>'`), et le contenu de la file d'attente des AUTRES participants restés sur la table (`queue_entries`).
   7. Déclencher la bascule (test 4). **Observer** : le compte de `speaking_turns` est identique après (aucune ligne supprimée) ; les entrées de file des participants restés sont intactes (seule celle du modérateur parti, s'il en avait une, disparaît — cascade normale de la suppression de SA ligne `participants`, comme pour n'importe quel départ via `switch_table`, inchangé par ce chantier) ; les temps de parole cumulés affichés dans `ParticipantsTable`/export CSV restent corrects pour tout le monde.
 
-
 - [ ] **Chantier 33 — `supabase/migrations/20260801_chantier33_moderator_table_assignment.sql`** (statut d'application non confirmé — aucune trace de vérification post-application dans l'historique, contrairement aux migrations chantier-35 et chantier-37 ci-dessous)
 
   **Contenu du fichier** : redéfinit `claim_moderator_status(session_id, creation_code, pseudo?)` pour (a) accepter la phase `debating` en plus de `pre_voting`/`voting`/`allocating`, et (b) asseoir automatiquement le nouveau modérateur sur la première table animée encore sans modérateur (ordre des numéros de table) via une nouvelle ligne `table_assignments`. Crée aussi `assign_moderator_to_table(password, session_id, table_number, member_id)` — assignation manuelle superadmin, pose `is_moderator=true` + `table_assignments`.
@@ -121,6 +120,35 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
   2. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP). Vérifier au préalable la signature des deux fonctions (`pg_get_function_identity_arguments('add_collab_source'::regproc)` / `('update_collab_source'::regproc)`) au cas où une session parallèle y aurait touché depuis l'écriture de cette migration — le fichier suppose la signature de `20260527130000_collab_table_join_code.sql`.
   3. Dérouler les requêtes de vérification en pied de fichier de migration (URL valide acceptée, `javascript:`/`data:`/bare hostname refusés, lecture publique de `collab_session_users` fermée, lecture self-only toujours fonctionnelle).
   4. Dérouler le test manuel de la section "Sources collaboratives" ci-dessous.
+
+- [ ] **Chantier 58 — `supabase/migrations/20260903_chantier58_restrict_session_columns.sql`** (jamais appliquée) — répond au « Résidu non corrigé » signalé par le chantier 65 ci-dessus (ligne ~172) : `sessions` a une policy `SELECT USING (true)`, donc `description`, `doc_info_url`/`doc_summary_url`/`doc_collab_url` et surtout `group_names` (l'analyse PCA des camps — contourne le garde-fou `results_public`) étaient lisibles par n'importe qui avec la clé anon, pour toute séance y compris `draft`. Aucune dépendance avec les autres migrations en attente ci-dessus, applicable indépendamment.
+
+  **Ce que ça change** : `REVOKE`/`GRANT` de colonne sur `sessions` — seules `id, title, phase, join_code, scheduled_at, created_at` restent lisibles par un `select()` direct (`anon`/`authenticated`). Les 8 autres colonnes (`description`, les 3 `doc_*_url`, `moderation_policy`, `phase_changed_at`, `group_names`, `results_public`) ne le sont plus. **Ce qui NE bouge PAS** (décision explicite de Jules) : la policy RLS elle-même reste `USING (true)` — `id`/`title`/`phase`/`join_code` d'une séance `draft` restent lisibles par qui devine son `id`, exactement comme le chantier 65 l'avait laissé. Ce chantier ferme uniquement les colonnes annexes, pas la visibilité des lignes.
+
+  **4 nouvelles RPC `SECURITY DEFINER`** (aucun mot de passe requis sauf la 3ᵉ — comportement identique à ce que `select('*')`/le `select()` ciblé permettait déjà à n'importe qui, seul le canal change) :
+  - `get_session_by_id(uuid)` / `get_session_by_join_code(text)` — ligne complète, remplacent les 8 lectures `select('*')` recensées (voir en-tête du fichier de migration pour la liste précise fichier:ligne) + les 2 lectures `select('title, join_code, doc_info_url, doc_summary_url, doc_collab_url')` de `ModeratorView.tsx`/`ParticipantView.tsx`.
+  - `list_sessions_admin(password)` — remplace le `select('*')` de `SuperadminScreen.loadSessions()` (mot de passe superadmin requis, seule RPC des 4 qui l'exige — c'est le seul écran qui a besoin de TOUTES les séances, `draft` incluses, avec TOUTES les colonnes).
+  - `list_public_closed_sessions()` — remplace le `select('id, title, description, scheduled_at')` de `PastSessionsModal` (accueil, « Voir les votes des anciennes séances ») ; filtre en base `phase='closed' AND results_public=true`, donc `description` n'est retourné que pour une séance explicitement rendue publique par le superadmin.
+
+  **Inventaire fait avant écriture** (refait le 2026-09-03, celui du 02/09 datait déjà) : **15 lectures directes de `sessions` dans `src/`** — 8 en `select('*')`, 3 en `select(colonnes)` qui nommaient une colonne désormais retirée (donc tout autant cassées qu'un `select('*')`), 4 en `select(colonnes)` qui ne touchent que des colonnes restées publiques (inchangées). Détail fichier:ligne complet en tête du fichier de migration. Fonctions `SECURITY DEFINER` qui lisent `sessions` en interne (`create_session`, `close_session`, `set_session_phase`, `get_public_results`, `register_session_member`, etc.) : insensibles aux privilèges de colonne (s'exécutent avec les droits du propriétaire), non affectées — listées en tête du fichier de migration pour montrer qu'elles ont été distinguées des lectures directes, pas modifiées.
+
+  **Fenêtre de casse** : aucune dans le sens migration-avant-code (le nouveau code fonctionne dès la migration appliquée, avec ou sans redéploiement). Dans le sens code-avant-migration en revanche, le nouveau frontend appelle des RPC qui n'existent pas encore tant que la migration n'est pas passée (erreur `PGRST202`/« function not found ») — **déployer le code seulement après application de cette migration**, pas avant.
+
+  **`npx tsc --noEmit`, `npm test` (94 passants) et `npm run build` OK** — vérifié après rebase sur `main` du 2026-09-03 (chantiers 49/52/54/67 mergés entre-temps), un seul conflit trivial (deux imports ajoutés à la même ligne dans `EntryScreen.tsx`, résolu en gardant les deux).
+
+  **À faire (session de vérification)** :
+  1. Exécuter le fichier via le SQL Editor du dashboard Supabase (ou MCP).
+  2. Vérification négative REST (clé anon publique, hors navigateur) :
+     ```
+     GET /rest/v1/sessions?select=*                            → attendu 403 / 42501
+     GET /rest/v1/sessions?select=description                  → attendu 403 / 42501
+     GET /rest/v1/sessions?select=group_names                  → attendu 403 / 42501
+     GET /rest/v1/sessions?select=doc_info_url,doc_summary_url → attendu 403 / 42501
+     GET /rest/v1/sessions?select=id,title,phase,join_code     → attendu 200, toutes les séances (draft incluses)
+     ```
+  3. RPC publiques (aucune auth requise) : `SELECT get_session_by_id('<session_id>');`, `SELECT get_session_by_join_code('<join_code>');`, `SELECT * FROM list_public_closed_sessions();` → attendu : ligne(s) complète(s), `description`/`doc_*_url`/`group_names` inclus.
+  4. RPC admin : `SELECT * FROM list_sessions_admin('<mot de passe superadmin>');` (toutes séances, `draft` incluses) et `SELECT * FROM list_sessions_admin('mauvais-mot-de-passe');` (attendu : exception « Mot de passe superadmin incorrect »).
+  5. Dérouler les scénarios de la section « Colonnes annexes de sessions (chantier 58) » ci-dessous, écran par écran.
 
 ## Sources collaboratives (chantier 52)
 
@@ -260,6 +288,32 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
 
   **Test minimal (mot de passe superadmin requis, migration appliquée au préalable)** : ouvrir une séance close depuis la liste, cliquer la pastille → passe à "Résultats publics" sans reload ; recharger la page → l'état persiste (relu depuis `sessions.results_public`) ; cliquer à nouveau → repasse à "Résultats privés". Vérifier qu'aucune pastille n'apparaît sur les séances non closes.
 
+
+## Colonnes annexes de sessions (chantier 58)
+
+*(migration SQL requise — voir l'entrée dédiée section « Migration SQL en attente d'application », plus haut, pour le contenu complet et les vérifications REST/RPC directes.)*
+
+Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls `tsc -b`, `npm test` (94 passants) et `npm run build` ont été vérifiés côté outillage, après rebase sur `main` du 2026-09-03. Chaque scénario ci-dessous exerce un écran dont la lecture de `sessions` a été convertie (`select('*')` ou colonne retirée → RPC) ; l'objectif est de confirmer qu'aucun de ces écrans ne charge plus « vide » ou en erreur 403 après application de la migration.
+
+- [ ] **Accueil (`EntryScreen`) — liste des séances en cours, inchangée** — `src/screens/EntryScreen.tsx`. Ouvrir l'accueil avec au moins une séance en `pre_voting`/`voting`/`allocating`/`debating` : la carte titre + badge de phase + bouton d'action doit s'afficher normalement (ces 3 requêtes n'ont pas changé, elles ne touchaient déjà que `id, title, phase, join_code` — ce scénario est une non-régression, à vérifier que le rebase sur les chantiers 65/67 n'a rien cassé).
+
+- [ ] **Accueil — modale « Anciennes séances »** — `src/screens/EntryScreen.tsx` (`PastSessionsModal`), maintenant sur `list_public_closed_sessions()`. Prérequis : au moins une séance `closed` avec `results_public = true` portant une `description` et un `scheduled_at` non nuls. Cliquer « Voir les votes des anciennes séances » → la carte doit afficher titre, date ET description (les 3 champs, pas seulement le titre — c'est justement le champ `description` dont la lecture directe vient d'être coupée). Vérifier aussi qu'une séance `closed` avec `results_public = false` n'apparaît PAS dans la liste (déjà le comportement attendu avant ce chantier, non-régression).
+
+- [ ] **Vote (`VoteScreen`) — écran de pseudo, phase `pre_voting`** — `src/components/voting/PseudoForm.tsx` lit `session.description` pour l'afficher sous le titre de la séance. Rejoindre `#vote/<join_code>` d'une séance `pre_voting` dont la `description` est renseignée → le texte doit apparaître sous le formulaire de pseudo, exactement comme avant ce chantier (la donnée vient maintenant de `get_session_by_join_code`, pas d'un `select('*')` direct — le rendu ne doit rien montrer de différent).
+
+- [ ] **Vote (`VoteScreen`) — bandeau de modération, `moderation_policy`** — `src/components/voting/SubmitAssertionModal.tsx` affiche un texte différent selon `session.moderation_policy === 'closed'`. Sur une séance dont la politique est « Modération manuelle », ouvrir « Proposer une assertion » → le texte d'avertissement (assertion en attente de validation) doit apparaître. Sur une séance en politique « Ouverte », ce texte ne doit pas apparaître. Non-régression pure — cette donnée passe maintenant par les RPC de lecture de `sessions`.
+
+- [ ] **Vote (`VoteScreen`) — polling de secours phase, sans rechargement** — deux onglets sur la même séance en `pre_voting` : dans l'un, garder `#vote/<join_code>` ouvert sur l'étape "waiting"/"vote" (ne pas recharger) ; dans l'autre (superadmin), faire avancer la phase (`pre_voting → voting`, ou `voting → debating`). Sous ~10 s, le premier onglet doit détecter la transition et changer d'étape tout seul (`getSessionById` remplace directement le `select('*')` qui alimentait ce polling — un oubli ici planterait silencieusement le `setInterval`, sans erreur visible à l'écran, seulement en console réseau).
+
+- [ ] **Débat — liens de documentation (`ModeratorView` et `ParticipantView`)** — `src/screens/ModeratorView.tsx` / `src/screens/ParticipantView.tsx`, bouton « Documentation ». Séance rattachée à une table (`table.session_id` non nul) avec au moins une des 3 URL (`doc_info_url`/`doc_summary_url`/`doc_collab_url`) renseignée : ouvrir le menu Documentation côté modérateur ET côté participant → les liens doivent apparaître et pointer vers la bonne URL (c'est exactement la lecture qui utilisait `select('title, join_code, doc_info_url, ...)` avant ce chantier — la colonne est maintenant fermée en direct, donc un oubli dans la conversion RPC viderait silencieusement le menu, sans erreur visible côté UI puisque `DocumentationButton` se contente de masquer les liens absents).
+
+- [ ] **Allocation (`AllocatingScreen`) — polling de secours phase** — même principe que le polling `VoteScreen` ci-dessus, mais sur la transition `allocating → debating`. Un participant sur l'écran d'allocation (bouton « Rejoindre » pas encore affiché) pendant que le superadmin déclenche l'ouverture du débat → sous ~10 s, le bouton « Rejoindre »/le passage à l'écran suivant doit apparaître sans rechargement.
+
+- [ ] **Résultats (`SessionRouterScreen` / `PublicResultsScreen`) — routage et résultats publics** — `#session/<join_code>` sur une séance `closed`. Membre inscrit → doit atterrir sur `ResultsMapScreen` (ou le questionnaire post-débat s'il n'a pas répondu) sans erreur ; visiteur non inscrit → `PublicResultsScreen`, avec le nom des camps si `group_names` est renseigné (donnée désormais servie par `get_session_by_join_code`, plus par un `select('*')` direct — un oubli ici afficherait des camps sans nom au lieu de planter, donc vérifier spécifiquement que le nom apparaît, pas seulement l'absence d'erreur). Tester aussi `#results/<session_id>` directement (accueil → « Anciennes séances » → clic sur une carte) — chemin qui passe par `getSessionById`, distinct du précédent.
+
+- [ ] **Superadmin — liste des séances, tous les champs d'édition** — `src/screens/SuperadminScreen.tsx` (`loadSessions`, maintenant sur `list_sessions_admin(password)`). Se connecter en superadmin → la liste doit inclure les séances `draft` (contrairement à l'accueil public) avec, sur chaque carte/détail : description, dates, URLs des 3 documents, pastille `results_public`, politique de modération, noms de groupes déjà générés (`group_names`) — tous des champs désormais fermés à la lecture directe pour tout le monde SAUF cette RPC. Modifier une description ou une URL de document, enregistrer, recharger la page → la valeur doit persister (confirme que l'édition elle-même, qui passe par `update_session_docs`/RPC dédiées non touchées par ce chantier, fonctionne toujours après le changement de lecture).
+
+- [ ] **Vérification négative — clé anon, hors navigateur** — voir le détail complet (requêtes REST exactes) dans l'entrée de migration ci-dessus. Rappel synthétique : `select=*` et `select=` sur n'importe laquelle des 8 colonnes retirées doivent répondre 403/42501 ; `select=id,title,phase,join_code` doit continuer à répondre 200 avec toutes les séances (y compris `draft` — pas dans le périmètre de ce chantier, cf. note sur le chantier 65 plus haut).
 
 ## Parcours Superadmin
 

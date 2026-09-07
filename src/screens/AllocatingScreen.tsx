@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { getVoteResults, getMyTableAssignment } from '../lib/voting'
+import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
@@ -150,13 +151,8 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     if (currentSession.phase !== 'allocating') return
 
     const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', session.id)
-        .maybeSingle()
-      if (!data) return
-      const s = data as Session
+      const s = await getSessionById(session.id).catch(() => null)
+      if (!s) return
       if (s.phase === currentSession.phase) return
       setCurrentSession(s)
       if (s.phase === 'closed' || s.phase === 'post_voting') {

@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { loadPublicResults } from '../lib/analysis'
+import { getSessionById } from '../lib/sessions'
 import type { PublicResultsData } from '../lib/analysis'
 import type { Session } from '../lib/types'
 
@@ -140,18 +141,18 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
   // Résolution de la séance quand seul l'id est fourni (route #results/<id>)
   useEffect(() => {
     if (sessionProp || !sessionId) return
-    supabase
-      .from('sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .maybeSingle()
-      .then(({ data, error: err }) => {
-        if (err || !data) {
+    getSessionById(sessionId)
+      .then(data => {
+        if (!data) {
           setSessionErr('Séance introuvable.')
           setLoading(false)
           return
         }
-        setSession(data as Session)
+        setSession(data)
+      })
+      .catch(() => {
+        setSessionErr('Séance introuvable.')
+        setLoading(false)
       })
   }, [sessionProp, sessionId])
 

@@ -16,7 +16,7 @@ import {
 import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
-import { supabase } from '../lib/supabase'
+import { getSessionById } from '../lib/sessions'
 import type { QueueEntry, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
@@ -117,12 +117,8 @@ export default function ModeratorView() {
 
   useEffect(() => {
     if (!table.session_id) return
-    supabase
-      .from('sessions')
-      .select('title, join_code, doc_info_url, doc_summary_url, doc_collab_url')
-      .eq('id', table.session_id)
-      .maybeSingle()
-      .then(({ data }) => {
+    getSessionById(table.session_id)
+      .then(data => {
         if (data) setSessionDocs({
           title:             data.title,
           doc_info_url:      data.doc_info_url,
@@ -131,6 +127,7 @@ export default function ModeratorView() {
           session_join_code: data.join_code,
         })
       })
+      .catch(() => {})
   }, [table.session_id])
 
   // ── Pause persistence ────────────────────────────────────────
