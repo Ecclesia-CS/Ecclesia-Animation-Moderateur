@@ -63,7 +63,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0 space-y-2">
-          <PhaseIndicator phase="closed" />
+          <PhaseIndicator phase="post_voting" />
           <h2 className="text-lg font-bold text-gray-900">Questionnaire post-débat</h2>
           <p className="text-sm text-gray-500 mt-0.5 leading-snug">
             Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.

@@ -138,7 +138,7 @@ export default function TableAssignmentCard({
     // Chantier 62 — séance clôturée sans qu'aucune table n'ait jamais été rejointe :
     // rejoindre n'a plus de sens, message neutre (la bannière de clôture
     // d'AllocatingScreen prend le relais juste en dessous).
-    if (phase === 'closed') {
+    if (phase === 'closed' || phase === 'post_voting') {
       return (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-2 min-h-[140px]">
           <p className="text-sm text-gray-500 text-center">Le débat est terminé.</p>

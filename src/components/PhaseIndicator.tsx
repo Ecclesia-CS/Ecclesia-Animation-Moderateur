@@ -13,8 +13,9 @@ interface Props {
  * la nomenclature PARTICIPANT_PHASE_STEPS. Ne rend rien en phase `draft`
  * (jamais visible côté participant) ni si la phase est inconnue.
  *
- * Chantier 74 — la pill est un bouton qui ouvre une modale listant les 5
- * étapes (celle en cours marquée, les passées distinguées des suivantes).
+ * Chantier 74 — la pill est un bouton qui ouvre une modale listant toutes les
+ * étapes de PARTICIPANT_PHASE_STEPS (celle en cours marquée, les passées
+ * distinguées des suivantes).
  * La modale est entièrement autonome dans ce composant (état `open` local) :
  * aucun des 5 écrans qui affichent `PhaseIndicator` n'a besoin d'être modifié.
  * Piège évité (cf. CLAUDE.md, VoteToolsPanel + NotesModal) : l'état d'ouverture

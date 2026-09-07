@@ -394,9 +394,11 @@ export default function ParticipantView() {
       )}
 
       {/* Séance terminée — masqué tant que le questionnaire forcé est ouvert (chantier 63) :
-          debating → closed force le questionnaire au même instant où cette condition
-          devient vraie (chantier 39), et les deux overlays sont en z-50 superposés. */}
-      {session?.phase === 'closed' && !forcedQOpen && (
+          debating → post_voting force le questionnaire au même instant où cette condition
+          devient vraie (chantier 39, déplacée en post_voting au chantier 89), et les
+          deux overlays sont en z-50 superposés. 'post_voting' redirige déjà vers les
+          résultats (avec revote possible) ; 'closed' n'en est que la suite définitive. */}
+      {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
           <PhaseIndicator phase={session.phase} />
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
