@@ -14,7 +14,7 @@ Dossier `transcription-debat/` — **outil offline autonome**, indépendant de l
 - **Stack** : Python + venv (`backend/.venv/`), `faster-whisper`, `google-genai`, ffmpeg. Secrets dans `backend/.env` (`GEMINI_API_KEY`, `HF_TOKEN`). `Débats/` et `transcripts/` non versionnés (RGPD + audio volumineux).
 - **Tests** : 70 tests pytest (`transcription-debat/backend/tests/`).
 - **Historique récent** (voir git) : correction Gemini post-Whisper (juin), module `deduplicate` 3 passes (2026-06-21), organisation des transcripts par thème/table, **suppression du mode live → offline uniquement (2026-06-30)**.
-- **Plans/specs archivés** : `transcription-debat/docs/superpowers/`. Les plans *live*/*intégration* à la racine `docs/superpowers/` (`2026-05-26-transcription-live*`, `2026-05-26-transcription-integration*`) sont **obsolètes** — le mode live abandonné.
+- **Plans/specs archivés** : `transcription-debat/docs/superpowers/`. Les plans *live*/*intégration* qui vivaient à la racine `docs/superpowers/` (`2026-05-26-transcription-live*`, `2026-05-26-transcription-integration*`) ont été **supprimés au chantier 78** (2026-09-07) : le mode live a été abandonné le 30/06/2026 et son dernier reliquat de code (`useTranscription.ts`) retiré au chantier 43. Ils restent consultables dans l'historique git si besoin (`git log --diff-filter=D -- docs/superpowers/`).
 
 ---
 
