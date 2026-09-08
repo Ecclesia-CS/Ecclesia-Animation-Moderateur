@@ -133,7 +133,14 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
   7. `list_public_closed_sessions()` → liste de séances closes avec `description`.
   8. `list_sessions_admin` avec un mauvais mot de passe → exception `P0001 Mot de passe superadmin incorrect`, comme attendu.
 
-  **Non fait, à faire séparément** : test navigateur réel du parcours (`VoteScreen`, `AllocatingScreen`, etc.) — la vérification ci-dessus couvre le contrat SQL/REST exposé par la migration, pas le rendu de l'app. `.claude/launch.json` n'existe pas dans ce dépôt malgré la mention dans `CLAUDE.md` (à corriger ou recréer avant un prochain test navigateur).
+  **Test navigateur réel effectué le 2026-09-08** (`.claude/launch.json` recréé — absent du dépôt malgré la mention dans `CLAUDE.md`, à commiter). Séance jetable créée par SQL direct (`QA58TEST`, phase `voting`, `onboarding_enabled = true`), supprimée après coup :
+  1. `#vote/QA58TEST` → titre de séance affiché correctement (lu via `getSessionByJoinCode`, RPC), écran d'intro puis formulaire d'inscription.
+  2. Inscription d'un participant de test → `register_session_member`, onboarding 3 questions dérouché sans erreur → écran de vote.
+  3. Proposition d'une assertion (`moderation_policy = 'open'`) → approuvée immédiatement, vote « D'accord » dessus → résumé de progression et consensus affichés correctement.
+  4. Aucune erreur console, aucun 401/403 sur `sessions` observé pendant tout le parcours.
+  5. Accueil (`EntryScreen`) : les deux séances en cours listées correctement (dont celle du 10/09, non touchée), et « Voir les votes des anciennes séances » (`list_public_closed_sessions`) affiche bien titre + date + description des séances closes publiques.
+
+  Parcours superadmin (`list_sessions_admin`) non testé au clic (mot de passe superadmin non disponible pour cette session) — déjà couvert côté contrat par le test `curl` du 07/09 (RPC fonctionnelle, mauvais mot de passe rejeté).
 
   **Ce que ça change** : `REVOKE`/`GRANT` de colonne sur `sessions` — seules `id, title, phase, join_code, scheduled_at, created_at` restent lisibles par un `select()` direct (`anon`/`authenticated`). Les 8 autres colonnes (`description`, les 3 `doc_*_url`, `moderation_policy`, `phase_changed_at`, `group_names`, `results_public`) ne le sont plus. **Ce qui NE bouge PAS** (décision explicite de Jules) : la policy RLS elle-même reste `USING (true)` — `id`/`title`/`phase`/`join_code` d'une séance `draft` restent lisibles par qui devine son `id`, exactement comme le chantier 65 l'avait laissé. Ce chantier ferme uniquement les colonnes annexes, pas la visibilité des lignes.
 
