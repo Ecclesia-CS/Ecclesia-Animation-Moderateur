@@ -891,44 +891,46 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {showModeratorInfo && <ModeratorInfoModal onClose={() => setShowModeratorInfo(false)} />}
         {/* Header */}
-        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-bold text-gray-900 truncate max-w-[200px]">
-              {session.title}
-            </h1>
-            <p className="text-xs text-gray-500">{member.pseudo}</p>
-            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-              {member.is_moderator && (
-                <button
-                  type="button"
-                  onClick={() => setShowModeratorInfo(true)}
-                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
-                >
-                  🎙️ Vous êtes modérateur
-                </button>
-              )}
+        <div className="bg-white border-b border-gray-100 px-4 py-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-sm font-bold text-gray-900 truncate max-w-[200px]">
+                {session.title}
+              </h1>
+              <p className="text-xs text-gray-500">{member.pseudo}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => { window.location.hash = '' }}
+                className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Quitter
+              </button>
+              <button
+                onClick={() => setShowToolsPanel(true)}
+                className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Outils
+              </button>
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+              >
+                ✏️ Proposer
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <PhaseIndicator phase={session.phase} />
-            <button
-              onClick={() => { window.location.hash = '' }}
-              className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              Quitter
-            </button>
-            <button
-              onClick={() => setShowToolsPanel(true)}
-              className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              Outils
-            </button>
-            <button
-              onClick={() => setShowSubmitModal(true)}
-              className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
-            >
-              ✏️ Proposer
-            </button>
+            {member.is_moderator && (
+              <button
+                type="button"
+                onClick={() => setShowModeratorInfo(true)}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
+              >
+                🎙️ Vous êtes modérateur
+              </button>
+            )}
           </div>
         </div>
 
