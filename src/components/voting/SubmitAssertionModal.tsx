@@ -58,9 +58,9 @@ export default function SubmitAssertionModal({
             <p className="text-sm font-semibold text-gray-900">
               Assertion soumise !
             </p>
-            {session.moderation_policy === 'closed' ? (
+            {session.moderation_policy !== 'open' ? (
               <p className="text-sm text-gray-500">
-                Ton assertion sera visible après validation par l'organisateur.
+                Ton assertion sera visible après validation.
               </p>
             ) : (
               <p className="text-sm text-gray-500">
@@ -99,9 +99,9 @@ export default function SubmitAssertionModal({
               </div>
             )}
 
-            {session.moderation_policy === 'closed' && (
+            {session.moderation_policy !== 'open' && (
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                ℹ️ Cette séance utilise la modération fermée. Ton assertion sera visible après validation.
+                ℹ️ Cette séance utilise la modération {session.moderation_policy === 'ai' ? 'automatique' : 'fermée'}. Ton assertion sera visible après validation.
               </p>
             )}
 
