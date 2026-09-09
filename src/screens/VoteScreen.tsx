@@ -899,6 +899,26 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               </h1>
               <p className="text-xs text-gray-500">{member.pseudo}</p>
             </div>
+            <button
+              onClick={() => setShowSubmitModal(true)}
+              className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+            >
+              ✏️ Proposer
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <PhaseIndicator phase={session.phase} />
+              {member.is_moderator && (
+                <button
+                  type="button"
+                  onClick={() => setShowModeratorInfo(true)}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
+                >
+                  🎙️ Vous êtes modérateur
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => { window.location.hash = '' }}
@@ -912,25 +932,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               >
                 Outils
               </button>
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
-              >
-                ✏️ Proposer
-              </button>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <PhaseIndicator phase={session.phase} />
-            {member.is_moderator && (
-              <button
-                type="button"
-                onClick={() => setShowModeratorInfo(true)}
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
-              >
-                🎙️ Vous êtes modérateur
-              </button>
-            )}
           </div>
         </div>
 
