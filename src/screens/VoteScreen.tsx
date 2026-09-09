@@ -891,13 +891,24 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {showModeratorInfo && <ModeratorInfoModal onClose={() => setShowModeratorInfo(false)} />}
         {/* Header */}
-        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-bold text-gray-900 truncate max-w-[200px]">
-              {session.title}
-            </h1>
-            <p className="text-xs text-gray-500">{member.pseudo}</p>
-            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+        <div className="bg-white border-b border-gray-100 px-4 py-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-sm font-bold text-gray-900 truncate max-w-[200px]">
+                {session.title}
+              </h1>
+              <p className="text-xs text-gray-500">{member.pseudo}</p>
+            </div>
+            <button
+              onClick={() => setShowSubmitModal(true)}
+              className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+            >
+              ✏️ Proposer
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <PhaseIndicator phase={session.phase} />
               {member.is_moderator && (
                 <button
                   type="button"
@@ -908,27 +919,20 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 </button>
               )}
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <PhaseIndicator phase={session.phase} />
-            <button
-              onClick={() => { window.location.hash = '' }}
-              className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              Quitter
-            </button>
-            <button
-              onClick={() => setShowToolsPanel(true)}
-              className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              Outils
-            </button>
-            <button
-              onClick={() => setShowSubmitModal(true)}
-              className="text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
-            >
-              ✏️ Proposer
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => { window.location.hash = '' }}
+                className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Quitter
+              </button>
+              <button
+                onClick={() => setShowToolsPanel(true)}
+                className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Outils
+              </button>
+            </div>
           </div>
         </div>
 
