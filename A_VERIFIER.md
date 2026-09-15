@@ -19,7 +19,7 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
-## Chantier 88a/88b/88c (2026-09-08) — toasts, page 404, QR code superadmin — ✅ vérifié au navigateur
+## Chantier 88a/88b/88c (2026-09-08, complété le 2026-09-15) — toasts, page 404, QR code superadmin — ✅ vérifié au navigateur (sauf QR code superadmin)
 
 `tsc --noEmit`, `npm run build` et `npm test` propres (le seul échec, `groupNaming.test.ts` — `supabaseUrl is required` — est pré-existant, lié à l'absence de `.env` dans ce worktree, sans rapport avec ce chantier).
 
@@ -37,8 +37,14 @@ Décision de Jules : une session de chantier **n'applique plus jamais de migrati
 3. A3 (sauvegarde des notes) → texte tapé dans "Mes notes", vérifié persisté en base (`private_notes.content`) après fermeture de la modale, sans action de sauvegarde explicite. **Confirmé.**
 4. A2 (DnD) → voir entrée dédiée plus haut dans ce fichier (section chantier 8 rattrapage). **Confirmé**, avec nuance sur le point de dépose exact — détail dans cette entrée.
 5. Mobile (émulation 375×812, pas de vrai iOS/Android) : `ParticipantView` s'affiche proprement, aucun débordement horizontal. **`ModeratorView` déborde horizontalement à 375px** (contenu ~750px de large dans un viewport 375px) — probablement volontaire (vue "projetable", pensée pour un ordinateur qui projette, cf. `docs/reference-arborescence.md`), mais jamais tranché explicitement nulle part : à confirmer avec Jules si un modérateur est censé pouvoir animer une table depuis son téléphone. Reste à faire : test sur de vrais appareils (Safari iOS, Chrome Android) — l'émulation de viewport ne couvre pas les bugs spécifiques à un moteur de rendu réel.
-6. QR code superadmin (item 88b) — **non testé au navigateur** : nécessite le mot de passe superadmin, volontairement non transmis à cette session (règle du projet). Code relu, cohérent avec l'usage existant de `QrCodeModal` ailleurs dans l'app — à confirmer visuellement par quelqu'un avec l'accès.
-7. Toast "table supprimée pendant qu'on y est" et toast "table restaurée introuvable" — **non testés** (scénario à deux onglets / redémarrage non rejoué dans cette passe, par manque de temps plutôt que de risque) — code relu, suit le même chemin (`handleEnd`) déjà exercé par la suppression de la table de test à la fin de cette session (la table `TEST88` a été supprimée par SQL pendant qu'aucun onglet n'y était plus ouvert, donc le déclenchement Realtime DELETE n'a pas pu être observé en direct).
+6. QR code superadmin (item 88b) — **toujours non testé au navigateur** : nécessite le mot de passe superadmin, volontairement non transmis à cette session (règle du projet). Code relu, cohérent avec l'usage existant de `QrCodeModal` ailleurs dans l'app — à confirmer visuellement par quelqu'un avec l'accès.
+
+**2026-09-15 — passe complémentaire après rebase sur `origin/main`** (chantiers 58/59 mergés entre-temps : colonnes `sessions` restreintes + canaux Realtime privés). Rebase propre, un seul conflit résolu dans `src/context/TableContext.tsx` (import à fusionner avec `getSessionById`/`privateChannel`, aucun autre changement de logique) — `tsc`/build/tests repassés propres après coup. Jeton de serveur de dev repris (aucun autre serveur actif) :
+7. Toast "table supprimée pendant qu'on y est" (événement Realtime DELETE) → **confirmé** : table de test jetable (`TEST89`) créée/rejointe/supprimée par SQL direct pendant l'onglet ouvert dessus, toast "⚠️ Cette table n'existe plus." affiché immédiatement, retour au formulaire de rejoin sans reload manuel. Fonctionne correctement avec le nouveau canal `privateChannel()` du chantier 59.
+8. Toast "table restaurée introuvable" (au démarrage, `localStorage` pointant vers une table supprimée) → **confirmé** : toast "La table que tu avais rejointe n'est plus disponible." affiché au chargement de l'accueil. Affiché deux fois d'affilée en dev — artefact du double-montage `StrictMode` sur le `useEffect` d'init de `App.tsx` (existant, pas spécifique à ce chantier), sans impact attendu en production (montage unique).
+9. C7 (bug affichage prévote) — **abandonné**, faute de repro trouvée nulle part dans le dépôt (voir plus haut dans cette conversation). Le gel du 10/09 est de toute façon passé (nous sommes le 15/09) ; rien n'empêche de le reprendre si Jules fournit une repro.
+
+Table de test `TEST89` et ses dépendances purgées après coup (cascade sur `DELETE FROM tables`, confirmé `count = 0`).
 
 ## Comment vérifier "tout d'un coup"
 
