@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase'
 import { tableStore } from './lib/storage'
 import type { TableResult } from './lib/supabase'
 import { TableProvider } from './context/TableContext'
+import { useToast } from './context/ToastContext'
 import EntryScreen from './screens/EntryScreen'
 import TableView from './screens/TableView'
 import SuperadminScreen from './screens/SuperadminScreen'
@@ -11,6 +12,7 @@ import VoteScreen from './screens/VoteScreen'
 import SessionRouterScreen from './screens/SessionRouterScreen'
 import JoinTableScreen from './screens/JoinTableScreen'
 import PublicResultsScreen from './screens/PublicResultsScreen'
+import NotFoundScreen from './screens/NotFoundScreen'
 
 type AppPhase =
   | { type: 'loading' }
@@ -18,6 +20,7 @@ type AppPhase =
   | { type: 'table'; tableId: string; participantId: string; userId: string; isModerator: boolean }
 
 export default function App() {
+  const { showToast } = useToast()
   const [phase, setPhase] = useState<AppPhase>({ type: 'loading' })
   const [hash, setHash] = useState(window.location.hash)
 
@@ -74,6 +77,7 @@ export default function App() {
         }
 
         tableStore.clear()
+        showToast("La table que tu avais rejointe n'est plus disponible.", 'info')
       }
 
       setPhase({ type: 'entry', userId })
@@ -138,6 +142,13 @@ export default function App() {
   if (hash.startsWith('#table/') && phase.type !== 'table') {
     const joinCode = hash.slice('#table/'.length)
     return <JoinTableScreen tableJoinCode={joinCode} onTableJoined={handleTableJoined} />
+  }
+
+  // Hash non vide mais ne correspondant à aucune route connue — lien cassé ou
+  // mal copié plutôt qu'un retour silencieux à l'accueil (chantier 88).
+  const KNOWN_HASH_PREFIXES = ['#superadmin', '#collab/', '#session/', '#vote/', '#results/', '#table/']
+  if (hash.length > 1 && phase.type !== 'table' && !KNOWN_HASH_PREFIXES.some(p => hash === p || hash.startsWith(p))) {
+    return <NotFoundScreen />
   }
 
   if (phase.type === 'loading') {

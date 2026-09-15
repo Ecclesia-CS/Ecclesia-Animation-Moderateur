@@ -12,6 +12,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
 import { privateChannel } from '../lib/realtime'
+import { useToast } from './ToastContext'
 import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
 
 // ── Public types ───────────────────────────────────────────────
@@ -89,6 +90,7 @@ export function TableProvider({
   onTableEnd,
   children,
 }: Props) {
+  const { showToast } = useToast()
   const [table, setTable] = useState<Table | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -145,7 +147,7 @@ export function TableProvider({
       supabase.from('queue_entries').select('*').eq('table_id', tableId),
       supabase.from('speaking_turns').select('*').eq('table_id', tableId),
     ])
-    if (!s.data) { handleEnd(); return }
+    if (!s.data) { showToast('Cette table n\'existe plus.', 'error'); handleEnd(); return }
     const tbl = s.data as Table
     setTable(tbl)
     setParticipants((p.data ?? []) as Participant[])
@@ -229,7 +231,7 @@ export function TableProvider({
     ch.on(
       'postgres_changes',
       { event: 'DELETE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
-      () => handleEnd(),
+      () => { showToast('Cette table a été supprimée.', 'error'); handleEnd() },
     )
 
     // participants

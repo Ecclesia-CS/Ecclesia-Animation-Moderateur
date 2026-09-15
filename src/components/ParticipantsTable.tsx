@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { useTable } from '../context/TableContext'
+import { useToast } from '../context/ToastContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
 import SpeakerTimer from './SpeakerTimer'
@@ -12,6 +13,7 @@ export default function ParticipantsTable() {
     participants, speakingTurns, table, grantFloor,
     kickParticipant, myParticipant,
   } = useTable()
+  const { showToast } = useToast()
   const now = useLiveMs()
   const [kickTarget, setKickTarget] = useState<Participant | null>(null)
   const [kickErr, setKickErr]       = useState<string | null>(null)
@@ -32,9 +34,11 @@ export default function ParticipantsTable() {
   async function doKick() {
     if (!kickTarget) return
     try {
+      const pseudo = kickTarget.pseudo
       await kickParticipant(kickTarget.id)
       setKickTarget(null)
       setKickErr(null)
+      showToast(`${pseudo} a été exclu·e de la table.`, 'success')
     } catch (e) {
       setKickErr(extractErr(e))
     }
