@@ -49,6 +49,7 @@ import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
 import type { LoadedAnalysis } from '../lib/analysis'
 import { generateGroupNames, groupsFingerprint, namingGroupsFromAnalysis } from '../lib/groupNaming'
 import type { NamingGroup } from '../lib/groupNaming'
+import QrCodeModal from '../components/QrCodeModal'
 
 const PWD_KEY = 'ecclesia_superadmin_pwd'
 
@@ -4377,6 +4378,7 @@ function AssertionsPanel({
 
 function ShareLinkBanner({ joinCode }: { joinCode: string }) {
   const [copied, setCopied] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
   const url = `https://ecclesia-cs.github.io/Ecclesia-Animation-Moderateur/#session/${joinCode}`
 
   function handleCopy() {
@@ -4395,12 +4397,26 @@ function ShareLinkBanner({ joinCode }: { joinCode: string }) {
         <p className="text-xs font-mono text-gray-700 truncate">{url}</p>
       </div>
       <button
+        onClick={() => setQrOpen(true)}
+        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+          text-indigo-700 hover:bg-indigo-100 transition-colors"
+      >
+        QR code
+      </button>
+      <button
         onClick={handleCopy}
         className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
           text-indigo-700 hover:bg-indigo-100 transition-colors"
       >
         {copied ? '✓ Copié' : 'Copier'}
       </button>
+      {qrOpen && (
+        <QrCodeModal
+          value={url}
+          title={`Rejoindre la séance ${joinCode}`}
+          onClose={() => setQrOpen(false)}
+        />
+      )}
     </div>
   )
 }
