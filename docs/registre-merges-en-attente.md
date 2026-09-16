@@ -5,7 +5,9 @@
 > La conversation d'orchestration qui a produit tout ce qui suit **a été supprimée le 2026-09-07**. Ce document la remplace : il est écrit pour être lu à froid, sans aucun contexte préalable.
 > **Voir aussi** [`docs/chantiers.md`](./chantiers.md) — l'index chronologique complet des chantiers 34 à 77 (titre, ce qui a été fait, statut, branche, fichier/RPC principal). Ce registre-ci reste le tableau de bord du moment ; `chantiers.md` est la référence pour retrouver ce qu'un chantier passé a fait sans reconstituer l'historique.
 
-Dernière mise à jour : **2026-09-06, fin de journée**.
+Dernière mise à jour : **2026-09-16**.
+
+> **2026-09-16** — la file d'attente des chantiers a été reprise et renumérotée dans [`docs/chantiers-a-faire.md`](./chantiers-a-faire.md), qui fait foi pour le **reste à faire**. Ce registre-ci reste la référence pour ce qui est **retenu hors de `main`** et pour les arbitrages en attente. Six chantiers neufs (**90 à 95**) y ont été dictés par Jules, avec ses consignes citées mot pour mot ; le **75** y est absorbé par le **95** (voir §6 ci-dessous) et le **55** par le **93**.
 
 ---
 
@@ -96,16 +98,25 @@ Le chantier 73 devait inventorier ce que le retrait des onglets « Modérateur /
 
 Donc : **retirer les trois onglets**. Mais il dit « on **doit pouvoir** », ce qui décrit peut-être une attente plutôt que le code réel. **Vérifier d'abord que ce chemin existe et qu'il est atteignable en pleine phase débat** (`switch_table` depuis `AllocatingScreen`, `JoinTableForm` à l'étape `ended` de `VoteScreen` — ce dernier ne reçoit pas de `sessionId`, contrairement à `SessionRouterScreen`). S'il n'existe pas, **le construire d'abord, retirer ensuite** — sinon on supprime la seule porte d'entrée d'un retardataire le jour où on en a besoin. Confirmer aussi que le superadmin a bien son bouton « + Sans admin » pour les tables sans animateur.
 
+> **Mise à jour du 2026-09-16 — ce chantier est devenu le 95**, qui reprend tout ce qui précède et y ajoute la suppression des deux sous-accordéons de l'onglet Tables du superadmin (« Tables rattachées » **et** « Tables disponibles à rattacher »). Jules : « Oui, remplace le 75. [...] Les deux accordéons mentionnés sont à supprimer : les tables créés hors séance ne sont plus pertinentes aujourd'hui (à voir pourquoi le chantier 14 l'avait conservé). »
+>
+> Réponse à sa question sur le chantier 14 : `admin_create_table` y avait été conservée parce que la création de tables hors séance était alors « une fonctionnalité intentionnelle et réellement utilisée », précisément via l'accordéon « Tables disponibles à rattacher » → `attach_table_to_session` en différé. La justification était l'usage constaté en juillet 2026 — c'est cette prémisse que le 95 réexamine. ⚠️ Le chantier 14 avait en revanche verrouillé côté serveur la voie **participant** (`create_table` exige une séance) : ce garde-fou-là ne doit pas sauter avec le reste.
+>
+> Il a aussi explicitement ouvert la porte à une discussion en séance de travail : « s'il y a des problèmes et des doutes quand j'ouvrira la discussion, on pourra discuter du manque de route retardataire, ou du besoin de créer une nouvelle table en séance. » Le détail complet est dans [`docs/chantiers-a-faire.md`](./chantiers-a-faire.md) § 95.
+
 ---
 
 ## 7. Ce qui n'est pas commencé
 
-- **Chantier 55** — exiger le code de rappel, et non le seul nom, pour reprendre une identité. Dépend de l'extension de la génération de `reclaim_code` à plus de phases. **Question produit en suspens** : Jules a écrit « on l'utilisera aussi pour les sources collaboratives » à propos de ce code, sans que le sens soit clair. À lui redemander avant de lancer.
+> **Réécrit le 2026-09-16.** La liste ci-dessous était périmée : elle annonçait comme « non commencés » des chantiers livrés depuis (les réserves `results_public` = chantier 80, le test Realtime du 51 = chantier 86). Le **reste à faire fait désormais foi dans [`docs/chantiers-a-faire.md`](./chantiers-a-faire.md)** ; ce qui suit n'en est qu'un résumé d'orientation.
+
+- **Six chantiers neufs dictés par Jules le 2026-09-16**, consignes citées mot pour mot dans la file : **90** (passage en postvote optionnel), **91** (allocation : seuils, plafond à 14, passifs hors des limites de taille — *Jules demande une session Opus*), **92** (allocation : appairage entre participants, grappes de 3 max, en règle 1), **93** (pseudo modifiable + preuve d'identité, **absorbe l'ancien chantier 55**), **94** (temps de parole par camp en vue modérateur, floutage à 5 min), **95** (ménage des portes d'entrée, **remplace l'ancien chantier 75**).
+  ⚠️ **91 et 92 touchent tous deux `src/lib/allocation.ts` — à séquencer, 91 d'abord.** Les autres sont parallélisables.
 - **Chantier 56** — durcissement SQL : fermer `app_config`, figer le `search_path` des fonctions à mot de passe. ⚠️ **Peut verrouiller Jules hors de sa propre base.** À ne faire que lorsqu'il est disponible et joignable, et jamais à l'approche d'une utilisation en production.
-- Déclaration modérateur au moment de la récupération de compte ; reconnexion par pseudo après clôture.
-- Déploiement de `gemini-proxy` — demande un `supabase login`, bloqué sur Jules. Le prompt de fusion a été durci sans être redéployé.
-- Réserves ouvertes sur `results_public`, déjà actif sur deux séances réelles : k-anonymat, ordre du nuage de points, `search_path`. Détail au §5.3 de la revue de sécurité.
-- **Revue des parcours utilisateurs** — sujet de fond réservé par Jules. Il veut réexpliquer lui-même comment l'application est censée fonctionner à chaque instant, et préfère une conversation dédiée lancée en un prompt unique qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
+- **Chantiers 81 et 82** — déclaration modérateur au moment de la récupération de compte ; reconnexion par pseudo après clôture.
+- **Chantier 83** — déploiement de `gemini-proxy` : demande un `supabase login`, bloqué sur Jules. Le prompt de fusion a été durci sans être redéployé.
+- **Chantier 87 — revue des parcours utilisateurs** : sujet de fond réservé par Jules. Il veut réexpliquer lui-même comment l'application est censée fonctionner à chaque instant, et préfère une conversation dédiée lancée en un prompt unique qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
+- **Chantier 96 — annulé le 2026-09-16, ne pas relancer.** Le retrait de « tout ce qui est lié à l'enregistrement/transcription » supprimerait la règle 2 de l'algorithme d'allocation (« table enregistrable ») et la question de consentement de l'onboarding, toutes deux encore utiles puisque le sous-projet `transcription-debat/` travaille hors application. Jules, mis devant ce constat : « Non, on annule ce chantier [...] tout ce que tu décris est pertinent et à garder. » Justification complète dans la file.
 
 ---
 

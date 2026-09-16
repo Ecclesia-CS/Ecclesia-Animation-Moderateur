@@ -4,7 +4,9 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-07**.
+Dernière mise à jour : **2026-09-16**.
+
+> **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 
 ---
 
@@ -31,35 +33,117 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 
 ---
 
+## En cours dans une autre session — ne pas prendre
+
+### 59 — Canaux Realtime privés (reste : la recette et le réglage dashboard)
+**Sécurité.** Migration appliquée et code mergé/déployé le 2026-09-07. Ce qui reste : la recette n'a été jouée qu'avec **une seule identité sur deux onglets** (scénarios C à I non déroulés), et surtout **« Allow public access » n'a pas été désactivé** dans le dashboard Supabase (Realtime → Settings) — c'est ce réglage, et lui seul, qui ferme réellement F6.
+⚠️ Ordre non négociable, rappelé ici parce que l'inverser casse toute la production d'un coup : recette complète à deux identités réelles **d'abord**, désactivation du réglage **ensuite**. Rollback d'urgence : le réactiver, effet immédiat sans redéploiement.
+
+---
+
 ## À faire, dans l'ordre
 
-### 80 — Résultats publics : ne pas pouvoir remonter aux participants
-**Sécurité.** Jules, 07/09 : « pour la page publique, il ne faut pas qu'on puisse remonter aux participants, ou alors, il faut le rendre dur (et l'anonymat et changement de l'ordre des points comme tu l'as écrit est largement suffisant) ».
-Trois choses, et rien d'autre : vérifier qu'aucun identifiant ni pseudo ne sort de `get_public_results` ; **désordonner les points côté serveur** (leur ordre d'insertion trahit l'ordre d'inscription) ; poser le `SET search_path` manquant.
-**Explicitement refusé par Jules** : pas de seuil de k-anonymat (« pour identifier des points isolés, ne travaillons pas dessus, ce n'est pas grave »), ne pas toucher aux compteurs par assertion, **ne couper aucune séance déjà en ligne** (« ne coupe pas l'affichage de séance en ligne OJD svp »), et **ne pas appliquer la règle à l'écran participant** (« c'est bien qu'un participant puisse se situer »).
-Périmètre : `PublicResultsScreen.tsx`, `get_public_results`. ⚠️ Cette fonction a été réécrite le 06/09 pour filtrer `vote_scope = 'current'` — ne pas repartir d'une version antérieure.
-Branche `chantier-80-reserves-results-public` déjà créée.
+> Les six premiers (90 à 95) ont été dictés par Jules le **2026-09-16**. Ses consignes sont citées **mot pour mot** dans chaque entrée, sous « Consigne de Jules » ; tout ce qui suit sous « Précisions » vient de l'analyse faite avec lui le même jour — vérifications faites dans le code, arbitrages qu'il a tranchés en conversation, et points qu'il a explicitement laissés ouverts. Ne pas confondre les deux registres : sa consigne fait foi, mes précisions sont un accompagnement.
+>
+> **Parallélisation** : 90, 93, 94 et 95 touchent des fichiers disjoints et peuvent tourner en même temps. **91 et 92 touchent tous les deux `src/lib/allocation.ts` et doivent être séquencés — 91 d'abord.**
 
-### 75 — Retirer les trois onglets de l'écran principal
-**Parcours.** Jules, 06/09 : « Pour la création de table, aucun pb, c'est le superadmin qui gère. Pour le fait de rejoindre une table avec uniquement le code, normalement, quand on clique sur la séance, on doit pouvoir mettre le numéro de la table en retard, donc joindre avec uniquement le numéro. Je ne vois pas de problème. Quant au fait de rejoindre la séance à partir uniquement du numéro, personne ne fait ça. »
-Retirer « Modérateur », « Rejoindre » et « Créer » de `EntryScreen.tsx`.
-⚠️ Il dit « on **doit pouvoir** » : c'est peut-être une attente, pas le code réel. **Vérifier d'abord** que le chemin du retardataire existe et est atteignable en pleine phase débat (`switch_table` depuis `AllocatingScreen`, `JoinTableForm` à l'étape `ended` de `VoteScreen` — ce dernier ne reçoit pas de `sessionId`). S'il n'existe pas, le construire d'abord, retirer ensuite.
+### 90 — Sortie de débat : le passage en postvote devient optionnel
+**Parcours superadmin.** Petit chantier, aucun conflit de fichier avec les autres.
 
-### 55 — Le code de rappel devient la preuve d'identité
-**Sécurité + parcours.** Aujourd'hui `reclaim_code` n'est généré qu'en `pre_voting` : ceux qui arrivent pour le vote présentiel n'en ont pas, donc **le nom seul suffit à reprendre une inscription**. Jules veut le générer sur plus de phases pour pouvoir exiger le code, et qu'on **explique au participant** que ce code sert à éviter l'usurpation d'identité.
-⚠️ **Question à lui poser avant de lancer** : il a écrit « on l'utilisera aussi pour les sources collaboratives », dont le sens n'a jamais été clarifié.
-Touche l'inscription — donc gelé pendant les fenêtres de production.
+> **Consigne de Jules (2026-09-16)** : « Lorsqu'on quitte la phase débat, on va rendre optionnelle le passage en postvote. Quand on finit le débat, avec le bouton superadmin pour passer à la prochain séance, la fenêtre doit afficher une question pour nous demander d'arriver sur la phase de cloture, ou sur la phase de postvote. »
 
-### 86 — Vérifier au navigateur l'anonymat des auteurs d'assertions (chantier 51)
-**Sécurité.** Le chantier 51 a fermé l'exposition des auteurs d'assertions, mais le volet **Realtime** n'a jamais été testé : une charge utile Realtime peut transporter des colonnes que la requête REST ne renvoie plus. Vérification navigateur, avec le jeton de serveur de dev.
+**Précisions** — le chantier 89 a accroché deux automatismes à la transition `debating → post_voting`, tous deux tranchés par Jules le 16/09 :
+1. **Le questionnaire post-débat se déclenche dans les deux cas.** `force_session_questionnaire` est aujourd'hui appelé sur `debating → post_voting` ; si le superadmin choisit d'aller directement en `closed`, il doit se déclencher quand même — sans quoi le raccourci ferait silencieusement sauter le questionnaire. **Validé par Jules : « 1 oui ».**
+2. **La purge des `reclaim_code` part plus tôt, et c'est assumé.** Elle est gated sur l'entrée en `closed` (chantier 49) : aller directement en `closed` l'avance simplement. **Validé par Jules : « 2 oui ».**
 
-### 58 — Restreindre les colonnes publiques de `sessions`
-**Sécurité.** Branche `chantier-58-colonnes-sessions` déjà écrite. Ses 4 RPC de lecture sont **déjà en base** ; le `REVOKE SELECT ON sessions` + `GRANT` restreint ne l'est pas.
-Ordre : merger et déployer la branche **d'abord**, appliquer le `REVOKE` **ensuite**. ⚠️ **Avant d'appliquer, ajouter `onboarding_enabled` à la liste des colonnes accordées** — colonne créée par le chantier 71, postérieure à cette branche ; sans ça l'interrupteur d'onboarding cesse de marcher côté participant.
+Périmètre : `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`, `PhaseBar`).
 
-### 59 — Canaux Realtime privés
-**Sécurité.** Branche `chantier-59-realtime-prive` livrée, migration écrite **non appliquée**. Le seul trou réel est l'**émission de broadcast** ; le `postgres_changes` est déjà protégé par les policies depuis le chantier 50.
-⚠️ Ordre non négociable : appliquer la migration (sans effet observable) → déployer le code → dérouler la recette → **et seulement ensuite** désactiver « Allow public access » dans le dashboard Supabase (Realtime → Settings). Ce réglage est global et hors SQL ; sans lui le chantier ne ferme rien, et l'appliquer trop tôt casse toute la production. Rollback d'urgence : le réactiver, effet immédiat.
+### 91 — Allocation : seuils, plafond de table, et traitement des passifs
+**Algorithme.** ⚠️ **À faire avant le 92** (même fichier). **Jules demande explicitement une session Opus** pour ce chantier.
+
+> **Consigne de Jules (2026-09-16)** : « Pour l'algorithme d'allocation : Augmenter le nombre d'actifs nécessaires à une table (passer à 3/5, ce serait un meilleur chiffre par exemple). Pour les passifs, on ne va pas les prendre en compte dans les limites de personne par table. On peut également les ajouter aux tables avec modérateurs, et éviter les tables sans modérateurs. On pourrait même les mettre sur les grosses tables à modérateurs, pour qu'ils puissent observer tranquillement. Le nombre maximum de participant (actifs) à une table peut être de 14. »
+>
+> **Complément du même jour, en réponse à mes questions** : « oui, sur une table à 14, il faudrait au moins 8 personnes qui soient actives par exemple. Pour la 6e règle, c'est juste pour éviter de surcharger les tables sans modérateur avec des passifs, donc pourquoi pas acter cela oui. Ensuite, ce chantier peut aussi être l'ocasion de réfléchir à nouveau sur l'algo, et proposer de nouveaux éléments. Chantier à faire en Opus je pense. »
+
+**Précisions** :
+- **Le plafond à 4 de la formule actuelle doit sauter.** `activeThreshold` vaut aujourd'hui `min(⌈2/5·taille⌉, 4)` : ce `min(..., 4)` neutralise le ratio dès qu'une table dépasse 10 personnes. Passer le ratio à 3/5 sans retirer ce plafond n'aurait **aucun effet** sur les grandes tables — c'est le vrai verrou, pas le ratio.
+- **Arrondi à trancher** : 3/5 de 14 = 8,4. Jules donne « au moins 8 » comme valeur de référence, ce qui correspond à un arrondi **vers le bas**. À confirmer sur les autres tailles (une table de 12 donnerait 7 en arrondi bas, 8 en arrondi haut).
+- **`TABLE_MAX` passe de 12 à 14** — mais en comptant les actifs seulement (voir ci-dessous).
+- **« Ne pas compter les passifs dans les limites de taille » est le gros morceau structurel**, pas un réglage. Toute la recherche de forme raisonne aujourd'hui sur une taille unique par table (`shape.sizes`), qui pilote les cinq règles. Dissocier « taille comptée = actifs » et « passifs en supplément » oblige à revoir la recherche de forme elle-même. C'est ce qui fait de ce chantier un chantier moyen et non une passe de constantes.
+- **La 6e règle est actée par Jules**, avec sa finalité exacte : « éviter de surcharger les tables sans modérateur avec des passifs ». Lui donner une place explicite dans l'ordre lexicographique — sinon elle entre en concurrence silencieuse avec l'hétérogénéité (règle 3). Noter que Jules la formule comme une règle d'**évitement** (ne pas surcharger les tables sans modérateur), ce qui est plus faible que sa formulation initiale (« les mettre sur les grosses tables à modérateurs ») : la première est une contrainte négative, la seconde une optimisation positive. Trancher laquelle est implémentée.
+- **Invariants du projet, non négociables** : l'algorithme ne doit **jamais** lever d'exception (une règle non satisfaisable se dégrade, elle ne bloque pas), et il doit rester **déterministe** — `Math.random()` est interdit dans ce fichier, PRNG `mulberry32` à graine fixe uniquement. Le superadmin doit pouvoir relancer le calcul et retomber sur la même répartition.
+- **Jules ouvre explicitement le périmètre** : « ce chantier peut aussi être l'ocasion de réfléchir à nouveau sur l'algo, et proposer de nouveaux éléments ». Les propositions sont donc bienvenues — mais à lui soumettre avant implémentation, pas à intégrer d'office.
+
+Périmètre : `src/lib/allocation.ts` et ses tests (49 aujourd'hui), `src/components/voting/AllocationPanel.tsx`.
+
+### 92 — Allocation : appairage entre participants
+**Algorithme + parcours.** ⚠️ **Après le 91** (même fichier). Le plus gros des six : modèle de données + onboarding + Outils + algorithme + DnD superadmin.
+
+> **Consigne de Jules (2026-09-16)** : « Lorsqu'on se connecte (à partir de la phase présentielle, donc également pour la phase allocation, et la phase débat), on propose une question (après ou pendant l'onboarding par exemple) de mettre un ou deux pseudos de personnes avec qui on aimerait être. Dans ce cas, l'algorithme d'allocation les considérera ensemble, soudés, et ne devra pas les séparer, et d'optimiser sachant ces apairements. Dans « outils », une des possibilité sera aussi de déclarer / changer les pseudos. Si la phase d'allocation a commencé, il faudra juste que la personne soit rattachée au pseudo. »
+>
+> **Complément du même jour, en réponse à mes questions** : « Oui, le fait qu'ils se citent en chaine est un problème. Personellement, je ne veux qu'imposer des groupes de 3 maximums à l'algorithme, il faut donc trouver un moyen (par exemple, obliger le fait qu'ils se citent réciproquement, ou alors avertir qu'il ne doit pas y avoir de groupes plus gros que 3 sinon pas respectés par l'algo, et trancher aléatoirement sur des grosses chaines quels sont les groupes qu'on respecte ?). Pour ce chantier, il faut aussi que le Dnd participant du superadmin, respecte ce verrouillage par groupe. Oui, on place cette règle vers le haut, au dessus de la règle de 3, et j'aurai même tendance à dire en règle 1 [...] Oui, tu comprends bien la phrase sur l'allocation. »
+
+**Précisions** :
+- **Grappes plafonnées à 3 personnes**, décision ferme de Jules. Le mécanisme est laissé ouvert par lui : réciprocité obligatoire, ou avertissement + arbitrage sur les grandes chaînes. ⚠️ S'il retient un **arbitrage aléatoire**, attention à l'invariant de déterminisme du 91 : il faut le tirer avec le PRNG à graine fixe, sinon deux clics sur « Calculer » ne donnent plus la même répartition. La réciprocité obligatoire est la seule option qui évite complètement le problème, puisqu'elle rend les chaînes impossibles par construction.
+- **Placement : règle 1**, au-dessus de « assez d'actifs ». Jules penchait pour ce placement, je l'ai recommandé, il l'a retenu. Justification retenue : les grappes étant plafonnées à 3, elles mordent très peu sur les autres règles, et c'est la seule règle qui matérialise une **promesse faite explicitement au participant** — la violer se voit, alors qu'un seuil d'actifs se dégrade sans que personne ne le remarque. Les cinq règles actuelles descendent donc chacune d'un rang.
+- **Interprétation de la phrase sur l'allocation commencée, confirmée par Jules** : un retardataire est simplement placé à la table de la personne qu'il a citée, sans relancer le calcul d'allocation.
+- **Tension assumée avec l'hétérogénéité** : des gens qui souhaitent être ensemble sont probablement du même camp. L'appairage travaille donc mécaniquement contre la règle d'hétérogénéité, qui est la raison d'être de l'algorithme. C'est le coût accepté du placement en règle 1 — à surveiller sur des populations de test réalistes.
+- **DnD superadmin** : Jules demande que le glisser-déposer de l'onglet Groupes respecte le verrouillage. Défaut proposé (non tranché, à confirmer en ouvrant la discussion) : **déplacer la grappe entière ensemble**, avec un avertissement si le déplacement casse un seuil — plutôt que de refuser le déplacement, ce qui rendrait la retouche manuelle impossible.
+- **L'algorithme ne doit jamais échouer** : « ne devra pas les séparer » se traite comme les autres règles — la contrainte **dégrade** quand elle est insatisfaisable, elle ne lève pas d'exception.
+
+Périmètre : migration (table ou colonne d'appairages), `src/components/voting/OnboardingForm.tsx`, `src/components/ParticipantToolsButton.tsx`, `src/lib/allocation.ts`, `src/lib/voting.ts`, onglet Groupes de `SuperadminScreen.tsx`.
+
+### 93 — Identité du participant : pseudo modifiable, collisions, et preuve d'identité (fusionne l'ancien 55)
+**Parcours + sécurité.** ⚠️ **Ce chantier absorbe l'ancien chantier 55** (« le code de rappel devient la preuve d'identité »), sur décision de Jules le 16/09 — les deux sujets sont le même problème vu des deux bouts.
+
+> **Consigne de Jules (2026-09-16)** : « Pouvoir pour un participant changer son prénom à tout moment, mais interdire au niveau des collisions. De plus, quand on rentre le pseudo, mettre dans le message le fait que le pseudo sera utilisé par le modérateur pendant le débat. »
+>
+> **Complément du même jour, en réponse à mes questions** : « Oui, il faut fusionner avec 55. Quand je dis prénom, je veux dire pseudo et nom prénom, c'est la même chose pour moi, je ne savais pas qu'on avait deux variables... Il y a une différence entre le pseudo pour la session, et le pseudo pour la table ? C'est intéressant. On pourrait utiliser cela pour régler des problèmes d'usurpation, ou alors partir sur le code qui serait demandé, et fusionner le pseudo table et pseudo session. Et oui, bonne suggestion de blocage de ta part. »
+
+**Contenu repris de l'ancien chantier 55, à ne pas perdre** : aujourd'hui `reclaim_code` n'est généré qu'en `pre_voting` — ceux qui arrivent pour le vote présentiel n'en ont pas, donc **le nom seul suffit à reprendre une inscription**. Jules veut le générer sur plus de phases pour pouvoir exiger le code, et qu'on **explique au participant** que ce code sert à éviter l'usurpation d'identité. Question produit restée en suspens depuis le 06/09, à lui reposer : il avait écrit « on l'utilisera aussi pour les sources collaboratives », dont le sens n'a jamais été clarifié.
+
+**Précisions** :
+- **Les deux pseudos ne sont pas une distinction voulue, c'est un doublon hérité.** `participants.pseudo` (portée table, contrainte `UNIQUE(table_id, pseudo)`) est une **copie** de `session_members.pseudo` (portée séance, nom + prénom réels), prise au moment de rejoindre la table : `AllocatingScreen.tsx` passe `member.pseudo` à `join_table`. Aucun lien vivant entre les deux — si l'un change après coup, l'autre ne suit pas, **en silence**. C'est un bug en attente autant qu'une question de conception.
+- **Recommandation retenue : fusionner**, et faire porter la preuve d'identité par le code, ce qui est la seconde option de Jules. Baser une défense anti-usurpation sur la divergence de deux copies non synchronisées serait fragile — la divergence n'est pas un signal fiable, c'est un accident.
+- **Le renommage aggrave le problème de l'ancien 55 tant qu'il n'est pas réglé** : `confirm_attendance` et `reclaim_prevoting_member` transfèrent un compte sur simple égalité de pseudo. Rendre le pseudo librement modifiable permettrait de prendre celui d'un autre, ou de libérer le sien pour qu'un tiers s'en empare. **C'est précisément pourquoi Jules fusionne les deux chantiers** : le renommage ne doit pas être livré sans la preuve d'identité qui l'accompagne.
+- **Blocage pendant la prise de parole — validé par Jules** (« bonne suggestion de blocage de ta part ») : interdire le changement de pseudo pendant que la personne a la parole ou figure dans la file d'attente, pour éviter qu'un nom change sous les yeux du modérateur en plein tour.
+- **Portée des collisions à définir** une fois la fusion faite : aujourd'hui l'unicité est par table (`UNIQUE(table_id, pseudo)`), alors que l'inscription en séance ne contraint pas. Après fusion, c'est vraisemblablement la séance entière qui devient la portée pertinente.
+- Touche l'inscription — **gelé pendant les fenêtres de production**.
+
+Périmètre : `src/components/voting/PseudoForm.tsx`, `src/components/ParticipantToolsButton.tsx`, RPC de renommage (à créer), RPC `confirm_attendance` / `reclaim_prevoting_member`, contrainte d'unicité, migration.
+
+### 94 — Vue modérateur : temps de parole par camp idéologique
+**Parcours modérateur + confidentialité.**
+
+> **Consigne de Jules (2026-09-16)** : « Dans la vue modérateur, mettre le temps de chacun des camps (idéologique fait par l'algo pol.is) en accessibilité pour le modérateur. Cela veut dire qu'il aura accès aux informations de qui est dans quel camps… Ce qui peut être problématique ! Pour contrer cette problématique, l'horloge des camps peut se mettre à jour toutes les 5 minutes, pour flouer l'identification. »
+>
+> **Complément du même jour, sur les garde-fous supplémentaires proposés** : « oui, bonne initiatives de ta part. »
+
+**Précisions** :
+- **Le rafraîchissement à 5 minutes est nécessaire mais pas suffisant** : si une seule personne a parlé pendant la fenêtre, le compteur qui bouge désigne son camp sans la moindre ambiguïté. Deux garde-fous complémentaires, **validés par Jules** : ne rien afficher tant qu'un camp n'a pas au moins **2 personnes** à la table, et n'afficher qu'après un **seuil de temps cumulé** (éviter le tout premier tour de parole, toujours identifiable quoi qu'il arrive).
+- **Piège technique documenté, source d'erreur récurrente du projet** : `analysis_members.group_id` (camp d'opinion k-means, 0-indexé) n'a **aucune correspondance garantie** avec `table_assignments.table_number` (table physique, 1-indexé) — `run_clustering_v2` mélange intentionnellement les clusters. Le nom d'un camp se cherche via `group_id + 1`, **jamais** via le numéro de table.
+- **Ne pas exposer la composition des camps au client.** Passer par une RPC qui renvoie des durées **déjà agrégées par camp**, jamais par une lecture qui laisserait le navigateur du modérateur reconstituer l'appartenance individuelle : sinon le floutage à 5 minutes ne protège que l'affichage, pas la donnée.
+- **Contraintes de perf du projet** : dériver le compteur de `Date.now() - started_at`, jamais d'un `setInterval` qui incrémente ; `useLiveMs()` doit rester dans un composant **feuille** (pattern `SpeakerTimer`), sans quoi tout le sous-arbre se re-rend toutes les 500 ms.
+
+Périmètre : `src/components/ModeratorView.tsx`, nouvelle RPC d'agrégation.
+
+### 95 — Ménage des portes d'entrée : onglet « tables rattachées » + bloc du menu principal (remplace le 75)
+**Parcours + superadmin.** ⚠️ **Ce chantier remplace le chantier 75**, sur décision de Jules le 16/09 (« Oui, remplace le 75 »). Analyse d'abord, suppression ensuite — c'est explicitement ce qu'il demande.
+
+> **Consigne de Jules (2026-09-16)** : « Dans la vue superadmin, L'onglet « table rattaché » n'a plus beaucoup d'utilité. Il conviendrait de le supprimer. Avant ça, liste les possibilité de son utilisation, et de sa vision, et s'il sert toujours au superadmin ou non. On fusionne ce chantier avec le fait d'avoir ou non le bloc dans le menu principal modérateur, créer, rejoindre, qui, selon moi, ne sert plus à rien. Faisons une analyse de cela. »
+>
+> **Complément du même jour, en réponse à mes questions** : « Oui, s'il y a des problèmes et des doutes quand j'ouvrira la discussion, on pourra discuter du manque de route retardataire, ou du besoin de créer une nouvelle table en séance. Les deux accordéons mentionnés sont à supprimer : les tables créés hors séance ne sont plus pertinentes aujourd'hui (à voir pourquoi le chantier 14 l'avait conservé). »
+
+**Consigne d'origine de Jules pour le 75 (06/09), toujours valable et reprise ici intégralement** :
+
+> « Pour la création de table, aucun pb, c'est le superadmin qui gère. Pour le fait de rejoindre une table avec uniquement le code, normalement, quand on clique sur la séance, on doit pouvoir mettre le numéro de la table en retard, donc joindre avec uniquement le numéro. Je ne vois pas de problème. Quant au fait de rejoindre la séance à partir uniquement du numéro, personne ne fait ça. »
+
+**Précisions** :
+- **Les deux accordéons sont à supprimer**, pas un seul : l'onglet Tables du superadmin en contient deux, « Tables rattachées » **et** « Tables disponibles à rattacher ». Jules a tranché pour les deux.
+- **Pourquoi le chantier 14 avait conservé `admin_create_table`** (Jules demande à le savoir) : la création de tables hors séance y était décrite comme « une fonctionnalité intentionnelle et réellement utilisée », via précisément l'accordéon « Tables disponibles à rattacher » → `attach_table_to_session` en différé. La justification était donc l'**usage constaté en juillet 2026** — c'est exactement la prémisse que ce chantier réexamine. Le chantier 14 avait en revanche verrouillé côté serveur la voie *participant* (`create_table` exige une séance) : ce garde-fou-là ne doit pas sauter avec le reste.
+- **Garde-fou du 75, maintenu** : vérifier **d'abord** que le chemin du retardataire existe et est atteignable en pleine phase débat (`switch_table` depuis `AllocatingScreen`, `JoinTableForm` à l'étape `ended` de `VoteScreen` — ce dernier ne reçoit pas de `sessionId`, contrairement à `SessionRouterScreen`). S'il n'existe pas, **le construire d'abord, retirer ensuite** — sinon on supprime la seule porte d'entrée d'un retardataire le jour où on en a besoin. Jules a explicitement ouvert la discussion sur ce point : « on pourra discuter du manque de route retardataire, ou du besoin de créer une nouvelle table en séance ».
+
+Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéons `rattacheesOpen` et « Tables disponibles à rattacher »), `src/screens/EntryScreen.tsx` (onglets « Modérateur », « Rejoindre », « Créer »).
 
 ### 81 — Se déclarer modérateur au moment de la récupération de compte
 **Parcours.** Complète le chantier 73, qui a mis la déclaration modérateur sur les formulaires d'inscription mais pas sur les écrans de reconquête d'identité (« c'est bien moi » / code de rappel).
@@ -74,8 +158,23 @@ Ordre : merger et déployer la branche **d'abord**, appliquer le `REVOKE` **ensu
 ### 87 — Revue complète des parcours utilisateurs
 **Parcours.** Sujet de fond réservé par Jules. Il veut **réexpliquer lui-même** comment l'application et son flux sont censés fonctionner à chaque instant, et préfère une conversation dédiée lancée en **un prompt unique** qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
 
-### 88 — Dette héritée (annexe B de `docs/chantiers.md`)
-Les six items encore au statut `Backlog` repris de l'ancien `PROJECT_STATUS.md` (D1, A2, A3, A4+D17, C7, C2), plus le reste-à-faire historique : notifications toast, page 404 / table expirée élégante, persistance de la pause après rechargement, tests manuels sur mobile (iOS Safari, Android Chrome), génération du QR code dans l'interface superadmin.
+---
+
+## Annulé — ne pas relancer
+
+### 96 — Retrait de l'enregistrement / transcription *(annulé par Jules le 2026-09-16)*
+
+Jules avait demandé : « Enlever tous les boutons enregistrement / transcription, tout cela a été retiré de l'application, on peut retirer tout ce qui est lié à cela, notamment dans la vue modo. » Vérification faite dans `src/`, **les boutons de la vue modo avaient déjà été retirés** (le dropdown « Outils Modo » porte un commentaire explicite : transcription supprimée, backend live abandonné). Ce qui restait n'était pas de l'interface résiduelle mais de la **logique métier active** :
+
+1. **La règle 2 de l'algorithme d'allocation est « table enregistrable »** — garantir au moins une table sans participant non-consentant et non homogène. Deuxième règle sur cinq dans l'ordre lexicographique.
+2. **L'onboarding pose la question du consentement** (`consentTranscript`, `OnboardingForm.tsx`), qui alimente cette règle 2.
+3. **`AllocationPanel` affiche « Enregistreurs disponibles »** et un objectif de tables enregistrables ; `TableDiagnosticsList` affiche un badge « 🎙️ enregistrable ».
+
+Le sous-projet `transcription-debat/` (Whisper, **offline**, indépendant de l'app) existe toujours et travaille sur de l'audio capté hors application : le consentement et le regroupement des consentants gardent donc tout leur sens.
+
+**Décision de Jules, mise devant ce constat** : « Non, on annule ce chantier : le but était de supprimer les boutons et les rélicats de la méthode d'enregistrement en phase débat, mais tout ce que tu décris est pertinent et à garder. »
+
+**Ne pas relancer ce chantier.** Si une session repère à l'avenir des références à l'enregistrement dans le code, ce n'est pas un oubli de ménage : c'est la règle 2 de l'allocation et le consentement d'onboarding, tous deux volontairement conservés.
 
 ---
 
@@ -91,6 +190,13 @@ Le prompt de fusion d'assertions a été durci (typage prescription / jugement /
 
 ## Dette permanente, pas un chantier
 
-**La vérification navigateur.** `A_VERIFIER.md` compte **52 entrées ouvertes**, dont **12 validées avant la refonte des chantiers 73/74 du 06/09 et à revalider**. Presque tout ce qui est mergé et déployé n'a eu qu'une vérification `tsc` / tests / build. « Mergé » ne veut pas dire « vérifié ». Une seule session à la fois peut lancer le serveur de dev.
+**La vérification navigateur.** `A_VERIFIER.md` reste le seul fichier qui dise ce qui a réellement été vu à l'écran, dont une douzaine d'entrées **validées avant la refonte des chantiers 73/74 du 06/09 et à revalider**. Presque tout ce qui est mergé et déployé n'a eu qu'une vérification `tsc` / tests / build. « Mergé » ne veut pas dire « vérifié ». Une seule session à la fois peut lancer le serveur de dev.
 
-**L'ordre de traitement de la sécurité** est donné par `docs/2026-09-06-plan-securite-consolide.md`, qui a relu chaque constat des anciens audits contre le code et la base d'aujourd'hui : sauvegardes → réserves `results_public` → test Realtime du 51 → chantier 55 → 56 → 58 → 59.
+**L'ordre de traitement de la sécurité** est donné par `docs/2026-09-06-plan-securite-consolide.md`, qui a relu chaque constat des anciens audits contre le code et la base. Son ordre d'origine était : sauvegardes → réserves `results_public` → test Realtime du 51 → chantier 55 → 56 → 58 → 59. **Mis à jour au 2026-09-16** — les réserves `results_public` (chantier 80), le test Realtime du 51 (chantier 86) et le chantier 58 sont **faits** ; il reste, dans l'ordre :
+
+1. **85 — les sauvegardes**, bloqué sur Jules (deux secrets GitHub). Le plan le classe premier depuis le début : tant qu'elles n'existent pas, chaque chantier qui touche `session_members`, `tables` ou `assertions` s'exécute sans filet.
+2. **59 — finir la recette et désactiver « Allow public access »** (en cours dans une autre session, voir en haut de fichier). Tant que ce réglage est actif, F6 n'est pas fermé, quel que soit le code déployé.
+3. **93 — la preuve d'identité** (ex-chantier 55), qui reste l'ouverture la plus large : six fonctions distinctes transfèrent aujourd'hui un compte sur simple égalité de pseudo.
+4. **56 — durcissement SQL**, uniquement en présence de Jules.
+
+**Durcissements jamais élevés au rang de chantier**, listés au §5 du plan consolidé et toujours ouverts : A3 (pas de limitation de débit sur `check_superadmin_password`), C4 (aucune limite de longueur ni de débit sur les soumissions), C7 (`tables_update_moderator` ne restreint aucune colonne — un modérateur peut réécrire le `join_code` ou le `session_id` de sa propre table), et la suppression du second projet Supabase inactif (`fcdhbgsqzvxepzvjweod`).
