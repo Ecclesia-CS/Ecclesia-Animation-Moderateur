@@ -1763,7 +1763,7 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
 
   **Validation de Jules (06/09)** : désactiver l'onboarding par séance
 
-- [ ] **2026-09-06 — Chantier 59 — `supabase/migrations/20260906_chantier59_realtime_canaux_prives.sql`** (appliquée le 2026-09-07) — canaux Realtime privés, F6 à la racine
+- [x] **2026-09-06 — Chantier 59 — `supabase/migrations/20260906_chantier59_realtime_canaux_prives.sql`** *(validé le 2026-09-16 — F6 fermé, « Allow public access » désactivé par Jules)* (appliquée le 2026-09-07) — canaux Realtime privés, F6 à la racine
 
   **⛔ NE RIEN APPLIQUER NI DÉPLOYER AVANT LA SÉANCE DU JEUDI 10 SEPTEMBRE.** — avertissement d'origine, **explicitement levé par Jules le 2026-09-07** : il a demandé de dérouler ce chantier ce jour-là plutôt que d'attendre la fin de la séance de vote. Voir ci-dessous ce qui a réellement été fait.
 
@@ -1789,7 +1789,21 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   - **Scénario H (non-régression superadmin)** : `list_sessions_admin`, `get_theme_stats_all`, `get_session_table_counts`, `get_session_member_counts` tous vérifiés à 200 sur l'écran superadmin réel (Jules connecté en direct dans son propre Chrome, mot de passe jamais saisi par la session Claude Code — voir note ci-dessous). Tentative de vérifier précisément le polling du recalcul de groupe (déplacer un membre entre tables et observer la mise à jour ≤10s) **non concluante** — le badge de participants affiché dans la vue développée du superadmin ne semble pas refléter `table_assignments.table_number` directement (compte des sièges physiques `participants`, pas des groupes pré-allocation) ; pas eu le temps d'identifier le bon levier avant la fin de session. **Risque résiduel faible** : les deux canaux supprimés étaient déjà prouvés morts avant ce chantier (voir plus bas), et les RPC de lecture fonctionnent toutes.
   - **Incident parallèle non lié à chantier 59, résolu en cours de route** : en testant le superadmin, `permission denied for table sessions` est apparu. Sur le moment pris pour une régression de prod — **ce n'en était pas une** : le worktree de cette session était resté figé sur un `main` d'avant le merge du chantier 58 (restriction de colonnes sur `sessions`), pendant qu'un autre chantier (90, fini et livré) avançait en parallèle sur `main`. `git merge --ff-only origin/main` a corrigé ça proprement. Un deuxième aller-retour du même message est apparu ensuite, cette fois un artefact de HMR Vite qui n'avait pas convergé après ce merge pendant que le serveur tournait (`useToast doit être utilisé dans un ToastProvider`) — réglé par un rechargement complet. **Aucune régression réelle en base ni en prod.**
   - **Mot de passe superadmin** : Jules l'a fourni en chat à un moment ; la session Claude Code a explicitement refusé de le saisir dans le formulaire de connexion (règle : ne jamais entrer un mot de passe dans un champ, même celui de sa propre app) et a demandé à Jules de se connecter lui-même dans son propre Chrome, piloté ensuite via Claude in Chrome pour les clics/lectures d'écran — jamais pour l'authentification elle-même.
-  - **⛔ Ce qui reste bloquant, non fait par cette session** : désactiver « Allow public access » dans le dashboard Supabase (rubrique **Realtime → Settings**, pas Project Settings — piège trouvé en cours de route, l'ancienne doc migration pointait vers le mauvais chemin). C'est un réglage web, hors SQL/MCP. **En attente du feu vert explicite de Jules avant de le faire** (lui seul a accès au dashboard). Une fois fait : rejouer le scénario B (le test « canal public toujours `SUBSCRIBED` » ci-dessus doit désormais échouer) et idéalement le scénario I (JWT anonyme sur séance longue, non testable en une session).
+  ### 🟢 Chantier clos — « Allow public access » désactivé le 2026-09-16
+
+  Jules a désactivé le réglage lui-même dans le dashboard (**Realtime → Settings**, pas Project Settings — piège corrigé dans le §37 du registre). **Scénario B rejoué immédiatement après**, avec une table de test fraîche (`T59POST`, supprimée après coup) :
+
+  | Test | Avant bascule | Après bascule |
+  |---|---|---|
+  | Canal privé, participant légitime (`table:<id>`, `private:true`) | `SUBSCRIBED` | `SUBSCRIBED` — **inchangé, aucune régression** |
+  | Canal privé, table où il n'est pas assis | `CHANNEL_ERROR` / Unauthorized | `CHANNEL_ERROR` / Unauthorized — **inchangé** |
+  | Canal **public** (sans `private:true`), même topic | `SUBSCRIBED` (c'était F6) | `CHANNEL_ERROR` — `"PrivateOnly: This project only allows private channels"` |
+
+  **F6 est fermé.** Le mode public est désormais catégoriquement refusé par Supabase lui-même (pas seulement par les policies), et le participant légitime continue de fonctionner normalement. Aucune régression observée sur les canaux déjà testés (A→G) pendant ce laps de temps.
+
+  **Non re-testé après bascule, par manque de temps** : les scénarios C à H dans leur forme UI complète (ils l'avaient été en amont, avant la bascule, avec la carte d'autorisation — la bascule ne change que l'accès en mode public, pas les policies elles-mêmes, donc le risque de régression est faible) et le scénario I (JWT anonyme sur séance longue > 1h, jamais testable en une session courte). Point d'attention pour la suite : si un participant reste connecté sur une séance de plusieurs heures, vérifier qu'il continue de recevoir le temps réel après expiration/refresh de son JWT anonyme.
+
+  **Chantier 59 considéré clos.** Rollback d'urgence si un problème apparaît en séance réelle : réactiver « Allow public access » dans le dashboard (effet immédiat, sans redéploiement).
 
   ### État établi en base avant d'écrire quoi que ce soit (MCP lecture, 2026-09-06)
 
