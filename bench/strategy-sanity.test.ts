@@ -14,7 +14,7 @@ import {
   STRATEGY_STRONG_SEARCH_ONLY,
   STRATEGY_ABSOLUTE_STRONG,
   TABLE_MIN,
-  TABLE_OVERFLOW_MAX,
+  TABLE_MAX_ACTIVE,
   UNMODERATED_TABLE_MIN,
   UNMODERATED_TABLE_MAX,
   type AllocationMember,
@@ -62,8 +62,10 @@ describe.each(CANDIDATES)('garde-fous — %s', (_label, strategy) => {
       expect(new Set(ids).size).toBe(members.length)
       if (!r.singleTable) {
         for (const t of r.tables) {
-          expect(t.member_ids.length).toBeGreaterThanOrEqual(t.moderated ? TABLE_MIN : UNMODERATED_TABLE_MIN)
-          expect(t.member_ids.length).toBeLessThanOrEqual(t.moderated ? TABLE_OVERFLOW_MAX : UNMODERATED_TABLE_MAX)
+          // Chantier 91 : les bornes portent sur les actifs, le public s'ajoute.
+          const d = r.diagnostics.find(x => x.table_number === t.table_number)!
+          expect(d.actives).toBeGreaterThanOrEqual(t.moderated ? TABLE_MIN : UNMODERATED_TABLE_MIN)
+          expect(d.actives).toBeLessThanOrEqual(t.moderated ? TABLE_MAX_ACTIVE : UNMODERATED_TABLE_MAX)
         }
       }
     }

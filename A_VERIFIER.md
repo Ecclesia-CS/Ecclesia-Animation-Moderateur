@@ -35,6 +35,21 @@ Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante
 
 Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar` déjà existant) : le rendu participant du questionnaire forcé lui-même, et l'affichage du bouton "↻ Revoter" en `post_voting` — déjà couverts par le chantier 89.
 
+## Chantier 91 (2026-09-16) — allocation : les passifs deviennent du public — ✅ tableau avant/après **validé par Jules et mergé sur `main` le 2026-09-16** — recette navigateur restant à jouer
+
+Branche `claude/chantier-91-allocation-passifs`. Aucune migration. `npm test`, `tsc --noEmit` et `npm run build` propres. **Aucune vérification navigateur** : le jeton de serveur de dev n'a pas été pris — prêt pour vérification navigateur.
+
+**Ce qui a été fait** (modèle arrêté avec Jules le 16/09, après abandon d'une v1 à ratio 3/5) : `src/lib/allocation.ts` — les tables se forment sur les **actifs** seulement (5 à 14 par table animée, 5 à 7 sans modérateur) ; la règle « assez d'actifs » est supprimée ; les passifs sont placés **en public**, uniformément sur les tables animées, limite de 30 personnes par table ; règles renumérotées 1 enregistrable · 2 hétérogénéité · 3 anciens · 4 nouveaux encadrés. Quatre corrections découvertes en mesurant : maximin d'hétérogénéité plafonné au seuil de viabilité, tailles équilibrées entre tables animées, boucle du surplus de modérateurs qui descend d'un cran à la fois, tables enregistrables protégées des non-consentants du public. `TableDiagnostics` : `actives`, `audience`, `audience_ok`, `over_capacity`, `veterans_ok`, `heterogeneity_ok` (les champs `rule*_ok` disparaissent). Affichage mis à jour dans `TableDiagnosticsList.tsx` et l'onglet Groupes.
+
+**Validé par Jules le 2026-09-16 — rapport : [`docs/chantier-91-comparatif-allocation.md`](./docs/chantier-91-comparatif-allocation.md)**. Question ouverte : les modérateurs en surplus comptent-ils dans la limite de 30 (salle de 30 personnes / 6 actifs / 3 modérateurs → table de 32) ?
+
+**Recette navigateur (à dérouler)** — séance de test en phase `allocating`, au moins 30 inscrits dont une partie a répondu « passif » à l'onboarding, 2 à 4 modérateurs :
+1. `AllocationPanel` → « Calculer » : chaque carte affiche « X actifs · Y en public » ; aucune table animée au-delà de 14 actifs, aucune table sans modérateur au-delà de 7 actifs ; pas de public sur une table sans modérateur.
+2. Le public est réparti à une personne près entre les tables animées ; aucune table au-delà de 30 personnes.
+3. Cliquer deux fois sur « Calculer » : répartition identique.
+4. Appliquer, puis dans l'onglet Groupes glisser un passif vers une table sans modérateur : l'alerte « en public sans modérateur » apparaît et « Santé des tables » baisse.
+5. Cas limite : moins de 5 actifs dans la séance → une seule table, avec un avertissement, sans erreur.
+
 ## Chantier 88a/88b/88c (2026-09-08, complété et mergé le 2026-09-15) — toasts, page 404, QR code superadmin — ✅ intégralement vérifié au navigateur, mergé sur `main`
 
 `tsc --noEmit`, `npm run build` et `npm test` propres (le seul échec, `groupNaming.test.ts` — `supabaseUrl is required` — est pré-existant, lié à l'absence de `.env` dans ce worktree, sans rapport avec ce chantier).
