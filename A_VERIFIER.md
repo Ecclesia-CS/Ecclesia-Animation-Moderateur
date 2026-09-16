@@ -38,6 +38,24 @@ Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supab
 
 Si les deux passent : `search_path = public, extensions` ne casse pas `crypt()` en usage réel, confirmant le test indirect déjà fait par cette session. Si l'un échoue avec un message qui n'est pas un refus métier normal (ex. erreur de fonction/schéma introuvable), c'est le piège du plan qui s'est produit — ne pas merger, revenir ici.
 
+## Bug prod — page blanche onglet « En direct » du superadmin (2026-09-16)
+
+**Signalé par Jules** : clic sur l'onglet « 🟢 En direct » → page blanche, F5 ne répare rien, un nouvel onglet ouvert depuis l'onglet cassé reproduit le crash (mais `#session/…` / participant fonctionnent), une fenêtre de navigation privée répare. Reproduit sur Brave, console fournie :
+
+```
+TypeError: Cannot read properties of undefined (reading 'total_tokens')
+    at $S (index-CdFn4sC1.js:210:...)   ← Array.reduce
+```
+
+**Cause identifiée** : `LLMModerationPanel.tsx` (`sessionTokens = log.reduce((s, e) => s + e.usage.total_tokens, 0)`, ligne ~570) suppose que chaque entrée de `readAiLog()` a un champ `usage` bien formé. `readAiLog()` (`src/lib/aiUsage.ts`) parsait le JSON de `localStorage['ai_log_<sessionId>']` sans validation — une entrée écrite par une version antérieure du code (avant l'ajout du suivi de tokens F19-F22) ou tronquée par un quota `localStorage` plein suffit à faire planter tout le rendu. Comme **aucun `ErrorBoundary` n'existe dans l'app**, cette exception fait disparaître toute la page (pas seulement le panneau IA) — d'où la page blanche plutôt qu'une simple section cassée. `localStorage` (contrairement à `sessionStorage`) persiste entre onglets et redémarrages du navigateur, ce qui explique pourquoi F5 et un nouvel onglet reproduisaient le crash, et pourquoi une fenêtre privée (stockage vierge) le contournait.
+
+**Correctif appliqué** : `readAiLog()` filtre désormais les entrées dont `usage` n'est pas un objet avec les 4 champs numériques attendus, au lieu de les laisser passer telles quelles.
+
+**Reste à vérifier humainement** (je n'ai pas pu reproduire : pas d'accès au `localStorage` de Brave où le bug a été constaté, et je n'entre jamais le mot de passe superadmin moi-même) :
+- Sur le navigateur où le bug a été constaté, recharger l'app **après déploiement du correctif** et confirmer que l'onglet « En direct » s'ouvre normalement sans avoir à vider le `localStorage` à la main.
+- Si l'entrée corrompue est toujours là après coup (filtrée mais jamais purgée), vérifier que le panneau « Tokens cette séance » affiche un total simplement amputé de l'entrée invalide plutôt qu'une erreur.
+- Envisager séparément l'ajout d'un `ErrorBoundary` global : ce bug précis est corrigé, mais la même classe de crash (une exception de rendu quelconque) reste fatale à toute la page tant qu'il n'existe pas de garde-fou — sujet distinct, pas traité ici faute d'accord explicite de Jules sur la portée.
+
 ## Chantier 90 (2026-09-16) — sortie de débat : passage en postvote optionnel — ✅ vérifié au navigateur
 
 Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante" doit demander si on va en `post_voting` ou directement en `closed`.

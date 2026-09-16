@@ -42,9 +42,24 @@ function todayKey(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Entrées possiblement écrites par une version antérieure du code (avant
+// l'ajout de `usage`) ou tronquées par un quota localStorage plein — sans ce
+// filtre, un `usage` absent fait planter tout `.reduce` en aval (page blanche
+// constatée en prod le 2026-09-16, cf. A_VERIFIER.md).
+function isValidUsage(u: unknown): u is AiUsageDetail {
+  if (!u || typeof u !== 'object') return false
+  const d = u as Record<string, unknown>
+  return typeof d.prompt_tokens === 'number'
+    && typeof d.completion_tokens === 'number'
+    && typeof d.total_tokens === 'number'
+    && typeof d.thoughts_tokens === 'number'
+}
+
 export function readAiLog(sessionId: string): AiLogEntry[] {
   try {
-    return JSON.parse(localStorage.getItem(`ai_log_${sessionId}`) ?? '[]') as AiLogEntry[]
+    const parsed = JSON.parse(localStorage.getItem(`ai_log_${sessionId}`) ?? '[]') as unknown[]
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((e): e is AiLogEntry => isValidUsage((e as Partial<AiLogEntry>)?.usage))
   } catch {
     return []
   }
