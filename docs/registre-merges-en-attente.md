@@ -116,7 +116,6 @@ Donc : **retirer les trois onglets**. Mais il dit « on **doit pouvoir** », ce 
 - **Chantiers 81 et 82** — déclaration modérateur au moment de la récupération de compte ; reconnexion par pseudo après clôture.
 - **Chantier 83** — déploiement de `gemini-proxy` : demande un `supabase login`, bloqué sur Jules. Le prompt de fusion a été durci sans être redéployé.
 - **Chantier 87 — revue des parcours utilisateurs** : sujet de fond réservé par Jules. Il veut réexpliquer lui-même comment l'application est censée fonctionner à chaque instant, et préfère une conversation dédiée lancée en un prompt unique qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
-- **Chantier 96 — annulé le 2026-09-16, ne pas relancer.** Le retrait de « tout ce qui est lié à l'enregistrement/transcription » supprimerait la règle 2 de l'algorithme d'allocation (« table enregistrable ») et la question de consentement de l'onboarding, toutes deux encore utiles puisque le sous-projet `transcription-debat/` travaille hors application. Jules, mis devant ce constat : « Non, on annule ce chantier [...] tout ce que tu décris est pertinent et à garder. » Justification complète dans la file.
 
 ---
 

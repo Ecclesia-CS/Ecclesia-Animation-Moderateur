@@ -160,24 +160,6 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 ---
 
-## Annulé — ne pas relancer
-
-### 96 — Retrait de l'enregistrement / transcription *(annulé par Jules le 2026-09-16)*
-
-Jules avait demandé : « Enlever tous les boutons enregistrement / transcription, tout cela a été retiré de l'application, on peut retirer tout ce qui est lié à cela, notamment dans la vue modo. » Vérification faite dans `src/`, **les boutons de la vue modo avaient déjà été retirés** (le dropdown « Outils Modo » porte un commentaire explicite : transcription supprimée, backend live abandonné). Ce qui restait n'était pas de l'interface résiduelle mais de la **logique métier active** :
-
-1. **La règle 2 de l'algorithme d'allocation est « table enregistrable »** — garantir au moins une table sans participant non-consentant et non homogène. Deuxième règle sur cinq dans l'ordre lexicographique.
-2. **L'onboarding pose la question du consentement** (`consentTranscript`, `OnboardingForm.tsx`), qui alimente cette règle 2.
-3. **`AllocationPanel` affiche « Enregistreurs disponibles »** et un objectif de tables enregistrables ; `TableDiagnosticsList` affiche un badge « 🎙️ enregistrable ».
-
-Le sous-projet `transcription-debat/` (Whisper, **offline**, indépendant de l'app) existe toujours et travaille sur de l'audio capté hors application : le consentement et le regroupement des consentants gardent donc tout leur sens.
-
-**Décision de Jules, mise devant ce constat** : « Non, on annule ce chantier : le but était de supprimer les boutons et les rélicats de la méthode d'enregistrement en phase débat, mais tout ce que tu décris est pertinent et à garder. »
-
-**Ne pas relancer ce chantier.** Si une session repère à l'avenir des références à l'enregistrement dans le code, ce n'est pas un oubli de ménage : c'est la règle 2 de l'allocation et le consentement d'onboarding, tous deux volontairement conservés.
-
----
-
 ## Bloqués — rien à faire côté code
 
 ### 85 — Sauvegardes chiffrées quotidiennes
