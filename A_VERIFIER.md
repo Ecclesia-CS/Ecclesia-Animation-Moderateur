@@ -19,6 +19,25 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
+
+Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supabase/migrations/20260916_chantier56_durcissement_sql.sql). Aucun fichier `src/`. Appliqué par cette session directement (règle du 07/09 dans `CLAUDE.md` : une session de chantier peut appliquer sa propre migration), avec Jules disponible et joignable comme l'exigeait `docs/registre-merges-en-attente.md`.
+
+**Ce qui change** :
+- `REVOKE ALL ON app_config, assertion_merges FROM anon, authenticated` — seconde barrière indépendante de la RLS zéro-policy déjà en place sur ces deux tables (confirmé avant migration : `relrowsecurity=true`, 0 policy, mais privilèges de table complets ouverts à `anon`/`authenticated`).
+- `search_path = public, extensions` figé sur `check_superadmin_password`, `create_table`, `reclaim_moderator` (2 surcharges), `claim_moderator_status`, `set_session_results_public`. `get_public_results` avait déjà ce réglage en base (contrairement à ce que documentait `docs/2026-09-06-plan-securite-consolide.md` — écart constaté, pas de régression).
+
+**Vérifications faites avant/après par cette session (SQL uniquement, pas de test navigateur)** :
+- Signatures exactes relues via `pg_get_function_identity_arguments` avant l'`ALTER` (`claim_moderator_status` n'a qu'une seule surcharge à 4 arguments en base, pas deux comme le supposait le plan initial).
+- Après migration : les 6 fonctions ont `proconfig = ["search_path=public, extensions"]`. `role_table_grants` confirme 0 privilège restant pour `anon`/`authenticated` sur les deux tables.
+- Piège du plan (search_path sans `extensions` casse `crypt()`) testé indirectement : `check_superadmin_password('test-invalide-volontairement')` lève bien `Mot de passe superadmin incorrect` (le message métier normal), pas une erreur de fonction introuvable — signe que `crypt()` résout toujours correctement.
+
+**Reste à vérifier humainement** : recette complète au navigateur demandée par le plan (Jules a le mot de passe superadmin et le Code Ecclesia, pas cette session). Connexion superadmin déjà faite pendant cette session (à confirmer que c'était le vrai mot de passe, pas une session déjà ouverte). Étapes restantes, dans le Browser pane (`http://localhost:5173/Ecclesia-Animation-Moderateur/`, serveur `ecclesia-dev`) :
+1. Cliquer "🎙️ Modérateur" sur l'accueil → renseigner un pseudo de test + le **Code Ecclesia** → "Rejoindre en tant que modérateur". Doit créer/rejoindre une table sans "code invalide" (teste `create_table`).
+2. "Rejoindre ou reprendre une table" avec le `join_code` d'une table existante + le mot de passe modérateur. Doit reconnecter sans erreur (teste `reclaim_moderator`).
+
+Si les deux passent : `search_path = public, extensions` ne casse pas `crypt()` en usage réel, confirmant le test indirect déjà fait par cette session. Si l'un échoue avec un message qui n'est pas un refus métier normal (ex. erreur de fonction/schéma introuvable), c'est le piège du plan qui s'est produit — ne pas merger, revenir ici.
+
 ## Chantier 90 (2026-09-16) — sortie de débat : passage en postvote optionnel — ✅ vérifié au navigateur
 
 Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante" doit demander si on va en `post_voting` ou directement en `closed`.
