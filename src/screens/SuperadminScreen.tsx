@@ -1161,6 +1161,9 @@ function SessionDetail({
   const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
   const [phaseConfirm, setPhaseConfirm] = useState<{ phase: Session['phase']; label: string; isBack: boolean } | null>(null)
   const [phaseActing, setPhaseActing]   = useState(false)
+  // Chantier 90 — sortie de 'debating' : le passage par 'post_voting' devient
+  // optionnel, donc plus de confirmation binaire ici, un choix à deux issues.
+  const [debateExitChoice, setDebateExitChoice] = useState(false)
 
   /**
    * Chantier 37 — fusion IA « en fin de vote » (toggle du panneau de
@@ -1211,7 +1214,12 @@ function SessionDetail({
       // s'est intercalée avant 'closed' : c'est cette transition-là qui
       // marque la fin réelle du débat, pas le passage en 'closed' (qui ne
       // fait plus que couper le revote, cf. registre-merges-en-attente.md).
-      if (targetPhase === 'post_voting' && currentSession.phase === 'debating') {
+      // Chantier 90 — la sortie de 'debating' vers 'post_voting' n'est plus
+      // la seule voie : un saut direct vers 'closed' depuis 'debating'
+      // (choix du superadmin dans DebateExitModal) doit forcer le
+      // questionnaire tout autant, sans quoi le raccourci le ferait
+      // silencieusement sauter.
+      if (currentSession.phase === 'debating' && (targetPhase === 'post_voting' || targetPhase === 'closed')) {
         await forceSessionQuestionnaire(password, currentSession.id)
         setIsQForced(true)
       }
@@ -2354,7 +2362,11 @@ function SessionDetail({
           nextPhase={nextPhase}
           prevPhase={prevPhase}
           acting={phaseActing}
-          onNext={() => nextPhase && setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })}
+          onNext={() => {
+            if (!nextPhase) return
+            if (currentSession.phase === 'debating') { setDebateExitChoice(true); return }
+            setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })
+          }}
           onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
           onPhaseSelect={(phase) => {
             const isBack = PHASE_SEQUENCE.indexOf(phase) < phaseIdx
@@ -3490,6 +3502,14 @@ function SessionDetail({
         <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
       )}
 
+      {debateExitChoice && (
+        <DebateExitModal
+          onPostVoting={() => { setDebateExitChoice(false); handlePhaseChange('post_voting') }}
+          onClosed={() => { setDebateExitChoice(false); handlePhaseChange('closed') }}
+          onCancel={() => setDebateExitChoice(false)}
+        />
+      )}
+
       {phaseConfirm && (
         <ConfirmModal
           title={phaseConfirm.isBack ? '← Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
@@ -3563,6 +3583,68 @@ function ModerationPolicyEditor({
         </button>
       )}
     </section>
+  )
+}
+
+// ── DebateExitModal ───────────────────────────────────────────────
+// Chantier 90 — quitter 'debating' n'est plus un unique chemin vers
+// 'post_voting' : le superadmin choisit d'abord entre passer par le
+// post-vote (revote possible) ou clôturer directement (le saute).
+
+function DebateExitModal({
+  onPostVoting,
+  onClosed,
+  onCancel,
+}: {
+  onPostVoting(): void
+  onClosed(): void
+  onCancel(): void
+}) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white rounded-2xl w-full max-w-sm shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <h2 className="text-base font-semibold text-gray-900">Fin du débat</h2>
+          <p className="mt-1 text-sm text-gray-500 leading-relaxed">
+            Le passage par le post-vote (revote possible, résultats provisoires) est
+            optionnel. Clôturer directement le saute et coupe le revote immédiatement.
+          </p>
+
+          <div className="mt-6 space-y-2">
+            <button
+              onClick={onPostVoting}
+              className="w-full py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-xl
+                hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2
+                focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              → Post-vote (revote possible)
+            </button>
+            <button
+              onClick={onClosed}
+              className="w-full py-2.5 text-sm font-medium bg-red-600 text-white rounded-xl
+                hover:bg-red-700 transition-colors focus:outline-none focus:ring-2
+                focus:ring-red-500 focus:ring-offset-2"
+            >
+              → Clôturer directement
+            </button>
+            <button
+              onClick={onCancel}
+              className="w-full py-2.5 text-sm font-medium border border-gray-200 rounded-xl
+                text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none
+                focus:ring-2 focus:ring-gray-300"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

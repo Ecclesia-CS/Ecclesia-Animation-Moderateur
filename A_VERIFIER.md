@@ -19,6 +19,22 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Chantier 90 (2026-09-16) — sortie de débat : passage en postvote optionnel — ✅ vérifié au navigateur
+
+Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante" doit demander si on va en `post_voting` ou directement en `closed`.
+
+**Ce qui a été fait** : `src/screens/SuperadminScreen.tsx` — nouveau composant `DebateExitModal` (deux boutons d'action + annuler), intercepté dans le câblage `onNext` de `PhaseBar` uniquement quand `currentSession.phase === 'debating'` (les autres transitions gardent l'ancien `ConfirmModal`/`phaseConfirm`, inchangé). `handlePhaseChange` déclenche désormais `force_session_questionnaire` dans les deux issues de sortie de `debating` (`post_voting` **ou** `closed`), pas seulement vers `post_voting` comme avant — décision de Jules du 16/09 ("1 oui"). La purge de `reclaim_code` sur l'entrée en `closed` (chantier 49) n'a pas été touchée : elle se déclenche déjà automatiquement plus tôt dans le cas du saut direct, côté RPC `set_session_phase`.
+
+`tsc --noEmit` propre.
+
+**Vérifié au navigateur le 2026-09-16** (mot de passe superadmin fourni par Jules), sur la séance de test partagée `FADE01` (« 🧪 Progression complète (draft→clôture) »), amenée en phase `debating` :
+1. Clic "Passer en Post-vote →" → le nouveau `DebateExitModal` à deux choix apparaît (plus l'ancien `ConfirmModal` à bouton unique). **Confirmé.**
+2. "Annuler" → aucun changement de phase, vérifié en base (`sessions.phase` toujours `debating`). **Confirmé.**
+3. "Clôturer directement" → phase passe **directement** à `closed` (post_voting sauté dans `PHASE_SEQUENCE`, mais affiché "passé" dans les pastilles), `tables.questionnaire_forced_at` posé, `session_members.reclaim_code` à `null` pour tous les membres. Zéro erreur console liée au changement. **Confirmé.**
+4. Retour en arrière (pastille "Aller en Débat" depuis `closed`) puis "Passer en Post-vote →" → choix "Post-vote (revote possible)" → phase passe à `post_voting`, `questionnaire_forced_at` remis à jour (nouveau timestamp, RPC rappelée). **Confirmé.**
+
+Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar` déjà existant) : le rendu participant du questionnaire forcé lui-même, et l'affichage du bouton "↻ Revoter" en `post_voting` — déjà couverts par le chantier 89.
+
 ## Chantier 88a/88b/88c (2026-09-08, complété et mergé le 2026-09-15) — toasts, page 404, QR code superadmin — ✅ intégralement vérifié au navigateur, mergé sur `main`
 
 `tsc --noEmit`, `npm run build` et `npm test` propres (le seul échec, `groupNaming.test.ts` — `supabaseUrl is required` — est pré-existant, lié à l'absence de `.env` dans ce worktree, sans rapport avec ce chantier).
