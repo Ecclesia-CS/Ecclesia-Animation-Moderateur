@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { submitEntryResponse, setMyPairings } from '../../lib/voting'
-import { PairingFields, PAIRING_EXPLANATION } from './PairingModal'
+import { PairingFields, PairingResultsList, ReciprocityNotice, PAIRING_EXPLANATION } from './PairingModal'
+import type { PairingResult } from '../../lib/voting'
 import type { EntryResponse, SessionMember } from '../../lib/types'
 
 interface OnboardingFormProps {
@@ -36,6 +37,9 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Chantier 92 — après validation, on montre l'état de chaque binôme
+  // (réciproque ou en attente) avant de passer au vote.
+  const [pairingDone, setPairingDone] = useState<{ response: EntryResponse; results: PairingResult[] } | null>(null)
 
   function update<K extends keyof Answers>(key: K, value: Answers[K]) {
     setAnswers(prev => ({ ...prev, [key]: value }))
@@ -65,7 +69,11 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
       // bloque pas l'accès au vote, la personne peut corriger depuis « Outils ».
       const pseudos = answers.pairings.filter(p => p.trim() !== '')
       if (pseudos.length > 0) {
-        try { await setMyPairings(sessionId, pseudos) } catch { /* rattrapable via Outils */ }
+        try {
+          const res = await setMyPairings(sessionId, pseudos)
+          setPairingDone({ response, results: res.results })
+          return
+        } catch { /* rattrapable via Outils */ }
       }
       onSuccess(response)
     } catch (err: unknown) {
@@ -76,6 +84,25 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
   }
 
   const pct = Math.round(((currentQ + 1) / TOTAL_QUESTIONS) * 100)
+
+  if (pairingDone) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center px-4 py-8">
+        <div className="max-w-md mx-auto w-full space-y-4">
+          <h2 className="text-xl font-bold text-gray-900">🔗 Tes binômes</h2>
+          <PairingResultsList results={pairingDone.results} />
+          <ReciprocityNotice />
+          <p className="text-xs text-gray-400">Tu peux les modifier à tout moment dans « Outils » → « Mes binômes ».</p>
+          <button
+            onClick={() => onSuccess(pairingDone.response)}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl"
+          >
+            Continuer vers le vote →
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -124,6 +151,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
                 Une ou deux personnes au plus. {PAIRING_EXPLANATION} Tu pourras modifier ce choix plus tard dans « Outils ».
               </p>
             </div>
+            <ReciprocityNotice />
             <PairingFields values={answers.pairings} onChange={v => update('pairings', v)} />
           </div>
         )}

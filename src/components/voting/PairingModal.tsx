@@ -6,8 +6,20 @@ import { extractErr } from '../../lib/utils'
 // question d'onboarding et la modale « Mes binômes » des Outils.
 
 export const PAIRING_EXPLANATION =
-  "Écris le prénom et le nom exacts, tels que la personne les a saisis. " +
-  "Vous serez placés à la même table seulement si elle te cite aussi."
+  "Écris le prénom et le nom exacts, tels que la personne les a saisis."
+
+/** Chantier 92 — la réciprocité doit sauter aux yeux, à la proposition comme après l'enregistrement. */
+export function ReciprocityNotice() {
+  return (
+    <div className="text-sm text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 leading-snug">
+      <p className="font-semibold">⚠️ Ça ne marche que dans les deux sens</p>
+      <p className="mt-0.5">
+        Vous ne serez à la même table que si <strong>cette personne te cite aussi</strong> de son côté.
+        Pense à la prévenir !
+      </p>
+    </div>
+  )
+}
 
 export function PairingFields({
   values,
@@ -39,7 +51,15 @@ export function PairingFields({
 
 export function PairingResultsList({ results }: { results: PairingResult[] }) {
   if (results.length === 0) return null
+  const waiting = results.some(r => r.found && !r.reciprocal)
   return (
+    <div className="space-y-2">
+    {waiting && (
+      <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">
+        ⏳ Enregistré, mais pas encore actif : tant que la personne ne t'a pas cité·e en retour,
+        l'algorithme ne vous mettra pas forcément ensemble. Préviens-la !
+      </p>
+    )}
     <ul className="space-y-1.5">
       {results.map(r => (
         <li key={r.pseudo} className="text-sm leading-snug">
@@ -51,6 +71,7 @@ export function PairingResultsList({ results }: { results: PairingResult[] }) {
         </li>
       ))}
     </ul>
+    </div>
   )
 }
 
@@ -97,6 +118,7 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
           <p className="text-sm text-gray-600 mt-1">Avec qui aimerais-tu être à table ? (2 personnes au plus)</p>
           <p className="text-xs text-gray-400 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
         </div>
+        <ReciprocityNotice />
         {loading ? (
           <p className="text-sm text-gray-400">Chargement…</p>
         ) : (

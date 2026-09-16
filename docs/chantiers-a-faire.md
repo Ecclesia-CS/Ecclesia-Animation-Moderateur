@@ -68,7 +68,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 Périmètre : `src/lib/allocation.ts` et ses tests (49 aujourd'hui), `src/components/voting/AllocationPanel.tsx`.
 
 ### 92 — Allocation : appairage entre participants
-> ✅ **Livré sur la branche `claude/chantier-92-65590f` le 2026-09-16, non mergé** : migration appliquée, recette navigateur non jouée, comparatif algorithmique à valider par Jules (voir `A_VERIFIER.md`). Décisions par défaut retenues : réciprocité obligatoire, grappe déplacée entière au glisser-déposer, saisie libre sans autocomplétion. Ne pas le reprendre.
+> ✅ **Livré et mergé sur `main` le 2026-09-16** après validation de Jules : migration appliquée, parcours participant vérifié au navigateur, étapes superadmin restant à jouer (voir `A_VERIFIER.md`). Décisions par défaut retenues : réciprocité obligatoire, grappe déplacée entière au glisser-déposer, saisie libre sans autocomplétion. Ne pas le reprendre.
 
 **Algorithme + parcours.** ⚠️ **Après le 91** (même fichier). Le plus gros des six : modèle de données + onboarding + Outils + algorithme + DnD superadmin.
 

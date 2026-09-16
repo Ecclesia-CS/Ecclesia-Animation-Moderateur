@@ -72,7 +72,7 @@ Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante
 
 Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar` déjà existant) : le rendu participant du questionnaire forcé lui-même, et l'affichage du bouton "↻ Revoter" en `post_voting` — déjà couverts par le chantier 89.
 
-## Chantier 92 (2026-09-16) — appairage entre participants — ✅ migration appliquée en base · ⚠️ recette navigateur **non jouée** · branche non mergée
+## Chantier 92 (2026-09-16) — appairage entre participants — ✅ migration appliquée · ✅ parcours participant vérifié au navigateur · ⚠️ étapes superadmin (3, 4) non jouées · mergé sur `main` après accord de Jules
 
 Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabase/migrations/20260916_chantier92_appairages.sql). **Appliquée par cette session.** Elle ne crée que des objets neufs et **ne réécrit aucune fonction existante**. `get_allocation_inputs` n'est pas touchée : les liens passent par une RPC admin séparée.
 - Table `member_pairings` : RLS en lecture self-only, aucune écriture directe.
@@ -80,7 +80,11 @@ Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabas
 - `get_my_pairings(session_id)`.
 - `get_session_pairings_admin(password, session_id)` : ne renvoie que les liens **réciproques**.
 
-**Décisions prises par défaut, à confirmer par Jules** (plan approuvé sans retour détaillé) :
+**Retour de Jules (16/09)** : décisions validées (« très bonnes initiatives »). Il demande que la réciprocité soit **explicite à la proposition et après le clic** : encadré « ⚠️ Ça ne marche que dans les deux sens » à la question 4 et dans la modale, écran « Tes binômes » après validation de l'onboarding, et bandeau « Enregistré, mais pas encore actif » tant qu'un lien n'est pas réciproque. Tableau comparatif accepté, merge autorisé.
+
+**Précision sur les passifs** : un passif appairé suit **toujours** sa grappe, sans condition. Effets de bord possibles : sa table peut dépasser 30 personnes, ou il peut être placé en public à une table sans modérateur si ses binômes actifs y sont. Seul le regroupement des **actifs** peut échouer : quand les tables visées n'ont plus assez de personnes seules à échanger. La grappe reste alors séparée, avec un avertissement. Jamais observé sur le banc.
+
+**Décisions prises** :
 1. **Réciprocité obligatoire.** Une composante de plus de 3 personnes est découpée en gardant les liens les plus anciens, sans hasard.
 2. **Glisser-déposer superadmin** : la grappe entière se déplace, jamais de refus.
 3. **Saisie en texte libre**, résolue côté serveur sans tenir compte de la casse. Pas d'autocomplétion, parce que les pseudos sont des noms réels.
@@ -99,7 +103,15 @@ Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabas
   - seul le degré d'hétérogénéité minimal baisse, de 0,60 à 0,36 au pire (60 part., 40 % appairés), et reste au-dessus du seuil de viabilité.
   ⚠️ Changement algorithmique : **tableau à valider par Jules avant merge**.
 
-**Recette navigateur à jouer** (2 à 3 identités) :
+**Recette navigateur jouée le 2026-09-16** (Browser pane, séance de test `TST92X` créée puis supprimée ; la seconde identité « Bob » était simulée en SQL, faute de deuxième session anonyme) :
+- ✅ Question 4/4 affichée avec l'encadré de réciprocité. En citant « bob test92 » (casse différente) et un pseudo inexistant, l'écran « Tes binômes » affiche « en attente que cette personne te cite aussi », « personne introuvable » et le bandeau « pas encore actif ».
+- ✅ Bob cite Alice en retour. Outils du vote → « Mes binômes » affiche « vous vous êtes cités tous les deux ».
+- ✅ Retardataire en `allocating` sans table, Bob au groupe 1. « Enregistrer » affiche « placé·e au groupe 1 ». En `debating`, l'écran d'annonce affiche « Table 1 » et le lien « 🔗 Mes binômes ». *Rappel du comportement existant : en `allocating`, le participant reste sur l'écran de vote avec un bandeau ; l'annonce de table n'apparaît qu'en `debating`.*
+- ✅ Aucune erreur console.
+- ⚠️ **Non joué : étapes 3 et 4 (superadmin)**, faute du mot de passe superadmin. Couvert seulement par les tests unitaires et `tsc`.
+- ⚠️ Non joué : étape 6 (Outils à la table).
+
+Recette complète d'origine (2 à 3 identités) :
 1. En `voting`, faire l'onboarding avec A qui cite B à la 4e question. Faire citer A par B depuis Outils → « Mes binômes ». B doit voir « vous vous êtes cités tous les deux ».
 2. Un pseudo mal orthographié doit afficher « personne introuvable ».
 3. Superadmin, `AllocationPanel` : la proposition affiche « 🔗 1/1 grappe réunie », et A et B sont à la même table.
