@@ -166,6 +166,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       moderators: [...inputs.moderatorIds].sort(),
       members: inputs.members.length,
       opinions: inputs.opinionsAvailable,
+      pairs: inputs.pairs.length,
     })
   }, [inputs, extraModerators, recorderCount, excluded])
 
@@ -198,6 +199,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       extraModerators,
       recorderCount:     recorderCount === '' ? null : recorderCount,
       opinionsAvailable: inputs.opinionsAvailable,
+      pairs:             inputs.pairs,
     }
   }, [inputs, excluded, extraModerators, recorderCount])
 
@@ -451,6 +453,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 <p className="text-xs text-gray-400">
                   {preview.tables.length} table(s) ·{' '}
                   {preview.tables.filter(t => t.moderated).length} animée(s)
+                  {preview.clusters.length > 0 && (
+                    <> · 🔗 {preview.clusters.length - preview.brokenClusters}/{preview.clusters.length} grappe(s) réunie(s)</>
+                  )}
                   {computedAt && (
                     <> · calculé à {new Date(computedAt).toLocaleTimeString('fr-FR')}</>
                   )}

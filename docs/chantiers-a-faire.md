@@ -68,6 +68,8 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 Périmètre : `src/lib/allocation.ts` et ses tests (49 aujourd'hui), `src/components/voting/AllocationPanel.tsx`.
 
 ### 92 — Allocation : appairage entre participants
+> ✅ **Livré et mergé sur `main` le 2026-09-16** après validation de Jules : migration appliquée, parcours participant vérifié au navigateur, étapes superadmin restant à jouer (voir `A_VERIFIER.md`). Décisions par défaut retenues : réciprocité obligatoire, grappe déplacée entière au glisser-déposer, saisie libre sans autocomplétion. Ne pas le reprendre.
+
 **Algorithme + parcours.** ⚠️ **Après le 91** (même fichier). Le plus gros des six : modèle de données + onboarding + Outils + algorithme + DnD superadmin.
 
 > **Consigne de Jules (2026-09-16)** : « Lorsqu'on se connecte (à partir de la phase présentielle, donc également pour la phase allocation, et la phase débat), on propose une question (après ou pendant l'onboarding par exemple) de mettre un ou deux pseudos de personnes avec qui on aimerait être. Dans ce cas, l'algorithme d'allocation les considérera ensemble, soudés, et ne devra pas les séparer, et d'optimiser sachant ces apairements. Dans « outils », une des possibilité sera aussi de déclarer / changer les pseudos. Si la phase d'allocation a commencé, il faudra juste que la personne soit rattachée au pseudo. »
