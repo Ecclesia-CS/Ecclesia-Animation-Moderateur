@@ -9,26 +9,64 @@
 // pattern que src/lib/analysis.ts. Les wrappers d'I/O sont dans
 // src/lib/voting.ts (loadAllocationInputs / applyAllocation).
 //
-// ── Les 5 règles (priorité décroissante) ─────────────────────
-//   1. Assez d'actifs      : actifs   ≥ min(⌈2/5·taille⌉, 4)
-//   2. Table enregistrable  : ≥1 table sans non-consentant ET non homogène
-//   3. Hétérogénéité        : camp majoritaire ≤ 70 % ET 2e camp ≥ 2 personnes
-//   4. Assez d'anciens      : anciens ≥ ⌈2/5·taille⌉
-//   5. Nouveaux encadrés    : maximiser les nouveaux aux tables modérées
+// ── Les 6 règles (priorité décroissante) ─────────────────────
+//   1. Assez d'actifs      : actifs ≥ ⌊3/5·taille⌋ (chantier 91 — était min(⌈2/5·taille⌉, 4))
+//   2. Passifs encadrés    : pas de passifs aux tables sans modérateur, puis
+//                            le plus de tables animées possible (chantier 91)
+//   3. Table enregistrable  : ≥1 table sans non-consentant ET non homogène
+//   4. Hétérogénéité        : camp majoritaire ≤ 70 % ET 2e camp ≥ 2 personnes
+//   5. Assez d'anciens      : anciens ≥ ⌈2/5·taille⌉
+//   6. Nouveaux encadrés    : maximiser les nouveaux aux tables modérées
+//
+// ⚠️ Numérotation : jusqu'au chantier 90, les règles 3 à 6 ci-dessus
+// s'appelaient 2 à 5. Les champs de `TableDiagnostics` gardent leur nom
+// historique (`rule1_ok` = actifs, `rule3_ok` = hétérogénéité, `rule4_ok` =
+// anciens) pour ne pas casser les écrans ; la règle des passifs est
+// `passives_ok`.
+//
+// ── Chantier 91 : les passifs ne comptent pas dans la taille ──
+// Une table animée est bornée à `TABLE_MAX_ACTIVE` **actifs** ; les passifs
+// s'y ajoutent en plus, sur les plus grosses tables d'abord, pour observer.
+// C'est la règle 1 (ratio 3/5 sur la taille totale) qui limite leur nombre,
+// pas un plafond de taille. Les tables sans modérateur gardent leurs bornes
+// 5-7 au total : on évite d'y asseoir des passifs (règle 2).
+//
+// Second terme de la règle 2 — « autant de tables animées que de
+// modérateurs » : sans plafond de taille totale, le maximin d'hétérogénéité
+// (règle 4) préfère toujours des tables plus grosses et laissait des
+// modérateurs sans table (mesuré : 47 part. / 4 modé. → 3 tables de 22).
+// Avant le chantier 91, le plafond de 12 personnes l'empêchait implicitement.
+//
+// Conséquence structurelle : une forme fixe le nombre d'actifs **et** de
+// passifs de chaque table (`Shape.activeSizes` / `passiveSizes`). Les règles 1
+// et 2 sont donc décidées au choix de la forme ; la recherche locale n'échange
+// que des personnes de même statut et optimise les règles 3 à 6.
 //
 // L'algorithme ne peut jamais échouer : seules les bornes de taille
-// sont dures, tout le reste dégrade (règle 5 sacrifiée en premier,
+// sont dures, tout le reste dégrade (règle 6 sacrifiée en premier,
 // règle 1 en dernier — comportement naturel de l'ordre lexicographique).
 // =============================================================
 
 // ── Constantes ───────────────────────────────────────────────
 
-/** Taille minimale d'une table quand il y a allocation (N > 10). */
+/** Taille minimale d'une table quand il y a allocation (N > 10), passifs compris. */
 export const TABLE_MIN = 5
-/** Taille maximale nominale d'une table animée. Relevé de 10 à 12 le 2026-08-03. */
-export const TABLE_MAX = 12
-/** Plafond de dépassement, toléré seulement pour sauver la règle 1. */
+/**
+ * Nombre maximal nominal d'**actifs** à une table animée — les passifs n'y
+ * comptent pas (chantier 91, était `TABLE_MAX = 12` sur la taille totale).
+ */
+export const TABLE_MAX_ACTIVE = 14
+/** Plafond de dépassement en actifs, toléré seulement pour sauver la règle 1. */
 export const TABLE_OVERFLOW_MAX = 20
+/**
+ * Plafond **dur** de taille totale d'une table animée, passifs compris :
+ * 14 actifs + 10 passifs, soit la plus grande table qui tient encore la règle 1
+ * (`passiveHosting(14)`). Les passifs ne comptent pas dans la limite de 14,
+ * mais sans ce garde-fou une salle où presque personne ne se déclare actif —
+ * cas réel : un membre sans onboarding compte comme passif (§6) — produisait
+ * une table unique de toute la salle (mesuré : 37 personnes).
+ */
+export const TABLE_TOTAL_MAX = 24
 /** N ≤ ce seuil → table unique, pas d'allocation. */
 export const SINGLE_TABLE_MAX = 10
 /**
@@ -188,7 +226,7 @@ export interface AllocationMember {
   consents: boolean
   /** A déjà fait un débat Ecclesia. Sans onboarding → false (compté nouveau). */
   is_veteran: boolean
-  /** Camp d'opinion (`analysis_members.group_id`). null = n'a pas voté → neutre pour la règle 3. */
+  /** Camp d'opinion (`analysis_members.group_id`). null = n'a pas voté → neutre pour la règle 4. */
   group_id: number | null
 }
 
@@ -207,9 +245,9 @@ export interface AllocationInput {
   moderatorProfiles?: AllocationMember[]
   /** Modérateurs annoncés par le superadmin mais pas encore inscrits (§3). */
   extraModerators?: number
-  /** Nombre d'enregistreurs disponibles — si fourni, la règle 2 vise ce nombre de tables propres. */
+  /** Nombre d'enregistreurs disponibles — si fourni, la règle 3 vise ce nombre de tables propres. */
   recorderCount?: number | null
-  /** false → règle 3 désactivée proprement (analyse des camps indisponible, §5). */
+  /** false → règle 4 désactivée proprement (analyse des camps indisponible, §5). */
   opinionsAvailable: boolean
   seed?: number
   /**
@@ -234,6 +272,10 @@ export interface TableDiagnostics {
   actives: number
   actives_threshold: number
   rule1_ok: boolean
+  /** Chantier 91 — personnes non actives (`size − actives`). */
+  passives: number
+  /** Chantier 91, règle 2 — table animée, ou table sans modérateur sans aucun passif. */
+  passives_ok: boolean
   veterans: number
   veterans_threshold: number
   rule4_ok: boolean
@@ -243,7 +285,7 @@ export interface TableDiagnostics {
   recordable: boolean
   /** camp d'opinion → effectif. Clés = `group_id` d'origine. */
   camp_counts: Record<string, number>
-  /** Membres sans camp (n'ont pas voté) — neutres pour la règle 3. */
+  /** Membres sans camp (n'ont pas voté) — neutres pour la règle 4. */
   neutral_count: number
   /** Part du camp majoritaire parmi les membres ayant un camp. null si aucun. */
   majority_share: number | null
@@ -272,9 +314,9 @@ export interface AllocationResult {
   seatedModeratorIds: string[]
   /** Nombre de modérateurs qui animent réellement une table. */
   animatingModerators: number
-  /** Objectif de tables enregistrables effectivement utilisé (règle 2). */
+  /** Objectif de tables enregistrables effectivement utilisé (règle 3). */
   recorderTarget: number
-  /** true → une table dépasse 10 personnes pour sauver la règle 1. */
+  /** true → une table dépasse TABLE_MAX_ACTIVE actifs pour sauver la règle 1. */
   overflowUsed: boolean
   /** Rappel : le résultat est reproductible à graine identique. */
   seed: number
@@ -282,9 +324,22 @@ export interface AllocationResult {
 
 // ── Seuils ───────────────────────────────────────────────────
 
-/** Règle 1 — `min(⌈2/5·taille⌉, 4)` : 2 à 5 pers., 3 à 6, 4 dès 10. */
+/**
+ * Règle 1 — `⌊3/5·taille⌋` : 3 à 5 et 6 pers., 4 à 7, 6 à 10, 7 à 12, 8 à 14.
+ * Chantier 91 : l'ancien `min(⌈2/5·taille⌉, 4)` plafonnait à 4 actifs, ce qui
+ * neutralisait le ratio au-delà de 10 personnes. Arrondi vers le bas : Jules
+ * donne « au moins 8 » pour une table de 14 (8,4).
+ */
 export function activeThreshold(size: number): number {
-  return Math.min(Math.ceil((2 / 5) * size), 4)
+  return Math.floor((3 * size) / 5)
+}
+
+/**
+ * Plus grand nombre de passifs qu'une table de `actives` actifs peut accueillir
+ * sans passer sous le seuil de la règle 1 : `⌊3(a+p)/5⌋ ≤ a ⟺ p ≤ ⌊(2a+4)/3⌋`.
+ */
+function passiveHosting(actives: number): number {
+  return Math.floor((2 * actives + 4) / 3)
 }
 
 /**
@@ -381,53 +436,144 @@ function prepare(members: AllocationMember[]): Prepared {
   return prep
 }
 
-/** Forme candidate : tailles fixées, les `moderatedCount` premières tables sont animées. */
+/**
+ * Forme candidate : effectifs fixés, les `moderatedCount` premières tables sont
+ * animées. Chantier 91 : la forme fixe aussi le **statut** des places
+ * (`sizes[t] = activeSizes[t] + passiveSizes[t]`).
+ */
 interface Shape {
   sizes: number[]
+  activeSizes: number[]
+  passiveSizes: number[]
   moderatedCount: number
 }
 
+function makeShape(activeSizes: number[], passiveSizes: number[], moderatedCount: number): Shape {
+  return {
+    sizes: activeSizes.map((a, t) => a + passiveSizes[t]),
+    activeSizes, passiveSizes, moderatedCount,
+  }
+}
+
 /**
- * Politique de dimensionnement (§4, resserrée pour les tables sans modérateur) :
- *  - les tables **modérées** sont remplies jusqu'au plafond `maxSize` en priorité ;
- *  - les tables **sans modérateur** restent dans `[UNMODERATED_TABLE_MIN,
- *    UNMODERATED_TABLE_MAX]` — le reliquat s'y répartit uniformément, sans
- *    jamais dépasser ce plafond resserré (auto-régulation par `claim_floor`).
+ * Règle 1 exacte d'une forme : manque d'actifs aux tables sans modérateur, manque
+ * total, et nombre de tables en manque.
+ *
+ * Le manque **sans modérateur** passe en premier (chantier 91) : à manque total
+ * égal ou presque, concentrer les passifs dans une table sans animateur (mesuré :
+ * une table de 0 actif + 5 passifs sur 60 part. / 4 modé.) produit une table qui
+ * ne démarre pas, là où un modérateur relance une table en léger manque.
+ */
+function shapeActiveShortfall(shape: Shape): { unmoderated: number; total: number; fails: number } {
+  let unmoderated = 0
+  let total = 0
+  let fails = 0
+  shape.sizes.forEach((s, t) => {
+    const moderated = t < shape.moderatedCount
+    const miss = resolvedActiveThreshold(s, moderated) - shape.activeSizes[t]
+    if (miss > 0) {
+      total += miss
+      fails++
+      if (!moderated) unmoderated += miss
+    }
+  })
+  return { unmoderated, total, fails }
+}
+
+/** Règle 2 exacte d'une forme : passifs assis à une table sans modérateur. */
+function shapeUnmoderatedPassives(shape: Shape): number {
+  let p = 0
+  for (let t = shape.moderatedCount; t < shape.sizes.length; t++) p += shape.passiveSizes[t]
+  return p
+}
+
+/**
+ * Tables sans modérateur : `total` personnes dont `actives` actifs, réparties
+ * aussi également que possible (tailles dans [5, 7] garanties par l'appelant),
+ * les actifs couvrant d'abord les seuils de la règle 1.
+ */
+function splitUnmoderated(u: number, total: number, actives: number): { a: number[]; p: number[] } {
+  if (u === 0) return { a: [], p: [] }
+  const sizes = Array.from({ length: u }, (_, i) => Math.floor(total / u) + (i < total % u ? 1 : 0))
+  const a = quotas(sizes.map(s => resolvedActiveThreshold(s, false)), sizes, actives)
+  return { a, p: sizes.map((s, i) => s - a[i]) }
+}
+
+/**
+ * Tables animées : actifs répartis également, puis passifs.
+ *  1. complément jusqu'à `TABLE_MIN` ;
+ *  2. accueil sans casser la règle 1, **les tables les plus fournies en actifs
+ *     d'abord** (« les grosses tables à modérateurs, pour qu'ils puissent
+ *     observer tranquillement » — Jules, 16/09) ;
+ *  3. reliquat réparti au tour par tour (dégrade la règle 1 le moins possible).
+ * Aucun plafond de taille : les passifs n'y comptent pas.
+ */
+function splitModerated(m: number, actives: number, passives: number): { a: number[]; p: number[] } {
+  const room = (i: number) => TABLE_TOTAL_MAX - a[i] - p[i]
+  const a = Array.from({ length: m }, (_, i) => Math.floor(actives / m) + (i < actives % m ? 1 : 0))
+  const p = new Array<number>(m).fill(0)
+  let left = passives
+  for (let i = 0; i < m && left > 0; i++) {
+    const give = Math.min(Math.max(0, TABLE_MIN - a[i]), left)
+    p[i] += give
+    left -= give
+  }
+  const order = [...Array(m).keys()].sort((x, y) => a[y] - a[x] || x - y)
+  for (const i of order) {
+    if (left <= 0) break
+    const give = Math.min(Math.max(0, passiveHosting(a[i]) - p[i]), room(i), left)
+    p[i] += give
+    left -= give
+  }
+  // L'appelant garantit `actives + passives ≤ m · TABLE_TOTAL_MAX` : la boucle termine.
+  for (let k = 0; left > 0; k = (k + 1) % m) {
+    if (room(order[k]) > 0) { p[order[k]] += 1; left-- }
+  }
+  return { a, p }
+}
+
+/**
+ * Politique de dimensionnement (chantier 91), pour un nombre de tables donné :
+ *  - tables **animées** : au plus `maxActive` actifs chacune, passifs en sus,
+ *    dans la limite dure de `TABLE_TOTAL_MAX` personnes ;
+ *  - tables **sans modérateur** : `[UNMODERATED_TABLE_MIN, UNMODERATED_TABLE_MAX]`
+ *    au total (auto-régulation par `claim_floor`), aussi petites que possible.
+ * Le seul degré de liberté est le nombre `x` d'actifs envoyés aux tables sans
+ * modérateur ; on l'énumère et on retient, dans l'ordre : manque d'actifs
+ * minimal (règle 1), passifs sans modérateur minimaux (règle 2), puis tables
+ * sans modérateur les plus petites.
  * Retourne null si aucune répartition valide n'existe pour ce nombre de tables
  * (dégradation gérée par l'appelant : l'algorithme ne lève jamais).
  */
-function buildShape(n: number, tableCount: number, moderatorCapacity: number, maxSize: number): Shape | null {
+function buildShape(
+  nActive: number, nPassive: number, tableCount: number, moderatorCapacity: number, maxActive: number,
+): Shape | null {
   if (tableCount < 1) return null
+  const n = nActive + nPassive
+  const m = Math.min(tableCount, moderatorCapacity)
+  const u = tableCount - m
+  if (n < m * TABLE_MIN + u * UNMODERATED_TABLE_MIN) return null
 
-  const moderatedCount = Math.min(tableCount, moderatorCapacity)
-  const unmoderatedCount = tableCount - moderatedCount
-  const minSum = moderatedCount * TABLE_MIN + unmoderatedCount * UNMODERATED_TABLE_MIN
-  const maxSum = moderatedCount * maxSize + unmoderatedCount * UNMODERATED_TABLE_MAX
-  if (n < minSum || n > maxSum) return null
+  let best: Shape | null = null
+  let bestKey: number[] = []
+  for (let x = 0; x <= Math.min(nActive, u * UNMODERATED_TABLE_MAX); x++) {
+    const aM = nActive - x
+    if (aM > m * maxActive) continue
+    // Sans table animée, tout le monde va aux tables sans modérateur ; sinon
+    // elles prennent au moins ce que les tables animées ne peuvent pas asseoir.
+    const sU = m === 0 ? n : Math.max(u * UNMODERATED_TABLE_MIN, x, n - m * TABLE_TOTAL_MAX)
+    if (sU > u * UNMODERATED_TABLE_MAX) continue
+    const pU = sU - x
+    if (pU > nPassive || n - sU < m * TABLE_MIN) continue
 
-  const sizes = new Array<number>(tableCount)
-  for (let t = 0; t < tableCount; t++) sizes[t] = t < moderatedCount ? TABLE_MIN : UNMODERATED_TABLE_MIN
-  let rem = n - minSum
-
-  // 1. Tables modérées : remplies jusqu'au plafond, dans l'ordre.
-  for (let t = 0; t < moderatedCount && rem > 0; t++) {
-    const add = Math.min(rem, maxSize - TABLE_MIN)
-    sizes[t] += add
-    rem -= add
+    const unmod = splitUnmoderated(u, sU, x)
+    const mod = m > 0 ? splitModerated(m, aM, nPassive - pU) : { a: [], p: [] }
+    const shape = makeShape([...mod.a, ...unmod.a], [...mod.p, ...unmod.p], m)
+    const e1 = shapeActiveShortfall(shape)
+    const key = [-e1.unmoderated, -e1.total, -e1.fails, -pU, -sU]
+    if (!best || compareArraysDesc(key, bestKey) > 0) { best = shape; bestKey = key }
   }
-
-  // 2. Reliquat : réparti au tour par tour sur les tables non modérées, sans
-  //    dépasser le plafond resserré.
-  while (rem > 0) {
-    let progressed = false
-    for (let t = moderatedCount; t < tableCount && rem > 0; t++) {
-      if (sizes[t] < UNMODERATED_TABLE_MAX) { sizes[t] += 1; rem -= 1; progressed = true }
-    }
-    if (!progressed) break
-  }
-
-  if (rem > 0) return null
-  return { sizes, moderatedCount }
+  return best
 }
 
 /**
@@ -445,12 +591,15 @@ function maxTableCount(n: number, moderatorCapacity: number): number {
   return capacity + Math.floor(remaining / UNMODERATED_TABLE_MIN)
 }
 
-function enumerateShapes(n: number, moderatorCapacity: number, maxSize: number): Shape[] {
+function enumerateShapes(prep: Prepared, moderatorCapacity: number, maxActive: number): Shape[] {
   const shapes: Shape[] = []
-  const minTables = Math.max(1, Math.ceil(n / maxSize))
-  const maxTables = maxTableCount(n, moderatorCapacity)
-  for (let t = minTables; t <= maxTables; t++) {
-    const s = buildShape(n, t, moderatorCapacity, maxSize)
+  const nPassive = prep.n - prep.totalActive
+  // Les passifs n'ayant pas de plafond aux tables animées, le nombre minimal de
+  // tables ne se déduit plus de la population : buildShape écarte les formes
+  // impossibles.
+  const maxTables = maxTableCount(prep.n, moderatorCapacity)
+  for (let t = 1; t <= maxTables; t++) {
+    const s = buildShape(prep.totalActive, nPassive, t, moderatorCapacity, maxActive)
     if (s) shapes.push(s)
   }
   return shapes
@@ -514,9 +663,10 @@ function shapeBound(
 ): number[] {
   const T = shape.sizes.length
   const T_ = T || 1
-  const thr1 = shape.sizes.map((s, t) => resolvedActiveThreshold(s, t < shape.moderatedCount))
   const thr4 = shape.sizes.map((s, t) => resolvedVeteranThreshold(s, t < shape.moderatedCount))
-  const e1 = exactShortfall(thr1, prep.totalActive)
+  // Chantier 91 : les règles 1 et 2 sont fixées par la forme — valeurs exactes.
+  const e1 = shapeActiveShortfall(shape)
+  const r6 = -shapeUnmoderatedPassives(shape)
   const e4 = exactShortfall(thr4, prep.totalVeteran)
 
   // Règle 2 — au mieux, tous les non-consentants sont entassés dans les plus
@@ -535,8 +685,8 @@ function shapeBound(
   const hetBound = opinionsAvailable ? 1 : 0
 
   return metric === 'absolute'
-    ? [-e1.total, -e1.fails, 0, r2Bound, 0, hetBound, -e4.total, -e4.fails, 0, r5Bound]
-    : [-e1.fails / T_, 0, r2Bound, 0, hetBound, -e4.fails / T_, 0, r5Bound]
+    ? [-e1.unmoderated, -e1.total, -e1.fails, 0, r6, shape.moderatedCount, r2Bound, 0, hetBound, -e4.total, -e4.fails, 0, r5Bound]
+    : [-e1.unmoderated, -e1.fails / T_, 0, r6, shape.moderatedCount, r2Bound, 0, hetBound, -e4.fails / T_, 0, r5Bound]
 }
 
 /**
@@ -576,29 +726,29 @@ function quotas(thresholds: number[], sizes: number[], supply: number): number[]
 }
 
 /**
- * Amorce constructive : réalise exactement les quotas d'anciens (règle 4) et
- * d'actifs (règle 1), en équilibrant les camps au passage. La descente locale
- * n'a plus qu'à polir les règles 2 et 3 au lieu de devoir d'abord découvrir
- * une distribution correcte des attributs.
+ * Amorce constructive : réalise les quotas d'anciens (règle des anciens) dans
+ * les places actives/passives fixées par la forme, en équilibrant les camps au
+ * passage. La descente locale n'a plus qu'à polir l'enregistrabilité et
+ * l'hétérogénéité au lieu de devoir d'abord découvrir une distribution
+ * correcte des attributs.
  */
 function quotaAssignment(shape: Shape, prep: Prepared): Int32Array {
   const T = shape.sizes.length
   const sizes = shape.sizes
   const qV = quotas(sizes.map((s, t) => resolvedVeteranThreshold(s, t < shape.moderatedCount)), sizes, prep.totalVeteran)
-  const qA = quotas(sizes.map((s, t) => resolvedActiveThreshold(s, t < shape.moderatedCount)), sizes, prep.totalActive)
 
   const assign = new Int32Array(prep.n).fill(-1)
-  const room = [...sizes]
+  const roomA = [...shape.activeSizes]
+  const roomP = [...shape.passiveSizes]
   const needV = [...qV]
-  const needA = [...qA]
   const campSeen: number[][] = Array.from({ length: T }, () => new Array(Math.max(1, prep.campCount)).fill(0))
   const nonConsentSeen = new Array<number>(T).fill(0)
 
   const place = (i: number, t: number) => {
     assign[i] = t
-    room[t]--
+    if (prep.active[i]) roomA[t]--
+    else roomP[t]--
     if (prep.veteran[i]) needV[t]--
-    if (prep.active[i]) needA[t]--
     const c = prep.camp[i]
     if (c >= 0) campSeen[t][c]++
     if (!prep.consent[i]) nonConsentSeen[t]++
@@ -606,8 +756,8 @@ function quotaAssignment(shape: Shape, prep: Prepared): Int32Array {
 
   /**
    * Choisit, dans `pool`, la personne la plus utile à la table `t` :
-   * camp le moins représenté d'abord (règle 3), puis regroupement des
-   * non-consentants (règle 2 : concentrer la « saleté » libère des tables
+   * camp le moins représenté d'abord (hétérogénéité), puis regroupement des
+   * non-consentants (enregistrabilité : concentrer la « saleté » libère des tables
    * propres), puis index pour rester déterministe.
    */
   const pick = (pool: number[], t: number): number => {
@@ -638,30 +788,28 @@ function quotaAssignment(shape: Shape, prep: Prepared): Int32Array {
 
   const byNeed = (need: number[]) => [...Array(T).keys()].sort((a, b) => need[b] - need[a] || a - b)
 
-  // 1. Anciens — les tables les plus exigeantes d'abord ; on prend en priorité
-  //    des anciens actifs tant que la table a aussi besoin d'actifs.
+  // 1. Anciens — les tables les plus exigeantes d'abord, dans une place du
+  //    statut disponible (actif ou passif).
   for (const t of byNeed(needV)) {
-    while (needV[t] > 0 && room[t] > 0 && (vetActive.length || vetPassive.length)) {
-      const pool = (needA[t] > 0 && vetActive.length) ? vetActive
-                 : (vetPassive.length ? vetPassive : vetActive)
+    while (needV[t] > 0) {
+      const pool = roomP[t] > 0 && vetPassive.length ? vetPassive
+                 : roomA[t] > 0 && vetActive.length ? vetActive
+                 : null
+      if (!pool) break
       place(pick(pool, t), t)
     }
   }
-  // 2. Actifs restants — complète les quotas d'actifs non couverts par les anciens.
-  for (const t of byNeed(needA)) {
-    while (needA[t] > 0 && room[t] > 0 && (newActive.length || vetActive.length)) {
-      const pool = newActive.length ? newActive : vetActive
-      place(pick(pool, t), t)
-    }
-  }
-  // 3. Reliquat — toutes les places restantes, dans l'ordre des tables.
-  const rest = [...newPassive, ...newActive, ...vetPassive, ...vetActive]
+  // 2. Reliquat — toutes les places restantes, dans l'ordre des tables.
+  const restA = [...newActive, ...vetActive]
+  const restP = [...newPassive, ...vetPassive]
   for (let t = 0; t < T; t++) {
-    while (room[t] > 0 && rest.length) place(pick(rest, t), t)
+    while (roomA[t] > 0 && restA.length) place(pick(restA, t), t)
+    while (roomP[t] > 0 && restP.length) place(pick(restP, t), t)
   }
   // Filet de sécurité : personne ne doit rester sans table.
   for (let i = 0; i < prep.n; i++) {
     if (assign[i] === -1) {
+      const room = prep.active[i] ? roomA : roomP
       const t = room.findIndex(r => r > 0)
       place(i, t >= 0 ? t : 0)
     }
@@ -747,6 +895,7 @@ function evaluate(
   let fail1 = 0
   let minMargin1 = Infinity
   let sumShort1 = 0
+  let sumShort1Unmoderated = 0
 
   let cleanCount = 0
 
@@ -760,6 +909,7 @@ function evaluate(
   let sumShort4 = 0
 
   let newcomersModerated = 0
+  let unmoderatedPassives = 0
 
   const nonConsentList: number[] = []
 
@@ -769,7 +919,11 @@ function evaluate(
     // Règle 1
     const thr1 = resolvedActiveThreshold(size, t < shape.moderatedCount)
     const margin1 = ctr.actives[t] - thr1
-    if (margin1 < 0) { fail1++; sumShort1 += -margin1 }
+    if (margin1 < 0) {
+      fail1++
+      sumShort1 += -margin1
+      if (t >= shape.moderatedCount) sumShort1Unmoderated += -margin1
+    }
     if (margin1 < minMargin1) minMargin1 = margin1
 
     // Règle 4
@@ -778,8 +932,9 @@ function evaluate(
     if (margin4 < 0) { fail4++; sumShort4 += -margin4 }
     if (margin4 < minMargin4) minMargin4 = margin4
 
-    // Règle 5 — nouveaux placés à une table modérée
+    // Règle 6 — nouveaux placés à une table modérée ; règle 2 — passifs sans modérateur
     if (t < shape.moderatedCount) newcomersModerated += size - ctr.veterans[t]
+    else unmoderatedPassives += size - ctr.actives[t]
 
     // Camps
     const total = ctr.campTotal[t]
@@ -885,20 +1040,24 @@ function evaluate(
   // petites tables à cinq. Mesuré : 31 participants / 12 anciens.
   const score = absolute
     ? [
-        -sumShort1, -fail1, Math.min(minMargin1, 0),   // règle 1
-        r2main,                                        // règle 2
-        -fail3 / T_, het,                              // règle 3
-        -sumShort4, -fail4, Math.min(minMargin4, 0),   // règle 4
-        newcomersModerated,                            // règle 5
+        -sumShort1Unmoderated,                         // règle 1 (actifs) — sans modérateur d'abord
+        -sumShort1, -fail1, Math.min(minMargin1, 0),   //   puis partout
+        -unmoderatedPassives, shape.moderatedCount,    // règle 2 (passifs encadrés, chantier 91)
+        r2main,                                        // règle 3 (enregistrable)
+        -fail3 / T_, het,                              // règle 4 (hétérogénéité)
+        -sumShort4, -fail4, Math.min(minMargin4, 0),   // règle 5 (anciens)
+        newcomersModerated,                            // règle 6 (nouveaux encadrés)
       ]
     : [
-        -fail1 / T_, Math.min(minMargin1, 0),   // règle 1
-        r2main,                                 // règle 2 (garantie ; le surplus de
+        -sumShort1Unmoderated,                  // règle 1 — sans modérateur d'abord
+        -fail1 / T_, Math.min(minMargin1, 0),   //   puis partout
+        -unmoderatedPassives, shape.moderatedCount,  // règle 2 (passifs encadrés, chantier 91)
+        r2main,                                 // règle 3 (garantie ; le surplus de
                                                 //   tables propres est « sans priorité »
                                                 //   → volontairement hors du vecteur)
-        -fail3 / T_, het,                       // règle 3
-        -fail4 / T_, Math.min(minMargin4, 0),   // règle 4
-        newcomersModerated,                     // règle 5
+        -fail3 / T_, het,                       // règle 4
+        -fail4 / T_, Math.min(minMargin4, 0),   // règle 5
+        newcomersModerated,                     // règle 6
       ]
 
   // Plateau : poids hiérarchiques pour ne jamais inverser l'ordre des règles.
@@ -936,29 +1095,34 @@ function compareArraysDesc(a: number[], b: number[]): number {
 function initialAssignment(shape: Shape, prep: Prepared, order: number[]): Int32Array {
   const T = shape.sizes.length
   const assign = new Int32Array(prep.n)
-  const remaining = [...shape.sizes]
 
-  let t = 0
-  let dir = 1
-  for (const i of order) {
-    // Avance jusqu'à une table qui a encore de la place (serpentin)
-    let guard = 0
-    while (remaining[t] === 0 && guard <= 2 * T) {
+  // Chantier 91 : un serpentin par statut, dans les places que la forme lui réserve.
+  const serpentine = (members: number[], capacity: number[]) => {
+    const remaining = [...capacity]
+    let t = 0
+    let dir = 1
+    for (const i of members) {
+      // Avance jusqu'à une table qui a encore de la place (serpentin)
+      let guard = 0
+      while (remaining[t] === 0 && guard <= 2 * T) {
+        t += dir
+        if (t >= T) { t = T - 1; dir = -1 }
+        else if (t < 0) { t = 0; dir = 1 }
+        guard++
+      }
+      if (remaining[t] === 0) {
+        // Sécurité : plus de place au bout du serpentin → première table libre
+        t = Math.max(0, remaining.findIndex(r => r > 0))
+      }
+      assign[i] = t
+      remaining[t] -= 1
       t += dir
       if (t >= T) { t = T - 1; dir = -1 }
       else if (t < 0) { t = 0; dir = 1 }
-      guard++
     }
-    if (remaining[t] === 0) {
-      // Sécurité : plus de place au bout du serpentin → première table libre
-      t = remaining.findIndex(r => r > 0)
-    }
-    assign[i] = t
-    remaining[t] -= 1
-    t += dir
-    if (t >= T) { t = T - 1; dir = -1 }
-    else if (t < 0) { t = 0; dir = 1 }
   }
+  serpentine(order.filter(i => prep.active[i]), shape.activeSizes)
+  serpentine(order.filter(i => !prep.active[i]), shape.passiveSizes)
   return assign
 }
 
@@ -1009,6 +1173,9 @@ function localSearch(
     const ti = assign[i]
     const tj = assign[j]
     if (ti === tj) return false
+    // Chantier 91 : la forme fixe les places actives et passives de chaque
+    // table — seul un échange de même statut la respecte.
+    if (prep.active[i] !== prep.active[j]) return false
     // Deux membres indiscernables : l'échange ne change rien.
     if (prep.active[i] === prep.active[j] &&
         prep.consent[i] === prep.consent[j] &&
@@ -1065,6 +1232,7 @@ function localSearch(
           if (!attr[i]) continue
           for (const j of byTable[t]) {
             if (attr[j]) continue
+            if (prep.active[i] !== prep.active[j]) continue
             if (campPreserving && prep.camp[i] !== prep.camp[j]) continue
             if (trySwap(i, j)) { improved = true }
             if (budget.left <= 0) return improved
@@ -1079,9 +1247,9 @@ function localSearch(
     let improved = false
 
     if (strategy.targetedNeighborhood) {
-      // Règle 1 avant règle 4 (ordre lexicographique), camp constant d'abord.
+      // Camp constant d'abord. Les actifs ne se réparent plus ici : leur
+      // nombre par table est fixé par la forme (chantier 91).
       for (const preserve of [true, false]) {
-        if (repair(prep.active, (s, t) => resolvedActiveThreshold(s, t < shape.moderatedCount), preserve)) improved = true
         if (repair(prep.veteran, (s, t) => resolvedVeteranThreshold(s, t < shape.moderatedCount), preserve)) improved = true
       }
     }
@@ -1144,6 +1312,8 @@ function buildDiagnostics(
       actives: ctr.actives[t],
       actives_threshold: thr1,
       rule1_ok: ctr.actives[t] >= thr1,
+      passives: size - ctr.actives[t],
+      passives_ok: moderated || size === ctr.actives[t],
       veterans: ctr.veterans[t],
       veterans_threshold: thr4,
       rule4_ok: ctr.veterans[t] >= thr4,
@@ -1194,7 +1364,7 @@ function solveFor(
 
   // ── Cas N ≤ 10 : table unique, aucune règle appliquée (§4) ──
   if (n <= SINGLE_TABLE_MAX) {
-    const shape: Shape = { sizes: [n], moderatedCount: moderatorCapacity > 0 ? 1 : 0 }
+    const shape = makeShape([prep.totalActive], [n - prep.totalActive], moderatorCapacity > 0 ? 1 : 0)
     const assign = new Int32Array(n) // tous en table 0
     return {
       prep, shape, assign,
@@ -1264,22 +1434,24 @@ function solveFor(
     return best
   }
 
-  // 1re passe : tables de 5 à 10 (contrainte dure nominale)
-  let best = searchOver(enumerateShapes(n, moderatorCapacity, TABLE_MAX))
+  // 1re passe : au plus TABLE_MAX_ACTIVE actifs par table animée (contrainte dure nominale)
+  let best = searchOver(enumerateShapes(prep, moderatorCapacity, TABLE_MAX_ACTIVE))
   let overflowUsed = false
   let overflowNote: string | null = null
 
-  // 2e passe : dépassement jusqu'à 20 — toléré **uniquement** si cela améliore
-  // strictement la règle 1 (première composante du vecteur). §4.
-  if (best && best.evaluation.score[0] < 0 && budget.left > 0) {
-    const overflowShapes = enumerateShapes(n, moderatorCapacity, TABLE_OVERFLOW_MAX)
-      .filter(s => Math.max(...s.sizes) > TABLE_MAX)
+  // 2e passe : dépassement jusqu'à 20 actifs — toléré **uniquement** si cela améliore
+  // strictement la règle 1 (deux premières composantes du vecteur). §4.
+  // Les deux premières composantes du vecteur portent la règle 1.
+  const rule1 = (score: number[]) => score.slice(0, 2)
+  if (best && (best.evaluation.score[0] < 0 || best.evaluation.score[1] < 0) && budget.left > 0) {
+    const overflowShapes = enumerateShapes(prep, moderatorCapacity, TABLE_OVERFLOW_MAX)
+      .filter(s => Math.max(...s.activeSizes) > TABLE_MAX_ACTIVE)
     const alt = searchOver(overflowShapes)
-    if (alt && alt.evaluation.score[0] > best.evaluation.score[0]) {
+    if (alt && compareArraysDesc(rule1(alt.evaluation.score), rule1(best.evaluation.score)) > 0) {
       best = alt
       overflowUsed = true
       overflowNote =
-        `Des tables dépassent ${TABLE_MAX} personnes (jusqu'à ${Math.max(...alt.shape.sizes)}) : ` +
+        `Des tables dépassent ${TABLE_MAX_ACTIVE} actifs (jusqu'à ${Math.max(...alt.shape.activeSizes)}) : ` +
         `c'était la seule façon de satisfaire la règle 1 (assez de participants actifs par table).`
     }
   }
@@ -1291,7 +1463,7 @@ function solveFor(
     // aucune forme valide pour un `n` donné. L'algorithme ne doit jamais
     // échouer pour autant : repli sur une table unique, quelle que soit sa
     // taille, avec avertissement.
-    const shape: Shape = { sizes: [n], moderatedCount: moderatorCapacity > 0 ? 1 : 0 }
+    const shape = makeShape([prep.totalActive], [n - prep.totalActive], moderatorCapacity > 0 ? 1 : 0)
     const assign = new Int32Array(n)
     return {
       prep, shape, assign, score: [],
@@ -1328,8 +1500,8 @@ export function runAllocation(input: AllocationInput): AllocationResult {
 
   if (!opinionsAvailable) {
     warnings.push(
-      "Analyse des camps d'opinion indisponible : la règle 3 (hétérogénéité) est désactivée. " +
-      "L'allocation est faite sur les seules règles 1, 2, 4 et 5.",
+      "Analyse des camps d'opinion indisponible : la règle 4 (hétérogénéité) est désactivée. " +
+      "L'allocation est faite sur les seules règles 1, 2, 3, 5 et 6.",
     )
   }
 
@@ -1396,20 +1568,28 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   const seatedPop = prep.n
   if (opinionsAvailable && prep.campCount < 2) {
     warnings.push(
-      "Un seul camp d'opinion détecté : la règle 3 ne peut pas être satisfaite (aucune table ne peut être hétérogène).",
+      "Un seul camp d'opinion détecté : la règle 4 ne peut pas être satisfaite (aucune table ne peut être hétérogène).",
     )
   }
-  const totalActives = prep.active.reduce((s, v) => s + v, 0)
-  if (totalActives < 4) {
+  const activeShort = singleTable ? { unmoderated: 0, total: 0, fails: 0 } : shapeActiveShortfall(shape)
+  if (activeShort.fails > 0) {
     warnings.push(
-      `Seulement ${totalActives} participant(s) se déclarent actifs : la règle 1 ne peut pas être pleinement satisfaite. ` +
-      `L'algorithme maximise le nombre de tables conformes.`,
+      `Pas assez de participants actifs (${prep.totalActive} sur ${seatedPop}) : ${activeShort.fails} table(s) ` +
+      `n'atteignent pas 3/5 d'actifs, il manque ${activeShort.total} actif(s) au total (règle 1). ` +
+      `L'algorithme réduit ce manque autant que possible.`,
+    )
+  }
+  const unmoderatedPassives = singleTable ? 0 : shapeUnmoderatedPassives(shape)
+  if (unmoderatedPassives > 0) {
+    warnings.push(
+      `${unmoderatedPassives} participant(s) passif(s) placé(s) à une table sans modérateur (règle 2) : ` +
+      `les tables animées ne pouvaient pas tous les accueillir sans manquer d'actifs.`,
     )
   }
   const veteranShare = prep.veteran.reduce((s, v) => s + v, 0) / seatedPop
   if (veteranShare < 0.4) {
     warnings.push(
-      `${Math.round(veteranShare * 100)} % d'anciens (< 40 %) : la règle 4 sera partiellement dégradée.`,
+      `${Math.round(veteranShare * 100)} % d'anciens (< 40 %) : la règle 5 sera partiellement dégradée.`,
     )
   }
   if (singleTable && seatedPop <= SINGLE_TABLE_MAX) {
@@ -1453,7 +1633,7 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   const unmoderatedCount = T - shape.moderatedCount
   if (recorderTarget > 1 && unmoderatedCount > 0) {
     warnings.push(
-      `Objectif de ${recorderTarget} tables enregistrables (règle 2, prioritaire sur le dimensionnement) : ` +
+      `Objectif de ${recorderTarget} tables enregistrables (règle 3, prioritaire sur le dimensionnement) : ` +
       `il a fallu ${T} tables, dont ${unmoderatedCount} sans animateur. ` +
       `Avec moins d'enregistreurs, l'algorithme ferait des tables plus grosses et toutes animées.`,
     )
@@ -1513,8 +1693,12 @@ export function diagnoseAllocation(
   })
 
   const prep = prepare(placed)
+  const sizes = ordered.map((_, tIdx) => assignList.filter(a => a === tIdx).length)
+  const activeSizes = ordered.map((_, tIdx) => assignList.filter((a, k) => a === tIdx && prep.active[k]).length)
   const shape: Shape = {
-    sizes: ordered.map((_, tIdx) => assignList.filter(a => a === tIdx).length),
+    sizes,
+    activeSizes,
+    passiveSizes: sizes.map((s, t) => s - activeSizes[t]),
     // Les tables modérées ne sont pas forcément les premières après retouche —
     // `moderatedCount` (convention « préfixe ») ne peut donc pas s'appliquer
     // ici. `moderatedAt` ci-dessous donne le vrai statut table par table

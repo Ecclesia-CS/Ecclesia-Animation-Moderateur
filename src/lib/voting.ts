@@ -279,7 +279,7 @@ export interface AllocationInputs {
    * table, et pour l'afficher par son pseudo dans la sélection du superadmin.
    */
   moderators: AllocationMember[]
-  /** false → règle 3 désactivée (aucune analyse des camps status='done'). */
+  /** false → règle 4 désactivée (aucune analyse des camps status='done'). */
   opinionsAvailable: boolean
 }
 

@@ -149,7 +149,7 @@ export interface EntryResponse {
   id: string
   session_id: string
   member_id: string
-  /** Règle 2 — table enregistrable. */
+  /** Règle 3 — table enregistrable. */
   consent_transcript: boolean
   /** Règle 1 — assez de participants actifs. */
   participation_style: 'listener' | 'active'
@@ -198,7 +198,7 @@ export interface TableAssignment {
 
 // Chantier 19 (G5) — `ModeratorResponses` / `ModeratorTableDemand` supprimés
 // avec get_moderator_responses et le panneau « Réponses modérateur » : le
-// besoin d'encadrement est désormais traité par la règle 5 de l'allocation v2.
+// besoin d'encadrement est désormais traité par la règle 6 (chantier 91) de l'allocation v2.
 
 // Chantier 20 (G7) — vue modérateur : composition idéologique de sa table.
 export interface TableOpinionCamp {

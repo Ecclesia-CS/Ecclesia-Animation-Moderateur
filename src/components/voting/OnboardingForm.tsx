@@ -13,7 +13,7 @@ interface OnboardingFormProps {
 // anciennes questions (taille de groupe, préférence modérateur, ouverture
 // aux avis différents) n'alimentaient plus rien et ont été supprimées.
 interface Answers {
-  /** Règle 2 — table enregistrable. */
+  /** Règle 3 — table enregistrable. */
   consentTranscript: boolean | null
   /** Règles 4 et 5 — ancien / nouveau. */
   ecclesiaExperience: boolean | null

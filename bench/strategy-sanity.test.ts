@@ -15,6 +15,7 @@ import {
   STRATEGY_ABSOLUTE_STRONG,
   TABLE_MIN,
   TABLE_OVERFLOW_MAX,
+  TABLE_TOTAL_MAX,
   UNMODERATED_TABLE_MIN,
   UNMODERATED_TABLE_MAX,
   type AllocationMember,
@@ -63,7 +64,11 @@ describe.each(CANDIDATES)('garde-fous — %s', (_label, strategy) => {
       if (!r.singleTable) {
         for (const t of r.tables) {
           expect(t.member_ids.length).toBeGreaterThanOrEqual(t.moderated ? TABLE_MIN : UNMODERATED_TABLE_MIN)
-          expect(t.member_ids.length).toBeLessThanOrEqual(t.moderated ? TABLE_OVERFLOW_MAX : UNMODERATED_TABLE_MAX)
+          // Chantier 91 : aux tables animées, le plafond d'actifs est
+          // TABLE_OVERFLOW_MAX et la taille totale (passifs compris) TABLE_TOTAL_MAX.
+          expect(t.member_ids.length).toBeLessThanOrEqual(t.moderated ? TABLE_TOTAL_MAX : UNMODERATED_TABLE_MAX)
+          const d = r.diagnostics.find(x => x.table_number === t.table_number)!
+          expect(d.actives).toBeLessThanOrEqual(TABLE_OVERFLOW_MAX)
         }
       }
     }

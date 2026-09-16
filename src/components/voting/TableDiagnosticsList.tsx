@@ -105,29 +105,38 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
             <CampCompositionBar d={d} />
           </div>
 
-          {/* Statut des 4 seuils */}
+          {/* Statut des seuils — numérotation du chantier 91 */}
           <div className="flex flex-wrap gap-1.5">
             <Threshold
               ok={d.rule1_ok}
               label={`actifs ${d.actives}/${d.actives_threshold}`}
-              title="Règle 1 — assez de participants qui prennent la parole"
+              title="Règle 1 — au moins 3/5 de participants qui prennent la parole"
             />
+            {d.passives > 0 && (
+              <Threshold
+                ok={d.passives_ok}
+                label={`${d.passives} passif${d.passives > 1 ? 's' : ''}`}
+                title={d.passives_ok
+                  ? 'Règle 2 — passifs à une table animée'
+                  : 'Règle 2 — passifs à une table sans modérateur : à éviter'}
+              />
+            )}
             <Threshold
               ok={d.recordable}
               label="enregistrable"
-              title="Règle 2 — table sans non-consentant et non homogène"
+              title="Règle 3 — table sans non-consentant et non homogène"
             />
             <Threshold
               ok={d.rule3_ok}
               label={d.majority_share === null
                 ? 'hétérogénéité n/a'
                 : `hétérogénéité ${Math.round((1 - d.majority_share) * 100)} %`}
-              title="Règle 3 — camp majoritaire ≤ 70 % et 2e camp ≥ 2 personnes"
+              title="Règle 4 — camp majoritaire ≤ 70 % et 2e camp ≥ 2 personnes"
             />
             <Threshold
               ok={d.rule4_ok}
               label={`anciens ${d.veterans}/${d.veterans_threshold}`}
-              title="Règle 4 — assez de personnes ayant déjà fait un débat"
+              title="Règle 5 — assez de personnes ayant déjà fait un débat"
             />
             {d.newcomers > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-500">

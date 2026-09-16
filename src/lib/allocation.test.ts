@@ -10,8 +10,9 @@ import {
   activeThreshold,
   veteranThreshold,
   TABLE_MIN,
-  TABLE_MAX,
+  TABLE_MAX_ACTIVE,
   TABLE_OVERFLOW_MAX,
+  TABLE_TOTAL_MAX,
   UNMODERATED_TABLE_MIN,
   UNMODERATED_TABLE_MAX,
   MAJORITY_SHARE_CAP,
@@ -74,12 +75,17 @@ function modProfiles(ids: string[]): AllocationMember[] {
 // ── Seuils ───────────────────────────────────────────────────
 
 describe('seuils', () => {
-  it('règle 1 — min(⌈2/5·taille⌉, 4)', () => {
-    expect(activeThreshold(5)).toBe(2)
+  it('règle 1 — ⌊3/5·taille⌋, sans plafond (chantier 91)', () => {
+    expect(activeThreshold(4)).toBe(2)
+    expect(activeThreshold(5)).toBe(3)
     expect(activeThreshold(6)).toBe(3)
-    expect(activeThreshold(7)).toBe(3)
-    expect(activeThreshold(10)).toBe(4)
-    expect(activeThreshold(20)).toBe(4)
+    expect(activeThreshold(7)).toBe(4)
+    expect(activeThreshold(10)).toBe(6)
+    expect(activeThreshold(12)).toBe(7)
+    // Valeur donnée par Jules : « sur une table à 14, au moins 8 actifs » (arrondi bas).
+    expect(activeThreshold(14)).toBe(8)
+    // L'ancien min(…, 4) neutralisait le ratio au-delà de 10 personnes.
+    expect(activeThreshold(20)).toBe(12)
   })
 
   it('règle 4 — ⌈2/5·taille⌉ (sans plafond)', () => {
@@ -102,24 +108,26 @@ describe('contraintes dures de taille', () => {
     }
   })
 
-  it('N > 10 → tables animées entre 5 et TABLE_MAX, tables sans modérateur entre UNMODERATED_TABLE_MIN et MAX', () => {
+  it('N > 10 → tables animées ≥ 5 et ≤ TABLE_OVERFLOW_MAX actifs, tables sans modérateur entre UNMODERATED_TABLE_MIN et MAX', () => {
     for (const n of [11, 12, 17, 23, 40, 57, 60, 83]) {
       const r = runAllocation({ members: balanced(n), moderatorIds: ['mod-1', 'mod-2'], opinionsAvailable: true })
       expect(r.singleTable).toBe(false)
       for (const t of r.tables) {
         if (t.moderated) {
           expect(t.member_ids.length).toBeGreaterThanOrEqual(TABLE_MIN)
-          // TABLE_OVERFLOW_MAX (pas TABLE_MAX) : le dépassement au-delà du
-          // plafond nominal reste toléré si c'est la seule façon de sauver
-          // la règle 1 (§4).
-          expect(t.member_ids.length).toBeLessThanOrEqual(TABLE_OVERFLOW_MAX)
+          // Chantier 91 : le plafond porte sur les actifs seulement, les
+          // passifs s'ajoutent en plus. TABLE_OVERFLOW_MAX (pas
+          // TABLE_MAX_ACTIVE) : le dépassement reste toléré s'il sauve la règle 1.
+          const d = r.diagnostics.find(x => x.table_number === t.table_number)!
+          expect(d.actives).toBeLessThanOrEqual(TABLE_OVERFLOW_MAX)
+          expect(t.member_ids.length).toBeLessThanOrEqual(TABLE_TOTAL_MAX)
         } else {
           expect(t.member_ids.length).toBeGreaterThanOrEqual(UNMODERATED_TABLE_MIN)
           expect(t.member_ids.length).toBeLessThanOrEqual(UNMODERATED_TABLE_MAX)
         }
       }
       // Un modérateur en surplus (capacité > tables réellement animées, ex.
-      // n=11-12 avec TABLE_MAX=12 : une seule table animée suffit) est réintégré
+      // une seule table animée suffit) est réintégré
       // comme participant ordinaire (H17) — il s'ajoute donc à la population.
       expect(totalSeats(r)).toBe(n + r.seatedModeratorIds.length)
     }
@@ -141,24 +149,21 @@ describe('contraintes dures de taille', () => {
 // ── Politique de dimensionnement (§4) ────────────────────────
 
 describe('politique de dimensionnement', () => {
-  it('60 participants / 4 modérateurs → 4 tables animées pleines + reliquat sans modérateur', () => {
-    // 2026-08-03 : TABLE_MAX relevé à 12 (tables animées) et plage des tables
-    // sans modérateur resserrée à [5, 7] — le dimensionnement normatif change
-    // en conséquence : 4 × 12 animées (48/60) + reliquat de 12 réparti en
-    // tables sans modérateur dans [5, 7], au lieu de 4×10 + 4×5.
+  it('60 participants / 4 modérateurs → 4 tables animées accueillent tout le monde, aucune table sans modérateur', () => {
+    // Historique : 4×10 + 4×5 (spec), puis 4×12 animées + reliquat de 12 sans
+    // modérateur (2026-08-03). Chantier 91 : les passifs ne comptent plus dans
+    // la taille et vont aux tables animées — avec 50 % d'actifs, aucun reste
+    // n'est envoyé à une table sans animateur, où il manquerait d'actifs.
     const r = runAllocation({
       members: balanced(60),
       moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4'],
       opinionsAvailable: true,
     })
-    const moderated   = r.tables.filter(t => t.moderated)
-    const unmoderated = r.tables.filter(t => !t.moderated)
+    const moderated = r.diagnostics.filter(d => d.moderated)
     expect(moderated).toHaveLength(4)
-    expect(moderated.every(t => t.member_ids.length === TABLE_MAX)).toBe(true)
-    expect(unmoderated.every(t =>
-      t.member_ids.length >= UNMODERATED_TABLE_MIN && t.member_ids.length <= UNMODERATED_TABLE_MAX,
-    )).toBe(true)
-    expect(unmoderated.reduce((s, t) => s + t.member_ids.length, 0)).toBe(12)
+    expect(r.tables).toHaveLength(4)
+    expect(moderated.every(d => d.actives <= TABLE_MAX_ACTIVE)).toBe(true)
+    expect(r.diagnostics.every(d => d.passives_ok)).toBe(true)
   })
 
   it('60 participants / 4 modérateurs — même exigence sur une population DÉCORRÉLÉE', () => {
@@ -201,21 +206,19 @@ describe('politique de dimensionnement', () => {
     const moderated   = r.tables.filter(t => t.moderated)
     const unmoderated = r.tables.filter(t => !t.moderated)
     expect(moderated).toHaveLength(4)
-    expect(moderated.every(t => t.member_ids.length === TABLE_MAX)).toBe(true)
-    // Le cœur du §4 : le reliquat est découpé dans la plage resserrée des
-    // tables sans modérateur, pas laissé en grosses tables (ex. deux tables
-    // de 10 sans animateur, ce que ce test avait vocation à empêcher).
-    expect(unmoderated.every(t =>
-      t.member_ids.length >= UNMODERATED_TABLE_MIN && t.member_ids.length <= UNMODERATED_TABLE_MAX,
-    )).toBe(true)
-    expect(unmoderated.reduce((s, t) => s + t.member_ids.length, 0)).toBe(12)
+    // Le cœur du §4 : pas de grosses tables sans animateur (ex. deux tables de
+    // 10, ce que ce test avait vocation à empêcher). Depuis le chantier 91,
+    // les passifs vont aux tables animées : il n'en reste aucune sans modérateur.
+    expect(unmoderated).toHaveLength(0)
+    expect(r.diagnostics.every(d => d.passives_ok)).toBe(true)
   })
 
-  it('30 participants / 4 modérateurs → 3 animateurs, le 4e prend un siège', () => {
-    // Chantier 25b : la demande n'est que de 3 tables, donc le 4e modérateur
-    // n'anime rien et redevient un participant (H17) — la population passe à 31,
-    // qui ne tient pas en 3 tables de 10. L'ancienne attente « 3 tables de 10
-    // toutes animées » est donc devenue impossible, et non pas régressée.
+  it('30 participants / 4 modérateurs → les 4 animent (chantier 91)', () => {
+    // Chantier 25b : 3 tables seulement, le 4e modérateur prenait un siège.
+    // Chantier 91 : sans plafond de taille totale, rien n'obligeait plus à
+    // utiliser tous les modérateurs — le second terme de la règle 2 (le plus
+    // de tables animées possible) le rétablit. Le surplus réel reste couvert
+    // par les tests du chantier 25 ci-dessous (19 participants).
     const ids = ['mo-1', 'mo-2', 'mo-3', 'mo-4']
     const r = runAllocation({
       members: balanced(30),
@@ -223,14 +226,21 @@ describe('politique de dimensionnement', () => {
       moderatorProfiles: modProfiles(ids),
       opinionsAvailable: true,
     })
-    expect(r.animatingModerators).toBe(3)
-    expect(r.seatedModeratorIds).toEqual(['mo-4'])
-    // 30 participants + le modérateur assis
-    expect(totalSeats(r)).toBe(31)
-    // Les tables animées restent remplies au plafond (§4).
-    const moderated = r.tables.filter(t => t.moderated)
-    expect(moderated).toHaveLength(3)
-    expect(moderated[0].member_ids.length).toBe(TABLE_MAX)
+    expect(r.animatingModerators).toBe(4)
+    expect(r.seatedModeratorIds).toEqual([])
+    expect(totalSeats(r)).toBe(30)
+    expect(r.tables.every(t => t.moderated)).toBe(true)
+  })
+
+  it('chantier 91 — tous les modérateurs animent quand la population le permet', () => {
+    // Garde-fou contre la régression mesurée pendant le chantier : 47
+    // participants / 4 modérateurs donnaient 3 tables de ~22 et un modérateur
+    // assis, faute de plafond de taille totale.
+    const ids = ['mo-1', 'mo-2', 'mo-3', 'mo-4']
+    const r = runAllocation({
+      members: balanced(47), moderatorIds: ids, moderatorProfiles: modProfiles(ids), opinionsAvailable: true,
+    })
+    expect(r.animatingModerators).toBe(4)
   })
 
   it('sans modérateur → toutes les tables non animées et proches du minimum', () => {
@@ -289,8 +299,14 @@ describe('politique de dimensionnement', () => {
 // ── Règle 1 ──────────────────────────────────────────────────
 
 describe('règle 1 — assez de participants actifs', () => {
-  it('population moitié active → toutes les tables conformes', () => {
-    const r = runAllocation({ members: balanced(40), moderatorIds: ['mo-1'], opinionsAvailable: true })
+  it('population à 60 % active → toutes les tables conformes', () => {
+    // Chantier 91 : le seuil passe à 3/5 — une salle à 50 % d'actifs ne peut
+    // plus le tenir partout, par construction.
+    const members = [
+      ...make(24, { active: true }, 'a'),
+      ...make(16, { active: false }, 'p'),
+    ].map((m, i) => ({ ...m, group_id: i % 3 }))
+    const r = runAllocation({ members, moderatorIds: ['mo-1'], opinionsAvailable: true })
     expect(r.diagnostics.every(d => d.rule1_ok)).toBe(true)
   })
 
@@ -303,21 +319,21 @@ describe('règle 1 — assez de participants actifs', () => {
     expect(r.tables.length).toBeGreaterThan(0)
     expect(totalSeats(r)).toBe(30)
     expect(r.warnings.join(' ')).toContain('actifs')
-    // Les 3 actifs sont regroupés là où ils peuvent atteindre un seuil
-    const conform = r.diagnostics.filter(d => d.rule1_ok).length
-    expect(conform).toBeGreaterThanOrEqual(1)
+    // Chantier 91 : aucune table ne peut atteindre 3/5 d'actifs ; les passifs
+    // restent à la table animée jusqu'au plafond dur, seul l'excédent part
+    // sans animateur, et c'est annoncé.
+    const unmoderatedPassives = r.diagnostics.filter(d => !d.moderated).reduce((s, d) => s + d.passives, 0)
+    expect(unmoderatedPassives).toBeLessThanOrEqual(30 - TABLE_TOTAL_MAX)
+    expect(r.warnings.join(' ')).toContain('passif')
   })
 
   it('2026-08-03 — tables sans modérateur : plancher dur de 3 actifs (la formule seule donnerait 2)', () => {
-    // Table de 5 sans modérateur, 2 actifs sur 5 : la formule seule
-    // (min(⌈2/5·5⌉,4) = 2) laisserait passer. Le plancher dur de 3 change le
-    // verdict. Démontré via diagnoseAllocation (déterministe, indépendant de
-    // ce que la recherche choisirait sur une population donnée — la plage
-    // élargie à [5,7] du 2026-08-03 rend plus rare que la recherche choisisse
-    // spontanément une table de 5 quand les actifs sont rares).
+    // Chantier 91 : avec ⌊3/5·taille⌋ la formule donne déjà 3 dès 5 personnes,
+    // le plancher ne mord plus que sur une table de 4 — possible seulement
+    // après retouche manuelle, d'où la démonstration via diagnoseAllocation.
     const members = [
       ...make(2, { active: true,  veteran: true }, 'a'),
-      ...make(3, { active: false, veteran: true }, 'p'),
+      ...make(2, { active: false, veteran: true }, 'p'),
     ]
     const diags = diagnoseAllocation(
       [{ table_number: 1, moderated: false, member_ids: members.map(m => m.member_id) }],
@@ -347,24 +363,73 @@ describe('règle 1 — assez de participants actifs', () => {
     expect(r.diagnostics.every(d => d.rule1_ok)).toBe(true)
   })
 
-  it('règle 1 prime sur la règle 4 (ordre lexicographique)', () => {
-    // 20 personnes : 8 actifs-nouveaux, 12 passifs-anciens.
-    // Placer les actifs ensemble casse la règle 4 sur cette table,
-    // mais la règle 1 est plus prioritaire.
-    // 2 modérateurs → 2 tables animées de 10 (formule brute, sans le plancher
-    // des tables sans modérateur) : c'est ce dimensionnement qui rend le
-    // compromis démontrable (4 actifs requis/table, 8 disponibles → faisable).
+  it('règle 1 prime sur la règle des anciens (ordre lexicographique)', () => {
+    // 20 personnes : 12 actifs-nouveaux, 8 passifs-anciens (chantier 91 : 60 %
+    // d'actifs, pour que le seuil de 3/5 soit atteignable). Les anciens étant
+    // tous passifs, la répartition des actifs dicte celle des anciens ; la
+    // règle 1 est servie d'abord.
     const members = [
-      ...make(8,  { active: true,  veteran: false, camp: 0 }, 'an'),
-      ...make(12, { active: false, veteran: true,  camp: 1 }, 'pa'),
+      ...make(12, { active: true,  veteran: false, camp: 0 }, 'an'),
+      ...make(8,  { active: false, veteran: true,  camp: 1 }, 'pa'),
     ]
     const moderatorIds = ['mo-1', 'mo-2']
     const r = runAllocation({
       members, moderatorIds, moderatorProfiles: modProfiles(moderatorIds), opinionsAvailable: true,
     })
     const failing1 = r.diagnostics.filter(d => !d.rule1_ok).length
-    // 2 tables de 10 → 4 actifs requis chacune, on en a 8 : faisable
     expect(failing1).toBe(0)
+  })
+})
+
+// ── Chantier 91 — passifs ────────────────────────────────────
+
+describe('chantier 91 — passifs hors des limites de taille', () => {
+  /** `a` actifs puis `p` passifs, camps et anciens alternés. */
+  const mix = (a: number, p: number): AllocationMember[] =>
+    [...make(a, { active: true }, 'a'), ...make(p, { active: false }, 'p')]
+      .map((m, i) => ({ ...m, group_id: i % 3, is_veteran: i % 2 === 0 }))
+
+  it('une table animée plafonne à 14 actifs, les passifs s’ajoutent au-delà', () => {
+    const r = runAllocation({ members: mix(28, 18), moderatorIds: ['mo-1', 'mo-2'], opinionsAvailable: true })
+    expect(r.diagnostics.every(d => d.actives <= TABLE_MAX_ACTIVE)).toBe(true)
+    expect(Math.max(...r.diagnostics.map(d => d.size))).toBeGreaterThan(TABLE_MAX_ACTIVE)
+    expect(r.diagnostics.every(d => d.rule1_ok)).toBe(true)
+  })
+
+  it('pas de passif à une table sans modérateur tant que les tables animées peuvent les accueillir', () => {
+    const r = runAllocation({ members: mix(30, 8), moderatorIds: ['mo-1', 'mo-2'], opinionsAvailable: true })
+    expect(r.diagnostics.some(d => !d.moderated)).toBe(true)
+    expect(r.diagnostics.every(d => d.passives_ok)).toBe(true)
+    expect(r.warnings.join(' ')).not.toContain('passif')
+  })
+
+  it('les passifs vont d’abord aux tables animées les plus fournies en actifs', () => {
+    const r = runAllocation({ members: mix(30, 8), moderatorIds: ['mo-1', 'mo-2'], opinionsAvailable: true })
+    const moderated = r.diagnostics.filter(d => d.moderated).sort((x, y) => y.actives - x.actives)
+    expect(moderated[0].passives).toBeGreaterThanOrEqual(moderated[moderated.length - 1].passives)
+  })
+
+  it('passifs sans table animée pour les accueillir → dégradation annoncée, jamais d’échec', () => {
+    const r = runAllocation({ members: mix(12, 30), moderatorIds: [], opinionsAvailable: true })
+    expect(totalSeats(r)).toBe(42)
+    expect(r.warnings.join(' ')).toContain('passif')
+    expect(r.diagnostics.some(d => !d.passives_ok)).toBe(true)
+  })
+
+  it('salle entièrement passive (onboarding sauté) → aucune table au-delà de TABLE_TOTAL_MAX', () => {
+    const r = runAllocation({ members: make(37, { active: false }), moderatorIds: ['mo-1'], opinionsAvailable: true })
+    expect(totalSeats(r)).toBe(37)
+    expect(Math.max(...r.tables.map(t => t.member_ids.length))).toBeLessThanOrEqual(TABLE_TOTAL_MAX)
+  })
+
+  it('diagnoseAllocation expose les passifs et la règle des passifs après retouche', () => {
+    const members = mix(3, 2)
+    const ids = members.map(m => m.member_id)
+    const [unmod] = diagnoseAllocation([{ table_number: 1, moderated: false, member_ids: ids }], members, true)
+    expect(unmod.passives).toBe(2)
+    expect(unmod.passives_ok).toBe(false)
+    const [mod] = diagnoseAllocation([{ table_number: 1, moderated: true, member_ids: ids }], members, true)
+    expect(mod.passives_ok).toBe(true)
   })
 })
 
@@ -439,7 +504,7 @@ describe('règle 3 — hétérogénéité des opinions', () => {
     const members = balanced(30).map(m => ({ ...m, group_id: null }))
     const r = runAllocation({ members, moderatorIds: ['mo-1'], opinionsAvailable: false })
     expect(totalSeats(r)).toBe(30)
-    expect(r.warnings.join(' ')).toContain('règle 3')
+    expect(r.warnings.join(' ')).toContain('règle 4')
     expect(r.diagnostics.every(d => d.rule3_ok === false)).toBe(true)
   })
 
@@ -598,11 +663,13 @@ describe('robustesse — jamais d’échec', () => {
 
 // ── Dépassement du plafond de 10 ─────────────────────────────
 
-describe('dépassement toléré jusqu’à 20', () => {
-  it('non utilisé quand la règle 1 est satisfaisable sous 10', () => {
+describe('dépassement toléré jusqu’à 20 actifs', () => {
+  const maxActives = (r: ReturnType<typeof runAllocation>) => Math.max(...r.diagnostics.map(d => d.actives))
+
+  it('non utilisé quand il n’apporte rien à la règle 1', () => {
     const r = runAllocation({ members: balanced(40), moderatorIds: ['mo-1'], opinionsAvailable: true })
     expect(r.overflowUsed).toBe(false)
-    expect(Math.max(...r.tables.map(t => t.member_ids.length))).toBeLessThanOrEqual(TABLE_MAX)
+    expect(maxActives(r)).toBeLessThanOrEqual(TABLE_MAX_ACTIVE)
   })
 
   it('déclenché seulement s’il améliore strictement la règle 1', () => {
@@ -616,13 +683,13 @@ describe('dépassement toléré jusqu’à 20', () => {
     const r = runAllocation({ members, moderatorIds: ['mo-1'], opinionsAvailable: true })
     expect(totalSeats(r)).toBe(24)
     if (r.overflowUsed) {
-      expect(Math.max(...r.tables.map(t => t.member_ids.length))).toBeGreaterThan(TABLE_MAX)
+      expect(maxActives(r)).toBeGreaterThan(TABLE_MAX_ACTIVE)
       expect(r.warnings.join(' ')).toContain('règle 1')
       // Le dépassement n'est retenu que s'il améliore strictement la règle 1 :
       // au moins une table conforme, sans garantie que toutes le soient.
       expect(r.diagnostics.some(d => d.rule1_ok)).toBe(true)
     } else {
-      expect(Math.max(...r.tables.map(t => t.member_ids.length))).toBeLessThanOrEqual(TABLE_MAX)
+      expect(maxActives(r)).toBeLessThanOrEqual(TABLE_MAX_ACTIVE)
     }
   })
 })
@@ -696,10 +763,12 @@ describe('chantier 25 — modérateurs en surplus (H17)', () => {
     // est soumis aux règles 1 à 5. On le rend seul porteur du camp 2 : la
     // règle 3 doit alors le placer là où ce camp est utile, et non
     // mécaniquement dans la plus petite table (comportement du 25a).
+    // Chantier 91 : population ramenée de 25 à 19 — à 25, les 4 modérateurs
+    // animent désormais tous, il n'y avait plus de surplus à observer.
     const members: AllocationMember[] = [
-      ...make(12, { camp: 0 }, 'c0'),
-      ...make(12, { camp: 1 }, 'c1'),
-      ...make(1,  { camp: 2 }, 'c2'),
+      ...make(9, { camp: 0 }, 'c0'),
+      ...make(9, { camp: 1 }, 'c1'),
+      ...make(1, { camp: 2 }, 'c2'),
     ]
     const ids = ['mo-1', 'mo-2', 'mo-3', 'mo-4']
     const r = runAllocation({
@@ -749,12 +818,13 @@ describe('chantier 25 — modérateurs en surplus (H17)', () => {
       members: balanced(25), moderatorIds: many,
       moderatorProfiles: modProfiles(many), opinionsAvailable: true,
     })
-    // La population augmente (3 modérateurs prennent un siège), donc la forme
-    // peut légitimement changer — mais elle ne doit pas se fragmenter : le
-    // nombre de tables animées est conservé et le total reste raisonnable.
-    expect(withSurplus.animatingModerators).toBe(without.animatingModerators)
+    // La population augmente (les modérateurs en surplus prennent un siège),
+    // donc la forme peut légitimement changer — mais elle ne doit pas se
+    // fragmenter. Chantier 91 : un modérateur de plus peut désormais animer
+    // une table de plus (les passifs n'étant plus bornés par la taille).
+    expect(withSurplus.animatingModerators).toBeGreaterThanOrEqual(without.animatingModerators)
     expect(withSurplus.tables.length).toBeLessThanOrEqual(without.tables.length + 1)
-    expect(totalSeats(withSurplus)).toBe(totalSeats(without) + 3)
+    expect(totalSeats(withSurplus)).toBe(totalSeats(without) + withSurplus.seatedModeratorIds.length)
   })
 
   it('les attributs réels du modérateur assis sont pris en compte', () => {
@@ -793,9 +863,12 @@ describe('chantier 25 — transparence du recalcul (H13/H15)', () => {
     // 2026-08-03 : TABLE_MAX relevé à 12 rend une 4e table coherente à 25
     // personnes avec la capacité annoncée — population portée à 30 pour que
     // la capacité soit réellement déjà épuisée par les 3 tables existantes.
-    const base = { members: balanced(30), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true }
+    const base = { members: balanced(17), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true }
     const a = runAllocation(base)
     const b = runAllocation({ ...base, extraModerators: 3 })
+    // Chantier 91 : population ramenée à 17 — au-delà, les modérateurs annoncés
+    // animent désormais des tables supplémentaires (règle 2) ; à 17, trois
+    // tables sont le maximum possible (17/5), la capacité est donc déjà épuisée.
     // Comportement inchangé (conforme au §4), mais désormais expliqué.
     expect(b.tables).toHaveLength(a.tables.length)
     expect(b.warnings.join(' ')).toContain('déjà toutes animées')

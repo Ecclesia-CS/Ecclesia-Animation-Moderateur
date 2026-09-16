@@ -59,6 +59,8 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 Périmètre : `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`, `PhaseBar`).
 
 ### 91 — Allocation : seuils, plafond de table, et traitement des passifs
+> ⏳ **Livré le 2026-09-16 sur la branche `claude/chantier-91-allocation-passifs`, non mergé** — en attente de la validation de Jules sur [`docs/chantier-91-comparatif-allocation.md`](./chantier-91-comparatif-allocation.md). Ne pas le reprendre ; **le 92 attend ce merge**, puis doit partir de `main`. Détail dans `docs/chantiers.md` et `A_VERIFIER.md`.
+
 **Algorithme.** ⚠️ **À faire avant le 92** (même fichier). **Jules demande explicitement une session Opus** pour ce chantier.
 
 > **Consigne de Jules (2026-09-16)** : « Pour l'algorithme d'allocation : Augmenter le nombre d'actifs nécessaires à une table (passer à 3/5, ce serait un meilleur chiffre par exemple). Pour les passifs, on ne va pas les prendre en compte dans les limites de personne par table. On peut également les ajouter aux tables avec modérateurs, et éviter les tables sans modérateurs. On pourrait même les mettre sur les grosses tables à modérateurs, pour qu'ils puissent observer tranquillement. Le nombre maximum de participant (actifs) à une table peut être de 14. »
