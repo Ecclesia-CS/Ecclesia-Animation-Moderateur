@@ -2530,7 +2530,7 @@ function SessionDetail({
                 {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
                     `allocating` (§7). Le panneau « Réponses modérateur » (E4)
                     a été supprimé : la demande d'encadrement est traitée par
-                    la règle 6 de l'algorithme (numérotation du chantier 91).
+                    la règle 4 de l'algorithme (numérotation du chantier 91).
                     Chantier 33 — déplacé depuis l'onglet « En direct » : sa
                     place est ici, avec le reste de la gestion des tables. */}
                 {currentSession.phase === 'allocating' && (
@@ -2604,10 +2604,10 @@ function SessionDetail({
                                 const d = groupDiagnostics.find(x => x.table_number === g.table_number)
                                 if (!d) return null
                                 const broken = [
-                                  !d.rule1_ok && `actifs ${d.actives}/${d.actives_threshold}`,
-                                  !d.passives_ok && `${d.passives} passif(s) sans modérateur`,
-                                  !d.rule3_ok && allocInputs?.opinionsAvailable && 'hétérogénéité',
-                                  !d.rule4_ok && `anciens ${d.veterans}/${d.veterans_threshold}`,
+                                  !d.audience_ok && `${d.audience} en public sans modérateur`,
+                                  d.over_capacity && `${d.size} personnes (> 30)`,
+                                  !d.heterogeneity_ok && allocInputs?.opinionsAvailable && 'hétérogénéité',
+                                  !d.veterans_ok && `anciens ${d.veterans}/${d.veterans_threshold}`,
                                 ].filter(Boolean) as string[]
                                 return (
                                   <span
@@ -2801,13 +2801,13 @@ function SessionDetail({
                     {groupDiagnostics.length > 0 && (
                       <details className="border-t border-gray-100 pt-3">
                         <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer hover:text-indigo-600 transition-colors">
-                          Santé des tables ({groupDiagnostics.filter(d => d.rule1_ok && d.passives_ok && d.rule4_ok).length}/{groupDiagnostics.length} conformes)
+                          Santé des tables ({groupDiagnostics.filter(d => d.audience_ok && !d.over_capacity && d.veterans_ok).length}/{groupDiagnostics.length} conformes)
                         </summary>
                         <div className="mt-3">
                           <TableDiagnosticsList diagnostics={groupDiagnostics} compact />
                           {!allocInputs?.opinionsAvailable && (
                             <p className="text-xs text-gray-400 mt-2 leading-snug">
-                              Règle 4 (hétérogénéité) non évaluable : aucune analyse des camps d'opinion.
+                              Règle 2 (hétérogénéité) non évaluable : aucune analyse des camps d'opinion.
                             </p>
                           )}
                         </div>

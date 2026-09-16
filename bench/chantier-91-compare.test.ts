@@ -3,10 +3,8 @@
 //
 //   C91_OUT=<fichier.json> npx vitest run bench/chantier-91-compare.test.ts
 //
-// Ignoré sans la variable. Les critères sont recalculés ICI, indépendamment
-// des seuils de `allocation.ts`, pour juger l'ancien et le nouvel algorithme
-// sur la même grille : seuil d'actifs ⌊3/5·taille⌋ (plancher 3 sans
-// modérateur), passifs assis à une table sans modérateur.
+// Ignoré sans la variable. Tables décrites en « actifs+passifs » recalculés
+// ici, pour comparer l'ancien et le nouvel algorithme sur la même grille.
 // =============================================================
 
 import { describe, it } from 'vitest'
@@ -37,22 +35,28 @@ function measure(cfg: ConfigSpec) {
     opinionsAvailable: cfg.opinions ?? true, recorderCount: cfg.recorders ?? 1,
   })
   const ms = Math.round(performance.now() - t0)
-  let short1 = 0, fail1 = 0, passUnmod = 0
-  const tables = r.diagnostics.map(d => {
-    const thr = Math.max(d.moderated ? 0 : 3, Math.floor((3 / 5) * d.size))
-    if (d.actives < thr) { fail1++; short1 += thr - d.actives }
-    const passives = d.size - d.actives
-    if (!d.moderated) passUnmod += passives
-    return `${d.moderated ? 'M' : 'L'}${d.actives}+${passives}`
+  // Diagnostics recalculés à l'identique pour « avant » et « après » : actifs
+  // = is_active (un modérateur assis compte comme actif), public = le reste.
+  const byId = new Map([...members, ...mods.profiles].map(m => [m.member_id, m]))
+  let passUnmod = 0
+  let over = 0
+  const tables = r.tables.map(t => {
+    const a = t.member_ids.filter(id => byId.get(id)?.is_active).length
+    const p = t.member_ids.length - a
+    if (!t.moderated) passUnmod += p
+    if (t.member_ids.length > 30) over++
+    return `${t.moderated ? 'M' : 'L'}${a}+${p}`
   })
+  const d = r.diagnostics as unknown as Record<string, unknown>[]
+  const ko = (newKey: string, oldKey: string) => d.filter(x => (x[newKey] ?? x[oldKey]) === false).length
   return {
     label: cfg.label,
     tables: tables.join(' '),
     count: r.tables.length,
-    short1, fail1, passUnmod,
-    fail3: r.diagnostics.filter(d => !d.rule3_ok).length,
-    fail4: r.diagnostics.filter(d => !d.rule4_ok).length,
-    recordable: r.diagnostics.filter(d => d.recordable).length,
+    passUnmod, over,
+    fail3: ko('heterogeneity_ok', 'rule3_ok'),
+    fail4: ko('veterans_ok', 'rule4_ok'),
+    recordable: r.diagnostics.filter(x => x.recordable).length,
     ms,
   }
 }

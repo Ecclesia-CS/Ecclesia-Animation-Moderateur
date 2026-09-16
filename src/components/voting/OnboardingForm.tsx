@@ -13,11 +13,11 @@ interface OnboardingFormProps {
 // anciennes questions (taille de groupe, préférence modérateur, ouverture
 // aux avis différents) n'alimentaient plus rien et ont été supprimées.
 interface Answers {
-  /** Règle 3 — table enregistrable. */
+  /** Règle 1 — table enregistrable. */
   consentTranscript: boolean | null
   /** Règles 4 et 5 — ancien / nouveau. */
   ecclesiaExperience: boolean | null
-  /** Règle 1 — assez de participants actifs. */
+  /** Chantier 91 — actif : forme les tables ; passif : placé en public. */
   participationStyle: 'listener' | 'active' | null
 }
 

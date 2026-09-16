@@ -13,10 +13,9 @@
 
 import {
   runAllocation,
-  activeThreshold,
   veteranThreshold,
   TABLE_MIN,
-  TABLE_OVERFLOW_MAX,
+  TABLE_MAX_ACTIVE,
   STRATEGY_LEGACY,
   STRATEGY_ABSOLUTE_ONLY,
   STRATEGY_STRONG_SEARCH_ONLY,
@@ -141,7 +140,11 @@ export interface RunMetrics {
   sizes: number[]
   /** Rendu compact : `10M` = table de 10 animée, `5-` = table de 5 sans animateur. */
   shapeLabel: string
-  /** Manque **réel** en personnes, règle 1 (actifs) et règle 4 (anciens). */
+  /**
+   * Manque **réel** en personnes, règle « actifs » (supprimée au chantier 91 :
+   * toujours 0, conservée pour la lisibilité des anciens rapports) et règle des
+   * anciens (calculée sur les actifs depuis le chantier 91).
+   */
   short1: number
   short4: number
   /** Manque **théoriquement minimal** pour la forme retenue (borne exacte). */
@@ -182,18 +185,19 @@ export function measure(
   })
   const ms = Date.now() - t0
 
-  const sizes = r.tables.map(t => t.member_ids.length)
-  // Population réellement assise = participants + modérateurs en surplus.
-  const seated = [...members, ...profiles.filter(p => r.seatedModeratorIds.includes(p.member_id))]
-  const supplyA = seated.filter(m => m.is_active).length
-  const supplyV = seated.filter(m => m.is_veteran).length
+  // Chantier 91 : les tailles et les règles portent sur les actifs ; un
+  // modérateur assis compte comme actif.
+  const sizes = r.diagnostics.map(d => d.actives)
+  const seatedIds = new Set(r.seatedModeratorIds)
+  const supplyV = members.filter(m => m.is_active && m.is_veteran).length
+    + profiles.filter(p => seatedIds.has(p.member_id) && p.is_veteran).length
 
-  const short1 = r.diagnostics.reduce((s, d) => s + Math.max(0, d.actives_threshold - d.actives), 0)
+  const short1 = 0
   const short4 = r.diagnostics.reduce((s, d) => s + Math.max(0, d.veterans_threshold - d.veterans), 0)
-  const optShort1 = optimumShortfall(sizes, activeThreshold, supplyA)
+  const optShort1 = 0
   const optShort4 = optimumShortfall(sizes, veteranThreshold, supplyV)
 
-  const unmodSizes = r.tables.filter(t => !t.moderated).map(t => t.member_ids.length)
+  const unmodSizes = r.diagnostics.filter(d => !d.moderated).map(d => d.actives)
 
   return {
     tables: r.tables.length,
@@ -208,9 +212,9 @@ export function measure(
     optShort4,
     gap1: short1 - optShort1,
     gap4: short4 - optShort4,
-    tablesFailingRule1: r.diagnostics.filter(d => !d.rule1_ok).length,
-    tablesFailingRule4: r.diagnostics.filter(d => !d.rule4_ok).length,
-    tablesFailingRule3: r.diagnostics.filter(d => !d.rule3_ok).length,
+    tablesFailingRule1: 0,
+    tablesFailingRule4: r.diagnostics.filter(d => !d.veterans_ok).length,
+    tablesFailingRule3: r.diagnostics.filter(d => !d.heterogeneity_ok).length,
     recordable: r.diagnostics.filter(d => d.recordable).length,
     seatedModerators: r.seatedModeratorIds.length,
     totalSeats: r.tables.reduce((s, t) => s + t.member_ids.length, 0),
@@ -327,9 +331,7 @@ export function checkInvariants(cfg: ConfigSpec, m: RunMetrics): string[] {
   if (m.tables > 1) {
     for (const s of m.sizes) {
       if (s < TABLE_MIN) problems.push(`table de ${s} < ${TABLE_MIN}`)
-      // Le dépassement de TABLE_MAX est licite (jusqu'à 20) pour sauver la
-      // règle 1 : seul le franchissement du plafond absolu est une anomalie.
-      if (s > TABLE_OVERFLOW_MAX) problems.push(`table de ${s} > ${TABLE_OVERFLOW_MAX}`)
+      if (s > TABLE_MAX_ACTIVE) problems.push(`table de ${s} actifs > ${TABLE_MAX_ACTIVE}`)
     }
   }
   if (m.gap1 < 0 || m.gap4 < 0) problems.push('borne théorique violée (bug de mesure)')

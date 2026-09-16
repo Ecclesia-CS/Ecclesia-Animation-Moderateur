@@ -334,8 +334,8 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
 
           {!inputs.opinionsAvailable && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">
-              ⚠️ Aucune analyse des camps d'opinion : la règle 4 (hétérogénéité) sera
-              désactivée. L'allocation se fera sur les règles 1, 2, 3, 5 et 6. Lance
+              ⚠️ Aucune analyse des camps d'opinion : la règle 2 (hétérogénéité) sera
+              désactivée. L'allocation se fera sur les règles 1, 3 et 4. Lance
               l'analyse des camps d'abord si tu veux en tenir compte.
             </p>
           )}

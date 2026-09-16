@@ -43,7 +43,7 @@ Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
 - `is_moderator = true` → **modérateur POUR CETTE séance**. Critère dur de l'allocation v2 (détermine le nombre de tables animées) ; le membre n'occupe pas de siège mais ses votes alimentent l'analyse des camps. Posé hors onboarding : `claim_moderator_status` (mot de passe Ecclesia) ou `set_member_moderator` (superadmin). **À ne pas confondre** avec `questionnaire_responses.staff_interest` (« je voudrais être modérateur à une séance future »), signal de recrutement purement informatif.
 
 ### `entry_responses` — Bloc C
-`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `consent_transcript` (règle 3), `participation_style` (`listener`|`active` — règles 1 et 2), `ecclesia_experience` (**boolean** — règles 5/6) — numérotation du chantier 91, `created_at`
+`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `consent_transcript` (règle 1), `participation_style` (`listener`|`active` — actif : forme les tables ; passif : placé en public, chantier 91), `ecclesia_experience` (**boolean** — règles 3/4) — numérotation du chantier 91, `created_at`
 Contrainte : `UNIQUE(session_id, member_id)`.
 **Chantier 19 (G3)** : onboarding réduit de 6 à 3 questions. `moderator_pref`, `group_size_pref` et `openness_to_diff` sont **supprimées** ; `ecclesia_experience` est passée de `text` (`never`|`once_twice`|`several_times`) à `boolean` (« As-tu déjà fait un débat Ecclesia ? »). Chaque colonne restante alimente une règle de l'allocation — ne pas en ajouter sans usage algorithmique.
 

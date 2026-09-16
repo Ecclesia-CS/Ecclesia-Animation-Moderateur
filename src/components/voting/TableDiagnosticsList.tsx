@@ -2,7 +2,7 @@
 // Chantier 19 — Tableau de bord des tables (§7 de la spec + amendements)
 //
 // Pour chaque table : composition par camp d'opinion, nombre d'actifs,
-// caractère enregistrable, et statut de chacun des 4 seuils.
+// caractère enregistrable, public, et statut de chaque seuil (chantier 91).
 // Composant purement présentationnel : le parent passe des diagnostics
 // recalculés (à l'issue de l'algorithme, ou après une retouche manuelle
 // via `diagnoseAllocation`) — la mise à jour est donc « en direct ».
@@ -41,13 +41,13 @@ export function CampCompositionBar({ d }: { d: TableDiagnostics }) {
           .map(([gid, count]) => (
             <div
               key={gid}
-              style={{ width: `${(count / d.size) * 100}%`, background: campColor(Number(gid)) }}
+              style={{ width: `${(count / Math.max(1, d.actives)) * 100}%`, background: campColor(Number(gid)) }}
               title={`Camp ${Number(gid) + 1} : ${count}`}
             />
           ))}
         {d.neutral_count > 0 && (
           <div
-            style={{ width: `${(d.neutral_count / d.size) * 100}%`, background: '#d1d5db' }}
+            style={{ width: `${(d.neutral_count / Math.max(1, d.actives)) * 100}%`, background: '#d1d5db' }}
             title={`${d.neutral_count} sans vote`}
           />
         )}
@@ -72,7 +72,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
         <div
           key={d.table_number}
           className={`rounded-xl border px-3 py-2.5 ${
-            d.rule1_ok ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50/60'
+            d.audience_ok && !d.over_capacity ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50/60'
           }`}
         >
           {/* En-tête */}
@@ -105,38 +105,34 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
             <CampCompositionBar d={d} />
           </div>
 
-          {/* Statut des seuils — numérotation du chantier 91 */}
+          {/* Statut des seuils — chantier 91 : règles sur les actifs, passifs en public */}
           <div className="flex flex-wrap gap-1.5">
-            <Threshold
-              ok={d.rule1_ok}
-              label={`actifs ${d.actives}/${d.actives_threshold}`}
-              title="Règle 1 — au moins 3/5 de participants qui prennent la parole"
-            />
-            {d.passives > 0 && (
-              <Threshold
-                ok={d.passives_ok}
-                label={`${d.passives} passif${d.passives > 1 ? 's' : ''}`}
-                title={d.passives_ok
-                  ? 'Règle 2 — passifs à une table animée'
-                  : 'Règle 2 — passifs à une table sans modérateur : à éviter'}
-              />
+            <span className="text-xs px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">
+              {d.actives} actif{d.actives > 1 ? 's' : ''}
+              {d.audience > 0 && ` · ${d.audience} en public`}
+            </span>
+            {!d.audience_ok && (
+              <Threshold ok={false} label="public sans modérateur" title="Du public n'est prévu qu'aux tables animées" />
+            )}
+            {d.over_capacity && (
+              <Threshold ok={false} label="plus de 30 personnes" title="Limite physique d'une table dépassée" />
             )}
             <Threshold
               ok={d.recordable}
               label="enregistrable"
-              title="Règle 3 — table sans non-consentant et non homogène"
+              title="Règle 1 — table sans non-consentant (public compris) et non homogène"
             />
             <Threshold
-              ok={d.rule3_ok}
+              ok={d.heterogeneity_ok}
               label={d.majority_share === null
                 ? 'hétérogénéité n/a'
                 : `hétérogénéité ${Math.round((1 - d.majority_share) * 100)} %`}
-              title="Règle 4 — camp majoritaire ≤ 70 % et 2e camp ≥ 2 personnes"
+              title="Règle 2 — parmi les actifs, camp majoritaire ≤ 70 % et 2e camp ≥ 2 personnes"
             />
             <Threshold
-              ok={d.rule4_ok}
+              ok={d.veterans_ok}
               label={`anciens ${d.veterans}/${d.veterans_threshold}`}
-              title="Règle 5 — assez de personnes ayant déjà fait un débat"
+              title="Règle 3 — assez d'actifs ayant déjà fait un débat"
             />
             {d.newcomers > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-500">
