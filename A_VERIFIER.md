@@ -32,7 +32,11 @@ Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supab
 - Après migration : les 6 fonctions ont `proconfig = ["search_path=public, extensions"]`. `role_table_grants` confirme 0 privilège restant pour `anon`/`authenticated` sur les deux tables.
 - Piège du plan (search_path sans `extensions` casse `crypt()`) testé indirectement : `check_superadmin_password('test-invalide-volontairement')` lève bien `Mot de passe superadmin incorrect` (le message métier normal), pas une erreur de fonction introuvable — signe que `crypt()` résout toujours correctement.
 
-**Reste à vérifier humainement** : recette complète au navigateur demandée par le plan — connexion superadmin avec le vrai mot de passe + création d'une table avec le Code Ecclesia (`create_table`), et un `reclaim_moderator` réel. Cette session n'a pas les identifiants ; à jouer par Jules ou une session avec accès au mot de passe superadmin.
+**Reste à vérifier humainement** : recette complète au navigateur demandée par le plan (Jules a le mot de passe superadmin et le Code Ecclesia, pas cette session). Connexion superadmin déjà faite pendant cette session (à confirmer que c'était le vrai mot de passe, pas une session déjà ouverte). Étapes restantes, dans le Browser pane (`http://localhost:5173/Ecclesia-Animation-Moderateur/`, serveur `ecclesia-dev`) :
+1. Cliquer "🎙️ Modérateur" sur l'accueil → renseigner un pseudo de test + le **Code Ecclesia** → "Rejoindre en tant que modérateur". Doit créer/rejoindre une table sans "code invalide" (teste `create_table`).
+2. "Rejoindre ou reprendre une table" avec le `join_code` d'une table existante + le mot de passe modérateur. Doit reconnecter sans erreur (teste `reclaim_moderator`).
+
+Si les deux passent : `search_path = public, extensions` ne casse pas `crypt()` en usage réel, confirmant le test indirect déjà fait par cette session. Si l'un échoue avec un message qui n'est pas un refus métier normal (ex. erreur de fonction/schéma introuvable), c'est le piège du plan qui s'est produit — ne pas merger, revenir ici.
 
 ## Chantier 90 (2026-09-16) — sortie de débat : passage en postvote optionnel — ✅ vérifié au navigateur
 
