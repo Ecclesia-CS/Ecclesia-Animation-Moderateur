@@ -9,6 +9,7 @@ import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
 import ModeratorClaimModal from './voting/ModeratorClaimModal'
+import PairingModal from './voting/PairingModal'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -45,6 +46,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   // rattachée à une séance uniquement — sans session_id, il n'y a pas de
   // statut modérateur Bloc C à déclarer).
   const [moderatorClaimOpen, setModeratorClaimOpen] = useState(false)
+  // Chantier 92 — déclarer / changer ses binômes.
+  const [pairingOpen,        setPairingOpen]        = useState(false)
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
@@ -270,6 +273,17 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             )}
 
+            {/* Binômes — chantier 92 */}
+            {table.session_id && (
+              <button
+                onClick={() => { setPanelOpen(false); setPairingOpen(true) }}
+                className={linkClass}
+              >
+                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+                Mes binômes
+              </button>
+            )}
+
             {/* Questionnaire */}
             <button
               onClick={() => { if (!done) { setPanelOpen(false); setQuestionnaireOpen(true) } }}
@@ -290,6 +304,10 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             <div className="pb-2" />
           </div>
         </div>
+      )}
+
+      {pairingOpen && table.session_id && (
+        <PairingModal sessionId={table.session_id} onClose={() => setPairingOpen(false)} />
       )}
 
       {qrOpen && (

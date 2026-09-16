@@ -72,6 +72,41 @@ Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante
 
 Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar` déjà existant) : le rendu participant du questionnaire forcé lui-même, et l'affichage du bouton "↻ Revoter" en `post_voting` — déjà couverts par le chantier 89.
 
+## Chantier 92 (2026-09-16) — appairage entre participants — ✅ migration appliquée en base · ⚠️ recette navigateur **non jouée** · branche non mergée
+
+Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabase/migrations/20260916_chantier92_appairages.sql). **Appliquée par cette session.** Elle ne crée que des objets neufs et **ne réécrit aucune fonction existante**. `get_allocation_inputs` n'est pas touchée : les liens passent par une RPC admin séparée.
+- Table `member_pairings` : RLS en lecture self-only, aucune écriture directe.
+- `set_my_pairings(session_id, pseudos[])` : remplace les choix (2 au plus), n'est autorisée qu'en phase `voting`, `allocating` ou `debating`. Elle rattache un retardataire sans table à la table d'une personne citée réciproquement.
+- `get_my_pairings(session_id)`.
+- `get_session_pairings_admin(password, session_id)` : ne renvoie que les liens **réciproques**.
+
+**Décisions prises par défaut, à confirmer par Jules** (plan approuvé sans retour détaillé) :
+1. **Réciprocité obligatoire.** Une composante de plus de 3 personnes est découpée en gardant les liens les plus anciens, sans hasard.
+2. **Glisser-déposer superadmin** : la grappe entière se déplace, jamais de refus.
+3. **Saisie en texte libre**, résolue côté serveur sans tenir compte de la casse. Pas d'autocomplétion, parce que les pseudos sont des noms réels.
+
+**Vérifié par cette session** :
+- `tsc`, `npm test` (109 tests, dont 7 nouveaux sur les grappes) et `npm run build` passent.
+- SQL dans une transaction annulée :
+  - pseudo trouvé et pseudo introuvable ;
+  - lien non réciproque, puis réciproque ;
+  - plafond de 2 (le 3e pseudo est ignoré) ;
+  - retardataire en `allocating` rattaché au groupe de la personne citée.
+- Banc [`bench/chantier-92-compare.test.ts`](./bench/chantier-92-compare.test.ts) sur les 9 scénarios du 91, avec 0 %, 20 % et 40 % d'actifs appairés en binômes **du même camp** (cas le plus défavorable) :
+  - **0 grappe cassée** ;
+  - **aucune table rendue non viable** ;
+  - **manque d'anciens identique** ;
+  - seul le degré d'hétérogénéité minimal baisse, de 0,60 à 0,36 au pire (60 part., 40 % appairés), et reste au-dessus du seuil de viabilité.
+  ⚠️ Changement algorithmique : **tableau à valider par Jules avant merge**.
+
+**Recette navigateur à jouer** (2 à 3 identités) :
+1. En `voting`, faire l'onboarding avec A qui cite B à la 4e question. Faire citer A par B depuis Outils → « Mes binômes ». B doit voir « vous vous êtes cités tous les deux ».
+2. Un pseudo mal orthographié doit afficher « personne introuvable ».
+3. Superadmin, `AllocationPanel` : la proposition affiche « 🔗 1/1 grappe réunie », et A et B sont à la même table.
+4. Onglet Groupes : A et B portent le badge 🔗. Glisser A vers une autre table doit déplacer A **et** B. Le compteur de grappes reste à jour.
+5. C arrive en `allocating` sans table. C cite A et A cite C : l'écran d'annonce de C affiche la table de A (lien « 🔗 Mes binômes » sous la carte, relecture ≤ 20 s).
+6. En débat, à la table, vérifier que Outils → « Mes binômes » est présent.
+
 ## Chantier 91 (2026-09-16) — allocation : les passifs deviennent du public — ✅ tableau avant/après **validé par Jules et mergé sur `main` le 2026-09-16** — recette navigateur restant à jouer
 
 Branche `claude/chantier-91-allocation-passifs`. Aucune migration. `npm test`, `tsc --noEmit` et `npm run build` propres. **Aucune vérification navigateur** : le jeton de serveur de dev n'a pas été pris — prêt pour vérification navigateur.

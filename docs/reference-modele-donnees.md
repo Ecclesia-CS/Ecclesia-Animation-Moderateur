@@ -63,6 +63,10 @@ Zéro policy RLS — accès exclusivement via `apply_assertion_merge` / `revert_
 `id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `table_number` (int), `table_id?` (FK→tables ON DELETE SET NULL), `created_at`
 Contrainte : `UNIQUE(session_id, member_id)`.
 
+### `member_pairings` — Bloc C (chantier 92)
+`session_id` (CASCADE), `member_id` (CASCADE→session_members), `target_member_id` (CASCADE→session_members), `created_at`
+PK `(member_id, target_member_id)`, `CHECK member_id <> target_member_id`. RLS : lecture self-only (`is_own_session_member(member_id)`), aucune écriture directe — tout passe par `set_my_pairings`. Seuls les liens **réciproques** comptent pour l'allocation (grappes de 3 max, `src/lib/allocation.ts`).
+
 ### `private_notes`
 `id`, `user_id` (NOT NULL), `content` (text), `updated_at`, `table_id?` (FK→tables ON DELETE CASCADE), `session_id?` (FK→sessions ON DELETE CASCADE)
 Index partiels : `UNIQUE(session_id, user_id) WHERE session_id IS NOT NULL` ; `UNIQUE(table_id, user_id) WHERE table_id IS NOT NULL AND session_id IS NULL`.
