@@ -47,17 +47,6 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 >
 > **Parallélisation** : 90, 93, 94 et 95 touchent des fichiers disjoints et peuvent tourner en même temps. **91 et 92 touchent tous les deux `src/lib/allocation.ts` et doivent être séquencés — 91 d'abord.**
 
-### 90 — Sortie de débat : le passage en postvote devient optionnel
-**Parcours superadmin.** Petit chantier, aucun conflit de fichier avec les autres.
-
-> **Consigne de Jules (2026-09-16)** : « Lorsqu'on quitte la phase débat, on va rendre optionnelle le passage en postvote. Quand on finit le débat, avec le bouton superadmin pour passer à la prochain séance, la fenêtre doit afficher une question pour nous demander d'arriver sur la phase de cloture, ou sur la phase de postvote. »
-
-**Précisions** — le chantier 89 a accroché deux automatismes à la transition `debating → post_voting`, tous deux tranchés par Jules le 16/09 :
-1. **Le questionnaire post-débat se déclenche dans les deux cas.** `force_session_questionnaire` est aujourd'hui appelé sur `debating → post_voting` ; si le superadmin choisit d'aller directement en `closed`, il doit se déclencher quand même — sans quoi le raccourci ferait silencieusement sauter le questionnaire. **Validé par Jules : « 1 oui ».**
-2. **La purge des `reclaim_code` part plus tôt, et c'est assumé.** Elle est gated sur l'entrée en `closed` (chantier 49) : aller directement en `closed` l'avance simplement. **Validé par Jules : « 2 oui ».**
-
-Périmètre : `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`, `PhaseBar`).
-
 ### 91 — Allocation : seuils, plafond de table, et traitement des passifs
 **Algorithme.** ⚠️ **À faire avant le 92** (même fichier). **Jules demande explicitement une session Opus** pour ce chantier.
 

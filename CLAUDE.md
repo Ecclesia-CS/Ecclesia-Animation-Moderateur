@@ -74,11 +74,9 @@ get_page_text {}                                                 → vérifier l
 
 Ne **jamais** enchaîner une action (clic, RPC déclenchant un changement de phase) avec une vérification immédiate. L'app elle-même n'attend jamais une transition instantanément — elle combine Realtime + polling de secours (5-10s selon l'écran, voir `AllocatingScreen`/`VoteScreen`). Le test navigateur doit reproduire cette tolérance : après une action qui déclenche un changement d'état (phase de séance, apparition d'un participant, mise à jour d'une file d'attente...), **relire l'état affiché en boucle bornée** (`read_page`/`get_page_text`, intervalle ~1-2s, jusqu'à ~15-20s de plafond) jusqu'à observer le résultat attendu, plutôt que de cliquer ou d'asserter juste après l'action. Un échec après le plafond est un vrai signal (bug ou régression Realtime) — ne pas l'ignorer en relançant indéfiniment.
 
-### ⚠️ Jeton de serveur de dev — une seule session à la fois
+> **La règle de jeton exclusif sur `npm run dev` (une seule session à la fois) a existé mais n'existe plus** (retirée le 2026-09-16, sur décision de Jules) — chaque session peut lancer son propre serveur de dev sans coordination préalable.
 
-**`npm run dev` (et donc `preview_start`) est un droit exclusif : une seule session Claude Code à la fois peut lancer le serveur de dev.** Ne jamais le démarrer sans avoir le jeton — deux serveurs concurrents sur le même port se marchent dessus et rendent tout test ininterprétable. Une session sans le jeton s'arrête et signale « prêt pour vérification navigateur » plutôt que de lancer quoi que ce soit.
-
-C'est la contrainte structurelle qui explique l'état des vérifications du projet : **la quasi-totalité des chantiers, y compris mergés et déployés, n'ont eu qu'une vérification `tsc`/tests/build**, jamais un parcours réel à l'écran. « Mergé » ne veut pas dire « vérifié » — `A_VERIFIER.md` est la seule trace fiable de ce qui a été confirmé humainement.
+**Historique** : la quasi-totalité des chantiers antérieurs à cette date, y compris mergés et déployés, n'ont eu qu'une vérification `tsc`/tests/build, jamais un parcours réel à l'écran — c'était la conséquence de cette règle de jeton, désormais levée. « Mergé » ne veut pas dire « vérifié » pour ces chantiers-là — `A_VERIFIER.md` reste la seule trace fiable de ce qui a été confirmé humainement.
 
 ### Points à vérifier humainement — `A_VERIFIER.md`
 
