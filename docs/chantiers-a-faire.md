@@ -136,7 +136,7 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 ### 81 et 82 — absorbés par le 93 (2026-09-18)
 
-**81** (se déclarer modérateur au moment de la récupération de compte) : le chantier 73 avait déjà posé `ModeratorDeclareField` sur les trois écrans concernés (`PseudoForm`, `VotingEntryForm`, écran de confirmation de présence) — il ne restait qu'une recette, faite par lecture du code. Reste à rejouer à l'écran avec un vrai Code Ecclesia.
+**81** (se déclarer modérateur au moment de la récupération de compte) : **clos le 19/09 par décision de Jules, sans code écrit.** Le chantier 73 avait posé `ModeratorDeclareField` sur deux des trois écrans (`VotingEntryForm`, écran de confirmation de présence) ; il manque sur l'écran de reconquête de `PseudoForm` (phase distanciel). Jules : « ce n'est pas grave, il peut se déclarer pendant la séance » — la déclaration reste ouverte via les Outils (`ModeratorClaimModal`) pendant le vote et le débat. Ne pas rouvrir sans nouvelle demande.
 
 **82** (reconnexion par pseudo après clôture) : **tranché par Jules le 18/09 — il n'y a rien à faire.** « Quand on passe la séance en closed, les gens n'ont plus besoin de se connecter. » La reconnexion couvre le distanciel jusqu'au post-débat inclus, et s'arrête à la clôture ; la purge du chantier 49 reste. Le constat d'origine de la fiche était d'ailleurs à moitié faux : `confirm_attendance` acceptait `closed` avec le **pseudo seul**, ce qui était une faille et non un manque — fermé par le 93.
 
