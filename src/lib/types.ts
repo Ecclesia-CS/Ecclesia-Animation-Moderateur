@@ -222,6 +222,23 @@ export interface TableOpinionSummary {
   votes: VoteResult[]
 }
 
+/** Chantier 94 — un camp n'apparaît ici que s'il a déjà passé les deux
+ * garde-fous de confidentialité côté RPC (≥2 personnes à la table, temps
+ * cumulé minimum) : la simple absence d'un group_id dans ce tableau ne veut
+ * rien dire côté client, tout le filtrage est fait en base. */
+export interface TableCampSpeakingTime {
+  group_id: number
+  name: string | null
+  seconds: number
+}
+
+export interface TableCampSpeakingTimes {
+  session_id: string
+  table_number: number | null
+  opinions_available: boolean
+  camps: TableCampSpeakingTime[]
+}
+
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {
   id: string

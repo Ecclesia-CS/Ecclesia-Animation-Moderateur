@@ -96,7 +96,10 @@ Branche `claude/chantiers-93-81-82-analyse-6347b4`. Migration appliquée en base
 
 **Piège à ne pas « corriger »** : les refus d'identification renvoient `{error}` au lieu de lever. Un `RAISE` annulerait la transaction, donc le compteur de tentatives avec.
 
-### 94 — Vue modérateur : temps de parole par camp idéologique
+### 94 — Vue modérateur : temps de parole par camp idéologique — ✅ fait, voir `docs/chantiers.md`
+
+**Livré le 2026-09-16.** Détail complet, recette de vérification restante et seuil de 180s à valider : entrée « 94 » de [`docs/chantiers.md`](./chantiers.md) et section « Chantier 94 » de [`../A_VERIFIER.md`](../A_VERIFIER.md). Le texte d'origine du chantier est conservé ci-dessous pour mémoire.
+
 **Parcours modérateur + confidentialité.**
 
 > **Consigne de Jules (2026-09-16)** : « Dans la vue modérateur, mettre le temps de chacun des camps (idéologique fait par l'algo pol.is) en accessibilité pour le modérateur. Cela veut dire qu'il aura accès aux informations de qui est dans quel camps… Ce qui peut être problématique ! Pour contrer cette problématique, l'horloge des camps peut se mettre à jour toutes les 5 minutes, pour flouer l'identification. »
@@ -112,6 +115,8 @@ Branche `claude/chantiers-93-81-82-analyse-6347b4`. Migration appliquée en base
 Périmètre : `src/components/ModeratorView.tsx`, nouvelle RPC d'agrégation.
 
 ### 95 — Ménage des portes d'entrée : onglet « tables rattachées » + bloc du menu principal (remplace le 75)
+> ✅ **Fait le 2026-09-18** (branche `claude/lancer-95-analyse-059233`, non mergée). Analyse menée puis suppression, plus la création de tables vides numérotées dans la vue Groupes et la fenêtre de changement de table côté participant. Détail dans `docs/chantiers.md` et recette dans `A_VERIFIER.md` § Chantier 95.
+
 **Parcours + superadmin.** ⚠️ **Ce chantier remplace le chantier 75**, sur décision de Jules le 16/09 (« Oui, remplace le 75 »). Analyse d'abord, suppression ensuite — c'est explicitement ce qu'il demande.
 
 > **Consigne de Jules (2026-09-16)** : « Dans la vue superadmin, L'onglet « table rattaché » n'a plus beaucoup d'utilité. Il conviendrait de le supprimer. Avant ça, liste les possibilité de son utilisation, et de sa vision, et s'il sert toujours au superadmin ou non. On fusionne ce chantier avec le fait d'avoir ou non le bloc dans le menu principal modérateur, créer, rejoindre, qui, selon moi, ne sert plus à rien. Faisons une analyse de cela. »

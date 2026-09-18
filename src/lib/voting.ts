@@ -11,6 +11,7 @@ import type {
   TableAssignment,
   ModerationPolicy,
   TableOpinionSummary,
+  TableCampSpeakingTimes,
 } from './types'
 import type { AllocationMember, AllocationResult } from './allocation'
 
@@ -262,6 +263,18 @@ export async function loadTableOpinionSummary(tableId: string): Promise<TableOpi
   })
   if (error) throw new Error(extractErr(error))
   return (data as TableOpinionSummary) ?? null
+}
+
+// Chantier 94 — temps de parole cumulé par camp, réservé au modérateur de la
+// table (RPC vérifie is_table_moderator côté serveur — plus restrictif que
+// get_table_opinion_summary). Ne rappeler cette RPC qu'au rythme du
+// floutage 5 min voulu par Jules, jamais en continu.
+export async function loadTableCampSpeakingTimes(tableId: string): Promise<TableCampSpeakingTimes | null> {
+  const { data, error } = await supabase.rpc('get_table_camp_speaking_times', {
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data as TableCampSpeakingTimes) ?? null
 }
 
 export async function getVoteCountsAdmin(password: string, sessionId: string): Promise<VoteResult[]> {
