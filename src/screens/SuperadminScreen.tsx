@@ -30,7 +30,7 @@ import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
   getVoteCountsAdmin, getThemeStatsAll, assignTableToGroup,
-  listSessionMembersAdmin, adminSubmitAssertion, moveMemberToGroup,
+  listSessionMembersAdmin, adminSubmitAssertion, moveMembersToGroup,
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
   releaseTableModeration,
 } from '../lib/voting'
@@ -38,7 +38,7 @@ import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, Allocation
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
 import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
-import { diagnoseAllocation, type AllocationMember } from '../lib/allocation'
+import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
@@ -1384,10 +1384,15 @@ function SessionDetail({
     const currentGroup = groups.find(g => g.members.some(m => m.member_id === memberId))
     if (!currentGroup || currentGroup.table_number === targetTableNumber) return
 
+    // Chantier 92 — une grappe d'appairage se déplace entière. Les seuils
+    // cassés éventuels s'affichent dans les diagnostics recalculés.
+    const seated = new Set(groups.flatMap(g => g.members.map(m => m.member_id)))
+    const moving = (clusterOf.get(memberId) ?? [memberId]).filter(id => seated.has(id))
+
     const password = getPwd()!
     setMovingMember(true)
     try {
-      await moveMemberToGroup(password, currentSession.id, memberId, targetTableNumber)
+      await moveMembersToGroup(password, currentSession.id, moving.length > 0 ? moving : [memberId], targetTableNumber)
       await loadGroups()
     } catch (e) {
       const msg = extractErr(e)
@@ -1728,6 +1733,24 @@ function SessionDetail({
       allocInputs.opinionsAvailable,
     )
   }, [groups, allocInputs])
+
+  // Chantier 92 — grappes d'appairage (liens réciproques, 3 personnes max).
+  const clusters = React.useMemo(() => {
+    if (!allocInputs) return []
+    return buildClusters(allocInputs.pairs, [
+      ...allocInputs.members.map(m => m.member_id),
+      ...allocInputs.moderators.map(m => m.member_id),
+    ]).clusters
+  }, [allocInputs])
+  const clusterOf = React.useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const c of clusters) for (const id of c) map.set(id, c)
+    return map
+  }, [clusters])
+  const brokenGroupClusters = React.useMemo(
+    () => countBrokenClusters(groups.map(g => ({ member_ids: g.members.map(m => m.member_id) })), clusters),
+    [groups, clusters],
+  )
 
   // Chantier 26 (H20) — attributs individuels (actif / consentant / ancien /
   // camp) pour l'affichage par lettres + couleur sur chaque carte membre.
@@ -2725,6 +2748,9 @@ function SessionDetail({
                                   memberId={m.member_id}
                                   pseudo={m.pseudo}
                                   profile={memberProfiles.get(m.member_id)}
+                                  linkedWith={clusterOf.get(m.member_id)
+                                    ?.filter(id => id !== m.member_id)
+                                    .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
                                 />
                               ))}
                             </div>
@@ -2811,6 +2837,11 @@ function SessionDetail({
                       <details className="border-t border-gray-100 pt-3">
                         <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer hover:text-indigo-600 transition-colors">
                           Santé des tables ({groupDiagnostics.filter(d => d.audience_ok && !d.over_capacity && d.veterans_ok).length}/{groupDiagnostics.length} conformes)
+                          {clusters.length > 0 && (
+                            <span className={brokenGroupClusters > 0 ? 'text-amber-600' : ''}>
+                              {' '}· 🔗 {clusters.length - brokenGroupClusters}/{clusters.length} grappe(s) réunie(s)
+                            </span>
+                          )}
                         </summary>
                         <div className="mt-3">
                           <TableDiagnosticsList diagnostics={groupDiagnostics} compact />
@@ -3702,12 +3733,14 @@ function memberProfileTitle(p: AllocationMember): string {
 }
 
 function DraggableMemberChip({
-  memberId, pseudo, profile,
+  memberId, pseudo, profile, linkedWith,
 }: {
   memberId: string
   pseudo: string
   /** Chantier 26 (H20) — attributs de l'allocation (actif/consentant/ancien/camp). */
   profile?: AllocationMember
+  /** Chantier 92 — pseudos des autres membres de sa grappe d'appairage. */
+  linkedWith?: string[]
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: memberId })
   const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
@@ -3720,7 +3753,10 @@ function DraggableMemberChip({
         ...(transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)` } : {}),
         ...(color ? { borderColor: color, background: `${color}1a` } : {}),
       }}
-      title={profile ? memberProfileTitle(profile) : undefined}
+      title={[
+        profile ? memberProfileTitle(profile) : null,
+        linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')} — se déplace avec sa grappe` : null,
+      ].filter(Boolean).join(' · ') || undefined}
       className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none
         transition-opacity inline-flex items-center gap-1 ${
         isDragging
@@ -3729,6 +3765,7 @@ function DraggableMemberChip({
       }`}
     >
       <span>{pseudo}</span>
+      {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
       {profile && (
         <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
           <span className={profile.is_active ? '' : 'line-through'}>a</span>

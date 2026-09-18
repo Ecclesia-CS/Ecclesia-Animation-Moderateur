@@ -192,6 +192,12 @@ export interface AllocationInput {
   seed?: number
   /** Chantier 29 (I1) — réglages de la recherche. Absent → production. Sert au banc d'essai. */
   strategy?: AllocationStrategy
+  /**
+   * Chantier 92 — liens d'appairage **réciproques** (`member_id`, `member_id`),
+   * dans l'ordre de déclaration (le plus ancien d'abord). Règle 1 : les grappes
+   * qu'ils forment (3 personnes max) ne sont pas séparées.
+   */
+  pairs?: [string, string][]
 }
 
 export interface AllocationTable {
@@ -262,6 +268,78 @@ export interface AllocationResult {
   recorderTarget: number
   /** Rappel : le résultat est reproductible à graine identique. */
   seed: number
+  /** Chantier 92 — grappes retenues (≥ 2 personnes), après plafonnement à 3. */
+  clusters: string[][]
+  /** Chantier 92 — grappes dont les membres ont fini sur des tables différentes (règle 1). */
+  brokenClusters: number
+}
+
+// ── Chantier 92 — grappes d'appairage ────────────────────────
+
+/** Taille maximale d'une grappe (décision de Jules, 16/09). */
+export const CLUSTER_MAX = 3
+
+/**
+ * Construit les grappes à partir des liens réciproques, **dans l'ordre fourni**
+ * (ordre de déclaration). Un lien qui ferait dépasser `CLUSTER_MAX` est
+ * ignoré : les liens les plus anciens l'emportent, sans aucun hasard — le
+ * résultat reste déterministe. Les identifiants inconnus sont ignorés.
+ */
+export function buildClusters(
+  pairs: [string, string][] | undefined,
+  knownIds: Iterable<string>,
+): { clusters: string[][]; droppedLinks: number } {
+  const known = new Set(knownIds)
+  const parent = new Map<string, string>()
+  const size = new Map<string, number>()
+  const find = (x: string): string => {
+    let r = x
+    while (parent.get(r) !== r) r = parent.get(r)!
+    parent.set(x, r)
+    return r
+  }
+  const ensure = (x: string) => { if (!parent.has(x)) { parent.set(x, x); size.set(x, 1) } }
+
+  let droppedLinks = 0
+  for (const [a, b] of pairs ?? []) {
+    if (a === b || !known.has(a) || !known.has(b)) continue
+    ensure(a); ensure(b)
+    const ra = find(a)
+    const rb = find(b)
+    if (ra === rb) continue
+    const merged = size.get(ra)! + size.get(rb)!
+    if (merged > CLUSTER_MAX) { droppedLinks++; continue }
+    const [root, child] = ra < rb ? [ra, rb] : [rb, ra]
+    parent.set(child, root)
+    size.set(root, merged)
+  }
+
+  const groups = new Map<string, string[]>()
+  for (const x of parent.keys()) {
+    const r = find(x)
+    if (!groups.has(r)) groups.set(r, [])
+    groups.get(r)!.push(x)
+  }
+  const clusters = [...groups.values()]
+    .filter(g => g.length >= 2)
+    .map(g => g.sort())
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+  return { clusters, droppedLinks }
+}
+
+/** Nombre de grappes réparties sur plusieurs tables (membres absents ignorés). */
+export function countBrokenClusters(
+  tables: { member_ids: string[] }[],
+  clusters: string[][],
+): number {
+  const tableOf = new Map<string, number>()
+  tables.forEach((t, idx) => t.member_ids.forEach(id => tableOf.set(id, idx)))
+  let broken = 0
+  for (const c of clusters) {
+    const seen = new Set(c.map(id => tableOf.get(id)).filter((t): t is number => t !== undefined))
+    if (seen.size > 1) broken++
+  }
+  return broken
 }
 
 // ── Seuils ───────────────────────────────────────────────────
@@ -311,9 +389,13 @@ interface Prepared {
   /** Totaux population — bornes exactes par forme (chantier 29). */
   totalVeteran: number
   totalNonConsent: number
+  /** Chantier 92 — indice de grappe (dans `blocks`), -1 = personne seule. */
+  blockOf: Int32Array
+  /** Chantier 92 — grappes d'au moins 2 personnes présentes dans cette population. */
+  blocks: number[][]
 }
 
-function prepare(members: AllocationMember[]): Prepared {
+function prepare(members: AllocationMember[], clusterOfId?: Map<string, number>): Prepared {
   const n = members.length
   const labels = [...new Set(members.map(m => m.group_id).filter((g): g is number => g !== null))]
     .sort((a, b) => a - b)
@@ -328,6 +410,8 @@ function prepare(members: AllocationMember[]): Prepared {
     campCount: labels.length,
     totalVeteran: 0,
     totalNonConsent: 0,
+    blockOf: new Int32Array(n).fill(-1),
+    blocks: [],
   }
   members.forEach((m, i) => {
     prep.consent[i] = m.consents ? 1 : 0
@@ -336,8 +420,78 @@ function prepare(members: AllocationMember[]): Prepared {
     if (prep.veteran[i]) prep.totalVeteran++
     if (!prep.consent[i]) prep.totalNonConsent++
   })
+  if (clusterOfId) {
+    const byCluster = new Map<number, number[]>()
+    members.forEach((m, i) => {
+      const c = clusterOfId.get(m.member_id)
+      if (c === undefined) return
+      if (!byCluster.has(c)) byCluster.set(c, [])
+      byCluster.get(c)!.push(i)
+    })
+    for (const c of [...byCluster.keys()].sort((a, b) => a - b)) {
+      const idx = byCluster.get(c)!
+      if (idx.length < 2) continue
+      const b = prep.blocks.length
+      prep.blocks.push(idx)
+      for (const i of idx) prep.blockOf[i] = b
+    }
+  }
   return prep
 }
+
+/**
+ * Chantier 92 — règle 1. Regroupe chaque grappe sur une seule table, par
+ * échanges avec des personnes seules (les tailles de table sont préservées).
+ * Table visée : celle qui contient déjà le plus de membres de la grappe, puis
+ * la première. Si aucune table n'a assez de personnes seules à échanger, la
+ * grappe reste séparée : la règle se dégrade, elle ne lève pas.
+ */
+function gatherClusters(assign: Int32Array, T: number, prep: Prepared): void {
+  if (prep.blocks.length === 0 || T < 2) return
+  for (const block of prep.blocks) {
+    const here = new Array<number>(T).fill(0)
+    for (const i of block) here[assign[i]]++
+    const targets = [...Array(T).keys()].sort((a, b) => here[b] - here[a] || a - b)
+    for (const t of targets) {
+      const movers = block.filter(i => assign[i] !== t)
+      if (movers.length === 0) break
+      const singles: number[] = []
+      for (let j = 0; j < prep.n && singles.length < movers.length; j++) {
+        if (assign[j] === t && prep.blockOf[j] === -1) singles.push(j)
+      }
+      if (singles.length < movers.length) continue
+      movers.forEach((i, k) => {
+        const j = singles[k]
+        assign[j] = assign[i]
+        assign[i] = t
+      })
+      break
+    }
+  }
+}
+
+function blockIsWhole(assign: Int32Array, block: number[]): boolean {
+  return block.every(i => assign[i] === assign[block[0]])
+}
+
+/** Combinaisons de `k` éléments de `items`, au plus `cap`, dans l'ordre lexicographique. */
+function combinations(items: number[], k: number, cap: number): number[][] {
+  const out: number[][] = []
+  const pick: number[] = []
+  const rec = (start: number) => {
+    if (out.length >= cap) return
+    if (pick.length === k) { out.push([...pick]); return }
+    for (let x = start; x < items.length; x++) {
+      pick.push(items[x]); rec(x + 1); pick.pop()
+      if (out.length >= cap) return
+    }
+  }
+  rec(0)
+  return out
+}
+
+/** Chantier 92 — nombre maximal d'ensembles de personnes seules essayés par (grappe, table). */
+const BLOCK_SWAP_CAP = 60
 
 /** Forme candidate : nombre d'actifs fixé par table, les `moderatedCount` premières sont animées. */
 interface Shape {
@@ -827,6 +981,7 @@ function localSearch(
   const T = shape.sizes.length
   const metric = strategy.shortfallMetric
   const assign = seedAssign ?? initialAssignment(shape, prep, order)
+  gatherClusters(assign, T, prep)
   const ctr = buildCounters(assign, prep, T)
   let current = evaluate(shape, ctr, prep, opinionsAvailable, recorderTarget, metric)
 
@@ -837,6 +992,8 @@ function localSearch(
     const ti = assign[i]
     const tj = assign[j]
     if (ti === tj) return false
+    // Chantier 92 — un membre de grappe ne bouge qu'avec sa grappe.
+    if (prep.blockOf[i] !== -1 || prep.blockOf[j] !== -1) return false
     if (prep.consent[i] === prep.consent[j] &&
         prep.veteran[i] === prep.veteran[j] &&
         prep.camp[i] === prep.camp[j]) return false
@@ -895,6 +1052,52 @@ function localSearch(
     return improved
   }
 
+  /** Chantier 92 — échange d'ensembles de même taille entre deux tables (grappe ↔ personnes seules ou grappe). */
+  const tryGroupSwap = (A: number[], B: number[]): boolean => {
+    const ta = assign[A[0]]
+    const tb = assign[B[0]]
+    if (ta === tb || budget.left <= 0) return false
+    budget.left--
+    for (const i of A) { removeMember(ctr, prep, i, ta); addMember(ctr, prep, i, tb) }
+    for (const j of B) { removeMember(ctr, prep, j, tb); addMember(ctr, prep, j, ta) }
+    const candidate = evaluate(shape, ctr, prep, opinionsAvailable, recorderTarget, metric)
+    if (compareEval(candidate, current) > 0) {
+      for (const i of A) assign[i] = tb
+      for (const j of B) assign[j] = ta
+      current = candidate
+      return true
+    }
+    for (const i of A) { removeMember(ctr, prep, i, tb); addMember(ctr, prep, i, ta) }
+    for (const j of B) { removeMember(ctr, prep, j, ta); addMember(ctr, prep, j, tb) }
+    return false
+  }
+
+  const moveBlocks = (): boolean => {
+    let improved = false
+    for (const block of prep.blocks) {
+      if (!blockIsWhole(assign, block)) continue
+      for (let tb = 0; tb < T && budget.left > 0; tb++) {
+        if (tb === assign[block[0]]) continue
+        const singles: number[] = []
+        for (let j = 0; j < prep.n; j++) if (assign[j] === tb && prep.blockOf[j] === -1) singles.push(j)
+        let moved = false
+        for (const B of combinations(singles, block.length, BLOCK_SWAP_CAP)) {
+          if (tryGroupSwap(block, B)) { moved = true; break }
+          if (budget.left <= 0) break
+        }
+        if (!moved) {
+          for (const other of prep.blocks) {
+            if (other === block || other.length !== block.length || assign[other[0]] !== tb) continue
+            if (!blockIsWhole(assign, other)) continue
+            if (tryGroupSwap(block, other)) { moved = true; break }
+          }
+        }
+        if (moved) { improved = true; break }
+      }
+    }
+    return improved
+  }
+
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     let improved = false
 
@@ -910,6 +1113,8 @@ function localSearch(
         if (trySwap(i, j)) improved = true
       }
     }
+
+    if (prep.blocks.length > 0 && moveBlocks()) improved = true
 
     if (!improved) break
   }
@@ -940,8 +1145,9 @@ function solveFor(
   recorderTarget: number,
   seed: number,
   strategy: AllocationStrategy = STRATEGY_LEGACY,
+  clusterOfId?: Map<string, number>,
 ): SolveOutcome {
-  const prep = prepare(actives)
+  const prep = prepare(actives, clusterOfId)
   const n = prep.n
   const metric = strategy.shortfallMetric
   const single = (note: string | null): SolveOutcome => {
@@ -989,6 +1195,7 @@ function solveFor(
       let order = baseOrder
       if (r === 1 && strategy.quotaSeeding) {
         seedAssign = quotaAssignment(shape, prep)
+        gatherClusters(seedAssign, shape.sizes.length, prep)
       } else if (r > 0) {
         order = shuffled(baseOrder, mulberry32(seed + r * 7919 + shape.sizes.length))
       }
@@ -1033,18 +1240,31 @@ function placeAudience(
   nonConsentActive: number[],
   protectedTables: boolean[],
   audience: AllocationMember[],
+  clusterOfId: Map<string, number> = new Map(),
+  clusterTable: Map<number, number> = new Map(),
 ): { byTable: string[][]; unmoderatedUsed: boolean; overCapacity: boolean } {
   const T = activeCounts.length
   const byTable: string[][] = Array.from({ length: T }, () => [])
   const nonConsent = [...nonConsentActive]
   let unmoderatedUsed = false
   let overCapacity = false
+  // Chantier 92 — règle 1 : un passif appairé suit sa grappe (table de ses
+  // actifs, ou du premier passif de sa grappe déjà placé), avant toute autre
+  // considération de répartition.
+  const anchors = new Map(clusterTable)
 
   const ordered = [...audience].sort((a, b) =>
     Number(a.consents) - Number(b.consents) ||
     (a.member_id < b.member_id ? -1 : a.member_id > b.member_id ? 1 : 0))
 
   for (const m of ordered) {
+    const cluster = clusterOfId.get(m.member_id)
+    const anchor = cluster === undefined ? undefined : anchors.get(cluster)
+    if (anchor !== undefined && T > 0) {
+      byTable[anchor].push(m.member_id)
+      if (!m.consents) nonConsent[anchor]++
+      continue
+    }
     const hasRoom = (t: number) => activeCounts[t] + byTable[t].length < TABLE_TOTAL_MAX
     let candidates = [...Array(T).keys()].filter(t => moderated[t] && hasRoom(t))
     if (candidates.length === 0) {
@@ -1068,6 +1288,7 @@ function placeAudience(
     }
     byTable[best].push(m.member_id)
     if (!m.consents) nonConsent[best]++
+    if (cluster !== undefined) anchors.set(cluster, best)
   }
   return { byTable, unmoderatedUsed, overCapacity }
 }
@@ -1161,8 +1382,21 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     return {
       tables: [], diagnostics: [], score: [], warnings,
       singleTable: false, moderatorCapacity, seatedModeratorIds: [],
-      animatingModerators: 0, recorderTarget, seed,
+      animatingModerators: 0, recorderTarget, seed, clusters: [], brokenClusters: 0,
     }
+  }
+
+  // ── Chantier 92 — grappes d'appairage (règle 1) ──
+  const { clusters, droppedLinks } = buildClusters(
+    input.pairs, [...members.map(m => m.member_id), ...allModeratorIds],
+  )
+  const clusterOfId = new Map<string, number>()
+  clusters.forEach((c, idx) => c.forEach(id => clusterOfId.set(id, idx)))
+  if (droppedLinks > 0) {
+    warnings.push(
+      `${droppedLinks} lien(s) d'appairage ignoré(s) : ils auraient formé une grappe de plus de ` +
+      `${CLUSTER_MAX} personnes. Les liens déclarés en premier ont été retenus.`,
+    )
   }
 
   if (moderatorCapacity === 0) {
@@ -1197,7 +1431,7 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   const M = allModeratorIds.length
   const solveWith = (kk: number) => solveFor(
     [...actives, ...allModeratorIds.slice(kk).map(seatProfile)],
-    kk + extras, opinionsAvailable, recorderTarget, seed, strategy,
+    kk + extras, opinionsAvailable, recorderTarget, seed, strategy, clusterOfId,
   )
   let k = M
   let solved = solveWith(k)
@@ -1248,7 +1482,15 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     activeIdsByTable.map((ids, t) => ({ table_number: t + 1, moderated: moderated[t], member_ids: ids })),
     byIdActive, opinionsAvailable,
   ).map(d => d.recordable && toProtect-- > 0)
-  const placed = placeAudience(activeIdsByTable.map(a => a.length), moderated, nonConsentActive, protectedTables, audience)
+  const clusterTable = new Map<number, number>()
+  for (let i = 0; i < prep.n; i++) {
+    const c = clusterOfId.get(prep.ids[i])
+    if (c !== undefined && !clusterTable.has(c)) clusterTable.set(c, assign[i])
+  }
+  const placed = placeAudience(
+    activeIdsByTable.map(a => a.length), moderated, nonConsentActive, protectedTables, audience,
+    clusterOfId, clusterTable,
+  )
   if (audience.length > 0) {
     if (!moderated.some(Boolean)) {
       warnings.push(
@@ -1311,6 +1553,20 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     moderator_member_ids: moderatorsByTable[t],
   }))
 
+  const brokenClusters = countBrokenClusters(tables, clusters)
+  if (brokenClusters > 0) {
+    warnings.push(
+      `${brokenClusters} grappe(s) d'appairage n'ont pas pu être gardées ensemble (règle 1 dégradée).`,
+    )
+  }
+  const involvesAnimator = clusters.filter(c => c.some(id => animatingIds.includes(id))).length
+  if (involvesAnimator > 0) {
+    warnings.push(
+      `${involvesAnimator} grappe(s) d'appairage comprennent un modérateur qui anime : ses binômes sont ` +
+      `placés sans lui.`,
+    )
+  }
+
   const byId = new Map([...members, ...seated].map(m => [m.member_id, m]))
   return {
     tables,
@@ -1323,6 +1579,8 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     animatingModerators: animatingIds.length,
     recorderTarget,
     seed,
+    clusters,
+    brokenClusters,
   }
 }
 

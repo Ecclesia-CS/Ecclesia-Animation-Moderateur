@@ -281,6 +281,8 @@ export interface AllocationInputs {
   moderators: AllocationMember[]
   /** false → règle 2 désactivée (aucune analyse des camps status='done'). */
   opinionsAvailable: boolean
+  /** Chantier 92 — liens d'appairage réciproques, du plus ancien au plus récent. */
+  pairs: [string, string][]
 }
 
 /**
@@ -316,7 +318,51 @@ export async function loadAllocationInputs(
     moderatorIds:      moderators.map(m => m.member_id),
     moderators,
     opinionsAvailable: raw.opinions_available === true,
+    pairs:             await getSessionPairingsAdmin(password, sessionId),
   }
+}
+
+// ── Chantier 92 — appairage entre participants ──────────────
+
+export interface PairingResult {
+  pseudo: string
+  /** Un membre de la séance porte ce pseudo. */
+  found: boolean
+  /** La personne citée m'a cité aussi — seul un lien réciproque compte pour l'allocation. */
+  reciprocal: boolean
+}
+
+/**
+ * Remplace mes binômes (0 à 2 pseudos). Si l'allocation est déjà faite et que
+ * je n'ai pas de table, je suis rattaché à celle d'une personne citée
+ * réciproquement (`placedTableNumber`).
+ */
+export async function setMyPairings(
+  sessionId: string,
+  pseudos: string[],
+): Promise<{ results: PairingResult[]; placedTableNumber: number | null }> {
+  const { data, error } = await supabase.rpc('set_my_pairings', {
+    p_session_id: sessionId,
+    p_pseudos:    pseudos,
+  })
+  if (error) throw new Error(extractErr(error))
+  const raw = (data ?? {}) as { results?: PairingResult[]; placed_table_number?: number | null }
+  return { results: raw.results ?? [], placedTableNumber: raw.placed_table_number ?? null }
+}
+
+export async function getMyPairings(sessionId: string): Promise<{ pseudo: string; reciprocal: boolean }[]> {
+  const { data, error } = await supabase.rpc('get_my_pairings', { p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  return (data ?? []) as { pseudo: string; reciprocal: boolean }[]
+}
+
+export async function getSessionPairingsAdmin(password: string, sessionId: string): Promise<[string, string][]> {
+  const { data, error } = await supabase.rpc('get_session_pairings_admin', {
+    p_password:   password,
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return ((data ?? []) as { a: string; b: string }[]).map(r => [r.a, r.b])
 }
 
 export interface ApplyAllocationResult {
@@ -739,6 +785,18 @@ export async function moveMemberToGroup(
     p_target_table_number: targetTableNumber,
   })
   if (error) throw new Error(extractErr(error))
+}
+
+/** Chantier 92 — déplace plusieurs membres (une grappe) vers la même table. */
+export async function moveMembersToGroup(
+  password: string,
+  sessionId: string,
+  memberIds: string[],
+  targetTableNumber: number,
+): Promise<void> {
+  for (const id of memberIds) {
+    await moveMemberToGroup(password, sessionId, id, targetTableNumber)
+  }
 }
 
 // Re-export types for convenience

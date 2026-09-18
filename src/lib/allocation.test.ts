@@ -14,6 +14,9 @@ import {
   TABLE_TOTAL_MAX,
   UNMODERATED_TABLE_MIN,
   UNMODERATED_TABLE_MAX,
+  CLUSTER_MAX,
+  buildClusters,
+  countBrokenClusters,
   type AllocationMember,
 } from './allocation'
 
@@ -670,5 +673,70 @@ describe('chantier 25 — transparence du recalcul (H13/H15)', () => {
   it('recorderCount absent → objectif 1 (garantie minimale de la règle 1)', () => {
     const r = runAllocation({ members: mix(25, 5), moderatorIds: [], opinionsAvailable: true })
     expect(r.recorderTarget).toBe(1)
+  })
+})
+
+// ── Chantier 92 — appairage (règle 1) ─────────────────────────
+
+describe('chantier 92 — grappes d’appairage', () => {
+  const tableOf = (r: ReturnType<typeof runAllocation>, id: string) =>
+    r.tables.findIndex(t => t.member_ids.includes(id))
+
+  it('buildClusters : union des liens, plafond à 3, les liens les plus anciens gagnent', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e']
+    const { clusters, droppedLinks } = buildClusters(
+      [['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'e']], ids,
+    )
+    expect(clusters).toEqual([['a', 'b', 'c'], ['d', 'e']])
+    expect(droppedLinks).toBe(1)
+    expect(clusters.every(c => c.length <= CLUSTER_MAX)).toBe(true)
+  })
+
+  it('buildClusters ignore les identifiants inconnus et les auto-liens', () => {
+    const { clusters } = buildClusters([['a', 'zz'], ['a', 'a']], ['a', 'b'])
+    expect(clusters).toEqual([])
+  })
+
+  it('les grappes d’actifs ne sont jamais séparées (60 actifs, 12 grappes)', () => {
+    const members = mix(60, 20)
+    const pairs: [string, string][] = []
+    for (let k = 0; k < 12; k++) {
+      pairs.push([`x-${k * 4}`, `x-${k * 4 + 1}`])
+      if (k % 3 === 0) pairs.push([`x-${k * 4 + 1}`, `x-${k * 4 + 2}`])
+    }
+    const r = runAllocation({ members, moderatorIds: ['mo-1', 'mo-2', 'mo-3', 'mo-4', 'mo-5'], opinionsAvailable: true, pairs })
+    expect(r.clusters).toHaveLength(12)
+    expect(r.brokenClusters).toBe(0)
+    for (const c of r.clusters) {
+      expect(new Set(c.map(id => tableOf(r, id))).size).toBe(1)
+    }
+    expect(totalSeats(r)).toBe(80)
+  })
+
+  it('un passif appairé à un actif rejoint la table de cet actif', () => {
+    const members = mix(30, 10)
+    const pairs: [string, string][] = [['x-3', 'x-35'], ['x-36', 'x-37']]
+    const r = runAllocation({ members, moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true, pairs })
+    expect(tableOf(r, 'x-35')).toBe(tableOf(r, 'x-3'))
+    expect(tableOf(r, 'x-36')).toBe(tableOf(r, 'x-37'))
+    expect(r.brokenClusters).toBe(0)
+  })
+
+  it('reste déterministe avec des grappes', () => {
+    const input = {
+      members: mix(45, 10), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['x-0', 'x-9'], ['x-9', 'x-20'], ['x-5', 'x-6']] as [string, string][],
+    }
+    expect(JSON.stringify(runAllocation(input).tables)).toBe(JSON.stringify(runAllocation(input).tables))
+  })
+
+  it('sans liens, le résultat est identique à celui d’avant le chantier', () => {
+    const base = { members: mix(40, 8), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true }
+    expect(JSON.stringify(runAllocation(base).tables)).toBe(JSON.stringify(runAllocation({ ...base, pairs: [] }).tables))
+  })
+
+  it('countBrokenClusters compte une grappe répartie sur deux tables', () => {
+    const tables = [{ member_ids: ['a', 'b'] }, { member_ids: ['c'] }]
+    expect(countBrokenClusters(tables, [['a', 'b'], ['b', 'c']])).toBe(1)
   })
 })
