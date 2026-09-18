@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { registerSessionMember, reclaimPrevotingMember, tryClaimModeratorStatus } from '../../lib/voting'
+import {
+  registerSessionMember,
+  reclaimPrevotingMember,
+  tryClaimModeratorStatus,
+  PSEUDO_TAKEN_MESSAGE,
+  PSEUDO_PUBLIC_NOTICE,
+} from '../../lib/voting'
 import { lastNameStore } from '../../lib/storage'
 import ModeratorDeclareField from './ModeratorDeclareField'
 import type { Session, SessionMember } from '../../lib/types'
@@ -8,18 +14,15 @@ interface PseudoFormProps {
   session: Session
   onSuccess: (member: SessionMember) => void
   /**
-   * Chantier B3 — reconquête réussie d'un profil pré-vote déjà inscrit sous
-   * ce pseudo. Distinct de `onSuccess` : saute l'écran d'affichage du code
-   * de rappel (le code montré une fois à l'inscription reste le bon, celui
-   * généré côté client pour CETTE tentative ne sert à rien ici) et va
-   * directement au vote.
+   * Chantier B3 — reconquête réussie d'un profil déjà inscrit sous ce pseudo.
+   * Distinct de `onSuccess` : saute l'écran d'affichage du code de rappel (le
+   * code montré une fois à l'inscription reste le bon) et va directement au
+   * vote.
    */
   onReclaimSuccess: (member: SessionMember) => void
-  /** Code de rappel pré-généré (phase pre_voting). Passé à registerSessionMember. */
-  reclaimCode?: string
 }
 
-export default function PseudoForm({ session, onSuccess, onReclaimSuccess, reclaimCode }: PseudoFormProps) {
+export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: PseudoFormProps) {
   const [pseudo, setPseudo] = useState(() => lastNameStore.get())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +37,6 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
   // Chantier B3 — pseudo déjà inscrit en pré-vote : proposer une reconquête
   // plutôt que bloquer avec une simple erreur.
   const [showReclaim, setShowReclaim] = useState(false)
-  const [reclaimTab, setReclaimTab] = useState<'pseudo' | 'code'>('pseudo')
   const [reclaimCodeInput, setReclaimCodeInput] = useState('')
   const [reclaimError, setReclaimError] = useState<string | null>(null)
   const [reclaimLoading, setReclaimLoading] = useState(false)
@@ -46,7 +48,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
     setError(null)
     setLoading(true)
     try {
-      const member = await registerSessionMember(session.id, trimmed, reclaimCode)
+      const member = await registerSessionMember(session.id, trimmed)
       lastNameStore.set(trimmed)
       if (asModerator && moderatorPassword.trim()) {
         const { member: updated, error: modErr } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
@@ -62,7 +64,6 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur inattendue'
       if (session.phase === 'pre_voting' && msg.includes('Pseudo déjà pris')) {
-        setReclaimTab('pseudo')
         setReclaimError(null)
         setShowReclaim(true)
       } else {
@@ -75,15 +76,15 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
 
   async function handleReclaim(e: React.FormEvent) {
     e.preventDefault()
+    // Chantier 93 — pseudo ET code, toujours les deux : le pseudo seul est le
+    // nom réel, connu de toute la séance, il ne prouve rien.
     const trimmedPseudo = pseudo.trim()
-    const val = reclaimTab === 'pseudo' ? trimmedPseudo : reclaimCodeInput.trim()
-    if (!val) return
+    const code = reclaimCodeInput.trim()
+    if (!trimmedPseudo || !code) return
     setReclaimError(null)
     setReclaimLoading(true)
     try {
-      const member = reclaimTab === 'code'
-        ? await reclaimPrevotingMember(session.id, undefined, val)
-        : await reclaimPrevotingMember(session.id, val)
+      const member = await reclaimPrevotingMember(session.id, trimmedPseudo, code)
       lastNameStore.set(trimmedPseudo)
       onReclaimSuccess(member)
     } catch (err: unknown) {
@@ -125,49 +126,43 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100 mb-4">
               <span className="text-2xl">🔑</span>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Ce pseudo est déjà inscrit</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Quelqu'un est déjà inscrit sous <strong>{pseudo.trim()}</strong> pour cette séance.
-              Si c'est toi (nouvel appareil ou navigateur), confirme-le ou utilise ton code de rappel pour retrouver tes votes.
-            </p>
+            <h1 className="text-xl font-bold text-gray-900">Ce nom est déjà utilisé</h1>
+            <p className="mt-2 text-sm text-gray-500">{PSEUDO_TAKEN_MESSAGE}</p>
           </div>
 
           <form onSubmit={handleReclaim} className="space-y-4">
-            <div className="flex rounded-xl border border-gray-200 overflow-hidden">
-              {(['pseudo', 'code'] as const).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => { setReclaimTab(t); setReclaimError(null) }}
-                  className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                    reclaimTab === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  {t === 'pseudo' ? "C'est bien moi" : 'Mon code de rappel'}
-                </button>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Prénom Nom
+              </label>
+              <input
+                type="text"
+                value={pseudo}
+                onChange={e => setPseudo(e.target.value)}
+                maxLength={40}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
 
-            {reclaimTab === 'code' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Code de rappel (4 chiffres)
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={reclaimCodeInput}
-                  onChange={e => setReclaimCodeInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="_ _ _ _"
-                  autoFocus
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Le code à 4 chiffres affiché lors de ta première inscription à cette séance.
-                </p>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Code de rappel (4 chiffres)
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={reclaimCodeInput}
+                onChange={e => setReclaimCodeInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="_ _ _ _"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">
+                Le code à 4 chiffres affiché lors de ta première inscription à cette séance.
+                Perdu ? L'organisateur peut t'en redonner un.
+              </p>
+            </div>
 
             {reclaimError && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -177,7 +172,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
 
             <button
               type="submit"
-              disabled={reclaimLoading || (reclaimTab === 'code' && reclaimCodeInput.trim().length === 0)}
+              disabled={reclaimLoading || !pseudo.trim() || reclaimCodeInput.trim().length === 0}
               className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
             >
               {reclaimLoading ? 'Récupération…' : 'Récupérer mes votes →'}
@@ -187,7 +182,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
               onClick={() => { setShowReclaim(false); setReclaimError(null) }}
               className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
-              Ce n'est pas moi — choisir un autre pseudo
+              Ce n'est pas moi — choisir un autre nom
             </button>
           </form>
         </div>
@@ -234,7 +229,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess, recla
               className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1.5">
-              Retiens bien ce que tu inscris ici : ça te permettra d'être reconnu·e et de retrouver tes votes.
+              {PSEUDO_PUBLIC_NOTICE} Tu pourras le changer plus tard.
             </p>
           </div>
 

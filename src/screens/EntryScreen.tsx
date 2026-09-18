@@ -199,20 +199,19 @@ export default function EntryScreen({ onJoined }: Props) {
     setModeratorError(null)
     setModeratorLoading(true)
     try {
-      // Chantier 67 — généré côté client comme pour register_session_member :
-      // ignoré côté serveur si ce n'est pas une nouvelle inscription en
-      // pré-vote (profil déjà existant, ou séance pas en pre_voting).
-      const candidateCode = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
-      const updated = await claimModeratorStatus(moderatorSessionId, moderatorPassword, pseudo, candidateCode)
+      // Chantier 93 — le code est tiré EN BASE quand cette RPC crée le profil,
+      // et revient une seule fois dans `new_reclaim_code` (absent si le profil
+      // existait déjà : il n'est alors plus lisible nulle part).
+      const updated = await claimModeratorStatus(moderatorSessionId, moderatorPassword, pseudo)
       lastNameStore.set(pseudo)
       const sel = moderatorSessions.find(s => s.id === moderatorSessionId)
       if (!sel?.join_code) {
         setModeratorError('Séance sans code — contactez le superadmin.')
         return
       }
-      if (updated.reclaim_code === candidateCode) {
-        // Nouveau profil créé en pré-vote — montrer le code avant de partir.
-        setModeratorReclaim({ pseudo: updated.pseudo, code: candidateCode, joinCode: sel.join_code })
+      if (updated.new_reclaim_code) {
+        // Profil créé à l'instant — montrer le code avant de partir.
+        setModeratorReclaim({ pseudo: updated.pseudo, code: updated.new_reclaim_code, joinCode: sel.join_code })
       } else {
         window.location.hash = '#vote/' + sel.join_code
       }

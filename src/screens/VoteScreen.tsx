@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { castVote, getVoteResults, confirmAttendance, registerSessionMember, hasQuestionnaireResponse, getMyAssertionIds, tryClaimModeratorStatus } from '../lib/voting'
+import {
+  castVote, getVoteResults, confirmAttendance, registerSessionMember,
+  hasQuestionnaireResponse, getMyAssertionIds, tryClaimModeratorStatus,
+  PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE,
+} from '../lib/voting'
 import { getSessionById, getSessionByJoinCode } from '../lib/sessions'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
@@ -20,6 +24,7 @@ import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
+import RenamePseudoModal from '../components/voting/RenamePseudoModal'
 import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
 
 interface VoteScreenProps {
@@ -62,7 +67,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   const [member, setMember] = useState<SessionMember | null>(null)
   const memberRef = useRef<SessionMember | null>(null)
 
-  // Pré-vote : code de rappel généré côté client (montré une seule fois)
+  // Chantier 93 — code de rappel tiré EN BASE à l'inscription et renvoyé une
+  // seule fois (`new_reclaim_code`) : montré à toutes les phases, plus
+  // seulement en pré-vote, puisqu'il est désormais exigé à toute reconnexion.
   const [reclaimCode, setReclaimCode] = useState<string | null>(null)
   // Confirmation présentielle
   const [confirmPseudo, setConfirmPseudo] = useState<string>('')
@@ -91,6 +98,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // vit dans le parent, pas dans VoteToolsPanel, sinon onClose() démonte le panneau
   // avant que la modale ne s'ouvre.
   const [showModeratorClaimModal, setShowModeratorClaimModal] = useState(false)
+  // Chantier 93 — changer son nom depuis les outils du vote.
+  const [showRenameModal, setShowRenameModal] = useState(false)
   // Chantier 92 — binômes (état dans le parent, même piège que NotesModal).
   const [showPairingModal, setShowPairingModal] = useState(false)
 
@@ -201,10 +210,6 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           setErrorMsg('Le vote est terminé, tu ne peux plus rejoindre cette séance.')
           setStep('ended')
           return
-        }
-        // En pré-vote : générer un code de rappel à afficher après inscription
-        if (s.phase === 'pre_voting') {
-          setReclaimCode(String(Math.floor(Math.random() * 10000)).padStart(4, '0'))
         }
         setStep('pseudo')
         return
@@ -554,16 +559,23 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // ── Callbacks from children ───────────────────────────────────────────────
   async function handlePseudoSuccess(m: SessionMember) {
     setMember(m)
-    if (session?.phase === 'pre_voting') {
-      // Montrer le code de rappel, puis voter directement (pas d'onboarding)
+    // Chantier 93 — une inscription neuve reçoit toujours un code, quelle que
+    // soit la phase : on le montre avant toute autre chose, c'est la seule fois
+    // où il est lisible.
+    if (m.new_reclaim_code) {
+      setReclaimCode(m.new_reclaim_code)
       setStep('reclaim_code')
-    } else if (session && !session.onboarding_enabled) {
-      // Chantier 71 — onboarding désactivé pour cette séance : pas de code de
-      // rappel non plus (celui-ci n'existe que pour l'inscription pre_voting,
-      // cf. ci-dessus), directement au vote.
+      return
+    }
+    await continueAfterRegistration(m)
+  }
+
+  /** Suite du parcours une fois le code de rappel montré (ou s'il n'y en a pas). */
+  async function continueAfterRegistration(m: SessionMember) {
+    if (!session) return
+    if (session.phase === 'pre_voting' || !session.onboarding_enabled) {
       await loadVoteData(session, m)
     } else {
-      // Phase voting (nouveau membre) : questionnaire d'entrée avant le vote
       setStep('onboarding')
     }
   }
@@ -825,7 +837,6 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           session={session}
           onSuccess={handlePseudoSuccess}
           onReclaimSuccess={handlePseudoReclaimSuccess}
-          reclaimCode={session.phase === 'pre_voting' ? (reclaimCode ?? undefined) : undefined}
         />
       </>
     )
@@ -839,7 +850,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <ReclaimCodeDisplay
           pseudo={member.pseudo}
           code={reclaimCode}
-          onContinue={() => loadVoteData(session, member)}
+          onContinue={() => continueAfterRegistration(member)}
         />
       </>
     )
@@ -1275,6 +1286,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             onClose={() => setShowToolsPanel(false)}
             onOpenNotes={() => setShowNotesModal(true)}
             onOpenModeratorClaim={() => setShowModeratorClaimModal(true)}
+            onOpenRename={() => setShowRenameModal(true)}
             onOpenPairing={() => setShowPairingModal(true)}
           />
         )}
@@ -1290,6 +1302,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         )}
 
         {/* Déclaration modérateur (ouvert depuis VoteToolsPanel — chantier 73) */}
+        {showRenameModal && member && (
+          <RenamePseudoModal
+            sessionId={session.id}
+            currentPseudo={member.pseudo}
+            onClose={() => setShowRenameModal(false)}
+            onRenamed={next => setMember(m => (m ? { ...m, pseudo: next } : m))}
+          />
+        )}
+
         {showModeratorClaimModal && (
           <ModeratorClaimModal
             sessionId={session.id}
@@ -1507,10 +1528,11 @@ interface VoteToolsPanelProps {
   onClose: () => void
   onOpenNotes: () => void
   onOpenModeratorClaim: () => void
+  onOpenRename: () => void
   onOpenPairing: () => void
 }
 
-function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenModeratorClaim, onOpenPairing }: VoteToolsPanelProps) {
+function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing }: VoteToolsPanelProps) {
 
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
@@ -1619,6 +1641,15 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
             Me déclarer modérateur
           </button>
 
+          {/* Chantier 93 — renommage libre : le nom est public pendant le débat. */}
+          <button
+            onClick={() => { onClose(); onOpenRename() }}
+            className={linkClass}
+          >
+            <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
+            Changer mon nom
+          </button>
+
           {/* Chantier 92 — binômes, à partir de la phase présentielle. */}
           {['voting', 'allocating', 'debating'].includes(session.phase) && (
             <button
@@ -1723,9 +1754,11 @@ function AllocatingEntryNotice() {
 }
 
 // ── VotingEntryForm ───────────────────────────────────────────────────────────
-// Formulaire unique pour les phases voting et allocating (chantier 61) :
-// pseudo OU code, en un seul écran.
-// Si le pseudo est déjà pris → reclaim automatique sans étape supplémentaire.
+// Formulaire unique pour les phases voting et allocating (chantier 61).
+// Chantier 93 : nom TOUJOURS demandé, code de rappel en second champ.
+//  · champ code vide  → inscription neuve (un code est remis à l'écran suivant) ;
+//  · nom déjà pris    → PSEUDO_TAKEN_MESSAGE, il faut le code pour continuer ;
+//  · nom + code       → reconnexion (la reprise par nom seul n'existe plus).
 
 interface VotingEntryFormProps {
   session: Session
@@ -1734,9 +1767,6 @@ interface VotingEntryFormProps {
 }
 
 function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormProps) {
-  const [tab,          setTab]          = useState<'pseudo' | 'code'>('pseudo')
-  // Champs distincts par onglet — partager un seul state videait le nom déjà
-  // saisi dès qu'on regardait l'onglet "code" puis revenait sur "Mon nom" (F5).
   const [pseudoInput,  setPseudoInput]  = useState(() => lastNameStore.get())
   const [codeInput,    setCodeInput]    = useState('')
   const [loading,      setLoading]      = useState(false)
@@ -1750,35 +1780,34 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
   // a échoué (pour rendre l'échec visible avant de continuer).
   const [completed, setCompleted] = useState<{ member: SessionMember; isNew: boolean } | null>(null)
 
-  const input = tab === 'pseudo' ? pseudoInput : codeInput
-  const setInput = tab === 'pseudo' ? setPseudoInput : setCodeInput
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const val = input.trim()
-    if (!val) return
+    const pseudo = pseudoInput.trim()
+    const code   = codeInput.trim()
+    if (!pseudo) return
     setError(null)
     setLoading(true)
     try {
       let member: SessionMember
       let isNew = false
-      if (tab === 'code') {
-        // Reclaim par code
-        member = await confirmAttendance(session.id, undefined, val)
+
+      if (code) {
+        // Reconnexion explicite : nom + code, les deux.
+        member = await confirmAttendance(session.id, pseudo, code)
+        lastNameStore.set(pseudo)
       } else {
-        // Pseudo : d'abord tenter l'inscription normale
         try {
-          member = await registerSessionMember(session.id, val)
-          lastNameStore.set(val)
+          member = await registerSessionMember(session.id, pseudo)
+          lastNameStore.set(pseudo)
           isNew = true
         } catch (regErr: unknown) {
           const msg = regErr instanceof Error ? regErr.message : ''
           if (msg.includes('Pseudo déjà pris')) {
-            // Reclaim automatique par pseudo — pas de deuxième écran
-            member = await confirmAttendance(session.id, val)
-          } else {
-            throw regErr
+            // Chantier 93 — plus de reprise automatique par le nom seul.
+            setError(PSEUDO_TAKEN_MESSAGE)
+            return
           }
+          throw regErr
         }
       }
 
@@ -1847,61 +1876,44 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
         {session.phase === 'allocating' && <AllocatingEntryNotice />}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Onglets pseudo / code */}
-          <div className="flex rounded-xl border border-gray-200 overflow-hidden">
-            {(['pseudo', 'code'] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setTab(t); setError(null) }}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
-                  tab === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                {t === 'pseudo' ? 'Mon nom' : 'Mon code de rappel'}
-              </button>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Prénom Nom
+            </label>
+            <input
+              type="text"
+              value={pseudoInput}
+              onChange={e => setPseudoInput(e.target.value)}
+              placeholder="Prénom Nom"
+              maxLength={40}
+              required
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              {PSEUDO_PUBLIC_NOTICE}
+            </p>
           </div>
 
-          {tab === 'pseudo' ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prénom Nom
-              </label>
-              <input
-                type="text"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Prénom Nom"
-                maxLength={40}
-                required
-                autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <p className="text-xs text-gray-400 mt-1.5">
-                Retiens bien ce que tu inscris ici. Tu avais voté à distance ? Entre le même nom et prénom pour récupérer tes votes.
-              </p>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Code de rappel (4 chiffres)
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                value={input}
-                onChange={e => setInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="_ _ _ _"
-                autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <p className="text-xs text-gray-400 mt-1.5">
-                Le code à 4 chiffres affiché lors de ton inscription au vote à distance.
-              </p>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Code de rappel — seulement si tu es déjà inscrit(e)
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              value={codeInput}
+              onChange={e => setCodeInput(e.target.value.replace(/\D/g, ''))}
+              placeholder="_ _ _ _"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Tu as déjà voté à distance, ou tu changes d'appareil ? Entre ton nom
+              <strong> et </strong>ton code. Première inscription : laisse vide, un
+              code te sera donné.
+            </p>
+          </div>
 
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -1918,7 +1930,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
 
           <button
             type="submit"
-            disabled={loading || !input.trim()}
+            disabled={loading || !pseudoInput.trim()}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
           >
             {loading ? 'Connexion…' : 'Continuer →'}
@@ -1950,8 +1962,9 @@ function AttendanceConfirmScreen({
   onSwitchToReclaim,
   onChangePseudo,
 }: AttendanceConfirmScreenProps) {
-  const [reclaimTab, setReclaimTab] = useState<'pseudo' | 'code'>('pseudo')
+  // Chantier 93 — nom ET code, les deux ensemble.
   const [reclaimInput, setReclaimInput] = useState(() => lastNameStore.get())
+  const [reclaimCodeInput, setReclaimCodeInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Chantier 73 — déclaration modérateur dès la confirmation de présence.
@@ -1999,15 +2012,14 @@ function AttendanceConfirmScreen({
   }
 
   async function handleReclaimConfirm() {
-    const val = reclaimInput.trim()
-    if (!val) return
+    const val  = reclaimInput.trim()
+    const code = reclaimCodeInput.trim()
+    if (!val || !code) return
     setError(null)
     setLoading(true)
     try {
-      const raw = reclaimTab === 'code'
-        ? await confirmAttendance(session.id, undefined, val)
-        : await confirmAttendance(session.id, val)
-      if (reclaimTab === 'pseudo') lastNameStore.set(val)
+      const raw = await confirmAttendance(session.id, val, code)
+      lastNameStore.set(val)
       const { member, error: modErr } = await tryClaimIfChecked(raw)
       if (modErr) {
         setModeratorError(modErr)
@@ -2121,55 +2133,38 @@ function AttendanceConfirmScreen({
         {header}
 
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-sm text-indigo-800 text-center">
-          Retrouve ton profil pré-vote avec <strong>ton nom et prénom</strong> ou <strong>ton code de rappel</strong> — l'un ou l'autre suffit.
+          Retrouve ton profil avec <strong>ton nom et prénom</strong> et <strong>ton code de rappel</strong> — les deux sont nécessaires.
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-          {/* Onglets pseudo / code */}
-          <div className="flex rounded-xl border border-gray-200 overflow-hidden">
-            {(['pseudo', 'code'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => { setReclaimTab(tab); setReclaimInput(tab === 'pseudo' ? lastNameStore.get() : '') }}
-                className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                  reclaimTab === tab
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                {tab === 'pseudo' ? 'Mon nom' : 'Mon code de rappel'}
-              </button>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom Nom</label>
+            <input
+              type="text"
+              value={reclaimInput}
+              onChange={e => setReclaimInput(e.target.value)}
+              placeholder="Ton nom et prénom…"
+              maxLength={40}
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
 
-          {reclaimTab === 'pseudo' ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom Nom pré-vote</label>
-              <input
-                type="text"
-                value={reclaimInput}
-                onChange={e => setReclaimInput(e.target.value)}
-                placeholder="Ton nom et prénom…"
-                maxLength={40}
-                autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code de rappel (4 chiffres)</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                value={reclaimInput}
-                onChange={e => setReclaimInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="_ _ _ _"
-                autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Code de rappel (4 chiffres)</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              value={reclaimCodeInput}
+              onChange={e => setReclaimCodeInput(e.target.value.replace(/\D/g, ''))}
+              placeholder="_ _ _ _"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Perdu ? L'organisateur, ou le modérateur de ta table, peut t'en redonner un.
+            </p>
+          </div>
 
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
@@ -2181,7 +2176,7 @@ function AttendanceConfirmScreen({
         <div className="space-y-2">
           <button
             onClick={handleReclaimConfirm}
-            disabled={loading || !reclaimInput.trim()}
+            disabled={loading || !reclaimInput.trim() || !reclaimCodeInput.trim()}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
           >
             {loading ? 'Recherche…' : 'Retrouver mes votes →'}

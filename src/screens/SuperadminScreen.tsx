@@ -34,6 +34,7 @@ import {
   listSessionMembersAdmin, adminSubmitAssertion, moveMembersToGroup,
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
   releaseTableModeration,
+  regenerateReclaimCodeAdmin,
 } from '../lib/voting'
 import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
@@ -1441,6 +1442,23 @@ function SessionDetail({
    * lire avant l'allocation. Le flow complet (onglet « Modérateur » de
    * l'accueil + mot de passe Ecclesia) est le chantier 21.
    */
+  // ── Chantier 93 — régénérer le code de rappel d'un membre ──────────────
+  // Le code est haché : il est IMPOSSIBLE de relire celui qu'on a donné. On en
+  // tire un nouveau, à lire à la personne — l'ancien cesse de fonctionner.
+  const [regeneratedCode, setRegeneratedCode] = useState<{ pseudo: string; code: string } | null>(null)
+
+  const handleRegenerateCode = useCallback(async (memberId: string) => {
+    const password = getPwd()!
+    try {
+      const res = await regenerateReclaimCodeAdmin(password, memberId)
+      setRegeneratedCode({ pseudo: res.pseudo, code: res.new_reclaim_code })
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    }
+  }, [onAuthError])
+
   const handleToggleModerator = useCallback(async (memberId: string, next: boolean) => {
     const password = getPwd()!
     // Mise à jour optimiste : la liste est rechargée toutes les 15 s de toute façon.
@@ -2558,6 +2576,7 @@ function SessionDetail({
                       members={members}
                       loading={membersLoading}
                       onToggleModerator={handleToggleModerator}
+                      onRegenerateCode={handleRegenerateCode}
                     />
                   </SectionAccordion>
                 )}
@@ -3532,6 +3551,32 @@ function SessionDetail({
 
       {rosterOpen && (
         <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
+      )}
+
+      {/* Chantier 93 — nouveau code de rappel, à lire à la personne. Affiché une
+          seule fois : seul son bcrypt est stocké. */}
+      {regeneratedCode && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          onMouseDown={e => { if (e.target === e.currentTarget) setRegeneratedCode(null) }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4 text-center">
+            <h2 className="text-sm font-semibold text-gray-900">Nouveau code de rappel</h2>
+            <p className="text-sm text-gray-600">
+              À lire à <strong>{regeneratedCode.pseudo}</strong>. L'ancien code ne
+              fonctionne plus, et celui-ci ne sera plus affiché.
+            </p>
+            <p className="text-4xl font-mono font-bold tracking-widest text-amber-600">
+              {regeneratedCode.code}
+            </p>
+            <button
+              onClick={() => setRegeneratedCode(null)}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
       )}
 
       {debateExitChoice && (
@@ -4600,11 +4645,14 @@ function MembersPanel({
   members,
   loading,
   onToggleModerator,
+  onRegenerateCode,
 }: {
   members: SessionMemberAdmin[]
   loading: boolean
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
+  /** Chantier 93 — capture d'écran perdue : nouveau code, à lire à la personne. */
+  onRegenerateCode?: (memberId: string) => Promise<void>
 }) {
   // H10 — tri par colonne, alphabétique ou ordre d'arrivée, croissant/décroissant.
   const [sort, setSort] = useState<{ key: MembersSortKey; direction: 'asc' | 'desc' }>(
@@ -4657,6 +4705,8 @@ function MembersPanel({
               sort={sort} onSort={handleSort}
               className="text-center py-2"
             />
+            {/* Chantier 93 — régénération du code de rappel. */}
+            {onRegenerateCode && <th className="text-center py-2 pl-3 font-medium">Code</th>}
           </tr>
         </thead>
         <tbody>
@@ -4706,6 +4756,17 @@ function MembersPanel({
                   <span className="text-gray-300">—</span>
                 )}
               </td>
+              {onRegenerateCode && (
+                <td className="py-2 pl-3 text-center">
+                  <button
+                    onClick={() => onRegenerateCode(m.id)}
+                    title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner — le code stocké est haché, il ne peut pas être relu)"
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium border bg-white border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-600 transition-colors"
+                  >
+                    🔑 nouveau
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

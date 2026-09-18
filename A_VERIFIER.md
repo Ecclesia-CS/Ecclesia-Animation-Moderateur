@@ -19,6 +19,35 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Chantier 93 (2026-09-18) — identité du participant : code de rappel comme preuve, pseudo modifiable (absorbe 55, 81, 82) — ✅ appliqué en base
+
+Migration [`supabase/migrations/20260918_chantier93_identite_participant.sql`](./supabase/migrations/20260918_chantier93_identite_participant.sql), appliquée par cette session (règle du 07/09), plus un correctif appliqué juste après (`regenerate_reclaim_code_moderator` ciblée par **pseudo** et non par `member_id` : `session_members` est en self-only, un modérateur n'a aucun `member_id` sous la main — la surcharge `(uuid, uuid)` a été `DROP`ée pour ne pas laisser deux signatures ambiguës).
+
+**Décisions de Jules (16 et 18/09)** : code remis à toute première inscription quelle que soit la phase ; reconnexion = pseudo **ET** code, toujours les deux ; code **haché** (bcrypt), donc illisible après coup → régénération et non rappel ; unicité du code dans la séance ; 10 échecs par couple (séance, pseudo) → 1 minute de blocage ; renommage libre, propagé ; après la clôture personne n'a besoin de se reconnecter, donc la purge du chantier 49 reste.
+
+**Ce qui change en base** : `session_members.reclaim_code` (clair) → `reclaim_code_hash` (bcrypt) ; nouvelle table `reclaim_attempts` (RLS activée, zéro policy, écrite uniquement par des SECURITY DEFINER) ; nouvelles fonctions `gen_member_reclaim_code`, `reclaim_block_reason`, `record_reclaim_failure`, `clear_reclaim_attempts`, `rename_session_member`, `regenerate_reclaim_code_admin`, `regenerate_reclaim_code_moderator` ; réécriture de `register_session_member`, `confirm_attendance`, `reclaim_prevoting_member`, `claim_moderator_status`, `set_session_phase` (corps repris de la définition **courante en base** via `pg_get_functiondef`, comme l'exige la règle SQL).
+
+**Point de conception à connaître avant d'y toucher** : les branches « mauvais code » et « trop de tentatives » **ne lèvent pas**, elles renvoient `{"error": "..."}`. Un `RAISE` annulerait la transaction — donc l'incrément du compteur de tentatives avec, et le blocage ne se déclencherait jamais. Côté TS, `unwrapIdentity()` (`src/lib/voting.ts`) rétablit le `throw` attendu par React. Ne pas « simplifier » en remettant un `RAISE`.
+
+**Recette jouée à l'écran par cette session** (Browser pane, `ecclesia-dev`, séance de test `C93TEST` en phase `voting`, supprimée depuis) :
+1. Inscription « Alice Martin » en phase **présentiel** → écran code de rappel affiché avec un code (2692). ✅ Avant ce chantier, aucun code n'était remis hors `pre_voting`.
+2. `localStorage` vidé + rechargement (simulation d'un autre appareil) → saisie du **nom seul** → refus avec le message voulu par Jules : « Ce nom est déjà utilisé dans cette séance. Si c'est bien toi, reconnecte-toi avec ton code de rappel à 4 chiffres. Sinon, choisis un autre nom. » ✅
+3. Nom + **mauvais** code → « Code de rappel invalide. », et `reclaim_attempts.fail_count = 1` en base (donc l'échec survit bien à la transaction). ✅
+4. 9 échecs de plus → `blocked_until` posé ; l'écran affiche « Trop de tentatives. Réessaie dans 47 secondes. » **même avec le bon code**. ✅
+5. Blocage effacé, nom + **bon** code → « Bienvenue Alice Martin ! Tes votes ont bien été récupérés. » ✅
+6. Outils → « Changer mon nom » → Alice Dupont, puis Alice Renommee : nom à jour à l'écran et dans `session_members`, **et** `session_sources.pseudo` suit (propagation vérifiée en base sur une source créée avant le renommage). ✅
+7. Renommage vers un nom déjà pris (« Bob Durand ») → « Ce nom est déjà pris dans cette séance. » ✅
+8. `regenerate_reclaim_code_moderator` (identité modérateur simulée en base via `request.jwt.claims`) : refus « Ce participant n'est pas inscrit à cette table » tant que la cible n'est pas assise ; succès une fois assise (nouveau code 4898, validé ensuite par `crypt()`) ; refus « Tu n'animes pas cette table » quand l'appelant n'est pas le modérateur. ✅
+9. Séance passée en `closed` : `confirm_attendance` renvoie « La séance est clôturée : la reconnexion n'est plus possible. » ✅
+10. `tsc --noEmit`, `npm run build` et la suite de tests (109 passés) au vert. ✅
+
+**Reste à vérifier humainement (Jules a le mot de passe superadmin et le Code Ecclesia, pas cette session)** :
+- **Régénération côté superadmin** : onglet Tables → « Participants inscrits » → colonne « Code » → bouton « 🔑 nouveau ». Doit ouvrir une modale avec le nouveau code et le pseudo. Non joué : l'écran superadmin demande le mot de passe. La RPC `regenerate_reclaim_code_admin` n'a donc été vérifiée ni à l'écran ni en base.
+- **Purge à la clôture** : `set_session_phase(..., 'closed')` doit poser `reclaim_code_hash = NULL` et vider `reclaim_attempts` pour la séance. Le code est en place, mais la fonction exige le mot de passe superadmin : le passage en `closed` a été simulé par un `UPDATE` direct, donc **la purge elle-même n'a pas été rejouée**.
+- **Bouton 🔑 côté modérateur** dans le tableau des participants de `ModeratorView` : seule la RPC a été testée, pas le bouton (il faut une vraie table en débat).
+- **Chantier 81** (déclaration modérateur à la reconquête) : le chantier 73 l'avait déjà posée sur `PseudoForm`, `VotingEntryForm` et l'écran de confirmation de présence — vérifié par lecture du code, **pas rejoué à l'écran** avec un vrai Code Ecclesia.
+- **Membres inscrits avant la migration** : au moment de l'application, **aucune ligne `session_members` n'avait de code** (0 sur 140), donc rien n'a été cassé ni converti. Mais tout membre déjà inscrit sur une séance ouverte n'a pas de code et ne pourra pas se reconnecter depuis un autre appareil sans passer par la régénération.
+
 ## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
 
 Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supabase/migrations/20260916_chantier56_durcissement_sql.sql). Aucun fichier `src/`. Appliqué par cette session directement (règle du 07/09 dans `CLAUDE.md` : une session de chantier peut appliquer sa propre migration), avec Jules disponible et joignable comme l'exigeait `docs/registre-merges-en-attente.md`.
