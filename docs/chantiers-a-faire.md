@@ -103,7 +103,10 @@ Périmètre : migration (table ou colonne d'appairages), `src/components/voting/
 
 Périmètre : `src/components/voting/PseudoForm.tsx`, `src/components/ParticipantToolsButton.tsx`, RPC de renommage (à créer), RPC `confirm_attendance` / `reclaim_prevoting_member`, contrainte d'unicité, migration.
 
-### 94 — Vue modérateur : temps de parole par camp idéologique
+### 94 — Vue modérateur : temps de parole par camp idéologique — ✅ fait, voir `docs/chantiers.md`
+
+**Livré le 2026-09-16.** Détail complet, recette de vérification restante et seuil de 180s à valider : entrée « 94 » de [`docs/chantiers.md`](./chantiers.md) et section « Chantier 94 » de [`../A_VERIFIER.md`](../A_VERIFIER.md). Le texte d'origine du chantier est conservé ci-dessous pour mémoire.
+
 **Parcours modérateur + confidentialité.**
 
 > **Consigne de Jules (2026-09-16)** : « Dans la vue modérateur, mettre le temps de chacun des camps (idéologique fait par l'algo pol.is) en accessibilité pour le modérateur. Cela veut dire qu'il aura accès aux informations de qui est dans quel camps… Ce qui peut être problématique ! Pour contrer cette problématique, l'horloge des camps peut se mettre à jour toutes les 5 minutes, pour flouer l'identification. »

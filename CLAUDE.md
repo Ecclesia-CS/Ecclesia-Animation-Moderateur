@@ -2,6 +2,12 @@
 
 > **Terminologie** : "table" = cercle de débat modéré. "session"/"séance" (`sessions`) = conteneur optionnel regroupant plusieurs tables.
 
+> ⚠️ **« Lance le chantier N » / « où est le chantier N » — chercher dans CES DEUX fichiers, jamais dans un seul :**
+> - [`docs/chantiers.md`](./docs/chantiers.md) : ce qui a **déjà été fait**, chantier par chantier (fichier de suivi).
+> - [`docs/chantiers-a-faire.md`](./docs/chantiers-a-faire.md) : la **file d'attente**, ce qui reste à faire, avec le détail complet de chaque chantier dicté par Jules mais pas encore lancé (description, précisions, garde-fous, périmètre de fichiers). **Un chantier récent qui n'apparaît pas dans `chantiers.md` est presque toujours ici, pas absent du dépôt.**
+>
+> Si un numéro de chantier ne se trouve dans NI L'UN NI L'AUTRE après recherche, le dire explicitement plutôt que de conclure qu'il n'existe pas — chercher aussi dans `docs/registre-merges-en-attente.md` et `git log --all --grep`.
+
 Voir [`docs/chantiers.md`](./docs/chantiers.md) pour l'état courant des chantiers — **seul fichier de suivi de l'avancement**, à tenir à jour au fil des chantiers, il sert de point de synchronisation entre contributeurs. (`PROJECT_STATUS.md` a été supprimé au chantier 78 : deux fichiers de suivi en parallèle avaient produit un doublon périmé de quinze chantiers, en contradiction avec `git log`. Son contenu unique — les tâches lettrées des chantiers 1 à 25 et le reste-à-faire — est passé en annexes A et B de `docs/chantiers.md`.)
 
 > ⚠️ **Avant de merger une branche sur `main`, lire [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md).** Certaines branches sont **volontairement** retenues hors de `main` (une migration qui casserait l'existant tant que le code n'est pas déployé, un workflow qui attend des secrets GitHub), et des périodes de gel s'appliquent au parcours de vote avant chaque utilisation en production réelle. Une branche non mergée n'est pas forcément un oubli. Ce fichier liste aussi les chantiers en cours et leur découpage par fichier, à respecter quand plusieurs sessions travaillent en parallèle.
@@ -26,7 +32,7 @@ Ce fichier est réinjecté au démarrage de **chaque** session : il ne garde que
 | [`docs/reference-tables-leaderless.md`](./docs/reference-tables-leaderless.md) | **Avant de toucher à `tables.leaderless`** |
 | [`docs/reference-transcription.md`](./docs/reference-transcription.md) | Sous-projet transcription (offline, indépendant) |
 
-Trois fichiers de suivi, distincts et non redondants : [`docs/chantiers.md`](./docs/chantiers.md) (ce qui a été fait, chantier par chantier), [`docs/registre-merges-en-attente.md`](./docs/registre-merges-en-attente.md) (ce qui est retenu hors de `main`, et pourquoi), [`A_VERIFIER.md`](./A_VERIFIER.md) (ce qui reste à vérifier humainement).
+Quatre fichiers de suivi, distincts et non redondants : [`docs/chantiers.md`](./docs/chantiers.md) (ce qui a été fait, chantier par chantier), [`docs/chantiers-a-faire.md`](./docs/chantiers-a-faire.md) (ce qui reste à faire, avec le détail complet de chaque chantier dicté — **à consulter avant de dire qu'un chantier n'existe pas**), [`docs/registre-merges-en-attente.md`](./docs/registre-merges-en-attente.md) (ce qui est retenu hors de `main`, et pourquoi), [`A_VERIFIER.md`](./A_VERIFIER.md) (ce qui reste à vérifier humainement).
 
 ---
 
