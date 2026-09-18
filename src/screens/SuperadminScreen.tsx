@@ -4146,12 +4146,36 @@ function AssertionsPanel({
   onAdminSubmit?: (content: string) => Promise<{ id: string }>
   onDelete(ids: string[]): Promise<void>
 }) {
+  // Trois blobs localStorage relus pendant le rendu. Sans garde, un JSON
+  // malformé, une valeur non itérable ou une entrée de `merge_log` sans
+  // `reject_ids` fait planter tout l'écran (pas d'ErrorBoundary) — cf. la règle
+  // « JSON.parse d'un blob persisté sans validation » dans CLAUDE.md.
   const aiLabelMap = React.useMemo(() => {
-    const rejIds     = new Set<string>(JSON.parse(localStorage.getItem(`ai_rejected_ids_${session.id}`) ?? '[]'))
-    const approvedIds = new Set<string>(JSON.parse(localStorage.getItem(`ai_approved_ids_${session.id}`) ?? '[]'))
-    const mergeLog   = JSON.parse(localStorage.getItem(`merge_log_${session.id}`) ?? '[]') as Array<{ reject_ids: string[] }>
-    const mergedIds  = new Set<string>(mergeLog.flatMap(m => m.reject_ids))
-    return { rejIds, approvedIds, mergedIds }
+    const readIdSet = (key: string): Set<string> => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown
+        return new Set(Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [])
+      } catch {
+        return new Set()
+      }
+    }
+    const readMergedIds = (): Set<string> => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(`merge_log_${session.id}`) ?? '[]') as unknown
+        if (!Array.isArray(parsed)) return new Set()
+        return new Set(parsed.flatMap((m: unknown) => {
+          const ids = (m as { reject_ids?: unknown })?.reject_ids
+          return Array.isArray(ids) ? ids.filter((v): v is string => typeof v === 'string') : []
+        }))
+      } catch {
+        return new Set()
+      }
+    }
+    return {
+      rejIds:      readIdSet(`ai_rejected_ids_${session.id}`),
+      approvedIds: readIdSet(`ai_approved_ids_${session.id}`),
+      mergedIds:   readMergedIds(),
+    }
   }, [session.id])
 
   const [adminText,      setAdminText]      = useState('')

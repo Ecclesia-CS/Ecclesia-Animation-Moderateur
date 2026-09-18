@@ -31,6 +31,19 @@ Uncaught TypeError: Cannot read properties of undefined (reading 'length')
 - Recharger l'onglet Allocation d'une séance déjà passée en phase `allocating` **avant** le déploiement de ce correctif (donc avec un `preview` potentiellement pré-chantier-92 en `sessionStorage`) et confirmer qu'il n'y a plus de page blanche — soit l'ancien preview est ignoré et il faut recalculer, soit il est toujours valide et s'affiche normalement.
 - Toujours envisager l'ajout d'un `ErrorBoundary` global (déjà noté au chantier 90 et lors du bug `ai_log`) : ce point précis est corrigé, mais la même classe de crash reste fatale à toute la page tant qu'il n'existe pas de garde-fou.
 
+**✅ Correctif confirmé par Jules le 2026-09-18** sur GitHub Pages : l'onglet Allocation s'ouvre de nouveau normalement.
+
+### Audit de la même classe de défaut (2026-09-18, à la demande de Jules)
+
+Les 39 lectures de `localStorage`/`sessionStorage` de `src/` ont été passées en revue. Les deux tiers sont inoffensives (booléens, `parseInt`, chaînes). Parmi celles qui désérialisent une **forme**, deux sites encore actifs pouvaient reproduire la page blanche — **corrigés dans le même commit, non vérifiés au navigateur** :
+
+1. **`SuperadminScreen.tsx`, `aiLabelMap`** (panneau Assertions) — lisait `ai_rejected_ids_*`, `ai_approved_ids_*` et `merge_log_*` **sans aucun `try/catch`**, pendant le rendu. Trois façons de blanchir l'écran : JSON malformé, valeur non itérable passée à `new Set()`, ou entrée de `merge_log` sans `reject_ids` (`.flatMap` sur non-tableau). Désormais : parse protégé, filtrage des valeurs non conformes.
+2. **`LLMModerationPanel.tsx`, `readMergeLog`/`readMergeProposals`** — `try/catch` présent mais aucune validation de forme, alors que le rendu des « Fusions proposées » déréférence `p.reject_ids.map(...)` et `p.reject_contents[ri]` (ligne ~697). Une proposition persistée par une version antérieure sans ces champs plantait le panneau, donc la page. Désormais : les entrées mal formées sont filtrées à la relecture.
+
+**À vérifier humainement** : ouvrir le panneau **Assertions** puis **Modération IA** d'une séance ayant réellement servi (avec un historique de fusions en `localStorage`) et confirmer que les libellés « rejeté par l'IA / fusionné » et la liste des fusions proposées s'affichent toujours correctement — la correction filtre les entrées invalides, elle ne doit pas faire disparaître les entrées **valides**.
+
+**Risque résiduel connu, non corrigé** (volontairement, pour ne pas élargir le périmètre) : `group_names_*` est relu sans validation dans `ResultsMapScreen.tsx:225` (**côté participant**) et `SuperadminScreen.tsx:1350`, et `ResultsMapScreen.tsx:90` fait `groupNames.find(...)` sans `?.`. Le risque est plus faible que les deux ci-dessus (`GroupNameResult` n'a jamais gagné de champ obligatoire, et `.find` tolère des entrées incomplètes), mais il deviendrait **immédiatement critique** si ce type venait à changer de forme. Idem pour `tableStore.get()` (`lib/storage.ts`), qui fait `JSON.parse(raw) as StoredTable` sans garde.
+
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.

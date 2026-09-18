@@ -51,9 +51,25 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // ── Helpers localStorage ──────────────────────────────────────
 
+// Ces deux types sont écrits par une version du code et relus par une version
+// ultérieure : un `as T` ne garantit rien à l'exécution. Le rendu déréférence
+// `reject_ids`/`reject_contents` sans garde (« Fusions proposées »), donc une
+// entrée mal formée y ferait une page blanche — cf. la règle « JSON.parse d'un
+// blob persisté sans validation » dans CLAUDE.md, et les deux incidents de
+// septembre 2026 (ai_log, preview d'allocation).
+function isValidMergeShape(e: unknown): boolean {
+  if (!e || typeof e !== 'object') return false
+  const m = e as Record<string, unknown>
+  return typeof m.keep_id === 'string'
+    && Array.isArray(m.reject_ids)
+    && Array.isArray(m.reject_contents)
+}
+
 function readMergeLog(sessionId: string): MergeLogEntry[] {
   try {
-    return JSON.parse(localStorage.getItem(`merge_log_${sessionId}`) ?? '[]') as MergeLogEntry[]
+    const parsed = JSON.parse(localStorage.getItem(`merge_log_${sessionId}`) ?? '[]') as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((e): e is MergeLogEntry => isValidMergeShape(e))
   } catch {
     return []
   }
@@ -61,7 +77,9 @@ function readMergeLog(sessionId: string): MergeLogEntry[] {
 
 function readMergeProposals(sessionId: string): ProposedMerge[] {
   try {
-    return JSON.parse(localStorage.getItem(`merge_proposals_${sessionId}`) ?? '[]') as ProposedMerge[]
+    const parsed = JSON.parse(localStorage.getItem(`merge_proposals_${sessionId}`) ?? '[]') as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((e): e is ProposedMerge => isValidMergeShape(e))
   } catch {
     return []
   }
