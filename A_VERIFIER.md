@@ -64,7 +64,26 @@ Uncaught TypeError: Cannot read properties of null (reading 'toFixed')
 - Ouvrir l'onglet Analyse d'une séance **analysée normalement** (via le bouton du front) et confirmer que Silhouette et Variance PCA affichent toujours leurs vraies valeurs — la correction ne doit rien masquer là où la donnée existe.
 - Si la comparaison avant/après débat (chantier 79) est utilisée sur cette séance d'essai, vérifier qu'elle n'affiche pas de mouvements fantaisistes : `group_consensus` y est vide, donc la liste des mouvements doit être vide, pas erronée.
 
-**Constat de fond, à trancher** : quatre pages blanches en trois jours, toutes dues à un `as T` sur une donnée non vérifiée (trois via `localStorage`/`sessionStorage`, une via la base). La règle est désormais dans `CLAUDE.md`, mais **il n'existe toujours aucun `ErrorBoundary`** : c'est ce qui transforme chaque fois un panneau cassé en écran entièrement blanc. Décision de portée en attente de Jules.
+**Constat de fond** : quatre pages blanches en trois jours, toutes dues à un `as T` sur une donnée non vérifiée (trois via `localStorage`/`sessionStorage`, une via la base). La règle est désormais dans `CLAUDE.md`, et le garde-fou a été posé — voir l'entrée suivante.
+
+## Filet `PanelErrorBoundary` — superadmin (2026-09-18) — ✅ vérifié au navigateur
+
+Décidé par Jules après les quatre pages blanches : « errorbournary pour le superadmin est une bonne idée ». Nouveau composant [`src/components/PanelErrorBoundary.tsx`](./src/components/PanelErrorBoundary.tsx), posé à **6 endroits** de `SuperadminScreen.tsx` — les cinq panneaux qui ont produit ou failli produire une page blanche (Assertions, Modération IA, Analyse, Allocation, Comparaison avant/après) plus un dernier recours autour de `SessionDetail` (barre de phase, vues Groupes et Tables).
+
+Le message d'erreur est affiché **à l'écran**, volontairement : c'est ce que Jules peut recopier pour diagnostiquer sans ouvrir la console — ce message est ce qui a permis de viser juste sur chacune des quatre pannes. Le `console.error` est conservé en plus (trace complète + `componentStack`).
+
+**Vérifié au navigateur le 2026-09-18** via une route de test temporaire (`#boundarytest`, **retirée** après vérification — `grep boundarytest src/` ne retourne rien) montant un composant qui lève `Cannot read properties of null (reading 'toFixed')`, soit l'erreur réelle du jour :
+- Le texte placé **avant et après** le filet reste visible → la page n'est plus démontée.
+- L'encadré affiche « Le panneau « Analyse » n'a pas pu s'afficher » et le message d'erreur exact.
+- React confirme de lui-même en console : « React will try to recreate this component tree from scratch using the error boundary you provided, PanelErrorBoundary ».
+- `console.error` émet bien `[PanelErrorBoundary] Analyse : …` avec la pile de composants.
+- Le bouton « ↻ Réessayer » re-tente le rendu ; sur une erreur permanente il re-capture proprement, sans blanchir la page.
+
+**Limite à connaître, inhérente à React** : un `ErrorBoundary` ne capture que les erreurs de **rendu** et de cycle de vie. Une exception levée dans un gestionnaire d'événement (`onClick`) ou dans une promesse non attrapée passe à travers — par exemple `LLMModerationPanel.tsx:356` (`p.reject_contents[i]` dans un handler) n'est pas couvert par ce filet, seulement par la validation à la relecture ajoutée le même jour. **Ce n'est donc pas une raison de relâcher les gardes à la lecture des données.**
+
+**Reste à vérifier humainement** : ouvrir l'écran superadmin d'une séance réelle et confirmer que les six panneaux s'affichent **normalement** (le filet ne doit rien changer en l'absence d'erreur). Le cas d'erreur, lui, est déjà vérifié ci-dessus.
+
+**Non traité, volontairement** : le parcours participant n'a reçu aucun filet — Jules a explicitement cadré la demande sur le superadmin. Les écrans participant restent donc exposés au même mécanisme (page entièrement blanche sur une exception de rendu), notamment `ResultsMapScreen` dont le risque résiduel `group_names` est documenté plus haut.
 
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 

@@ -44,6 +44,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
+import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import { mergeAssertions } from '../lib/gemini'
 import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
 import type { LoadedAnalysis } from '../lib/analysis'
@@ -293,12 +294,17 @@ export default function SuperadminScreen() {
   // ── Render ────────────────────────────────────────────────────
 
   if (authed && view.type === 'detail') {
+    // Dernier recours : les cinq panneaux lourds ont chacun leur propre garde
+    // plus bas. Celle-ci rattrape le reste de l'écran (barre de phase, vues
+    // Groupes et Tables) pour qu'une exception n'emporte plus tout le superadmin.
     return (
-      <SessionDetail
-        session={view.session}
-        onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
-        onAuthError={handleAuthError}
-      />
+      <PanelErrorBoundary label="Détail de la séance">
+        <SessionDetail
+          session={view.session}
+          onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
+          onAuthError={handleAuthError}
+        />
+      </PanelErrorBoundary>
     )
   }
 
@@ -2472,38 +2478,44 @@ function SessionDetail({
                     {assertionsErr && (
                       <p className="text-sm text-red-600 mb-2">{assertionsErr}</p>
                     )}
-                    <AssertionsPanel
-                      assertions={assertions}
-                      voteResults={voteResults}
-                      tab={assertionsTab}
-                      onTabChange={setAssertionsTab}
-                      session={currentSession}
-                      actingId={actingAssertionId}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                      onApproveAll={handleApproveAll}
-                      onReapprove={handleApprove}
-                      onAdminSubmit={handleAdminSubmitAssertion}
-                      onDelete={handleDeleteAssertions}
-                    />
+                    <PanelErrorBoundary label="Assertions">
+                      <AssertionsPanel
+                        assertions={assertions}
+                        voteResults={voteResults}
+                        tab={assertionsTab}
+                        onTabChange={setAssertionsTab}
+                        session={currentSession}
+                        actingId={actingAssertionId}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                        onApproveAll={handleApproveAll}
+                        onReapprove={handleApprove}
+                        onAdminSubmit={handleAdminSubmitAssertion}
+                        onDelete={handleDeleteAssertions}
+                      />
+                    </PanelErrorBoundary>
                   </SectionAccordion>
                 )}
 
                 {showVotingSections && (
-                  <LLMModerationPanel session={currentSession} password={getPwd()!} />
+                  <PanelErrorBoundary label="Modération IA">
+                    <LLMModerationPanel session={currentSession} password={getPwd()!} />
+                  </PanelErrorBoundary>
                 )}
 
                 {showVotingSections && (
-                  <AnalysisPanel
-                    sessionId={session.id}
-                    password={getPwd()!}
-                    assertions={assertions}
-                    onAuthError={onAuthError}
-                    onAnalysisComplete={handleAnalysisNaming}
-                    groupNames={groupNames}
-                    totalMembers={members.length > 0 ? members.length : undefined}
-                    sessionPhase={currentSession.phase}
-                  />
+                  <PanelErrorBoundary label="Analyse">
+                    <AnalysisPanel
+                      sessionId={session.id}
+                      password={getPwd()!}
+                      assertions={assertions}
+                      onAuthError={onAuthError}
+                      onAnalysisComplete={handleAnalysisNaming}
+                      groupNames={groupNames}
+                      totalMembers={members.length > 0 ? members.length : undefined}
+                      sessionPhase={currentSession.phase}
+                    />
+                  </PanelErrorBoundary>
                 )}
 
                 {showVotingSections && voteResults.length > 0 && (
@@ -2569,16 +2581,18 @@ function SessionDetail({
                     Chantier 33 — déplacé depuis l'onglet « En direct » : sa
                     place est ici, avec le reste de la gestion des tables. */}
                 {currentSession.phase === 'allocating' && (
-                  <AllocationPanel
-                    // Chantier 25 (H14) — l'état de travail du panneau est
-                    // restauré depuis sessionStorage au montage : la clé garantit
-                    // un remontage si la séance change sans démontage du parent.
-                    key={currentSession.id}
-                    sessionId={currentSession.id}
-                    password={getPwd()!}
-                    onApplied={loadGroups}
-                    onAuthError={onAuthError}
-                  />
+                  <PanelErrorBoundary label="Allocation">
+                    <AllocationPanel
+                      // Chantier 25 (H14) — l'état de travail du panneau est
+                      // restauré depuis sessionStorage au montage : la clé garantit
+                      // un remontage si la séance change sans démontage du parent.
+                      key={currentSession.id}
+                      sessionId={currentSession.id}
+                      password={getPwd()!}
+                      onApplied={loadGroups}
+                      onAuthError={onAuthError}
+                    />
+                  </PanelErrorBoundary>
                 )}
 
                 {/* Groupes (allocating/debating) */}
@@ -3218,12 +3232,14 @@ function SessionDetail({
               <div className="space-y-6">
                 {/* Comparaison avant / après débat — chantier 79 */}
                 {showVotingSections && (
-                  <AnalysisComparisonPanel
-                    sessionId={session.id}
-                    password={getPwd()!}
-                    assertions={assertions}
-                    onAuthError={onAuthError}
-                  />
+                  <PanelErrorBoundary label="Comparaison avant / après débat">
+                    <AnalysisComparisonPanel
+                      sessionId={session.id}
+                      password={getPwd()!}
+                      assertions={assertions}
+                      onAuthError={onAuthError}
+                    />
+                  </PanelErrorBoundary>
                 )}
 
                 {/* Synthèse des votes */}
