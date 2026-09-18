@@ -15,6 +15,22 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
+
+**Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :
+
+```
+Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+```
+
+**Cause identifiée** : `AllocationPanel.tsx` persiste sa proposition de répartition (`preview`, type `AllocationResult`) en `sessionStorage` (`ecclesia_alloc_preview_<sessionId>`) pour survivre à un changement d'onglet/reload (H14, chantier 25). Le chantier 92 a ajouté deux champs obligatoires à `AllocationResult` (`clusters`, `brokenClusters` — grappes d'appairage). `readPersisted()` ne validait pas la forme de l'objet relu : un `preview` persisté par le code **d'avant le chantier 92** n'a pas ces champs, et le rendu fait `preview.clusters.length` sans garde (ligne ~456) → `undefined.length` → page blanche (pas d'`ErrorBoundary` dans l'app). Troisième occurrence du même défaut de classe : une valeur mise en cache localement (`localStorage`/`sessionStorage`) jamais revalidée contre la forme actuelle du type au moment de la relecture.
+
+**Correctif appliqué** : `readPersisted()` (`src/components/voting/AllocationPanel.tsx`) valide désormais que `preview` a bien `tables`/`diagnostics`/`clusters` en tableaux et `brokenClusters` en nombre avant de le restaurer ; sinon il est traité comme absent (le superadmin doit relancer le calcul — comportement déjà existant quand `preview` est `null`).
+
+**Reste à vérifier humainement** (test navigateur bloqué côté outillage — vérification de politique sur le port local qui n'a jamais abouti ; pas de mot de passe superadmin de toute façon pour cette session) :
+- Recharger l'onglet Allocation d'une séance déjà passée en phase `allocating` **avant** le déploiement de ce correctif (donc avec un `preview` potentiellement pré-chantier-92 en `sessionStorage`) et confirmer qu'il n'y a plus de page blanche — soit l'ancien preview est ignoré et il faut recalculer, soit il est toujours valide et s'affiche normalement.
+- Toujours envisager l'ajout d'un `ErrorBoundary` global (déjà noté au chantier 90 et lors du bug `ai_log`) : ce point précis est corrigé, mais la même classe de crash reste fatale à toute la page tant qu'il n'existe pas de garde-fou.
+
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
