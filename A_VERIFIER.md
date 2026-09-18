@@ -65,9 +65,15 @@ Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`
 - Accueil rendu dans le navigateur : plus d'onglets, liste des séances et liens conservés.
 - Test SQL sur séance jetable : une table vide numérotée 2 rejointe par son code donne bien l'affectation n°2 (et non un numéro neuf). Jeu de test supprimé, vérifié à zéro ligne.
 
-**À vérifier à l'écran par Jules (le mot de passe superadmin n'est pas accessible à une session Claude)** :
-1. Phase allocation : créer une table animée puis une table sans modérateur, vérifier qu'elles apparaissent aussitôt comme groupes numérotés, avec leur code.
-2. Y glisser un membre, vérifier que l'affectation tient après le rafraîchissement 10 s.
+**Vérifié à l'écran le 2026-09-18** (un mot de passe superadmin était déjà en `sessionStorage` sur le navigateur de test, une fois la page blanche de l'onglet Analyse corrigée — voir l'entrée juste au-dessus), sur la séance « Test chantier 94 », en phase `debating` :
+- « + Table animée » crée bien la table N°2, vide, numérotée, avec son code affiché et la mention d'attente.
+- Un glisser-déposer d'un membre vers cette table vide fonctionne : affectation `table_number = 2`, `table_id` renseigné (vérifié en base).
+- Le bouton « Supprimer » n'apparaît que tant que la table est vide, et la suppression fonctionne.
+- Séance de test remise dans son état d'origine (membre rendu à la table 1, table de test supprimée, 6 affectations / 1 table / 6 membres comme avant).
+
+**Reste à vérifier à l'écran par Jules** :
+1. Les mêmes créations en phase `allocating` (seule la phase `debating` a été testée).
+2. Le comportement après le rafraîchissement automatique de 10 s et depuis un second navigateur.
 3. Faire rejoindre un retardataire avec le code d'une table vide, vérifier qu'il tombe sur le bon numéro de groupe.
 4. Phase débat : déplacer quelqu'un déjà assis, vérifier que la fenêtre s'ouvre chez lui dans les 10 s, que « Rejoindre la table N°X » le déplace réellement, que le champ de code marche, et que « Rester à ma table » ne rouvre pas la fenêtre en boucle.
 5. Vérifier qu'un modérateur en train d'animer ne reçoit pas cette fenêtre (elle n'est montée que dans `ParticipantView`).
