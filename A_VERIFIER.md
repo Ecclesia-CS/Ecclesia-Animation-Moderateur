@@ -15,9 +15,198 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
+
+**Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :
+
+```
+Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+```
+
+**Cause identifiée** : `AllocationPanel.tsx` persiste sa proposition de répartition (`preview`, type `AllocationResult`) en `sessionStorage` (`ecclesia_alloc_preview_<sessionId>`) pour survivre à un changement d'onglet/reload (H14, chantier 25). Le chantier 92 a ajouté deux champs obligatoires à `AllocationResult` (`clusters`, `brokenClusters` — grappes d'appairage). `readPersisted()` ne validait pas la forme de l'objet relu : un `preview` persisté par le code **d'avant le chantier 92** n'a pas ces champs, et le rendu fait `preview.clusters.length` sans garde (ligne ~456) → `undefined.length` → page blanche (pas d'`ErrorBoundary` dans l'app). Troisième occurrence du même défaut de classe : une valeur mise en cache localement (`localStorage`/`sessionStorage`) jamais revalidée contre la forme actuelle du type au moment de la relecture.
+
+**Correctif appliqué** : `readPersisted()` (`src/components/voting/AllocationPanel.tsx`) valide désormais que `preview` a bien `tables`/`diagnostics`/`clusters` en tableaux et `brokenClusters` en nombre avant de le restaurer ; sinon il est traité comme absent (le superadmin doit relancer le calcul — comportement déjà existant quand `preview` est `null`).
+
+**Reste à vérifier humainement** (test navigateur bloqué côté outillage — vérification de politique sur le port local qui n'a jamais abouti ; pas de mot de passe superadmin de toute façon pour cette session) :
+- Recharger l'onglet Allocation d'une séance déjà passée en phase `allocating` **avant** le déploiement de ce correctif (donc avec un `preview` potentiellement pré-chantier-92 en `sessionStorage`) et confirmer qu'il n'y a plus de page blanche — soit l'ancien preview est ignoré et il faut recalculer, soit il est toujours valide et s'affiche normalement.
+- Toujours envisager l'ajout d'un `ErrorBoundary` global (déjà noté au chantier 90 et lors du bug `ai_log`) : ce point précis est corrigé, mais la même classe de crash reste fatale à toute la page tant qu'il n'existe pas de garde-fou.
+
+**✅ Correctif confirmé par Jules le 2026-09-18** sur GitHub Pages : l'onglet Allocation s'ouvre de nouveau normalement.
+
+### Audit de la même classe de défaut (2026-09-18, à la demande de Jules)
+
+Les 39 lectures de `localStorage`/`sessionStorage` de `src/` ont été passées en revue. Les deux tiers sont inoffensives (booléens, `parseInt`, chaînes). Parmi celles qui désérialisent une **forme**, deux sites encore actifs pouvaient reproduire la page blanche — **corrigés dans le même commit, non vérifiés au navigateur** :
+
+1. **`SuperadminScreen.tsx`, `aiLabelMap`** (panneau Assertions) — lisait `ai_rejected_ids_*`, `ai_approved_ids_*` et `merge_log_*` **sans aucun `try/catch`**, pendant le rendu. Trois façons de blanchir l'écran : JSON malformé, valeur non itérable passée à `new Set()`, ou entrée de `merge_log` sans `reject_ids` (`.flatMap` sur non-tableau). Désormais : parse protégé, filtrage des valeurs non conformes.
+2. **`LLMModerationPanel.tsx`, `readMergeLog`/`readMergeProposals`** — `try/catch` présent mais aucune validation de forme, alors que le rendu des « Fusions proposées » déréférence `p.reject_ids.map(...)` et `p.reject_contents[ri]` (ligne ~697). Une proposition persistée par une version antérieure sans ces champs plantait le panneau, donc la page. Désormais : les entrées mal formées sont filtrées à la relecture.
+
+**À vérifier humainement** : ouvrir le panneau **Assertions** puis **Modération IA** d'une séance ayant réellement servi (avec un historique de fusions en `localStorage`) et confirmer que les libellés « rejeté par l'IA / fusionné » et la liste des fusions proposées s'affichent toujours correctement — la correction filtre les entrées invalides, elle ne doit pas faire disparaître les entrées **valides**.
+
+**Risque résiduel connu, non corrigé** (volontairement, pour ne pas élargir le périmètre) : `group_names_*` est relu sans validation dans `ResultsMapScreen.tsx:225` (**côté participant**) et `SuperadminScreen.tsx:1350`, et `ResultsMapScreen.tsx:90` fait `groupNames.find(...)` sans `?.`. Le risque est plus faible que les deux ci-dessus (`GroupNameResult` n'a jamais gagné de champ obligatoire, et `.find` tolère des entrées incomplètes), mais il deviendrait **immédiatement critique** si ce type venait à changer de forme. Idem pour `tableStore.get()` (`lib/storage.ts`), qui fait `JSON.parse(raw) as StoredTable` sans garde.
+
+## Bug prod — page blanche onglet Analyse du superadmin (2026-09-18, 4ᵉ de la série)
+
+**Signalé par Jules** sur la séance d'essai « Test chantier 94 — temps de parole par camp ». Console :
+
+```
+Uncaught TypeError: Cannot read properties of null (reading 'toFixed')
+```
+
+**Cause identifiée — frontière différente des trois précédentes : la base, pas le stockage local.** `AnalysisPanel.tsx:456` faisait `displayAnalysis.silhouette_score.toFixed(3)`, avec le type `LoadedAnalysis` déclarant `silhouette_score: number`. Or les quatre colonnes `silhouette_score`, `pca_variance_explained`, `repness` et `group_consensus` sont **nullables en base**, et les RPC héritées `run_clustering_v1`/`v2` — laissées en base au chantier 37, plus appelées par le frontend mais toujours invocables — créent des lignes `session_analysis` où **les quatre sont `NULL`**. Vérifié en base : sur 8 analyses `status='done'`, exactement une est dans cet état, celle de cette séance d'essai (6 membres, `k_chosen=3`, coordonnées PCA valides). `loadLatestAnalysis` faisait un `return data as LoadedAnalysis` brut, donc ces `null` filaient jusqu'au rendu.
+
+**Correctif appliqué** :
+- `silhouette_score` et `pca_variance_explained` deviennent `number | null` / `[number, number] | null` dans `LoadedAnalysis` — le type reflète enfin la base. `tsc` a alors désigné lui-même les 3 seuls usages non protégés (tous dans `AnalysisPanel.tsx`), désormais affichés « n/c ».
+- `normalizeLoadedAnalysis()` (`lib/analysis.ts`), appliquée aux **deux** points d'entrée (`loadLatestAnalysis`, `loadAnalysisById`), ramène `repness`/`group_consensus` à `{}` et `members` à `[]`. Sans ça, le correctif n'aurait fait que déplacer le crash d'une ligne : `Object.entries(a.group_consensus)` (`analysis.ts:645`, comparaison avant/après du chantier 79) plantait tout autant.
+- 4 tests de régression dans `analysis.test.ts`, bâtis sur la forme exacte relevée en base.
+
+**Reste à vérifier humainement** (pas de mot de passe superadmin pour cette session, donc onglet Analyse inatteignable au navigateur) :
+- Ouvrir l'onglet **Analyse** de la séance « Test chantier 94 » : la page doit s'afficher, avec « Silhouette : n/c » et « Variance PCA : n/c ».
+- Ouvrir l'onglet Analyse d'une séance **analysée normalement** (via le bouton du front) et confirmer que Silhouette et Variance PCA affichent toujours leurs vraies valeurs — la correction ne doit rien masquer là où la donnée existe.
+- Si la comparaison avant/après débat (chantier 79) est utilisée sur cette séance d'essai, vérifier qu'elle n'affiche pas de mouvements fantaisistes : `group_consensus` y est vide, donc la liste des mouvements doit être vide, pas erronée.
+
+**Constat de fond** : quatre pages blanches en trois jours, toutes dues à un `as T` sur une donnée non vérifiée (trois via `localStorage`/`sessionStorage`, une via la base). La règle est désormais dans `CLAUDE.md`, et le garde-fou a été posé — voir l'entrée suivante.
+
+## Filet `PanelErrorBoundary` — superadmin (2026-09-18) — ✅ vérifié au navigateur
+
+Décidé par Jules après les quatre pages blanches : « errorbournary pour le superadmin est une bonne idée ». Nouveau composant [`src/components/PanelErrorBoundary.tsx`](./src/components/PanelErrorBoundary.tsx), posé à **6 endroits** de `SuperadminScreen.tsx` — les cinq panneaux qui ont produit ou failli produire une page blanche (Assertions, Modération IA, Analyse, Allocation, Comparaison avant/après) plus un dernier recours autour de `SessionDetail` (barre de phase, vues Groupes et Tables).
+
+Le message d'erreur est affiché **à l'écran**, volontairement : c'est ce que Jules peut recopier pour diagnostiquer sans ouvrir la console — ce message est ce qui a permis de viser juste sur chacune des quatre pannes. Le `console.error` est conservé en plus (trace complète + `componentStack`).
+
+**Vérifié au navigateur le 2026-09-18** via une route de test temporaire (`#boundarytest`, **retirée** après vérification — `grep boundarytest src/` ne retourne rien) montant un composant qui lève `Cannot read properties of null (reading 'toFixed')`, soit l'erreur réelle du jour :
+- Le texte placé **avant et après** le filet reste visible → la page n'est plus démontée.
+- L'encadré affiche « Le panneau « Analyse » n'a pas pu s'afficher » et le message d'erreur exact.
+- React confirme de lui-même en console : « React will try to recreate this component tree from scratch using the error boundary you provided, PanelErrorBoundary ».
+- `console.error` émet bien `[PanelErrorBoundary] Analyse : …` avec la pile de composants.
+- Le bouton « ↻ Réessayer » re-tente le rendu ; sur une erreur permanente il re-capture proprement, sans blanchir la page.
+
+**Limite à connaître, inhérente à React** : un `ErrorBoundary` ne capture que les erreurs de **rendu** et de cycle de vie. Une exception levée dans un gestionnaire d'événement (`onClick`) ou dans une promesse non attrapée passe à travers — par exemple `LLMModerationPanel.tsx:356` (`p.reject_contents[i]` dans un handler) n'est pas couvert par ce filet, seulement par la validation à la relecture ajoutée le même jour. **Ce n'est donc pas une raison de relâcher les gardes à la lecture des données.**
+
+**Reste à vérifier humainement** : ouvrir l'écran superadmin d'une séance réelle et confirmer que les six panneaux s'affichent **normalement** (le filet ne doit rien changer en l'absence d'erreur). Le cas d'erreur, lui, est déjà vérifié ci-dessus.
+
+**Non traité, volontairement** : le parcours participant n'a reçu aucun filet — Jules a explicitement cadré la demande sur le superadmin. Les écrans participant restent donc exposés au même mécanisme (page entièrement blanche sur une exception de rendu), notamment `ResultsMapScreen` dont le risque résiduel `group_names` est documenté plus haut.
+
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
+
+## Chantier 81 (reste du chantier 93) — déclaration modérateur au moment de la reconquête
+
+Seul point du chantier 93 **non joué à l'écran** : il demande le Code Ecclesia, que la session n'avait pas. Vérifié par lecture du code uniquement — `ModeratorDeclareField` est bien présent sur `PseudoForm`, `VotingEntryForm` et l'écran de confirmation de présence (posé par le chantier 73).
+
+À faire : cocher « Je suis modérateur de cette séance » + Code Ecclesia lors d'une **reconquête** (nom + code de rappel depuis un autre appareil), et vérifier que `session_members.is_moderator` passe bien à `true` sur la ligne reprise. Un mot de passe erroné ne doit pas faire échouer la reconnexion elle-même, seulement la déclaration (écran d'avertissement dédié).
+
+Note : le chantier 95 a supprimé entre-temps l'onglet « Modérateur » de l'accueil. Il ne reste que la déclaration à l'inscription (`ModeratorDeclareField`) et `ModeratorClaimModal` pendant le vote et le débat.
+
+## Chantier 94 (2026-09-16, validé 2026-09-18) — vue modérateur : temps de parole cumulé par camp — ✅ vérifié au navigateur par Jules, chantier clos
+
+Fichiers [`supabase/migrations/20260916_chantier94_camp_speaking_times.sql`](./supabase/migrations/20260916_chantier94_camp_speaking_times.sql) (RPC `get_table_camp_speaking_times`) + [`supabase/migrations/20260916_chantier94b_camp_speaking_threshold_5min.sql`](./supabase/migrations/20260916_chantier94b_camp_speaking_threshold_5min.sql) *(nom donné à l'entrée de migration côté base uniquement — le fichier local a été mis à jour en place, un seul fichier `.sql` fait foi dans le dépôt, cf. note ci-dessous)* — appliquées en base par cette session, [`src/components/CampSpeakingTimes.tsx`](./src/components/CampSpeakingTimes.tsx) (nouveau composant, isolé pour que le polling 5 min ne re-rende pas tout `ModeratorView`), [`src/screens/ModeratorView.tsx`](./src/screens/ModeratorView.tsx) (intégration juste avant `ParticipantsTable`), [`src/lib/voting.ts`](./src/lib/voting.ts) + [`src/lib/types.ts`](./src/lib/types.ts) (wrapper + types `TableCampSpeakingTime(s)`).
+
+**Ce qui change** : le modérateur voit désormais, à côté des files d'attente, le temps de parole cumulé par camp idéologique (clustering pol.is de la séance). Trois garde-fous de confidentialité, tous côté RPC (`SECURITY DEFINER`, jamais de composition individuelle envoyée au client) :
+- auth par `is_table_moderator` (pas `is_table_participant` comme `get_table_opinion_summary`/chantier 20 — info plus sensible car elle bouge en direct) ;
+- un camp n'apparaît que s'il a **≥ 2 personnes à la table** (même sous-requête que le chantier 20) ;
+- un camp n'apparaît que si son **temps cumulé ≥ 300 s (5 min)** — confirmé par Jules le 16/09 (la première version de cette session avait mis 180s par erreur d'interprétation, corrigé le même jour) ;
+- floutage 5 minutes assuré côté client par un `setInterval` de polling (`CampSpeakingTimes.tsx`), jamais par la RPC elle-même qui renvoie toujours l'état exact au moment de l'appel — donc la fraîcheur perçue dépend entièrement du rythme d'appel client, à ne jamais réduire sans re-discuter le risque de désanonymisation.
+
+**⚠️ Distinction à ne pas perdre, source de la confusion du 16/09** : les 300s ci-dessus sont DEUX choses séparées qui partagent la même valeur, pas une seule.
+- Le **floutage** (« l'horloge des camps se met à jour toutes les 5 minutes », consigne d'origine de Jules) = la **fréquence de rappel de la RPC côté client**, gérée par `CampSpeakingTimes.tsx` seul. La RPC elle-même ne sait rien du floutage — appelée deux fois à 10 secondes d'écart, elle renvoie deux valeurs différentes. C'est uniquement parce que le client ne rappelle pas plus souvent que le modérateur ne voit jamais ce mouvement.
+- Le **seuil minimum avant affichage** (garde-fou complémentaire ajouté par cette session, validé par Jules) = la durée cumulée qu'un camp doit atteindre avant d'apparaître **du tout**, y compris à son tout premier affichage. Sans lui, le tout premier tour de parole désignerait son camp sans ambiguïté dès la première actualisation, floutage ou pas.
+Les deux sont maintenant alignés à 300s par choix de Jules (plus de marge que les 180s initiaux), mais ce sont deux mécanismes indépendants dans le code — ne jamais fusionner leur logique si l'un des deux doit un jour changer seul.
+
+**Séance de test créée en base par cette session** pour la recette navigateur (données fictives, à supprimer une fois validée — voir requête de purge en bas de cette section) :
+- Séance `Test chantier 94 — temps de parole par camp`, join_code séance `C94S01`, phase `debating`, `moderation_policy = 'open'`.
+- Une seule table, join_code **`C94A01`**, `leaderless = true` (pas encore de modérateur — c'est fait exprès, voir étape 1 ci-dessous), 6 membres présentiels répartis sur 3 camps fictifs (`session_analysis` déjà `status = 'done'`, `analysis_members` posés à la main, **pas** un vrai calcul PCA/k-means — suffisant pour tester l'affichage, pas pour juger la qualité d'un clustering réel) :
+  - **Camp Nord** (`group_id = 0`) — Alice, Bruno, Chloé. Temps de parole déjà cumulé : Alice 6 min (tour terminé) + Bruno 2 min (tour terminé) + un tour d'Alice **en cours** au moment de la création (`current_speaker_id` posé sur elle) → total ≈ 8-9 min, **doit s'afficher** (≥2 personnes, ≥5 min).
+  - **Camp Sud** (`group_id = 1`) — David, Emma. Temps cumulé : David 1 min 40s seulement → **ne doit PAS s'afficher** (2 personnes au camp, mais sous le seuil de 5 min — teste le garde-fou de temps).
+  - **Camp Est** (`group_id = 2`) — Farid seul. Temps cumulé : 10 min → **ne doit PAS s'afficher** (au-dessus du seuil de temps, mais un seul membre du camp à la table — teste le garde-fou des 2 personnes).
+  - 3 assertions approuvées avec votes contrastés par camp (pour que "Camps" / assertions clivantes, chantier 20, aient aussi de quoi s'afficher).
+
+**Pour te connecter en modérateur** : page d'accueil → « Rejoindre ou reprendre une table » → code de table **`C94A01`** → un pseudo au choix → cocher **« Je suis modérateur de cette table »** → renseigner le **Code Ecclesia** → Rejoindre. Ce chemin passe par `claim_table_as_moderator`, qui pose `created_by = auth.uid()` sur cette table — condition (a) d'`is_table_moderator()`, donc suffisant pour voir le nouveau bloc sans toucher à `session_members.is_moderator`.
+
+**Purge à faire après validation** (irréversible, ne pas la lancer avant que Jules confirme avoir fini de tester) :
+```sql
+DELETE FROM sessions WHERE join_code = 'C94S01';
+-- CASCADE supprime tables, session_members, table_assignments, participants,
+-- speaking_turns, assertions, assertion_votes, session_analysis/analysis_members
+-- rattachés (toutes les FK vers sessions/tables/session_members sont ON DELETE CASCADE).
+```
+
+**Vérifications faites par cette session** : `tsc --noEmit` et `npm run build` propres, app chargée au navigateur sans erreur (page d'accueil).
+
+**✅ Vérifié au navigateur par Jules le 2026-09-18**, sur la séance de test ci-dessus, servie en local depuis ce worktree (`npm run dev`, port 5174 — 5173 déjà pris par une autre session) : le bloc « Temps de parole par camp » affiche **uniquement Camp Nord** (« Priorité aux transports », ~2283 min), Camp Sud et Camp Est restent invisibles comme attendu — les deux garde-fous (≥2 personnes, ≥5 min cumulées) confirmés fonctionnels en conditions réelles, pas seulement en SQL.
+
+**Un bug a été trouvé et corrigé pendant cette recette** : le composant avalait silencieusement toute erreur de la RPC (`.catch(() => {})`), sans rien logger — la toute première tentative de Jules (avant correction) n'affichait rien et ne montrait aucune erreur en console, rendant le diagnostic impossible depuis le navigateur seul. Cause racine réelle de ce premier échec : `tables.created_by` avait changé entre deux sessions anonymes (changement de port de dev 5173→5174 = nouvelle session `signInAnonymously`, donc nouvel `auth.uid()`) — `is_table_moderator()` refusait donc légitimement l'accès pour l'ancien uid. Le `.catch` a été corrigé pour logger l'erreur en console (`src/components/CampSpeakingTimes.tsx`), ce qui aurait immédiatement pointé vers la vraie cause. **Leçon générale** : ne jamais avaler une erreur RPC sans au moins un `console.error`, même dans un composant qui doit rester silencieux visuellement — cf. la même leçon déjà tirée pour les canaux Realtime (`privateChannel()`, chantier 59).
+
+**Non re-testés explicitement par Jules, considérés couverts par construction plutôt que rouverts** : absence de mouvement en direct du chiffre affiché (pas de `useLiveMs` dans le composant — revu dans le code, cohérent avec le pattern du reste du projet) ; invisibilité du bloc pour un participant non-modérateur (conditionné par `isModerator` côté client ET par `is_table_moderator` côté RPC — double garde déjà vérifiée indépendamment par le test SQL direct de cette session). Si un doute apparaît un jour sur l'un des deux, le rouvrir ici plutôt que supposer.
+
+**Ménage restant, non fait par cette session** : la séance de test (`C94S01`/`C94A01`) est toujours en base — la purge SQL ci-dessus n'a pas été relancée, à faire quand Jules confirme ne plus en avoir besoin.
+
+**Reste à vérifier humainement, avec la séance de test ci-dessus** :
+1. Se connecter comme modérateur de la table `C94A01` (voir chemin ci-dessus). Le bloc « Temps de parole par camp » doit apparaître avec **uniquement Camp Nord** (Camp Sud sous le seuil de temps, Camp Est sous le seuil de personnes).
+2. Vérifier que le nombre affiché ne bouge **pas** en direct (pas de `useLiveMs` ici) — seulement après un rechargement ou l'échéance du polling 5 min (réduire temporairement `POLL_INTERVAL_MS` dans `CampSpeakingTimes.tsx` pour un test rapide, ou attendre 5 min).
+3. Vérifier qu'un participant non-modérateur de cette même table, ou le modérateur d'une **autre** table, n'a pas accès à ces données (le bloc ne doit simplement pas apparaître côté participant ; `isModerator` conditionne déjà son rendu côté client, et la RPC refuse aussi côté serveur).
+4. Confirmer que 5 minutes (300s) convient bien comme seuil final pour les deux mécanismes (floutage ET minimum avant affichage) — décidé le 16/09, à ne rouvrir que si l'usage réel montre un problème.
+## Hors chantier (2026-09-18) — page blanche sur l'onglet Analyse du superadmin — ✅ corrigé
+
+Bug **antérieur au chantier 95 et indépendant de lui**, trouvé en voulant vérifier la vue superadmin : `AnalysisPanel` lisait `silhouette_score.toFixed()`, `pca_variance_explained[0]`, `Object.entries(repness)` et `Object.entries(group_consensus)` sans garde, alors que ces quatre colonnes de `session_analysis` sont nullables. L'analyse du 2026-09-16 (séance « Test chantier 94 ») les a toutes les quatre à NULL : le panneau plantait, et avec lui **tout l'écran superadmin**, sans message — page blanche.
+
+Corrigé dans `src/components/AnalysisPanel.tsx` : affichage « — » pour les deux métriques absentes, listes vides pour les deux dictionnaires absents. Vérifié à l'écran : l'onglet s'affiche à nouveau.
+
+**Reste à comprendre (pas traité ici)** : pourquoi cette analyse a un `status = 'done'` avec quatre colonnes NULL. Soit le calcul a échoué à mi-parcours sans repasser le statut en erreur, soit un chemin d'écriture ne remplit pas ces colonnes. Le garde-fou évite la page blanche, il ne répare pas la donnée.
+
+## Chantier 95 (2026-09-18) — ménage des portes d'entrée + tables créées à la main — ✅ SQL appliqué en base
+
+Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`](./supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql), appliquée par cette session (règle du 07/09 : une session de chantier peut appliquer sa propre migration). Corps des fonctions réécrites comparés à `pg_get_functiondef` en base avant écriture, comme l'exige `CLAUDE.md`.
+
+**Ce qui change en base** :
+- Nouvelle colonne `tables.table_number` (le numéro n'existait que dans `table_assignments`, donc une table vide n'en avait aucun). 18 tables existantes rattrapées.
+- `apply_allocation` la renseigne, et la remet à NULL sur les tables qu'elle détache.
+- Nouvelle RPC `admin_create_session_table` — table vide, rattachée, déjà numérotée.
+- `move_member_to_group` résout la table cible par `tables.table_number` d'abord (sinon une table vide était une cible impossible).
+- `sync_table_assignment` respecte ce numéro au lieu de recalculer `MAX + 1`.
+- `list_session_tables` expose `table_number` (DROP + CREATE : changement de type de retour).
+
+**Ce qui change côté écran** :
+- Superadmin, vue Groupes : boutons « + Table animée » / « + Table sans modérateur » (allocation **et** débat) ; les tables vides apparaissent comme groupes en attente ; suppression possible sur une table vide.
+- Les deux accordéons de l'onglet Tables (« Tables rattachées », « Tables disponibles à rattacher ») sont supprimés, ainsi que les onglets « Modérateur » / « Rejoindre » / « Créer » de l'accueil.
+- Participant en phase débat : nouvelle fenêtre `TableChangeModal` quand le superadmin le déplace.
+
+**Vérifié par cette session** :
+- `tsc` et `npm run build` passent.
+- Accueil rendu dans le navigateur : plus d'onglets, liste des séances et liens conservés.
+- Test SQL sur séance jetable : une table vide numérotée 2 rejointe par son code donne bien l'affectation n°2 (et non un numéro neuf). Jeu de test supprimé, vérifié à zéro ligne.
+
+**Vérifié à l'écran le 2026-09-18** (un mot de passe superadmin était déjà en `sessionStorage` sur le navigateur de test, une fois la page blanche de l'onglet Analyse corrigée — voir l'entrée juste au-dessus), sur la séance « Test chantier 94 », en phase `debating` :
+- « + Table animée » crée bien la table N°2, vide, numérotée, avec son code affiché et la mention d'attente.
+- Un glisser-déposer d'un membre vers cette table vide fonctionne : affectation `table_number = 2`, `table_id` renseigné (vérifié en base).
+- Le bouton « Supprimer » n'apparaît que tant que la table est vide, et la suppression fonctionne.
+- Séance de test remise dans son état d'origine (membre rendu à la table 1, table de test supprimée, 6 affectations / 1 table / 6 membres comme avant).
+
+**Recette complète jouée le 2026-09-18 sur une séance jetable** (« ZZ test chantier 95 », créée depuis le superadmin, menée de `draft` à `debating`, puis **entièrement supprimée** — vérifié : 0 ligne restante dans `sessions`, `tables`, `session_members`, `table_assignments`, `participants`, `entry_responses`) :
+- Phase `allocating` : « Calculer la répartition » puis « Appliquer » créent la table N°1 avec `tables.table_number = 1` — la migration fonctionne sur le chemin nominal.
+- « + Table animée » en phase `allocating` crée la table N°2, vide, numérotée, avec son code.
+- Inscription d'une vraie participante par le parcours normal (`#session/<code>`, onboarding 4 questions), passage en `debating`, elle rejoint sa table.
+- **Déplacement pendant le débat** : la fenêtre « Changement de table » s'ouvre chez elle en moins de 10 s, avec le bon numéro. « Rejoindre la table N°2 » la déplace réellement (ligne `participants` sur la nouvelle table, vérifiée en base). Elle ne se rouvre pas une fois arrivée.
+- « Rester à ma table » ferme la fenêtre et elle ne réapparaît pas (observé 20 s).
+- Le champ « rejoindre une autre table avec son code » est présent ; le bouton principal a été testé, pas ce champ-là.
+
+**Deux constats de ce test, à trancher par Jules** :
+1. **La modale d'accueil du débat masque la fenêtre de changement.** Après un changement de table, « Bienvenue dans le débat » et les règles se réaffichent (elles sont mémorisées par identifiant de table), et ma garde anti-superposition met la fenêtre de changement en attente derrière elles. Une fois l'accueil fermé, elle s'affiche normalement. Comportement acceptable mais à confirmer : faut-il plutôt faire passer la fenêtre de changement devant ?
+2. **Le glisser-déposer vers une table vide n'a pas pu être rejoué en phase `allocating`** — le clic-glisser automatisé ne s'accrochait pas ce jour-là, alors que le même geste a fonctionné du premier coup en phase `debating` quelques minutes plus tôt (affectation écrite en base, vérifiée). Le code de dépôt ne dépend pas de la phase ; c'est très probablement une limite de l'automatisation, mais ça reste à confirmer à la main.
+
+**Reste à vérifier à l'écran par Jules** :
+1. Le glisser-déposer vers une table vide en phase `allocating` (voir le constat 2 ci-dessus).
+2. Le comportement depuis un second navigateur, et l'arrivée d'un retardataire par le code d'une table vide créée à la main.
+3. Faire rejoindre un retardataire avec le code d'une table vide, vérifier qu'il tombe sur le bon numéro de groupe.
+4. Phase débat : déplacer quelqu'un déjà assis, vérifier que la fenêtre s'ouvre chez lui dans les 10 s, que « Rejoindre la table N°X » le déplace réellement, que le champ de code marche, et que « Rester à ma table » ne rouvre pas la fenêtre en boucle.
+5. Vérifier qu'un modérateur en train d'animer ne reçoit pas cette fenêtre (elle n'est montée que dans `ParticipantView`).
+6. Écran d'allocation participant : le message renvoyant vers l'organisateur pour la déclaration modérateur s'affiche bien.
+7. Relancer une allocation complète après avoir créé des tables à la main, pour confirmer que `apply_allocation` renumérote proprement.
+
+**⚠️ Conséquence repérée en mergeant le chantier 94 (2026-09-18), à trancher** : la recette du chantier 94 dit « page d'accueil → *Rejoindre ou reprendre une table* → code `C94A01` » — **cet onglet n'existe plus**. Il était le seul endroit où un membre **déjà inscrit à la séance** pouvait reprendre par son code une table précise en tant que modérateur (`claimTableAsModerator`). Ce qui reste : un visiteur **non inscrit** garde ce chemin (formulaire de rattrapage en phase débat, avec la case « Je suis modérateur de cette table ») ; un membre inscrit peut se déclarer modérateur de la *séance* (`ModeratorClaimModal`, qui l'assoit à une table animée sans modérateur) ou être nommé par le superadmin. Ce qui manque : reprendre **une table précise, choisie par son code**, quand on est déjà inscrit. **✅ Corrigé le 2026-09-18**, sur accord de Jules : le formulaire « Je veux rejoindre une autre table » (`TableAssignmentCard`) porte désormais une case « Je suis modérateur de cette table » qui révèle un champ Code Ecclesia ; le bouton devient « Reprendre cette table » et appelle `claim_table_as_moderator` via `handleSwitchAsModerator` (`AllocatingScreen`), au lieu de `switch_table`. Les refus côté serveur sont inchangés (code invalide, table d'une autre séance, table ayant déjà un modérateur).
+
+**Vérification partielle seulement** : sur une séance jetable menée jusqu'en `debating` (supprimée depuis, vérifiée à zéro ligne), la case s'affiche bien dans le formulaire. **Le reste n'a pas pu être joué** — le panneau navigateur a cessé de transmettre les clics en fin de session, et surtout le **Code Ecclesia n'est pas connu d'une session Claude**, donc le chemin nominal (reprise réussie) est invérifiable sans Jules. À dérouler à la main : cocher la case → le champ Code Ecclesia apparaît et le bouton devient « Reprendre cette table » ; code invalide → message d'erreur sans déplacement ; code valide sur une table sans modérateur → reprise effective, `isModerator` vrai à l'arrivée ; code valide sur une table déjà modérée → refus explicite.
+
+**Point resté ouvert, décidé avec Jules** : la déclaration modérateur reste fermée pendant la phase `allocating` (elle assoit d'office son auteur à une table animée sans modérateur, ce qui remanierait la répartition pendant l'examen).
 
 ## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
 
@@ -38,6 +227,24 @@ Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supab
 
 Si les deux passent : `search_path = public, extensions` ne casse pas `crypt()` en usage réel, confirmant le test indirect déjà fait par cette session. Si l'un échoue avec un message qui n'est pas un refus métier normal (ex. erreur de fonction/schéma introuvable), c'est le piège du plan qui s'est produit — ne pas merger, revenir ici.
 
+## Bug prod — page blanche onglet « En direct » du superadmin (2026-09-16)
+
+**Signalé par Jules** : clic sur l'onglet « 🟢 En direct » → page blanche, F5 ne répare rien, un nouvel onglet ouvert depuis l'onglet cassé reproduit le crash (mais `#session/…` / participant fonctionnent), une fenêtre de navigation privée répare. Reproduit sur Brave, console fournie :
+
+```
+TypeError: Cannot read properties of undefined (reading 'total_tokens')
+    at $S (index-CdFn4sC1.js:210:...)   ← Array.reduce
+```
+
+**Cause identifiée** : `LLMModerationPanel.tsx` (`sessionTokens = log.reduce((s, e) => s + e.usage.total_tokens, 0)`, ligne ~570) suppose que chaque entrée de `readAiLog()` a un champ `usage` bien formé. `readAiLog()` (`src/lib/aiUsage.ts`) parsait le JSON de `localStorage['ai_log_<sessionId>']` sans validation — une entrée écrite par une version antérieure du code (avant l'ajout du suivi de tokens F19-F22) ou tronquée par un quota `localStorage` plein suffit à faire planter tout le rendu. Comme **aucun `ErrorBoundary` n'existe dans l'app**, cette exception fait disparaître toute la page (pas seulement le panneau IA) — d'où la page blanche plutôt qu'une simple section cassée. `localStorage` (contrairement à `sessionStorage`) persiste entre onglets et redémarrages du navigateur, ce qui explique pourquoi F5 et un nouvel onglet reproduisaient le crash, et pourquoi une fenêtre privée (stockage vierge) le contournait.
+
+**Correctif appliqué** : `readAiLog()` filtre désormais les entrées dont `usage` n'est pas un objet avec les 4 champs numériques attendus, au lieu de les laisser passer telles quelles.
+
+**Reste à vérifier humainement** (je n'ai pas pu reproduire : pas d'accès au `localStorage` de Brave où le bug a été constaté, et je n'entre jamais le mot de passe superadmin moi-même) :
+- Sur le navigateur où le bug a été constaté, recharger l'app **après déploiement du correctif** et confirmer que l'onglet « En direct » s'ouvre normalement sans avoir à vider le `localStorage` à la main.
+- Si l'entrée corrompue est toujours là après coup (filtrée mais jamais purgée), vérifier que le panneau « Tokens cette séance » affiche un total simplement amputé de l'entrée invalide plutôt qu'une erreur.
+- Envisager séparément l'ajout d'un `ErrorBoundary` global : ce bug précis est corrigé, mais la même classe de crash (une exception de rendu quelconque) reste fatale à toute la page tant qu'il n'existe pas de garde-fou — sujet distinct, pas traité ici faute d'accord explicite de Jules sur la portée.
+
 ## Chantier 90 (2026-09-16) — sortie de débat : passage en postvote optionnel — ✅ vérifié au navigateur
 
 Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante" doit demander si on va en `post_voting` ou directement en `closed`.
@@ -53,6 +260,53 @@ Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante
 4. Retour en arrière (pastille "Aller en Débat" depuis `closed`) puis "Passer en Post-vote →" → choix "Post-vote (revote possible)" → phase passe à `post_voting`, `questionnaire_forced_at` remis à jour (nouveau timestamp, RPC rappelée). **Confirmé.**
 
 Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar` déjà existant) : le rendu participant du questionnaire forcé lui-même, et l'affichage du bouton "↻ Revoter" en `post_voting` — déjà couverts par le chantier 89.
+
+## Chantier 92 (2026-09-16) — appairage entre participants — ✅ migration appliquée · ✅ parcours participant vérifié au navigateur · ⚠️ étapes superadmin (3, 4) non jouées · mergé sur `main` après accord de Jules
+
+Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabase/migrations/20260916_chantier92_appairages.sql). **Appliquée par cette session.** Elle ne crée que des objets neufs et **ne réécrit aucune fonction existante**. `get_allocation_inputs` n'est pas touchée : les liens passent par une RPC admin séparée.
+- Table `member_pairings` : RLS en lecture self-only, aucune écriture directe.
+- `set_my_pairings(session_id, pseudos[])` : remplace les choix (2 au plus), n'est autorisée qu'en phase `voting`, `allocating` ou `debating`. Elle rattache un retardataire sans table à la table d'une personne citée réciproquement.
+- `get_my_pairings(session_id)`.
+- `get_session_pairings_admin(password, session_id)` : ne renvoie que les liens **réciproques**.
+
+**Retour de Jules (16/09)** : décisions validées (« très bonnes initiatives »). Il demande que la réciprocité soit **explicite à la proposition et après le clic** : encadré « ⚠️ Ça ne marche que dans les deux sens » à la question 4 et dans la modale, écran « Tes binômes » après validation de l'onboarding, et bandeau « Enregistré, mais pas encore actif » tant qu'un lien n'est pas réciproque. Tableau comparatif accepté, merge autorisé.
+
+**Précision sur les passifs** : un passif appairé suit **toujours** sa grappe, sans condition. Effets de bord possibles : sa table peut dépasser 30 personnes, ou il peut être placé en public à une table sans modérateur si ses binômes actifs y sont. Seul le regroupement des **actifs** peut échouer : quand les tables visées n'ont plus assez de personnes seules à échanger. La grappe reste alors séparée, avec un avertissement. Jamais observé sur le banc.
+
+**Décisions prises** :
+1. **Réciprocité obligatoire.** Une composante de plus de 3 personnes est découpée en gardant les liens les plus anciens, sans hasard.
+2. **Glisser-déposer superadmin** : la grappe entière se déplace, jamais de refus.
+3. **Saisie en texte libre**, résolue côté serveur sans tenir compte de la casse. Pas d'autocomplétion, parce que les pseudos sont des noms réels.
+
+**Vérifié par cette session** :
+- `tsc`, `npm test` (109 tests, dont 7 nouveaux sur les grappes) et `npm run build` passent.
+- SQL dans une transaction annulée :
+  - pseudo trouvé et pseudo introuvable ;
+  - lien non réciproque, puis réciproque ;
+  - plafond de 2 (le 3e pseudo est ignoré) ;
+  - retardataire en `allocating` rattaché au groupe de la personne citée.
+- Banc [`bench/chantier-92-compare.test.ts`](./bench/chantier-92-compare.test.ts) sur les 9 scénarios du 91, avec 0 %, 20 % et 40 % d'actifs appairés en binômes **du même camp** (cas le plus défavorable) :
+  - **0 grappe cassée** ;
+  - **aucune table rendue non viable** ;
+  - **manque d'anciens identique** ;
+  - seul le degré d'hétérogénéité minimal baisse, de 0,60 à 0,36 au pire (60 part., 40 % appairés), et reste au-dessus du seuil de viabilité.
+  ⚠️ Changement algorithmique : **tableau à valider par Jules avant merge**.
+
+**Recette navigateur jouée le 2026-09-16** (Browser pane, séance de test `TST92X` créée puis supprimée ; la seconde identité « Bob » était simulée en SQL, faute de deuxième session anonyme) :
+- ✅ Question 4/4 affichée avec l'encadré de réciprocité. En citant « bob test92 » (casse différente) et un pseudo inexistant, l'écran « Tes binômes » affiche « en attente que cette personne te cite aussi », « personne introuvable » et le bandeau « pas encore actif ».
+- ✅ Bob cite Alice en retour. Outils du vote → « Mes binômes » affiche « vous vous êtes cités tous les deux ».
+- ✅ Retardataire en `allocating` sans table, Bob au groupe 1. « Enregistrer » affiche « placé·e au groupe 1 ». En `debating`, l'écran d'annonce affiche « Table 1 » et le lien « 🔗 Mes binômes ». *Rappel du comportement existant : en `allocating`, le participant reste sur l'écran de vote avec un bandeau ; l'annonce de table n'apparaît qu'en `debating`.*
+- ✅ Aucune erreur console.
+- ⚠️ **Non joué : étapes 3 et 4 (superadmin)**, faute du mot de passe superadmin. Couvert seulement par les tests unitaires et `tsc`.
+- ⚠️ Non joué : étape 6 (Outils à la table).
+
+Recette complète d'origine (2 à 3 identités) :
+1. En `voting`, faire l'onboarding avec A qui cite B à la 4e question. Faire citer A par B depuis Outils → « Mes binômes ». B doit voir « vous vous êtes cités tous les deux ».
+2. Un pseudo mal orthographié doit afficher « personne introuvable ».
+3. Superadmin, `AllocationPanel` : la proposition affiche « 🔗 1/1 grappe réunie », et A et B sont à la même table.
+4. Onglet Groupes : A et B portent le badge 🔗. Glisser A vers une autre table doit déplacer A **et** B. Le compteur de grappes reste à jour.
+5. C arrive en `allocating` sans table. C cite A et A cite C : l'écran d'annonce de C affiche la table de A (lien « 🔗 Mes binômes » sous la carte, relecture ≤ 20 s).
+6. En débat, à la table, vérifier que Outils → « Mes binômes » est présent.
 
 ## Chantier 91 (2026-09-16) — allocation : les passifs deviennent du public — ✅ tableau avant/après **validé par Jules et mergé sur `main` le 2026-09-16** — recette navigateur restant à jouer
 
@@ -1031,6 +1285,35 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
+
+- [x] **Chantier 93 — identité du participant : le code de rappel devient la preuve (absorbe 55, 81, 82)** *(2026-09-18, vérifié au navigateur le 2026-09-18, mergé sur `main`)* — reste ouvert : la déclaration modérateur à la reconquête (chantier 81), voir la section du même nom plus haut.
+
+  Migration [`supabase/migrations/20260918_chantier93_identite_participant.sql`](./supabase/migrations/20260918_chantier93_identite_participant.sql), appliquée par cette session (règle du 07/09), plus un correctif appliqué juste après (`regenerate_reclaim_code_moderator` ciblée par **pseudo** et non par `member_id` : `session_members` est en self-only, un modérateur n'a aucun `member_id` sous la main — la surcharge `(uuid, uuid)` a été `DROP`ée pour ne pas laisser deux signatures ambiguës).
+
+  **Décisions de Jules (16 et 18/09)** : code remis à toute première inscription quelle que soit la phase ; reconnexion = pseudo **ET** code, toujours les deux ; code **haché** (bcrypt), donc illisible après coup → régénération et non rappel ; unicité du code dans la séance ; 10 échecs par couple (séance, pseudo) → 1 minute de blocage ; renommage libre, propagé ; après la clôture personne n'a besoin de se reconnecter, donc la purge du chantier 49 reste.
+
+  **Ce qui change en base** : `session_members.reclaim_code` (clair) → `reclaim_code_hash` (bcrypt) ; nouvelle table `reclaim_attempts` (RLS activée, zéro policy, écrite uniquement par des SECURITY DEFINER) ; nouvelles fonctions `gen_member_reclaim_code`, `reclaim_block_reason`, `record_reclaim_failure`, `clear_reclaim_attempts`, `rename_session_member`, `regenerate_reclaim_code_admin`, `regenerate_reclaim_code_moderator` ; réécriture de `register_session_member`, `confirm_attendance`, `reclaim_prevoting_member`, `claim_moderator_status`, `set_session_phase` (corps repris de la définition **courante en base** via `pg_get_functiondef`, comme l'exige la règle SQL).
+
+  **Point de conception à connaître avant d'y toucher** : les branches « mauvais code » et « trop de tentatives » **ne lèvent pas**, elles renvoient `{"error": "..."}`. Un `RAISE` annulerait la transaction — donc l'incrément du compteur de tentatives avec, et le blocage ne se déclencherait jamais. Côté TS, `unwrapIdentity()` (`src/lib/voting.ts`) rétablit le `throw` attendu par React. Ne pas « simplifier » en remettant un `RAISE`.
+
+  **Recette jouée à l'écran par cette session** (Browser pane, `ecclesia-dev`, séance de test `C93TEST` en phase `voting`, supprimée depuis) :
+  1. Inscription « Alice Martin » en phase **présentiel** → écran code de rappel affiché avec un code (2692). ✅ Avant ce chantier, aucun code n'était remis hors `pre_voting`.
+  2. `localStorage` vidé + rechargement (simulation d'un autre appareil) → saisie du **nom seul** → refus avec le message voulu par Jules : « Ce nom est déjà utilisé dans cette séance. Si c'est bien toi, reconnecte-toi avec ton code de rappel à 4 chiffres. Sinon, choisis un autre nom. » ✅
+  3. Nom + **mauvais** code → « Code de rappel invalide. », et `reclaim_attempts.fail_count = 1` en base (donc l'échec survit bien à la transaction). ✅
+  4. 9 échecs de plus → `blocked_until` posé ; l'écran affiche « Trop de tentatives. Réessaie dans 47 secondes. » **même avec le bon code**. ✅
+  5. Blocage effacé, nom + **bon** code → « Bienvenue Alice Martin ! Tes votes ont bien été récupérés. » ✅
+  6. Outils → « Changer mon nom » → Alice Dupont, puis Alice Renommee : nom à jour à l'écran et dans `session_members`, **et** `session_sources.pseudo` suit (propagation vérifiée en base sur une source créée avant le renommage). ✅
+  7. Renommage vers un nom déjà pris (« Bob Durand ») → « Ce nom est déjà pris dans cette séance. » ✅
+  8. `regenerate_reclaim_code_moderator` (identité modérateur simulée en base via `request.jwt.claims`) : refus « Ce participant n'est pas inscrit à cette table » tant que la cible n'est pas assise ; succès une fois assise (nouveau code 4898, validé ensuite par `crypt()`) ; refus « Tu n'animes pas cette table » quand l'appelant n'est pas le modérateur. ✅
+  9. Séance passée en `closed` : `confirm_attendance` renvoie « La séance est clôturée : la reconnexion n'est plus possible. » ✅
+  10. `tsc --noEmit`, `npm run build` et la suite de tests (109 passés) au vert. ✅
+
+  **Reste-à-vérifier levé le 2026-09-18** — Jules a transmis le mot de passe superadmin, les trois points ouverts ont été déroulés à l'écran sur deux séances jetables (`C93BIS`, `C93TER`), supprimées depuis :
+  - **Régénération superadmin** : onglet Tables → « Participants inscrits » → colonne « Code » → « 🔑 nouveau ». Modale affichée avec le pseudo et le nouveau code (6281). En base : le nouveau code valide, **l'ancien (1234) invalidé**, les 3 tentatives d'échec en cours effacées, l'autre membre intact. ✅
+  - **Purge à la clôture** : parcours complet des phases dans la barre du superadmin (`voting → allocating → debating → post_voting/clôture`, via « Clôturer directement »). Après la clôture : **0 code restant sur 2 membres**, `reclaim_attempts` vidée pour la séance. ✅
+  - **Bouton 🔑 côté modérateur** : vue modérateur d'une vraie table en débat, bouton présent dans la ligne du participant, modale affichée (code 3115), nouveau code valide en base et ancien invalidé, aucun autre membre touché. ✅ *Simulation assumée sur deux points, faute de Code Ecclesia : l'autorité d'animation venait de `tables.created_by = auth.uid()` (branche légitime de `is_table_moderator`) et non d'une déclaration modérateur, et `ecclesia_table.isModerator` a été passé à `true` dans le `localStorage` pour obtenir la vue. La RPC, elle, a bien été appelée par le bouton réel avec l'autorisation serveur réelle.*
+  - **Chantier 81** : la déclaration modérateur à la reconquête reste vérifiée **par lecture du code seulement** (le Code Ecclesia n'a pas été transmis). Par ailleurs le chantier 95 a supprimé l'onglet « Modérateur » de l'accueil entre-temps : il ne reste que `ModeratorDeclareField` à l'inscription et `ModeratorClaimModal` pendant le vote et le débat.
+  - **Membres inscrits avant la migration** : au moment de l'application, **aucune ligne `session_members` n'avait de code** (0 sur 140), donc rien n'a été cassé ni converti. Jules a tranché le 18/09 : **on n'utilise pas les codes pour les séances déjà créées**, aucun chemin de transition n'est nécessaire.
 
 - [x] **Chantier 79 — Écran de comparaison avant/après débat** *(validé le 2026-09-07)* — `src/components/AnalysisPanel.tsx` (`AnalysisComparisonPanel`), `src/lib/analysis.ts` (`pairGroups`, `computeMemberMovements`, `computeConsensusMovements`), `src/screens/SuperadminScreen.tsx` (onglet 📊 Analyse) — ✅ vérifié au navigateur par Jules sur une séance de test générée directement en base (16 membres fictifs, deux camps, votes avant/après débat avec un mouvement de camp réel et une assertion passant de clivante à consensuelle, analyse `pre_closure` calculée avec le vrai pipeline PCA/k-means du projet). Donnée de test supprimée après validation (cascade sur `sessions`).
 
