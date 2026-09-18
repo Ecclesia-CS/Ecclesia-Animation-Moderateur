@@ -330,7 +330,8 @@ export default function AnalysisPanel({
 
   // ── Assertions clivantes (top 3 par groupe) ────────────────
   function topClivantes(groupId: number): { aid: string; score: number; content: string }[] {
-    if (!displayAnalysis) return []
+    // `repness` est nullable en base, comme `group_consensus` ci-dessous.
+    if (!displayAnalysis?.repness) return []
     return Object.entries(displayAnalysis.repness)
       .map(([aid, scores]) => ({
         aid,
@@ -344,7 +345,7 @@ export default function AnalysisPanel({
 
   // ── Assertions consensuelles ──────────────────────────────
   function consensuelles(): { aid: string; score: number; content: string }[] {
-    if (!displayAnalysis) return []
+    if (!displayAnalysis?.group_consensus) return []
     return Object.entries(displayAnalysis.group_consensus)
       .filter(([, score]) => score > CONSENSUS_THRESHOLD)
       .sort(([, a], [, b]) => b - a)
@@ -451,14 +452,21 @@ export default function AnalysisPanel({
                   <span className="font-medium text-gray-700">Groupes :</span>{' '}
                   {displayAnalysis.k_chosen}
                 </span>
+                {/* Ces deux métriques sont nullables en base (`session_analysis`) :
+                    l'analyse du 2026-09-16 les a toutes les deux à NULL, ce qui
+                    faisait planter tout le panneau — page blanche sur l'onglet
+                    Analyse, sans message. */}
                 <span>
                   <span className="font-medium text-gray-700">Silhouette :</span>{' '}
-                  {displayAnalysis.silhouette_score.toFixed(3)}
+                  {displayAnalysis.silhouette_score != null
+                    ? displayAnalysis.silhouette_score.toFixed(3)
+                    : '—'}
                 </span>
                 <span>
                   <span className="font-medium text-gray-700">Variance PCA :</span>{' '}
-                  {(displayAnalysis.pca_variance_explained[0] * 100).toFixed(1)} % +{' '}
-                  {(displayAnalysis.pca_variance_explained[1] * 100).toFixed(1)} %
+                  {displayAnalysis.pca_variance_explained?.length >= 2
+                    ? `${(displayAnalysis.pca_variance_explained[0] * 100).toFixed(1)} % + ${(displayAnalysis.pca_variance_explained[1] * 100).toFixed(1)} %`
+                    : '—'}
                 </span>
                 {!attendingOnly && (
                   <span className="text-gray-400">

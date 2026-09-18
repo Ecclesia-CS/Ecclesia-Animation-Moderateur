@@ -35,6 +35,14 @@ Uncaught TypeError: Cannot read properties of undefined (reading 'length')
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Hors chantier (2026-09-18) — page blanche sur l'onglet Analyse du superadmin — ✅ corrigé
+
+Bug **antérieur au chantier 95 et indépendant de lui**, trouvé en voulant vérifier la vue superadmin : `AnalysisPanel` lisait `silhouette_score.toFixed()`, `pca_variance_explained[0]`, `Object.entries(repness)` et `Object.entries(group_consensus)` sans garde, alors que ces quatre colonnes de `session_analysis` sont nullables. L'analyse du 2026-09-16 (séance « Test chantier 94 ») les a toutes les quatre à NULL : le panneau plantait, et avec lui **tout l'écran superadmin**, sans message — page blanche.
+
+Corrigé dans `src/components/AnalysisPanel.tsx` : affichage « — » pour les deux métriques absentes, listes vides pour les deux dictionnaires absents. Vérifié à l'écran : l'onglet s'affiche à nouveau.
+
+**Reste à comprendre (pas traité ici)** : pourquoi cette analyse a un `status = 'done'` avec quatre colonnes NULL. Soit le calcul a échoué à mi-parcours sans repasser le statut en erreur, soit un chemin d'écriture ne remplit pas ces colonnes. Le garde-fou évite la page blanche, il ne répare pas la donnée.
+
 ## Chantier 95 (2026-09-18) — ménage des portes d'entrée + tables créées à la main — ✅ SQL appliqué en base
 
 Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`](./supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql), appliquée par cette session (règle du 07/09 : une session de chantier peut appliquer sa propre migration). Corps des fonctions réécrites comparés à `pg_get_functiondef` en base avant écriture, comme l'exige `CLAUDE.md`.
