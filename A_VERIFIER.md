@@ -44,6 +44,28 @@ Les 39 lectures de `localStorage`/`sessionStorage` de `src/` ont été passées 
 
 **Risque résiduel connu, non corrigé** (volontairement, pour ne pas élargir le périmètre) : `group_names_*` est relu sans validation dans `ResultsMapScreen.tsx:225` (**côté participant**) et `SuperadminScreen.tsx:1350`, et `ResultsMapScreen.tsx:90` fait `groupNames.find(...)` sans `?.`. Le risque est plus faible que les deux ci-dessus (`GroupNameResult` n'a jamais gagné de champ obligatoire, et `.find` tolère des entrées incomplètes), mais il deviendrait **immédiatement critique** si ce type venait à changer de forme. Idem pour `tableStore.get()` (`lib/storage.ts`), qui fait `JSON.parse(raw) as StoredTable` sans garde.
 
+## Bug prod — page blanche onglet Analyse du superadmin (2026-09-18, 4ᵉ de la série)
+
+**Signalé par Jules** sur la séance d'essai « Test chantier 94 — temps de parole par camp ». Console :
+
+```
+Uncaught TypeError: Cannot read properties of null (reading 'toFixed')
+```
+
+**Cause identifiée — frontière différente des trois précédentes : la base, pas le stockage local.** `AnalysisPanel.tsx:456` faisait `displayAnalysis.silhouette_score.toFixed(3)`, avec le type `LoadedAnalysis` déclarant `silhouette_score: number`. Or les quatre colonnes `silhouette_score`, `pca_variance_explained`, `repness` et `group_consensus` sont **nullables en base**, et les RPC héritées `run_clustering_v1`/`v2` — laissées en base au chantier 37, plus appelées par le frontend mais toujours invocables — créent des lignes `session_analysis` où **les quatre sont `NULL`**. Vérifié en base : sur 8 analyses `status='done'`, exactement une est dans cet état, celle de cette séance d'essai (6 membres, `k_chosen=3`, coordonnées PCA valides). `loadLatestAnalysis` faisait un `return data as LoadedAnalysis` brut, donc ces `null` filaient jusqu'au rendu.
+
+**Correctif appliqué** :
+- `silhouette_score` et `pca_variance_explained` deviennent `number | null` / `[number, number] | null` dans `LoadedAnalysis` — le type reflète enfin la base. `tsc` a alors désigné lui-même les 3 seuls usages non protégés (tous dans `AnalysisPanel.tsx`), désormais affichés « n/c ».
+- `normalizeLoadedAnalysis()` (`lib/analysis.ts`), appliquée aux **deux** points d'entrée (`loadLatestAnalysis`, `loadAnalysisById`), ramène `repness`/`group_consensus` à `{}` et `members` à `[]`. Sans ça, le correctif n'aurait fait que déplacer le crash d'une ligne : `Object.entries(a.group_consensus)` (`analysis.ts:645`, comparaison avant/après du chantier 79) plantait tout autant.
+- 4 tests de régression dans `analysis.test.ts`, bâtis sur la forme exacte relevée en base.
+
+**Reste à vérifier humainement** (pas de mot de passe superadmin pour cette session, donc onglet Analyse inatteignable au navigateur) :
+- Ouvrir l'onglet **Analyse** de la séance « Test chantier 94 » : la page doit s'afficher, avec « Silhouette : n/c » et « Variance PCA : n/c ».
+- Ouvrir l'onglet Analyse d'une séance **analysée normalement** (via le bouton du front) et confirmer que Silhouette et Variance PCA affichent toujours leurs vraies valeurs — la correction ne doit rien masquer là où la donnée existe.
+- Si la comparaison avant/après débat (chantier 79) est utilisée sur cette séance d'essai, vérifier qu'elle n'affiche pas de mouvements fantaisistes : `group_consensus` y est vide, donc la liste des mouvements doit être vide, pas erronée.
+
+**Constat de fond, à trancher** : quatre pages blanches en trois jours, toutes dues à un `as T` sur une donnée non vérifiée (trois via `localStorage`/`sessionStorage`, une via la base). La règle est désormais dans `CLAUDE.md`, mais **il n'existe toujours aucun `ErrorBoundary`** : c'est ce qui transforme chaque fois un panneau cassé en écran entièrement blanc. Décision de portée en attente de Jules.
+
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.

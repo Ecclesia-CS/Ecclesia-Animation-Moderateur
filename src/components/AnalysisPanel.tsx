@@ -451,14 +451,18 @@ export default function AnalysisPanel({
                   <span className="font-medium text-gray-700">Groupes :</span>{' '}
                   {displayAnalysis.k_chosen}
                 </span>
+                {/* Les deux métriques manquent sur toute analyse créée par les RPC
+                    héritées run_clustering_v1/v2 — « n/c » plutôt qu'une page
+                    blanche (cf. LoadedAnalysis dans lib/analysis.ts). */}
                 <span>
                   <span className="font-medium text-gray-700">Silhouette :</span>{' '}
-                  {displayAnalysis.silhouette_score.toFixed(3)}
+                  {displayAnalysis.silhouette_score?.toFixed(3) ?? 'n/c'}
                 </span>
                 <span>
                   <span className="font-medium text-gray-700">Variance PCA :</span>{' '}
-                  {(displayAnalysis.pca_variance_explained[0] * 100).toFixed(1)} % +{' '}
-                  {(displayAnalysis.pca_variance_explained[1] * 100).toFixed(1)} %
+                  {displayAnalysis.pca_variance_explained
+                    ? `${(displayAnalysis.pca_variance_explained[0] * 100).toFixed(1)} % + ${(displayAnalysis.pca_variance_explained[1] * 100).toFixed(1)} %`
+                    : 'n/c'}
                 </span>
                 {!attendingOnly && (
                   <span className="text-gray-400">
