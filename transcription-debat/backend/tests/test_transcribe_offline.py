@@ -362,3 +362,43 @@ def test_main_deduplicates_before_correct(tmp_path, monkeypatch):
     assert len(correct_calls) == 1
     # Le texte passé à correct() est le résultat de deduplicate()
     assert correct_calls[0] is dedup_calls[0]
+
+
+# ---- Recollage des mots (bug « l 'état » / « est -ce ») ----
+
+def test_join_words_uses_raw_whisper_spacing():
+    """faster-whisper garde l'espace de tête des mots : « l » puis « 'état » sans espace."""
+    from transcribe_offline import join_words
+    words = [
+        {"text": "l", "raw": " l"},
+        {"text": "'état", "raw": "'état"},
+        {"text": "actuel", "raw": " actuel"},
+        {"text": "multi", "raw": " multi"},
+        {"text": "-période,", "raw": "-période,"},
+    ]
+    assert join_words(words) == "l'état actuel multi-période,"
+
+
+def test_join_words_without_raw_attaches_apostrophe_and_hyphen():
+    """Sans le texte brut (anciens caches), règle : pas d'espace avant ' ou -lettre."""
+    from transcribe_offline import join_words
+    words = [{"text": t} for t in ["qu", "'il", "est", "-ce", "oui", "-", "non", "aujourd", "’hui"]]
+    assert join_words(words) == "qu'il est-ce oui - non aujourd’hui"
+
+
+def test_assign_words_rejoins_apostrophes():
+    words = [
+        {"start": 1.0, "end": 1.2, "text": "l", "raw": " l"},
+        {"start": 1.2, "end": 1.6, "text": "'état", "raw": "'état"},
+        {"start": 1.6, "end": 2.0, "text": "actuel", "raw": " actuel"},
+    ]
+    result = assign_speakers_words(words, _wordturns())
+    assert result[0]["text"] == "l'état actuel"
+
+
+def test_normalize_word_joins_fixes_legacy_text():
+    """Répare les transcripts déjà produits avec l'ancien recollage."""
+    from transcribe_offline import normalize_word_joins
+    assert normalize_word_joins("dans l 'état, est -ce que c 'est multi -période") == \
+        "dans l'état, est-ce que c'est multi-période"
+    assert normalize_word_joins("oui - non, -5 degrés") == "oui - non, -5 degrés"

@@ -147,6 +147,41 @@ def assign_speakers(segments: list[dict], turns: list[dict]) -> list[dict]:
     return result
 
 
+_ATTACHED_START = re.compile(r"^(['’]|-[^\W\d_])")
+
+
+def join_words(words: list[dict]) -> str:
+    """Recolle des mots Whisper en texte.
+
+    faster-whisper fournit chaque mot avec son espace de tête (" l", "'état",
+    " actuel") : concaténer ce texte brut ("raw") restitue l'orthographe exacte
+    du décodeur. Les anciens caches n'ont que le texte nettoyé ("text") : on
+    applique alors la règle équivalente — pas d'espace avant une apostrophe ni
+    avant un trait d'union collé à une lettre (« qu'il », « est-ce »).
+    """
+    parts: list[str] = []
+    for w in words:
+        raw = w.get("raw")
+        if isinstance(raw, str) and raw:
+            parts.append(raw)
+            continue
+        text = w.get("text", "")
+        if parts and not _ATTACHED_START.match(text):
+            parts.append(" ")
+        parts.append(text)
+    return "".join(parts).strip()
+
+
+_LEGACY_APOSTROPHE = re.compile(r"(\w) (['’])(?=\w)")
+_LEGACY_HYPHEN = re.compile(r"(\w) -(?=[^\W\d_])")
+
+
+def normalize_word_joins(text: str) -> str:
+    """Répare le texte produit par l'ancien recollage (« l 'état », « est -ce »)."""
+    text = _LEGACY_APOSTROPHE.sub(r"\1\2", text)
+    return _LEGACY_HYPHEN.sub(r"\1-", text)
+
+
 def _speaker_at(t: float, turns: list[dict]) -> tuple[str, bool]:
     """Locuteur dont le tour contient l'instant t. Retourne (label, refused)."""
     for turn in turns:
@@ -186,24 +221,26 @@ def assign_speakers_words(
                 and cur["refused"] == refused
                 and (w["start"] - cur["end"]) <= max_gap
                 and (cur["end"] - cur["start"]) < max_duration
-                and len(cur["_text"]) < max_chars
+                and cur["_chars"] < max_chars
             )
             if can_merge:
                 cur["end"] = w["end"]
                 if not refused:
-                    cur["_text"] += " " + w["text"]
+                    cur["_words"].append(w)
+                    cur["_chars"] += len(w["text"]) + 1
                 continue
         runs.append({
             "start": w["start"],
             "end": w["end"],
             "speaker": speaker,
             "refused": refused,
-            "_text": "" if refused else w["text"],
+            "_words": [] if refused else [w],
+            "_chars": 0 if refused else len(w["text"]),
         })
 
     result = []
     for run in runs:
-        text = "[N'a pas souhaité être enregistré(e)]" if run["refused"] else run["_text"].strip()
+        text = "[N'a pas souhaité être enregistré(e)]" if run["refused"] else join_words(run["_words"])
         result.append({
             "start": run["start"],
             "end": run["end"],
@@ -478,10 +515,15 @@ def main() -> None:
         words = getattr(s, "words", None)
         if isinstance(words, (list, tuple)):
             for w in words:
-                wt = (getattr(w, "word", "") or "").strip()
+                raw = getattr(w, "word", "") or ""
+                wt = raw.strip()
                 ws, we = getattr(w, "start", None), getattr(w, "end", None)
                 if wt and isinstance(ws, (int, float)) and isinstance(we, (int, float)):
-                    whisper_words_raw.append({"start": ws, "end": we, "text": wt})
+                    word = {"start": float(ws), "end": float(we), "text": wt, "raw": raw}
+                    prob = getattr(w, "probability", None)
+                    if isinstance(prob, (int, float)):
+                        word["prob"] = float(prob)
+                    whisper_words_raw.append(word)
     print(f"{len(whisper_segs_raw)} segments Whisper, {len(whisper_words_raw)} mots horodatés.")
 
     # 3. Détecter ou utiliser audio_start
