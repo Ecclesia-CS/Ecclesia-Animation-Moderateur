@@ -89,6 +89,55 @@ Le message d'erreur est affiché **à l'écran**, volontairement : c'est ce que 
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Chantier 94 (2026-09-16, validé 2026-09-18) — vue modérateur : temps de parole cumulé par camp — ✅ vérifié au navigateur par Jules, chantier clos
+
+Fichiers [`supabase/migrations/20260916_chantier94_camp_speaking_times.sql`](./supabase/migrations/20260916_chantier94_camp_speaking_times.sql) (RPC `get_table_camp_speaking_times`) + [`supabase/migrations/20260916_chantier94b_camp_speaking_threshold_5min.sql`](./supabase/migrations/20260916_chantier94b_camp_speaking_threshold_5min.sql) *(nom donné à l'entrée de migration côté base uniquement — le fichier local a été mis à jour en place, un seul fichier `.sql` fait foi dans le dépôt, cf. note ci-dessous)* — appliquées en base par cette session, [`src/components/CampSpeakingTimes.tsx`](./src/components/CampSpeakingTimes.tsx) (nouveau composant, isolé pour que le polling 5 min ne re-rende pas tout `ModeratorView`), [`src/screens/ModeratorView.tsx`](./src/screens/ModeratorView.tsx) (intégration juste avant `ParticipantsTable`), [`src/lib/voting.ts`](./src/lib/voting.ts) + [`src/lib/types.ts`](./src/lib/types.ts) (wrapper + types `TableCampSpeakingTime(s)`).
+
+**Ce qui change** : le modérateur voit désormais, à côté des files d'attente, le temps de parole cumulé par camp idéologique (clustering pol.is de la séance). Trois garde-fous de confidentialité, tous côté RPC (`SECURITY DEFINER`, jamais de composition individuelle envoyée au client) :
+- auth par `is_table_moderator` (pas `is_table_participant` comme `get_table_opinion_summary`/chantier 20 — info plus sensible car elle bouge en direct) ;
+- un camp n'apparaît que s'il a **≥ 2 personnes à la table** (même sous-requête que le chantier 20) ;
+- un camp n'apparaît que si son **temps cumulé ≥ 300 s (5 min)** — confirmé par Jules le 16/09 (la première version de cette session avait mis 180s par erreur d'interprétation, corrigé le même jour) ;
+- floutage 5 minutes assuré côté client par un `setInterval` de polling (`CampSpeakingTimes.tsx`), jamais par la RPC elle-même qui renvoie toujours l'état exact au moment de l'appel — donc la fraîcheur perçue dépend entièrement du rythme d'appel client, à ne jamais réduire sans re-discuter le risque de désanonymisation.
+
+**⚠️ Distinction à ne pas perdre, source de la confusion du 16/09** : les 300s ci-dessus sont DEUX choses séparées qui partagent la même valeur, pas une seule.
+- Le **floutage** (« l'horloge des camps se met à jour toutes les 5 minutes », consigne d'origine de Jules) = la **fréquence de rappel de la RPC côté client**, gérée par `CampSpeakingTimes.tsx` seul. La RPC elle-même ne sait rien du floutage — appelée deux fois à 10 secondes d'écart, elle renvoie deux valeurs différentes. C'est uniquement parce que le client ne rappelle pas plus souvent que le modérateur ne voit jamais ce mouvement.
+- Le **seuil minimum avant affichage** (garde-fou complémentaire ajouté par cette session, validé par Jules) = la durée cumulée qu'un camp doit atteindre avant d'apparaître **du tout**, y compris à son tout premier affichage. Sans lui, le tout premier tour de parole désignerait son camp sans ambiguïté dès la première actualisation, floutage ou pas.
+Les deux sont maintenant alignés à 300s par choix de Jules (plus de marge que les 180s initiaux), mais ce sont deux mécanismes indépendants dans le code — ne jamais fusionner leur logique si l'un des deux doit un jour changer seul.
+
+**Séance de test créée en base par cette session** pour la recette navigateur (données fictives, à supprimer une fois validée — voir requête de purge en bas de cette section) :
+- Séance `Test chantier 94 — temps de parole par camp`, join_code séance `C94S01`, phase `debating`, `moderation_policy = 'open'`.
+- Une seule table, join_code **`C94A01`**, `leaderless = true` (pas encore de modérateur — c'est fait exprès, voir étape 1 ci-dessous), 6 membres présentiels répartis sur 3 camps fictifs (`session_analysis` déjà `status = 'done'`, `analysis_members` posés à la main, **pas** un vrai calcul PCA/k-means — suffisant pour tester l'affichage, pas pour juger la qualité d'un clustering réel) :
+  - **Camp Nord** (`group_id = 0`) — Alice, Bruno, Chloé. Temps de parole déjà cumulé : Alice 6 min (tour terminé) + Bruno 2 min (tour terminé) + un tour d'Alice **en cours** au moment de la création (`current_speaker_id` posé sur elle) → total ≈ 8-9 min, **doit s'afficher** (≥2 personnes, ≥5 min).
+  - **Camp Sud** (`group_id = 1`) — David, Emma. Temps cumulé : David 1 min 40s seulement → **ne doit PAS s'afficher** (2 personnes au camp, mais sous le seuil de 5 min — teste le garde-fou de temps).
+  - **Camp Est** (`group_id = 2`) — Farid seul. Temps cumulé : 10 min → **ne doit PAS s'afficher** (au-dessus du seuil de temps, mais un seul membre du camp à la table — teste le garde-fou des 2 personnes).
+  - 3 assertions approuvées avec votes contrastés par camp (pour que "Camps" / assertions clivantes, chantier 20, aient aussi de quoi s'afficher).
+
+**Pour te connecter en modérateur** : page d'accueil → « Rejoindre ou reprendre une table » → code de table **`C94A01`** → un pseudo au choix → cocher **« Je suis modérateur de cette table »** → renseigner le **Code Ecclesia** → Rejoindre. Ce chemin passe par `claim_table_as_moderator`, qui pose `created_by = auth.uid()` sur cette table — condition (a) d'`is_table_moderator()`, donc suffisant pour voir le nouveau bloc sans toucher à `session_members.is_moderator`.
+
+**Purge à faire après validation** (irréversible, ne pas la lancer avant que Jules confirme avoir fini de tester) :
+```sql
+DELETE FROM sessions WHERE join_code = 'C94S01';
+-- CASCADE supprime tables, session_members, table_assignments, participants,
+-- speaking_turns, assertions, assertion_votes, session_analysis/analysis_members
+-- rattachés (toutes les FK vers sessions/tables/session_members sont ON DELETE CASCADE).
+```
+
+**Vérifications faites par cette session** : `tsc --noEmit` et `npm run build` propres, app chargée au navigateur sans erreur (page d'accueil).
+
+**✅ Vérifié au navigateur par Jules le 2026-09-18**, sur la séance de test ci-dessus, servie en local depuis ce worktree (`npm run dev`, port 5174 — 5173 déjà pris par une autre session) : le bloc « Temps de parole par camp » affiche **uniquement Camp Nord** (« Priorité aux transports », ~2283 min), Camp Sud et Camp Est restent invisibles comme attendu — les deux garde-fous (≥2 personnes, ≥5 min cumulées) confirmés fonctionnels en conditions réelles, pas seulement en SQL.
+
+**Un bug a été trouvé et corrigé pendant cette recette** : le composant avalait silencieusement toute erreur de la RPC (`.catch(() => {})`), sans rien logger — la toute première tentative de Jules (avant correction) n'affichait rien et ne montrait aucune erreur en console, rendant le diagnostic impossible depuis le navigateur seul. Cause racine réelle de ce premier échec : `tables.created_by` avait changé entre deux sessions anonymes (changement de port de dev 5173→5174 = nouvelle session `signInAnonymously`, donc nouvel `auth.uid()`) — `is_table_moderator()` refusait donc légitimement l'accès pour l'ancien uid. Le `.catch` a été corrigé pour logger l'erreur en console (`src/components/CampSpeakingTimes.tsx`), ce qui aurait immédiatement pointé vers la vraie cause. **Leçon générale** : ne jamais avaler une erreur RPC sans au moins un `console.error`, même dans un composant qui doit rester silencieux visuellement — cf. la même leçon déjà tirée pour les canaux Realtime (`privateChannel()`, chantier 59).
+
+**Non re-testés explicitement par Jules, considérés couverts par construction plutôt que rouverts** : absence de mouvement en direct du chiffre affiché (pas de `useLiveMs` dans le composant — revu dans le code, cohérent avec le pattern du reste du projet) ; invisibilité du bloc pour un participant non-modérateur (conditionné par `isModerator` côté client ET par `is_table_moderator` côté RPC — double garde déjà vérifiée indépendamment par le test SQL direct de cette session). Si un doute apparaît un jour sur l'un des deux, le rouvrir ici plutôt que supposer.
+
+**Ménage restant, non fait par cette session** : la séance de test (`C94S01`/`C94A01`) est toujours en base — la purge SQL ci-dessus n'a pas été relancée, à faire quand Jules confirme ne plus en avoir besoin.
+
+**Reste à vérifier humainement, avec la séance de test ci-dessus** :
+1. Se connecter comme modérateur de la table `C94A01` (voir chemin ci-dessus). Le bloc « Temps de parole par camp » doit apparaître avec **uniquement Camp Nord** (Camp Sud sous le seuil de temps, Camp Est sous le seuil de personnes).
+2. Vérifier que le nombre affiché ne bouge **pas** en direct (pas de `useLiveMs` ici) — seulement après un rechargement ou l'échéance du polling 5 min (réduire temporairement `POLL_INTERVAL_MS` dans `CampSpeakingTimes.tsx` pour un test rapide, ou attendre 5 min).
+3. Vérifier qu'un participant non-modérateur de cette même table, ou le modérateur d'une **autre** table, n'a pas accès à ces données (le bloc ne doit simplement pas apparaître côté participant ; `isModerator` conditionne déjà son rendu côté client, et la RPC refuse aussi côté serveur).
+4. Confirmer que 5 minutes (300s) convient bien comme seuil final pour les deux mécanismes (floutage ET minimum avant affichage) — décidé le 16/09, à ne rouvrir que si l'usage réel montre un problème.
+
 ## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
 
 Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supabase/migrations/20260916_chantier56_durcissement_sql.sql). Aucun fichier `src/`. Appliqué par cette session directement (règle du 07/09 dans `CLAUDE.md` : une session de chantier peut appliquer sa propre migration), avec Jules disponible et joignable comme l'exigeait `docs/registre-merges-en-attente.md`.

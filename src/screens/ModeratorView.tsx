@@ -24,6 +24,7 @@ import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import DocumentationButton from '../components/DocumentationButton'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
+import CampSpeakingTimes from '../components/CampSpeakingTimes'
 
 export default function ModeratorView() {
   const {
@@ -672,6 +673,11 @@ export default function ModeratorView() {
             ghostId={GHOST_ID}
           />
         </div>
+
+        {/* ── Temps de parole par camp idéologique (chantier 94) ── */}
+        {table.session_id && (
+          <CampSpeakingTimes tableId={table.id} isModerator={isModerator} />
+        )}
 
         {/* ── Participants stats ─────────────────────────────── */}
         <ParticipantsTable />
