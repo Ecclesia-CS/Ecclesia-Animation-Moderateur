@@ -31,10 +31,112 @@ Uncaught TypeError: Cannot read properties of undefined (reading 'length')
 - Recharger l'onglet Allocation d'une séance déjà passée en phase `allocating` **avant** le déploiement de ce correctif (donc avec un `preview` potentiellement pré-chantier-92 en `sessionStorage`) et confirmer qu'il n'y a plus de page blanche — soit l'ancien preview est ignoré et il faut recalculer, soit il est toujours valide et s'affiche normalement.
 - Toujours envisager l'ajout d'un `ErrorBoundary` global (déjà noté au chantier 90 et lors du bug `ai_log`) : ce point précis est corrigé, mais la même classe de crash reste fatale à toute la page tant qu'il n'existe pas de garde-fou.
 
+**✅ Correctif confirmé par Jules le 2026-09-18** sur GitHub Pages : l'onglet Allocation s'ouvre de nouveau normalement.
+
+### Audit de la même classe de défaut (2026-09-18, à la demande de Jules)
+
+Les 39 lectures de `localStorage`/`sessionStorage` de `src/` ont été passées en revue. Les deux tiers sont inoffensives (booléens, `parseInt`, chaînes). Parmi celles qui désérialisent une **forme**, deux sites encore actifs pouvaient reproduire la page blanche — **corrigés dans le même commit, non vérifiés au navigateur** :
+
+1. **`SuperadminScreen.tsx`, `aiLabelMap`** (panneau Assertions) — lisait `ai_rejected_ids_*`, `ai_approved_ids_*` et `merge_log_*` **sans aucun `try/catch`**, pendant le rendu. Trois façons de blanchir l'écran : JSON malformé, valeur non itérable passée à `new Set()`, ou entrée de `merge_log` sans `reject_ids` (`.flatMap` sur non-tableau). Désormais : parse protégé, filtrage des valeurs non conformes.
+2. **`LLMModerationPanel.tsx`, `readMergeLog`/`readMergeProposals`** — `try/catch` présent mais aucune validation de forme, alors que le rendu des « Fusions proposées » déréférence `p.reject_ids.map(...)` et `p.reject_contents[ri]` (ligne ~697). Une proposition persistée par une version antérieure sans ces champs plantait le panneau, donc la page. Désormais : les entrées mal formées sont filtrées à la relecture.
+
+**À vérifier humainement** : ouvrir le panneau **Assertions** puis **Modération IA** d'une séance ayant réellement servi (avec un historique de fusions en `localStorage`) et confirmer que les libellés « rejeté par l'IA / fusionné » et la liste des fusions proposées s'affichent toujours correctement — la correction filtre les entrées invalides, elle ne doit pas faire disparaître les entrées **valides**.
+
+**Risque résiduel connu, non corrigé** (volontairement, pour ne pas élargir le périmètre) : `group_names_*` est relu sans validation dans `ResultsMapScreen.tsx:225` (**côté participant**) et `SuperadminScreen.tsx:1350`, et `ResultsMapScreen.tsx:90` fait `groupNames.find(...)` sans `?.`. Le risque est plus faible que les deux ci-dessus (`GroupNameResult` n'a jamais gagné de champ obligatoire, et `.find` tolère des entrées incomplètes), mais il deviendrait **immédiatement critique** si ce type venait à changer de forme. Idem pour `tableStore.get()` (`lib/storage.ts`), qui fait `JSON.parse(raw) as StoredTable` sans garde.
+
+## Bug prod — page blanche onglet Analyse du superadmin (2026-09-18, 4ᵉ de la série)
+
+**Signalé par Jules** sur la séance d'essai « Test chantier 94 — temps de parole par camp ». Console :
+
+```
+Uncaught TypeError: Cannot read properties of null (reading 'toFixed')
+```
+
+**Cause identifiée — frontière différente des trois précédentes : la base, pas le stockage local.** `AnalysisPanel.tsx:456` faisait `displayAnalysis.silhouette_score.toFixed(3)`, avec le type `LoadedAnalysis` déclarant `silhouette_score: number`. Or les quatre colonnes `silhouette_score`, `pca_variance_explained`, `repness` et `group_consensus` sont **nullables en base**, et les RPC héritées `run_clustering_v1`/`v2` — laissées en base au chantier 37, plus appelées par le frontend mais toujours invocables — créent des lignes `session_analysis` où **les quatre sont `NULL`**. Vérifié en base : sur 8 analyses `status='done'`, exactement une est dans cet état, celle de cette séance d'essai (6 membres, `k_chosen=3`, coordonnées PCA valides). `loadLatestAnalysis` faisait un `return data as LoadedAnalysis` brut, donc ces `null` filaient jusqu'au rendu.
+
+**Correctif appliqué** :
+- `silhouette_score` et `pca_variance_explained` deviennent `number | null` / `[number, number] | null` dans `LoadedAnalysis` — le type reflète enfin la base. `tsc` a alors désigné lui-même les 3 seuls usages non protégés (tous dans `AnalysisPanel.tsx`), désormais affichés « n/c ».
+- `normalizeLoadedAnalysis()` (`lib/analysis.ts`), appliquée aux **deux** points d'entrée (`loadLatestAnalysis`, `loadAnalysisById`), ramène `repness`/`group_consensus` à `{}` et `members` à `[]`. Sans ça, le correctif n'aurait fait que déplacer le crash d'une ligne : `Object.entries(a.group_consensus)` (`analysis.ts:645`, comparaison avant/après du chantier 79) plantait tout autant.
+- 4 tests de régression dans `analysis.test.ts`, bâtis sur la forme exacte relevée en base.
+
+**Reste à vérifier humainement** (pas de mot de passe superadmin pour cette session, donc onglet Analyse inatteignable au navigateur) :
+- Ouvrir l'onglet **Analyse** de la séance « Test chantier 94 » : la page doit s'afficher, avec « Silhouette : n/c » et « Variance PCA : n/c ».
+- Ouvrir l'onglet Analyse d'une séance **analysée normalement** (via le bouton du front) et confirmer que Silhouette et Variance PCA affichent toujours leurs vraies valeurs — la correction ne doit rien masquer là où la donnée existe.
+- Si la comparaison avant/après débat (chantier 79) est utilisée sur cette séance d'essai, vérifier qu'elle n'affiche pas de mouvements fantaisistes : `group_consensus` y est vide, donc la liste des mouvements doit être vide, pas erronée.
+
+**Constat de fond** : quatre pages blanches en trois jours, toutes dues à un `as T` sur une donnée non vérifiée (trois via `localStorage`/`sessionStorage`, une via la base). La règle est désormais dans `CLAUDE.md`, et le garde-fou a été posé — voir l'entrée suivante.
+
+## Filet `PanelErrorBoundary` — superadmin (2026-09-18) — ✅ vérifié au navigateur
+
+Décidé par Jules après les quatre pages blanches : « errorbournary pour le superadmin est une bonne idée ». Nouveau composant [`src/components/PanelErrorBoundary.tsx`](./src/components/PanelErrorBoundary.tsx), posé à **6 endroits** de `SuperadminScreen.tsx` — les cinq panneaux qui ont produit ou failli produire une page blanche (Assertions, Modération IA, Analyse, Allocation, Comparaison avant/après) plus un dernier recours autour de `SessionDetail` (barre de phase, vues Groupes et Tables).
+
+Le message d'erreur est affiché **à l'écran**, volontairement : c'est ce que Jules peut recopier pour diagnostiquer sans ouvrir la console — ce message est ce qui a permis de viser juste sur chacune des quatre pannes. Le `console.error` est conservé en plus (trace complète + `componentStack`).
+
+**Vérifié au navigateur le 2026-09-18** via une route de test temporaire (`#boundarytest`, **retirée** après vérification — `grep boundarytest src/` ne retourne rien) montant un composant qui lève `Cannot read properties of null (reading 'toFixed')`, soit l'erreur réelle du jour :
+- Le texte placé **avant et après** le filet reste visible → la page n'est plus démontée.
+- L'encadré affiche « Le panneau « Analyse » n'a pas pu s'afficher » et le message d'erreur exact.
+- React confirme de lui-même en console : « React will try to recreate this component tree from scratch using the error boundary you provided, PanelErrorBoundary ».
+- `console.error` émet bien `[PanelErrorBoundary] Analyse : …` avec la pile de composants.
+- Le bouton « ↻ Réessayer » re-tente le rendu ; sur une erreur permanente il re-capture proprement, sans blanchir la page.
+
+**Limite à connaître, inhérente à React** : un `ErrorBoundary` ne capture que les erreurs de **rendu** et de cycle de vie. Une exception levée dans un gestionnaire d'événement (`onClick`) ou dans une promesse non attrapée passe à travers — par exemple `LLMModerationPanel.tsx:356` (`p.reject_contents[i]` dans un handler) n'est pas couvert par ce filet, seulement par la validation à la relecture ajoutée le même jour. **Ce n'est donc pas une raison de relâcher les gardes à la lecture des données.**
+
+**Reste à vérifier humainement** : ouvrir l'écran superadmin d'une séance réelle et confirmer que les six panneaux s'affichent **normalement** (le filet ne doit rien changer en l'absence d'erreur). Le cas d'erreur, lui, est déjà vérifié ci-dessus.
+
+**Non traité, volontairement** : le parcours participant n'a reçu aucun filet — Jules a explicitement cadré la demande sur le superadmin. Les écrans participant restent donc exposés au même mécanisme (page entièrement blanche sur une exception de rendu), notamment `ResultsMapScreen` dont le risque résiduel `group_names` est documenté plus haut.
+
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Chantier 94 (2026-09-16, validé 2026-09-18) — vue modérateur : temps de parole cumulé par camp — ✅ vérifié au navigateur par Jules, chantier clos
+
+Fichiers [`supabase/migrations/20260916_chantier94_camp_speaking_times.sql`](./supabase/migrations/20260916_chantier94_camp_speaking_times.sql) (RPC `get_table_camp_speaking_times`) + [`supabase/migrations/20260916_chantier94b_camp_speaking_threshold_5min.sql`](./supabase/migrations/20260916_chantier94b_camp_speaking_threshold_5min.sql) *(nom donné à l'entrée de migration côté base uniquement — le fichier local a été mis à jour en place, un seul fichier `.sql` fait foi dans le dépôt, cf. note ci-dessous)* — appliquées en base par cette session, [`src/components/CampSpeakingTimes.tsx`](./src/components/CampSpeakingTimes.tsx) (nouveau composant, isolé pour que le polling 5 min ne re-rende pas tout `ModeratorView`), [`src/screens/ModeratorView.tsx`](./src/screens/ModeratorView.tsx) (intégration juste avant `ParticipantsTable`), [`src/lib/voting.ts`](./src/lib/voting.ts) + [`src/lib/types.ts`](./src/lib/types.ts) (wrapper + types `TableCampSpeakingTime(s)`).
+
+**Ce qui change** : le modérateur voit désormais, à côté des files d'attente, le temps de parole cumulé par camp idéologique (clustering pol.is de la séance). Trois garde-fous de confidentialité, tous côté RPC (`SECURITY DEFINER`, jamais de composition individuelle envoyée au client) :
+- auth par `is_table_moderator` (pas `is_table_participant` comme `get_table_opinion_summary`/chantier 20 — info plus sensible car elle bouge en direct) ;
+- un camp n'apparaît que s'il a **≥ 2 personnes à la table** (même sous-requête que le chantier 20) ;
+- un camp n'apparaît que si son **temps cumulé ≥ 300 s (5 min)** — confirmé par Jules le 16/09 (la première version de cette session avait mis 180s par erreur d'interprétation, corrigé le même jour) ;
+- floutage 5 minutes assuré côté client par un `setInterval` de polling (`CampSpeakingTimes.tsx`), jamais par la RPC elle-même qui renvoie toujours l'état exact au moment de l'appel — donc la fraîcheur perçue dépend entièrement du rythme d'appel client, à ne jamais réduire sans re-discuter le risque de désanonymisation.
+
+**⚠️ Distinction à ne pas perdre, source de la confusion du 16/09** : les 300s ci-dessus sont DEUX choses séparées qui partagent la même valeur, pas une seule.
+- Le **floutage** (« l'horloge des camps se met à jour toutes les 5 minutes », consigne d'origine de Jules) = la **fréquence de rappel de la RPC côté client**, gérée par `CampSpeakingTimes.tsx` seul. La RPC elle-même ne sait rien du floutage — appelée deux fois à 10 secondes d'écart, elle renvoie deux valeurs différentes. C'est uniquement parce que le client ne rappelle pas plus souvent que le modérateur ne voit jamais ce mouvement.
+- Le **seuil minimum avant affichage** (garde-fou complémentaire ajouté par cette session, validé par Jules) = la durée cumulée qu'un camp doit atteindre avant d'apparaître **du tout**, y compris à son tout premier affichage. Sans lui, le tout premier tour de parole désignerait son camp sans ambiguïté dès la première actualisation, floutage ou pas.
+Les deux sont maintenant alignés à 300s par choix de Jules (plus de marge que les 180s initiaux), mais ce sont deux mécanismes indépendants dans le code — ne jamais fusionner leur logique si l'un des deux doit un jour changer seul.
+
+**Séance de test créée en base par cette session** pour la recette navigateur (données fictives, à supprimer une fois validée — voir requête de purge en bas de cette section) :
+- Séance `Test chantier 94 — temps de parole par camp`, join_code séance `C94S01`, phase `debating`, `moderation_policy = 'open'`.
+- Une seule table, join_code **`C94A01`**, `leaderless = true` (pas encore de modérateur — c'est fait exprès, voir étape 1 ci-dessous), 6 membres présentiels répartis sur 3 camps fictifs (`session_analysis` déjà `status = 'done'`, `analysis_members` posés à la main, **pas** un vrai calcul PCA/k-means — suffisant pour tester l'affichage, pas pour juger la qualité d'un clustering réel) :
+  - **Camp Nord** (`group_id = 0`) — Alice, Bruno, Chloé. Temps de parole déjà cumulé : Alice 6 min (tour terminé) + Bruno 2 min (tour terminé) + un tour d'Alice **en cours** au moment de la création (`current_speaker_id` posé sur elle) → total ≈ 8-9 min, **doit s'afficher** (≥2 personnes, ≥5 min).
+  - **Camp Sud** (`group_id = 1`) — David, Emma. Temps cumulé : David 1 min 40s seulement → **ne doit PAS s'afficher** (2 personnes au camp, mais sous le seuil de 5 min — teste le garde-fou de temps).
+  - **Camp Est** (`group_id = 2`) — Farid seul. Temps cumulé : 10 min → **ne doit PAS s'afficher** (au-dessus du seuil de temps, mais un seul membre du camp à la table — teste le garde-fou des 2 personnes).
+  - 3 assertions approuvées avec votes contrastés par camp (pour que "Camps" / assertions clivantes, chantier 20, aient aussi de quoi s'afficher).
+
+**Pour te connecter en modérateur** : page d'accueil → « Rejoindre ou reprendre une table » → code de table **`C94A01`** → un pseudo au choix → cocher **« Je suis modérateur de cette table »** → renseigner le **Code Ecclesia** → Rejoindre. Ce chemin passe par `claim_table_as_moderator`, qui pose `created_by = auth.uid()` sur cette table — condition (a) d'`is_table_moderator()`, donc suffisant pour voir le nouveau bloc sans toucher à `session_members.is_moderator`.
+
+**Purge à faire après validation** (irréversible, ne pas la lancer avant que Jules confirme avoir fini de tester) :
+```sql
+DELETE FROM sessions WHERE join_code = 'C94S01';
+-- CASCADE supprime tables, session_members, table_assignments, participants,
+-- speaking_turns, assertions, assertion_votes, session_analysis/analysis_members
+-- rattachés (toutes les FK vers sessions/tables/session_members sont ON DELETE CASCADE).
+```
+
+**Vérifications faites par cette session** : `tsc --noEmit` et `npm run build` propres, app chargée au navigateur sans erreur (page d'accueil).
+
+**✅ Vérifié au navigateur par Jules le 2026-09-18**, sur la séance de test ci-dessus, servie en local depuis ce worktree (`npm run dev`, port 5174 — 5173 déjà pris par une autre session) : le bloc « Temps de parole par camp » affiche **uniquement Camp Nord** (« Priorité aux transports », ~2283 min), Camp Sud et Camp Est restent invisibles comme attendu — les deux garde-fous (≥2 personnes, ≥5 min cumulées) confirmés fonctionnels en conditions réelles, pas seulement en SQL.
+
+**Un bug a été trouvé et corrigé pendant cette recette** : le composant avalait silencieusement toute erreur de la RPC (`.catch(() => {})`), sans rien logger — la toute première tentative de Jules (avant correction) n'affichait rien et ne montrait aucune erreur en console, rendant le diagnostic impossible depuis le navigateur seul. Cause racine réelle de ce premier échec : `tables.created_by` avait changé entre deux sessions anonymes (changement de port de dev 5173→5174 = nouvelle session `signInAnonymously`, donc nouvel `auth.uid()`) — `is_table_moderator()` refusait donc légitimement l'accès pour l'ancien uid. Le `.catch` a été corrigé pour logger l'erreur en console (`src/components/CampSpeakingTimes.tsx`), ce qui aurait immédiatement pointé vers la vraie cause. **Leçon générale** : ne jamais avaler une erreur RPC sans au moins un `console.error`, même dans un composant qui doit rester silencieux visuellement — cf. la même leçon déjà tirée pour les canaux Realtime (`privateChannel()`, chantier 59).
+
+**Non re-testés explicitement par Jules, considérés couverts par construction plutôt que rouverts** : absence de mouvement en direct du chiffre affiché (pas de `useLiveMs` dans le composant — revu dans le code, cohérent avec le pattern du reste du projet) ; invisibilité du bloc pour un participant non-modérateur (conditionné par `isModerator` côté client ET par `is_table_moderator` côté RPC — double garde déjà vérifiée indépendamment par le test SQL direct de cette session). Si un doute apparaît un jour sur l'un des deux, le rouvrir ici plutôt que supposer.
+
+**Ménage restant, non fait par cette session** : la séance de test (`C94S01`/`C94A01`) est toujours en base — la purge SQL ci-dessus n'a pas été relancée, à faire quand Jules confirme ne plus en avoir besoin.
+
+**Reste à vérifier humainement, avec la séance de test ci-dessus** :
+1. Se connecter comme modérateur de la table `C94A01` (voir chemin ci-dessus). Le bloc « Temps de parole par camp » doit apparaître avec **uniquement Camp Nord** (Camp Sud sous le seuil de temps, Camp Est sous le seuil de personnes).
+2. Vérifier que le nombre affiché ne bouge **pas** en direct (pas de `useLiveMs` ici) — seulement après un rechargement ou l'échéance du polling 5 min (réduire temporairement `POLL_INTERVAL_MS` dans `CampSpeakingTimes.tsx` pour un test rapide, ou attendre 5 min).
+3. Vérifier qu'un participant non-modérateur de cette même table, ou le modérateur d'une **autre** table, n'a pas accès à ces données (le bloc ne doit simplement pas apparaître côté participant ; `isModerator` conditionne déjà son rendu côté client, et la RPC refuse aussi côté serveur).
+4. Confirmer que 5 minutes (300s) convient bien comme seuil final pour les deux mécanismes (floutage ET minimum avant affichage) — décidé le 16/09, à ne rouvrir que si l'usage réel montre un problème.
 ## Hors chantier (2026-09-18) — page blanche sur l'onglet Analyse du superadmin — ✅ corrigé
 
 Bug **antérieur au chantier 95 et indépendant de lui**, trouvé en voulant vérifier la vue superadmin : `AnalysisPanel` lisait `silhouette_score.toFixed()`, `pca_variance_explained[0]`, `Object.entries(repness)` et `Object.entries(group_consensus)` sans garde, alors que ces quatre colonnes de `session_analysis` sont nullables. L'analyse du 2026-09-16 (séance « Test chantier 94 ») les a toutes les quatre à NULL : le panneau plantait, et avec lui **tout l'écran superadmin**, sans message — page blanche.
@@ -91,6 +193,8 @@ Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`
 5. Vérifier qu'un modérateur en train d'animer ne reçoit pas cette fenêtre (elle n'est montée que dans `ParticipantView`).
 6. Écran d'allocation participant : le message renvoyant vers l'organisateur pour la déclaration modérateur s'affiche bien.
 7. Relancer une allocation complète après avoir créé des tables à la main, pour confirmer que `apply_allocation` renumérote proprement.
+
+**⚠️ Conséquence repérée en mergeant le chantier 94 (2026-09-18), à trancher** : la recette du chantier 94 dit « page d'accueil → *Rejoindre ou reprendre une table* → code `C94A01` » — **cet onglet n'existe plus**. Il était le seul endroit où un membre **déjà inscrit à la séance** pouvait reprendre par son code une table précise en tant que modérateur (`claimTableAsModerator`). Ce qui reste : un visiteur **non inscrit** garde ce chemin (formulaire de rattrapage en phase débat, avec la case « Je suis modérateur de cette table ») ; un membre inscrit peut se déclarer modérateur de la *séance* (`ModeratorClaimModal`, qui l'assoit à une table animée sans modérateur) ou être nommé par le superadmin. Ce qui manque : reprendre **une table précise, choisie par son code**, quand on est déjà inscrit. Correctif possible en une ligne d'UI : ajouter la case « je suis modérateur » au formulaire « Je veux rejoindre une autre table » de `TableAssignmentCard` (qui appelle aujourd'hui `onSwitch` sans option modérateur). **Non fait — décision de Jules attendue.**
 
 **Point resté ouvert, décidé avec Jules** : la déclaration modérateur reste fermée pendant la phase `allocating` (elle assoit d'office son auteur à une table animée sans modérateur, ce qui remanierait la répartition pendant l'examen).
 

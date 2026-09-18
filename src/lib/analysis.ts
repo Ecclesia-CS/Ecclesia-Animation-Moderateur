@@ -350,8 +350,17 @@ export type VoteScope = 'current' | 'pre_closure'
 export interface LoadedAnalysis {
   id:                     string
   k_chosen:               number
-  silhouette_score:       number
-  pca_variance_explained: [number, number]
+  /**
+   * ⚠️ Nullable — les deux colonnes le sont en base, et les RPC héritées
+   * `run_clustering_v1`/`v2` (laissées en base au chantier 37, plus appelées par
+   * le frontend mais toujours invocables) créent des lignes `session_analysis`
+   * sans jamais les renseigner. Une analyse produite par ce chemin faisait une
+   * page blanche sur l'onglet Analyse (`silhouette_score.toFixed()` sur `null`,
+   * constaté en prod le 2026-09-18). Ne pas réécrire ces deux types en
+   * non-nullable : le type doit refléter la base, pas le cas favorable.
+   */
+  silhouette_score:       number | null
+  pca_variance_explained: [number, number] | null
   repness:                Record<string, Record<string, number>>
   group_consensus:        Record<string, number>
   created_at:             string
@@ -461,6 +470,29 @@ export async function loadResultsMap(
  * Charge la dernière analyse (status='done') d'une session via RPC get_latest_analysis.
  * Retourne null si aucune analyse n'existe encore.
  */
+/**
+ * Frontière DB → front. `repness` et `group_consensus` sont **nullables en
+ * base**, et toute analyse créée par les RPC héritées `run_clustering_v1`/`v2`
+ * (laissées en base au chantier 37) les laisse à `NULL`. Un `as LoadedAnalysis`
+ * brut laissait ces `null` filer jusqu'au rendu, où `Object.entries(null)` et
+ * `silhouette_score.toFixed()` faisaient une page blanche (constaté en prod le
+ * 2026-09-18 sur une séance d'essai analysée par ce chemin).
+ *
+ * Les deux dictionnaires sont ramenés à `{}` — un vide honnête, que tous les
+ * consommateurs traversent sans garde. Les deux métriques scalaires restent
+ * `null` : elles sont réellement inconnues, et l'affichage le dit (« n/c »)
+ * plutôt que d'inventer un 0 qui se lirait comme un vrai score.
+ */
+export function normalizeLoadedAnalysis(data: unknown): LoadedAnalysis {
+  const a = data as LoadedAnalysis
+  return {
+    ...a,
+    repness:         a.repness         ?? {},
+    group_consensus: a.group_consensus ?? {},
+    members:         Array.isArray(a.members) ? a.members : [],
+  }
+}
+
 export async function loadLatestAnalysis(
   supabase:  SupabaseClient,
   password:  string,
@@ -472,7 +504,7 @@ export async function loadLatestAnalysis(
   })
   if (error) throw new Error(extractErr(error))
   if (!data) return null
-  return data as LoadedAnalysis
+  return normalizeLoadedAnalysis(data)
 }
 
 /**
@@ -511,7 +543,7 @@ export async function loadAnalysisById(
   })
   if (error) throw new Error(extractErr(error))
   if (!data) return null
-  return data as LoadedAnalysis
+  return normalizeLoadedAnalysis(data)
 }
 
 // ── Comparaison avant / après débat (chantier 79) ────────────

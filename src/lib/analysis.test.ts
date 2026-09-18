@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pairGroups, computeMemberMovements, computeConsensusMovements } from './analysis'
+import { pairGroups, computeMemberMovements, computeConsensusMovements, normalizeLoadedAnalysis } from './analysis'
 import type { LoadedAnalysis } from './analysis'
 
 function analysis(
@@ -91,5 +91,53 @@ describe('computeConsensusMovements', () => {
     const m1 = movements.find(m => m.assertionId === 'a1')!
     expect(m1.delta).toBeCloseTo(0.4)
     expect(movements.find(m => m.assertionId === 'a3')).toBeUndefined()
+  })
+})
+
+// Régression — page blanche du 2026-09-18 (onglet Analyse du superadmin).
+// Les RPC héritées run_clustering_v1/v2, toujours en base depuis le chantier 37,
+// créent des lignes session_analysis dont silhouette_score, pca_variance_explained,
+// repness et group_consensus sont NULL. Le cast `as LoadedAnalysis` laissait ces
+// null filer jusqu'au rendu : Object.entries(null) et silhouette_score.toFixed().
+describe('normalizeLoadedAnalysis — analyse issue des RPC héritées', () => {
+  // Forme exacte renvoyée pour la séance « Test chantier 94 » : coordonnées et
+  // groupes valides, mais les quatre colonnes calculées à NULL.
+  const legacyRow = {
+    id: '6b72b774',
+    k_chosen: 3,
+    silhouette_score: null,
+    pca_variance_explained: null,
+    repness: null,
+    group_consensus: null,
+    created_at: '2026-09-16T20:37:22Z',
+    vote_scope: 'current',
+    members: [{ member_id: 'm1', pca_x: -0.96, pca_y: 0.59, group_id: 0 }],
+  }
+
+  it('ramène les deux dictionnaires à un vide traversable sans garde', () => {
+    const a = normalizeLoadedAnalysis(legacyRow)
+    expect(a.repness).toEqual({})
+    expect(a.group_consensus).toEqual({})
+    expect(() => Object.entries(a.group_consensus)).not.toThrow()
+  })
+
+  it('laisse les deux métriques scalaires à null plutôt que d’inventer un 0', () => {
+    const a = normalizeLoadedAnalysis(legacyRow)
+    expect(a.silhouette_score).toBeNull()
+    expect(a.pca_variance_explained).toBeNull()
+    // Ce que fait l'affichage : « n/c » au lieu de planter.
+    expect(a.silhouette_score?.toFixed(3) ?? 'n/c').toBe('n/c')
+  })
+
+  it('préserve les données réellement présentes', () => {
+    const a = normalizeLoadedAnalysis(legacyRow)
+    expect(a.k_chosen).toBe(3)
+    expect(a.members).toHaveLength(1)
+    expect(a.members[0].pca_x).toBeCloseTo(-0.96)
+  })
+
+  it('tolère un tableau de membres absent', () => {
+    const a = normalizeLoadedAnalysis({ ...legacyRow, members: null })
+    expect(a.members).toEqual([])
   })
 })

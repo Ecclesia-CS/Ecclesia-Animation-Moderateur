@@ -43,6 +43,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
+import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import { mergeAssertions } from '../lib/gemini'
 import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
 import type { LoadedAnalysis } from '../lib/analysis'
@@ -292,12 +293,17 @@ export default function SuperadminScreen() {
   // ── Render ────────────────────────────────────────────────────
 
   if (authed && view.type === 'detail') {
+    // Dernier recours : les cinq panneaux lourds ont chacun leur propre garde
+    // plus bas. Celle-ci rattrape le reste de l'écran (barre de phase, vues
+    // Groupes et Tables) pour qu'une exception n'emporte plus tout le superadmin.
     return (
-      <SessionDetail
-        session={view.session}
-        onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
-        onAuthError={handleAuthError}
-      />
+      <PanelErrorBoundary label="Détail de la séance">
+        <SessionDetail
+          session={view.session}
+          onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
+          onAuthError={handleAuthError}
+        />
+      </PanelErrorBoundary>
     )
   }
 
@@ -2426,38 +2432,44 @@ function SessionDetail({
                     {assertionsErr && (
                       <p className="text-sm text-red-600 mb-2">{assertionsErr}</p>
                     )}
-                    <AssertionsPanel
-                      assertions={assertions}
-                      voteResults={voteResults}
-                      tab={assertionsTab}
-                      onTabChange={setAssertionsTab}
-                      session={currentSession}
-                      actingId={actingAssertionId}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                      onApproveAll={handleApproveAll}
-                      onReapprove={handleApprove}
-                      onAdminSubmit={handleAdminSubmitAssertion}
-                      onDelete={handleDeleteAssertions}
-                    />
+                    <PanelErrorBoundary label="Assertions">
+                      <AssertionsPanel
+                        assertions={assertions}
+                        voteResults={voteResults}
+                        tab={assertionsTab}
+                        onTabChange={setAssertionsTab}
+                        session={currentSession}
+                        actingId={actingAssertionId}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                        onApproveAll={handleApproveAll}
+                        onReapprove={handleApprove}
+                        onAdminSubmit={handleAdminSubmitAssertion}
+                        onDelete={handleDeleteAssertions}
+                      />
+                    </PanelErrorBoundary>
                   </SectionAccordion>
                 )}
 
                 {showVotingSections && (
-                  <LLMModerationPanel session={currentSession} password={getPwd()!} />
+                  <PanelErrorBoundary label="Modération IA">
+                    <LLMModerationPanel session={currentSession} password={getPwd()!} />
+                  </PanelErrorBoundary>
                 )}
 
                 {showVotingSections && (
-                  <AnalysisPanel
-                    sessionId={session.id}
-                    password={getPwd()!}
-                    assertions={assertions}
-                    onAuthError={onAuthError}
-                    onAnalysisComplete={handleAnalysisNaming}
-                    groupNames={groupNames}
-                    totalMembers={members.length > 0 ? members.length : undefined}
-                    sessionPhase={currentSession.phase}
-                  />
+                  <PanelErrorBoundary label="Analyse">
+                    <AnalysisPanel
+                      sessionId={session.id}
+                      password={getPwd()!}
+                      assertions={assertions}
+                      onAuthError={onAuthError}
+                      onAnalysisComplete={handleAnalysisNaming}
+                      groupNames={groupNames}
+                      totalMembers={members.length > 0 ? members.length : undefined}
+                      sessionPhase={currentSession.phase}
+                    />
+                  </PanelErrorBoundary>
                 )}
 
                 {showVotingSections && voteResults.length > 0 && (
@@ -2523,16 +2535,18 @@ function SessionDetail({
                     Chantier 33 — déplacé depuis l'onglet « En direct » : sa
                     place est ici, avec le reste de la gestion des tables. */}
                 {currentSession.phase === 'allocating' && (
-                  <AllocationPanel
-                    // Chantier 25 (H14) — l'état de travail du panneau est
-                    // restauré depuis sessionStorage au montage : la clé garantit
-                    // un remontage si la séance change sans démontage du parent.
-                    key={currentSession.id}
-                    sessionId={currentSession.id}
-                    password={getPwd()!}
-                    onApplied={loadGroups}
-                    onAuthError={onAuthError}
-                  />
+                  <PanelErrorBoundary label="Allocation">
+                    <AllocationPanel
+                      // Chantier 25 (H14) — l'état de travail du panneau est
+                      // restauré depuis sessionStorage au montage : la clé garantit
+                      // un remontage si la séance change sans démontage du parent.
+                      key={currentSession.id}
+                      sessionId={currentSession.id}
+                      password={getPwd()!}
+                      onApplied={loadGroups}
+                      onAuthError={onAuthError}
+                    />
+                  </PanelErrorBoundary>
                 )}
 
                 {/* Groupes (allocating/debating) */}
@@ -3066,12 +3080,14 @@ function SessionDetail({
               <div className="space-y-6">
                 {/* Comparaison avant / après débat — chantier 79 */}
                 {showVotingSections && (
-                  <AnalysisComparisonPanel
-                    sessionId={session.id}
-                    password={getPwd()!}
-                    assertions={assertions}
-                    onAuthError={onAuthError}
-                  />
+                  <PanelErrorBoundary label="Comparaison avant / après débat">
+                    <AnalysisComparisonPanel
+                      sessionId={session.id}
+                      password={getPwd()!}
+                      assertions={assertions}
+                      onAuthError={onAuthError}
+                    />
+                  </PanelErrorBoundary>
                 )}
 
                 {/* Synthèse des votes */}
@@ -3984,12 +4000,36 @@ function AssertionsPanel({
   onAdminSubmit?: (content: string) => Promise<{ id: string }>
   onDelete(ids: string[]): Promise<void>
 }) {
+  // Trois blobs localStorage relus pendant le rendu. Sans garde, un JSON
+  // malformé, une valeur non itérable ou une entrée de `merge_log` sans
+  // `reject_ids` fait planter tout l'écran (pas d'ErrorBoundary) — cf. la règle
+  // « JSON.parse d'un blob persisté sans validation » dans CLAUDE.md.
   const aiLabelMap = React.useMemo(() => {
-    const rejIds     = new Set<string>(JSON.parse(localStorage.getItem(`ai_rejected_ids_${session.id}`) ?? '[]'))
-    const approvedIds = new Set<string>(JSON.parse(localStorage.getItem(`ai_approved_ids_${session.id}`) ?? '[]'))
-    const mergeLog   = JSON.parse(localStorage.getItem(`merge_log_${session.id}`) ?? '[]') as Array<{ reject_ids: string[] }>
-    const mergedIds  = new Set<string>(mergeLog.flatMap(m => m.reject_ids))
-    return { rejIds, approvedIds, mergedIds }
+    const readIdSet = (key: string): Set<string> => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown
+        return new Set(Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [])
+      } catch {
+        return new Set()
+      }
+    }
+    const readMergedIds = (): Set<string> => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(`merge_log_${session.id}`) ?? '[]') as unknown
+        if (!Array.isArray(parsed)) return new Set()
+        return new Set(parsed.flatMap((m: unknown) => {
+          const ids = (m as { reject_ids?: unknown })?.reject_ids
+          return Array.isArray(ids) ? ids.filter((v): v is string => typeof v === 'string') : []
+        }))
+      } catch {
+        return new Set()
+      }
+    }
+    return {
+      rejIds:      readIdSet(`ai_rejected_ids_${session.id}`),
+      approvedIds: readIdSet(`ai_approved_ids_${session.id}`),
+      mergedIds:   readMergedIds(),
+    }
   }, [session.id])
 
   const [adminText,      setAdminText]      = useState('')
