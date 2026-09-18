@@ -4,7 +4,7 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-16**.
+Dernière mise à jour : **2026-09-19**.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 
@@ -33,11 +33,19 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 
 ---
 
-## En cours dans une autre session — ne pas prendre
+## Chantiers en cours — à tenir à jour par toute session qui en démarre un
 
-### 59 — Canaux Realtime privés (reste : la recette et le réglage dashboard)
-**Sécurité.** Migration appliquée et code mergé/déployé le 2026-09-07. Ce qui reste : la recette n'a été jouée qu'avec **une seule identité sur deux onglets** (scénarios C à I non déroulés), et surtout **« Allow public access » n'a pas été désactivé** dans le dashboard Supabase (Realtime → Settings) — c'est ce réglage, et lui seul, qui ferme réellement F6.
-⚠️ Ordre non négociable, rappelé ici parce que l'inverser casse toute la production d'un coup : recette complète à deux identités réelles **d'abord**, désactivation du réglage **ensuite**. Rollback d'urgence : le réactiver, effet immédiat sans redéploiement.
+> **But** : qu'une nouvelle session sache, en lisant ce seul paragraphe, quelles branches sont vivantes en ce moment et sur quels fichiers — pour éviter de démarrer un chantier qui va entrer en conflit avec un autre déjà en cours ailleurs.
+>
+> **Règle d'usage** : dès que tu commences un chantier, ajoute une entrée ici (numéro, branche, fichiers touchés, date de début). Dès qu'il est mergé sur `main`, retire l'entrée (le statut définitif vit dans `docs/chantiers.md` et, le temps que la branche ne soit pas mergée, dans `docs/registre-merges-en-attente.md` — cette section-ci ne parle que de « en train de tourner maintenant », pas de « en attente de merge »). Une session qui referme la sienne sans y toucher laisse une fausse alerte à la suivante — aussi grave qu'oublier de la créer.
+>
+> Format d'entrée :
+> ```
+> ### <numéro> — <titre court>
+> **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
+> ```
+
+**Au 2026-09-19 : aucun chantier en cours.** Les six chantiers dictés le 16/09 (90 à 95) et le 56 sont tous livrés — voir leur statut dans la section « À faire, dans l'ordre » ci-dessous et le détail dans `docs/chantiers.md`.
 
 ---
 
@@ -140,9 +148,9 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 **82** (reconnexion par pseudo après clôture) : **tranché par Jules le 18/09 — il n'y a rien à faire.** « Quand on passe la séance en closed, les gens n'ont plus besoin de se connecter. » La reconnexion couvre le distanciel jusqu'au post-débat inclus, et s'arrête à la clôture ; la purge du chantier 49 reste. Le constat d'origine de la fiche était d'ailleurs à moitié faux : `confirm_attendance` acceptait `closed` avec le **pseudo seul**, ce qui était une faille et non un manque — fermé par le 93.
 
-### 56 — Durcissement SQL
-**Sécurité.** Fermer `app_config`, figer le `search_path` des fonctions à mot de passe.
-⚠️ **Peut verrouiller Jules hors de sa propre base.** À ne faire que lorsqu'il est disponible et joignable, jamais à l'approche d'une utilisation en production, jamais pendant qu'il dort.
+### 56 — Durcissement SQL — ✅ fait le 2026-09-16, voir `docs/chantiers.md`
+**Sécurité.** Fermer `app_config`, figer le `search_path` des fonctions à mot de passe. Fait en présence de Jules, comme l'exigeait la consigne ci-dessous — conservée pour mémoire.
+⚠️ *(Consigne d'origine, respectée)* : peut verrouiller Jules hors de sa propre base — à ne faire que lorsqu'il est disponible et joignable, jamais à l'approche d'une utilisation en production, jamais pendant qu'il dort.
 
 ### 87 — Revue complète des parcours utilisateurs
 **Parcours.** Sujet de fond réservé par Jules. Il veut **réexpliquer lui-même** comment l'application et son flux sont censés fonctionner à chaque instant, et préfère une conversation dédiée lancée en **un prompt unique** qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
@@ -163,11 +171,8 @@ Le prompt de fusion d'assertions a été durci (typage prescription / jugement /
 
 **La vérification navigateur.** `A_VERIFIER.md` reste le seul fichier qui dise ce qui a réellement été vu à l'écran, dont une douzaine d'entrées **validées avant la refonte des chantiers 73/74 du 06/09 et à revalider**. Presque tout ce qui est mergé et déployé n'a eu qu'une vérification `tsc` / tests / build. « Mergé » ne veut pas dire « vérifié ». Une seule session à la fois peut lancer le serveur de dev.
 
-**L'ordre de traitement de la sécurité** est donné par `docs/2026-09-06-plan-securite-consolide.md`, qui a relu chaque constat des anciens audits contre le code et la base. Son ordre d'origine était : sauvegardes → réserves `results_public` → test Realtime du 51 → chantier 55 → 56 → 58 → 59. **Mis à jour au 2026-09-16** — les réserves `results_public` (chantier 80), le test Realtime du 51 (chantier 86) et le chantier 58 sont **faits** ; il reste, dans l'ordre :
+**L'ordre de traitement de la sécurité** est donné par `docs/2026-09-06-plan-securite-consolide.md`, qui a relu chaque constat des anciens audits contre le code et la base. Son ordre d'origine était : sauvegardes → réserves `results_public` → test Realtime du 51 → chantier 55 → 56 → 58 → 59. **Mis à jour au 2026-09-19** — seules les sauvegardes (85) restent, tout le reste de cet ordre est fait : réserves `results_public` (chantier 80), test Realtime du 51 (chantier 86), chantier 58, **chantier 59 (clos, « Allow public access » désactivé)**, preuve d'identité (chantier 93, ex-55), **et durcissement SQL (chantier 56)**.
 
-1. **85 — les sauvegardes**, bloqué sur Jules (deux secrets GitHub). Le plan le classe premier depuis le début : tant qu'elles n'existent pas, chaque chantier qui touche `session_members`, `tables` ou `assertions` s'exécute sans filet.
-2. **59 — finir la recette et désactiver « Allow public access »** (en cours dans une autre session, voir en haut de fichier). Tant que ce réglage est actif, F6 n'est pas fermé, quel que soit le code déployé.
-3. **93 — la preuve d'identité** (ex-chantier 55), qui reste l'ouverture la plus large : six fonctions distinctes transfèrent aujourd'hui un compte sur simple égalité de pseudo.
-4. **56 — durcissement SQL**, uniquement en présence de Jules.
+1. **85 — les sauvegardes**, seul point encore ouvert, bloqué sur Jules (deux secrets GitHub). Le plan le classait premier depuis le début : tant qu'elles n'existent pas, chaque chantier qui touche `session_members`, `tables` ou `assertions` s'exécute sans filet.
 
 **Durcissements jamais élevés au rang de chantier**, listés au §5 du plan consolidé et toujours ouverts : A3 (pas de limitation de débit sur `check_superadmin_password`), C4 (aucune limite de longueur ni de débit sur les soumissions), C7 (`tables_update_moderator` ne restreint aucune colonne — un modérateur peut réécrire le `join_code` ou le `session_id` de sa propre table), et la suppression du second projet Supabase inactif (`fcdhbgsqzvxepzvjweod`).
