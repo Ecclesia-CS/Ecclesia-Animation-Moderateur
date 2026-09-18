@@ -71,9 +71,21 @@ Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`
 - Le bouton « Supprimer » n'apparaît que tant que la table est vide, et la suppression fonctionne.
 - Séance de test remise dans son état d'origine (membre rendu à la table 1, table de test supprimée, 6 affectations / 1 table / 6 membres comme avant).
 
+**Recette complète jouée le 2026-09-18 sur une séance jetable** (« ZZ test chantier 95 », créée depuis le superadmin, menée de `draft` à `debating`, puis **entièrement supprimée** — vérifié : 0 ligne restante dans `sessions`, `tables`, `session_members`, `table_assignments`, `participants`, `entry_responses`) :
+- Phase `allocating` : « Calculer la répartition » puis « Appliquer » créent la table N°1 avec `tables.table_number = 1` — la migration fonctionne sur le chemin nominal.
+- « + Table animée » en phase `allocating` crée la table N°2, vide, numérotée, avec son code.
+- Inscription d'une vraie participante par le parcours normal (`#session/<code>`, onboarding 4 questions), passage en `debating`, elle rejoint sa table.
+- **Déplacement pendant le débat** : la fenêtre « Changement de table » s'ouvre chez elle en moins de 10 s, avec le bon numéro. « Rejoindre la table N°2 » la déplace réellement (ligne `participants` sur la nouvelle table, vérifiée en base). Elle ne se rouvre pas une fois arrivée.
+- « Rester à ma table » ferme la fenêtre et elle ne réapparaît pas (observé 20 s).
+- Le champ « rejoindre une autre table avec son code » est présent ; le bouton principal a été testé, pas ce champ-là.
+
+**Deux constats de ce test, à trancher par Jules** :
+1. **La modale d'accueil du débat masque la fenêtre de changement.** Après un changement de table, « Bienvenue dans le débat » et les règles se réaffichent (elles sont mémorisées par identifiant de table), et ma garde anti-superposition met la fenêtre de changement en attente derrière elles. Une fois l'accueil fermé, elle s'affiche normalement. Comportement acceptable mais à confirmer : faut-il plutôt faire passer la fenêtre de changement devant ?
+2. **Le glisser-déposer vers une table vide n'a pas pu être rejoué en phase `allocating`** — le clic-glisser automatisé ne s'accrochait pas ce jour-là, alors que le même geste a fonctionné du premier coup en phase `debating` quelques minutes plus tôt (affectation écrite en base, vérifiée). Le code de dépôt ne dépend pas de la phase ; c'est très probablement une limite de l'automatisation, mais ça reste à confirmer à la main.
+
 **Reste à vérifier à l'écran par Jules** :
-1. Les mêmes créations en phase `allocating` (seule la phase `debating` a été testée).
-2. Le comportement après le rafraîchissement automatique de 10 s et depuis un second navigateur.
+1. Le glisser-déposer vers une table vide en phase `allocating` (voir le constat 2 ci-dessus).
+2. Le comportement depuis un second navigateur, et l'arrivée d'un retardataire par le code d'une table vide créée à la main.
 3. Faire rejoindre un retardataire avec le code d'une table vide, vérifier qu'il tombe sur le bon numéro de groupe.
 4. Phase débat : déplacer quelqu'un déjà assis, vérifier que la fenêtre s'ouvre chez lui dans les 10 s, que « Rejoindre la table N°X » le déplace réellement, que le champ de code marche, et que « Rester à ma table » ne rouvre pas la fenêtre en boucle.
 5. Vérifier qu'un modérateur en train d'animer ne reçoit pas cette fenêtre (elle n'est montée que dans `ParticipantView`).
