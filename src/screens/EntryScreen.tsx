@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
-import { claimModeratorStatus, claimTableAsModerator } from '../lib/voting'
-import ReclaimCodeDisplay from '../components/voting/ReclaimCodeDisplay'
 import { listPublicClosedSessions } from '../lib/sessions'
-import type { TableResult } from '../lib/supabase'
 import type { Session } from '../lib/types'
 
 // ── Lien externe vers le site public Ecclesia (chantier 46) ────
@@ -33,49 +29,27 @@ const PHASE_ACTION: Record<string, string> = {
 
 type ActiveSession = Pick<Session, 'id' | 'title' | 'phase' | 'join_code'>
 
-type Mode = 'join' | 'create' | 'moderator'
-
-interface Props {
-  userId: string
-  onJoined(tableId: string, participantId: string, isModerator: boolean): void
-}
-
-export default function EntryScreen({ onJoined }: Props) {
-  const [mode, setMode] = useState<Mode>('join')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const [pseudo, setPseudo] = useState(() => lastNameStore.get())
-  const [joinCode, setJoinCode] = useState('')
-  const [creationCode, setCreationCode] = useState('')
-  const [asModerator, setAsModerator] = useState(false)
-  const [reclaimCode, setReclaimCode] = useState('')
-  const [selectedSessionId, setSelectedSessionId] = useState('')
-  const [leaderless, setLeaderless] = useState(false)
-  const [availableSessions, setAvailableSessions] = useState<{
-    id: string
-    title: string
-    join_code: string | null
-  }[]>([])
-
+/**
+ * Chantier 95 — les trois onglets « Modérateur », « Rejoindre ou reprendre une
+ * table » et « Créer » ont été supprimés. Tout passe par la liste des séances
+ * en cours ci-dessous, qui mène au parcours normal (`#session/<code>`) :
+ *
+ * - **Créer** fabriquait une table hors séance, à rattacher ensuite à la main
+ *   dans le superadmin. C'était la seule source de ces tables orphelines, et
+ *   les deux accordéons qui servaient à les rattacher sont supprimés avec.
+ *   Les tables viennent maintenant de l'algorithme d'allocation ou du bouton
+ *   de création de la vue Groupes.
+ * - **Rejoindre** doublonnait le formulaire de rattrapage déjà proposé en
+ *   phase débat par `SessionRouterScreen` et `VoteScreen`.
+ * - **Modérateur** doublonnait la déclaration déjà possible à l'inscription
+ *   (`ModeratorDeclareField`), pendant le vote et pendant le débat
+ *   (`ModeratorClaimModal`).
+ */
+export default function EntryScreen() {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
 
   // ── Anciennes séances aux résultats publics (chantier 46) ───────
   const [showPastSessions, setShowPastSessions] = useState(false)
-
-  // ── Onglet Modérateur (G8) ──────────────────────────────────────
-  const [moderatorSessions, setModeratorSessions] = useState<{
-    id: string
-    title: string
-    join_code: string | null
-  }[]>([])
-  const [moderatorSessionId, setModeratorSessionId] = useState('')
-  const [moderatorPassword, setModeratorPassword] = useState('')
-  const [moderatorLoading, setModeratorLoading] = useState(false)
-  const [moderatorError, setModeratorError] = useState<string | null>(null)
-  // Chantier 67 — code de rappel à afficher quand la déclaration modérateur
-  // vient de créer un profil en pré-vote (attending_in_person = false).
-  const [moderatorReclaim, setModeratorReclaim] = useState<{ pseudo: string; code: string; joinCode: string } | null>(null)
 
   useEffect(() => {
     function fetchActiveSessions() {
@@ -90,154 +64,6 @@ export default function EntryScreen({ onJoined }: Props) {
     const interval = setInterval(fetchActiveSessions, 30_000)
     return () => clearInterval(interval)
   }, [])
-
-  useEffect(() => {
-    if (mode !== 'create') return
-    supabase
-      .from('sessions')
-      .select('id, title, join_code')
-      // Chantier 65 — une séance en brouillon n'est pas encore ouverte : ne pas la
-      // proposer ici, même à qui possède le code Ecclesia.
-      .in('phase', ['pre_voting', 'voting', 'debating'])
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setAvailableSessions(data) })
-  }, [mode])
-
-  // Séances où l'auto-déclaration modérateur a un sens : jusqu'à la formation
-  // des groupes, et aussi pendant le débat (chantier 33, point 4) — une table
-  // animée peut encore attendre son modérateur une fois le débat commencé.
-  useEffect(() => {
-    if (mode !== 'moderator') return
-    supabase
-      .from('sessions')
-      .select('id, title, join_code')
-      .in('phase', ['pre_voting', 'voting', 'allocating', 'debating'])
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setModeratorSessions(data) })
-  }, [mode])
-
-  function store(tableId: string, participantId: string, jCode: string, isMod: boolean) {
-    tableStore.set({ tableId, participantId, joinCode: jCode, isModerator: isMod, pseudo })
-    lastNameStore.set(pseudo)
-    onJoined(tableId, participantId, isMod)
-  }
-
-  async function handleJoin(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    try {
-      const { data, error: err } = await supabase.rpc('join_table', {
-        p_join_code: joinCode,
-        p_pseudo: pseudo,
-      })
-      if (err) throw err
-      const r = data as TableResult
-      store(r.id, r.participant_id, r.join_code, false)
-    } catch (err) {
-      setError(extractErr(err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    if (!selectedSessionId) {
-      setError('Veuillez sélectionner une séance.')
-      return
-    }
-    setError(null)
-    setLoading(true)
-    try {
-      const { data, error: err } = await supabase.rpc('create_table', {
-        p_pseudo:        pseudo,
-        p_creation_code: leaderless ? '' : creationCode,
-        p_session_id:    selectedSessionId,
-        p_leaderless:    leaderless,
-      })
-      if (err) throw err
-      const r = data as TableResult
-      store(r.id, r.participant_id, r.join_code, !leaderless)
-    } catch (err) {
-      setError(extractErr(err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleReclaim(e: React.FormEvent) {
-    e.preventDefault()
-    if (!pseudo.trim()) {
-      setError('Veuillez entrer votre nom prénom.')
-      return
-    }
-    setError(null)
-    setLoading(true)
-    try {
-      // Chantier 68 — écran d'accueil générique, aucune séance en contexte
-      // (rejoindre une table par simple code) : claim_table_as_moderator
-      // refuse une table déjà modérée par quelqu'un d'autre, mais ne peut
-      // pas vérifier l'appartenance à une séance précise ici.
-      const r = await claimTableAsModerator(joinCode, reclaimCode, pseudo.trim())
-      tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: true, pseudo: pseudo.trim() })
-      lastNameStore.set(pseudo)
-      onJoined(r.id, r.participant_id, true)
-    } catch (err) {
-      setError(extractErr(err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleClaimModerator(e: React.FormEvent) {
-    e.preventDefault()
-    if (!moderatorSessionId) {
-      setModeratorError('Veuillez sélectionner une séance.')
-      return
-    }
-    setModeratorError(null)
-    setModeratorLoading(true)
-    try {
-      // Chantier 67 — généré côté client comme pour register_session_member :
-      // ignoré côté serveur si ce n'est pas une nouvelle inscription en
-      // pré-vote (profil déjà existant, ou séance pas en pre_voting).
-      const candidateCode = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
-      const updated = await claimModeratorStatus(moderatorSessionId, moderatorPassword, pseudo, candidateCode)
-      lastNameStore.set(pseudo)
-      const sel = moderatorSessions.find(s => s.id === moderatorSessionId)
-      if (!sel?.join_code) {
-        setModeratorError('Séance sans code — contactez le superadmin.')
-        return
-      }
-      if (updated.reclaim_code === candidateCode) {
-        // Nouveau profil créé en pré-vote — montrer le code avant de partir.
-        setModeratorReclaim({ pseudo: updated.pseudo, code: candidateCode, joinCode: sel.join_code })
-      } else {
-        window.location.hash = '#vote/' + sel.join_code
-      }
-    } catch (err) {
-      setModeratorError(extractErr(err))
-    } finally {
-      setModeratorLoading(false)
-    }
-  }
-
-  const tabs: { id: Mode; label: string }[] = [
-    { id: 'moderator', label: '🎙️ Modérateur' },
-    { id: 'join',      label: 'Rejoindre ou reprendre une table' },
-    { id: 'create',    label: 'Créer' },
-  ]
-
-  if (moderatorReclaim) {
-    return (
-      <ReclaimCodeDisplay
-        pseudo={moderatorReclaim.pseudo}
-        code={moderatorReclaim.code}
-        onContinue={() => { window.location.hash = '#vote/' + moderatorReclaim.joinCode }}
-      />
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -268,11 +94,15 @@ export default function EntryScreen({ onJoined }: Props) {
         </div>
 
         {/* Séances en cours */}
-        {activeSessions.length > 0 && (
-          <section className="px-6 pt-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Séances en cours
+        <section className="px-6 pt-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Séances en cours
+          </p>
+          {activeSessions.filter(s => s.join_code).length === 0 ? (
+            <p className="text-sm text-gray-400 py-3">
+              Aucune séance en cours pour l'instant.
             </p>
+          ) : (
             <div className="space-y-2">
               {activeSessions.filter(s => s.join_code).map(s => (
                 <div key={s.id}
@@ -292,197 +122,10 @@ export default function EntryScreen({ onJoined }: Props) {
                 </div>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mt-4">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => { setMode(t.id); setError(null); setAsModerator(false) }}
-              className={`flex-1 py-2.5 text-xs font-medium transition-colors focus:outline-none ${
-                mode === t.id
-                  ? 'border-b-2 border-indigo-600 text-indigo-600'
-                  : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-6">
-          {mode === 'moderator' && (
-            <form onSubmit={handleClaimModerator} className="space-y-4">
-              <p className="text-xs text-gray-500">
-                Déclare-toi modérateur d'une séance en cours (vote à distance, vote présentiel, formation des groupes ou débat déjà commencé) avec le mot de passe Ecclesia.
-                Si tu es déjà inscrit·e sur cet appareil (tu as voté ou tu t'es déjà inscrit·e), on ajoute juste le badge modérateur à ton profil.
-                Sinon, ton profil est créé avec le nom ci-dessous, comme une inscription normale.
-                Si une table animée attend encore son modérateur, tu y seras assigné automatiquement.
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Séance <span className="text-red-500">*</span>
-                </label>
-                {moderatorSessions.length === 0 ? (
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                    Aucune séance en vote, en formation des groupes ou en débat actuellement.
-                  </p>
-                ) : (
-                  <select
-                    value={moderatorSessionId}
-                    onChange={e => setModeratorSessionId(e.target.value)}
-                    required
-                    className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                      bg-white transition-shadow"
-                  >
-                    <option value="" disabled>— Sélectionner une séance —</option>
-                    {moderatorSessions.map(s => (
-                      <option key={s.id} value={s.id}>{s.title}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <Field label="Prénom Nom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
-              <p className="text-xs text-gray-400 -mt-2.5">
-                Retiens bien ce que tu inscris ici — utilisé seulement si tu n'as pas encore de profil sur cette séance.
-              </p>
-              <Field label="Code Ecclesia" value={moderatorPassword}
-                onChange={setModeratorPassword} type="password" placeholder="••••••••" />
-              {moderatorError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                  {moderatorError}
-                </div>
-              )}
-              <Btn
-                loading={moderatorLoading}
-                label="Rejoindre en tant que modérateur"
-                disabled={moderatorSessions.length === 0}
-              />
-            </form>
           )}
+        </section>
 
-          {mode === 'join' && !asModerator && (
-            <form onSubmit={handleJoin} className="space-y-4">
-              <Field label="Code de table" value={joinCode}
-                onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Prénom Nom" value={pseudo} onChange={setPseudo} placeholder="Prénom Nom" />
-              <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={false}
-                  onChange={() => { setAsModerator(true); setError(null) }}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
-              </label>
-              <Btn loading={loading} label="Rejoindre" />
-            </form>
-          )}
-
-          {mode === 'join' && asModerator && (
-            <form onSubmit={handleReclaim} className="space-y-4">
-              <Field label="Code de table" value={joinCode}
-                onChange={v => setJoinCode(v.toUpperCase())} placeholder="A1B2C3" />
-              <Field label="Votre Prénom Nom" value={pseudo}
-                onChange={setPseudo} placeholder="Prénom Nom" />
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={true}
-                  onChange={() => { setAsModerator(false); setError(null) }}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
-              </label>
-              <Field label="Code Ecclesia" value={reclaimCode}
-                onChange={setReclaimCode} type="password" placeholder="••••••••" />
-              <Btn loading={loading} label="Reprendre la main" />
-            </form>
-          )}
-
-          {mode === 'create' && (
-            <form onSubmit={handleCreate} className="space-y-4">
-              <Field label={leaderless ? 'Votre Prénom Nom' : 'Prénom Nom (modérateur)'} value={pseudo} onChange={setPseudo}
-                placeholder="Prénom Nom" />
-              <p className="text-xs text-gray-400 -mt-2.5">Retiens bien ce que tu inscris ici, il te permettra d'être reconnu·e.</p>
-              {!leaderless && (
-                <Field label="Code Ecclesia" value={creationCode}
-                  onChange={setCreationCode} type="password" placeholder="••••••••" />
-              )}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Séance <span className="text-red-500">*</span>
-                </label>
-                {availableSessions.length === 0 ? (
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                    Aucune séance active — créez d'abord une séance dans l'Administration.
-                  </p>
-                ) : (
-                  <>
-                    <select
-                      value={selectedSessionId}
-                      onChange={e => setSelectedSessionId(e.target.value)}
-                      required
-                      className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
-                        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                        bg-white transition-shadow"
-                    >
-                      <option value="" disabled>— Sélectionner une séance —</option>
-                      {availableSessions.map(s => (
-                        <option key={s.id} value={s.id}>{s.title}</option>
-                      ))}
-                    </select>
-                    {(() => {
-                      const sel = availableSessions.find(s => s.id === selectedSessionId)
-                      if (!sel?.join_code) return null
-                      return (
-                        <a
-                          href={`#collab/${sel.join_code}`}
-                          className="mt-2 flex items-center gap-1 text-xs text-indigo-600 hover:underline"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                          </svg>
-                          Sources collaboratives de cette séance
-                        </a>
-                      )
-                    })()}
-                  </>
-                )}
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={leaderless}
-                  onChange={e => setLeaderless(e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <span className="text-sm text-gray-700">Table sans modérateur</span>
-              </label>
-              <Btn
-                loading={loading}
-                label="Créer la session"
-                disabled={availableSessions.length === 0 || !selectedSessionId}
-              />
-            </form>
-          )}
-
-          {mode !== 'moderator' && error && (
-            <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-        </div>
-
-        <div className="pb-5 px-6 flex flex-col items-center gap-2">
+        <div className="pt-5 pb-5 px-6 flex flex-col items-center gap-2">
           <a
             href={ALL_DEBATES_URL}
             target="_blank"
@@ -575,104 +218,5 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
         </div>
       </div>
     </div>
-  )
-}
-
-// ── Helpers ────────────────────────────────────────────────────
-
-function Field({
-  label, value, onChange, type = 'text', placeholder, className = '',
-}: {
-  label: string
-  value: string
-  onChange(v: string): void
-  type?: string
-  placeholder?: string
-  className?: string
-}) {
-  const [showPwd, setShowPwd] = useState(false)
-  const isPassword = type === 'password'
-  const inputType  = isPassword ? (showPwd ? 'text' : 'password') : type
-
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
-      <div className="relative">
-        <input
-          type={inputType}
-          required
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={`w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
-            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-            placeholder:text-gray-300 transition-shadow
-            ${isPassword ? 'pr-10' : ''} ${className}`}
-        />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPwd(v => !v)}
-            tabIndex={-1}
-            title={showPwd ? 'Masquer' : 'Afficher'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
-              hover:text-gray-600 transition-colors"
-          >
-            {showPwd ? <EyeOff /> : <Eye />}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Eye() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  )
-}
-
-function EyeOff() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  )
-}
-
-function Btn({ loading, label, disabled = false }: { loading: boolean; label: string; disabled?: boolean }) {
-  return (
-    <button
-      type="submit"
-      disabled={loading || disabled}
-      className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-        text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
-        focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center gap-2"
-    >
-      {loading ? (
-        <>
-          <Spinner />
-          Chargement…
-        </>
-      ) : label}
-    </button>
-  )
-}
-
-function Spinner() {
-  return (
-    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-      <path className="opacity-75" fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-    </svg>
   )
 }

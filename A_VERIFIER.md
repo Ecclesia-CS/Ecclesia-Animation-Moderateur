@@ -19,6 +19,39 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
 
+## Chantier 95 (2026-09-18) — ménage des portes d'entrée + tables créées à la main — ✅ SQL appliqué en base
+
+Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`](./supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql), appliquée par cette session (règle du 07/09 : une session de chantier peut appliquer sa propre migration). Corps des fonctions réécrites comparés à `pg_get_functiondef` en base avant écriture, comme l'exige `CLAUDE.md`.
+
+**Ce qui change en base** :
+- Nouvelle colonne `tables.table_number` (le numéro n'existait que dans `table_assignments`, donc une table vide n'en avait aucun). 18 tables existantes rattrapées.
+- `apply_allocation` la renseigne, et la remet à NULL sur les tables qu'elle détache.
+- Nouvelle RPC `admin_create_session_table` — table vide, rattachée, déjà numérotée.
+- `move_member_to_group` résout la table cible par `tables.table_number` d'abord (sinon une table vide était une cible impossible).
+- `sync_table_assignment` respecte ce numéro au lieu de recalculer `MAX + 1`.
+- `list_session_tables` expose `table_number` (DROP + CREATE : changement de type de retour).
+
+**Ce qui change côté écran** :
+- Superadmin, vue Groupes : boutons « + Table animée » / « + Table sans modérateur » (allocation **et** débat) ; les tables vides apparaissent comme groupes en attente ; suppression possible sur une table vide.
+- Les deux accordéons de l'onglet Tables (« Tables rattachées », « Tables disponibles à rattacher ») sont supprimés, ainsi que les onglets « Modérateur » / « Rejoindre » / « Créer » de l'accueil.
+- Participant en phase débat : nouvelle fenêtre `TableChangeModal` quand le superadmin le déplace.
+
+**Vérifié par cette session** :
+- `tsc` et `npm run build` passent.
+- Accueil rendu dans le navigateur : plus d'onglets, liste des séances et liens conservés.
+- Test SQL sur séance jetable : une table vide numérotée 2 rejointe par son code donne bien l'affectation n°2 (et non un numéro neuf). Jeu de test supprimé, vérifié à zéro ligne.
+
+**À vérifier à l'écran par Jules (le mot de passe superadmin n'est pas accessible à une session Claude)** :
+1. Phase allocation : créer une table animée puis une table sans modérateur, vérifier qu'elles apparaissent aussitôt comme groupes numérotés, avec leur code.
+2. Y glisser un membre, vérifier que l'affectation tient après le rafraîchissement 10 s.
+3. Faire rejoindre un retardataire avec le code d'une table vide, vérifier qu'il tombe sur le bon numéro de groupe.
+4. Phase débat : déplacer quelqu'un déjà assis, vérifier que la fenêtre s'ouvre chez lui dans les 10 s, que « Rejoindre la table N°X » le déplace réellement, que le champ de code marche, et que « Rester à ma table » ne rouvre pas la fenêtre en boucle.
+5. Vérifier qu'un modérateur en train d'animer ne reçoit pas cette fenêtre (elle n'est montée que dans `ParticipantView`).
+6. Écran d'allocation participant : le message renvoyant vers l'organisateur pour la déclaration modérateur s'affiche bien.
+7. Relancer une allocation complète après avoir créé des tables à la main, pour confirmer que `apply_allocation` renumérote proprement.
+
+**Point resté ouvert, décidé avec Jules** : la déclaration modérateur reste fermée pendant la phase `allocating` (elle assoit d'office son auteur à une table animée sans modérateur, ce qui remanierait la répartition pendant l'examen).
+
 ## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
 
 Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supabase/migrations/20260916_chantier56_durcissement_sql.sql). Aucun fichier `src/`. Appliqué par cette session directement (règle du 07/09 dans `CLAUDE.md` : une session de chantier peut appliquer sa propre migration), avec Jules disponible et joignable comme l'exigeait `docs/registre-merges-en-attente.md`.

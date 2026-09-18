@@ -119,6 +119,8 @@ Périmètre : `src/components/voting/PseudoForm.tsx`, `src/components/Participan
 Périmètre : `src/components/ModeratorView.tsx`, nouvelle RPC d'agrégation.
 
 ### 95 — Ménage des portes d'entrée : onglet « tables rattachées » + bloc du menu principal (remplace le 75)
+> ✅ **Fait le 2026-09-18** (branche `claude/lancer-95-analyse-059233`, non mergée). Analyse menée puis suppression, plus la création de tables vides numérotées dans la vue Groupes et la fenêtre de changement de table côté participant. Détail dans `docs/chantiers.md` et recette dans `A_VERIFIER.md` § Chantier 95.
+
 **Parcours + superadmin.** ⚠️ **Ce chantier remplace le chantier 75**, sur décision de Jules le 16/09 (« Oui, remplace le 75 »). Analyse d'abord, suppression ensuite — c'est explicitement ce qu'il demande.
 
 > **Consigne de Jules (2026-09-16)** : « Dans la vue superadmin, L'onglet « table rattaché » n'a plus beaucoup d'utilité. Il conviendrait de le supprimer. Avant ça, liste les possibilité de son utilisation, et de sa vision, et s'il sert toujours au superadmin ou non. On fusionne ce chantier avec le fait d'avoir ou non le bloc dans le menu principal modérateur, créer, rejoindre, qui, selon moi, ne sert plus à rien. Faisons une analyse de cela. »

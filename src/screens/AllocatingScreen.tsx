@@ -298,6 +298,17 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
           />
         </div>
 
+        {/* Chantier 95 — la déclaration modérateur est volontairement fermée pendant
+            l'allocation : elle assoit d'office son auteur à une table animée sans
+            modérateur, ce qui remanierait la répartition pendant que l'organisateur
+            l'examine. Le dire, plutôt que de laisser croire à un oubli. */}
+        {currentSession.phase === 'allocating' && (
+          <p className="text-xs text-gray-400 text-center">
+            Tu es modérateur·rice et tu n'es pas affecté·e à une table ? Signale-le à l'organisateur :
+            les groupes sont en cours de constitution et ne peuvent plus être modifiés depuis cet écran.
+          </p>
+        )}
+
         {/* Bannière clôture — affichée en-dessous de la carte */}
         {sessionClosed && (
           <div className="bg-gray-100 rounded-xl px-4 py-3 text-center text-sm text-gray-500">

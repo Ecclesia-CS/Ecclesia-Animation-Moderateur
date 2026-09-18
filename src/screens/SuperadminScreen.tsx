@@ -11,21 +11,20 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
   setSessionOnboardingEnabled,
-  attachTableToSession, detachTableFromSession,
-  listSessionTables, listAvailableTables, updateSessionDocs,
+  listSessionTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
-  getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
-  adminCreateTable, updateGroupNames, listTableAssignmentsAdmin, listSessionsAdmin,
+  getSessionTableCounts, getSessionMemberCounts, getTableSpeakingTurnsAdmin,
+  adminCreateSessionTable, updateGroupNames, listTableAssignmentsAdmin, listSessionsAdmin,
   updateSessionMeta,
 } from '../lib/sessions'
-import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
+import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
@@ -1100,19 +1099,20 @@ function SessionDetail({
   onBack(): void
   onAuthError(): void
 }) {
+  // Chantier 95 — les tables de la séance alimentent encore les exports CSV et
+  // l'état du questionnaire forcé. Les deux accordéons qui les affichaient
+  // (« Tables rattachées », « Tables disponibles à rattacher ») ont été
+  // supprimés : la création de table vit désormais dans la vue Groupes, et
+  // plus rien ne produit de table hors séance à rattacher.
   const [attachedTables,  setAttachedTables]  = useState<SessionTableRow[]>([])
-  const [availableTables, setAvailableTables] = useState<SessionTableRow[]>([])
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
-  const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
   const [exportingType,      setExportingType]      = useState<null | 'questionnaire' | 'speaking' | 'history'>(null)
   const [isQForced,    setIsQForced]    = useState(false)
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
 
-  const [rattacheesOpen,  setRattacheesOpen]  = useState(true)
-  const [disponiblesOpen, setDisponiblesOpen] = useState(false)
   const [docsOpen,        setDocsOpen]        = useState(false)
 
   const adminTabKey = `ecclesia_admin_tab_${session.id}`
@@ -1123,11 +1123,6 @@ function SessionDetail({
   })
   const [postSessionOpen, setPostSessionOpen] = useState(false)
   const [synthOpen,       setSynthOpen]       = useState(false)
-
-  // ── Filtre "Tables disponibles" ────────────────────────────
-  type TableFilter = '48h' | 'all' | 'custom'
-  const [tableFilter,  setTableFilter]  = useState<TableFilter>('48h')
-  const [customSince,  setCustomSince]  = useState('')
 
   // ── Questionnaire data ─────────────────────────────────────────
   const [responses,          setResponses]          = useState<QuestionnaireExportRow[]>([])
@@ -1454,24 +1449,20 @@ function SessionDetail({
   const [creatingTable, setCreatingTable] = useState(false)
   const [newTableCode,  setNewTableCode]  = useState<string | null>(null)
 
-  async function handleCreateTable(leaderless = false) {
+  /**
+   * Chantier 95 — crée une table vide, rattachée et déjà numérotée : elle
+   * apparaît aussitôt comme un groupe en attente dans la vue Groupes, où on
+   * peut lui glisser des membres, et son code permet à des retardataires de
+   * s'y asseoir directement.
+   */
+  async function handleCreateGroupTable(leaderless = false) {
     const password = getPwd()!
     setCreatingTable(true)
     setError(null)
     try {
-      const result = await adminCreateTable(password, session.id, leaderless)
+      const result = await adminCreateSessionTable(password, session.id, leaderless)
       setNewTableCode(result.join_code)
-      const newRow: SessionTableRow = {
-        id: result.table_id,
-        join_code: result.join_code,
-        created_at: new Date().toISOString(),
-        moderator_pseudo: null,
-        participant_count: 0,
-        is_active: false,
-        questionnaire_forced_at: null,
-        leaderless,
-      }
-      setAttachedTables(prev => [...prev, newRow])
+      await loadGroups()
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
@@ -1519,12 +1510,11 @@ function SessionDetail({
   const loadGroups = useCallback(async (silent = false) => {
     if (!silent) setGroupsLoading(true)
     try {
-      const [rows, sessionTbls, availTbls] = await Promise.all([
+      const [rows, sessionTbls] = await Promise.all([
         // Chantier 50 — table_assignments/session_members ne sont plus
         // lisibles directement (policies self-only) : RPC dédiée.
         loadTableAssignmentRows(session.id),
         listSessionTables(getPwd()!, session.id).catch(() => [] as Awaited<ReturnType<typeof listSessionTables>>),
-        listAvailableTables(getPwd()!).catch(() => [] as Awaited<ReturnType<typeof listAvailableTables>>),
       ])
 
       const joinCodeMap = new Map<string, string>(sessionTbls.map(t => [t.id, t.join_code]))
@@ -1550,15 +1540,29 @@ function SessionDetail({
           is_moderator: r.is_moderator === true,
         })
       }
+
+      // Chantier 95 — une table créée par le superadmin après l'allocation n'a
+      // encore aucune affectation : sans ceci elle serait invisible ici, donc
+      // impossible à peupler par glisser-déposer. Elle porte son numéro
+      // (`tables.table_number`) depuis sa création.
+      for (const t of sessionTbls) {
+        if (t.table_number == null || map.has(t.table_number)) continue
+        map.set(t.table_number, {
+          table_number: t.table_number,
+          members: [],
+          table_id: t.id,
+          join_code: t.join_code,
+          moderated: t.leaderless === false,
+        })
+      }
+
       setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
 
-      const sessionPhys = sessionTbls
-      const avail       = availTbls
-      const linkedIds   = new Set([...map.values()].map(g => g.table_id).filter((id): id is string => id !== null))
-      setDropdownTables([
-        ...sessionPhys.filter(t => !linkedIds.has(t.id)),
-        ...avail,
-      ])
+      // Chantier 95 — plus de tables hors séance à proposer : toute table de la
+      // séance est désormais un groupe. Ne restent ici que celles qu'aucun
+      // groupe ne porte (table sans numéro, héritée d'avant ce chantier).
+      const linkedIds = new Set([...map.values()].map(g => g.table_id).filter((id): id is string => id !== null))
+      setDropdownTables(sessionTbls.filter(t => !linkedIds.has(t.id)))
 
       // Chantier 19 — attributs des membres pour le recalcul des seuils.
       // Non bloquant : si la migration n'est pas appliquée, le tableau de
@@ -1962,23 +1966,14 @@ function SessionDetail({
   // symptôme rapporté par Jules ("l'écran remonte en haut toutes les 10s").
   const hasLoadedTablesRef = useRef(false)
 
-  const load = useCallback(async (filter: TableFilter = tableFilter, sinceDateStr: string = customSince) => {
+  const load = useCallback(async () => {
     const password = getPwd()!
     if (!hasLoadedTablesRef.current) setLoading(true)
     setError(null)
     try {
-      let since: Date | null | undefined
-      if (filter === 'all') since = null
-      else if (filter === 'custom' && sinceDateStr) since = new Date(sinceDateStr)
-      else since = undefined // défaut 48h
-
-      const [attached, available] = await Promise.all([
-        listSessionTables(password, session.id),
-        listAvailableTables(password, since),
-      ])
+      const attached = await listSessionTables(password, session.id)
       setAttachedTables(attached)
       setIsQForced(attached.some(t => t.questionnaire_forced_at != null))
-      setAvailableTables(available)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1990,7 +1985,7 @@ function SessionDetail({
       hasLoadedTablesRef.current = true
       setLoading(false)
     }
-  }, [session.id, onAuthError, tableFilter, customSince])
+  }, [session.id, onAuthError])
 
   useEffect(() => { load() }, [load])
 
@@ -2086,47 +2081,6 @@ function SessionDetail({
     }
   }
 
-  async function handleAttach(tableId: string) {
-    const password = getPwd()!
-    try {
-      await attachTableToSession(password, tableId, session.id)
-      const table = availableTables.find(t => t.id === tableId)
-      if (table) {
-        setAvailableTables(prev => prev.filter(t => t.id !== tableId))
-        setAttachedTables(prev => [...prev, table])
-        setIsQForced(prev => prev || table.questionnaire_forced_at != null)
-      }
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError()
-        return
-      }
-      setError(msg)
-    }
-  }
-
-  async function handleDetach() {
-    if (!detachConfirm) return
-    const password = getPwd()!
-    const target = detachConfirm
-    setDetachConfirm(null)
-    try {
-      await detachTableFromSession(password, target.id)
-      const nextAttached = attachedTables.filter(t => t.id !== target.id)
-      setAttachedTables(nextAttached)
-      setIsQForced(nextAttached.some(t => t.questionnaire_forced_at != null))
-      setAvailableTables(prev => [...prev, target])
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError()
-        return
-      }
-      setError(msg)
-    }
-  }
-
   async function handleDeleteTable() {
     if (!deleteTableConfirm) return
     const password = getPwd()!
@@ -2135,7 +2089,7 @@ function SessionDetail({
     try {
       await deleteTableAdmin(password, target.id)
       setAttachedTables(prev => prev.filter(t => t.id !== target.id))
-      setAvailableTables(prev => prev.filter(t => t.id !== target.id))
+      await loadGroups()
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -2564,6 +2518,28 @@ function SessionDetail({
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
                       <div className="flex items-center gap-2">
+                        {/* Chantier 95 — création d'une table de rattrapage, pendant
+                            l'allocation comme pendant le débat. */}
+                        <button
+                          onClick={() => handleCreateGroupTable(false)}
+                          disabled={creatingTable}
+                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+                            text-indigo-600 hover:bg-indigo-50 transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Crée une table animée, vide, déjà numérotée — à peupler par glisser-déposer ou par son code"
+                        >
+                          {creatingTable ? '…' : '+ Table animée'}
+                        </button>
+                        <button
+                          onClick={() => handleCreateGroupTable(true)}
+                          disabled={creatingTable}
+                          className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
+                            text-gray-600 hover:bg-gray-50 transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Crée une table sans modérateur, vide, déjà numérotée"
+                        >
+                          {creatingTable ? '…' : '+ Sans modérateur'}
+                        </button>
                         {groups.length > 0 && (
                           <button
                             onClick={() => setRosterOpen(true)}
@@ -2737,6 +2713,12 @@ function SessionDetail({
                                 volontairement plusieurs camps, ce nom était donc faux. La barre de
                                 composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
+                              {/* Chantier 95 — table créée à la main, encore vide. */}
+                              {g.members.length === 0 && (
+                                <span className="text-xs text-gray-400 italic">
+                                  En attente de participants — glisse quelqu'un ici, ou communique le code ci-dessous.
+                                </span>
+                              )}
                               {g.members.filter(m => !m.is_moderator).map(m => (
                                 <DraggableMemberChip
                                   key={m.member_id}
@@ -2756,6 +2738,21 @@ function SessionDetail({
                                     </span>
                                     <span className="text-xs text-gray-400">rattachée</span>
                                   </div>
+                                  {/* Chantier 95 — seule porte de suppression restante
+                                      depuis le retrait des accordéons, volontairement
+                                      limitée aux tables vides. */}
+                                  {g.members.length === 0 && g.table_id && (
+                                    <button
+                                      onClick={() => {
+                                        const row = attachedTables.find(t => t.id === g.table_id)
+                                        if (row) setDeleteTableConfirm(row)
+                                      }}
+                                      className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-400
+                                        hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                      Supprimer
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => handleAssignGroup(g.table_number, null)}
                                     disabled={assigningGroup === g.table_number}
@@ -2854,155 +2851,6 @@ function SessionDetail({
                   </div>
                 )}
 
-                {/* Tables rattachées (sous-accordion) */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => setRattacheesOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      Tables rattachées
-                      {attachedTables.length > 0 && (
-                        <span className="ml-2 font-normal normal-case">({attachedTables.length})</span>
-                      )}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={e => { e.stopPropagation(); handleCreateTable(false) }}
-                        disabled={creatingTable}
-                        className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
-                          text-indigo-600 hover:bg-indigo-50 transition-colors
-                          disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {creatingTable ? '…' : '+ Créer une table'}
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleCreateTable(true) }}
-                        disabled={creatingTable}
-                        className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
-                          text-gray-600 hover:bg-gray-50 transition-colors
-                          disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {creatingTable ? '…' : '+ Sans admin'}
-                      </button>
-                      <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${rattacheesOpen ? 'rotate-180' : ''}`}
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
-                    </div>
-                  </button>
-                  {rattacheesOpen && (
-                    <div className="border-t border-gray-50 px-5 py-3">
-                      {attachedTables.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {attachedTables.map(t => (
-                            <ExpandableTableRow
-                              key={t.id}
-                              table={t}
-                              onDelete={() => setDeleteTableConfirm(t)}
-                              otherTables={attachedTables.filter(ot => ot.id !== t.id)}
-                              onParticipantMoved={load}
-                              action={
-                                <button
-                                  onClick={() => setDetachConfirm(t)}
-                                  className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
-                                    text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  Détacher
-                                </button>
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </section>
-
-                {/* Tables disponibles à rattacher (sous-accordion) */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => setDisponiblesOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      Tables disponibles à rattacher
-                      {availableTables.length > 0 && (
-                        <span className="ml-2 font-normal normal-case">({availableTables.length})</span>
-                      )}
-                    </span>
-                    <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${disponiblesOpen ? 'rotate-180' : ''}`}
-                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    >
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                  </button>
-                  {disponiblesOpen && (
-                    <div className="border-t border-gray-50 px-5 py-3">
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {(['48h', 'all', 'custom'] as const).map(f => (
-                          <button
-                            key={f}
-                            onClick={() => {
-                              setTableFilter(f)
-                              load(f, customSince)
-                            }}
-                            className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
-                              tableFilter === f
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
-                            }`}
-                          >
-                            {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
-                          </button>
-                        ))}
-                        {tableFilter === 'custom' && (
-                          <input
-                            type="datetime-local"
-                            value={customSince}
-                            onChange={e => {
-                              setCustomSince(e.target.value)
-                              if (e.target.value) load('custom', e.target.value)
-                            }}
-                            className="px-2 py-1 text-xs border border-gray-300 rounded-lg
-                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          />
-                        )}
-                      </div>
-                      {availableTables.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {availableTables.map(t => (
-                            <ExpandableTableRow
-                              key={t.id}
-                              table={t}
-                              onDelete={() => setDeleteTableConfirm(t)}
-                              otherTables={[]}
-                              onParticipantMoved={() => {}}
-                              action={
-                                <button
-                                  onClick={() => handleAttach(t.id)}
-                                  className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                                    text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                >
-                                  Rattacher
-                                </button>
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </section>
               </div>
             )}
 
@@ -3444,16 +3292,6 @@ function SessionDetail({
           confirmLabel="Supprimer"
           onConfirm={handleDeleteSource}
           onCancel={() => setDeleteSourceConfirm(null)}
-        />
-      )}
-
-      {detachConfirm && (
-        <ConfirmModal
-          title="Détacher la table"
-          body={`Détacher la table ${detachConfirm.join_code} de cette séance ?`}
-          confirmLabel="Détacher"
-          onConfirm={handleDetach}
-          onCancel={() => setDetachConfirm(null)}
         />
       )}
 
@@ -5134,252 +4972,3 @@ function ResponseRow({
   )
 }
 
-function ExpandableTableRow({
-  table, action, onDelete, otherTables, onParticipantMoved,
-}: {
-  table: SessionTableRow
-  action: React.ReactNode
-  onDelete(): void
-  otherTables: SessionTableRow[]
-  onParticipantMoved(): void
-}) {
-  const [expanded, setExpanded]           = useState(false)
-  const [participants, setParticipants]   = useState<TableParticipantRow[] | null>(null)
-  const [partLoading, setPartLoading]     = useState(false)
-  const [partErr, setPartErr]             = useState<string | null>(null)
-  const [movingId, setMovingId]           = useState<string | null>(null)
-  const [moveMenuId, setMoveMenuId]       = useState<string | null>(null)
-  const [csvLoading, setCsvLoading]       = useState(false)
-  const moveMenuRef                       = useRef<HTMLDivElement>(null)
-
-  async function toggleExpand(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!expanded && participants === null) {
-      setPartLoading(true)
-      setPartErr(null)
-      try {
-        const rows = await getTableParticipants(getPwd()!, table.id)
-        setParticipants(rows)
-      } catch (err) {
-        setPartErr(extractErr(err))
-      } finally {
-        setPartLoading(false)
-      }
-    }
-    setExpanded(v => !v)
-  }
-
-  async function handleMove(participantId: string, targetTableId: string) {
-    const pwd = getPwd()!
-    setMovingId(participantId)
-    setMoveMenuId(null)
-    try {
-      await moveParticipant(pwd, participantId, targetTableId)
-      setParticipants(prev => prev ? prev.filter(p => p.participant_id !== participantId) : prev)
-      onParticipantMoved()
-    } catch (err) {
-      setPartErr(extractErr(err))
-    } finally {
-      setMovingId(null)
-    }
-  }
-
-  async function handleExportCsv() {
-    const pwd = getPwd()!
-    setCsvLoading(true)
-    try {
-      const [turns, parts] = await Promise.all([
-        getTableSpeakingTurnsAdmin(pwd, table.id),
-        participants ?? getTableParticipants(pwd, table.id),
-      ])
-      const fakeTable = {
-        id: table.id,
-        join_code: table.join_code,
-        created_at: table.created_at,
-        created_by: '',
-        current_speaker_id: null,
-        current_turn_started_at: null,
-        session_id: null,
-      } as import('../lib/types').Table
-      const fakeParticipants = parts.map(p => ({
-        id: p.participant_id,
-        table_id: table.id,
-        user_id: '',
-        pseudo: p.pseudo,
-        created_at: '',
-      } as import('../lib/types').Participant))
-      const fakeTurns = turns.map(t => ({
-        id: t.id,
-        table_id: table.id,
-        participant_id: t.participant_id,
-        started_at: t.started_at,
-        ended_at: t.ended_at ?? null,
-        source: t.source as import('../lib/types').SpeakingTurn['source'],
-      }))
-      const csv  = generateTableCSV(fakeTable, fakeParticipants, fakeTurns)
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href     = url
-      a.download = `ecclesia_table_${table.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      setPartErr(extractErr(err))
-    } finally {
-      setCsvLoading(false)
-    }
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      {/* ── Header ── */}
-      <div className="px-4 py-3 flex items-center gap-3">
-        {/* Chevron expand */}
-        <button
-          onClick={toggleExpand}
-          title={expanded ? 'Réduire' : 'Voir les participants'}
-          className="shrink-0 text-gray-400 hover:text-indigo-600 transition-colors"
-        >
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
-          >
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
-
-        {/* Table info */}
-        <div className="flex-1 min-w-0 flex items-center gap-4 flex-wrap text-sm">
-          <span className="font-mono font-bold text-indigo-600 tracking-widest">{table.join_code}</span>
-          {table.leaderless && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
-              Sans modérateur
-            </span>
-          )}
-          {table.moderator_pseudo && (
-            <span className="text-gray-600 truncate">{table.moderator_pseudo}</span>
-          )}
-          <span className="text-gray-400 text-xs">
-            {table.participant_count} participant{table.participant_count !== 1 ? 's' : ''}
-          </span>
-          {table.is_active && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-              En cours
-            </span>
-          )}
-        </div>
-
-        {/* CSV + Trash + action */}
-        <div className="shrink-0 flex items-center gap-1.5">
-          <button
-            onClick={e => { e.stopPropagation(); handleExportCsv() }}
-            disabled={csvLoading}
-            title="Télécharger les temps de parole et l'historique (CSV)"
-            className="p-1.5 rounded-lg border border-transparent text-gray-300
-              hover:border-teal-200 hover:text-teal-600 hover:bg-teal-50 transition-colors
-              disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {csvLoading ? (
-              <Spinner />
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete() }}
-            title="Supprimer la table"
-            className="p-1.5 rounded-lg border border-transparent text-gray-300
-              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-          </button>
-          {action}
-        </div>
-      </div>
-
-      {/* ── Expanded participants ── */}
-      {expanded && (
-        <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/60">
-          {partLoading && <p className="text-xs text-gray-400">Chargement…</p>}
-          {partErr && <p className="text-xs text-red-500">{partErr}</p>}
-          {!partLoading && !partErr && participants !== null && (
-            participants.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-1">Aucun participant</p>
-            ) : (
-              <div className="space-y-1">
-                {participants.map(p => (
-                  <div key={p.pseudo} className="relative">
-                    <div className={`flex items-center gap-3 text-xs ${p.is_current_speaker ? 'text-amber-700 font-medium' : 'text-gray-600'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.is_current_speaker ? 'bg-amber-400' : 'bg-gray-300'}`} />
-                      <span className="truncate flex-1">{p.pseudo}</span>
-                      <span className={p.is_current_speaker ? 'text-amber-600' : 'text-gray-400'}>
-                        {formatDuration(p.total_ms)}
-                      </span>
-                      <span className="text-gray-300 shrink-0">
-                        {p.turn_count} tour{Number(p.turn_count) !== 1 ? 's' : ''}
-                      </span>
-                      {otherTables.length > 0 && (
-                        <div className="relative shrink-0" ref={moveMenuId === p.participant_id ? moveMenuRef : undefined}>
-                          <button
-                            onClick={() => setMoveMenuId(prev => prev === p.participant_id ? null : p.participant_id)}
-                            disabled={movingId === p.participant_id}
-                            title="Déplacer vers une autre table"
-                            className="p-0.5 rounded text-gray-300 hover:text-indigo-500 hover:bg-indigo-50
-                              transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {movingId === p.participant_id ? (
-                              <Spinner />
-                            ) : (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="9 18 15 12 9 6"/>
-                              </svg>
-                            )}
-                          </button>
-                          {moveMenuId === p.participant_id && (
-                            <div className="absolute right-0 top-5 z-20 bg-white border border-gray-200
-                              rounded-xl shadow-lg py-1 min-w-[120px]">
-                              <p className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                                Déplacer vers
-                              </p>
-                              {otherTables.map(ot => (
-                                <button
-                                  key={ot.id}
-                                  onClick={() => handleMove(p.participant_id, ot.id)}
-                                  className="w-full text-left px-3 py-1.5 text-xs text-gray-700
-                                    hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-                                >
-                                  <span className="font-mono tracking-widest text-indigo-600 mr-2">{ot.join_code}</span>
-                                  {ot.moderator_pseudo && (
-                                    <span className="text-gray-400">{ot.moderator_pseudo}</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
