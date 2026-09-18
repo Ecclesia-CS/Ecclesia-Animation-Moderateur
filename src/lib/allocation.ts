@@ -1,10 +1,11 @@
 // =============================================================
 // Chantier 19 (G1) — Algorithme d'allocation v2
 // Chantier 91 — les passifs deviennent du public
+// Chantier 93 — la règle 1 s'évalue après les règles 2 et 3
 //
 // Répartit les participants présentiels en tables de débat selon des
 // règles arbitrées en ordre lexicographique strict (spec d'origine :
-// docs/chantier-5-allocation-v2-spec.md, amendée par le chantier 91).
+// docs/chantier-5-allocation-v2-spec.md, amendée par les chantiers 91 et 93).
 //
 // Fonctions pures, aucune dépendance React ni Supabase — même
 // pattern que src/lib/analysis.ts. Les wrappers d'I/O sont dans
@@ -18,7 +19,7 @@
 // si on ne veut plus considérer les actifs dans la création des tables ? »).
 // Il n'y a donc plus de règle « assez d'actifs ».
 //
-// ── Les 4 règles (priorité décroissante, sur les actifs) ─────
+// ── Les 4 règles, avec leur NUMÉROTATION historique ──────────
 //   1. Table enregistrable  : ≥1 table sans non-consentant ET non homogène
 //   2. Hétérogénéité        : camp majoritaire ≤ 70 % ET 2e camp ≥ 2 personnes
 //   3. Assez d'anciens      : anciens ≥ ⌈2/5·actifs⌉ (plancher 3 sans modérateur)
@@ -27,7 +28,15 @@
 // ⚠️ Numérotation : jusqu'au chantier 90, ces règles portaient les numéros
 // 2 à 5 (la règle 1 était « assez d'actifs », supprimée).
 //
-// Contraintes dures : 5 à 14 actifs par table animée, 5 à 7 par table sans
+// ⚠️ Chantier 93 (2026-09-18) — la numérotation ci-dessus ne dit plus l'ordre
+// de PRIORITÉ (voir `evaluate()`), pour ne pas casser les textes existants
+// (warnings, doc, UI superadmin) qui nomment les règles par ce numéro. L'ordre
+// de priorité réel, décroissant, est désormais **2 · 3 · 1 · 4** : dans une
+// petite salle, isoler une table enregistrable (règle 1) pouvait casser une
+// table par ailleurs bien mélangée et bien pourvue en anciens — décision de
+// Jules : la qualité du débat (règles 2 et 3) prime sur l'enregistrement.
+//
+// Contraintes dures : 5 à 14 actifs par table animée, 6 à 7 par table sans
 // modérateur, 30 personnes au plus par table public compris. L'algorithme ne
 // peut jamais échouer : tout le reste dégrade (règle 4 sacrifiée en premier).
 // =============================================================
@@ -53,9 +62,29 @@ export const SINGLE_TABLE_MAX = 10
 /**
  * Tables **sans modérateur** : bornes resserrées, en actifs. L'auto-régulation
  * par `claim_floor` (le premier en file prend la parole) reste gérable dans
- * cette plage. Demandé par Jules le 2026-08-01, resserré à 5-7 le 2026-08-03.
+ * cette plage. Demandé par Jules le 2026-08-01, resserré à 5-7 le 2026-08-03,
+ * plancher remonté à 6 le 2026-09-18 : une table sans animateur de 5 actifs
+ * seulement restait trop fragile (le chantier 91 en produisait plusieurs sur
+ * les grandes salles, ex. 150 participants / 8 modérateurs → deux tables ∅ de
+ * 5 chacune).
+ *
+ * ⚠️ **Trou mathématique connu, non corrigé (chantier 93)** : l'écart
+ * [MIN, MAX] ne fait plus que 2 valeurs (6 ou 7). Quand `moderatorCapacity`
+ * est nul pour toute la recherche de forme (aucun modérateur inscrit ni
+ * annoncé), `enumerateShapes` ne peut proposer QUE des tables non modérées, et
+ * certains totaux d'actifs ne se découpent en aucun nombre de tables de 6-7
+ * (ex. 23 : 3 tables plafonnent à 21, 4 tables exigent au moins 24) —
+ * `solveFor` replie alors sur une table unique, potentiellement bien
+ * au-delà de `TABLE_TOTAL_MAX`. **Confirmé sans conséquence pratique par
+ * Jules** : une séance sans aucun modérateur ne se produit pas (il y en a
+ * toujours au moins un ou deux) — voir `bench/viz/generate-grid.ts` (scénario
+ * `m8`, conservé comme cas de robustesse synthétique, pas comme cas réaliste)
+ * et `docs/chantiers.md` (chantier 93). Ce trou disparaît dès qu'au moins un
+ * modérateur existe : les tables animées absorbent alors le reliquat de façon
+ * flexible (bornes 5-14) avant que le calcul ne retombe sur les tables non
+ * modérées, ce qui referme l'écart dans tous les cas mesurés.
  */
-export const UNMODERATED_TABLE_MIN = 5
+export const UNMODERATED_TABLE_MIN = 6
 export const UNMODERATED_TABLE_MAX = 7
 /**
  * Anciens minimum dans une table sans modérateur — plancher dur qui remplace
@@ -470,8 +499,8 @@ function shapeBound(
   const hetBound = opinionsAvailable ? 1 : 0
 
   return metric === 'absolute'
-    ? [r1Bound, 0, hetBound, -e3.total, -e3.fails, 0, r4Bound]
-    : [r1Bound, 0, hetBound, -e3.fails / T_, 0, r4Bound]
+    ? [0, hetBound, -e3.total, -e3.fails, 0, r1Bound, r4Bound]
+    : [0, hetBound, -e3.fails / T_, 0, r1Bound, r4Bound]
 }
 
 /** La forme peut-elle être écartée sans être explorée ? (dominance lexicographique stricte) */
@@ -721,27 +750,42 @@ function evaluate(
   // taux : réintroduire `-fail/T` ramènerait le biais de fragmentation. Le
   // maximin de la règle 3 porte sur la marge plafonnée à 0, pour qu'un surplus
   // d'anciens ne départage pas deux solutions conformes.
+  // Chantier 93 (2026-09-18) — la règle 1 (enregistrable) passe après les
+  // règles 2 et 3 dans l'ordre d'ÉVALUATION (leur NUMÉROTATION historique, elle,
+  // ne change pas : les warnings et la doc parlent toujours de « règle 1 »).
+  // Décision de Jules : dans une petite salle, isoler une table propre pour
+  // satisfaire la règle 1 pouvait casser une table par ailleurs bien mélangée
+  // et bien pourvue en anciens — mesuré sur 18 participants / 80 % actifs /
+  // 1 modérateur (14 actifs, 2 non-consentants) : forcer une table unique de 14
+  // rendait la table non enregistrable (0/1), donc l'algorithme préférait
+  // scinder en 9+5 pour en isoler une propre, sacrifiant la règle des anciens
+  // sur la table de 9. En repoussant la règle 1 après l'hétérogénéité et les
+  // anciens, une grande salle (beaucoup de permutations) continue à trouver une
+  // table enregistrable pour ainsi dire gratuitement, tandis qu'une petite
+  // salle ne sacrifie plus la qualité du débat pour l'obtenir — sans seuil de
+  // taille arbitraire, par simple effet du réordonnancement lexicographique.
   const T_ = T || 1
   const score = metric === 'absolute'
     ? [
-        r1main,                                        // règle 1 (enregistrable)
         -fail2 / T_, het,                              // règle 2 (hétérogénéité)
         -sumShort3, -fail3, Math.min(minMargin3, 0),   // règle 3 (anciens)
+        r1main,                                        // règle 1 (enregistrable)
         newcomersModerated,                            // règle 4 (nouveaux encadrés)
       ]
     : [
-        r1main,
         -fail2 / T_, het,
         -fail3 / T_, Math.min(minMargin3, 0),
+        r1main,
         newcomersModerated,
       ]
 
-  // Plateau : poids hiérarchiques pour ne jamais inverser l'ordre des règles.
+  // Plateau : poids hiérarchiques pour ne jamais inverser l'ordre des règles
+  // (même réordonnancement chantier 93 : hétérogénéité > anciens > enregistrable).
   nonConsentList.sort((a, b) => a - b)
   let r1Short = 0
   for (let k = 0; k < Math.min(recorderTarget, nonConsentList.length); k++) r1Short += nonConsentList[k]
 
-  const plateau = 1e4 * r1Short + 1e2 * sumShort2 + sumShort3
+  const plateau = 1e4 * sumShort2 + 1e2 * sumShort3 + r1Short
 
   return { score, plateau }
 }

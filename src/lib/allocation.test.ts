@@ -283,12 +283,12 @@ describe('politique de dimensionnement', () => {
     expect(r.warnings.join(' ')).toContain('Aucun modérateur')
   })
 
-  it('sans modérateur et sans discrimination par les règles → tables de 5', () => {
+  it('sans modérateur et sans discrimination par les règles → tables de UNMODERATED_TABLE_MIN', () => {
     const members = make(30, { active: true, consent: true, veteran: true, camp: null }, 's')
     const r = runAllocation({ members, moderatorIds: [], opinionsAvailable: false })
     expect(r.tables.every(t => !t.moderated)).toBe(true)
-    expect(r.tables.every(t => t.member_ids.length === TABLE_MIN)).toBe(true)
-    expect(r.tables).toHaveLength(6)
+    expect(r.tables.every(t => t.member_ids.length === UNMODERATED_TABLE_MIN)).toBe(true)
+    expect(r.tables).toHaveLength(30 / UNMODERATED_TABLE_MIN)
   })
 
   it('les modérateurs annoncés (extraModerators) comptent dans la capacité', () => {
