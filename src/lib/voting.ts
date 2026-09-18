@@ -15,20 +15,55 @@ import type {
 } from './types'
 import type { AllocationMember, AllocationResult } from './allocation'
 
+/**
+ * Chantier 93 — message unique, demandé mot pour mot par Jules : le même texte
+ * doit apparaître quand on saisit un pseudo déjà pris et quand on échoue à se
+ * reconnecter. Il dit les deux issues possibles (c'est toi → ton code ; ce
+ * n'est pas toi → un autre nom).
+ */
+export const PSEUDO_TAKEN_MESSAGE =
+  "Ce nom est déjà utilisé dans cette séance. Si c'est bien toi, reconnecte-toi avec ton code de rappel à 4 chiffres. Sinon, choisis un autre nom."
+
+/**
+ * Chantier 93 — affiché sous le champ du nom, à l'inscription : le pseudo est
+ * lu à voix haute par le modérateur pendant le débat, il faut le savoir avant
+ * de le choisir.
+ */
+export const PSEUDO_PUBLIC_NOTICE =
+  "Ce nom sera utilisé par le modérateur pour te donner la parole pendant le débat."
+
+/**
+ * Chantier 93 — les RPC d'identité ne lèvent PAS sur un refus d'identification
+ * (mauvais code, blocage après 10 essais) : elles renvoient `{ error }`. Un
+ * RAISE annulerait la transaction, donc le compteur de tentatives avec.
+ * Ce helper rétablit la sémantique attendue côté React.
+ */
+function unwrapIdentity<T>(data: unknown): T {
+  const err = (data as { error?: string } | null)?.error
+  if (err) throw new Error(err)
+  return data as T
+}
+
 export async function registerSessionMember(
   sessionId: string,
-  pseudo: string,
-  reclaimCode?: string
+  pseudo: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('register_session_member', {
     p_session_id: sessionId,
     p_pseudo: pseudo,
-    p_reclaim_code: reclaimCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as SessionMember
+  return unwrapIdentity<SessionMember>(data)
 }
 
+/**
+ * Chantier 93 — reconnexion depuis un nouvel appareil : pseudo ET code, les
+ * deux ensemble, toujours. Le pseudo seul ne prouve plus rien (c'est le nom et
+ * prénom réels, connus de toute la séance). Refusée après la clôture, où plus
+ * personne n'a besoin de se reconnecter.
+ * Sur le même appareil (ligne déjà rattachée à `auth.uid()`), aucun code n'est
+ * demandé : appeler sans argument suffit à confirmer la présence.
+ */
 export async function confirmAttendance(
   sessionId: string,
   pseudo?: string,
@@ -40,14 +75,14 @@ export async function confirmAttendance(
     p_code:       code   ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as SessionMember
+  return unwrapIdentity<SessionMember>(data)
 }
 
 /**
- * Chantier B3 — reconquête d'un profil pré-vote déjà inscrit (pseudo pris),
- * par pseudo OU code de rappel. Contrairement à `confirmAttendance`, ne
- * touche jamais `attending_in_person` : le vote reste à distance. Phase-safe
- * côté serveur — n'agit que si la séance est encore en `pre_voting`.
+ * Chantier B3 — reconquête d'un profil pré-vote déjà inscrit, chantier 93 :
+ * pseudo ET code obligatoires. Contrairement à `confirmAttendance`, ne touche
+ * jamais `attending_in_person` : le vote reste à distance. Phase-safe côté
+ * serveur — n'agit que si la séance est encore en `pre_voting`.
  */
 export async function reclaimPrevotingMember(
   sessionId: string,
@@ -60,7 +95,60 @@ export async function reclaimPrevotingMember(
     p_code:       code   ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as SessionMember
+  return unwrapIdentity<SessionMember>(data)
+}
+
+/**
+ * Chantier 93 — renommage libre, propagé dans la même transaction aux deux
+ * copies du pseudo (`participants.pseudo`, `session_sources.pseudo`). Refusé
+ * si le nom est déjà pris dans la séance, ou si la personne a la parole /
+ * figure dans une file d'attente (le nom changerait sous les yeux du
+ * modérateur en plein tour).
+ */
+export async function renameSessionMember(
+  sessionId: string,
+  newPseudo: string
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('rename_session_member', {
+    p_session_id: sessionId,
+    p_new_pseudo: newPseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return unwrapIdentity<SessionMember>(data)
+}
+
+/**
+ * Chantier 93 — capture d'écran perdue. Le code étant haché, il est
+ * IMPOSSIBLE de le relire : on en tire un nouveau, à lire à la personne.
+ * L'ancien cesse alors de fonctionner.
+ */
+export async function regenerateReclaimCodeAdmin(
+  password: string,
+  memberId: string
+): Promise<{ pseudo: string; new_reclaim_code: string }> {
+  const { data, error } = await supabase.rpc('regenerate_reclaim_code_admin', {
+    p_password:  password,
+    p_member_id: memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { pseudo: string; new_reclaim_code: string }
+}
+
+/**
+ * Idem, par le modérateur — restreint aux participants assis à SA table, et
+ * ciblé par pseudo : `session_members` est en self-only (chantier 50), un
+ * modérateur n'a aucun `member_id` sous la main.
+ */
+export async function regenerateReclaimCodeModerator(
+  tableId: string,
+  pseudo: string
+): Promise<{ pseudo: string; new_reclaim_code: string }> {
+  const { data, error } = await supabase.rpc('regenerate_reclaim_code_moderator', {
+    p_table_id: tableId,
+    p_pseudo:   pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { pseudo: string; new_reclaim_code: string }
 }
 
 /**
@@ -469,24 +557,22 @@ export async function setMemberModerator(
  * G4/H4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
  * Si l'appareil n'a pas encore de profil pour cette séance (n'a jamais voté/
  * inscrit), `pseudo` sert à en créer un à la volée ; sinon le profil existant
- * est simplement marqué is_moderator=true et `pseudo`/`reclaimCode` sont
- * ignorés côté serveur.
- * Chantier 67 : `attending_in_person` suit désormais la même règle que
- * `register_session_member` (false uniquement en `pre_voting`), et
- * `reclaimCode` — généré côté client, jamais côté serveur — n'est stocké
- * que dans ce cas ; ignoré hors pré-vote.
+ * est simplement marqué is_moderator=true et `pseudo` est ignoré côté serveur.
+ * Chantier 67 : `attending_in_person` suit la même règle que
+ * `register_session_member` (false uniquement en `pre_voting`).
+ * Chantier 93 : le code de rappel est tiré EN BASE quand cette RPC crée le
+ * profil, et revient dans `new_reclaim_code` — plus rien n'est généré côté
+ * client.
  */
 export async function claimModeratorStatus(
   sessionId: string,
   creationCode: string,
-  pseudo?: string,
-  reclaimCode?: string
+  pseudo?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('claim_moderator_status', {
     p_session_id: sessionId,
     p_creation_code: creationCode,
     p_pseudo: pseudo ?? null,
-    p_reclaim_code: reclaimCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember

@@ -86,24 +86,15 @@ Périmètre : `src/lib/allocation.ts` et ses tests (49 aujourd'hui), `src/compon
 
 Périmètre : migration (table ou colonne d'appairages), `src/components/voting/OnboardingForm.tsx`, `src/components/ParticipantToolsButton.tsx`, `src/lib/allocation.ts`, `src/lib/voting.ts`, onglet Groupes de `SuperadminScreen.tsx`.
 
-### 93 — Identité du participant : pseudo modifiable, collisions, et preuve d'identité (fusionne l'ancien 55)
-**Parcours + sécurité.** ⚠️ **Ce chantier absorbe l'ancien chantier 55** (« le code de rappel devient la preuve d'identité »), sur décision de Jules le 16/09 — les deux sujets sont le même problème vu des deux bouts.
+### 93 — Identité du participant : pseudo modifiable, collisions, et preuve d'identité — ✅ FAIT le 2026-09-18 (absorbe 55, **81** et **82**)
 
-> **Consigne de Jules (2026-09-16)** : « Pouvoir pour un participant changer son prénom à tout moment, mais interdire au niveau des collisions. De plus, quand on rentre le pseudo, mettre dans le message le fait que le pseudo sera utilisé par le modérateur pendant le débat. »
->
-> **Complément du même jour, en réponse à mes questions** : « Oui, il faut fusionner avec 55. Quand je dis prénom, je veux dire pseudo et nom prénom, c'est la même chose pour moi, je ne savais pas qu'on avait deux variables... Il y a une différence entre le pseudo pour la session, et le pseudo pour la table ? C'est intéressant. On pourrait utiliser cela pour régler des problèmes d'usurpation, ou alors partir sur le code qui serait demandé, et fusionner le pseudo table et pseudo session. Et oui, bonne suggestion de blocage de ta part. »
+Branche `claude/chantiers-93-81-82-analyse-6347b4`. Migration appliquée en base. Recette navigateur jouée — détail, et **ce qui reste à vérifier à la main** (régénération superadmin, purge à la clôture, bouton modérateur), dans [`A_VERIFIER.md`](../A_VERIFIER.md).
 
-**Contenu repris de l'ancien chantier 55, à ne pas perdre** : aujourd'hui `reclaim_code` n'est généré qu'en `pre_voting` — ceux qui arrivent pour le vote présentiel n'en ont pas, donc **le nom seul suffit à reprendre une inscription**. Jules veut le générer sur plus de phases pour pouvoir exiger le code, et qu'on **explique au participant** que ce code sert à éviter l'usurpation d'identité. Question produit restée en suspens depuis le 06/09, à lui reposer : il avait écrit « on l'utilisera aussi pour les sources collaboratives », dont le sens n'a jamais été clarifié.
+**Règle retenue, dictée par Jules le 18/09** : un code de rappel est remis à **toute** première inscription, quelle que soit la phase ; toute reconnexion exige **le pseudo ET le code** ; le code est **haché**, donc régénéré et jamais rappelé (superadmin, ou modérateur pour les participants de sa table) ; unicité du code dans la séance ; 10 échecs par couple (séance, pseudo) → 1 minute de blocage ; le pseudo est librement modifiable, et le renommage est propagé à `participants.pseudo` et `session_sources.pseudo` ; après la clôture, plus personne n'a besoin de se reconnecter — la purge du chantier 49 reste donc inchangée.
 
-**Précisions** :
-- **Les deux pseudos ne sont pas une distinction voulue, c'est un doublon hérité.** `participants.pseudo` (portée table, contrainte `UNIQUE(table_id, pseudo)`) est une **copie** de `session_members.pseudo` (portée séance, nom + prénom réels), prise au moment de rejoindre la table : `AllocatingScreen.tsx` passe `member.pseudo` à `join_table`. Aucun lien vivant entre les deux — si l'un change après coup, l'autre ne suit pas, **en silence**. C'est un bug en attente autant qu'une question de conception.
-- **Recommandation retenue : fusionner**, et faire porter la preuve d'identité par le code, ce qui est la seconde option de Jules. Baser une défense anti-usurpation sur la divergence de deux copies non synchronisées serait fragile — la divergence n'est pas un signal fiable, c'est un accident.
-- **Le renommage aggrave le problème de l'ancien 55 tant qu'il n'est pas réglé** : `confirm_attendance` et `reclaim_prevoting_member` transfèrent un compte sur simple égalité de pseudo. Rendre le pseudo librement modifiable permettrait de prendre celui d'un autre, ou de libérer le sien pour qu'un tiers s'en empare. **C'est précisément pourquoi Jules fusionne les deux chantiers** : le renommage ne doit pas être livré sans la preuve d'identité qui l'accompagne.
-- **Blocage pendant la prise de parole — validé par Jules** (« bonne suggestion de blocage de ta part ») : interdire le changement de pseudo pendant que la personne a la parole ou figure dans la file d'attente, pour éviter qu'un nom change sous les yeux du modérateur en plein tour.
-- **Portée des collisions à définir** une fois la fusion faite : aujourd'hui l'unicité est par table (`UNIQUE(table_id, pseudo)`), alors que l'inscription en séance ne contraint pas. Après fusion, c'est vraisemblablement la séance entière qui devient la portée pertinente.
-- Touche l'inscription — **gelé pendant les fenêtres de production**.
+**Ce que cela règle au passage** : les sources collaboratives restent nominatives et modifiables par leur seul auteur (`user_id = auth.uid()`, déjà en place) — mais ce `user_id` ne s'obtenait jusqu'ici qu'avec un nom, connu de toute la séance. Il faut désormais le code.
 
-Périmètre : `src/components/voting/PseudoForm.tsx`, `src/components/ParticipantToolsButton.tsx`, RPC de renommage (à créer), RPC `confirm_attendance` / `reclaim_prevoting_member`, contrainte d'unicité, migration.
+**Piège à ne pas « corriger »** : les refus d'identification renvoient `{error}` au lieu de lever. Un `RAISE` annulerait la transaction, donc le compteur de tentatives avec.
 
 ### 94 — Vue modérateur : temps de parole par camp idéologique — ✅ fait, voir `docs/chantiers.md`
 
@@ -143,11 +134,11 @@ Périmètre : `src/components/ModeratorView.tsx`, nouvelle RPC d'agrégation.
 
 Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéons `rattacheesOpen` et « Tables disponibles à rattacher »), `src/screens/EntryScreen.tsx` (onglets « Modérateur », « Rejoindre », « Créer »).
 
-### 81 — Se déclarer modérateur au moment de la récupération de compte
-**Parcours.** Complète le chantier 73, qui a mis la déclaration modérateur sur les formulaires d'inscription mais pas sur les écrans de reconquête d'identité (« c'est bien moi » / code de rappel).
+### 81 et 82 — absorbés par le 93 (2026-09-18)
 
-### 82 — Reconnexion par pseudo après clôture
-**Parcours.** Un participant qui revient après la clôture, sur un autre appareil, ne peut pas se reconnecter : `reclaim_prevoting_member` est phase-safe et refuse, `reclaim_code` est purgé à la clôture (chantier 49). Il ne voit donc jamais ses résultats personnels.
+**81** (se déclarer modérateur au moment de la récupération de compte) : le chantier 73 avait déjà posé `ModeratorDeclareField` sur les trois écrans concernés (`PseudoForm`, `VotingEntryForm`, écran de confirmation de présence) — il ne restait qu'une recette, faite par lecture du code. Reste à rejouer à l'écran avec un vrai Code Ecclesia.
+
+**82** (reconnexion par pseudo après clôture) : **tranché par Jules le 18/09 — il n'y a rien à faire.** « Quand on passe la séance en closed, les gens n'ont plus besoin de se connecter. » La reconnexion couvre le distanciel jusqu'au post-débat inclus, et s'arrête à la clôture ; la purge du chantier 49 reste. Le constat d'origine de la fiche était d'ailleurs à moitié faux : `confirm_attendance` acceptait `closed` avec le **pseudo seul**, ce qui était une faille et non un manque — fermé par le 93.
 
 ### 56 — Durcissement SQL
 **Sécurité.** Fermer `app_config`, figer le `search_path` des fonctions à mot de passe.
