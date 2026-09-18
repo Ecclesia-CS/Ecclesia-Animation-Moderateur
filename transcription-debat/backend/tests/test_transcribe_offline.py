@@ -308,7 +308,7 @@ def test_main_calls_correct(tmp_path, monkeypatch):
     monkeypatch.setattr(correct_transcript, "correct", fake_correct)
 
     with patch("transcribe_offline.WhisperModel", return_value=mock_model), \
-         patch("sys.argv", ["transcribe_offline.py", "fake_audio.mp3", str(log_file), "--group", "TEST"]):
+         patch("sys.argv", ["transcribe_offline.py", "fake_audio.mp3", str(log_file), "--group", "TEST", "--output-dir", str(tmp_path / "out")]):
         transcribe_offline.main()
 
     assert len(correct_calls) == 1
@@ -355,7 +355,7 @@ def test_main_deduplicates_before_correct(tmp_path, monkeypatch):
 
     with patch("transcribe_offline.WhisperModel", return_value=mock_model), \
          patch("transcribe_offline.deduplicate", tracking_dedup), \
-         patch("sys.argv", ["transcribe_offline.py", "fake_audio.mp3", str(log_file), "--group", "TEST"]):
+         patch("sys.argv", ["transcribe_offline.py", "fake_audio.mp3", str(log_file), "--group", "TEST", "--output-dir", str(tmp_path / "out")]):
         transcribe_offline.main()
 
     assert len(dedup_calls) == 1
@@ -402,3 +402,55 @@ def test_normalize_word_joins_fixes_legacy_text():
     assert normalize_word_joins("dans l 'état, est -ce que c 'est multi -période") == \
         "dans l'état, est-ce que c'est multi-période"
     assert normalize_word_joins("oui - non, -5 degrés") == "oui - non, -5 degrés"
+
+
+# ---- Dossier de sortie + cache Whisper ----
+
+def _fake_whisper_model():
+    from unittest.mock import MagicMock
+    w1, w2 = MagicMock(), MagicMock()
+    w1.word, w1.start, w1.end, w1.probability = " l", 0.5, 0.7, 0.9
+    w2.word, w2.start, w2.end, w2.probability = "'état", 0.7, 1.0, 0.99
+    seg = MagicMock()
+    seg.start, seg.end, seg.text, seg.words = 0.5, 1.0, " l'état", [w1, w2]
+    model = MagicMock()
+    model.transcribe.return_value = ([seg], None)
+    return model
+
+
+def _run_main(argv, monkeypatch, model=None):
+    import correct_transcript
+    import transcribe_offline
+    from unittest.mock import patch
+    monkeypatch.setattr(correct_transcript, "correct", lambda *a, **k: True)
+    with patch("transcribe_offline.WhisperModel", return_value=model or _fake_whisper_model()) as wm,          patch("sys.argv", ["transcribe_offline.py", *argv]):
+        transcribe_offline.main()
+    return wm
+
+
+def test_default_output_dir_is_backend_transcripts():
+    import transcribe_offline
+    backend = Path(transcribe_offline.__file__).resolve().parent.parent
+    assert transcribe_offline.DEFAULT_OUTPUT_DIR == backend / "transcripts"
+
+
+def test_main_writes_to_output_dir_and_saves_whisper_cache(tmp_path, monkeypatch):
+    log = _write_log(tmp_path)
+    out = tmp_path / "out"
+    _run_main(["a.mp3", str(log), "--group", "T1", "--topic", "Th", "--output-dir", str(out)], monkeypatch)
+    cache = out / "Th" / "T1" / "T1_whisper.json"
+    assert cache.exists()
+    data = json.loads(cache.read_text(encoding="utf-8"))
+    assert data["words"][1] == {"start": 0.7, "end": 1.0, "text": "'état", "raw": "'état", "prob": 0.99}
+    assert data["segments"][0]["text"] == "l'état"
+    assert list((out / "Th" / "T1").glob("T1_*.txt"))
+
+
+def test_main_reuses_whisper_cache_without_loading_model(tmp_path, monkeypatch):
+    log = _write_log(tmp_path)
+    out = tmp_path / "out"
+    _run_main(["a.mp3", str(log), "--group", "T1", "--output-dir", str(out)], monkeypatch)
+    cache = out / "T1" / "T1_whisper.json"
+    wm = _run_main(["a.mp3", str(log), "--group", "T1", "--output-dir", str(out),
+                    "--whisper-cache", str(cache)], monkeypatch)
+    wm.assert_not_called()

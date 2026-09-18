@@ -21,6 +21,22 @@ MERGE_MAX_DURATION = 120.0   # ne pas fusionner au-delà de 2 min
 MERGE_MAX_CHARS = 1400       # ni au-delà de ~1400 caractères
 MERGE_MAX_GAP = 3.0          # ni par-dessus un silence > 3 s
 
+# Sorties : backend/transcripts/<Thème>/<CODE>/ (le code vit dans backend/code python/)
+DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "transcripts"
+
+# Paramètres Whisper (enregistrés dans le cache pour traçabilité)
+WHISPER_MODEL = "large-v3"
+WHISPER_PARAMS = {
+    "language": "fr",
+    "beam_size": 5,
+    "vad_filter": True,
+    "condition_on_previous_text": False,  # réduit les boucles de répétition / hallucinations
+    "compression_ratio_threshold": 2.4,
+    "log_prob_threshold": -1.0,
+    "no_speech_threshold": 0.6,
+    "word_timestamps": True,
+}
+
 try:
     from faster_whisper import WhisperModel
 except ImportError:  # pragma: no cover — optionnel, non requis pour les tests
@@ -430,6 +446,56 @@ def run_diarization(audio_path: str):
         return None
 
 
+def run_whisper(audio_path: str, initial_prompt: str | None) -> tuple[list[dict], list[dict]]:
+    """Transcrit l'audio (Whisper large-v3, GPU). Retourne (segments, mots horodatés).
+
+    Chaque mot garde son texte brut ("raw", avec l'espace de tête que faster-whisper
+    fournit — nécessaire au recollage exact) et sa probabilité ("prob").
+    """
+    print("Chargement de Whisper large-v3 (GPU)...")
+    model = WhisperModel(WHISPER_MODEL, device="cuda", compute_type="float16")
+    print(f"Transcription de {audio_path}...")
+    raw_segments, _ = model.transcribe(audio_path, initial_prompt=initial_prompt, **WHISPER_PARAMS)
+    segments: list[dict] = []
+    words_out: list[dict] = []
+    for s in raw_segments:
+        txt = s.text.strip()
+        if not txt:
+            continue
+        segments.append({"start": float(s.start), "end": float(s.end), "text": txt})
+        words = getattr(s, "words", None)
+        if isinstance(words, (list, tuple)):
+            for w in words:
+                raw = getattr(w, "word", "") or ""
+                wt = raw.strip()
+                ws, we = getattr(w, "start", None), getattr(w, "end", None)
+                if wt and isinstance(ws, (int, float)) and isinstance(we, (int, float)):
+                    word = {"start": float(ws), "end": float(we), "text": wt, "raw": raw}
+                    prob = getattr(w, "probability", None)
+                    if isinstance(prob, (int, float)):
+                        word["prob"] = float(prob)
+                    words_out.append(word)
+    return segments, words_out
+
+
+def save_whisper_cache(path: Path, segments: list[dict], words: list[dict], **meta) -> None:
+    """Sauvegarde la sortie Whisper pour pouvoir refaire l'attribution sans GPU."""
+    payload = {
+        "version": 1,
+        "model": WHISPER_MODEL,
+        "params": WHISPER_PARAMS,
+        **meta,
+        "segments": segments,
+        "words": words,
+    }
+    Path(path).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def load_whisper_cache(path: str | Path) -> tuple[list[dict], list[dict]]:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return data["segments"], data["words"]
+
+
 def write_txt(segments: list[dict], path: Path) -> None:
     with open(path, "w", encoding="utf-8") as f:
         for seg in segments:
@@ -459,6 +525,8 @@ def main() -> None:
     parser.add_argument("--topic", default=None, help="Thème du débat (ex: 'Retraite') — améliore la reconnaissance Whisper et la correction Gemini")
     parser.add_argument("--participants", default=None, help="Pseudos séparés par des virgules (ex: 'Jules,Ilyès,Emilien') — améliore la reconnaissance des noms propres")
     parser.add_argument("--redact-names", default=None, help="Prénoms réels supplémentaires à masquer dans le texte (séparés par des virgules) — complète name_map.json")
+    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Dossier racine des sorties (défaut : backend/transcripts)")
+    parser.add_argument("--whisper-cache", default=None, help="Réutilise un <CODE>_whisper.json au lieu de relancer Whisper (évite ~20 min de GPU)")
     parser.add_argument("--diarize", action="store_true", help="Active la diarisation acoustique pyannote pour désambiguïser le brouhaha (nécessite HF_TOKEN)")
     args = parser.parse_args()
 
@@ -490,41 +558,19 @@ def main() -> None:
         initial_prompt = " ".join(parts)
         print(f"Initial prompt Whisper : {initial_prompt}")
 
-    print("Chargement de Whisper large-v3 (GPU)...")
-    model = WhisperModel("large-v3", device="cuda", compute_type="float16")
-    print(f"Transcription de {args.audio}...")
-    raw_segments, _ = model.transcribe(
-        args.audio,
-        language="fr",
-        beam_size=5,
-        vad_filter=True,
-        condition_on_previous_text=False,  # réduit les boucles de répétition / hallucinations
-        compression_ratio_threshold=2.4,
-        log_prob_threshold=-1.0,
-        no_speech_threshold=0.6,
-        word_timestamps=True,
-        initial_prompt=initial_prompt,
-    )
-    whisper_segs_raw = []
-    whisper_words_raw = []
-    for s in raw_segments:
-        txt = s.text.strip()
-        if not txt:
-            continue
-        whisper_segs_raw.append({"start": s.start, "end": s.end, "text": txt})
-        words = getattr(s, "words", None)
-        if isinstance(words, (list, tuple)):
-            for w in words:
-                raw = getattr(w, "word", "") or ""
-                wt = raw.strip()
-                ws, we = getattr(w, "start", None), getattr(w, "end", None)
-                if wt and isinstance(ws, (int, float)) and isinstance(we, (int, float)):
-                    word = {"start": float(ws), "end": float(we), "text": wt, "raw": raw}
-                    prob = getattr(w, "probability", None)
-                    if isinstance(prob, (int, float)):
-                        word["prob"] = float(prob)
-                    whisper_words_raw.append(word)
+    if args.whisper_cache:
+        whisper_segs_raw, whisper_words_raw = load_whisper_cache(args.whisper_cache)
+        print(f"Cache Whisper réutilisé : {args.whisper_cache}")
+    else:
+        whisper_segs_raw, whisper_words_raw = run_whisper(args.audio, initial_prompt)
     print(f"{len(whisper_segs_raw)} segments Whisper, {len(whisper_words_raw)} mots horodatés.")
+
+    output_dir = Path(args.output_dir) / args.topic / args.group if args.topic else Path(args.output_dir) / args.group
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if not args.whisper_cache:
+        cache_path = output_dir / f"{args.group}_whisper.json"
+        save_whisper_cache(cache_path, whisper_segs_raw, whisper_words_raw, audio=args.audio, initial_prompt=initial_prompt)
+        print(f"Cache Whisper écrit : {cache_path}")
 
     # 3. Détecter ou utiliser audio_start
     if args.audio_start:
@@ -568,12 +614,6 @@ def main() -> None:
 
     segments = deduplicate(segments)
 
-    base_dir = Path(__file__).parent / "transcripts"
-    if args.topic:
-        output_dir = base_dir / args.topic / args.group
-    else:
-        output_dir = base_dir / args.group
-    output_dir.mkdir(parents=True, exist_ok=True)
     date_str = datetime.date.today().isoformat()
     base = output_dir / f"{args.group}_{date_str}"
 
