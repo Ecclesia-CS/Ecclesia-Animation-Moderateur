@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { getVoteResults, getMyTableAssignment } from '../lib/voting'
+import { getVoteResults, getMyTableAssignment, claimTableAsModerator } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
@@ -242,6 +242,36 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     }
   }
 
+  /**
+   * Chantier 95 — reprendre par son code une table précise en tant que
+   * modérateur. `claim_table_as_moderator` refuse si le Code Ecclesia est
+   * invalide, si la table appartient à une autre séance, ou si elle a déjà un
+   * modérateur — d'où la distinction avec `switch_table` juste au-dessus.
+   */
+  async function handleSwitchAsModerator(targetJoinCode: string, creationCode: string) {
+    setSwitchLoading(true)
+    setSwitchError(null)
+    try {
+      const r = await claimTableAsModerator(targetJoinCode, creationCode, member.pseudo, session.id)
+      tableStore.set({
+        tableId:       r.id,
+        participantId: r.participant_id,
+        joinCode:      r.join_code,
+        isModerator:   true,
+        pseudo:        member.pseudo,
+      })
+      if (onTableJoined) {
+        onTableJoined(r.id, r.participant_id, true)
+      } else {
+        window.location.href = window.location.pathname + window.location.search
+      }
+    } catch (err) {
+      setSwitchError(extractErr(err))
+    } finally {
+      setSwitchLoading(false)
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────
 
   if (showQuestionnaire) {
@@ -297,6 +327,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             onSwitch={handleSwitchTable}
             switchLoading={switchLoading}
             switchError={switchError}
+            onSwitchAsModerator={handleSwitchAsModerator}
           />
         </div>
 

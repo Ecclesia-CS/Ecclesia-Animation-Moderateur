@@ -26,6 +26,16 @@ interface TableAssignmentCardProps {
   onSwitch?: (joinCode: string) => Promise<void>
   switchLoading?: boolean
   switchError?: string | null
+  /**
+   * Chantier 95 — reprendre par son code une table précise **en tant que
+   * modérateur** (`claim_table_as_moderator`). Ce chemin existait dans
+   * l'onglet « Rejoindre ou reprendre une table » de l'accueil, supprimé par
+   * ce chantier : il restait ouvert aux visiteurs non inscrits (formulaire de
+   * rattrapage) mais plus à un membre déjà inscrit à la séance, qui ne pouvait
+   * plus que se déclarer modérateur de la séance et se laisser asseoir où
+   * l'app décide.
+   */
+  onSwitchAsModerator?: (joinCode: string, creationCode: string) => Promise<void>
 }
 
 /**
@@ -58,11 +68,13 @@ interface TableAssignmentCardProps {
  */
 export default function TableAssignmentCard({
   assignment, loading, phase, onJoin, joinLoading, joinError,
-  onSwitch, switchLoading, switchError,
+  onSwitch, switchLoading, switchError, onSwitchAsModerator,
 }: TableAssignmentCardProps) {
   const [showSwitchForm, setShowSwitchForm] = useState(false)
   const [switchCode, setSwitchCode] = useState('')
   const [localSwitchError, setLocalSwitchError] = useState<string | null>(null)
+  const [asModerator, setAsModerator] = useState(false)
+  const [creationCode, setCreationCode] = useState('')
 
   async function handleRescueSubmit() {
     const code = switchCode.trim().toUpperCase()
@@ -160,11 +172,19 @@ export default function TableAssignmentCard({
   async function handleSwitchSubmit() {
     const code = switchCode.trim().toUpperCase()
     if (!code) return
-    if (joinCode && code === joinCode.toUpperCase()) {
+    if (joinCode && code === joinCode.toUpperCase() && !asModerator) {
       setLocalSwitchError('Tu es déjà à cette table.')
       return
     }
     setLocalSwitchError(null)
+    if (asModerator) {
+      if (!creationCode.trim()) {
+        setLocalSwitchError('Code Ecclesia requis pour reprendre une table.')
+        return
+      }
+      await onSwitchAsModerator?.(code, creationCode)
+      return
+    }
     await onSwitch?.(code)
   }
 
@@ -268,6 +288,32 @@ export default function TableAssignmentCard({
                     tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
                     placeholder:text-gray-300"
                 />
+                {/* Chantier 95 — reprise d'une table précise en modérateur. */}
+                {onSwitchAsModerator && (
+                  <>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={asModerator}
+                        onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
+                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span className="text-xs font-medium text-gray-700">
+                        Je suis modérateur de cette table
+                      </span>
+                    </label>
+                    {asModerator && (
+                      <input
+                        type="password"
+                        value={creationCode}
+                        onChange={e => { setCreationCode(e.target.value); setLocalSwitchError(null) }}
+                        placeholder="Code Ecclesia"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+                      />
+                    )}
+                  </>
+                )}
                 {(localSwitchError || switchError) && (
                   <p className="text-xs text-red-600">{localSwitchError || switchError}</p>
                 )}
@@ -278,7 +324,9 @@ export default function TableAssignmentCard({
                     className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
                       text-white text-xs font-semibold rounded-lg transition-colors"
                   >
-                    {switchLoading ? 'Connexion…' : 'Rejoindre cette table'}
+                    {switchLoading
+                      ? 'Connexion…'
+                      : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
                   </button>
                   <button
                     onClick={() => { setShowSwitchForm(false); setSwitchCode(''); setLocalSwitchError(null) }}
