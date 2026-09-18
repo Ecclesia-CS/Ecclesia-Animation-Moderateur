@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { submitEntryResponse } from '../../lib/voting'
+import { submitEntryResponse, setMyPairings } from '../../lib/voting'
+import { PairingFields, PairingResultsList, ReciprocityNotice, PAIRING_EXPLANATION } from './PairingModal'
+import type { PairingResult } from '../../lib/voting'
 import type { EntryResponse, SessionMember } from '../../lib/types'
 
 interface OnboardingFormProps {
@@ -19,9 +21,11 @@ interface Answers {
   ecclesiaExperience: boolean | null
   /** Chantier 91 — actif : forme les tables ; passif : placé en public. */
   participationStyle: 'listener' | 'active' | null
+  /** Chantier 92 — règle 1 de l'allocation : binômes (facultatif). */
+  pairings: [string, string]
 }
 
-const TOTAL_QUESTIONS = 3
+const TOTAL_QUESTIONS = 4
 
 export default function OnboardingForm({ sessionId, member, onSuccess }: OnboardingFormProps) {
   const [currentQ, setCurrentQ] = useState(0)
@@ -29,9 +33,13 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
     consentTranscript: null,
     ecclesiaExperience: null,
     participationStyle: null,
+    pairings: ['', ''],
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Chantier 92 — après validation, on montre l'état de chaque binôme
+  // (réciproque ou en attente) avant de passer au vote.
+  const [pairingDone, setPairingDone] = useState<{ response: EntryResponse; results: PairingResult[] } | null>(null)
 
   function update<K extends keyof Answers>(key: K, value: Answers[K]) {
     setAnswers(prev => ({ ...prev, [key]: value }))
@@ -57,6 +65,16 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
         answers.participationStyle!,
         answers.ecclesiaExperience!,
       )
+      // Chantier 92 — facultatif : un échec (pseudo introuvable, réseau) ne
+      // bloque pas l'accès au vote, la personne peut corriger depuis « Outils ».
+      const pseudos = answers.pairings.filter(p => p.trim() !== '')
+      if (pseudos.length > 0) {
+        try {
+          const res = await setMyPairings(sessionId, pseudos)
+          setPairingDone({ response, results: res.results })
+          return
+        } catch { /* rattrapable via Outils */ }
+      }
       onSuccess(response)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inattendue')
@@ -66,6 +84,25 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
   }
 
   const pct = Math.round(((currentQ + 1) / TOTAL_QUESTIONS) * 100)
+
+  if (pairingDone) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center px-4 py-8">
+        <div className="max-w-md mx-auto w-full space-y-4">
+          <h2 className="text-xl font-bold text-gray-900">🔗 Tes binômes</h2>
+          <PairingResultsList results={pairingDone.results} />
+          <ReciprocityNotice />
+          <p className="text-xs text-gray-400">Tu peux les modifier à tout moment dans « Outils » → « Mes binômes ».</p>
+          <button
+            onClick={() => onSuccess(pairingDone.response)}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl"
+          >
+            Continuer vers le vote →
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -102,6 +139,21 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
             value={answers.participationStyle}
             onChange={v => update('participationStyle', v)}
           />
+        )}
+        {currentQ === 3 && (
+          <div className="space-y-6">
+            <div>
+              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Binômes (facultatif)</p>
+              <h2 className="text-xl font-bold text-gray-900 leading-snug">
+                Avec qui aimerais-tu être à table ?
+              </h2>
+              <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                Une ou deux personnes au plus. {PAIRING_EXPLANATION} Tu pourras modifier ce choix plus tard dans « Outils ».
+              </p>
+            </div>
+            <ReciprocityNotice />
+            <PairingFields values={answers.pairings} onChange={v => update('pairings', v)} />
+          </div>
         )}
       </div>
 

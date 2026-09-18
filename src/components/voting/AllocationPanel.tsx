@@ -69,6 +69,19 @@ interface PersistedState {
 
 const storageKey = (sessionId: string) => `ecclesia_alloc_preview_${sessionId}`
 
+// Un `preview` persisté par une version antérieure du code (avant l'ajout de
+// `clusters`/`brokenClusters` au chantier 92) n'a pas ces champs : sans cette
+// validation, `preview.clusters.length` plante tout le rendu au premier accès
+// (page blanche constatée en prod le 2026-09-18, cf. A_VERIFIER.md).
+function isValidPreview(p: unknown): p is AllocationResult {
+  if (!p || typeof p !== 'object') return false
+  const r = p as Partial<AllocationResult>
+  return Array.isArray(r.tables)
+    && Array.isArray(r.diagnostics)
+    && Array.isArray(r.clusters)
+    && typeof r.brokenClusters === 'number'
+}
+
 function readPersisted(sessionId: string): PersistedState | null {
   try {
     const raw = sessionStorage.getItem(storageKey(sessionId))
@@ -78,7 +91,7 @@ function readPersisted(sessionId: string): PersistedState | null {
       extraModerators: typeof p.extraModerators === 'number' ? p.extraModerators : 0,
       recorderCount:   typeof p.recorderCount === 'number' ? p.recorderCount : '',
       excluded:        Array.isArray(p.excluded) ? p.excluded : [],
-      preview:         (p.preview as AllocationResult | undefined) ?? null,
+      preview:         isValidPreview(p.preview) ? p.preview : null,
       computedAt:      typeof p.computedAt === 'string' ? p.computedAt : null,
       signature:       typeof p.signature === 'string' ? p.signature : null,
     }
@@ -166,6 +179,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       moderators: [...inputs.moderatorIds].sort(),
       members: inputs.members.length,
       opinions: inputs.opinionsAvailable,
+      pairs: inputs.pairs.length,
     })
   }, [inputs, extraModerators, recorderCount, excluded])
 
@@ -198,6 +212,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       extraModerators,
       recorderCount:     recorderCount === '' ? null : recorderCount,
       opinionsAvailable: inputs.opinionsAvailable,
+      pairs:             inputs.pairs,
     }
   }, [inputs, excluded, extraModerators, recorderCount])
 
@@ -451,6 +466,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 <p className="text-xs text-gray-400">
                   {preview.tables.length} table(s) ·{' '}
                   {preview.tables.filter(t => t.moderated).length} animée(s)
+                  {preview.clusters.length > 0 && (
+                    <> · 🔗 {preview.clusters.length - preview.brokenClusters}/{preview.clusters.length} grappe(s) réunie(s)</>
+                  )}
                   {computedAt && (
                     <> · calculé à {new Date(computedAt).toLocaleTimeString('fr-FR')}</>
                   )}

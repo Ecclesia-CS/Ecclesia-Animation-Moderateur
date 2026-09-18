@@ -15,9 +15,62 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
+
+**Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :
+
+```
+Uncaught TypeError: Cannot read properties of undefined (reading 'length')
+```
+
+**Cause identifiée** : `AllocationPanel.tsx` persiste sa proposition de répartition (`preview`, type `AllocationResult`) en `sessionStorage` (`ecclesia_alloc_preview_<sessionId>`) pour survivre à un changement d'onglet/reload (H14, chantier 25). Le chantier 92 a ajouté deux champs obligatoires à `AllocationResult` (`clusters`, `brokenClusters` — grappes d'appairage). `readPersisted()` ne validait pas la forme de l'objet relu : un `preview` persisté par le code **d'avant le chantier 92** n'a pas ces champs, et le rendu fait `preview.clusters.length` sans garde (ligne ~456) → `undefined.length` → page blanche (pas d'`ErrorBoundary` dans l'app). Troisième occurrence du même défaut de classe : une valeur mise en cache localement (`localStorage`/`sessionStorage`) jamais revalidée contre la forme actuelle du type au moment de la relecture.
+
+**Correctif appliqué** : `readPersisted()` (`src/components/voting/AllocationPanel.tsx`) valide désormais que `preview` a bien `tables`/`diagnostics`/`clusters` en tableaux et `brokenClusters` en nombre avant de le restaurer ; sinon il est traité comme absent (le superadmin doit relancer le calcul — comportement déjà existant quand `preview` est `null`).
+
+**Reste à vérifier humainement** (test navigateur bloqué côté outillage — vérification de politique sur le port local qui n'a jamais abouti ; pas de mot de passe superadmin de toute façon pour cette session) :
+- Recharger l'onglet Allocation d'une séance déjà passée en phase `allocating` **avant** le déploiement de ce correctif (donc avec un `preview` potentiellement pré-chantier-92 en `sessionStorage`) et confirmer qu'il n'y a plus de page blanche — soit l'ancien preview est ignoré et il faut recalculer, soit il est toujours valide et s'affiche normalement.
+- Toujours envisager l'ajout d'un `ErrorBoundary` global (déjà noté au chantier 90 et lors du bug `ai_log`) : ce point précis est corrigé, mais la même classe de crash reste fatale à toute la page tant qu'il n'existe pas de garde-fou.
+
 ## Règle — plus de migration SQL appliquée par une session de chantier (2026-09-01)
 
 Décision de Jules : une session de chantier **n'applique plus jamais de migration SQL elle-même**, qu'elle ait ou non un accès MCP Supabase disponible. Elle **documente ici** le chemin du fichier de migration et ce qu'il change. C'est la **session de vérification dédiée** qui applique le SQL (SQL Editor du dashboard Supabase ou MCP) et qui met à jour l'entrée correspondante (statut "appliquée", résultat du test). Le paragraphe "Accès MCP Supabase" de `CLAUDE.md` qui affirmait un accès direct pour toute session est corrigé en conséquence — voir ce fichier.
+
+## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
+
+Fichier [`supabase/migrations/20260916_chantier56_durcissement_sql.sql`](./supabase/migrations/20260916_chantier56_durcissement_sql.sql). Aucun fichier `src/`. Appliqué par cette session directement (règle du 07/09 dans `CLAUDE.md` : une session de chantier peut appliquer sa propre migration), avec Jules disponible et joignable comme l'exigeait `docs/registre-merges-en-attente.md`.
+
+**Ce qui change** :
+- `REVOKE ALL ON app_config, assertion_merges FROM anon, authenticated` — seconde barrière indépendante de la RLS zéro-policy déjà en place sur ces deux tables (confirmé avant migration : `relrowsecurity=true`, 0 policy, mais privilèges de table complets ouverts à `anon`/`authenticated`).
+- `search_path = public, extensions` figé sur `check_superadmin_password`, `create_table`, `reclaim_moderator` (2 surcharges), `claim_moderator_status`, `set_session_results_public`. `get_public_results` avait déjà ce réglage en base (contrairement à ce que documentait `docs/2026-09-06-plan-securite-consolide.md` — écart constaté, pas de régression).
+
+**Vérifications faites avant/après par cette session (SQL uniquement, pas de test navigateur)** :
+- Signatures exactes relues via `pg_get_function_identity_arguments` avant l'`ALTER` (`claim_moderator_status` n'a qu'une seule surcharge à 4 arguments en base, pas deux comme le supposait le plan initial).
+- Après migration : les 6 fonctions ont `proconfig = ["search_path=public, extensions"]`. `role_table_grants` confirme 0 privilège restant pour `anon`/`authenticated` sur les deux tables.
+- Piège du plan (search_path sans `extensions` casse `crypt()`) testé indirectement : `check_superadmin_password('test-invalide-volontairement')` lève bien `Mot de passe superadmin incorrect` (le message métier normal), pas une erreur de fonction introuvable — signe que `crypt()` résout toujours correctement.
+
+**Reste à vérifier humainement** : recette complète au navigateur demandée par le plan (Jules a le mot de passe superadmin et le Code Ecclesia, pas cette session). Connexion superadmin déjà faite pendant cette session (à confirmer que c'était le vrai mot de passe, pas une session déjà ouverte). Étapes restantes, dans le Browser pane (`http://localhost:5173/Ecclesia-Animation-Moderateur/`, serveur `ecclesia-dev`) :
+1. Cliquer "🎙️ Modérateur" sur l'accueil → renseigner un pseudo de test + le **Code Ecclesia** → "Rejoindre en tant que modérateur". Doit créer/rejoindre une table sans "code invalide" (teste `create_table`).
+2. "Rejoindre ou reprendre une table" avec le `join_code` d'une table existante + le mot de passe modérateur. Doit reconnecter sans erreur (teste `reclaim_moderator`).
+
+Si les deux passent : `search_path = public, extensions` ne casse pas `crypt()` en usage réel, confirmant le test indirect déjà fait par cette session. Si l'un échoue avec un message qui n'est pas un refus métier normal (ex. erreur de fonction/schéma introuvable), c'est le piège du plan qui s'est produit — ne pas merger, revenir ici.
+
+## Bug prod — page blanche onglet « En direct » du superadmin (2026-09-16)
+
+**Signalé par Jules** : clic sur l'onglet « 🟢 En direct » → page blanche, F5 ne répare rien, un nouvel onglet ouvert depuis l'onglet cassé reproduit le crash (mais `#session/…` / participant fonctionnent), une fenêtre de navigation privée répare. Reproduit sur Brave, console fournie :
+
+```
+TypeError: Cannot read properties of undefined (reading 'total_tokens')
+    at $S (index-CdFn4sC1.js:210:...)   ← Array.reduce
+```
+
+**Cause identifiée** : `LLMModerationPanel.tsx` (`sessionTokens = log.reduce((s, e) => s + e.usage.total_tokens, 0)`, ligne ~570) suppose que chaque entrée de `readAiLog()` a un champ `usage` bien formé. `readAiLog()` (`src/lib/aiUsage.ts`) parsait le JSON de `localStorage['ai_log_<sessionId>']` sans validation — une entrée écrite par une version antérieure du code (avant l'ajout du suivi de tokens F19-F22) ou tronquée par un quota `localStorage` plein suffit à faire planter tout le rendu. Comme **aucun `ErrorBoundary` n'existe dans l'app**, cette exception fait disparaître toute la page (pas seulement le panneau IA) — d'où la page blanche plutôt qu'une simple section cassée. `localStorage` (contrairement à `sessionStorage`) persiste entre onglets et redémarrages du navigateur, ce qui explique pourquoi F5 et un nouvel onglet reproduisaient le crash, et pourquoi une fenêtre privée (stockage vierge) le contournait.
+
+**Correctif appliqué** : `readAiLog()` filtre désormais les entrées dont `usage` n'est pas un objet avec les 4 champs numériques attendus, au lieu de les laisser passer telles quelles.
+
+**Reste à vérifier humainement** (je n'ai pas pu reproduire : pas d'accès au `localStorage` de Brave où le bug a été constaté, et je n'entre jamais le mot de passe superadmin moi-même) :
+- Sur le navigateur où le bug a été constaté, recharger l'app **après déploiement du correctif** et confirmer que l'onglet « En direct » s'ouvre normalement sans avoir à vider le `localStorage` à la main.
+- Si l'entrée corrompue est toujours là après coup (filtrée mais jamais purgée), vérifier que le panneau « Tokens cette séance » affiche un total simplement amputé de l'entrée invalide plutôt qu'une erreur.
+- Envisager séparément l'ajout d'un `ErrorBoundary` global : ce bug précis est corrigé, mais la même classe de crash (une exception de rendu quelconque) reste fatale à toute la page tant qu'il n'existe pas de garde-fou — sujet distinct, pas traité ici faute d'accord explicite de Jules sur la portée.
 
 ## Chantier 90 (2026-09-16) — sortie de débat : passage en postvote optionnel — ✅ vérifié au navigateur
 
@@ -34,6 +87,53 @@ Consigne de Jules : en quittant `debating`, le bouton superadmin "phase suivante
 4. Retour en arrière (pastille "Aller en Débat" depuis `closed`) puis "Passer en Post-vote →" → choix "Post-vote (revote possible)" → phase passe à `post_voting`, `questionnaire_forced_at` remis à jour (nouveau timestamp, RPC rappelée). **Confirmé.**
 
 Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar` déjà existant) : le rendu participant du questionnaire forcé lui-même, et l'affichage du bouton "↻ Revoter" en `post_voting` — déjà couverts par le chantier 89.
+
+## Chantier 92 (2026-09-16) — appairage entre participants — ✅ migration appliquée · ✅ parcours participant vérifié au navigateur · ⚠️ étapes superadmin (3, 4) non jouées · mergé sur `main` après accord de Jules
+
+Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabase/migrations/20260916_chantier92_appairages.sql). **Appliquée par cette session.** Elle ne crée que des objets neufs et **ne réécrit aucune fonction existante**. `get_allocation_inputs` n'est pas touchée : les liens passent par une RPC admin séparée.
+- Table `member_pairings` : RLS en lecture self-only, aucune écriture directe.
+- `set_my_pairings(session_id, pseudos[])` : remplace les choix (2 au plus), n'est autorisée qu'en phase `voting`, `allocating` ou `debating`. Elle rattache un retardataire sans table à la table d'une personne citée réciproquement.
+- `get_my_pairings(session_id)`.
+- `get_session_pairings_admin(password, session_id)` : ne renvoie que les liens **réciproques**.
+
+**Retour de Jules (16/09)** : décisions validées (« très bonnes initiatives »). Il demande que la réciprocité soit **explicite à la proposition et après le clic** : encadré « ⚠️ Ça ne marche que dans les deux sens » à la question 4 et dans la modale, écran « Tes binômes » après validation de l'onboarding, et bandeau « Enregistré, mais pas encore actif » tant qu'un lien n'est pas réciproque. Tableau comparatif accepté, merge autorisé.
+
+**Précision sur les passifs** : un passif appairé suit **toujours** sa grappe, sans condition. Effets de bord possibles : sa table peut dépasser 30 personnes, ou il peut être placé en public à une table sans modérateur si ses binômes actifs y sont. Seul le regroupement des **actifs** peut échouer : quand les tables visées n'ont plus assez de personnes seules à échanger. La grappe reste alors séparée, avec un avertissement. Jamais observé sur le banc.
+
+**Décisions prises** :
+1. **Réciprocité obligatoire.** Une composante de plus de 3 personnes est découpée en gardant les liens les plus anciens, sans hasard.
+2. **Glisser-déposer superadmin** : la grappe entière se déplace, jamais de refus.
+3. **Saisie en texte libre**, résolue côté serveur sans tenir compte de la casse. Pas d'autocomplétion, parce que les pseudos sont des noms réels.
+
+**Vérifié par cette session** :
+- `tsc`, `npm test` (109 tests, dont 7 nouveaux sur les grappes) et `npm run build` passent.
+- SQL dans une transaction annulée :
+  - pseudo trouvé et pseudo introuvable ;
+  - lien non réciproque, puis réciproque ;
+  - plafond de 2 (le 3e pseudo est ignoré) ;
+  - retardataire en `allocating` rattaché au groupe de la personne citée.
+- Banc [`bench/chantier-92-compare.test.ts`](./bench/chantier-92-compare.test.ts) sur les 9 scénarios du 91, avec 0 %, 20 % et 40 % d'actifs appairés en binômes **du même camp** (cas le plus défavorable) :
+  - **0 grappe cassée** ;
+  - **aucune table rendue non viable** ;
+  - **manque d'anciens identique** ;
+  - seul le degré d'hétérogénéité minimal baisse, de 0,60 à 0,36 au pire (60 part., 40 % appairés), et reste au-dessus du seuil de viabilité.
+  ⚠️ Changement algorithmique : **tableau à valider par Jules avant merge**.
+
+**Recette navigateur jouée le 2026-09-16** (Browser pane, séance de test `TST92X` créée puis supprimée ; la seconde identité « Bob » était simulée en SQL, faute de deuxième session anonyme) :
+- ✅ Question 4/4 affichée avec l'encadré de réciprocité. En citant « bob test92 » (casse différente) et un pseudo inexistant, l'écran « Tes binômes » affiche « en attente que cette personne te cite aussi », « personne introuvable » et le bandeau « pas encore actif ».
+- ✅ Bob cite Alice en retour. Outils du vote → « Mes binômes » affiche « vous vous êtes cités tous les deux ».
+- ✅ Retardataire en `allocating` sans table, Bob au groupe 1. « Enregistrer » affiche « placé·e au groupe 1 ». En `debating`, l'écran d'annonce affiche « Table 1 » et le lien « 🔗 Mes binômes ». *Rappel du comportement existant : en `allocating`, le participant reste sur l'écran de vote avec un bandeau ; l'annonce de table n'apparaît qu'en `debating`.*
+- ✅ Aucune erreur console.
+- ⚠️ **Non joué : étapes 3 et 4 (superadmin)**, faute du mot de passe superadmin. Couvert seulement par les tests unitaires et `tsc`.
+- ⚠️ Non joué : étape 6 (Outils à la table).
+
+Recette complète d'origine (2 à 3 identités) :
+1. En `voting`, faire l'onboarding avec A qui cite B à la 4e question. Faire citer A par B depuis Outils → « Mes binômes ». B doit voir « vous vous êtes cités tous les deux ».
+2. Un pseudo mal orthographié doit afficher « personne introuvable ».
+3. Superadmin, `AllocationPanel` : la proposition affiche « 🔗 1/1 grappe réunie », et A et B sont à la même table.
+4. Onglet Groupes : A et B portent le badge 🔗. Glisser A vers une autre table doit déplacer A **et** B. Le compteur de grappes reste à jour.
+5. C arrive en `allocating` sans table. C cite A et A cite C : l'écran d'annonce de C affiche la table de A (lien « 🔗 Mes binômes » sous la carte, relecture ≤ 20 s).
+6. En débat, à la table, vérifier que Outils → « Mes binômes » est présent.
 
 ## Chantier 91 (2026-09-16) — allocation : les passifs deviennent du public — ✅ tableau avant/après **validé par Jules et mergé sur `main` le 2026-09-16** — recette navigateur restant à jouer
 
@@ -1763,7 +1863,7 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
 
   **Validation de Jules (06/09)** : désactiver l'onboarding par séance
 
-- [ ] **2026-09-06 — Chantier 59 — `supabase/migrations/20260906_chantier59_realtime_canaux_prives.sql`** (appliquée le 2026-09-07) — canaux Realtime privés, F6 à la racine
+- [x] **2026-09-06 — Chantier 59 — `supabase/migrations/20260906_chantier59_realtime_canaux_prives.sql`** *(validé le 2026-09-16 — F6 fermé, « Allow public access » désactivé par Jules)* (appliquée le 2026-09-07) — canaux Realtime privés, F6 à la racine
 
   **⛔ NE RIEN APPLIQUER NI DÉPLOYER AVANT LA SÉANCE DU JEUDI 10 SEPTEMBRE.** — avertissement d'origine, **explicitement levé par Jules le 2026-09-07** : il a demandé de dérouler ce chantier ce jour-là plutôt que d'attendre la fin de la séance de vote. Voir ci-dessous ce qui a réellement été fait.
 
@@ -1789,7 +1889,21 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
   - **Scénario H (non-régression superadmin)** : `list_sessions_admin`, `get_theme_stats_all`, `get_session_table_counts`, `get_session_member_counts` tous vérifiés à 200 sur l'écran superadmin réel (Jules connecté en direct dans son propre Chrome, mot de passe jamais saisi par la session Claude Code — voir note ci-dessous). Tentative de vérifier précisément le polling du recalcul de groupe (déplacer un membre entre tables et observer la mise à jour ≤10s) **non concluante** — le badge de participants affiché dans la vue développée du superadmin ne semble pas refléter `table_assignments.table_number` directement (compte des sièges physiques `participants`, pas des groupes pré-allocation) ; pas eu le temps d'identifier le bon levier avant la fin de session. **Risque résiduel faible** : les deux canaux supprimés étaient déjà prouvés morts avant ce chantier (voir plus bas), et les RPC de lecture fonctionnent toutes.
   - **Incident parallèle non lié à chantier 59, résolu en cours de route** : en testant le superadmin, `permission denied for table sessions` est apparu. Sur le moment pris pour une régression de prod — **ce n'en était pas une** : le worktree de cette session était resté figé sur un `main` d'avant le merge du chantier 58 (restriction de colonnes sur `sessions`), pendant qu'un autre chantier (90, fini et livré) avançait en parallèle sur `main`. `git merge --ff-only origin/main` a corrigé ça proprement. Un deuxième aller-retour du même message est apparu ensuite, cette fois un artefact de HMR Vite qui n'avait pas convergé après ce merge pendant que le serveur tournait (`useToast doit être utilisé dans un ToastProvider`) — réglé par un rechargement complet. **Aucune régression réelle en base ni en prod.**
   - **Mot de passe superadmin** : Jules l'a fourni en chat à un moment ; la session Claude Code a explicitement refusé de le saisir dans le formulaire de connexion (règle : ne jamais entrer un mot de passe dans un champ, même celui de sa propre app) et a demandé à Jules de se connecter lui-même dans son propre Chrome, piloté ensuite via Claude in Chrome pour les clics/lectures d'écran — jamais pour l'authentification elle-même.
-  - **⛔ Ce qui reste bloquant, non fait par cette session** : désactiver « Allow public access » dans le dashboard Supabase (rubrique **Realtime → Settings**, pas Project Settings — piège trouvé en cours de route, l'ancienne doc migration pointait vers le mauvais chemin). C'est un réglage web, hors SQL/MCP. **En attente du feu vert explicite de Jules avant de le faire** (lui seul a accès au dashboard). Une fois fait : rejouer le scénario B (le test « canal public toujours `SUBSCRIBED` » ci-dessus doit désormais échouer) et idéalement le scénario I (JWT anonyme sur séance longue, non testable en une session).
+  ### 🟢 Chantier clos — « Allow public access » désactivé le 2026-09-16
+
+  Jules a désactivé le réglage lui-même dans le dashboard (**Realtime → Settings**, pas Project Settings — piège corrigé dans le §37 du registre). **Scénario B rejoué immédiatement après**, avec une table de test fraîche (`T59POST`, supprimée après coup) :
+
+  | Test | Avant bascule | Après bascule |
+  |---|---|---|
+  | Canal privé, participant légitime (`table:<id>`, `private:true`) | `SUBSCRIBED` | `SUBSCRIBED` — **inchangé, aucune régression** |
+  | Canal privé, table où il n'est pas assis | `CHANNEL_ERROR` / Unauthorized | `CHANNEL_ERROR` / Unauthorized — **inchangé** |
+  | Canal **public** (sans `private:true`), même topic | `SUBSCRIBED` (c'était F6) | `CHANNEL_ERROR` — `"PrivateOnly: This project only allows private channels"` |
+
+  **F6 est fermé.** Le mode public est désormais catégoriquement refusé par Supabase lui-même (pas seulement par les policies), et le participant légitime continue de fonctionner normalement. Aucune régression observée sur les canaux déjà testés (A→G) pendant ce laps de temps.
+
+  **Non re-testé après bascule, par manque de temps** : les scénarios C à H dans leur forme UI complète (ils l'avaient été en amont, avant la bascule, avec la carte d'autorisation — la bascule ne change que l'accès en mode public, pas les policies elles-mêmes, donc le risque de régression est faible) et le scénario I (JWT anonyme sur séance longue > 1h, jamais testable en une session courte). Point d'attention pour la suite : si un participant reste connecté sur une séance de plusieurs heures, vérifier qu'il continue de recevoir le temps réel après expiration/refresh de son JWT anonyme.
+
+  **Chantier 59 considéré clos.** Rollback d'urgence si un problème apparaît en séance réelle : réactiver « Allow public access » dans le dashboard (effet immédiat, sans redéploiement).
 
   ### État établi en base avant d'écrire quoi que ce soit (MCP lecture, 2026-09-06)
 

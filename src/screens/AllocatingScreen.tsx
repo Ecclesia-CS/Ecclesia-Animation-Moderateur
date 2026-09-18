@@ -14,6 +14,7 @@ import type { AssignmentWithTable } from '../components/voting/TableAssignmentCa
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
+import PairingModal from '../components/voting/PairingModal'
 import { hasQuestionnaireResponse } from '../lib/voting'
 
 interface AllocatingScreenProps {
@@ -35,6 +36,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [switchError,       setSwitchError]       = useState<string | null>(null)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
+  const [pairingOpen,       setPairingOpen]       = useState(false)
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
@@ -297,6 +299,28 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             switchError={switchError}
           />
         </div>
+
+        {/* Chantier 92 — binômes : un retardataire sans table est rattaché à
+            celle de la personne citée (réciproquement). */}
+        {!sessionClosed && (currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
+          <button
+            onClick={() => setPairingOpen(true)}
+            className="w-full text-center text-xs text-indigo-600 hover:underline"
+          >
+            🔗 Mes binômes
+          </button>
+        )}
+        {pairingOpen && (
+          <PairingModal
+            sessionId={currentSession.id}
+            onClose={() => {
+              setPairingOpen(false)
+              getMyTableAssignment(currentSession.id)
+                .then(a => { if (a) setAssignment(a as AssignmentWithTable) })
+                .catch(() => {})
+            }}
+          />
+        )}
 
         {/* Bannière clôture — affichée en-dessous de la carte */}
         {sessionClosed && (

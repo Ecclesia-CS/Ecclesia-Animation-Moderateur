@@ -8,6 +8,7 @@ import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, V
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import PseudoForm from '../components/voting/PseudoForm'
 import OnboardingForm from '../components/voting/OnboardingForm'
+import PairingModal from '../components/voting/PairingModal'
 import AssertionCard from '../components/voting/AssertionCard'
 import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
@@ -90,6 +91,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // vit dans le parent, pas dans VoteToolsPanel, sinon onClose() démonte le panneau
   // avant que la modale ne s'ouvre.
   const [showModeratorClaimModal, setShowModeratorClaimModal] = useState(false)
+  // Chantier 92 — binômes (état dans le parent, même piège que NotesModal).
+  const [showPairingModal, setShowPairingModal] = useState(false)
 
   // Message d'intro affiché une fois par séance : explique les phases de l'app
   const [showAppIntro, setShowAppIntro] = useState(false)
@@ -1272,7 +1275,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             onClose={() => setShowToolsPanel(false)}
             onOpenNotes={() => setShowNotesModal(true)}
             onOpenModeratorClaim={() => setShowModeratorClaimModal(true)}
+            onOpenPairing={() => setShowPairingModal(true)}
           />
+        )}
+
+        {/* Binômes (ouvert depuis VoteToolsPanel — chantier 92) */}
+        {showPairingModal && (
+          <PairingModal sessionId={session.id} onClose={() => setShowPairingModal(false)} />
         )}
 
         {/* Notes modal (ouvert depuis VoteToolsPanel) */}
@@ -1498,9 +1507,10 @@ interface VoteToolsPanelProps {
   onClose: () => void
   onOpenNotes: () => void
   onOpenModeratorClaim: () => void
+  onOpenPairing: () => void
 }
 
-function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenModeratorClaim }: VoteToolsPanelProps) {
+function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenModeratorClaim, onOpenPairing }: VoteToolsPanelProps) {
 
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
@@ -1608,6 +1618,17 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
             </svg>
             Me déclarer modérateur
           </button>
+
+          {/* Chantier 92 — binômes, à partir de la phase présentielle. */}
+          {['voting', 'allocating', 'debating'].includes(session.phase) && (
+            <button
+              onClick={() => { onClose(); onOpenPairing() }}
+              className={linkClass}
+            >
+              <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+              Mes binômes
+            </button>
+          )}
 
           <div className="pb-2" />
         </div>
