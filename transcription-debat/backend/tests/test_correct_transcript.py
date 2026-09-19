@@ -65,8 +65,9 @@ def test_correct_falls_back_to_raw_on_invalid_json(tmp_path):
     assert data[0]["text"] == SAMPLE_SEGMENTS[0]["text"]  # brut conservé
 
 
-def test_correct_falls_back_to_raw_on_wrong_segment_count(tmp_path):
-    """Si Gemini retourne un nombre incorrect de segments, le batch brut est conservé."""
+def test_correct_wrong_segment_count_salvages_by_timestamps(tmp_path):
+    """Gemini omet un segment : les segments retrouvés (même horodatage) sont corrigés,
+    le segment manquant garde son texte brut — le lot n'est plus perdu en entier."""
     from correct_transcript import correct
     stem = tmp_path / "debat"
     too_few = CORRECTED_SEGMENTS[:2]
@@ -74,7 +75,17 @@ def test_correct_falls_back_to_raw_on_wrong_segment_count(tmp_path):
         result = correct(SAMPLE_SEGMENTS, stem)
     assert result is True
     data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
-    assert data[0]["text"] == SAMPLE_SEGMENTS[0]["text"]
+    assert data[0]["text"] == CORRECTED_SEGMENTS[0]["text"]
+    assert data[2]["text"] == SAMPLE_SEGMENTS[2]["text"] and data[2]["correction"] == "aucune"
+
+
+def test_merged_segments_keep_raw_text(tmp_path):
+    """Gemini fusionne deux segments en un : aucun des deux n'est retrouvé intact → brut."""
+    segs = [{**_seg("j'ai"), "start": 0.0, "end": 1.0}, {**_seg("aussi une question"), "start": 1.0, "end": 3.0}]
+    merged = [{**_seg("J'ai aussi une question."), "start": 0.0, "end": 3.0}]
+    data, _, _ = _run_correct(tmp_path, segs, merged)
+    assert [d["text"] for d in data] == ["j'ai", "aussi une question"]
+    assert all(d["correction"] == "aucune" for d in data)
 
 
 def test_correct_rejects_grossly_modified_timestamps(tmp_path):

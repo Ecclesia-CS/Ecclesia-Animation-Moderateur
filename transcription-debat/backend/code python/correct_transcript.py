@@ -265,16 +265,24 @@ def _correct_batch(
         else:
             print("Correction Gemini : format de réponse inattendu.", file=sys.stderr)
             return None
-        for orig, corr in zip(batch, corrected):
-            if isinstance(corr, dict) and "refused" not in corr:
-                corr["refused"] = orig["refused"]
     except Exception as exc:
         print(f"Correction Gemini échouée (batch) : {exc}", file=sys.stderr)
         return None
-    if len(corrected) != len(batch):
-        print("Correction Gemini rejetée : nombre de segments différent.", file=sys.stderr)
+    if not isinstance(corrected, list) or not corrected:
         return None
-    checked = [c if _segment_ok(o, c, allowed_labels) else None for o, c in zip(batch, corrected)]
+    if len(corrected) != len(batch):
+        # Gemini a fusionné ou omis des segments : on retrouve chaque segment par son
+        # horodatage de début ; ceux qui n'ont pas été rendus intacts gardent leur brut.
+        print(f"  Gemini a rendu {len(corrected)} segments pour {len(batch)} — réalignement par horodatage.",
+              file=sys.stderr)
+        by_start = [c for c in corrected if isinstance(c, dict) and isinstance(c.get("start"), (int, float))]
+        corrected = [
+            next((c for c in by_start if abs(c["start"] - o["start"]) <= 0.1), None) for o in batch
+        ]
+    for orig, corr in zip(batch, corrected):
+        if isinstance(corr, dict) and "refused" not in corr:
+            corr["refused"] = orig["refused"]
+    checked = [c if c is not None and _segment_ok(o, c, allowed_labels) else None for o, c in zip(batch, corrected)]
     bad = sum(c is None for c in checked)
     if bad:
         print(f"  {bad} segment(s) à la structure altérée par Gemini — texte brut conservé pour eux.", file=sys.stderr)
