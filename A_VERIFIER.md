@@ -26,7 +26,7 @@ Session autonome de nuit (branche `transcription/ameliorations-attribution`, non
 2. **31:07–31:17** : alternance Interlocuteur 7 / Interlocuteur 9 / `[?]` au milieu d'une même question — probable confusion entre deux voix.
 3. **35:10** : « Alors, tu / as fait un / conflit. » réparti Interlocuteur 6 / Interlocuteur 7 — décalage d'un mot entre Whisper et la diarisation, ou vraie relance ?
 4. **Tour de table 1:33:27–2:05 (hors log)** : attribution par la voix seule. Interlocuteur 2 y passe de ~13 min (suppositions de Gemini au 24/06) à presque rien — vérifier 2–3 prises de parole.
-5. **Prénoms** : pour ce run, 12 prénoms privés absents de `name_map.json` ont été masqués via `--redact-names` (liste dans `run_20260919.log`, non versionné). Les ajouter à `name_map.json` pour les prochains runs ; relire `correction.noms_propres_a_verifier` du rapport (un mot ambigu : « Val » à 1:33:47, probablement « de base »).
+5. **Prénoms** : pour ce run, 12 prénoms privés absents de `name_map.json` ont été masqués via `--redact-names` (liste et entrées JSON prêtes à copier dans `transcripts/Multiculturalisme/71B505/prenoms_a_ajouter_name_map.md`, non versionné). Les ajouter à `name_map.json` pour les prochains runs ; relire `correction.noms_propres_a_verifier` du rapport (un mot ambigu : « Val » à 1:33:47, probablement « de base »).
 6. **Mesure** : corriger `reference/extrait_{1,2,3}.txt` à l'écoute (≈ 45 min), puis `python "code python/evaluate.py" score reference/extrait_1.txt 71B505_2026-06-24_corrected.json 71B505_2026-09-19_corrected.json` → WER/WDER avant/après.
 7. **`viz/`** (tableau de bord du 02/07) repose sur l'ancienne attribution (temps de parole faux) : à régénérer avec `analyze_debate.py` sur le nouveau `_corrected.json` si on s'en sert.
 
