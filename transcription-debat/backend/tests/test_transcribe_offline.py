@@ -454,3 +454,26 @@ def test_main_reuses_whisper_cache_without_loading_model(tmp_path, monkeypatch):
     wm = _run_main(["a.mp3", str(log), "--group", "T1", "--output-dir", str(out),
                     "--whisper-cache", str(cache)], monkeypatch)
     wm.assert_not_called()
+
+
+# ---- Regroupement des mots attribués en segments (provenance + confiance) ----
+
+def test_group_words_dominant_source_and_low_confidence():
+    from transcribe_offline import group_words
+    words = [
+        {"start": 0.0, "end": 1.0, "text": "je", "speaker": "A", "refused": False, "source": "log+voix", "prob": 0.99},
+        {"start": 1.0, "end": 1.5, "text": "multi", "speaker": "A", "refused": False, "source": "log", "prob": 0.2},
+        {"start": 1.5, "end": 3.0, "text": "oui", "speaker": "B", "refused": False, "source": "voix", "prob": 0.9},
+    ]
+    segs = group_words(words)
+    assert [s["speaker"] for s in segs] == ["A", "B"]
+    assert segs[0]["speaker_source"] == "log+voix"
+    assert segs[0]["low_conf_words"] == ["multi"]
+    assert "low_conf_words" not in segs[1]
+    assert segs[1]["speaker_source"] == "voix"
+
+
+def test_assign_words_marks_log_source():
+    words = [{"start": 1.0, "end": 2.0, "text": "a"}, {"start": 50.0, "end": 51.0, "text": "b"}]
+    result = assign_speakers_words(words, _wordturns())
+    assert [s["speaker_source"] for s in result] == ["log", "aucune"]

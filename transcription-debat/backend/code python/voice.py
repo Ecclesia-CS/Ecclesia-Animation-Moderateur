@@ -212,6 +212,78 @@ def voice_of_word(word: dict, diar, index=None, min_cover: float = MIN_WORD_COVE
     return covering.pop() if len(covering) == 1 else None
 
 
+MIN_OVERRIDE = 1.0  # s : une autre voix doit parler ≥ 1 s d'affilée pour primer sur le log
+
+
+def _turn_at(t: float, turns: list[dict]) -> int | None:
+    for i, turn in enumerate(turns):
+        if turn["debut_sec"] <= t <= turn["fin_sec"]:
+            return i
+    return None
+
+
+def fuse_word_speakers(words, turns, diar, mapping, min_override: float = MIN_OVERRIDE) -> list[dict]:
+    """Attribue chaque mot en croisant le log (détenteur officiel) et la voix.
+
+    Retourne une copie des mots avec speaker, refused et source :
+      - "log+voix" : le log et la voix désignent la même personne (le plus sûr) ;
+      - "log"      : pas de voix exploitable (silence, parole superposée, voix non
+                     rattachée) → détenteur du tour ;
+      - "voix"     : hors du log, ou autre participant identifié qui parle ≥ min_override s
+                     pendant le tour (interruption, relance, fin de phrase après le clic) ;
+      - "aucune"   : ni log ni voix identifiée → [?].
+    RGPD : un tour refusé reste masqué quoi que dise la voix, et la voix d'une
+    personne qui a refusé est masquée partout, y compris hors de ses tours.
+    """
+    idx = _Index(diar)
+    out: list[dict] = []
+    for w in words:
+        mid = (w["start"] + w["end"]) / 2
+        ti = _turn_at(mid, turns)
+        turn = turns[ti] if ti is not None else None
+        v = voice_of_word(w, diar, index=idx)
+        vlab = (mapping.get(v) or {}).get("label") if v is not None else None
+        if turn is not None and turn.get("refuse"):
+            spk, refused, src = REFUS, True, "log"
+        elif vlab == REFUS:
+            spk, refused, src = REFUS, True, "voix"
+        elif turn is not None:
+            lab = turn["interlocuteur"]
+            if vlab is None:
+                spk, refused, src = lab, False, "log"
+            elif vlab == lab:
+                spk, refused, src = lab, False, "log+voix"
+            else:
+                spk, refused, src = vlab, False, "voix?"   # à confirmer (durée)
+        elif vlab is not None:
+            spk, refused, src = vlab, False, "voix"
+        else:
+            spk, refused, src = "[?]", False, "aucune"
+        out.append({**w, "speaker": spk, "refused": refused, "source": src, "_turn": ti})
+
+    # Une autre voix pendant un tour ne prime que si elle parle assez longtemps d'affilée.
+    i = 0
+    while i < len(out):
+        if out[i]["source"] != "voix?":
+            i += 1
+            continue
+        j = i
+        while (j + 1 < len(out) and out[j + 1]["source"] == "voix?"
+               and out[j + 1]["speaker"] == out[i]["speaker"] and out[j + 1]["_turn"] == out[i]["_turn"]):
+            j += 1
+        keep = out[j]["end"] - out[i]["start"] >= min_override
+        for k in range(i, j + 1):
+            if keep:
+                out[k]["source"] = "voix"
+            else:
+                out[k]["speaker"] = turns[out[k]["_turn"]]["interlocuteur"]
+                out[k]["source"] = "log"
+        i = j + 1
+    for w in out:
+        del w["_turn"]
+    return out
+
+
 def change_points(diar) -> list[float]:
     """Instants où la voix change (milieu du passage d'une voix à une autre)."""
     segs = sorted(diar, key=lambda s: s["start"])

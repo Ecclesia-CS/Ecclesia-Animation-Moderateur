@@ -126,3 +126,72 @@ def test_map_clusters_dominant_voice_of_a_label_despite_dialogue():
     mapping = map_clusters(turns, diar, min_support=10.0, min_purity=0.6)
     assert mapping["SC"]["label"] == "C"
     assert mapping["SB"]["label"] == "B"
+
+
+# ---- Fusion log × voix, mot par mot ----
+
+from voice import fuse_word_speakers
+
+MAPPING = {
+    "SA": {"label": "A"}, "SB": {"label": "B"},
+    "SX": {"label": None},          # voix non rattachée (faible/distincte)
+    "SR": {"label": "[REFUS]"},
+}
+
+
+def _words(*spec):
+    return [{"start": a, "end": b, "text": t} for a, b, t in spec]
+
+
+def _fuse(words, turns, diar):
+    return [(w["speaker"], w["source"]) for w in fuse_word_speakers(words, turns, diar, MAPPING)]
+
+
+def test_fuse_log_and_voice_agree():
+    out = _fuse(_words((1, 2, "oui")), [_turn("A", 0, 10)], [_d(0, 10, "SA")])
+    assert out == [("A", "log+voix")]
+
+
+def test_fuse_log_only_when_no_or_unmapped_voice():
+    words = _words((1, 2, "un"), (5, 6, "deux"))
+    out = _fuse(words, [_turn("A", 0, 10)], [_d(4, 7, "SX")])
+    assert out == [("A", "log"), ("A", "log")]
+
+
+def test_fuse_long_interruption_goes_to_voice():
+    words = _words((1, 2, "je"), (3.0, 3.6, "mais"), (3.6, 4.4, "qui"), (4.4, 5.2, "organise ?"), (7, 8, "donc"))
+    diar = [_d(0, 2.8, "SA"), _d(2.9, 5.3, "SB"), _d(6, 9, "SA")]
+    out = _fuse(words, [_turn("A", 0, 10)], diar)
+    assert out == [("A", "log+voix"), ("B", "voix"), ("B", "voix"), ("B", "voix"), ("A", "log+voix")]
+
+
+def test_fuse_short_voice_blip_keeps_log():
+    words = _words((1, 2, "je"), (3.0, 3.4, "oui"), (7, 8, "donc"))
+    diar = [_d(0, 2.8, "SA"), _d(2.9, 3.5, "SB"), _d(6, 9, "SA")]
+    out = _fuse(words, [_turn("A", 0, 10)], diar)
+    assert out[1] == ("A", "log")
+
+
+def test_fuse_outside_log_uses_voice_or_unknown():
+    words = _words((20, 21, "bonjour"), (30, 31, "euh"))
+    out = _fuse(words, [_turn("A", 0, 10)], [_d(19, 22, "SB")])
+    assert out == [("B", "voix"), ("[?]", "aucune")]
+
+
+def test_fuse_refused_turn_always_redacted():
+    words = _words((1, 2, "secret"))
+    fused = fuse_word_speakers(words, [_turn("[REFUS]", 0, 10, refuse=True)], [_d(0, 10, "SA")], MAPPING)
+    assert (fused[0]["speaker"], fused[0]["refused"]) == ("[REFUS]", True)
+
+
+def test_fuse_refusing_voice_redacted_outside_log():
+    """RGPD : la voix d'une personne qui a refusé reste masquée hors de ses tours."""
+    words = _words((20, 22, "moi"), (23, 25, "aussi"))
+    fused = fuse_word_speakers(words, [_turn("A", 0, 10)], [_d(19, 26, "SR")], MAPPING)
+    assert all(w["speaker"] == "[REFUS]" and w["refused"] for w in fused)
+
+
+def test_fuse_does_not_mutate_input():
+    words = _words((1, 2, "oui"))
+    fuse_word_speakers(words, [_turn("A", 0, 10)], [_d(0, 10, "SA")], MAPPING)
+    assert "speaker" not in words[0]

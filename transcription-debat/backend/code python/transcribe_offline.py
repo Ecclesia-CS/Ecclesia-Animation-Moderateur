@@ -208,28 +208,26 @@ def _speaker_at(t: float, turns: list[dict]) -> tuple[str, bool]:
     return "[?]", False
 
 
-def assign_speakers_words(
+LOW_CONF_PROB = 0.5  # un mot sous cette probabilité Whisper est signalé comme douteux
+
+
+def group_words(
     words: list[dict],
-    turns: list[dict],
     max_duration: float = MERGE_MAX_DURATION,
     max_chars: int = MERGE_MAX_CHARS,
     max_gap: float = MERGE_MAX_GAP,
 ) -> list[dict]:
-    """Attribution au niveau du mot puis regroupement en segments.
+    """Regroupe des mots déjà attribués (speaker, refused, source) en segments lisibles.
 
-    Chaque mot est attribué au tour qui contient son milieu — bien plus précis que
-    l'attribution par segment Whisper (dont les frontières VAD ne coïncident pas avec
-    les tours). Les mots consécutifs de même locuteur sont regroupés, sans dépasser
-    max_duration / max_chars, ni franchir un silence > max_gap : on évite ainsi les
+    Les mots consécutifs de même locuteur sont regroupés, sans dépasser
+    max_duration / max_chars, ni franchir un silence > max_gap : on évite les
     méga-segments illisibles tout en gardant les vrais changements de tour.
+    Chaque segment porte speaker_source (provenance majoritaire, en durée) et,
+    s'il y en a, low_conf_words : les mots que Whisper a peu sûrement reconnus.
     """
-    if not words:
-        return []
-
     runs: list[dict] = []
     for w in words:
-        mid = (w["start"] + w["end"]) / 2
-        speaker, refused = _speaker_at(mid, turns)
+        speaker, refused = w["speaker"], w.get("refused", False)
         if runs:
             cur = runs[-1]
             can_merge = (
@@ -241,30 +239,55 @@ def assign_speakers_words(
             )
             if can_merge:
                 cur["end"] = w["end"]
-                if not refused:
-                    cur["_words"].append(w)
-                    cur["_chars"] += len(w["text"]) + 1
+                cur["_words"].append(w)
+                cur["_chars"] += len(w["text"]) + 1
                 continue
         runs.append({
-            "start": w["start"],
-            "end": w["end"],
-            "speaker": speaker,
-            "refused": refused,
-            "_words": [] if refused else [w],
-            "_chars": 0 if refused else len(w["text"]),
+            "start": w["start"], "end": w["end"], "speaker": speaker, "refused": refused,
+            "_words": [w], "_chars": len(w["text"]),
         })
 
     result = []
     for run in runs:
-        text = "[N'a pas souhaité être enregistré(e)]" if run["refused"] else join_words(run["_words"])
-        result.append({
+        src_dur: dict[str, float] = {}
+        for w in run["_words"]:
+            src = w.get("source", "log")
+            src_dur[src] = src_dur.get(src, 0.0) + max(w["end"] - w["start"], 0.01)
+        seg = {
             "start": run["start"],
             "end": run["end"],
             "speaker": run["speaker"],
-            "text": text,
+            "text": "[N'a pas souhaité être enregistré(e)]" if run["refused"] else join_words(run["_words"]),
             "refused": run["refused"],
-        })
+            "speaker_source": max(src_dur, key=src_dur.get),
+        }
+        if not run["refused"]:
+            low = [w["text"] for w in run["_words"] if w.get("prob", 1.0) < LOW_CONF_PROB]
+            if low:
+                seg["low_conf_words"] = low
+        result.append(seg)
     return result
+
+
+def assign_speakers_words(
+    words: list[dict],
+    turns: list[dict],
+    max_duration: float = MERGE_MAX_DURATION,
+    max_chars: int = MERGE_MAX_CHARS,
+    max_gap: float = MERGE_MAX_GAP,
+) -> list[dict]:
+    """Attribution au niveau du mot par le log seul, puis regroupement en segments.
+
+    Chaque mot est attribué au tour qui contient son milieu — bien plus précis que
+    l'attribution par segment Whisper (dont les frontières VAD ne coïncident pas avec
+    les tours).
+    """
+    labeled = []
+    for w in words:
+        speaker, refused = _speaker_at((w["start"] + w["end"]) / 2, turns)
+        labeled.append({**w, "speaker": speaker, "refused": refused,
+                        "source": "aucune" if speaker == "[?]" else "log"})
+    return group_words(labeled, max_duration, max_chars, max_gap)
 
 
 def merge_same_speaker(
