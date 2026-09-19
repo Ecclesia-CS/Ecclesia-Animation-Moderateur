@@ -44,6 +44,29 @@ def transcript_metrics(segments: list[dict]) -> dict:
     }
 
 
+_CAP_WORD = re.compile(r"^[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’-]{2,}$")
+_LABELS = {"Interlocuteur", "Modérateur"}
+
+
+def proper_noun_candidates(segments: list[dict]) -> list[tuple[str, int]]:
+    """Noms propres présents dans le texte, à relire (prénoms non masqués ?).
+
+    Un mot à majuscule dont la forme en minuscules n'apparaît jamais ailleurs dans
+    le transcript est probablement un nom propre (lieu, auteur… ou prénom d'un
+    participant resté visible). Liste d'aide à la relecture RGPD, triée par
+    fréquence — elle ne modifie rien.
+    """
+    texts = [s["text"] for s in segments if not s.get("refused")]
+    lower = {w.lower() for t in texts for w in re.findall(r"[\w'’-]+", t) if w.islower()}
+    counts: dict[str, int] = {}
+    for t in texts:
+        for tok in t.split():
+            w = tok.strip(".,;:!?…\"'«»()[]")
+            if _CAP_WORD.match(w) and w not in _LABELS and w.lower() not in lower:
+                counts[w] = counts.get(w, 0) + 1
+    return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+
+
 def normalize_tokens(text: str) -> list[str]:
     """Normalisation pour le WER : minuscules, sans ponctuation ni balises ; l'élision
     est un mot à part (« l' état ») et le trait d'union sépare (« est ce »)."""

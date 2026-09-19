@@ -329,7 +329,39 @@ def correct(
     _write_txt(corrected, txt_path)
 
     print(f"Correction Gemini écrite :\n  {txt_path}\n  {json_path}")
+    _update_report(output_stem, corrected)
     return True
+
+
+def _update_report(output_stem: Path, corrected: list[dict]) -> None:
+    """Complète <stem>_rapport.json (s'il existe) : bilan de la correction + noms propres à relire."""
+    from quality import proper_noun_candidates
+    motifs: dict[str, int] = {}
+    for s in corrected:
+        if s.get("correction_motif"):
+            motifs[s["correction_motif"]] = motifs.get(s["correction_motif"], 0) + 1
+    names = proper_noun_candidates(corrected)
+    section = {
+        "modele": MODEL,
+        "acceptees": sum(s.get("correction") == "gemini" for s in corrected),
+        "rejetees": sum(s.get("correction") == "rejetee" for s in corrected),
+        "non_corrigees": sum(s.get("correction") == "aucune" and not s.get("refused") for s in corrected),
+        "motifs_rejet": motifs,
+        "suggestions_orateur": sum(bool(s.get("speaker_suggestion")) for s in corrected),
+        "noms_propres_a_verifier": [[n, c] for n, c in names],
+    }
+    if names:
+        print("Noms propres à relire (prénom de participant non masqué ?) : "
+              + ", ".join(f"{n} ({c})" for n, c in names[:40]))
+    report_path = Path(f"{output_stem}_rapport.json")
+    if not report_path.exists():
+        return
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    report["correction"] = section
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def main() -> None:

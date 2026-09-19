@@ -264,3 +264,17 @@ def test_failed_batch_is_marked(tmp_path):
         correct([_seg("bonjour")], stem)
     data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
     assert data[0]["correction"] == "aucune"
+
+
+def test_correct_updates_report_with_counts_and_proper_nouns(tmp_path):
+    (tmp_path / "debat_rapport.json").write_text(json.dumps({"metriques": {}}), encoding="utf-8")
+    segs = [_seg("merci Zélie pour ça"), _seg("je ne sais pas", "[?]")]
+    corr = [_seg("merci Zélie pour ça."), _seg("je sais", "Interlocuteur 1")]
+    _run_correct(tmp_path, segs, corr)
+    rapport = json.loads((tmp_path / "debat_rapport.json").read_text(encoding="utf-8"))
+    c = rapport["correction"]
+    assert c["acceptees"] == 1 and c["rejetees"] == 1 and c["non_corrigees"] == 0
+    assert c["suggestions_orateur"] == 1
+    assert c["motifs_rejet"] == {"négation modifiée": 1}
+    assert ["Zélie", 1] in c["noms_propres_a_verifier"]
+    assert "metriques" in rapport

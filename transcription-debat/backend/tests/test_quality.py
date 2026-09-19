@@ -53,3 +53,13 @@ def test_parse_reference_txt_skips_comments():
     txt = "# consignes\n# ...\n[00:07:40] Interlocuteur 1: Bonjour à tous.\n\n[00:07:45] Interlocuteur 2: Merci.\n"
     lines = parse_reference_txt(txt)
     assert lines == [(460.0, "Interlocuteur 1", "Bonjour à tous."), (465.0, "Interlocuteur 2", "Merci.")]
+
+
+def test_proper_noun_candidates_skips_ordinary_words_and_labels():
+    from quality import proper_noun_candidates
+    segs = [
+        _s(0, 1, "A", "Mais c'est Zélie qui m'a aidé. Et mais oui, Interlocuteur 3 le dit."),
+        _s(1, 2, "B", "En France, Mais bon, comme le dit Spinoza à Zélie en passant."),
+        _s(2, 3, "B", "[N'a pas souhaité être enregistré(e)]", refused=True),
+    ]
+    assert proper_noun_candidates(segs) == [("Zélie", 2), ("France", 1), ("Spinoza", 1)]
