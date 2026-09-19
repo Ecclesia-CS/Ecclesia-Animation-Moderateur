@@ -4,6 +4,7 @@ import json
 import re
 import sys
 import datetime
+import unicodedata
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -387,40 +388,105 @@ def load_name_map(log_path: str, extra_names: list[str] | None = None) -> dict[s
     return mapping
 
 
+FUZZY_MIN_LEN = 5  # variantes orales cherchées seulement pour les prénoms de ≥ 5 lettres
+
+
 def redact_names(segments: list[dict], name_map: dict[str, str]) -> list[dict]:
     """Remplace dans le texte les prénoms réels par leur label (RGPD).
 
-    Casse-insensible, sur frontières de mot, prénoms de 3 caractères minimum pour
-    éviter les collisions avec des mots courants.
+    1. Formes exactes de name_map : casse-insensible, frontières de mot, ≥ 3 caractères.
+    2. Variantes orales proches (« Solanje », « Sölange » pour « Solange ») : mot à
+       majuscule en milieu de phrase, ≥ 5 lettres, à une lettre près sans tenir
+       compte des accents → même label. Déterministe : le masquage ne dépend plus
+       de Gemini, qui ne masque pas de façon reproductible.
     """
-    patterns = _name_patterns(name_map)
-    if not patterns:
+    red = _Redactor(name_map)
+    if not red:
         return segments
     result = []
     for seg in segments:
         if seg.get("refused"):
             result.append(dict(seg))
             continue
-        out = {**seg, "text": _redact_text(seg["text"], patterns)}
+        out = {**seg, "text": red.text(seg["text"])}
         if seg.get("low_conf_words"):
-            out["low_conf_words"] = [_redact_text(w, patterns) for w in seg["low_conf_words"]]
+            out["low_conf_words"] = [red.text(w, lone=True) for w in seg["low_conf_words"]]
         result.append(out)
     return result
 
 
-def _name_patterns(name_map: dict[str, str]) -> list:
-    pairs = sorted(
-        ((n, lbl) for n, lbl in name_map.items() if len(n) >= 3),
-        key=lambda kv: len(kv[0]),
-        reverse=True,
-    )
-    return [(re.compile(rf"\b{re.escape(n)}\b", re.IGNORECASE), lbl) for n, lbl in pairs]
+def _fold(s: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn").lower()
 
 
-def _redact_text(text: str, patterns) -> str:
-    for pat, lbl in patterns:
-        text = pat.sub(lbl, text)
-    return text
+def _within_one_edit(a: str, b: str) -> bool:
+    if a == b:
+        return True
+    if abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) > len(b):
+        a, b = b, a
+    i = j = edits = 0
+    while i < len(a) and j < len(b):
+        if a[i] == b[j]:
+            i += 1
+            j += 1
+            continue
+        edits += 1
+        if edits > 1:
+            return False
+        if len(a) == len(b):
+            i += 1
+        j += 1
+    return edits + (len(b) - j) + (len(a) - i) <= 1
+
+
+_TOKEN = re.compile(r"^([^\w]*)(\w[\w'’-]*?)([^\w]*)$")
+_SENTENCE_END_TOKEN = re.compile(r"[.?!…][\"'»”)]*$")
+
+
+class _Redactor:
+    def __init__(self, name_map: dict[str, str]):
+        pairs = sorted(
+            ((n, lbl) for n, lbl in name_map.items() if len(n) >= 3),
+            key=lambda kv: len(kv[0]),
+            reverse=True,
+        )
+        self.patterns = [(re.compile(rf"\b{re.escape(n)}\b", re.IGNORECASE), lbl) for n, lbl in pairs]
+        self.fuzzy = [(_fold(n), lbl) for n, lbl in pairs if len(n) >= FUZZY_MIN_LEN and n.replace("-", "").isalpha()]
+
+    def __bool__(self) -> bool:
+        return bool(self.patterns)
+
+    def _variant(self, word: str) -> str | None:
+        if len(word) < FUZZY_MIN_LEN or not word[:1].isupper() or not word.replace("-", "").isalpha():
+            return None
+        f = _fold(word)
+        for key, lbl in self.fuzzy:
+            if _within_one_edit(f, key):
+                return lbl
+        return None
+
+    def text(self, text: str, lone: bool = False) -> str:
+        for pat, lbl in self.patterns:
+            text = pat.sub(lbl, text)
+        if not self.fuzzy:
+            return text
+        parts = re.split(r"(\s+)", text)
+        sentence_start = not lone
+        out = []
+        for tok in parts:
+            if not tok or tok.isspace():
+                out.append(tok)
+                continue
+            m = _TOKEN.match(tok)
+            if m and not sentence_start:
+                lbl = self._variant(unicodedata.normalize("NFC", m.group(2)))
+                if lbl is not None:
+                    tok = m.group(1) + lbl + m.group(3)
+            out.append(tok)
+            sentence_start = bool(_SENTENCE_END_TOKEN.search(tok))
+        return "".join(out)
 
 
 def sanitize_cache_words(words: list[dict], labeled: list[dict], name_map: dict[str, str]) -> list[dict]:
@@ -429,15 +495,15 @@ def sanitize_cache_words(words: list[dict], labeled: list[dict], name_map: dict[
     Les mots attribués à une personne qui a refusé l'enregistrement sont vidés
     (seuls les horodatages restent), et les prénoms réels sont masqués.
     """
-    patterns = _name_patterns(name_map)
+    red = _Redactor(name_map)
     out = []
     for w, lab in zip(words, labeled):
         if lab.get("refused"):
             out.append({**w, "text": "", "raw": ""})
             continue
-        clean = {**w, "text": _redact_text(w["text"], patterns)}
+        clean = {**w, "text": red.text(w["text"], lone=True)}
         if isinstance(w.get("raw"), str):
-            clean["raw"] = _redact_text(w["raw"], patterns)
+            clean["raw"] = red.text(w["raw"], lone=True)
         out.append(clean)
     return out
 

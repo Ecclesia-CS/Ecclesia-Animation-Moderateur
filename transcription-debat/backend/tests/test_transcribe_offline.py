@@ -549,3 +549,23 @@ def test_merge_word_pieces_glues_continuations():
     assert [w["text"] for w in out] == ["c'est", "bien", "est-ce"]
     assert out[0] == {"start": 0.0, "end": 0.5, "text": "c'est", "raw": " c'est", "prob": 0.6}
     assert out[2]["end"] == 1.4
+
+
+# ---- Variantes orales des prénoms (masquage déterministe, pas laissé à Gemini) ----
+
+NM = {"Zélie": "Interlocuteur 3", "Solange": "Interlocuteur 3", "Justine": "[prénom]", "Mimi": "Interlocuteur 8"}
+
+
+def _red(text):
+    return redact_names([{"start": 0, "end": 1, "speaker": "A", "text": text, "refused": False}], NM)[0]["text"]
+
+
+def test_redact_close_variant_of_known_name():
+    assert _red("sinon donne la parole à Solanje qui est là") == "sinon donne la parole à Interlocuteur 3 qui est là"
+    assert _red("je rejoins plutôt Sölange dans le sens") == "je rejoins plutôt Interlocuteur 3 dans le sens"
+
+
+def test_redact_variant_rules_avoid_false_positives():
+    assert _red("Justice pour tous.") == "Justice pour tous."          # début de phrase : pas un indice de nom
+    assert _red("la chaîne et la justice") == "la chaîne et la justice"  # minuscules
+    assert _red("un Mini ici") == "un Mini ici"                          # prénom court : pas de variante
