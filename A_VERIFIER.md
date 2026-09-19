@@ -27,6 +27,14 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 **Reste ouvert** : le rang exact de la règle dans l'ordre lexicographique a été choisi au rang le plus haut possible (avant même l'énumération des formes), sans confirmation explicite de Jules sur ce point précis — comportement jamais mis en défaut par la recette, mais pas formellement discuté non plus.
 
+## Chantier 100 — audit cybersécurité (2026-09-19)
+
+**Rien à vérifier au navigateur : aucun code, aucune migration.** Ce qui reste à confirmer, ce sont les hypothèses d'exploitation du document [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./docs/2026-09-19-audit-chantier100-interruption-exfiltration.md), toutes **déduites** des définitions en base et **jamais jouées** contre la production :
+
+1. `leave_other_session_tables` et `sync_table_assignment` sont-elles réellement atteignables via PostgREST avec la seule clé `anon` (grant `EXECUTE` confirmé en base, appel HTTP jamais effectué) ? À jouer sur une séance de test jetable, pas sur une séance réelle.
+2. `clear_reclaim_attempts` efface-t-elle bien le verrou anti-bruteforce du chantier 93 vu du dehors ?
+3. **Régression du chantier 51 à confirmer par Jules** : `assertions.member_id` est de nouveau accordé à `anon`/`authenticated` en base, alors que la migration `20260902_chantier51_hide_assertion_author.sql` l'avait révoqué et qu'aucune migration du dépôt ne le réaccorde. Savoir si ce `GRANT` a été rétabli à la main (dashboard) ou par un autre chemin — la réponse change ce qu'il faut corriger.
+
 ## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
 
 **Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :

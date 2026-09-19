@@ -9,6 +9,8 @@ Dernière mise à jour : **2026-09-19**.
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 >
 > **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table — **fait le 19/09**, voir `docs/chantiers.md`), **98** (allocation : interdire les tables sans modérateur — **fait et vérifié au navigateur le 19/09**, voir `docs/chantiers.md`), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauche potentiellement le **87**, à clarifier avant de le lancer).
+>
+> **Ajout du 2026-09-19, en fin de journée** : le chantier **100 est fait** (audit livré), et sa suite est découpée en cinq chantiers de sécurité — **102** (refermer les helpers SQL exposés, l'essentiel du gain, ne dépend de rien), **103** (`auth.uid()` au lieu du `user_id` en paramètre), **104** (colonnes de `tables`, C7), **105** (régression du chantier 51 sur `assertions`) et **105bis** (auto-désignation de modérateur, **bloqué sur un arbitrage de Jules**). Tous renvoient au diagnostic et au plan du jour.
 
 ---
 
@@ -165,6 +167,10 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 **Rien à faire tant que les documents ne sont pas fournis.** Une fois reçus : les rendre accessibles dans l'app (à un endroit visible par tous les participants, pas seulement le modérateur — reste à choisir où), dans la documentation du dépôt, et sur le site public si un tel emplacement existe déjà.
 
 ### 100 — Diagnostic cybersécurité : peut-on interrompre une séance ou voler des données ?
+
+> ✅ **Fait le 2026-09-19** — audit livré : [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./2026-09-19-audit-chantier100-interruption-exfiltration.md). Réponse courte : vol de données non à grande échelle, **interruption de séance oui** (cinq helpers `SECURITY DEFINER` exposés à `anon` sans garde d'autorité, plus C7 et A4 déjà connus).
+>
+> **Suite**, à la demande de Jules le même jour : le [plan de fermeture](./2026-09-19-plan-anti-interruption-seance.md) est découpé en **chantiers 102, 103, 104, 105 et 105bis** ci-dessous. Le 102 porte l'essentiel du gain et ne dépend de rien.
 **Sécurité, discussion/audit — pas nécessairement du code.** Nouveau, dicté par Jules le 2026-09-19.
 
 > **Consigne de Jules (2026-09-19)** : « Cybersécu : faire une discussion check pour savoir si on est safe (personne ne peut interrompre la séance en cours) ou voler des données. »
@@ -177,6 +183,61 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 > **Consigne de Jules (2026-09-19)** : « Flow participant : faire une discussion check pour bien vérifier que toutes les situations possibles d'un participant qui arrive, ou un modérateur qui arrive, puissent rejoindre la séance, et participer comme il se doit, que tout est pris en compte. »
 
 ⚠️ **Chevauchement à signaler avec le chantier 87** (« Revue complète des parcours utilisateurs »), déjà réservé par Jules avec la consigne explicite de ne rien analyser avant qu'il fournisse son propre texte. Le 101 semble être une version plus étroite du même sujet (les points d'entrée en séance, pas le parcours complet) — **à confirmer avec Jules avant de lancer l'un ou l'autre** : soit ce chantier est absorbé par le 87 quand son texte arrivera, soit c'est un sous-ensemble volontairement détaché pour être traité plus vite. Ne pas lancer sans cette clarification, pour éviter que deux sessions produisent deux analyses concurrentes du même terrain.
+
+### 102 — Sécurité : refermer les cinq helpers SQL exposés à `anon`
+
+**Sécurité, SQL uniquement.** Issu du [diagnostic du chantier 100](./2026-09-19-audit-chantier100-interruption-exfiltration.md) — lot 1 du [plan](./2026-09-19-plan-anti-interruption-seance.md). Demandé par Jules le 2026-09-19 : « fais un plan pour qu'on ne puisse pas arrêter la séance en plein milieu ».
+
+**Ce que ça ferme** : cinq fonctions `SECURITY DEFINER` ont `EXECUTE` pour `anon` et ne vérifient aucune autorité — `leave_other_session_tables` (éjecte un participant désigné de sa table, en plein débat, et coupe sa prise de parole), `sync_table_assignment` (le déplace de table, bourre la liste des inscrits avant l'allocation), `clear_reclaim_attempts` (efface le verrou anti-bruteforce du chantier 93), `record_reclaim_failure` (bloque volontairement un participant légitime), `gen_member_reclaim_code`. Ajouter `generate_session_join_code` à la liste, inutilisée elle aussi.
+
+**Le geste** : `REVOKE EXECUTE ... FROM anon, authenticated`, rien d'autre. Une migration d'une dizaine de lignes, aucun changement de frontend.
+
+**Pourquoi c'est sans risque, déjà vérifié** : aucune n'est appelée depuis `src/` (grep exhaustif sur les six noms, zéro occurrence) ; leurs seuls appelants sont d'autres fonctions `SECURITY DEFINER` toutes `OWNER = postgres` (`join_table`, `switch_table`, `create_table`, `claim_table_as_moderator`, `confirm_attendance`, `reclaim_prevoting_member`, `register_session_member`, `claim_moderator_status`, `regenerate_reclaim_code_admin`, `regenerate_reclaim_code_moderator`), et dans un corps `SECURITY DEFINER` le droit d'exécuter est contrôlé contre le **propriétaire**, pas contre l'appelant.
+
+> ⚠️ **Garde-fou, à ne pas rater** : ne **jamais** ajouter à cette liste `is_table_participant`, `is_table_moderator`, `is_own_session_member` ni `can_join_realtime_topic`. Elles sont appelées dans des expressions de **policies RLS**, évaluées avec les droits du rôle appelant : leur retirer `EXECUTE` risque de vider en silence les lectures de tables, files et tours de parole — exactement la panne que ce chantier cherche à empêcher. Elles ne renvoient qu'un booléen sur l'appelant lui-même, les exposer ne donne rien. Une première version de la recommandation du chantier 100 les incluait par erreur ; corrigée le même jour.
+
+**Recette** : sur une séance de test jetable — rejoindre une table par `join_code`, changer de table, se reconnecter avec son code de rappel, créer une table modérateur (les quatre chemins couvrent les six fonctions). Plus un appel REST direct sur `leave_other_session_tables`, qui doit désormais répondre une erreur de permission. **Rollback** : le `GRANT EXECUTE` inverse, une ligne.
+
+### 103 — Sécurité : ne plus faire confiance au `user_id` reçu en paramètre
+
+**Sécurité, SQL uniquement.** Lot 2 du [plan](./2026-09-19-plan-anti-interruption-seance.md). **À faire après le 102**, dont il rend l'effet permanent.
+
+`leave_other_session_tables` et `sync_table_assignment` prennent le `user_id` de leur cible **en paramètre** au lieu de lire `auth.uid()`. Tant que c'est le cas, la protection du 102 ne tient qu'à un `GRANT` — et un grant se défait sans laisser de trace dans le dépôt : c'est arrivé ici même, la restriction de colonne du chantier 51 sur `assertions` n'est plus en vigueur en base sans qu'aucune migration ne l'explique (voir 105).
+
+**Le geste** : remplacer `p_user_id` par `auth.uid()` dans les deux fonctions et retirer le paramètre de la signature. **Vérifié** : les quatre appelants (`join_table`, `switch_table`, `create_table`, `claim_table_as_moderator`) passent **déjà** `auth.uid()` — les quatre corps relus en base le confirment mot pour mot. Le changement est fonctionnellement neutre.
+
+**Piège** : `DROP` + `CREATE` change la signature, donc les quatre appelants doivent être recréés dans la **même** migration, et leur corps repris de `pg_get_functiondef` **en base**, jamais des fichiers de migration (règle SQL du projet — le corps en base a déjà divergé plusieurs fois). Vérifier après coup qu'aucune surcharge en double ne subsiste (piège du chantier 70).
+
+### 104 — Sécurité : restreindre ce qu'un modérateur peut réécrire sur sa table (C7)
+
+**Sécurité, SQL uniquement.** Lot 3 du [plan](./2026-09-19-plan-anti-interruption-seance.md). Indépendant du 102 et du 103.
+
+`tables_update_moderator` ne restreint aucune colonne, et `UPDATE` est accordé à `anon` sur **toutes** les colonnes de `tables`. Qui est modérateur d'une table peut donc en réécrire le `join_code` — plus personne ne peut la rejoindre — ou la rattacher à une autre séance. Cumulé au chemin d'auto-désignation (105bis / A4, ci-dessous), c'est l'interruption la plus courte qui ne demande aucun secret.
+
+**Le geste** : `REVOKE UPDATE ON tables FROM anon, authenticated`, puis `GRANT UPDATE (questionnaire_forced_at)`. La policy RLS ne bouge pas. **Pourquoi cette colonne et elle seule** : c'est le seul `UPDATE` direct sur `tables` dans tout le frontend (`TableContext.tsx:538` et `:547`, forçage et annulation du questionnaire) ; parole en cours, `leaderless`, numéro de table et rattachement passent tous par des RPC `SECURITY DEFINER`, que le privilège de table ne concerne pas.
+
+**Risque** : c'est le lot le plus exposé à la casse silencieuse du plan — plusieurs écrans du projet avalent leurs erreurs. À appliquer avec la recette jouée juste après, **pas la veille d'une séance**. **Recette** : forcer puis annuler le questionnaire depuis les outils modérateur ; vérifier qu'un `UPDATE` direct sur `join_code` est refusé ; dérouler un tour de parole complet (prise, fin, avancement).
+
+### 105 — Sécurité : rétablir la restriction de colonne du chantier 51 sur `assertions`
+
+**Sécurité, SQL uniquement.** Trouvé en passant par le [diagnostic du chantier 100](./2026-09-19-audit-chantier100-interruption-exfiltration.md) — sujet exfiltration, pas interruption, d'où son traitement à part.
+
+Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)` posé par `20260902_chantier51_hide_assertion_author.sql` **n'est plus en vigueur en base** : `member_id` est de nouveau accordé à `anon` et `authenticated`. Aucune migration du dépôt ne le réaccorde — le grant a été rétabli hors migration. L'auteur d'une assertion redevient corrélable par identifiant pseudonyme (pas par nom : `session_members` reste self-only).
+
+**À clarifier avec Jules avant d'agir** : savoir si ce `GRANT` a été rétabli à la main depuis le dashboard, ou par un autre chemin — la réponse change ce qu'il faut corriger, et surtout si ça peut se reproduire. Entrée ouverte dans `A_VERIFIER.md` § Chantier 100.
+
+**Le geste, ensuite** : rétablir la restriction **dans une migration du dépôt**, et vérifier qu'elle tient. Leçon à retenir au passage : une correction de sécurité posée uniquement par `GRANT` peut se défaire sans laisser de trace — le chantier devrait se terminer par une vérification, pas par une application.
+
+### 105bis — Sécurité : l'auto-désignation de modérateur (A4) — **bloqué sur un arbitrage de Jules**
+
+**Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md). **Ne rien coder avant que Jules ait tranché.**
+
+`designate_moderator` ne demande **aucun secret** : sur une table `leaderless`, n'importe quel participant se fait modérateur, ce qui lui ouvre d'un coup `kick_participant`, `grant_floor`, `correct_turn`, `add_offline_participant` — et, tant que le 104 n'est pas passé, la réécriture du `join_code`. Ce n'est pas un bug : c'est le mécanisme prévu pour qu'une table sans animateur puisse en désigner un sur place. Le fermer sans rien mettre à la place casse un parcours voulu.
+
+Trois options, par friction croissante :
+1. **Ne rien faire ici** et se contenter des chantiers 102 à 104. L'auto-désignation reste ouverte, mais ce qu'elle permet de casser est réduit à la table concernée et reste réversible (`release_table_moderation` côté superadmin). Défendable si la salle est physiquement contrôlée — un saboteur y est assis à côté de ses victimes.
+2. **Premier arrivé seulement** : n'autoriser `designate_moderator` que dans une fenêtre après l'ouverture de la table, ou qu'une fois par table — une reprise ultérieure passe par `claim_table_as_moderator`, qui existe déjà et demande le Code Ecclesia. **Recommandation de la session** : garde le parcours voulu, supprime la reprise hostile en cours de débat.
+3. **Demander le Code Ecclesia**, comme `claim_table_as_moderator`. Le plus sûr, le plus contraignant : il faut que le code circule jusqu'aux tables sans animateur le jour J.
 
 ---
 
