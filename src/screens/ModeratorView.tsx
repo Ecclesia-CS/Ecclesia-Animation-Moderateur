@@ -690,6 +690,8 @@ export default function ModeratorView() {
           currentSpeakerId={table.current_speaker_id}
           queueLong={queueLong}
           queueInteractive={queueInteractive}
+          tableId={table.id}
+          isModerator={isModerator}
         />
 
       </main>

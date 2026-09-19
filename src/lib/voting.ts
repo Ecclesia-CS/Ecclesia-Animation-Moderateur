@@ -12,6 +12,7 @@ import type {
   ModerationPolicy,
   TableOpinionSummary,
   TableCampSpeakingTimes,
+  TableMemberForModerator,
 } from './types'
 import type { AllocationMember, AllocationResult } from './allocation'
 
@@ -275,6 +276,19 @@ export async function loadTableCampSpeakingTimes(tableId: string): Promise<Table
   })
   if (error) throw new Error(extractErr(error))
   return (data as TableCampSpeakingTimes) ?? null
+}
+
+// Chantier 97 — vue modérateur : roster complet de la table (`table_assignments`),
+// connectés ou non, avec actif/passif. Réservé au modérateur de la table
+// (RPC vérifie is_table_moderator côté serveur — table_assignments est
+// self-only depuis le chantier 50, une lecture directe ne verrait que la
+// ligne de l'appelant).
+export async function loadTableMembersForModerator(tableId: string): Promise<TableMemberForModerator[]> {
+  const { data, error } = await supabase.rpc('list_table_members_for_moderator', {
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data ?? []) as TableMemberForModerator[]
 }
 
 export async function getVoteCountsAdmin(password: string, sessionId: string): Promise<VoteResult[]> {
