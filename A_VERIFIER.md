@@ -15,6 +15,14 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 100 — audit cybersécurité (2026-09-19)
+
+**Rien à vérifier au navigateur : aucun code, aucune migration.** Ce qui reste à confirmer, ce sont les hypothèses d'exploitation du document [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./docs/2026-09-19-audit-chantier100-interruption-exfiltration.md), toutes **déduites** des définitions en base et **jamais jouées** contre la production :
+
+1. `leave_other_session_tables` et `sync_table_assignment` sont-elles réellement atteignables via PostgREST avec la seule clé `anon` (grant `EXECUTE` confirmé en base, appel HTTP jamais effectué) ? À jouer sur une séance de test jetable, pas sur une séance réelle.
+2. `clear_reclaim_attempts` efface-t-elle bien le verrou anti-bruteforce du chantier 93 vu du dehors ?
+3. **Régression du chantier 51 à confirmer par Jules** : `assertions.member_id` est de nouveau accordé à `anon`/`authenticated` en base, alors que la migration `20260902_chantier51_hide_assertion_author.sql` l'avait révoqué et qu'aucune migration du dépôt ne le réaccorde. Savoir si ce `GRANT` a été rétabli à la main (dashboard) ou par un autre chemin — la réponse change ce qu'il faut corriger.
+
 ## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
 
 **Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :

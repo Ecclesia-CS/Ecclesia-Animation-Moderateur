@@ -185,6 +185,8 @@ Périmètre : `src/lib/allocation.ts` et ses tests, `src/components/voting/Alloc
 **Rien à faire tant que les documents ne sont pas fournis.** Une fois reçus : les rendre accessibles dans l'app (à un endroit visible par tous les participants, pas seulement le modérateur — reste à choisir où), dans la documentation du dépôt, et sur le site public si un tel emplacement existe déjà.
 
 ### 100 — Diagnostic cybersécurité : peut-on interrompre une séance ou voler des données ?
+
+> ✅ **Fait le 2026-09-19** — audit livré : [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./2026-09-19-audit-chantier100-interruption-exfiltration.md). Réponse courte : vol de données non à grande échelle, **interruption de séance oui** (cinq helpers `SECURITY DEFINER` exposés à `anon` sans garde d'autorité, plus C7 et A4 déjà connus). Le correctif principal est un `REVOKE EXECUTE` sans changement de frontend — il reste à faire, et mérite son propre chantier.
 **Sécurité, discussion/audit — pas nécessairement du code.** Nouveau, dicté par Jules le 2026-09-19.
 
 > **Consigne de Jules (2026-09-19)** : « Cybersécu : faire une discussion check pour savoir si on est safe (personne ne peut interrompre la séance en cours) ou voler des données. »
