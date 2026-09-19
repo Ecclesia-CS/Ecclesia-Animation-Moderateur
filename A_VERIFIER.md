@@ -63,6 +63,23 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 **Rollback si besoin** : réappliquer les anciennes définitions à 3/4 paramètres (conservées dans l'historique git de la migration `20260919_chantier102_revoke_exec_internal_helpers.sql` et dans `pg_get_functiondef` avant ce chantier — voir le message initial de cette session pour le corps exact), et rétablir les appels des quatre appelants avec `auth.uid()` en dernier argument explicite.
 
+## Chantier 104 (2026-09-19) — sécurité : restreindre ce qu'un modérateur peut réécrire sur `tables` (C7) — ✅ vérifié en base
+
+**Migration appliquée** : `supabase/migrations/20260919_chantier104_restrict_tables_update_columns.sql`. `REVOKE UPDATE ON public.tables FROM anon, authenticated` puis `GRANT UPDATE (questionnaire_forced_at) ON public.tables TO anon, authenticated`. La policy RLS `tables_update_moderator` (chantier 60) ne change pas — c'est la garde d'autorité (« est-on modérateur ? ») ; ce chantier ajoute la garde de périmètre (« sur quoi ce privilège porte-t-il ? »). Constat initial : `anon`/`authenticated` avaient `UPDATE` sur les 11 colonnes de `tables`, alors que le seul `UPDATE` direct du frontend porte sur `questionnaire_forced_at` (`TableContext.tsx:538` et `:547`) — tout le reste (parole en cours, `leaderless`, numéro de table, rattachement de séance) passe par des RPC `SECURITY DEFINER`, non affectées par un `GRANT` de colonne (elles s'exécutent avec les privilèges du propriétaire, pas de l'appelant).
+
+**Vérifié en base avant/après** : `information_schema.column_privileges` confirme une seule colonne accordée en `UPDATE` par rôle (`questionnaire_forced_at`) après application, contre 11 avant.
+
+**Vérifié en base par simulation fidèle de PostgREST** (transaction `BEGIN`/`SET LOCAL ROLE authenticated` + `SET LOCAL request.jwt.claims` avec le `sub` d'un vrai modérateur — reproduit exactement le mécanisme de permutation de rôle utilisé par PostgREST, pas seulement `has_column_privilege` qui ne teste que le `GRANT` sans la RLS —, table `C94A01` de la séance de test « Test chantier 94 », `ROLLBACK` en fin de chaque test, aucune donnée modifiée) :
+- forçage puis annulation du questionnaire par ce modérateur (`created_by = auth.uid()`) → les deux `UPDATE` passent, valeur finale `NULL` confirmée.
+- `UPDATE tables SET join_code = 'HACKED'` par ce même modérateur → refusé, `42501 permission denied for table tables` (message Postgres standard quand aucune colonne touchée par l'`UPDATE` n'est accordée).
+- `UPDATE tables SET session_id = NULL` par ce même modérateur → refusé, même erreur.
+- un `sub` quelconque (non participant à la table) → `SELECT` sur la ligne renvoie 0 ligne (RLS `SELECT` intacte, non concernée par ce chantier).
+- tour de parole complet par ce modérateur (`grant_floor` puis `end_turn`) → fonctionne sans erreur, `current_speaker_id` bien reposé à `NULL` après `end_turn` — confirme que les RPC ne sont pas affectées, comme attendu.
+
+**Non rejoué au navigateur** : cette session a préféré la simulation SQL ci-dessus (fidèle au mécanisme réel de PostgREST, JWT + rôle) plutôt que de manipuler la séance de test partagée `C94S01`/`C94A01` au clic — le changement est un `GRANT`/`REVOKE` pur, sans code frontend touché, et le risque de casse silencieuse mentionné par la fiche du chantier porte sur des écrans qui n'ont pas changé. **À rejouer au clic si un doute apparaît** : forcer/annuler le questionnaire depuis les Outils modérateur, et confirmer qu'aucune action légitime de l'interface (hors accès direct à la table via un client REST) n'est affectée.
+
+**Rollback si besoin** : `GRANT UPDATE ON public.tables TO anon, authenticated;` (retour à l'état d'avant, toutes colonnes).
+
 ## Chantier 100 — audit cybersécurité (2026-09-19)
 
 **Rien à vérifier au navigateur : aucun code, aucune migration.** Ce qui reste à confirmer, ce sont les hypothèses d'exploitation du document [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./docs/2026-09-19-audit-chantier100-interruption-exfiltration.md), toutes **déduites** des définitions en base et **jamais jouées** contre la production :

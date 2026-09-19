@@ -51,7 +51,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-19 : aucun chantier en cours.** Le 103 a été livré et mergé le jour même — voir `docs/chantiers.md`.
+**Au 2026-09-19 : aucun chantier en cours.** Le 104 a été livré le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -190,15 +190,7 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 > ✅ **103 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 103.
 
-### 104 — Sécurité : restreindre ce qu'un modérateur peut réécrire sur sa table (C7)
-
-**Sécurité, SQL uniquement.** Lot 3 du [plan](./2026-09-19-plan-anti-interruption-seance.md). Indépendant du 102 et du 103.
-
-`tables_update_moderator` ne restreint aucune colonne, et `UPDATE` est accordé à `anon` sur **toutes** les colonnes de `tables`. Qui est modérateur d'une table peut donc en réécrire le `join_code` — plus personne ne peut la rejoindre — ou la rattacher à une autre séance. Cumulé au chemin d'auto-désignation (105bis / A4, ci-dessous), c'est l'interruption la plus courte qui ne demande aucun secret.
-
-**Le geste** : `REVOKE UPDATE ON tables FROM anon, authenticated`, puis `GRANT UPDATE (questionnaire_forced_at)`. La policy RLS ne bouge pas. **Pourquoi cette colonne et elle seule** : c'est le seul `UPDATE` direct sur `tables` dans tout le frontend (`TableContext.tsx:538` et `:547`, forçage et annulation du questionnaire) ; parole en cours, `leaderless`, numéro de table et rattachement passent tous par des RPC `SECURITY DEFINER`, que le privilège de table ne concerne pas.
-
-**Risque** : c'est le lot le plus exposé à la casse silencieuse du plan — plusieurs écrans du projet avalent leurs erreurs. À appliquer avec la recette jouée juste après, **pas la veille d'une séance**. **Recette** : forcer puis annuler le questionnaire depuis les outils modérateur ; vérifier qu'un `UPDATE` direct sur `join_code` est refusé ; dérouler un tour de parole complet (prise, fin, avancement).
+> ✅ **104 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 104.
 
 ### 105 — Sécurité : rétablir la restriction de colonne du chantier 51 sur `assertions`
 
