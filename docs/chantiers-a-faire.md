@@ -190,7 +190,7 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 > ✅ **103 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 103.
 
-> ✅ **104 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 104.
+> 🟡 **104 fait le 2026-09-19, migration appliquée en base, branche `claude/chantier-104-ed71a1` poussée mais pas mergée sur `main`** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 104.
 
 ### 105 — Sécurité : rétablir la restriction de colonne du chantier 51 sur `assertions`
 
