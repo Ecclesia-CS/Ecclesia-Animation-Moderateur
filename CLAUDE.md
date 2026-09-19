@@ -10,7 +10,12 @@
 
 Voir [`docs/chantiers.md`](./docs/chantiers.md) pour l'état courant des chantiers — **seul fichier de suivi de l'avancement**, à tenir à jour au fil des chantiers, il sert de point de synchronisation entre contributeurs. (`PROJECT_STATUS.md` a été supprimé au chantier 78 : deux fichiers de suivi en parallèle avaient produit un doublon périmé de quinze chantiers, en contradiction avec `git log`. Son contenu unique — les tâches lettrées des chantiers 1 à 25 et le reste-à-faire — est passé en annexes A et B de `docs/chantiers.md`.)
 
-> ⚠️ **Avant de merger une branche sur `main`, lire [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md).** Certaines branches sont **volontairement** retenues hors de `main` (une migration qui casserait l'existant tant que le code n'est pas déployé, un workflow qui attend des secrets GitHub), et des périodes de gel s'appliquent au parcours de vote avant chaque utilisation en production réelle. Une branche non mergée n'est pas forcément un oubli. Ce fichier liste aussi les chantiers en cours et leur découpage par fichier, à respecter quand plusieurs sessions travaillent en parallèle.
+> ⚠️ **Avant de merger une branche sur `main`, lire [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md).** Certaines branches sont **volontairement** retenues hors de `main` (une migration qui casserait l'existant tant que le code n'est pas déployé, un workflow qui attend des secrets GitHub), et des périodes de gel s'appliquent au parcours de vote avant chaque utilisation en production réelle. Une branche non mergée n'est pas forcément un oubli.
+
+> ⚠️ **Chantier en cours — déclaration obligatoire, dans les deux sens.** [`docs/chantiers-a-faire.md`](./docs/chantiers-a-faire.md) a une section **« Chantiers en cours »** en tête de fichier : c'est ce qui permet à une session démarrant en parallèle de savoir quelles branches sont vivantes et quels fichiers ne pas toucher sans risque de conflit.
+> - **Au lancement d'un chantier** : y ajouter une entrée (numéro, branche, fichiers touchés, date) **avant** de commencer à coder.
+> - **Au merge/push sur `main`** : retirer cette entrée dans le **même** commit ou juste après — un chantier resté marqué « en cours » après son merge est une fausse alerte aussi trompeuse qu'un chantier en cours non déclaré.
+> Format et détail complet dans le fichier lui-même.
 
 Ce dépôt contient **deux projets** :
 1. **L'app web de modération** (racine `src/`) — le présent CLAUDE.md.

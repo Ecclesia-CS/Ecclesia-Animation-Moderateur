@@ -17,10 +17,12 @@ Dernière mise à jour : **2026-09-19**.
 ## Prompt type à coller pour lancer un chantier
 
 > Lis `CLAUDE.md`, puis `docs/chantiers-a-faire.md` et `docs/registre-merges-en-attente.md`.
-> Prends le premier chantier non bloqué de la file, et exécute-le en respectant son périmètre de fichiers et ses contraintes.
+> Prends le premier chantier non bloqué de la file **et absent de la section « Chantiers en cours »**, et exécute-le en respectant son périmètre de fichiers et ses contraintes.
+> **Avant de coder** : ajoute une entrée dans la section « Chantiers en cours » en tête de ce fichier (numéro, branche, fichiers touchés, date).
 > Avant d'écrire une RPC, vérifie dans `docs/reference-fonctions-sql.md` qu'elle n'existe pas déjà. Avant de réécrire une fonction SQL existante, compare-la à sa **définition courante en base** (`pg_get_functiondef`), jamais aux fichiers de migration — et dis-moi ce que ta migration change par rapport à l'existant avant de l'appliquer.
 > Ne lance aucun serveur de dev sans me le demander : une seule session à la fois en a le droit.
 > Ajoute ta recette de vérification dans `A_VERIFIER.md` (append-only, ne supprime aucune entrée), commite, pousse ta branche, et mets à jour `docs/chantiers-a-faire.md` et `docs/chantiers.md`.
+> **Au merge/push sur `main`** : retire ton entrée de « Chantiers en cours » dans le même geste.
 > Si le périmètre te semble faux ou la demande ambiguë, dis-le au lieu de deviner.
 
 ---
