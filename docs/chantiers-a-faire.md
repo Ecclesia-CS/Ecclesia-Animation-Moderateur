@@ -8,9 +8,7 @@ Dernière mise à jour : **2026-09-19**.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 >
-> **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table), **98** (allocation : interdire les tables sans modérateur), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauche potentiellement le **87**, à clarifier avant de le lancer).
->
-> **Chantier 98 livré le 2026-09-19** — déplacé vers `docs/chantiers.md`. Recette navigateur non jouée, voir `A_VERIFIER.md`.
+> **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table — **fait le 19/09**, voir `docs/chantiers.md`), **98** (allocation : interdire les tables sans modérateur — **fait et vérifié au navigateur le 19/09**, voir `docs/chantiers.md`), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauche potentiellement le **87**, à clarifier avant de le lancer).
 
 ---
 
@@ -158,17 +156,6 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 ### 87 — Revue complète des parcours utilisateurs
 **Parcours.** Sujet de fond réservé par Jules. Il veut **réexpliquer lui-même** comment l'application et son flux sont censés fonctionner à chaque instant, et préfère une conversation dédiée lancée en **un prompt unique** qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
-
-### 97 — Vue modérateur : distinguer actif/passif et présence réelle à la table
-**Parcours modérateur.** Nouveau, dicté par Jules le 2026-09-19. Fusionne deux demandes qui décrivent le même écran (liste des noms côté modérateur) — les traiter séparément produirait deux diffs qui se marchent dessus sur les mêmes lignes de rendu.
-
-> **Consigne de Jules (2026-09-19), citée mot pour mot, en deux temps** :
-> « Dans la vue modérateur, il faut ajouter un indicateur à côté des noms qui sont passifs, pour que le modérateur sache qu'ils ne sont pas censés parler, mais pouvoir leur donner au cas où. »
-> « Il faut vraiment que le modérateur puisse voir qui est « actif » ou « passif » dans les noms de sa table de participant. Et il faut qu'il voit qui est dans sa table, sans attendre qu'ils soient connectés (juste peut être mettre les noms non connectés en gris et/ou en italique, ou une autre manière, pour signaler qu'ils ne sont pas encore là). »
-
-**Périmètre à vérifier avant de coder** : la distinction actif/passif existe déjà dans le modèle de données (chantier 91, allocation) — ce chantier n'invente pas la donnée, il l'affiche à un endroit où elle ne l'est pas encore (`ModeratorView.tsx`, la liste des participants de la table). La liste des noms « pas encore connectés » demande de lister les `table_assignments` de la table même sans ligne `participants` correspondante — vérifier que la lecture actuelle ne filtre pas déjà ces lignes-là avant de les afficher en gris/italique. Peut avoir un point de contact avec le chantier 94 (temps de parole par camp, même écran) — vérifier qu'un badge actif/passif ne révèle rien sur le camp d'opinion, ce qui n'est pas le sujet ici mais reste la même vigilance de confidentialité déjà appliquée au 94.
-
-Périmètre : `src/components/ModeratorView.tsx`, et la requête qui alimente sa liste de participants.
 
 ### 99 — Fiches pédagogiques : argument fallacieux et biais cognitifs
 **Contenu + documentation.** Nouveau, dicté par Jules le 2026-09-19. **Bloqué sur Jules explicitement** — il l'a dit lui-même.
