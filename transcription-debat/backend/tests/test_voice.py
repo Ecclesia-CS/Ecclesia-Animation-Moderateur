@@ -112,3 +112,17 @@ def test_diarization_cache_roundtrip(tmp_path):
     segs = load_diarization(p)
     assert segs == DIAR
     assert json.loads(p.read_text(encoding="utf-8"))["pipeline"] == "x"
+
+
+def test_map_clusters_dominant_voice_of_a_label_despite_dialogue():
+    """Cas réel 71B505 : la voix de C parle surtout pendant les tours de B (dialogue),
+    mais elle est la voix dominante des tours de C → rattachée à C, pas à B."""
+    turns = [_turn("B", 0, 100), _turn("C", 100, 130), _turn("B", 130, 230)]
+    diar = [
+        _d(0, 70, "SB"), _d(70, 100, "SC"),        # C intervient longuement pendant le tour de B
+        _d(100, 125, "SC"), _d(125, 130, "SB"),
+        _d(130, 190, "SB"), _d(190, 225, "SC"),
+    ]
+    mapping = map_clusters(turns, diar, min_support=10.0, min_purity=0.6)
+    assert mapping["SC"]["label"] == "C"
+    assert mapping["SB"]["label"] == "B"

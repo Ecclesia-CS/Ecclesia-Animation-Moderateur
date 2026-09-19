@@ -126,15 +126,33 @@ def map_clusters(
         if v is not None:
             dominant_labels.setdefault(v, set()).add(_label(t))
 
+    # Voix dominante de chaque participant (sur l'ensemble de ses tours).
+    per_label: dict[str, dict[str, float]] = {}
+    for (v, lab), sec in m.items():
+        per_label.setdefault(lab, {})[v] = sec
+    dominant_of: dict[str, set[str]] = {}
+    for lab, voices in per_label.items():
+        top = max(voices, key=voices.get)
+        if voices[top] >= min_support and voices[top] / sum(voices.values()) >= 0.5:
+            dominant_of.setdefault(top, set()).add(lab)
+
     result = {}
     for v in sorted({s["speaker"] for s in diar}):
         per_lab = {lab: sec for (vv, lab), sec in m.items() if vv == v}
         support = sum(per_lab.values())
         best = max(per_lab, key=per_lab.get) if per_lab else None
         purity = per_lab[best] / support if support > 0 else 0.0
-        if support < min_support:
+        dom = dominant_of.get(v, set())
+        if len(dom) == 1:
+            # Voix majoritaire des tours d'un seul participant : c'est la sienne, même
+            # si elle parle aussi beaucoup pendant les tours d'un autre (dialogue).
+            kind, label = "identifiee", next(iter(dom))
+        elif len(dom) >= 2:
+            kind, label = "fusionnee", None
+        elif support < min_support:
             kind, label = "faible", None
         elif purity >= min_purity:
+            # Voix secondaire d'un participant (la diarisation l'a scindé en deux voix).
             kind, label = "identifiee", best
         elif len(dominant_labels.get(v, set())) >= 2:
             kind, label = "fusionnee", None
