@@ -122,35 +122,35 @@ Whisper < 0,5) à corriger en priorité, et plus aucun champ interne ni prénom 
 
 | Indicateur | 24/06 brut | 24/06 corrigé | 19/09 brut | 19/09 corrigé |
 |---|---|---|---|---|
-| Non attribué `[?]` | 32,7 % | 0 % *(deviné par Gemini)* | 1,6 % | 1,6 % |
-| Orateur prouvé (log et/ou voix) | 67 % | non traçable | 98,4 % | 98,4 % |
+| Non attribué `[?]` | 32,7 % | 0 % *(deviné par Gemini)* | 1,5 % | 1,5 % |
+| Orateur prouvé (log et/ou voix) | 67 % | non traçable | 98,5 % | 98,5 % |
 | Artefacts « l 'état » | 1 950 | 0 | 0 | 0 |
-| Segments / changements d'orateur | 170 / 36 | 170 / 34 | 309 / 167 | 309 / 167 |
+| Segments / changements d'orateur | 170 / 36 | 170 / 34 | 294 / 152 | 294 / 152 |
 | Mots douteux signalés | — | — | 1 542 | 1 542 |
 
-Provenance (s) : log+voix 4 458 · voix 2 287 · log 58 · voix-comblée 5 · aucune 113.
-Correction : 291 acceptées, 17 rejetées (11 négation, 6 réécriture), 1 non corrigée ;
-65 `[?]` avec suggestion d'orateur non appliquée.
+Provenance (s) : log+voix 4 458 · voix 2 284 · voix-comblée 15 · log 58 · aucune 106.
+Correction : 280 acceptées, 11 rejetées (9 négation, 2 réécriture), 3 non corrigées
+(segments fusionnés/altérés par Gemini) ; 48 `[?]` avec suggestion d'orateur non appliquée.
 
 **Temps de parole** (s) — l'attribution change le fond de l'analyse :
 
 | | 24/06 corrigé | 19/09 corrigé |
 |---|---|---|
-| Interlocuteur 7 | 699 + 558 « Modérateur » | 1 240 |
+| Interlocuteur 7 | 699 + 558 « Modérateur » | 1 242 |
 | Interlocuteur 3 | 1 074 | 1 201 |
 | Interlocuteur 4 | 922 | 962 |
-| Interlocuteur 6 | 892 | 945 |
-| Interlocuteur 1 | 618 | 896 |
+| Interlocuteur 6 | 892 | 946 |
+| Interlocuteur 1 | 618 | 897 |
 | Interlocuteur 2 | **1 433** | **667** |
-| Interlocuteur 5 | 625 | 528 |
+| Interlocuteur 5 | 625 | 530 |
 | Interlocuteur 8 | 115 | 188 |
-| Interlocuteur 9 | 41 | 182 |
+| Interlocuteur 9 | 41 | 183 |
 
 Environ 13 min attribuées à Interlocuteur 2 par les suppositions textuelles de Gemini
 (tour de table) sont, selon la voix, d'autres participants. Le tableau de bord `viz/`
 généré le 02/07 repose sur l'ancienne attribution.
 
-**Phrases coupées** : le ratio reste élevé (125/167 brut, 113/167 corrigé) car la voix fait
+**Phrases coupées** : le ratio reste élevé (112/152 brut, 101/152 corrigé) car la voix fait
 apparaître de vrais changements d'orateur (dialogues, interruptions) que Whisper ne ponctue
 pas. Validation indépendante du recalage des frontières (sans utiliser la voix pour
 recaler, puis mesure contre les changements de voix) : distance médiane au changement de

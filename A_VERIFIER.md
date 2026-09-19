@@ -19,7 +19,7 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 Session autonome de nuit (branche `transcription/ameliorations-attribution`, non mergée). Détail et chiffres : [`transcription-debat/docs/superpowers/specs/2026-09-19-attribution-voix-design.md`](./transcription-debat/docs/superpowers/specs/2026-09-19-attribution-voix-design.md). Fichiers produits (non versionnés) : `transcription-debat/backend/transcripts/Multiculturalisme/71B505/` — `71B505_2026-09-19_corrected.txt`, `71B505_2026-09-19_rapport.json`, `reference/`.
 
-**Déjà vérifié** : 204 tests pytest ; accord voix/log en validation croisée 92,9 % (couverture 96 %) ; `[?]` 32,7 % → 1,6 % ; garde-fous Gemini rejoués sur les 170 corrections du 24/06 (7 vraies modifications de sens interceptées) ; aucun prénom privé resté visible dans le corrigé (liste de relecture du rapport).
+**Déjà vérifié** : 204 tests pytest ; accord voix/log en validation croisée 92,9 % (couverture 96 %) ; `[?]` 32,7 % → 1,5 % ; garde-fous Gemini rejoués sur les 170 corrections du 24/06 (7 vraies modifications de sens interceptées) ; aucun prénom privé resté visible dans le corrigé (liste de relecture du rapport).
 
 **Reste à vérifier humainement (écoute de l'audio)** :
 1. **Modérateur = Interlocuteur 7 ?** La voix de l'ouverture (0:56–3:20, « Bonjour à tous, merci d'être là… ») est celle des tours d'Interlocuteur 7 (contrôle par empreintes vocales concluant mais indirect). Écouter l'ouverture puis un tour d'Interlocuteur 7.
