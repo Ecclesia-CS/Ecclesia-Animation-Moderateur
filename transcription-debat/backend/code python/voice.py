@@ -214,6 +214,8 @@ def voice_of_word(word: dict, diar, index=None, min_cover: float = MIN_WORD_COVE
 
 MIN_OVERRIDE = 1.0  # s : une autre voix doit parler ≥ 1 s d'affilée pour primer sur le log
 FILL_MAX_RUN = 3.0  # s : trou sans voix comblé s'il est encadré par la même voix identifiée
+ATTACH_MAX_RUN = 1.0  # s : début/fin de prise de parole sans voix rattaché à la voix contiguë…
+ATTACH_GAP = 0.3      # …s'il y est collé (< 0,3 s) et séparé de l'autre côté par une pause
 
 
 def _voice_label(word: dict, idx: _Index, mapping: dict, min_cover: float = MIN_WORD_COVER) -> str | None:
@@ -321,6 +323,35 @@ def fuse_word_speakers(words, turns, diar, mapping, min_override: float = MIN_OV
             for k in range(i, j + 1):
                 if out[k]["speaker"] != before["speaker"]:
                     out[k]["speaker"] = before["speaker"]
+                    out[k]["source"] = "voix-comblee"
+        i = j + 1
+
+    # Premier / dernier mot d'une prise de parole dit juste avant (ou après) que la voix
+    # soit détectée : un court passage sans voix, collé sans pause à une seule voix
+    # identifiée et séparé de l'autre côté par une pause, appartient à cette voix.
+    voiced = ("voix", "log+voix", "voix-comblee")
+    inf = float("inf")
+    i = 0
+    while i < len(out):
+        if out[i]["source"] != "aucune":
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(out) and out[j + 1]["source"] == "aucune":
+            j += 1
+        if out[j]["end"] - out[i]["start"] <= ATTACH_MAX_RUN:
+            before = out[i - 1] if i > 0 else None
+            after = out[j + 1] if j + 1 < len(out) else None
+            gap_b = out[i]["start"] - before["end"] if before is not None else inf
+            gap_a = after["start"] - out[j]["end"] if after is not None else inf
+            target = None
+            if after is not None and after["source"] in voiced and gap_a < ATTACH_GAP and gap_b >= ATTACH_GAP:
+                target = after
+            elif before is not None and before["source"] in voiced and gap_b < ATTACH_GAP and gap_a >= ATTACH_GAP:
+                target = before
+            if target is not None and not target["refused"]:
+                for k in range(i, j + 1):
+                    out[k]["speaker"] = target["speaker"]
                     out[k]["source"] = "voix-comblee"
         i = j + 1
     for w in out:

@@ -218,8 +218,9 @@ def test_fuse_fills_short_gap_between_same_voice():
 
 
 def test_fuse_does_not_fill_between_different_voices():
-    words = _words((1, 2, "je"), (2.2, 2.6, "euh"), (3.2, 4, "oui"))
-    out = _fuse(words, [], [_d(0, 2.1, "SA"), _d(3.1, 5, "SB")])
+    """Collé sans pause à deux voix différentes : vraiment ambigu, reste [?]."""
+    words = _words((1, 2, "je"), (2.1, 2.6, "euh"), (2.6, 3.4, "oui"))
+    out = _fuse(words, [], [_d(0, 2.05, "SA"), _d(2.65, 5, "SB")])
     assert out[1] == ("[?]", "aucune")
 
 
@@ -243,3 +244,29 @@ def test_fill_never_touches_refused_words():
     turns = [_turn("[REFUS]", 2.1, 2.9, refuse=True)]
     fused = fuse_word_speakers(words, turns, [_d(0, 2.1, "SA"), _d(2.9, 5, "SA")], MAPPING)
     assert fused[1]["speaker"] == "[REFUS]" and fused[1]["refused"]
+
+
+def test_attach_turn_onset_to_the_voice_it_runs_into():
+    """« Moi » dit juste avant que la voix de B soit détectée, sans pause avec la suite,
+    après une vraie pause avec A → premier mot de B."""
+    words = _words((0, 1, "voilà."), (2.0, 2.3, "Moi"), (2.3, 3.0, "j'ai"), (3.0, 3.5, "aimé"))
+    out = _fuse(words, [], [_d(0, 1.1, "SA"), _d(2.35, 4, "SB")])
+    assert out[1] == ("B", "voix-comblee")
+
+
+def test_attach_turn_offset_to_the_voice_it_follows():
+    words = _words((0, 0.8, "je"), (0.8, 1.2, "pense"), (1.2, 1.5, "voilà"), (3.0, 3.5, "oui"))
+    out = _fuse(words, [], [_d(0, 1.15, "SA"), _d(2.9, 4, "SB")])
+    assert out[2] == ("A", "voix-comblee")
+
+
+def test_no_attach_when_contiguous_with_two_different_voices():
+    words = _words((0, 1, "donc"), (1.0, 1.3, "euh"), (1.3, 2.0, "oui"))
+    out = _fuse(words, [], [_d(0, 1.0, "SA"), _d(1.3, 2.1, "SB")])
+    assert out[1] == ("[?]", "aucune")
+
+
+def test_no_attach_for_long_unknown_run():
+    words = _words((0, 1, "voilà."), (2.0, 3.5, "un long passage"), (3.5, 4.0, "suite"))
+    out = _fuse(words, [], [_d(0, 1.1, "SA"), _d(3.5, 4.5, "SB")])
+    assert out[1] == ("[?]", "aucune")
