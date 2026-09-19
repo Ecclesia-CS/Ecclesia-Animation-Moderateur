@@ -15,20 +15,29 @@
                           -RedactNames "Antoine,Justine,Faustin" -EditNameMap
 
 .EXAMPLE
-  # Avec diarisation acoustique (nécessite HF_TOKEN) :
-  .\run_transcription.ps1 -Csv ... -Audio ... -Code 71B505 -Topic "Multiculturalisme" -Diarize
+  # Identification des voix (pyannote, HF_TOKEN) active par défaut ; pour s'en passer :
+  .\run_transcription.ps1 -Csv ... -Audio ... -Code 71B505 -Topic "Multiculturalisme" -NoDiarize
+
+.EXAMPLE
+  # Rejouer l'attribution sans relancer Whisper ni pyannote (caches du run précédent) :
+  .\run_transcription.ps1 -Csv ... -Audio ... -Code 71B505 -Topic "Multiculturalisme" -SkipAnonymize `
+      -WhisperCache "transcripts\Multiculturalisme\71B505\71B505_whisper.json" `
+      -DiarizationCache "transcripts\Multiculturalisme\71B505\71B505_diarization.json"
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Csv,            # export Ecclesia (.csv)
     [Parameter(Mandatory = $true)][string]$Audio,          # enregistrement (.mp3/.wav/...)
     [Parameter(Mandatory = $true)][string]$Code,           # code de la table, ex. 71B505
     [Parameter(Mandatory = $true)][string]$Topic,          # thème, ex. "Multiculturalisme"
-    [string]$Participants = "",                            # prénoms entendus (aide Whisper), séparés par virgule
+    [string]$Participants = "",                            # prénoms entendus (aide Whisper, en local — jamais envoyés à Gemini)
     [string[]]$Refuse = @(),                               # participants ayant refusé l'enregistrement
     [string]$RedactNames = "",                             # prénoms à masquer en plus de name_map.json
     [string]$AudioStart = "",                              # offset ISO si l'auto-détection échoue
     [string]$GeminiModel = "",                             # override du modèle (défaut : gemini-3.1-flash-lite)
-    [switch]$Diarize,                                      # diarisation pyannote (HF_TOKEN requis)
+    [switch]$Diarize,                                      # (compatibilité : l'identification des voix est active par défaut)
+    [switch]$NoDiarize,                                    # désactive l'identification des voix (attribution par le log seul)
+    [string]$WhisperCache = "",                            # réutilise <CODE>_whisper.json (évite ~20 min de GPU)
+    [string]$DiarizationCache = "",                        # réutilise <CODE>_diarization.json (évite ~7 min de GPU)
     [switch]$EditNameMap,                                  # pause après anonymisation pour éditer name_map.json
     [switch]$Visualize,                                   # génère viz/ (analyze_debate.py) après correction
     [switch]$SkipAnonymize,                                # réutiliser un log_anon.csv existant
@@ -92,7 +101,9 @@ try {
     if ($Participants) { $txArgs += @("--participants", $Participants) }
     if ($RedactNames)  { $txArgs += @("--redact-names", $RedactNames) }
     if ($AudioStart)   { $txArgs += @("--audio-start", $AudioStart) }
-    if ($Diarize)      { $txArgs += "--diarize" }
+    if ($NoDiarize)    { $txArgs += "--no-diarize" }
+    if ($WhisperCache)     { $txArgs += @("--whisper-cache", (Resolve-InputPath $WhisperCache)) }
+    if ($DiarizationCache) { $txArgs += @("--diarization-cache", (Resolve-InputPath $DiarizationCache)) }
     Invoke-Step "Étape 2/2 — Transcription Whisper + correction Gemini" $txArgs
 
     # --- Étape optionnelle : visualisation ---
@@ -115,6 +126,7 @@ try {
         Write-Host ""
         Write-Host "✅ Terminé. Fichiers dans : transcripts\$Topic\$Code\" -ForegroundColor Green
         Write-Host "   $($Code)_<date>_corrected.txt / .json  ← à utiliser" -ForegroundColor Green
+        Write-Host "   $($Code)_<date>_rapport.json            ← fiabilité (voix, frontières, métriques)" -ForegroundColor Green
         if ($Visualize) { Write-Host "   viz\index.html  ← dashboard de visualisation" -ForegroundColor Green }
     }
 }
