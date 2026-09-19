@@ -67,13 +67,20 @@ interne).
 | Situation | Orateur | `speaker_source` |
 |---|---|---|
 | log et voix concordent | détenteur | `log+voix` |
-| pas de voix exploitable (silence, superposition, voix non rattachée) | détenteur | `log` |
+| pas de voix exploitable (silence, deux participants superposés) | détenteur | `log` |
+| mots sans voix encadrés par la même voix identifiée (≤ 3 s) | cette voix | `voix-comblee` |
 | autre participant identifié qui parle ≥ 1 s d'affilée pendant le tour | voix | `voix` |
 | hors log, voix identifiée | voix | `voix` |
 | ni log ni voix | `[?]` | `aucune` |
 
+Seules les voix rattachées comptent : une voix non rattachée (bruit, mélange) superposée
+à une voix identifiée ne l'annule pas. L'unité d'attribution est le mot écrit (« c » +
+« 'est » recollés avant attribution). Sans ces deux règles et le comblement, le premier run
+final comptait 676 segments dont ~416 micro-fragments `[?]` de 1,2 s en moyenne.
+
 RGPD : un tour refusé reste masqué quoi que dise la voix ; la voix d'une personne qui a
-refusé est masquée partout (y compris hors de ses tours — nouveau).
+refusé est masquée partout (y compris hors de ses tours — nouveau) ; aucun comblement
+n'entre dans un tour refusé.
 
 ## 4. Recalage des frontières (`boundaries.py`)
 
@@ -98,16 +105,79 @@ Correction rejetée → texte Whisper conservé, prénoms masqués par Gemini re
 `speaker_suggestion` uniquement. Gemini reçoit en plus `mots_douteux` (probabilité
 Whisper < 0,5) à corriger en priorité, et plus aucun champ interne ni prénom réel.
 
-## 6. Mesure (`quality.py`, `evaluate.py`)
+### Robustesse de la correction (constatée au run final)
+
+- Un segment dont Gemini altère la structure (orateur, horodatage) ne fait plus rejeter
+  son lot de 25 : il garde seul son texte brut.
+- Quand Gemini fusionne ou omet un micro-segment (le lot 9 de 71B505 était perdu à chaque
+  run), les segments rendus sont réalignés par horodatage.
+- Masquage des prénoms **déterministe** pour les variantes orales d'un prénom de
+  `name_map.json` (mot à majuscule en milieu de phrase, ≥ 5 lettres, une lettre d'écart
+  sans accents ; sur 71B505 : 3 occurrences, variantes du pseudo d'Interlocuteur 3).
+  Motivation : Gemini a masqué trois prénoms (dont cette variante) à certains runs et
+  pas à d'autres. Les prénoms inconnus de `name_map.json` restent la limite : le
+  rapport liste désormais les noms propres à relire (`noms_propres_a_verifier`).
+
+## 6. Résultats du run final (71B505, 19/09)
+
+| Indicateur | 24/06 brut | 24/06 corrigé | 19/09 brut | 19/09 corrigé |
+|---|---|---|---|---|
+| Non attribué `[?]` | 32,7 % | 0 % *(deviné par Gemini)* | 1,6 % | 1,6 % |
+| Orateur prouvé (log et/ou voix) | 67 % | non traçable | 98,4 % | 98,4 % |
+| Artefacts « l 'état » | 1 950 | 0 | 0 | 0 |
+| Segments / changements d'orateur | 170 / 36 | 170 / 34 | 309 / 167 | 309 / 167 |
+| Mots douteux signalés | — | — | 1 542 | 1 542 |
+
+Provenance (s) : log+voix 4 458 · voix 2 287 · log 58 · voix-comblée 5 · aucune 113.
+Correction : 291 acceptées, 17 rejetées (11 négation, 6 réécriture), 1 non corrigée ;
+65 `[?]` avec suggestion d'orateur non appliquée.
+
+**Temps de parole** (s) — l'attribution change le fond de l'analyse :
+
+| | 24/06 corrigé | 19/09 corrigé |
+|---|---|---|
+| Interlocuteur 7 | 699 + 558 « Modérateur » | 1 240 |
+| Interlocuteur 3 | 1 074 | 1 201 |
+| Interlocuteur 4 | 922 | 962 |
+| Interlocuteur 6 | 892 | 945 |
+| Interlocuteur 1 | 618 | 896 |
+| Interlocuteur 2 | **1 433** | **667** |
+| Interlocuteur 5 | 625 | 528 |
+| Interlocuteur 8 | 115 | 188 |
+| Interlocuteur 9 | 41 | 182 |
+
+Environ 13 min attribuées à Interlocuteur 2 par les suppositions textuelles de Gemini
+(tour de table) sont, selon la voix, d'autres participants. Le tableau de bord `viz/`
+généré le 02/07 repose sur l'ancienne attribution.
+
+**Phrases coupées** : le ratio reste élevé (125/167 brut, 113/167 corrigé) car la voix fait
+apparaître de vrais changements d'orateur (dialogues, interruptions) que Whisper ne ponctue
+pas. Validation indépendante du recalage des frontières (sans utiliser la voix pour
+recaler, puis mesure contre les changements de voix) : distance médiane au changement de
+voix 2,16 s → 1,69 s ; 14 frontières rapprochées, 7 éloignées ; à ≤ 1 s : 9/39 → 12/39.
+
+## 7. Mesure (`quality.py`, `evaluate.py`)
 
 - Sans référence : part `[?]`, provenance, phrases coupées, artefacts, mots douteux.
 - Avec référence (extraits corrigés à l'écoute) : WER et WDER (*word diarization error
   rate*, Shafey, Soltau & Shafran, Interspeech 2019 : (S_IS + C_IS)/(S + C)).
   Les indicateurs sans référence ne sont que des indices ; seule une référence prouve un gain.
 
-## 7. Limites connues
+Kit prêt : `transcripts/Multiculturalisme/71B505/reference/extrait_{1,2,3}.{txt,mp3}`
+(07:40-12:40 tour propre ; 30:40-35:40 échange chahuté avec les passages ambigus ;
+1:46:00-1:51:00 tour de table hors log). Une fois corrigés à l'écoute :
+`python "code python/evaluate.py" score reference/extrait_1.txt 71B505_2026-06-24_corrected.json 71B505_2026-09-19_corrected.json`
+donne WER/WDER de l'ancienne et de la nouvelle version.
 
-- Pas de référence humaine à ce jour : les gains de WER sont non mesurés.
+## 8. Limites connues
+
+- Pas de référence humaine à ce jour : les gains de WER/WDER sont non mesurés.
+- Changements de voix au mot près : Whisper (horodatage par attention) et pyannote
+  (trames) se décalent de quelques centaines de ms, d'où des phrases coupées d'un mot
+  (« Alors, tu | as fait un | conflit. »). Piste : alignement forcé phonétique (WhisperX,
+  Bain et al., Interspeech 2023) — nécessite un modèle wav2vec2 français non installé.
+- Passage ambigu Interlocuteur 7 / Interlocuteur 9 vers 31:07 : la voix alterne au milieu
+  d'une question du modérateur ; à trancher à l'écoute (extrait 2).
 - La parole superposée (344 s détectées) reste attribuée au log ou marquée sans voix.
 - Les voix non rattachées ne sont jamais utilisées : une personne présente mais jamais
   inscrite au log et parlant peu resterait `[?]`.

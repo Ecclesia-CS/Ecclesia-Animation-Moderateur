@@ -55,7 +55,7 @@ transcription-debat/
     │   ├── evaluate.py             CLI : metrics · kit (extraits de référence à corriger à l'écoute) · score
     │   ├── analyze_debate.py        génère viz/ (data.js + index.html) par analyse Gemini étagée
     │   └── viz_template/index.html  template page unique piloté par data.js (sections conditionnelles)
-    ├── tests/                      190 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate)
+    ├── tests/                      204 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
     ├── requirements.txt
@@ -176,10 +176,11 @@ Produit `transcripts\<Thème>\<CODE>\viz\{index.html, data.js}`. Ré-exécutable
 
 ## Anonymisation (RGPD) — important
 
-Deux niveaux :
+Trois niveaux :
 
 1. **Les labels** : `anonymize_log.py` remplace chaque pseudo par `Interlocuteur N` (ou `[REFUS]`), et écrit `name_map.json` (table `prénom réel → label`).
-2. **Le texte parlé** : les gens se nomment à l'oral (« Merci Sarah »). `redact_names` remplace ces prénoms **dans le texte** par leur label / `[prénom]` / `[nom]`, à partir de `name_map.json` (casse-insensible, frontières de mot, ≥ 3 caractères).
+2. **Le texte parlé** : les gens se nomment à l'oral (« Merci Sarah »). `redact_names` remplace ces prénoms **dans le texte** par leur label / `[prénom]` / `[nom]`, à partir de `name_map.json` (casse-insensible, frontières de mot, ≥ 3 caractères). Il masque aussi, **de façon déterministe**, les variantes orales proches (mot à majuscule en milieu de phrase, ≥ 5 lettres, une lettre d'écart sans accents, ex. « Solanje »/« Sölange » pour « Solange ») avec le même label.
+3. **La relecture** : un prénom totalement absent de `name_map.json` n'est masqué que si Gemini y pense — ce qui n'est **pas reproductible** d'un run à l'autre (constaté sur 71B505). Le rapport (`correction.noms_propres_a_verifier`) liste les noms propres restés visibles : les relire et ajouter les prénoms privés à `name_map.json`, puis relancer.
 
 **Pourquoi enrichir `name_map.json` à la main** : Whisper entend souvent une **variante** du pseudo (pseudo `SASA` mais on entend « Sarah » ; `chacha` mais « Chahima »). Le mapping auto ne couvre que les pseudos exacts. Ajoute les variantes orales et les **noms de famille** :
 
@@ -213,7 +214,7 @@ Deux niveaux :
 | Couverture | `coverage_report` | ⚠ si > 15 % de l'audio en `[?]` (log incomplet / offset douteux). |
 | Rédaction | `redact_names` | Masque les prénoms réels dans le texte via `name_map.json`. |
 | Déduplication | `deduplicate.py` | Supprime répétitions / hallucinations Whisper (3 passes). |
-| Correction | `correct_transcript.py` | Gemini par lots de 25 (+contexte ±3), reçoit seulement start/end/speaker/text/refused + `mots_douteux` : corrige mots/ponctuation, marque `[HORS-DÉBAT]`, masque les noms. `_validate` rejette toute triche de structure → retry ×2, sinon brut conservé (`correction: aucune`). **Garde-fous de fidélité** par segment : négation ajoutée/retirée, masque posé sur un mot qui n'a pas l'air d'un prénom, ou > max(4 mots, 20 %) modifiés → texte Whisper conservé (`correction: rejetee`, `texte_gemini` gardé). Un `[?]` attribué par Gemini devient `speaker_suggestion` — jamais `speaker`. |
+| Correction | `correct_transcript.py` | Gemini par lots de 25 (+contexte ±3), reçoit seulement start/end/speaker/text/refused + `mots_douteux` : corrige mots/ponctuation, marque `[HORS-DÉBAT]`, masque les noms. Validation **par segment** (`_segment_ok`) : un segment dont Gemini change l'orateur ou l'horodatage garde seul son brut ; si Gemini fusionne/omet des segments, les autres sont réalignés par horodatage ; JSON inexploitable → retry ×2, sinon brut conservé (`correction: aucune`). **Garde-fous de fidélité** par segment : négation ajoutée/retirée, masque posé sur un mot qui n'a pas l'air d'un prénom, ou > max(4 mots, 20 %) modifiés → texte Whisper conservé (`correction: rejetee`, `texte_gemini` gardé). Un `[?]` attribué par Gemini devient `speaker_suggestion` — jamais `speaker`. |
 | Visualisation (option) | `analyze_debate.py` | Analyse Gemini étagée (3 passes : cadre+ancres d'axes, events+tension, scoring par bloc de parole sur **échelle ordinale -2..+2** remappée ×5, ancres injectées dans le prompt, T=0+seed) → trajectoires **calculées** (EWMA pondérée saillance plancher 0,3, position **figée pendant les silences > 3 min**) → `viz/data.js` + dashboard **page unique** (carte animée + frise synchronisées, polarisation Esteban-Ray par axe, preuve de trajectoire par voix). **Audit de symétrie** automatique (re-scoring d'un échantillon avec axes inversés → `meta.reliability`). Champs mesurables (poids, entrée, refus, `speech`, polarisation) calculés sans LLM. Dégradation gracieuse par passe et par lot. |
 
 ### Labels du transcript
@@ -246,7 +247,7 @@ Depuis `backend/`, avec le **Python système** (pas le venv) :
 ```
 python -m pytest tests/ -v
 ```
-190 tests : `anonymize_log`, `transcribe_offline`, `voice`, `boundaries`, `correct_transcript`, `deduplicate`, `quality`, `evaluate`, `analyze_debate`. `conftest.py` (racine backend) ajoute `code python/` au `sys.path` ; `tests/conftest.py` neutralise `run_diarization` (les tests ne lancent jamais pyannote : ils passent par `--diarization-cache`).
+204 tests : `anonymize_log`, `transcribe_offline`, `voice`, `boundaries`, `correct_transcript`, `deduplicate`, `quality`, `evaluate`, `analyze_debate`. `conftest.py` (racine backend) ajoute `code python/` au `sys.path` ; `tests/conftest.py` neutralise `run_diarization` (les tests ne lancent jamais pyannote : ils passent par `--diarization-cache`).
 
 ---
 
