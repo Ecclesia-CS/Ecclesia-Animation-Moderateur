@@ -9,6 +9,8 @@ Dernière mise à jour : **2026-09-19**.
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 >
 > **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table), **98** (allocation : interdire les tables sans modérateur), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauche potentiellement le **87**, à clarifier avant de le lancer).
+>
+> **Chantier 98 livré le 2026-09-19** — déplacé vers `docs/chantiers.md`. Recette navigateur non jouée, voir `A_VERIFIER.md`.
 
 ---
 
@@ -167,15 +169,6 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 **Périmètre à vérifier avant de coder** : la distinction actif/passif existe déjà dans le modèle de données (chantier 91, allocation) — ce chantier n'invente pas la donnée, il l'affiche à un endroit où elle ne l'est pas encore (`ModeratorView.tsx`, la liste des participants de la table). La liste des noms « pas encore connectés » demande de lister les `table_assignments` de la table même sans ligne `participants` correspondante — vérifier que la lecture actuelle ne filtre pas déjà ces lignes-là avant de les afficher en gris/italique. Peut avoir un point de contact avec le chantier 94 (temps de parole par camp, même écran) — vérifier qu'un badge actif/passif ne révèle rien sur le camp d'opinion, ce qui n'est pas le sujet ici mais reste la même vigilance de confidentialité déjà appliquée au 94.
 
 Périmètre : `src/components/ModeratorView.tsx`, et la requête qui alimente sa liste de participants.
-
-### 98 — Allocation : option « interdire les tables sans modérateur »
-**Algorithme.** Nouveau, dicté par Jules le 2026-09-19. Touche `src/lib/allocation.ts` — **vérifier l'état du fichier après les chantiers 91/92** (dernières retouches de fond sur ce fichier) avant de commencer, pour repartir de la version courante et non d'un fichier de migration périmé (même règle que pour le SQL).
-
-> **Consigne de Jules (2026-09-19)** : « Dans l'algo d'allocation des tables : mettre la possibilité d'interdire la création de table sans modérateur. Dans ce cas, on laisse d'autres critères être brisés, bien sûr. »
-
-**Précisions** : c'est une règle de plus dans l'ordre lexicographique existant, pas une refonte — cohérent avec l'invariant du projet « l'algorithme ne doit jamais lever d'exception, une règle non satisfaisable se dégrade ». Reste à trancher avec Jules à l'ouverture du chantier : où cette règle se place dans l'ordre (« on laisse d'autres critères être brisés » suggère un rang haut, mais lequel exactement, et est-ce un interrupteur superadmin ou un comportement permanent ?).
-
-Périmètre : `src/lib/allocation.ts` et ses tests, `src/components/voting/AllocationPanel.tsx` (interrupteur éventuel).
 
 ### 99 — Fiches pédagogiques : argument fallacieux et biais cognitifs
 **Contenu + documentation.** Nouveau, dicté par Jules le 2026-09-19. **Bloqué sur Jules explicitement** — il l'a dit lui-même.

@@ -15,6 +15,18 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 98 (2026-09-19) — allocation : option « interdire les tables sans modérateur » — ✅ validé par Jules le 2026-09-19
+
+**Consigne de Jules (19/09)** : « Dans l'algo d'allocation des tables : mettre la possibilité d'interdire la création de table sans modérateur. Dans ce cas, on laisse d'autres critères être brisés, bien sûr. »
+
+**Implémenté** : `AllocationInput.forbidUnmoderatedTables` (`src/lib/allocation.ts`) — désactivée par défaut (comportement inchangé, testé). Activée, `enumerateShapes` ne retient que les formes où toutes les tables sont animées (`moderatedCount === tableCount`), rang au-dessus des 4 règles habituelles — c'est un filtre sur l'ensemble des formes candidates, pas une 5ᵉ règle lexicographique. Si aucune forme entièrement animée n'existe (capacité de modération trop faible), repli sur le filet de sécurité déjà existant (table unique), qui dégrade tout le reste sans jamais lever d'exception — avec un avertissement dédié si même ce filet reste sans modérateur (aucun modérateur du tout). Interrupteur ajouté dans `AllocationPanel.tsx` (case à cocher sous les saisies « Modérateurs à ajouter »/« Enregistreurs disponibles »), persisté en `sessionStorage` avec le reste de l'état de travail (H14).
+
+**Couvert par les tests** (`src/lib/allocation.test.ts`, section « chantier 98 ») : désactivée = comportement identique, capacité suffisante = toutes les tables animées sans violer les bornes dures, capacité insuffisante = repli sur table unique sans exception, aucun modérateur = avertissement dédié.
+
+**✅ Vérifié au navigateur le 2026-09-19** : séance de test créée en base (`C98TEST`, 38 actifs + 2 modérateurs, phase `allocating`, supprimée après la recette). Rejoué avec le vrai algorithme sur ces données réelles avant la recette : sans l'option, 4 tables dont 2 sans modérateur ; avec l'option, repli sur une table unique avec avertissement (capacité de 2 modérateurs insuffisante pour ≥3 tables). **Jules a confirmé au navigateur que ce comportement s'affiche correctement dans l'onglet Allocation du superadmin** (case à cocher, recalcul, avertissement).
+
+**Reste ouvert** : le rang exact de la règle dans l'ordre lexicographique a été choisi au rang le plus haut possible (avant même l'énumération des formes), sans confirmation explicite de Jules sur ce point précis — comportement jamais mis en défaut par la recette, mais pas formellement discuté non plus.
+
 ## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
 
 **Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :
