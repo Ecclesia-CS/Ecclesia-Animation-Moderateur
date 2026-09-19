@@ -13,3 +13,11 @@ def set_dummy_gemini_key(monkeypatch):
     """
     if not os.getenv("GEMINI_API_KEY"):
         monkeypatch.setenv("GEMINI_API_KEY", "test-dummy-key")
+
+
+@pytest.fixture(autouse=True)
+def no_real_diarization(monkeypatch):
+    """L'identification des voix est active par défaut dans main() : les tests ne
+    doivent jamais lancer pyannote (GPU, modèles) — ils passent par --diarization-cache."""
+    import transcribe_offline
+    monkeypatch.setattr(transcribe_offline, "run_diarization", lambda *a, **k: None)

@@ -8,7 +8,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from boundaries import snap_turn_boundaries
 from deduplicate import deduplicate
+from quality import transcript_metrics
+from voice import (
+    change_points, fuse_word_speakers, holdout_agreement, load_diarization, map_clusters,
+    refine_offset, save_diarization, shift_turns,
+)
 
 # Charge backend/.env (HF_TOKEN pour la diarisation, GEMINI_API_KEY pour la correction)
 # dès l'import, avant tout os.getenv — sinon run_diarization ne voit pas le token.
@@ -359,109 +365,86 @@ def redact_names(segments: list[dict], name_map: dict[str, str]) -> list[dict]:
     Casse-insensible, sur frontières de mot, prénoms de 3 caractères minimum pour
     éviter les collisions avec des mots courants.
     """
-    pairs = sorted(
-        ((n, lbl) for n, lbl in name_map.items() if len(n) >= 3),
-        key=lambda kv: len(kv[0]),
-        reverse=True,
-    )
-    if not pairs:
+    patterns = _name_patterns(name_map)
+    if not patterns:
         return segments
-    patterns = [(re.compile(rf"\b{re.escape(n)}\b", re.IGNORECASE), lbl) for n, lbl in pairs]
     result = []
     for seg in segments:
         if seg.get("refused"):
             result.append(dict(seg))
             continue
-        text = seg["text"]
-        for pat, lbl in patterns:
-            text = pat.sub(lbl, text)
-        result.append({**seg, "text": text})
+        out = {**seg, "text": _redact_text(seg["text"], patterns)}
+        if seg.get("low_conf_words"):
+            out["low_conf_words"] = [_redact_text(w, patterns) for w in seg["low_conf_words"]]
+        result.append(out)
     return result
 
 
-def split_turns_by_diarization(turns: list[dict], diar_turns: list[dict]) -> list[dict]:
-    """Croise le log de tours avec une diarisation acoustique (§2).
+def _name_patterns(name_map: dict[str, str]) -> list:
+    pairs = sorted(
+        ((n, lbl) for n, lbl in name_map.items() if len(n) >= 3),
+        key=lambda kv: len(kv[0]),
+        reverse=True,
+    )
+    return [(re.compile(rf"\b{re.escape(n)}\b", re.IGNORECASE), lbl) for n, lbl in pairs]
 
-    diar_turns : [{"start": float, "end": float, "speaker": str}] produit par pyannote.
-    Là où la diarisation indique un locuteur différent du détenteur officiel de la
-    parole (brouhaha, interruption), le sous-intervalle est marqué [?] plutôt que
-    faussement attribué. On ne tente pas de mapper les clusters pyannote vers les
-    labels — on s'en sert uniquement pour invalider les attributions douteuses.
+
+def _redact_text(text: str, patterns) -> str:
+    for pat, lbl in patterns:
+        text = pat.sub(lbl, text)
+    return text
+
+
+def sanitize_cache_words(words: list[dict], labeled: list[dict], name_map: dict[str, str]) -> list[dict]:
+    """Version du cache Whisper sûre à conserver (RGPD).
+
+    Les mots attribués à une personne qui a refusé l'enregistrement sont vidés
+    (seuls les horodatages restent), et les prénoms réels sont masqués.
     """
-    if not diar_turns:
-        return turns
-
-    # Locuteur acoustique dominant de chaque tour (celui qui parle le plus pendant le tour).
-    def dominant(turn) -> str | None:
-        acc: dict[str, float] = {}
-        for d in diar_turns:
-            ov = min(turn["fin_sec"], d["end"]) - max(turn["debut_sec"], d["start"])
-            if ov > 0:
-                acc[d["speaker"]] = acc.get(d["speaker"], 0.0) + ov
-        return max(acc, key=acc.get) if acc else None
-
-    refined: list[dict] = []
-    for turn in turns:
-        if turn["refuse"]:
-            refined.append(turn)
+    patterns = _name_patterns(name_map)
+    out = []
+    for w, lab in zip(words, labeled):
+        if lab.get("refused"):
+            out.append({**w, "text": "", "raw": ""})
             continue
-        dom = dominant(turn)
-        if dom is None:
-            refined.append(turn)
-            continue
-        # Découpe le tour aux frontières de diarisation ; sous-intervalle d'un autre
-        # locuteur acoustique que le dominant → [?].
-        cuts = sorted({turn["debut_sec"], turn["fin_sec"]} | {
-            b for d in diar_turns for b in (d["start"], d["end"])
-            if turn["debut_sec"] < b < turn["fin_sec"]
-        })
-        for a, b in zip(cuts, cuts[1:]):
-            mid = (a + b) / 2
-            spk_here = next(
-                (d["speaker"] for d in diar_turns if d["start"] <= mid <= d["end"]),
-                None,
-            )
-            same = spk_here == dom
-            refined.append({
-                **turn,
-                "debut_sec": a,
-                "fin_sec": b,
-                "interlocuteur": turn["interlocuteur"] if same else "[?]",
-                "refuse": False,
-            })
-    return refined
+        clean = {**w, "text": _redact_text(w["text"], patterns)}
+        if isinstance(w.get("raw"), str):
+            clean["raw"] = _redact_text(w["raw"], patterns)
+        out.append(clean)
+    return out
 
 
-def run_diarization(audio_path: str):
-    """Diarisation pyannote (best-effort). Retourne des diar_turns ou None.
+DIARIZATION_PIPELINE = "pyannote/speaker-diarization-3.1"
 
-    Chargé paresseusement : nécessite pyannote.audio + HF_TOKEN. Toute erreur
-    (dépendance absente, modèle, GPU) dégrade gracieusement vers None.
+
+def run_diarization(audio_path: str) -> list[dict] | None:
+    """Diarisation pyannote 3.1 (best-effort). Retourne [{start, end, speaker}] ou None.
+
+    Chargé paresseusement : nécessite pyannote.audio + HF_TOKEN. L'audio est décodé
+    par faster-whisper (16 kHz mono, comme Whisper) pour accepter tous les formats.
+    GPU si disponible (≈ 7 min pour 2 h d'audio sur RTX 3070), sinon CPU ;
+    PYANNOTE_DEVICE=cpu|cuda force le choix. Toute erreur dégrade vers None.
     """
     import os
     token = os.getenv("HF_TOKEN")
     if not token:
-        print("HF_TOKEN absent — diarisation acoustique ignorée.", file=sys.stderr)
+        print("HF_TOKEN absent — identification des voix ignorée.", file=sys.stderr)
         return None
     try:
+        import torch  # type: ignore
+        from faster_whisper.audio import decode_audio
         from pyannote.audio import Pipeline  # type: ignore
-        pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1", use_auth_token=token
-        )
+        pipeline = Pipeline.from_pretrained(DIARIZATION_PIPELINE, use_auth_token=token)
         if pipeline is None:
             print("Pipeline pyannote introuvable (accès au modèle gated ?) — on continue sans.", file=sys.stderr)
             return None
-        # CPU par défaut (le GPU de cette machine a un cuDNN incompatible qui crashe
-        # nativement, non rattrapable). Forcer le GPU via PYANNOTE_DEVICE=cuda si dispo.
-        device = os.getenv("PYANNOTE_DEVICE", "cpu")
-        try:
-            import torch  # type: ignore
-            pipeline.to(torch.device(device))
-        except Exception as dev_exc:
-            print(f"pyannote .to({device}) échoué ({dev_exc}) — CPU.", file=sys.stderr)
-        diarization = pipeline(audio_path)
+        device = os.getenv("PYANNOTE_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
+        pipeline.to(torch.device(device))
+        print(f"Diarisation pyannote ({device})...")
+        waveform = torch.from_numpy(decode_audio(audio_path, sampling_rate=16000)).unsqueeze(0)
+        diarization = pipeline({"waveform": waveform, "sample_rate": 16000})
         return [
-            {"start": seg.start, "end": seg.end, "speaker": label}
+            {"start": float(seg.start), "end": float(seg.end), "speaker": label}
             for seg, _, label in diarization.itertracks(yield_label=True)
         ]
     except Exception as exc:  # pragma: no cover — dépend de l'environnement
@@ -516,7 +499,8 @@ def save_whisper_cache(path: Path, segments: list[dict], words: list[dict], **me
 
 def load_whisper_cache(path: str | Path) -> tuple[list[dict], list[dict]]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return data["segments"], data["words"]
+    segments = [{"text": "", **seg} for seg in data["segments"]]
+    return segments, data["words"]
 
 
 def write_txt(segments: list[dict], path: Path) -> None:
@@ -550,7 +534,9 @@ def main() -> None:
     parser.add_argument("--redact-names", default=None, help="Prénoms réels supplémentaires à masquer dans le texte (séparés par des virgules) — complète name_map.json")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Dossier racine des sorties (défaut : backend/transcripts)")
     parser.add_argument("--whisper-cache", default=None, help="Réutilise un <CODE>_whisper.json au lieu de relancer Whisper (évite ~20 min de GPU)")
-    parser.add_argument("--diarize", action="store_true", help="Active la diarisation acoustique pyannote pour désambiguïser le brouhaha (nécessite HF_TOKEN)")
+    parser.add_argument("--no-diarize", action="store_true", help="Désactive l'identification des voix (pyannote) : attribution par le log seul")
+    parser.add_argument("--diarize", action="store_true", help=argparse.SUPPRESS)  # compatibilité : c'est le défaut
+    parser.add_argument("--diarization-cache", default=None, help="Réutilise un <CODE>_diarization.json au lieu de relancer pyannote")
     args = parser.parse_args()
 
     # Console Windows (cp1252) : éviter les UnicodeEncodeError sur les caractères non-ASCII
@@ -604,16 +590,49 @@ def main() -> None:
         audio_start = detect_audio_start(whisper_segs_raw, turns)
     turns = compute_offsets(turns, audio_start)
 
-    # 3 bis. Diarisation acoustique optionnelle pour désambiguïser le brouhaha
-    if args.diarize:
-        diar_turns = run_diarization(args.audio)
-        if diar_turns:
-            turns = split_turns_by_diarization(turns, diar_turns)
-            print(f"Diarisation appliquée : {len(diar_turns)} segments acoustiques.")
+    report: dict = {"audio_start": audio_start.isoformat()}
 
-    # 4. Aligner (au mot si possible, sinon par segment), fusionner, anonymiser, dédupliquer
+    # 3 bis. Identification des voix (diarisation pyannote croisée avec le log)
+    diar = None
+    if args.diarization_cache:
+        diar = load_diarization(args.diarization_cache)
+        print(f"Diarisation réutilisée : {args.diarization_cache}")
+    elif not args.no_diarize:
+        diar = run_diarization(args.audio)
+        if diar:
+            diar_path = output_dir / f"{args.group}_diarization.json"
+            save_diarization(diar_path, diar, pipeline=DIARIZATION_PIPELINE)
+            print(f"Diarisation écrite : {diar_path}")
+    mapping = None
+    cps: list[float] = []
+    if diar:
+        shift, _curve = refine_offset(turns, diar)
+        turns = shift_turns(turns, shift)
+        mapping = map_clusters(turns, diar)
+        holdout = holdout_agreement(turns, diar)
+        identified = [{**d, "speaker": mapping[d["speaker"]]["label"]} for d in diar if mapping[d["speaker"]]["label"]]
+        cps = change_points(identified)
+        report["voix"] = {"decalage_affine_sec": shift, "rattachement": mapping, "validation_croisee": holdout}
+        print(f"Voix : décalage affiné {shift:+.1f} s ; accord voix/log en validation croisée "
+              f"{holdout['agreement'] * 100:.1f} % (couverture {holdout['coverage'] * 100:.0f} %).")
+        for v, info in sorted(mapping.items(), key=lambda kv: -kv[1]["support"]):
+            print(f"  {v:>12} -> {info['label'] or '-':<16} ({info['kind']}, pureté {info['purity']:.2f}, {info['support']:.0f} s)")
+
+    # 4. Recaler les frontières, attribuer au mot (log x voix), regrouper
+    labeled_words: list[dict] = []
     if whisper_words_raw:
-        segments = assign_speakers_words(whisper_words_raw, turns)
+        turns = snap_turn_boundaries(turns, whisper_words_raw, change_points=cps)
+        moved = sorted(abs(t["fin_sec"] - t["fin_sec_log"]) for t in turns if t["fin_sec"] != t["fin_sec_log"])
+        report["frontieres"] = {"tours": len(turns), "fins_recalees": len(moved),
+                                "decalage_median_sec": moved[len(moved) // 2] if moved else 0.0}
+        if mapping:
+            labeled_words = fuse_word_speakers(whisper_words_raw, turns, diar, mapping)
+        else:
+            for w in whisper_words_raw:
+                spk, refused = _speaker_at((w["start"] + w["end"]) / 2, turns)
+                labeled_words.append({**w, "speaker": spk, "refused": refused,
+                                      "source": "aucune" if spk == "[?]" else "log"})
+        segments = group_words(labeled_words)
     else:
         segments = assign_speakers(whisper_segs_raw, turns)
         segments = merge_same_speaker(segments)
@@ -622,7 +641,7 @@ def main() -> None:
     cov = coverage_report(segments, audio_end)
     if cov["unknown_ratio"] > 0.15:
         print(
-            f"⚠ Couverture du log incomplète : {cov['unknown_ratio']*100:.0f}% de l'audio "
+            f"⚠ Couverture incomplète : {cov['unknown_ratio'] * 100:.0f}% de l'audio "
             f"non attribué ([?], {cov['unknown_sec']:.0f}s). Vérifier le log et l'offset.",
             file=sys.stderr,
         )
@@ -642,12 +661,31 @@ def main() -> None:
 
     write_txt(segments, base.with_suffix(".txt"))
     write_json(segments, base.with_suffix(".json"))
-
     print(f"Transcript ecrit :\n  {base}.txt\n  {base}.json")
+
+    # Cache Whisper assaini (RGPD) : mots des refus vidés, prénoms masqués.
+    if labeled_words:
+        save_whisper_cache(
+            output_dir / f"{args.group}_whisper.json",
+            [{"start": s["start"], "end": s["end"]} for s in whisper_segs_raw],
+            sanitize_cache_words(whisper_words_raw, labeled_words, name_map),
+            audio=args.audio,
+        )
+
+    report["metriques"] = transcript_metrics(segments)
+    report_path = Path(f"{base}_rapport.json")
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    m = report["metriques"]
+    sources = {k: round(v) for k, v in m["by_source_sec"].items()}
+    print(f"Rapport : {report_path}")
+    print(f"  non attribué [?] : {m['unknown_ratio'] * 100:.1f} % ; phrases coupées : "
+          f"{m['mid_sentence_cuts']}/{m['speaker_changes']} changements ; provenance (s) : {sources}")
 
     try:
         from correct_transcript import correct
-        correct(segments, base, topic=args.topic, participants=participants)
+        # Les prénoms réels (participants) servent à Whisper, en local : ils ne sont
+        # jamais envoyés à Gemini, qui ne reçoit que les labels anonymisés.
+        correct(segments, base, topic=args.topic)
     except ImportError as exc:
         print(f"Module correct_transcript indisponible : {exc}", file=sys.stderr)
 

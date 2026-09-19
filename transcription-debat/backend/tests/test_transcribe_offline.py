@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from transcribe_offline import (
     load_anon_log, compute_offsets, assign_speakers, merge_same_speaker, write_txt, write_json,
     assign_speakers_words, _speaker_at, coverage_report, load_name_map, redact_names,
-    split_turns_by_diarization,
 )
 
 FIXTURE_LOG = textwrap.dedent("""\
@@ -208,25 +207,7 @@ def test_redact_names_word_boundary_and_refused():
     assert result[1]["text"] == "[N'a pas souhaité être enregistré(e)]"  # refused intact
 
 
-# ---- Diarisation croisée (§2) ----
-
-def test_split_turns_by_diarization_marks_crosstalk():
-    turns = [{"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0, "fin_sec": 10.0, "refuse": False}]
-    # Le détenteur officiel parle 0-7 (locuteur A), mais B parle 7-10 (interruption)
-    diar = [
-        {"start": 0.0, "end": 7.0, "speaker": "A"},
-        {"start": 7.0, "end": 10.0, "speaker": "B"},
-    ]
-    refined = split_turns_by_diarization(turns, diar)
-    # le sous-intervalle 7-10 (B) ≠ dominant (A) → [?]
-    labels = [(round(t["debut_sec"]), round(t["fin_sec"]), t["interlocuteur"]) for t in refined]
-    assert (0, 7, "Interlocuteur 1") in labels
-    assert (7, 10, "[?]") in labels
-
-
-def test_split_turns_no_diar_is_identity():
-    turns = [{"interlocuteur": "Interlocuteur 1", "debut_sec": 0.0, "fin_sec": 10.0, "refuse": False}]
-    assert split_turns_by_diarization(turns, []) == turns
+# (Diarisation croisée : voir tests/test_voice.py — fuse_word_speakers)
 
 
 def test_merge_same_speaker_consecutive():
@@ -442,7 +423,8 @@ def test_main_writes_to_output_dir_and_saves_whisper_cache(tmp_path, monkeypatch
     assert cache.exists()
     data = json.loads(cache.read_text(encoding="utf-8"))
     assert data["words"][1] == {"start": 0.7, "end": 1.0, "text": "'état", "raw": "'état", "prob": 0.99}
-    assert data["segments"][0]["text"] == "l'état"
+    # cache assaini : horodatages des segments seulement, le texte vit dans les mots
+    assert data["segments"][0] == {"start": 0.5, "end": 1.0}
     assert list((out / "Th" / "T1").glob("T1_*.txt"))
 
 
@@ -477,3 +459,76 @@ def test_assign_words_marks_log_source():
     words = [{"start": 1.0, "end": 2.0, "text": "a"}, {"start": 50.0, "end": 51.0, "text": "b"}]
     result = assign_speakers_words(words, _wordturns())
     assert [s["speaker_source"] for s in result] == ["log", "aucune"]
+
+
+# ---- RGPD : mots douteux et cache Whisper ----
+
+def test_redact_names_also_in_low_conf_words():
+    segs = [{"start": 0, "end": 1, "speaker": "A", "text": "merci Sarah", "refused": False,
+             "low_conf_words": ["Sarah", "merci"]}]
+    out = redact_names(segs, {"Sarah": "Interlocuteur 4"})
+    assert out[0]["low_conf_words"] == ["Interlocuteur 4", "merci"]
+
+
+def test_sanitize_cache_words_blanks_refused_and_redacts_names():
+    from transcribe_offline import sanitize_cache_words
+    words = [
+        {"start": 0, "end": 1, "text": "Sarah", "raw": " Sarah"},
+        {"start": 2, "end": 3, "text": "secret", "raw": " secret"},
+    ]
+    labeled = [{**words[0], "refused": False}, {**words[1], "refused": True}]
+    out = sanitize_cache_words(words, labeled, {"Sarah": "Interlocuteur 4"})
+    assert out[0]["text"] == "Interlocuteur 4" and out[0]["raw"] == " Interlocuteur 4"
+    assert out[1]["text"] == "" and out[1]["raw"] == ""
+    assert out[1]["start"] == 2
+
+
+# ---- main() avec identification des voix (diarisation en cache) ----
+
+def _fake_model_from_words(spec):
+    from unittest.mock import MagicMock
+    words = []
+    for a, b, raw in spec:
+        w = MagicMock()
+        w.word, w.start, w.end, w.probability = raw, a, b, 0.95
+        words.append(w)
+    seg = MagicMock()
+    seg.start, seg.end, seg.text, seg.words = spec[0][0], spec[-1][1], "".join(r for _, _, r in spec), words
+    model = MagicMock()
+    model.transcribe.return_value = ([seg], None)
+    return model
+
+
+def test_main_with_voice_identification(tmp_path, monkeypatch):
+    log = _write_log(tmp_path)   # Int 1 [0,60] · [REFUS] [60,120] · Int 2 [150,180]
+    diar = tmp_path / "diar.json"
+    diar.write_text(json.dumps({"segments": [
+        {"start": 0, "end": 60, "speaker": "S0"},
+        {"start": 60, "end": 120, "speaker": "S1"},
+        {"start": 150, "end": 180, "speaker": "S2"},
+        {"start": 200, "end": 205, "speaker": "S0"},    # Int 1 reparle après la fin du log
+    ]}), encoding="utf-8")
+    model = _fake_model_from_words([
+        (5.0, 6.0, " Bonjour"), (6.0, 7.0, " tous."),
+        (70.0, 71.0, " secret"),
+        (160.0, 161.0, " Merci."),
+        (201.0, 202.0, " Encore."),
+    ])
+    out = tmp_path / "out"
+    _run_main(["a.mp3", str(log), "--group", "V1", "--output-dir", str(out),
+               "--audio-start", "2026-05-28T11:00:00+00:00", "--diarization-cache", str(diar)],
+              monkeypatch, model=model)
+    d = out / "V1"
+    seg = json.loads(next(p for p in d.glob("V1_20*.json") if p.stem.count("_") == 1).read_text(encoding="utf-8"))
+    by_text = {s["text"]: s for s in seg}
+    assert by_text["Bonjour tous."]["speaker"] == "Interlocuteur 1"
+    assert by_text["Bonjour tous."]["speaker_source"] == "log+voix"
+    assert by_text["Merci."]["speaker"] == "Interlocuteur 2"
+    assert by_text["Encore."]["speaker"] == "Interlocuteur 1"          # identifié par la voix hors log
+    assert by_text["Encore."]["speaker_source"] == "voix"
+    assert all("secret" not in s["text"] for s in seg)
+    rapport = json.loads(next(d.glob("V1_*_rapport.json")).read_text(encoding="utf-8"))
+    assert rapport["voix"]["rattachement"]["S0"]["label"] == "Interlocuteur 1"
+    assert "metriques" in rapport
+    cache = json.loads((d / "V1_whisper.json").read_text(encoding="utf-8"))
+    assert all("secret" not in w["text"] for w in cache["words"])
