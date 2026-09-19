@@ -422,7 +422,8 @@ def test_main_writes_to_output_dir_and_saves_whisper_cache(tmp_path, monkeypatch
     cache = out / "Th" / "T1" / "T1_whisper.json"
     assert cache.exists()
     data = json.loads(cache.read_text(encoding="utf-8"))
-    assert data["words"][1] == {"start": 0.7, "end": 1.0, "text": "'état", "raw": "'état", "prob": 0.99}
+    # mots écrits (morceaux « l » + « 'état » recollés), texte brut et probabilité conservés
+    assert data["words"] == [{"start": 0.5, "end": 1.0, "text": "l'état", "raw": " l'état", "prob": 0.9}]
     # cache assaini : horodatages des segments seulement, le texte vit dans les mots
     assert data["segments"][0] == {"start": 0.5, "end": 1.0}
     assert list((out / "Th" / "T1").glob("T1_*.txt"))
@@ -532,3 +533,19 @@ def test_main_with_voice_identification(tmp_path, monkeypatch):
     assert "metriques" in rapport
     cache = json.loads((d / "V1_whisper.json").read_text(encoding="utf-8"))
     assert all("secret" not in w["text"] for w in cache["words"])
+
+
+def test_merge_word_pieces_glues_continuations():
+    """« c » + « 'est » = un seul mot « c'est » : l'unité d'attribution est le mot écrit."""
+    from transcribe_offline import merge_word_pieces
+    words = [
+        {"start": 0.0, "end": 0.2, "text": "c", "raw": " c", "prob": 0.9},
+        {"start": 0.2, "end": 0.5, "text": "'est", "raw": "'est", "prob": 0.6},
+        {"start": 0.5, "end": 0.9, "text": "bien", "raw": " bien", "prob": 0.99},
+        {"start": 1.0, "end": 1.2, "text": "est"},                 # ancien cache sans raw
+        {"start": 1.2, "end": 1.4, "text": "-ce"},
+    ]
+    out = merge_word_pieces(words)
+    assert [w["text"] for w in out] == ["c'est", "bien", "est-ce"]
+    assert out[0] == {"start": 0.0, "end": 0.5, "text": "c'est", "raw": " c'est", "prob": 0.6}
+    assert out[2]["end"] == 1.4

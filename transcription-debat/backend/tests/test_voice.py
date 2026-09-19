@@ -195,3 +195,51 @@ def test_fuse_does_not_mutate_input():
     words = _words((1, 2, "oui"))
     fuse_word_speakers(words, [_turn("A", 0, 10)], [_d(0, 10, "SA")], MAPPING)
     assert "speaker" not in words[0]
+
+
+def test_fuse_unidentified_voice_does_not_veto_identified():
+    """Une voix non rattachée (bruit, mélange) superposée n'annule pas la voix identifiée."""
+    words = _words((4.5, 5.5, "bon"))
+    out = _fuse(words, [], [_d(0, 10, "SA"), _d(4, 6, "SX")])
+    assert out == [("A", "voix")]
+
+
+def test_fuse_overlap_of_two_identified_voices_stays_unknown():
+    words = _words((4.5, 5.5, "bon"))
+    out = _fuse(words, [], [_d(0, 10, "SA"), _d(4, 6, "SB")])
+    assert out == [("[?]", "aucune")]
+
+
+def test_fuse_fills_short_gap_between_same_voice():
+    words = _words((1, 2, "je"), (2.2, 2.6, "pense"), (2.6, 3.0, "que"), (3.2, 4, "oui"))
+    diar = [_d(0, 2.1, "SA"), _d(3.1, 5, "SA")]    # trou de diarisation sur « pense que »
+    out = _fuse(words, [], diar)
+    assert out == [("A", "voix"), ("A", "voix-comblee"), ("A", "voix-comblee"), ("A", "voix")]
+
+
+def test_fuse_does_not_fill_between_different_voices():
+    words = _words((1, 2, "je"), (2.2, 2.6, "euh"), (3.2, 4, "oui"))
+    out = _fuse(words, [], [_d(0, 2.1, "SA"), _d(3.1, 5, "SB")])
+    assert out[1] == ("[?]", "aucune")
+
+
+def test_fuse_does_not_fill_long_gap():
+    words = _words((1, 2, "je"), (2.5, 3.5, "long"), (3.5, 5.8, "trou"), (6.5, 7, "oui"))
+    out = _fuse(words, [], [_d(0, 2.1, "SA"), _d(6, 8, "SA")])
+    assert out[1] == ("[?]", "aucune") and out[2] == ("[?]", "aucune")
+
+
+def test_fuse_fills_voiceless_words_inside_an_interruption():
+    """Pendant l'interruption de B dans le tour de A, un mot sans voix (superposition)
+    ne doit pas repasser à A entre deux passages de la voix de B."""
+    words = _words((1, 2, "donc"), (3.0, 4.4, "après du coup"), (4.4, 4.6, "tu"), (4.6, 6.0, "peux toujours"), (8, 9, "bon"))
+    diar = [_d(0, 2.5, "SA"), _d(2.9, 4.4, "SB"), _d(4.6, 6.1, "SB"), _d(7.5, 10, "SA")]
+    out = _fuse(words, [_turn("A", 0, 10)], diar)
+    assert out == [("A", "log+voix"), ("B", "voix"), ("B", "voix-comblee"), ("B", "voix"), ("A", "log+voix")]
+
+
+def test_fill_never_touches_refused_words():
+    words = _words((1, 2, "moi"), (2.2, 2.8, "secret"), (3, 4, "aussi"))
+    turns = [_turn("[REFUS]", 2.1, 2.9, refuse=True)]
+    fused = fuse_word_speakers(words, turns, [_d(0, 2.1, "SA"), _d(2.9, 5, "SA")], MAPPING)
+    assert fused[1]["speaker"] == "[REFUS]" and fused[1]["refused"]

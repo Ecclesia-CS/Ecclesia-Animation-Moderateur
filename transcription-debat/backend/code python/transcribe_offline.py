@@ -194,6 +194,34 @@ def join_words(words: list[dict]) -> str:
     return "".join(parts).strip()
 
 
+def merge_word_pieces(words: list[dict]) -> list[dict]:
+    """Recolle les morceaux de mots que Whisper sépare (« c » + « 'est », « est » + « -ce »).
+
+    L'unité d'attribution doit être le mot écrit : sans cela, « c » et « 'est »
+    peuvent recevoir deux voix différentes et couper « c'est » entre deux orateurs.
+    Un morceau est un mot dont le texte brut ne commence pas par une espace (ou,
+    pour un ancien cache sans texte brut, qui commence par ' ou -lettre).
+    """
+    out: list[dict] = []
+    for w in words:
+        raw = w.get("raw")
+        if isinstance(raw, str) and raw:
+            attached = not raw[0].isspace()
+        else:
+            attached = bool(_ATTACHED_START.match(w.get("text", "")))
+        if out and attached:
+            p = out[-1]
+            merged = {**p, "end": w["end"], "text": p["text"] + w["text"]}
+            if "raw" in p or "raw" in w:
+                merged["raw"] = p.get("raw", " " + p["text"]) + w.get("raw", w["text"])
+            if "prob" in p or "prob" in w:
+                merged["prob"] = min(p.get("prob", 1.0), w.get("prob", 1.0))
+            out[-1] = merged
+        else:
+            out.append(dict(w))
+    return out
+
+
 _LEGACY_APOSTROPHE = re.compile(r"(\w) (['’])(?=\w)")
 _LEGACY_HYPHEN = re.compile(r"(\w) -(?=[^\W\d_])")
 
@@ -572,6 +600,7 @@ def main() -> None:
         print(f"Cache Whisper réutilisé : {args.whisper_cache}")
     else:
         whisper_segs_raw, whisper_words_raw = run_whisper(args.audio, initial_prompt)
+    whisper_words_raw = merge_word_pieces(whisper_words_raw)
     print(f"{len(whisper_segs_raw)} segments Whisper, {len(whisper_words_raw)} mots horodatés.")
 
     output_dir = Path(args.output_dir) / args.topic / args.group if args.topic else Path(args.output_dir) / args.group

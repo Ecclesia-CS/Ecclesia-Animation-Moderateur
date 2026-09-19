@@ -213,6 +213,25 @@ def voice_of_word(word: dict, diar, index=None, min_cover: float = MIN_WORD_COVE
 
 
 MIN_OVERRIDE = 1.0  # s : une autre voix doit parler ≥ 1 s d'affilée pour primer sur le log
+FILL_MAX_RUN = 3.0  # s : trou sans voix comblé s'il est encadré par la même voix identifiée
+
+
+def _voice_label(word: dict, idx: _Index, mapping: dict, min_cover: float = MIN_WORD_COVER) -> str | None:
+    """Participant dont la voix prononce ce mot, ou None.
+
+    Seules les voix rattachées comptent : une voix non rattachée (bruit, mélange,
+    voix trop rare) n'apporte aucune preuve d'identité, donc n'en retire pas non
+    plus. Deux participants identifiés qui parlent en même temps → None.
+    """
+    a, b = word["start"], word["end"]
+    dur = b - a
+    labels = set()
+    for s, ov in idx.overlapping(a, b):
+        if dur <= 0 or ov >= min_cover * dur:
+            lab = (mapping.get(s["speaker"]) or {}).get("label")
+            if lab is not None:
+                labels.add(lab)
+    return labels.pop() if len(labels) == 1 else None
 
 
 def _turn_at(t: float, turns: list[dict]) -> int | None:
@@ -241,8 +260,7 @@ def fuse_word_speakers(words, turns, diar, mapping, min_override: float = MIN_OV
         mid = (w["start"] + w["end"]) / 2
         ti = _turn_at(mid, turns)
         turn = turns[ti] if ti is not None else None
-        v = voice_of_word(w, diar, index=idx)
-        vlab = (mapping.get(v) or {}).get("label") if v is not None else None
+        vlab = _voice_label(w, idx, mapping)
         if turn is not None and turn.get("refuse"):
             spk, refused, src = REFUS, True, "log"
         elif vlab == REFUS:
@@ -278,6 +296,32 @@ def fuse_word_speakers(words, turns, diar, mapping, min_override: float = MIN_OV
             else:
                 out[k]["speaker"] = turns[out[k]["_turn"]]["interlocuteur"]
                 out[k]["source"] = "log"
+        i = j + 1
+
+    # Mots sans voix (petit trou de la diarisation, superposition brève) encadrés par la
+    # même voix identifiée : c'est la même personne qui continue — y compris au milieu
+    # d'une interruption pendant le tour d'un autre. Jamais dans un tour refusé.
+    def voiceless(w: dict) -> bool:
+        return w["source"] in ("aucune", "log") and not w["refused"]
+
+    i = 0
+    while i < len(out):
+        if not voiceless(out[i]):
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(out) and voiceless(out[j + 1]):
+            j += 1
+        before = out[i - 1] if i > 0 else None
+        after = out[j + 1] if j + 1 < len(out) else None
+        if (before is not None and after is not None
+                and before["speaker"] == after["speaker"]
+                and before["source"] in ("voix", "log+voix") and after["source"] in ("voix", "log+voix")
+                and out[j]["end"] - out[i]["start"] <= FILL_MAX_RUN):
+            for k in range(i, j + 1):
+                if out[k]["speaker"] != before["speaker"]:
+                    out[k]["speaker"] = before["speaker"]
+                    out[k]["source"] = "voix-comblee"
         i = j + 1
     for w in out:
         del w["_turn"]
