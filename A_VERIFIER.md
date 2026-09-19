@@ -15,6 +15,21 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Transcription 71B505 — identification des voix, frontières, garde-fous Gemini (2026-09-19) — ⚠️ à vérifier à l'écoute
+
+Session autonome de nuit (branche `transcription/ameliorations-attribution`, non mergée). Détail et chiffres : [`transcription-debat/docs/superpowers/specs/2026-09-19-attribution-voix-design.md`](./transcription-debat/docs/superpowers/specs/2026-09-19-attribution-voix-design.md). Fichiers produits (non versionnés) : `transcription-debat/backend/transcripts/Multiculturalisme/71B505/` — `71B505_2026-09-19_corrected.txt`, `71B505_2026-09-19_rapport.json`, `reference/`.
+
+**Déjà vérifié** : 204 tests pytest ; accord voix/log en validation croisée 92,9 % (couverture 96 %) ; `[?]` 32,7 % → 1,6 % ; garde-fous Gemini rejoués sur les 170 corrections du 24/06 (7 vraies modifications de sens interceptées) ; aucun prénom privé resté visible dans le corrigé (liste de relecture du rapport).
+
+**Reste à vérifier humainement (écoute de l'audio)** :
+1. **Modérateur = Interlocuteur 7 ?** La voix de l'ouverture (0:56–3:20, « Bonjour à tous, merci d'être là… ») est celle des tours d'Interlocuteur 7 (contrôle par empreintes vocales concluant mais indirect). Écouter l'ouverture puis un tour d'Interlocuteur 7.
+2. **31:07–31:17** : alternance Interlocuteur 7 / Interlocuteur 9 / `[?]` au milieu d'une même question — probable confusion entre deux voix.
+3. **35:10** : « Alors, tu / as fait un / conflit. » réparti Interlocuteur 6 / Interlocuteur 7 — décalage d'un mot entre Whisper et la diarisation, ou vraie relance ?
+4. **Tour de table 1:33:27–2:05 (hors log)** : attribution par la voix seule. Interlocuteur 2 y passe de ~13 min (suppositions de Gemini au 24/06) à presque rien — vérifier 2–3 prises de parole.
+5. **Prénoms** : pour ce run, 12 prénoms privés absents de `name_map.json` ont été masqués via `--redact-names` (liste dans `run_20260919.log`, non versionné). Les ajouter à `name_map.json` pour les prochains runs ; relire `correction.noms_propres_a_verifier` du rapport (un mot ambigu : « Val » à 1:33:47, probablement « de base »).
+6. **Mesure** : corriger `reference/extrait_{1,2,3}.txt` à l'écoute (≈ 45 min), puis `python "code python/evaluate.py" score reference/extrait_1.txt 71B505_2026-06-24_corrected.json 71B505_2026-09-19_corrected.json` → WER/WDER avant/après.
+7. **`viz/`** (tableau de bord du 02/07) repose sur l'ancienne attribution (temps de parole faux) : à régénérer avec `analyze_debate.py` sur le nouveau `_corrected.json` si on s'en sert.
+
 ## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
 
 **Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :
