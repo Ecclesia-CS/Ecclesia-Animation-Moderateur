@@ -51,7 +51,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-19 : aucun chantier en cours.** Les six chantiers dictés le 16/09 (90 à 95) et le 56 sont tous livrés — voir leur statut dans la section « À faire, dans l'ordre » ci-dessous et le détail dans `docs/chantiers.md`.
+**Au 2026-09-19 : aucun chantier en cours.** Le 102 a été livré et mergé le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -186,19 +186,7 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 ⚠️ **Chevauchement à signaler avec le chantier 87** (« Revue complète des parcours utilisateurs »), déjà réservé par Jules avec la consigne explicite de ne rien analyser avant qu'il fournisse son propre texte. Le 101 semble être une version plus étroite du même sujet (les points d'entrée en séance, pas le parcours complet) — **à confirmer avec Jules avant de lancer l'un ou l'autre** : soit ce chantier est absorbé par le 87 quand son texte arrivera, soit c'est un sous-ensemble volontairement détaché pour être traité plus vite. Ne pas lancer sans cette clarification, pour éviter que deux sessions produisent deux analyses concurrentes du même terrain.
 
-### 102 — Sécurité : refermer les cinq helpers SQL exposés à `anon`
-
-**Sécurité, SQL uniquement.** Issu du [diagnostic du chantier 100](./2026-09-19-audit-chantier100-interruption-exfiltration.md) — lot 1 du [plan](./2026-09-19-plan-anti-interruption-seance.md). Demandé par Jules le 2026-09-19 : « fais un plan pour qu'on ne puisse pas arrêter la séance en plein milieu ».
-
-**Ce que ça ferme** : cinq fonctions `SECURITY DEFINER` ont `EXECUTE` pour `anon` et ne vérifient aucune autorité — `leave_other_session_tables` (éjecte un participant désigné de sa table, en plein débat, et coupe sa prise de parole), `sync_table_assignment` (le déplace de table, bourre la liste des inscrits avant l'allocation), `clear_reclaim_attempts` (efface le verrou anti-bruteforce du chantier 93), `record_reclaim_failure` (bloque volontairement un participant légitime), `gen_member_reclaim_code`. Ajouter `generate_session_join_code` à la liste, inutilisée elle aussi.
-
-**Le geste** : `REVOKE EXECUTE ... FROM anon, authenticated`, rien d'autre. Une migration d'une dizaine de lignes, aucun changement de frontend.
-
-**Pourquoi c'est sans risque, déjà vérifié** : aucune n'est appelée depuis `src/` (grep exhaustif sur les six noms, zéro occurrence) ; leurs seuls appelants sont d'autres fonctions `SECURITY DEFINER` toutes `OWNER = postgres` (`join_table`, `switch_table`, `create_table`, `claim_table_as_moderator`, `confirm_attendance`, `reclaim_prevoting_member`, `register_session_member`, `claim_moderator_status`, `regenerate_reclaim_code_admin`, `regenerate_reclaim_code_moderator`), et dans un corps `SECURITY DEFINER` le droit d'exécuter est contrôlé contre le **propriétaire**, pas contre l'appelant.
-
-> ⚠️ **Garde-fou, à ne pas rater** : ne **jamais** ajouter à cette liste `is_table_participant`, `is_table_moderator`, `is_own_session_member` ni `can_join_realtime_topic`. Elles sont appelées dans des expressions de **policies RLS**, évaluées avec les droits du rôle appelant : leur retirer `EXECUTE` risque de vider en silence les lectures de tables, files et tours de parole — exactement la panne que ce chantier cherche à empêcher. Elles ne renvoient qu'un booléen sur l'appelant lui-même, les exposer ne donne rien. Une première version de la recommandation du chantier 100 les incluait par erreur ; corrigée le même jour.
-
-**Recette** : sur une séance de test jetable — rejoindre une table par `join_code`, changer de table, se reconnecter avec son code de rappel, créer une table modérateur (les quatre chemins couvrent les six fonctions). Plus un appel REST direct sur `leave_other_session_tables`, qui doit désormais répondre une erreur de permission. **Rollback** : le `GRANT EXECUTE` inverse, une ligne.
+> ✅ **102 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 102.
 
 ### 103 — Sécurité : ne plus faire confiance au `user_id` reçu en paramètre
 

@@ -27,6 +27,22 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 **Reste ouvert** : le rang exact de la règle dans l'ordre lexicographique a été choisi au rang le plus haut possible (avant même l'énumération des formes), sans confirmation explicite de Jules sur ce point précis — comportement jamais mis en défaut par la recette, mais pas formellement discuté non plus.
 
+## Chantier 102 (2026-09-19) — sécurité : refermer les six helpers SQL exposés à `anon` — ✅ vérifié au navigateur + en base
+
+**Migration appliquée** : `supabase/migrations/20260919_chantier102_revoke_exec_internal_helpers.sql`, appliquée directement en base (règle SQL du 2026-09-07 — une session peut appliquer sa propre migration). `REVOKE EXECUTE ... FROM PUBLIC` sur `leave_other_session_tables`, `sync_table_assignment`, `clear_reclaim_attempts`, `record_reclaim_failure`, `gen_member_reclaim_code`, `generate_session_join_code`.
+
+**Piège rencontré, à retenir** : un premier essai avec `REVOKE EXECUTE ... FROM anon, authenticated` **n'a rien fermé** — PostgreSQL accorde `EXECUTE` à `PUBLIC` par défaut sur toute fonction créée, et `anon`/`authenticated` en héritent implicitement (tout rôle est membre de `PUBLIC`). Vérifié avec `has_function_privilege('anon', oid, 'EXECUTE')` avant/après : toujours `true` tant que le grant à `PUBLIC` n'est pas retiré explicitement. La migration finale révoque `FROM public`, pas `FROM anon, authenticated`.
+
+**Vérifié en base après application** : `has_function_privilege` renvoie `false` pour `anon` et `authenticated` sur les six fonctions, et reste `true` pour `postgres`/`service_role` (les appelants `SECURITY DEFINER` internes ne sont pas affectés, comme prévu — le contrôle d'exécution dans un corps `SECURITY DEFINER` porte sur le propriétaire, pas sur l'appelant).
+
+**Vérifié par appel REST direct** : `POST /rest/v1/rpc/leave_other_session_tables` avec la clé `anon` renvoie désormais `42501 permission denied for function leave_other_session_tables` (HTTP 401) au lieu de s'exécuter.
+
+**Vérifié au navigateur** : chemin nominal `join_table` (qui appelle `leave_other_session_tables` en interne) rejoué en conditions réelles — rejoint la table `C94A01` de la séance de test « Test chantier 94 » (phase `debating`) via `JoinTableForm`, participant bien apparu dans la liste des présents, aucune erreur. Ligne de test supprimée après coup (`DELETE FROM participants WHERE pseudo = 'Test Chantier102'`).
+
+**Non rejoué** (hors périmètre du temps disponible, risque jugé nul par l'audit) : `switch_table` (déplacement de table), reclaim par code, et création de table modérateur. Les quatre chemins partagent le même mécanisme (appel à une fonction `SECURITY DEFINER` `OWNER = postgres`, non affecté par ce `REVOKE`) — seul `join_table` a été effectivement rejoué à l'écran. À dérouler si un doute apparaît sur un de ces trois autres chemins.
+
+**Rollback si besoin** : `GRANT EXECUTE ON FUNCTION <nom>(<signature>) TO PUBLIC;` pour chacune des six fonctions.
+
 ## Chantier 100 — audit cybersécurité (2026-09-19)
 
 **Rien à vérifier au navigateur : aucun code, aucune migration.** Ce qui reste à confirmer, ce sont les hypothèses d'exploitation du document [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./docs/2026-09-19-audit-chantier100-interruption-exfiltration.md), toutes **déduites** des définitions en base et **jamais jouées** contre la production :
