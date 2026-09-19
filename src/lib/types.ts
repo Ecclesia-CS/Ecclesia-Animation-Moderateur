@@ -239,6 +239,21 @@ export interface TableCampSpeakingTimes {
   camps: TableCampSpeakingTime[]
 }
 
+/**
+ * Chantier 97 — une ligne par membre AFFECTÉ à cette table (`table_assignments`),
+ * qu'il soit physiquement connecté ou non. `participation_style` est nullable :
+ * un membre affecté sans réponse d'onboarding (rare, cf. onboarding optionnel
+ * chantier 71) n'a pas de ligne `entry_responses` — ne pas afficher de badge
+ * dans ce cas plutôt que de deviner une valeur par défaut.
+ */
+export interface TableMemberForModerator {
+  member_id: string
+  pseudo: string
+  is_moderator: boolean
+  participation_style: 'listener' | 'active' | null
+  connected: boolean
+}
+
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */
 export interface QuestionnaireExportRow {
   id: string
