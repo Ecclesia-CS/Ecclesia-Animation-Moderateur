@@ -146,3 +146,13 @@ def test_deduplicate_does_not_mutate_input():
     segs = [_seg(original_text)]
     deduplicate(segs)
     assert segs[0]["text"] == original_text
+
+
+def test_inter_does_not_merge_different_speakers():
+    """« Oui. » dit par A puis « Oui. » répondu par B : deux personnes, pas une hallucination."""
+    segs = [
+        {"start": 0.0, "end": 1.0, "speaker": "Interlocuteur 1", "text": "Oui.", "refused": False},
+        {"start": 1.0, "end": 2.0, "speaker": "Interlocuteur 2", "text": "Oui.", "refused": False},
+    ]
+    result = deduplicate(segs)
+    assert [s["speaker"] for s in result] == ["Interlocuteur 1", "Interlocuteur 2"]

@@ -48,7 +48,9 @@ def _dedup_inter(segments: list[dict]) -> list[dict]:
         if prev.get("refused"):
             result.append(dict(seg))
             continue
-        if _similarity(seg["text"], prev["text"]) >= INTER_THRESHOLD:
+        # Deux orateurs différents peuvent dire la même chose (« Oui. » / « Oui. ») :
+        # seule une répétition d'un même orateur est une hallucination probable.
+        if seg.get("speaker") == prev.get("speaker") and _similarity(seg["text"], prev["text"]) >= INTER_THRESHOLD:
             if len(seg["text"]) > len(prev["text"]):
                 result[-1] = {**result[-1], "text": seg["text"], "end": seg["end"]}
             else:
