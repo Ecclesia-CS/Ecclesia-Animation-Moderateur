@@ -1,6 +1,9 @@
+import argparse
 import json
 import os
+import re
 import sys
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -10,6 +13,17 @@ load_dotenv()
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")  # quota free tier plus large que 2.5-flash
 BATCH_SIZE = 25  # segments par appel Gemini (limite tokens output)
 CONTEXT_WINDOW = 3  # segments de contexte avant/après chaque batch
+
+# Garde-fous de fidélité : Gemini corrige SANS entendre l'audio. Une correction qui
+# modifie trop de mots, ajoute/retire une négation ou masque un mot qui n'a pas
+# l'air d'un prénom est rejetée : on garde le texte Whisper (en y reportant les
+# prénoms masqués par Gemini) et la proposition reste disponible (texte_gemini).
+MAX_EDIT_RATIO = 0.2   # part maximale de mots modifiés…
+MIN_EDITS_FLOOR = 4    # …au-delà d'un plancher de 4 mots (segments courts)
+NEGATORS = {"pas", "jamais", "rien", "aucun", "aucune", "non", "guère", "nullement"}
+_MASKISH = re.compile(r"\[prénom\]|\[nom\]|Interlocuteur|Modérateur", re.IGNORECASE)
+_NAME_LIKE = re.compile(r"^[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’-]{2,}[.,;:!?…]*$")
+_PAYLOAD_KEYS = ("start", "end", "speaker", "text", "refused")
 
 BASE_SYSTEM_PROMPT = """Tu es un correcteur de transcription de débat oral.
 
@@ -25,6 +39,11 @@ Corrections autorisées :
 - ponctuation manquante ou absurde
 - noms propres déformés
 
+Mots douteux : un segment peut contenir "mots_douteux", la liste des mots que la
+reconnaissance vocale a entendus avec peu de confiance. Corrige-les en priorité. Les
+autres mots ont été reconnus avec confiance : ne les modifie que s'ils sont manifestement
+faux. Ne retourne pas "mots_douteux".
+
 Attribution [?] : si context_avant ou context_apres permet d'identifier le locuteur
 avec confiance (interpellation directe, continuité de phrase, réponse explicite),
 remplace speaker "[?]" par un label EXACTEMENT pris dans la liste des labels autorisés
@@ -32,19 +51,23 @@ fournie ci-dessus. N'invente JAMAIS un nouveau label ni un prénom réel. Pour l
 de séance / animateur, utilise "Modérateur". Si incertain, laisse "[?]".
 
 Anonymat : ne JAMAIS écrire de prénom ou nom réel d'un participant dans le texte. Si un
-prénom réel apparaît (mal masqué par Whisper), remplace-le par "[prénom]".
+prénom réel apparaît (mal masqué par Whisper), remplace-le par "[prénom]". Les personnes
+publiques citées (auteurs, philosophes, artistes, responsables politiques…) ne sont pas
+des participants : ne les masque pas.
 
 Hors-débat : si un segment est manifestement logistique ou hors-sujet (réglages d'appli,
 chahut, interlude sans rapport avec le thème), préfixe son texte par "[HORS-DÉBAT] ".
 
 Correction sémantique : si un segment contient une assertion qui contredit directement
 une affirmation du même segment (même phrase avec sujet substitué), corrige la version
-manifestement erronée en t'appuyant sur la logique du propos.
+manifestement erronée en t'appuyant sur la logique du propos — sans jamais ajouter ni
+retirer une négation.
 
 Répétitions résiduelles : si des phrases quasi-identiques subsistent dans un segment,
 n'en garde qu'une.
 
-Ne reformule PAS. Ne supprime PAS les "euh", hésitations, répétitions naturelles.
+Ne reformule PAS. Ne supprime JAMAIS une phrase entière (sauf répétition quasi identique).
+Ne supprime PAS les "euh", hésitations, répétitions naturelles.
 Ne modifie PAS le sens ni le style.
 Les segments "refused": true : ne pas toucher.
 Les segments speaker "[?]" : corriger le texte normalement ET tenter l'attribution.
@@ -118,7 +141,94 @@ def _write_txt(segments: list[dict], path: Path) -> None:
             h = int(seg["start"] // 3600)
             m = int((seg["start"] % 3600) // 60)
             s = int(seg["start"] % 60)
-            f.write(f"[{h:02d}:{m:02d}:{s:02d}] {seg['speaker']}: {seg['text']}\n")
+            speaker = seg["speaker"]
+            if seg.get("speaker_suggestion"):
+                speaker += f" (suggestion IA : {seg['speaker_suggestion']} ?)"
+            f.write(f"[{h:02d}:{m:02d}:{s:02d}] {speaker}: {seg['text']}\n")
+
+
+def _payload(seg: dict) -> dict:
+    """Ce que Gemini reçoit : l'essentiel du segment (+ mots douteux), rien d'autre."""
+    out = {k: seg[k] for k in _PAYLOAD_KEYS if k in seg}
+    if seg.get("low_conf_words") and not seg.get("refused"):
+        out["mots_douteux"] = seg["low_conf_words"]
+    return out
+
+
+def _tokens(text: str) -> list[str]:
+    from quality import normalize_tokens
+    from transcribe_offline import normalize_word_joins
+    return normalize_tokens(normalize_word_joins(text))
+
+
+def _raw_diff(orig: str, corr: str):
+    """Opcodes entre les mots (séparés par des espaces) des deux textes."""
+    a, b = orig.split(), corr.split()
+    key = lambda t: re.sub(r"[^\w']", "", t.lower())
+    sm = SequenceMatcher(None, [key(t) for t in a], [key(t) for t in b], autojunk=False)
+    return a, b, sm.get_opcodes()
+
+
+def _correction_risk(orig: str, corr: str) -> str | None:
+    """Motif de rejet d'une correction Gemini, ou None si elle est acceptable."""
+    ta, tb = _tokens(orig), _tokens(corr)
+    if sum(t in NEGATORS for t in ta) != sum(t in NEGATORS for t in tb):
+        return "négation modifiée"
+    a, b, ops = _raw_diff(orig, corr)
+    for op, i1, i2, j1, j2 in ops:
+        if op in ("replace", "insert") and any(_MASKISH.search(t) for t in b[j1:j2]):
+            src = a[i1:i2]
+            if not any(_NAME_LIKE.match(t) or _MASKISH.search(t) for t in src):
+                return "masque sans prénom"
+    from quality import align
+    edits = sum(op != "ok" for op, _, _ in align(ta, tb))
+    if edits > max(MIN_EDITS_FLOOR, MAX_EDIT_RATIO * len(ta)):
+        return "réécriture trop importante"
+    return None
+
+
+def _transfer_masks(orig: str, corr: str) -> str:
+    """Reporte sur le texte Whisper les prénoms que Gemini a masqués (RGPD)."""
+    a, b, ops = _raw_diff(orig, corr)
+    out: list[str] = []
+    for op, i1, i2, j1, j2 in ops:
+        src, dst = a[i1:i2], b[j1:j2]
+        is_mask = (
+            op == "replace" and 0 < len(src) <= 2
+            and all(_NAME_LIKE.match(t) for t in src)
+            and all(_MASKISH.search(t) or t.strip(".,;:!?…").isdigit() for t in dst)
+        )
+        if is_mask:
+            masked = list(dst)
+            tail = re.search(r"[.,;:!?…]+$", src[-1])
+            if tail and not masked[-1].endswith(tail.group()):
+                masked[-1] += tail.group()
+            out.extend(masked)
+        else:
+            out.extend(src)
+    return " ".join(out)
+
+
+def _merge_segment(orig: dict, corr: dict) -> dict:
+    """Applique la correction de Gemini à un segment, sous garde-fous."""
+    out = dict(orig)
+    if orig.get("refused"):
+        out["correction"] = "aucune"
+        return out
+    new_speaker = corr.get("speaker", orig["speaker"])
+    if orig["speaker"] == "[?]" and new_speaker != "[?]":
+        # Deviné à partir du texte seul : suggestion, jamais une attribution.
+        out["speaker_suggestion"] = new_speaker
+    motif = _correction_risk(orig["text"], corr["text"])
+    if motif is None:
+        out["text"] = corr["text"]
+        out["correction"] = "gemini"
+    else:
+        out["text"] = _transfer_masks(orig["text"], corr["text"])
+        out["correction"] = "rejetee"
+        out["correction_motif"] = motif
+        out["texte_gemini"] = corr["text"]
+    return out
 
 
 def _correct_batch(
@@ -130,10 +240,11 @@ def _correct_batch(
     allowed_labels: set[str] | None = None,
 ) -> list[dict] | None:
     """Envoie un batch à Gemini avec contexte et retourne les segments corrigés, ou None si échec."""
+    batch = [_payload(s) for s in batch]
     payload = {
-        "context_avant": context_before or [],
+        "context_avant": [_payload(s) for s in context_before or []],
         "segments": batch,
-        "context_apres": context_after or [],
+        "context_apres": [_payload(s) for s in context_after or []],
     }
     try:
         prompt = system_prompt + "\n\n" + json.dumps(payload, ensure_ascii=False)
@@ -195,11 +306,17 @@ def correct(
             print(f"  Retry {attempt}/2...")
         if result is None:
             print(f"Batch {i + 1} abandonné après 2 tentatives — segments bruts conservés.", file=sys.stderr)
-            corrected_segments.extend(batch)
+            corrected_segments.extend({**seg, "correction": "aucune"} for seg in batch)
         else:
-            corrected_segments.extend(result)
+            corrected_segments.extend(_merge_segment(o, c) for o, c in zip(batch, result))
 
     corrected = corrected_segments
+    rejected = [s for s in corrected if s.get("correction") == "rejetee"]
+    suggested = [s for s in corrected if s.get("speaker_suggestion")]
+    print(f"Corrections Gemini : {sum(s.get('correction') == 'gemini' for s in corrected)} acceptées, "
+          f"{len(rejected)} rejetées par les garde-fous, "
+          f"{sum(s.get('correction') == 'aucune' for s in corrected)} non corrigées ; "
+          f"{len(suggested)} suggestion(s) d'orateur pour des [?].")
     if not _validate(segments, corrected, allowed_labels):
         print("Correction Gemini rejetée : structure invalide (segments manquants ou champs modifiés).", file=sys.stderr)
         return False
@@ -222,18 +339,19 @@ def main() -> None:
         except (AttributeError, ValueError):
             pass
 
-    if len(sys.argv) != 2:
-        print("Usage: python correct_transcript.py <json_path>", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Correction Gemini d'un transcript (.json) déjà produit.")
+    parser.add_argument("json_path", help="<CODE>_<date>.json produit par transcribe_offline.py")
+    parser.add_argument("--topic", default=None, help="Thème du débat (contexte pour Gemini)")
+    args = parser.parse_args()
 
-    json_path = Path(sys.argv[1])
+    json_path = Path(args.json_path)
     if not json_path.exists():
         print(f"Fichier introuvable : {json_path}", file=sys.stderr)
         sys.exit(1)
 
     segments = json.loads(json_path.read_text(encoding="utf-8"))
     output_stem = json_path.with_suffix("")
-    result = correct(segments, output_stem)
+    result = correct(segments, output_stem, topic=args.topic)
     sys.exit(0 if result else 1)
 
 

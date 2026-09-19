@@ -174,3 +174,93 @@ def test_cli_standalone(tmp_path):
         env={**__import__("os").environ, "GEMINI_API_KEY": ""},
     )
     assert result.returncode == 1  # exit 1 quand correction échoue
+
+
+# ---- Garde-fous de fidélité (zéro hallucination) ----
+
+def _run_correct(tmp_path, segs, gemini_segs):
+    from correct_transcript import correct
+    stem = tmp_path / "debat"
+    client = _mock_client(json.dumps(gemini_segs))
+    with patch("correct_transcript._make_client", return_value=client):
+        assert correct(segs, stem) is True
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    txt = (tmp_path / "debat_corrected.txt").read_text(encoding="utf-8")
+    return data, txt, client
+
+
+def _seg(text, speaker="Interlocuteur 1", **kw):
+    return {"start": 0.0, "end": 5.0, "speaker": speaker, "text": text, "refused": False, **kw}
+
+
+def test_unknown_speaker_attribution_is_only_a_suggestion(tmp_path):
+    """Gemini devine un orateur à partir du texte seul : c'est une suggestion, pas une attribution."""
+    segs = [_seg("Bonjour", "[?]"), _seg("Salut", "Interlocuteur 1")]
+    data, txt, _ = _run_correct(tmp_path, segs, [_seg("Bonjour", "Interlocuteur 1"), _seg("Salut", "Interlocuteur 1")])
+    assert data[0]["speaker"] == "[?]"
+    assert data[0]["speaker_suggestion"] == "Interlocuteur 1"
+    assert "[?] (suggestion IA : Interlocuteur 1 ?)" in txt
+
+
+def test_extra_fields_preserved_and_only_essentials_sent(tmp_path):
+    seg = _seg("je trouve que la limite du multi-période", speaker_source="log+voix", low_conf_words=["multi-période"])
+    corr = _seg("je trouve que la limite du multiculturalisme")
+    data, _, client = _run_correct(tmp_path, [seg], [corr])
+    assert data[0]["speaker_source"] == "log+voix"
+    assert data[0]["text"] == "je trouve que la limite du multiculturalisme"
+    assert data[0]["correction"] == "gemini"
+    sent = client.models.generate_content.call_args.kwargs["contents"]
+    assert '"mots_douteux": ["multi-période"]' in sent
+    assert "speaker_source" not in sent
+
+
+def test_negation_flip_is_rejected(tmp_path):
+    seg = _seg("avant que tu passes la parole je ne le remarque pas, on va le rappeler")
+    corr = _seg("avant que tu passes la parole je le remarque, on va le rappeler")
+    data, _, _ = _run_correct(tmp_path, [seg], [corr])
+    assert data[0]["text"] == seg["text"]
+    assert data[0]["correction"] == "rejetee"
+    assert data[0]["correction_motif"] == "négation modifiée"
+    assert data[0]["texte_gemini"] == corr["text"]
+
+
+def test_heavy_rewrite_is_rejected(tmp_path):
+    seg = _seg("non mais c'est pour moi notre décompte et moi c'est le cas mais c'est pas le cas nos droits")
+    corr = _seg("non mais pour moi nos systèmes sont fondés sur des valeurs, c'est pas le cas")
+    data, _, _ = _run_correct(tmp_path, [seg], [corr])
+    assert data[0]["correction"] == "rejetee"
+    assert data[0]["correction_motif"] == "réécriture trop importante"
+
+
+def test_rejected_segment_keeps_gemini_name_masks(tmp_path):
+    """RGPD : même si la correction est rejetée, un prénom masqué par Gemini reste masqué."""
+    seg = _seg("sinon donne la parole à Zélie qui est une culturelle ?")
+    corr = _seg("sinon, on donne la parole à Interlocuteur 3 qui est interculturelle ?")
+    data, _, _ = _run_correct(tmp_path, [seg], [corr])
+    assert data[0]["correction"] == "rejetee"
+    assert data[0]["text"] == "sinon donne la parole à Interlocuteur 3 qui est une culturelle ?"
+
+
+def test_mask_on_non_name_is_rejected(tmp_path):
+    seg = _seg("vous pensez directement ? B5.")
+    corr = _seg("Vous pensez directement ? [Interlocuteur 5].")
+    data, _, _ = _run_correct(tmp_path, [seg], [corr])
+    assert data[0]["text"] == "vous pensez directement ? B5."
+    assert data[0]["correction_motif"] == "masque sans prénom"
+
+
+def test_hors_debat_prefix_is_not_a_rewrite(tmp_path):
+    seg = _seg("c'est une zone où il y a une réunion et après j'ai pas relancé")
+    corr = _seg("[HORS-DÉBAT] c'est une zone où il y a une réunion, et après j'ai pas relancé")
+    data, _, _ = _run_correct(tmp_path, [seg], [corr])
+    assert data[0]["correction"] == "gemini"
+    assert data[0]["text"].startswith("[HORS-DÉBAT]")
+
+
+def test_failed_batch_is_marked(tmp_path):
+    from correct_transcript import correct
+    stem = tmp_path / "debat"
+    with patch("correct_transcript._make_client", return_value=_mock_client("pas du JSON")):
+        correct([_seg("bonjour")], stem)
+    data = json.loads((tmp_path / "debat_corrected.json").read_text(encoding="utf-8"))
+    assert data[0]["correction"] == "aucune"
