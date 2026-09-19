@@ -111,28 +111,28 @@ def _validate(
 ) -> bool:
     if len(corrected) != len(original):
         return False
-    for orig, corr in zip(original, corrected):
-        speaker_ok = (
-            corr.get("speaker") == orig["speaker"]
-            or orig["speaker"] == "[?]"
-        )
-        # Si le segment était [?] et qu'on a une whitelist, le nouveau label doit en faire partie
-        # (empêche Gemini d'inventer un prénom réel ou un label inconnu).
-        if (
-            allowed_labels is not None
-            and orig["speaker"] == "[?]"
-            and corr.get("speaker") != "[?]"
-            and corr.get("speaker") not in allowed_labels
-        ):
-            return False
-        if (
-            abs(corr.get("start", -1) - orig["start"]) > 0.1
-            or abs(corr.get("end", -1) - orig["end"]) > 0.1
-            or not speaker_ok
-            or corr.get("refused") != orig["refused"]
-        ):
-            return False
-    return True
+    return all(_segment_ok(o, c, allowed_labels) for o, c in zip(original, corrected))
+
+
+def _segment_ok(orig: dict, corr: dict, allowed_labels: set[str] | None = None) -> bool:
+    """Structure d'un segment corrigé : horodatage, orateur, refus et texte intacts."""
+    if not isinstance(corr, dict) or not isinstance(corr.get("text"), str):
+        return False
+    speaker_ok = corr.get("speaker") == orig["speaker"] or orig["speaker"] == "[?]"
+    # Si le segment était [?] et qu'on a une whitelist, le nouveau label doit en faire partie
+    # (empêche Gemini d'inventer un prénom réel ou un label inconnu).
+    if (
+        allowed_labels is not None
+        and orig["speaker"] == "[?]"
+        and corr.get("speaker") != "[?]"
+        and corr.get("speaker") not in allowed_labels
+    ):
+        return False
+    try:
+        times_ok = abs(corr.get("start", -1) - orig["start"]) <= 0.1 and abs(corr.get("end", -1) - orig["end"]) <= 0.1
+    except TypeError:
+        return False
+    return times_ok and speaker_ok and corr.get("refused") == orig["refused"]
 
 
 def _write_txt(segments: list[dict], path: Path) -> None:
@@ -238,8 +238,13 @@ def _correct_batch(
     context_before: list[dict] | None = None,
     context_after: list[dict] | None = None,
     allowed_labels: set[str] | None = None,
-) -> list[dict] | None:
-    """Envoie un batch à Gemini avec contexte et retourne les segments corrigés, ou None si échec."""
+) -> list[dict | None] | None:
+    """Envoie un batch à Gemini avec contexte.
+
+    Retourne la liste alignée sur le batch (None pour un segment dont la structure
+    a été altérée — il gardera son texte brut), ou None si la réponse est
+    inexploitable (JSON invalide, nombre de segments différent) → nouvel essai.
+    """
     batch = [_payload(s) for s in batch]
     payload = {
         "context_avant": [_payload(s) for s in context_before or []],
@@ -261,15 +266,19 @@ def _correct_batch(
             print("Correction Gemini : format de réponse inattendu.", file=sys.stderr)
             return None
         for orig, corr in zip(batch, corrected):
-            if "refused" not in corr:
+            if isinstance(corr, dict) and "refused" not in corr:
                 corr["refused"] = orig["refused"]
     except Exception as exc:
         print(f"Correction Gemini échouée (batch) : {exc}", file=sys.stderr)
         return None
-    if not _validate(batch, corrected, allowed_labels):
-        print("Correction Gemini rejetée : structure invalide dans un batch.", file=sys.stderr)
+    if len(corrected) != len(batch):
+        print("Correction Gemini rejetée : nombre de segments différent.", file=sys.stderr)
         return None
-    return corrected
+    checked = [c if _segment_ok(o, c, allowed_labels) else None for o, c in zip(batch, corrected)]
+    bad = sum(c is None for c in checked)
+    if bad:
+        print(f"  {bad} segment(s) à la structure altérée par Gemini — texte brut conservé pour eux.", file=sys.stderr)
+    return checked
 
 
 def correct(
@@ -308,7 +317,10 @@ def correct(
             print(f"Batch {i + 1} abandonné après 2 tentatives — segments bruts conservés.", file=sys.stderr)
             corrected_segments.extend({**seg, "correction": "aucune"} for seg in batch)
         else:
-            corrected_segments.extend(_merge_segment(o, c) for o, c in zip(batch, result))
+            corrected_segments.extend(
+                _merge_segment(o, c) if c is not None else {**o, "correction": "aucune"}
+                for o, c in zip(batch, result)
+            )
 
     corrected = corrected_segments
     rejected = [s for s in corrected if s.get("correction") == "rejetee"]

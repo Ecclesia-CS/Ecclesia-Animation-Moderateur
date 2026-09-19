@@ -278,3 +278,13 @@ def test_correct_updates_report_with_counts_and_proper_nouns(tmp_path):
     assert c["motifs_rejet"] == {"négation modifiée": 1}
     assert ["Zélie", 1] in c["noms_propres_a_verifier"]
     assert "metriques" in rapport
+
+
+def test_one_invalid_segment_does_not_discard_the_whole_batch(tmp_path):
+    """Un segment dont Gemini change l'orateur est rejeté seul ; les autres corrections restent."""
+    segs = [_seg("bonjour a tous"), _seg("oui mais", "Interlocuteur 2")]
+    corr = [_seg("Bonjour à tous."), _seg("Oui, mais", "Interlocuteur 1")]   # orateur changé : interdit
+    data, _, _ = _run_correct(tmp_path, segs, corr)
+    assert data[0]["text"] == "Bonjour à tous." and data[0]["correction"] == "gemini"
+    assert data[1]["text"] == "oui mais" and data[1]["speaker"] == "Interlocuteur 2"
+    assert data[1]["correction"] == "aucune"
