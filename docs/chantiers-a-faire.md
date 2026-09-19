@@ -51,7 +51,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-19 : aucun chantier en cours.** Le 102 a été livré et mergé le jour même — voir `docs/chantiers.md`.
+**Au 2026-09-19 : aucun chantier en cours.** Le 103 a été livré et mergé le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -188,15 +188,7 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 > ✅ **102 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 102.
 
-### 103 — Sécurité : ne plus faire confiance au `user_id` reçu en paramètre
-
-**Sécurité, SQL uniquement.** Lot 2 du [plan](./2026-09-19-plan-anti-interruption-seance.md). **À faire après le 102**, dont il rend l'effet permanent.
-
-`leave_other_session_tables` et `sync_table_assignment` prennent le `user_id` de leur cible **en paramètre** au lieu de lire `auth.uid()`. Tant que c'est le cas, la protection du 102 ne tient qu'à un `GRANT` — et un grant se défait sans laisser de trace dans le dépôt : c'est arrivé ici même, la restriction de colonne du chantier 51 sur `assertions` n'est plus en vigueur en base sans qu'aucune migration ne l'explique (voir 105).
-
-**Le geste** : remplacer `p_user_id` par `auth.uid()` dans les deux fonctions et retirer le paramètre de la signature. **Vérifié** : les quatre appelants (`join_table`, `switch_table`, `create_table`, `claim_table_as_moderator`) passent **déjà** `auth.uid()` — les quatre corps relus en base le confirment mot pour mot. Le changement est fonctionnellement neutre.
-
-**Piège** : `DROP` + `CREATE` change la signature, donc les quatre appelants doivent être recréés dans la **même** migration, et leur corps repris de `pg_get_functiondef` **en base**, jamais des fichiers de migration (règle SQL du projet — le corps en base a déjà divergé plusieurs fois). Vérifier après coup qu'aucune surcharge en double ne subsiste (piège du chantier 70).
+> ✅ **103 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 103.
 
 ### 104 — Sécurité : restreindre ce qu'un modérateur peut réécrire sur sa table (C7)
 

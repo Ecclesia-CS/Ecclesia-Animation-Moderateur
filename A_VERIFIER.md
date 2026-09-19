@@ -43,6 +43,25 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 **Rollback si besoin** : `GRANT EXECUTE ON FUNCTION <nom>(<signature>) TO PUBLIC;` pour chacune des six fonctions.
 
+## Chantier 103 (2026-09-19) — sécurité : `auth.uid()` au lieu du `user_id` en paramètre — ✅ vérifié en base + par appel REST
+
+**Migration appliquée** : `supabase/migrations/20260919_chantier103_auth_uid_instead_of_param.sql`. `leave_other_session_tables(p_session_id, p_new_table_id)` et `sync_table_assignment(p_session_id, p_table_id, p_pseudo)` lisent désormais `auth.uid()` au lieu de recevoir `p_user_id` en paramètre — `DROP FUNCTION` + `CREATE` (changement de signature), corps repris de `pg_get_functiondef` en base. Les quatre appelants (`join_table`, `switch_table`, `create_table`, `claim_table_as_moderator`) recréés dans la même migration pour appeler la nouvelle signature (un paramètre en moins chacune) ; leur propre signature ne change pas.
+
+**Piège rencontré, nouveau par rapport au 102** : après le `DROP`+`CREATE`, `has_function_privilege('anon', ..., 'EXECUTE')` renvoyait `true` sur les deux fonctions alors même que la migration contenait `REVOKE EXECUTE ... FROM public`. Cause : ce projet a des privilèges par défaut (`ALTER DEFAULT PRIVILEGES IN SCHEMA public`) qui accordent `EXECUTE` **directement** à `anon`/`authenticated`/`service_role` sur toute fonction nouvellement créée dans `public` — visible dans `pg_proc.proacl` (`anon=X/postgres` explicite, pas hérité de `PUBLIC`). Un `REVOKE ... FROM public` ne retire donc rien tant que le grant explicite aux deux rôles n'est pas lui-même révoqué. Corrigé en base par une seconde migration (`revoke execute ... from anon, authenticated`), puis répercuté dans le fichier de migration du dépôt pour que la prochaine application (autre environnement) soit correcte du premier coup.
+
+**Vérifié en base après application** : `has_function_privilege` renvoie `false` pour `anon`/`authenticated` sur les deux fonctions internes, `true` pour `postgres` ; les quatre appelants restent exécutables par `anon`/`authenticated` (comportement inchangé) ; aucune surcharge en double (`count(*) > 1` par nom, vide) — piège du chantier 70 écarté.
+
+**Vérifié par appel REST direct** : `POST /rest/v1/rpc/leave_other_session_tables` avec la clé `anon` renvoie `42501 permission denied` (HTTP 401), comme pour le chantier 102.
+
+**Vérifié par les trois chemins participant, rejoués en direct via l'API REST** (deux utilisateurs anonymes réels via `signInAnonymously`, séance de test jetable créée par SQL puis purgée après coup — aucune séance réelle touchée) :
+- `create_table` (leaderless, sans Code Ecclesia) → table créée, `sync_table_assignment` exécuté avec succès (nouvelle signature à 3 arguments).
+- `join_table` → un deuxième utilisateur rejoint la table, participant ajouté.
+- `switch_table` → l'utilisateur change de table ; confirmé en base que sa ligne `participants` a bien été retirée de l'ancienne table (`leave_other_session_tables` à 2 arguments a fonctionné correctement, effet identique à avant le chantier).
+
+**Non rejoué** : `claim_table_as_moderator` — nécessite le Code Ecclesia réel (mot de passe superadmin), que cette session n'avait pas et n'a pas cherché à obtenir ou deviner. Son seul changement dans ce chantier est identique au motif déjà vérifié dans `switch_table` (`PERFORM leave_other_session_tables(v_table.session_id, v_table.id)` à 2 arguments au lieu de 3) — risque résiduel jugé faible, mais **à dérouler par Jules** : réclamer une table `leaderless` comme modérateur avec le vrai Code Ecclesia, sur une séance de test.
+
+**Rollback si besoin** : réappliquer les anciennes définitions à 3/4 paramètres (conservées dans l'historique git de la migration `20260919_chantier102_revoke_exec_internal_helpers.sql` et dans `pg_get_functiondef` avant ce chantier — voir le message initial de cette session pour le corps exact), et rétablir les appels des quatre appelants avec `auth.uid()` en dernier argument explicite.
+
 ## Chantier 100 — audit cybersécurité (2026-09-19)
 
 **Rien à vérifier au navigateur : aucun code, aucune migration.** Ce qui reste à confirmer, ce sont les hypothèses d'exploitation du document [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./docs/2026-09-19-audit-chantier100-interruption-exfiltration.md), toutes **déduites** des définitions en base et **jamais jouées** contre la production :
