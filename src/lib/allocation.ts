@@ -30,6 +30,15 @@
 // Contraintes dures : 5 à 14 actifs par table animée, 5 à 7 par table sans
 // modérateur, 30 personnes au plus par table public compris. L'algorithme ne
 // peut jamais échouer : tout le reste dégrade (règle 4 sacrifiée en premier).
+//
+// ── Chantier 98 — interdire les tables sans modérateur (option) ──
+// `AllocationInput.forbidUnmoderatedTables` restreint les formes explorées
+// à celles où **toutes** les tables sont animées, avant même d'évaluer les
+// 4 règles ci-dessus (Jules, 19/09 : « on laisse d'autres critères être
+// brisés, bien sûr »). Désactivée par défaut (comportement inchangé). Ce
+// n'est pas une 5ᵉ règle lexicographique : c'est un filtre sur l'ensemble
+// des formes candidates (`enumerateShapes`), qui peut donc réduire le nombre
+// de tables en dessous de ce que la population permettrait autrement.
 // =============================================================
 
 // ── Constantes ───────────────────────────────────────────────
@@ -189,6 +198,16 @@ export interface AllocationInput {
   recorderCount?: number | null
   /** false → règle 2 désactivée proprement (analyse des camps indisponible, §5). */
   opinionsAvailable: boolean
+  /**
+   * Chantier 98 — interdit toute table sans modérateur : l'algorithme ne
+   * retient que des formes où `moderatedCount === tableCount`. Rang haut,
+   * au-dessus des 4 règles habituelles (Jules, 19/09 : « on laisse d'autres
+   * critères être brisés, bien sûr ») — quand aucune forme entièrement animée
+   * n'existe (capacité de modération insuffisante), l'algorithme se replie
+   * sur le filet de sécurité existant (table unique), qui dégrade déjà toutes
+   * les autres règles sans jamais lever d'exception.
+   */
+  forbidUnmoderatedTables?: boolean
   seed?: number
   /** Chantier 29 (I1) — réglages de la recherche. Absent → production. Sert au banc d'essai. */
   strategy?: AllocationStrategy
@@ -541,20 +560,34 @@ function buildShape(n: number, tableCount: number, moderatorCapacity: number, ma
  * **exacte** — une borne trop généreuse ferait rechercher des formes non
  * gagnantes pour rien (budget de latence navigateur, §6).
  */
-function maxTableCount(n: number, moderatorCapacity: number): number {
+function maxTableCount(n: number, moderatorCapacity: number, forbidUnmoderated: boolean): number {
   const capacity = Math.max(0, moderatorCapacity)
+  // Chantier 98 — aucune table sans modérateur : une table de plus exige un
+  // modérateur de plus, la capacité de modération borne donc directement le
+  // nombre de tables.
+  if (forbidUnmoderated) return Math.min(capacity, Math.floor(n / TABLE_MIN))
   if (capacity * TABLE_MIN > n) return Math.floor(n / TABLE_MIN)
   const remaining = n - capacity * TABLE_MIN
   return capacity + Math.floor(remaining / UNMODERATED_TABLE_MIN)
 }
 
-function enumerateShapes(n: number, moderatorCapacity: number, maxSize: number): Shape[] {
+function enumerateShapes(
+  n: number,
+  moderatorCapacity: number,
+  maxSize: number,
+  forbidUnmoderated = false,
+): Shape[] {
   const shapes: Shape[] = []
   const minTables = Math.max(1, Math.ceil(n / maxSize))
-  const maxTables = maxTableCount(n, moderatorCapacity)
+  const maxTables = maxTableCount(n, moderatorCapacity, forbidUnmoderated)
   for (let t = minTables; t <= maxTables; t++) {
     const s = buildShape(n, t, moderatorCapacity, maxSize)
-    if (s) shapes.push(s)
+    if (!s) continue
+    // Filet de sécurité : `buildShape` ne peut normalement pas laisser de
+    // table non animée sous ce plafond, mais on ne retient jamais une forme
+    // qui violerait la contrainte si l'arithmétique changeait un jour.
+    if (forbidUnmoderated && s.moderatedCount < t) continue
+    shapes.push(s)
   }
   return shapes
 }
@@ -1146,6 +1179,7 @@ function solveFor(
   seed: number,
   strategy: AllocationStrategy = STRATEGY_LEGACY,
   clusterOfId?: Map<string, number>,
+  forbidUnmoderated = false,
 ): SolveOutcome {
   const prep = prepare(actives, clusterOfId)
   const n = prep.n
@@ -1171,7 +1205,7 @@ function solveFor(
   const baseOrder = sortedOrder(prep)
 
   let best: { shape: Shape; assign: Int32Array; evaluation: Evaluation } | null = null
-  const shapes = enumerateShapes(n, moderatorCapacity, TABLE_MAX_ACTIVE)
+  const shapes = enumerateShapes(n, moderatorCapacity, TABLE_MAX_ACTIVE, forbidUnmoderated)
   let shapesLeft = shapes.length
   for (const shape of shapes) {
     const remainingShapes = shapesLeft--
@@ -1212,7 +1246,14 @@ function solveFor(
 
   // Un reliquat non découpable (ex. 11 actifs sans modérateur : ni une table
   // de 5 à 7, ni deux) ne trouve aucune forme : repli sur une table unique.
-  if (!best) return single('Aucune répartition valide trouvée — repli sur une table unique.')
+  if (!best) {
+    return single(
+      forbidUnmoderated
+        ? "Capacité de modération insuffisante pour animer toutes les tables (option « interdire les tables " +
+          'sans modérateur » active) — repli sur une table unique.'
+        : 'Aucune répartition valide trouvée — repli sur une table unique.',
+    )
+  }
 
   return { prep, shape: best.shape, assign: best.assign, score: best.evaluation.score, singleTable: false, note: null }
 }
@@ -1428,10 +1469,11 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   // `k` — mesuré : 30 actifs / 4 modé. passait de k = 4 (2 tables) à k = 2,
   // soit 2 tables animées + 1 sans modérateur et 2 modérateurs assis, alors que
   // k = 3 donnait 3 tables toutes animées.
+  const forbidUnmoderated = input.forbidUnmoderatedTables ?? false
   const M = allModeratorIds.length
   const solveWith = (kk: number) => solveFor(
     [...actives, ...allModeratorIds.slice(kk).map(seatProfile)],
-    kk + extras, opinionsAvailable, recorderTarget, seed, strategy, clusterOfId,
+    kk + extras, opinionsAvailable, recorderTarget, seed, strategy, clusterOfId, forbidUnmoderated,
   )
   let k = M
   let solved = solveWith(k)
@@ -1542,6 +1584,15 @@ export function runAllocation(input: AllocationInput): AllocationResult {
       `Objectif de ${recorderTarget} tables enregistrables (règle 1, prioritaire sur le dimensionnement) : ` +
       `il a fallu ${T} tables, dont ${unmoderatedCount} sans animateur. ` +
       `Avec moins d'enregistreurs, l'algorithme ferait des tables plus grosses et toutes animées.`,
+    )
+  }
+  // Chantier 98 — l'option ne peut échouer que faute de modérateurs (capacité
+  // nulle) : le filet de sécurité produit alors une table unique sans
+  // animateur, seul cas où elle reste théoriquement violée après coup.
+  if (forbidUnmoderated && unmoderatedCount > 0) {
+    warnings.push(
+      `Option « interdire les tables sans modérateur » active, mais aucun modérateur n'est disponible : ` +
+      `impossible à respecter. Toutes les autres règles ont été sacrifiées en priorité.`,
     )
   }
 

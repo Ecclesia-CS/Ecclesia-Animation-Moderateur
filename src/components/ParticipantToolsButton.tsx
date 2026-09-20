@@ -10,6 +10,7 @@ import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
 import ModeratorClaimModal from './voting/ModeratorClaimModal'
 import PairingModal from './voting/PairingModal'
+import RenamePseudoModal from './voting/RenamePseudoModal'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -48,6 +49,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const [moderatorClaimOpen, setModeratorClaimOpen] = useState(false)
   // Chantier 92 — déclarer / changer ses binômes.
   const [pairingOpen,        setPairingOpen]        = useState(false)
+  // Chantier 93 — changer son nom en cours de séance.
+  const [renameOpen,         setRenameOpen]         = useState(false)
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
@@ -301,9 +304,26 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               {done && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
             </button>
 
+            {/* Chantier 93 — le nom est celui que le modérateur lit à voix haute :
+                on doit pouvoir le corriger sans attendre la fin du débat. */}
+            {table.session_id && (
+              <button onClick={() => { setPanelOpen(false); setRenameOpen(true) }} className={linkClass}>
+                <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
+                Changer mon nom
+              </button>
+            )}
+
             <div className="pb-2" />
           </div>
         </div>
+      )}
+
+      {renameOpen && table.session_id && (
+        <RenamePseudoModal
+          sessionId={table.session_id}
+          currentPseudo={userPseudo}
+          onClose={() => setRenameOpen(false)}
+        />
       )}
 
       {pairingOpen && table.session_id && (

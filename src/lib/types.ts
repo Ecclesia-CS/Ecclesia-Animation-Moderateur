@@ -137,11 +137,13 @@ export interface SessionMember {
    */
   is_moderator?: boolean
   /**
-   * Chantier 67 — code de rappel en clair (4 chiffres), posé uniquement pour
-   * une inscription en `pre_voting` (`register_session_member`,
-   * `claim_moderator_status`). `null`/`undefined` sinon.
+   * Chantier 93 — code de rappel tiré EN BASE et renvoyé en clair une seule
+   * fois, à la création de la ligne (`register_session_member`,
+   * `claim_moderator_status`, régénérations). Seul son bcrypt est stocké
+   * (`session_members.reclaim_code_hash`) : il est illisible ensuite, d'où la
+   * régénération plutôt que le rappel. Absent de toute lecture ultérieure.
    */
-  reclaim_code?: string | null
+  new_reclaim_code?: string | null
 }
 
 /** Chantier 19 (G3) — onboarding réduit à 3 questions. */
@@ -235,6 +237,21 @@ export interface TableCampSpeakingTimes {
   table_number: number | null
   opinions_available: boolean
   camps: TableCampSpeakingTime[]
+}
+
+/**
+ * Chantier 97 — une ligne par membre AFFECTÉ à cette table (`table_assignments`),
+ * qu'il soit physiquement connecté ou non. `participation_style` est nullable :
+ * un membre affecté sans réponse d'onboarding (rare, cf. onboarding optionnel
+ * chantier 71) n'a pas de ligne `entry_responses` — ne pas afficher de badge
+ * dans ce cas plutôt que de deviner une valeur par défaut.
+ */
+export interface TableMemberForModerator {
+  member_id: string
+  pseudo: string
+  is_moderator: boolean
+  participation_style: 'listener' | 'active' | null
+  connected: boolean
 }
 
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */

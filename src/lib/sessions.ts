@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { Session, Table, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
+import { Session, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
 import { extractErr } from './utils'
 
 export type SessionTableRow = {
@@ -11,6 +11,8 @@ export type SessionTableRow = {
   is_active: boolean
   questionnaire_forced_at: string | null
   leaderless?: boolean
+  /** Chantier 95 — numéro de table au sein de la séance, NULL hors séance. */
+  table_number?: number | null
 }
 
 export type TableParticipantRow = {
@@ -123,32 +125,13 @@ export async function updateSessionDocs(
   return data as Session
 }
 
-export async function attachTableToSession(
-  password: string,
-  tableId: string,
-  sessionId: string,
-): Promise<Table> {
-  const { data, error } = await supabase.rpc('attach_table_to_session', {
-    p_password: password,
-    p_table_id: tableId,
-    p_session_id: sessionId,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as Table
-}
-
-export async function detachTableFromSession(
-  password: string,
-  tableId: string,
-): Promise<Table> {
-  const { data, error } = await supabase.rpc('detach_table_from_session', {
-    p_password: password,
-    p_table_id: tableId,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as Table
-}
-
+/**
+ * Chantier 95 — `attachTableToSession` / `detachTableFromSession` supprimées :
+ * plus rien ne crée de table hors séance depuis le retrait de l'onglet
+ * « Créer » de l'accueil, et les deux accordéons du superadmin qui servaient à
+ * les rattacher ont disparu. Les RPC `attach_table_to_session` et
+ * `detach_table_from_session` restent en base, sans appelant.
+ */
 export async function getTableParticipants(
   password: string,
   tableId: string,
@@ -217,19 +200,6 @@ export async function listSessionTables(
     p_password: password,
     p_session_id: sessionId,
   })
-  if (error) throw new Error(extractErr(error))
-  return (data as SessionTableRow[]) ?? []
-}
-
-export async function listAvailableTables(
-  password: string,
-  since?: Date | null,
-): Promise<SessionTableRow[]> {
-  const params: Record<string, unknown> = { p_password: password }
-  if (since !== undefined) {
-    params.p_since = since === null ? null : since.toISOString()
-  }
-  const { data, error } = await supabase.rpc('list_available_tables', params)
   if (error) throw new Error(extractErr(error))
   return (data as SessionTableRow[]) ?? []
 }
@@ -386,18 +356,23 @@ export async function getTableSpeakingTurnsAdmin(
   return (data as TableSpeakingTurnRow[]) ?? []
 }
 
-export async function adminCreateTable(
+/**
+ * Chantier 95 — crée une table vide déjà rattachée à la séance ET déjà
+ * numérotée, pour qu'elle apparaisse comme un groupe en attente dans la vue
+ * Groupes avant que quiconque ne s'y assoie.
+ */
+export async function adminCreateSessionTable(
   password: string,
-  sessionId?: string,
+  sessionId: string,
   leaderless = false,
-): Promise<{ table_id: string; join_code: string }> {
-  const { data, error } = await supabase.rpc('admin_create_table', {
+): Promise<{ table_id: string; join_code: string; table_number: number }> {
+  const { data, error } = await supabase.rpc('admin_create_session_table', {
     p_password:   password,
-    p_session_id: sessionId ?? null,
+    p_session_id: sessionId,
     p_leaderless: leaderless,
   })
   if (error) throw new Error(extractErr(error))
-  return data as { table_id: string; join_code: string }
+  return data as { table_id: string; join_code: string; table_number: number }
 }
 
 export async function updateGroupNames(

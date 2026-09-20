@@ -28,6 +28,100 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 83 (2026-09-20) — redéploiement de `gemini-proxy` (anti-abus du chantier 57) — ✅ validé par Jules le 2026-09-20
+
+**Contexte** : le chantier 57 (quota 20 req/60s + plafond 300 Ko sur `gemini-proxy`) était mergé côté code depuis le 2026-09-02 mais jamais redéployé — l'Edge Function en ligne tournait sans aucune limite. Comparaison ligne à ligne le 2026-09-20 entre le fichier local et le code collé par Jules depuis le dashboard : le prompt de fusion durci (typage prescription/jugement/constat) était en fait déjà en ligne ; c'est bien l'anti-abus du 57 qui manquait, pas le prompt.
+
+**Déblocage** : pas besoin de `supabase login`/CLI comme le disait l'entrée d'origine — Jules a copié-collé le contenu de `supabase/functions/gemini-proxy/index.ts` dans l'éditeur intégré du dashboard Supabase (Edge Functions → gemini-proxy → Code) et déployé depuis là.
+
+**Vérifié** : Jules a relancé une fusion d'assertions réelle juste après déploiement — 5 propositions de fusion reçues, fonctionnement inchangé du point de vue utilisateur.
+
+**Mise à jour du 2026-09-20, l'après-midi même — les deux garde-fous testés activement au navigateur, un résultat inattendu.**
+
+Méthode : serveur de dev local (`.env` copié depuis la racine, jeton de serveur pris puis relâché), session anonyme réelle (`signInAnonymously`, JWT + `apikey` extraits du `localStorage` de l'app), appels `fetch` directs vers `https://plpjiehqsxxakbuykmkm.supabase.co/functions/v1/gemini-proxy` avec `action: 'unknown_test'` (rejetée en `400` *après* la vérification de quota mais *avant* tout appel Gemini payant — aucun coût Gemini engendré par ce test).
+
+- **Plafond de taille (413) : ✅ confirmé.** Un payload de 412 585 octets (200 assertions de ~2000 caractères) reçoit bien `413` avec le message `"Charge envoyée trop volumineuse (max 300 Ko)..."`.
+- **Quota de débit (429) : ❌ ne se déclenche jamais en pratique.** 122 requêtes envoyées au total sur le même compte anonyme (22 séquentielles, puis 60 séquentielles, puis 40 en parallèle via `Promise.all`) — très au-dessus des 20 requêtes/60s configurées (`RATE_LIMIT_MAX_REQUESTS`/`RATE_LIMIT_WINDOW_MS`). **Aucune des 122 n'a reçu de `429`.**
+
+**Cause probable, déjà anticipée dans le code lui-même** (commentaire `supabase/functions/gemini-proxy/index.ts` lignes ~83-97) : le compteur `callLog` est une `Map` **en mémoire, par instance**. Sur l'infrastructure Edge Functions de Supabase, rien ne garantit qu'un appel suivant retombe sur la même instance/isolate qu'un appel précédent — même pour un client unique qui enchaîne ses requêtes sans délai. Le test le confirme empiriquement : avec 122 appels rapprochés sans qu'aucun ne déclenche la limite, il est probable que chaque requête (ou presque) atterrit sur une instance dont le compteur repart de zéro.
+
+**Conséquence concrète** : le plafond de taille protège réellement contre un payload disproportionné, mais **le quota de débit ne protège quasiment jamais en pratique** contre un script qui bombarderait la fonction en boucle — exactement le scénario que le chantier 57 visait à couvrir. Ce n'est pas un manque de déploiement (le code testé est bien le code actuellement en ligne), c'est une limite structurelle du choix d'implémentation (compteur en mémoire plutôt qu'en base), déjà identifiée comme un compromis assumé au moment du chantier 57 mais dont l'inefficacité n'avait jamais été mesurée.
+
+**À rouvrir si le sujet redevient sensible** : le correctif fiable nécessiterait un compteur partagé côté Postgres (une table dédiée, comme envisagé puis écarté au chantier 57 pour éviter une écriture par appel) plutôt qu'une `Map` en mémoire. Pas fait ici — changement de conception, pas un simple redéploiement, et hors du périmètre du chantier 83.
+
+## Chantier 98 (2026-09-19) — allocation : option « interdire les tables sans modérateur » — ✅ validé par Jules le 2026-09-19
+
+**Consigne de Jules (19/09)** : « Dans l'algo d'allocation des tables : mettre la possibilité d'interdire la création de table sans modérateur. Dans ce cas, on laisse d'autres critères être brisés, bien sûr. »
+
+**Implémenté** : `AllocationInput.forbidUnmoderatedTables` (`src/lib/allocation.ts`) — désactivée par défaut (comportement inchangé, testé). Activée, `enumerateShapes` ne retient que les formes où toutes les tables sont animées (`moderatedCount === tableCount`), rang au-dessus des 4 règles habituelles — c'est un filtre sur l'ensemble des formes candidates, pas une 5ᵉ règle lexicographique. Si aucune forme entièrement animée n'existe (capacité de modération trop faible), repli sur le filet de sécurité déjà existant (table unique), qui dégrade tout le reste sans jamais lever d'exception — avec un avertissement dédié si même ce filet reste sans modérateur (aucun modérateur du tout). Interrupteur ajouté dans `AllocationPanel.tsx` (case à cocher sous les saisies « Modérateurs à ajouter »/« Enregistreurs disponibles »), persisté en `sessionStorage` avec le reste de l'état de travail (H14).
+
+**Couvert par les tests** (`src/lib/allocation.test.ts`, section « chantier 98 ») : désactivée = comportement identique, capacité suffisante = toutes les tables animées sans violer les bornes dures, capacité insuffisante = repli sur table unique sans exception, aucun modérateur = avertissement dédié.
+
+**✅ Vérifié au navigateur le 2026-09-19** : séance de test créée en base (`C98TEST`, 38 actifs + 2 modérateurs, phase `allocating`, supprimée après la recette). Rejoué avec le vrai algorithme sur ces données réelles avant la recette : sans l'option, 4 tables dont 2 sans modérateur ; avec l'option, repli sur une table unique avec avertissement (capacité de 2 modérateurs insuffisante pour ≥3 tables). **Jules a confirmé au navigateur que ce comportement s'affiche correctement dans l'onglet Allocation du superadmin** (case à cocher, recalcul, avertissement).
+
+**Reste ouvert** : le rang exact de la règle dans l'ordre lexicographique a été choisi au rang le plus haut possible (avant même l'énumération des formes), sans confirmation explicite de Jules sur ce point précis — comportement jamais mis en défaut par la recette, mais pas formellement discuté non plus.
+
+## Chantier 102 (2026-09-19) — sécurité : refermer les six helpers SQL exposés à `anon` — ✅ vérifié au navigateur + en base
+
+**Migration appliquée** : `supabase/migrations/20260919_chantier102_revoke_exec_internal_helpers.sql`, appliquée directement en base (règle SQL du 2026-09-07 — une session peut appliquer sa propre migration). `REVOKE EXECUTE ... FROM PUBLIC` sur `leave_other_session_tables`, `sync_table_assignment`, `clear_reclaim_attempts`, `record_reclaim_failure`, `gen_member_reclaim_code`, `generate_session_join_code`.
+
+**Piège rencontré, à retenir** : un premier essai avec `REVOKE EXECUTE ... FROM anon, authenticated` **n'a rien fermé** — PostgreSQL accorde `EXECUTE` à `PUBLIC` par défaut sur toute fonction créée, et `anon`/`authenticated` en héritent implicitement (tout rôle est membre de `PUBLIC`). Vérifié avec `has_function_privilege('anon', oid, 'EXECUTE')` avant/après : toujours `true` tant que le grant à `PUBLIC` n'est pas retiré explicitement. La migration finale révoque `FROM public`, pas `FROM anon, authenticated`.
+
+**Vérifié en base après application** : `has_function_privilege` renvoie `false` pour `anon` et `authenticated` sur les six fonctions, et reste `true` pour `postgres`/`service_role` (les appelants `SECURITY DEFINER` internes ne sont pas affectés, comme prévu — le contrôle d'exécution dans un corps `SECURITY DEFINER` porte sur le propriétaire, pas sur l'appelant).
+
+**Vérifié par appel REST direct** : `POST /rest/v1/rpc/leave_other_session_tables` avec la clé `anon` renvoie désormais `42501 permission denied for function leave_other_session_tables` (HTTP 401) au lieu de s'exécuter.
+
+**Vérifié au navigateur** : chemin nominal `join_table` (qui appelle `leave_other_session_tables` en interne) rejoué en conditions réelles — rejoint la table `C94A01` de la séance de test « Test chantier 94 » (phase `debating`) via `JoinTableForm`, participant bien apparu dans la liste des présents, aucune erreur. Ligne de test supprimée après coup (`DELETE FROM participants WHERE pseudo = 'Test Chantier102'`).
+
+**Non rejoué** (hors périmètre du temps disponible, risque jugé nul par l'audit) : `switch_table` (déplacement de table), reclaim par code, et création de table modérateur. Les quatre chemins partagent le même mécanisme (appel à une fonction `SECURITY DEFINER` `OWNER = postgres`, non affecté par ce `REVOKE`) — seul `join_table` a été effectivement rejoué à l'écran. À dérouler si un doute apparaît sur un de ces trois autres chemins.
+
+**Rollback si besoin** : `GRANT EXECUTE ON FUNCTION <nom>(<signature>) TO PUBLIC;` pour chacune des six fonctions.
+
+## Chantier 103 (2026-09-19) — sécurité : `auth.uid()` au lieu du `user_id` en paramètre — ✅ vérifié en base + par appel REST
+
+**Migration appliquée** : `supabase/migrations/20260919_chantier103_auth_uid_instead_of_param.sql`. `leave_other_session_tables(p_session_id, p_new_table_id)` et `sync_table_assignment(p_session_id, p_table_id, p_pseudo)` lisent désormais `auth.uid()` au lieu de recevoir `p_user_id` en paramètre — `DROP FUNCTION` + `CREATE` (changement de signature), corps repris de `pg_get_functiondef` en base. Les quatre appelants (`join_table`, `switch_table`, `create_table`, `claim_table_as_moderator`) recréés dans la même migration pour appeler la nouvelle signature (un paramètre en moins chacune) ; leur propre signature ne change pas.
+
+**Piège rencontré, nouveau par rapport au 102** : après le `DROP`+`CREATE`, `has_function_privilege('anon', ..., 'EXECUTE')` renvoyait `true` sur les deux fonctions alors même que la migration contenait `REVOKE EXECUTE ... FROM public`. Cause : ce projet a des privilèges par défaut (`ALTER DEFAULT PRIVILEGES IN SCHEMA public`) qui accordent `EXECUTE` **directement** à `anon`/`authenticated`/`service_role` sur toute fonction nouvellement créée dans `public` — visible dans `pg_proc.proacl` (`anon=X/postgres` explicite, pas hérité de `PUBLIC`). Un `REVOKE ... FROM public` ne retire donc rien tant que le grant explicite aux deux rôles n'est pas lui-même révoqué. Corrigé en base par une seconde migration (`revoke execute ... from anon, authenticated`), puis répercuté dans le fichier de migration du dépôt pour que la prochaine application (autre environnement) soit correcte du premier coup.
+
+**Vérifié en base après application** : `has_function_privilege` renvoie `false` pour `anon`/`authenticated` sur les deux fonctions internes, `true` pour `postgres` ; les quatre appelants restent exécutables par `anon`/`authenticated` (comportement inchangé) ; aucune surcharge en double (`count(*) > 1` par nom, vide) — piège du chantier 70 écarté.
+
+**Vérifié par appel REST direct** : `POST /rest/v1/rpc/leave_other_session_tables` avec la clé `anon` renvoie `42501 permission denied` (HTTP 401), comme pour le chantier 102.
+
+**Vérifié par les trois chemins participant, rejoués deux fois** — d'abord via l'API REST (deux utilisateurs anonymes réels via `signInAnonymously`, séance de test jetable créée par SQL puis purgée après coup), **puis intégralement au navigateur** (`preview_start`/`ecclesia-dev`, serveur de dev local sur ce worktree, séance de test `C103NAV` créée par SQL) en suivant le vrai parcours participant (onboarding 4 questions → écran d'allocation → bascule `allocating → debating`, observée par relecture bornée de l'état affiché, pas d'assertion immédiate après le changement de phase) :
+- `create_table` (leaderless, sans Code Ecclesia) → table créée par API REST, `sync_table_assignment` exécuté avec succès (nouvelle signature à 3 arguments).
+- `join_table` → au navigateur, clic sur « Accéder à la table » depuis l'écran d'allocation : `NavTest` apparaît dans la liste des présents à `C103T1`, aucune erreur console.
+- `switch_table` → au navigateur, « Je veux rejoindre une autre table » → code `C103T2` → `NavTest` bascule sur la table 2 sans erreur ; confirmé en base une seule ligne `participants` restante, sur `C103T2` (`leave_other_session_tables` à 2 arguments a bien retiré l'ancienne, effet identique à avant le chantier). Aucune erreur console sur tout le parcours.
+- Piège rencontré en testant, sans rapport avec ce chantier : le `localStorage` du navigateur de test contenait un état de table résiduel d'une vérification précédente (chantier 102/94, clé `ecclesia_table`) qui court-circuitait le routage par hash tant qu'il n'était pas effacé — cohérent avec la mise en garde du projet sur `JSON.parse(localStorage…) as T`, bien que ce ne soit pas un bug ici, juste un piège de méthode pour la session de test.
+
+**Non rejoué** : `claim_table_as_moderator` — nécessite le Code Ecclesia réel (mot de passe superadmin), que cette session n'avait pas et n'a pas cherché à obtenir ou deviner. Son seul changement dans ce chantier est identique au motif déjà vérifié dans `switch_table` (`PERFORM leave_other_session_tables(v_table.session_id, v_table.id)` à 2 arguments au lieu de 3) — risque résiduel jugé faible, mais **à dérouler par Jules** : réclamer une table `leaderless` comme modérateur avec le vrai Code Ecclesia, sur une séance de test.
+
+**Rollback si besoin** : réappliquer les anciennes définitions à 3/4 paramètres (conservées dans l'historique git de la migration `20260919_chantier102_revoke_exec_internal_helpers.sql` et dans `pg_get_functiondef` avant ce chantier — voir le message initial de cette session pour le corps exact), et rétablir les appels des quatre appelants avec `auth.uid()` en dernier argument explicite.
+
+## Chantier 104 (2026-09-19) — sécurité : restreindre ce qu'un modérateur peut réécrire sur `tables` (C7) — ✅ vérifié en base
+
+**Migration appliquée** : `supabase/migrations/20260919_chantier104_restrict_tables_update_columns.sql`. `REVOKE UPDATE ON public.tables FROM anon, authenticated` puis `GRANT UPDATE (questionnaire_forced_at) ON public.tables TO anon, authenticated`. La policy RLS `tables_update_moderator` (chantier 60) ne change pas — c'est la garde d'autorité (« est-on modérateur ? ») ; ce chantier ajoute la garde de périmètre (« sur quoi ce privilège porte-t-il ? »). Constat initial : `anon`/`authenticated` avaient `UPDATE` sur les 11 colonnes de `tables`, alors que le seul `UPDATE` direct du frontend porte sur `questionnaire_forced_at` (`TableContext.tsx:538` et `:547`) — tout le reste (parole en cours, `leaderless`, numéro de table, rattachement de séance) passe par des RPC `SECURITY DEFINER`, non affectées par un `GRANT` de colonne (elles s'exécutent avec les privilèges du propriétaire, pas de l'appelant).
+
+**Vérifié en base avant/après** : `information_schema.column_privileges` confirme une seule colonne accordée en `UPDATE` par rôle (`questionnaire_forced_at`) après application, contre 11 avant.
+
+**Vérifié en base par simulation fidèle de PostgREST** (transaction `BEGIN`/`SET LOCAL ROLE authenticated` + `SET LOCAL request.jwt.claims` avec le `sub` d'un vrai modérateur — reproduit exactement le mécanisme de permutation de rôle utilisé par PostgREST, pas seulement `has_column_privilege` qui ne teste que le `GRANT` sans la RLS —, table `C94A01` de la séance de test « Test chantier 94 », `ROLLBACK` en fin de chaque test, aucune donnée modifiée) :
+- forçage puis annulation du questionnaire par ce modérateur (`created_by = auth.uid()`) → les deux `UPDATE` passent, valeur finale `NULL` confirmée.
+- `UPDATE tables SET join_code = 'HACKED'` par ce même modérateur → refusé, `42501 permission denied for table tables` (message Postgres standard quand aucune colonne touchée par l'`UPDATE` n'est accordée).
+- `UPDATE tables SET session_id = NULL` par ce même modérateur → refusé, même erreur.
+- un `sub` quelconque (non participant à la table) → `SELECT` sur la ligne renvoie 0 ligne (RLS `SELECT` intacte, non concernée par ce chantier).
+- tour de parole complet par ce modérateur (`grant_floor` puis `end_turn`) → fonctionne sans erreur, `current_speaker_id` bien reposé à `NULL` après `end_turn` — confirme que les RPC ne sont pas affectées, comme attendu.
+
+**Non rejoué au navigateur** : cette session a préféré la simulation SQL ci-dessus (fidèle au mécanisme réel de PostgREST, JWT + rôle) plutôt que de manipuler la séance de test partagée `C94S01`/`C94A01` au clic — le changement est un `GRANT`/`REVOKE` pur, sans code frontend touché, et le risque de casse silencieuse mentionné par la fiche du chantier porte sur des écrans qui n'ont pas changé. **À rejouer au clic si un doute apparaît** : forcer/annuler le questionnaire depuis les Outils modérateur, et confirmer qu'aucune action légitime de l'interface (hors accès direct à la table via un client REST) n'est affectée.
+
+**Rollback si besoin** : `GRANT UPDATE ON public.tables TO anon, authenticated;` (retour à l'état d'avant, toutes colonnes).
+
+## Chantier 100 — audit cybersécurité (2026-09-19)
+
+**Rien à vérifier au navigateur : aucun code, aucune migration.** Ce qui reste à confirmer, ce sont les hypothèses d'exploitation du document [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./docs/2026-09-19-audit-chantier100-interruption-exfiltration.md), toutes **déduites** des définitions en base et **jamais jouées** contre la production :
+
+1. `leave_other_session_tables` et `sync_table_assignment` sont-elles réellement atteignables via PostgREST avec la seule clé `anon` (grant `EXECUTE` confirmé en base, appel HTTP jamais effectué) ? À jouer sur une séance de test jetable, pas sur une séance réelle.
+2. `clear_reclaim_attempts` efface-t-elle bien le verrou anti-bruteforce du chantier 93 vu du dehors ?
+3. **Régression du chantier 51 à confirmer par Jules** : `assertions.member_id` est de nouveau accordé à `anon`/`authenticated` en base, alors que la migration `20260902_chantier51_hide_assertion_author.sql` l'avait révoqué et qu'aucune migration du dépôt ne le réaccorde. Savoir si ce `GRANT` a été rétabli à la main (dashboard) ou par un autre chemin — la réponse change ce qu'il faut corriger.
+
 ## Bug prod — page blanche superadmin, onglet Allocation (2026-09-18)
 
 **Signalé par Jules** : page blanche sur la vue superadmin, même symptôme que le bug `ai_log` du 2026-09-16 (voir plus bas dans ce fichier). Console :
@@ -150,6 +244,68 @@ DELETE FROM sessions WHERE join_code = 'C94S01';
 2. Vérifier que le nombre affiché ne bouge **pas** en direct (pas de `useLiveMs` ici) — seulement après un rechargement ou l'échéance du polling 5 min (réduire temporairement `POLL_INTERVAL_MS` dans `CampSpeakingTimes.tsx` pour un test rapide, ou attendre 5 min).
 3. Vérifier qu'un participant non-modérateur de cette même table, ou le modérateur d'une **autre** table, n'a pas accès à ces données (le bloc ne doit simplement pas apparaître côté participant ; `isModerator` conditionne déjà son rendu côté client, et la RPC refuse aussi côté serveur).
 4. Confirmer que 5 minutes (300s) convient bien comme seuil final pour les deux mécanismes (floutage ET minimum avant affichage) — décidé le 16/09, à ne rouvrir que si l'usage réel montre un problème.
+## Hors chantier (2026-09-18) — page blanche sur l'onglet Analyse du superadmin — ✅ corrigé
+
+Bug **antérieur au chantier 95 et indépendant de lui**, trouvé en voulant vérifier la vue superadmin : `AnalysisPanel` lisait `silhouette_score.toFixed()`, `pca_variance_explained[0]`, `Object.entries(repness)` et `Object.entries(group_consensus)` sans garde, alors que ces quatre colonnes de `session_analysis` sont nullables. L'analyse du 2026-09-16 (séance « Test chantier 94 ») les a toutes les quatre à NULL : le panneau plantait, et avec lui **tout l'écran superadmin**, sans message — page blanche.
+
+Corrigé dans `src/components/AnalysisPanel.tsx` : affichage « — » pour les deux métriques absentes, listes vides pour les deux dictionnaires absents. Vérifié à l'écran : l'onglet s'affiche à nouveau.
+
+**Reste à comprendre (pas traité ici)** : pourquoi cette analyse a un `status = 'done'` avec quatre colonnes NULL. Soit le calcul a échoué à mi-parcours sans repasser le statut en erreur, soit un chemin d'écriture ne remplit pas ces colonnes. Le garde-fou évite la page blanche, il ne répare pas la donnée.
+
+## Chantier 95 (2026-09-18) — ménage des portes d'entrée + tables créées à la main — ✅ SQL appliqué en base
+
+Migration [`supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql`](./supabase/migrations/20260918_chantier95_numero_table_sur_tables.sql), appliquée par cette session (règle du 07/09 : une session de chantier peut appliquer sa propre migration). Corps des fonctions réécrites comparés à `pg_get_functiondef` en base avant écriture, comme l'exige `CLAUDE.md`.
+
+**Ce qui change en base** :
+- Nouvelle colonne `tables.table_number` (le numéro n'existait que dans `table_assignments`, donc une table vide n'en avait aucun). 18 tables existantes rattrapées.
+- `apply_allocation` la renseigne, et la remet à NULL sur les tables qu'elle détache.
+- Nouvelle RPC `admin_create_session_table` — table vide, rattachée, déjà numérotée.
+- `move_member_to_group` résout la table cible par `tables.table_number` d'abord (sinon une table vide était une cible impossible).
+- `sync_table_assignment` respecte ce numéro au lieu de recalculer `MAX + 1`.
+- `list_session_tables` expose `table_number` (DROP + CREATE : changement de type de retour).
+
+**Ce qui change côté écran** :
+- Superadmin, vue Groupes : boutons « + Table animée » / « + Table sans modérateur » (allocation **et** débat) ; les tables vides apparaissent comme groupes en attente ; suppression possible sur une table vide.
+- Les deux accordéons de l'onglet Tables (« Tables rattachées », « Tables disponibles à rattacher ») sont supprimés, ainsi que les onglets « Modérateur » / « Rejoindre » / « Créer » de l'accueil.
+- Participant en phase débat : nouvelle fenêtre `TableChangeModal` quand le superadmin le déplace.
+
+**Vérifié par cette session** :
+- `tsc` et `npm run build` passent.
+- Accueil rendu dans le navigateur : plus d'onglets, liste des séances et liens conservés.
+- Test SQL sur séance jetable : une table vide numérotée 2 rejointe par son code donne bien l'affectation n°2 (et non un numéro neuf). Jeu de test supprimé, vérifié à zéro ligne.
+
+**Vérifié à l'écran le 2026-09-18** (un mot de passe superadmin était déjà en `sessionStorage` sur le navigateur de test, une fois la page blanche de l'onglet Analyse corrigée — voir l'entrée juste au-dessus), sur la séance « Test chantier 94 », en phase `debating` :
+- « + Table animée » crée bien la table N°2, vide, numérotée, avec son code affiché et la mention d'attente.
+- Un glisser-déposer d'un membre vers cette table vide fonctionne : affectation `table_number = 2`, `table_id` renseigné (vérifié en base).
+- Le bouton « Supprimer » n'apparaît que tant que la table est vide, et la suppression fonctionne.
+- Séance de test remise dans son état d'origine (membre rendu à la table 1, table de test supprimée, 6 affectations / 1 table / 6 membres comme avant).
+
+**Recette complète jouée le 2026-09-18 sur une séance jetable** (« ZZ test chantier 95 », créée depuis le superadmin, menée de `draft` à `debating`, puis **entièrement supprimée** — vérifié : 0 ligne restante dans `sessions`, `tables`, `session_members`, `table_assignments`, `participants`, `entry_responses`) :
+- Phase `allocating` : « Calculer la répartition » puis « Appliquer » créent la table N°1 avec `tables.table_number = 1` — la migration fonctionne sur le chemin nominal.
+- « + Table animée » en phase `allocating` crée la table N°2, vide, numérotée, avec son code.
+- Inscription d'une vraie participante par le parcours normal (`#session/<code>`, onboarding 4 questions), passage en `debating`, elle rejoint sa table.
+- **Déplacement pendant le débat** : la fenêtre « Changement de table » s'ouvre chez elle en moins de 10 s, avec le bon numéro. « Rejoindre la table N°2 » la déplace réellement (ligne `participants` sur la nouvelle table, vérifiée en base). Elle ne se rouvre pas une fois arrivée.
+- « Rester à ma table » ferme la fenêtre et elle ne réapparaît pas (observé 20 s).
+- Le champ « rejoindre une autre table avec son code » est présent ; le bouton principal a été testé, pas ce champ-là.
+
+**Deux constats de ce test, à trancher par Jules** :
+1. **La modale d'accueil du débat masque la fenêtre de changement.** Après un changement de table, « Bienvenue dans le débat » et les règles se réaffichent (elles sont mémorisées par identifiant de table), et ma garde anti-superposition met la fenêtre de changement en attente derrière elles. Une fois l'accueil fermé, elle s'affiche normalement. Comportement acceptable mais à confirmer : faut-il plutôt faire passer la fenêtre de changement devant ?
+2. **Le glisser-déposer vers une table vide n'a pas pu être rejoué en phase `allocating`** — le clic-glisser automatisé ne s'accrochait pas ce jour-là, alors que le même geste a fonctionné du premier coup en phase `debating` quelques minutes plus tôt (affectation écrite en base, vérifiée). Le code de dépôt ne dépend pas de la phase ; c'est très probablement une limite de l'automatisation, mais ça reste à confirmer à la main.
+
+**Reste à vérifier à l'écran par Jules** :
+1. Le glisser-déposer vers une table vide en phase `allocating` (voir le constat 2 ci-dessus).
+2. Le comportement depuis un second navigateur, et l'arrivée d'un retardataire par le code d'une table vide créée à la main.
+3. Faire rejoindre un retardataire avec le code d'une table vide, vérifier qu'il tombe sur le bon numéro de groupe.
+4. Phase débat : déplacer quelqu'un déjà assis, vérifier que la fenêtre s'ouvre chez lui dans les 10 s, que « Rejoindre la table N°X » le déplace réellement, que le champ de code marche, et que « Rester à ma table » ne rouvre pas la fenêtre en boucle.
+5. Vérifier qu'un modérateur en train d'animer ne reçoit pas cette fenêtre (elle n'est montée que dans `ParticipantView`).
+6. Écran d'allocation participant : le message renvoyant vers l'organisateur pour la déclaration modérateur s'affiche bien.
+7. Relancer une allocation complète après avoir créé des tables à la main, pour confirmer que `apply_allocation` renumérote proprement.
+
+**⚠️ Conséquence repérée en mergeant le chantier 94 (2026-09-18), à trancher** : la recette du chantier 94 dit « page d'accueil → *Rejoindre ou reprendre une table* → code `C94A01` » — **cet onglet n'existe plus**. Il était le seul endroit où un membre **déjà inscrit à la séance** pouvait reprendre par son code une table précise en tant que modérateur (`claimTableAsModerator`). Ce qui reste : un visiteur **non inscrit** garde ce chemin (formulaire de rattrapage en phase débat, avec la case « Je suis modérateur de cette table ») ; un membre inscrit peut se déclarer modérateur de la *séance* (`ModeratorClaimModal`, qui l'assoit à une table animée sans modérateur) ou être nommé par le superadmin. Ce qui manque : reprendre **une table précise, choisie par son code**, quand on est déjà inscrit. **✅ Corrigé le 2026-09-18**, sur accord de Jules : le formulaire « Je veux rejoindre une autre table » (`TableAssignmentCard`) porte désormais une case « Je suis modérateur de cette table » qui révèle un champ Code Ecclesia ; le bouton devient « Reprendre cette table » et appelle `claim_table_as_moderator` via `handleSwitchAsModerator` (`AllocatingScreen`), au lieu de `switch_table`. Les refus côté serveur sont inchangés (code invalide, table d'une autre séance, table ayant déjà un modérateur).
+
+**Vérification partielle seulement** : sur une séance jetable menée jusqu'en `debating` (supprimée depuis, vérifiée à zéro ligne), la case s'affiche bien dans le formulaire. **Le reste n'a pas pu être joué** — le panneau navigateur a cessé de transmettre les clics en fin de session, et surtout le **Code Ecclesia n'est pas connu d'une session Claude**, donc le chemin nominal (reprise réussie) est invérifiable sans Jules. À dérouler à la main : cocher la case → le champ Code Ecclesia apparaît et le bouton devient « Reprendre cette table » ; code invalide → message d'erreur sans déplacement ; code valide sur une table sans modérateur → reprise effective, `isModerator` vrai à l'arrivée ; code valide sur une table déjà modérée → refus explicite.
+
+**Point resté ouvert, décidé avec Jules** : la déclaration modérateur reste fermée pendant la phase `allocating` (elle assoit d'office son auteur à une table animée sans modérateur, ce qui remanierait la répartition pendant l'examen).
 
 ## Chantier 56 (2026-09-16) — durcissement SQL ciblé (`search_path` + `app_config`/`assertion_merges`) — ✅ appliqué en base
 
@@ -305,6 +461,32 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 6. **Questionnaire post-débat** — les trois points d'entrée (table, `#vote/`, `#session/`) et leur déclenchement automatique à la clôture (chantier 39).
 7. **Synchronisation temps réel (chantier 35)** — nécessite deux onglets/navigateurs en parallèle, à faire à part.
 8. **Nettoyage des données de test** — une fois tout vérifié, purger les tables de QA listées en bas de fichier.
+9. **Sauvegardes DB** (ci-dessous, section Infrastructure) — indépendant des autres points, à faire dès que les deux secrets GitHub sont créés.
+
+## Infrastructure — Sauvegardes DB chiffrées (chantier sécurité, 2026-09-02)
+
+*Contexte : point F3 de l'audit sécurité du 02/09/2026 (le plus grave des 19 constats) — le projet Supabase tourne sur le plan gratuit, qui n'inclut aucune sauvegarde automatique restaurable. `.github/workflows/db-backup.yml` a été écrit et commité pour combler ça : dump quotidien chiffré (AES-256) stocké en artefact GitHub Actions (rétention 30 jours), suivi automatiquement d'une restauration de vérification dans un Postgres jetable. Détail complet (procédure de restauration réelle, secrets requis, limites) en tête du fichier de workflow.*
+
+- [x] **2026-09-02 — Secrets GitHub à créer avant tout run réel** *(fait le 2026-09-20)*
+
+  Jules a créé les deux secrets sur le dépôt GitHub. Deux itérations ont été nécessaires pour `SUPABASE_DB_URL` : la connexion directe (`db.<ref>.supabase.co:5432`) n'est joignable qu'en IPv6, indisponible sur les runners GitHub Actions (« Network is unreachable ») — remplacée par l'URI du **Session pooler** (`aws-0-<region>.pooler.supabase.com:5432`, utilisateur `postgres.<ref>`, IPv4), après un premier échec d'authentification dû à un mot de passe de base de données incorrect (corrigé par une réinitialisation). `BACKUP_PASSPHRASE` créé sans difficulté.
+
+- [x] **2026-09-02 — Premier run réel du workflow (`workflow_dispatch`)** *(fait le 2026-09-20)*
+
+  Trois allers-retours avant un run entièrement vert, chacun corrigé dans `db-backup.yml` (voir les commits du 2026-09-20 pour le détail) :
+  1. `SUPABASE_DB_URL` en connexion directe → IPv6 injoignable depuis les runners. Corrigé par le Session pooler (voir point ci-dessus) — la doc du fichier de workflow (section SECRETS GITHUB REQUIS) a été corrigée en conséquence, elle recommandait à tort la connexion directe.
+  2. `verify-restore` : `CREATE TABLE` échouait sur les colonnes `DEFAULT auth.uid()` (ex. `private_notes.user_id`) — le Postgres jetable n'a pas le schéma `auth` de Supabase. Corrigé en ajoutant un schéma `auth` + fonction `auth.uid()` factice (`RETURNS NULL::uuid`) à l'étape de préparation ; seule cette fonction est référencée dans `supabase/migrations/` (vérifié par grep), pas d'autre stub nécessaire.
+  3. `verify-restore` restaurait dans un service container `postgres:15`, alors que le dump est produit par `pg_dump` depuis l'image Supabase Postgres 17 (`supabase db dump`) — `15` ne reconnaît pas le privilège `MAINTAIN` (ajouté en 17). Corrigé en passant le service container en `postgres:17`.
+
+  **Run final confirmé vert** : `backup` et `verify-restore` tous deux réussis (page restée affichée en "en cours" après completion réelle en ~1min30 — artefact anomalie d'affichage GitHub, pas un vrai blocage, confirmé par Jules).
+
+- [ ] **Confirmer le déclenchement automatique du cron quotidien (05:00 UTC)**
+
+  Après un ou deux jours, vérifier dans l'onglet Actions qu'un run s'est déclenché tout seul sans intervention manuelle, et qu'il est vert.
+
+- [ ] **2026-09-02 — Test de restauration réelle grandeur nature (à faire une fois, pas à chaque run)**
+
+  Objectif : prouver que la procédure documentée en tête de `db-backup.yml` fonctionne vraiment de bout en bout sur un cas réel, pas seulement dans le Postgres jetable du CI. Créer un projet Supabase temporaire gratuit, y restaurer un dump téléchargé et déchiffré à la main en suivant la procédure du fichier, vérifier dans le Table Editor que les données correspondent à la base d'origine, puis supprimer le projet temporaire. À refaire si la structure de la base change significativement (nouvelles tables, nouveaux rôles).
 
 ## Chantier 89 — phase `post_voting` (2026-09-07) — ✅ mergé sur `main` (`7bb7d3e`)
 
@@ -1228,6 +1410,41 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
 ## Validé
 
 <!-- déplacer ici une fois vérifié, au format : - [x] **AAAA-MM-JJ (validé le AAAA-MM-JJ)** — `fichier` — description -->
+
+- [x] **Chantier 81 — se déclarer modérateur au moment de la reconquête** *(clos par décision de Jules le 2026-09-19, sans code écrit)* — deux écrans sur trois le proposaient déjà depuis le chantier 73 : `VotingEntryForm` (présentiel/allocation, y compris sur le chemin reconnexion) et `AttendanceConfirmScreen` en mode reclaim. Le troisième — l'écran « Ce nom est déjà utilisé » de `PseudoForm`, en phase distanciel — ne l'a **jamais** proposé : `handleReclaim` appelle `reclaimPrevotingMember` et rien d'autre.
+
+  **Décision de Jules** : « ce n'est pas grave, il peut se déclarer pendant la séance ». Le manque est donc assumé, pas oublié — la déclaration reste possible plus tard via les Outils (`ModeratorClaimModal`), pendant le vote comme pendant le débat. Ne pas rouvrir sans nouvelle demande.
+
+  *Correction d'une note antérieure de ce fichier, qui affirmait `ModeratorDeclareField` présent sur les trois écrans : l'écran de reconquête de `PseudoForm` est un rendu séparé, au-dessus du formulaire d'inscription, et n'a pas ce champ.*
+
+- [x] **Chantier 93 — identité du participant : le code de rappel devient la preuve (absorbe 55, 81, 82)** *(2026-09-18, vérifié au navigateur le 2026-09-18, mergé sur `main`)* — reste ouvert : la déclaration modérateur à la reconquête (chantier 81), voir la section du même nom plus haut.
+
+  Migration [`supabase/migrations/20260918_chantier93_identite_participant.sql`](./supabase/migrations/20260918_chantier93_identite_participant.sql), appliquée par cette session (règle du 07/09), plus un correctif appliqué juste après (`regenerate_reclaim_code_moderator` ciblée par **pseudo** et non par `member_id` : `session_members` est en self-only, un modérateur n'a aucun `member_id` sous la main — la surcharge `(uuid, uuid)` a été `DROP`ée pour ne pas laisser deux signatures ambiguës).
+
+  **Décisions de Jules (16 et 18/09)** : code remis à toute première inscription quelle que soit la phase ; reconnexion = pseudo **ET** code, toujours les deux ; code **haché** (bcrypt), donc illisible après coup → régénération et non rappel ; unicité du code dans la séance ; 10 échecs par couple (séance, pseudo) → 1 minute de blocage ; renommage libre, propagé ; après la clôture personne n'a besoin de se reconnecter, donc la purge du chantier 49 reste.
+
+  **Ce qui change en base** : `session_members.reclaim_code` (clair) → `reclaim_code_hash` (bcrypt) ; nouvelle table `reclaim_attempts` (RLS activée, zéro policy, écrite uniquement par des SECURITY DEFINER) ; nouvelles fonctions `gen_member_reclaim_code`, `reclaim_block_reason`, `record_reclaim_failure`, `clear_reclaim_attempts`, `rename_session_member`, `regenerate_reclaim_code_admin`, `regenerate_reclaim_code_moderator` ; réécriture de `register_session_member`, `confirm_attendance`, `reclaim_prevoting_member`, `claim_moderator_status`, `set_session_phase` (corps repris de la définition **courante en base** via `pg_get_functiondef`, comme l'exige la règle SQL).
+
+  **Point de conception à connaître avant d'y toucher** : les branches « mauvais code » et « trop de tentatives » **ne lèvent pas**, elles renvoient `{"error": "..."}`. Un `RAISE` annulerait la transaction — donc l'incrément du compteur de tentatives avec, et le blocage ne se déclencherait jamais. Côté TS, `unwrapIdentity()` (`src/lib/voting.ts`) rétablit le `throw` attendu par React. Ne pas « simplifier » en remettant un `RAISE`.
+
+  **Recette jouée à l'écran par cette session** (Browser pane, `ecclesia-dev`, séance de test `C93TEST` en phase `voting`, supprimée depuis) :
+  1. Inscription « Alice Martin » en phase **présentiel** → écran code de rappel affiché avec un code (2692). ✅ Avant ce chantier, aucun code n'était remis hors `pre_voting`.
+  2. `localStorage` vidé + rechargement (simulation d'un autre appareil) → saisie du **nom seul** → refus avec le message voulu par Jules : « Ce nom est déjà utilisé dans cette séance. Si c'est bien toi, reconnecte-toi avec ton code de rappel à 4 chiffres. Sinon, choisis un autre nom. » ✅
+  3. Nom + **mauvais** code → « Code de rappel invalide. », et `reclaim_attempts.fail_count = 1` en base (donc l'échec survit bien à la transaction). ✅
+  4. 9 échecs de plus → `blocked_until` posé ; l'écran affiche « Trop de tentatives. Réessaie dans 47 secondes. » **même avec le bon code**. ✅
+  5. Blocage effacé, nom + **bon** code → « Bienvenue Alice Martin ! Tes votes ont bien été récupérés. » ✅
+  6. Outils → « Changer mon nom » → Alice Dupont, puis Alice Renommee : nom à jour à l'écran et dans `session_members`, **et** `session_sources.pseudo` suit (propagation vérifiée en base sur une source créée avant le renommage). ✅
+  7. Renommage vers un nom déjà pris (« Bob Durand ») → « Ce nom est déjà pris dans cette séance. » ✅
+  8. `regenerate_reclaim_code_moderator` (identité modérateur simulée en base via `request.jwt.claims`) : refus « Ce participant n'est pas inscrit à cette table » tant que la cible n'est pas assise ; succès une fois assise (nouveau code 4898, validé ensuite par `crypt()`) ; refus « Tu n'animes pas cette table » quand l'appelant n'est pas le modérateur. ✅
+  9. Séance passée en `closed` : `confirm_attendance` renvoie « La séance est clôturée : la reconnexion n'est plus possible. » ✅
+  10. `tsc --noEmit`, `npm run build` et la suite de tests (109 passés) au vert. ✅
+
+  **Reste-à-vérifier levé le 2026-09-18** — Jules a transmis le mot de passe superadmin, les trois points ouverts ont été déroulés à l'écran sur deux séances jetables (`C93BIS`, `C93TER`), supprimées depuis :
+  - **Régénération superadmin** : onglet Tables → « Participants inscrits » → colonne « Code » → « 🔑 nouveau ». Modale affichée avec le pseudo et le nouveau code (6281). En base : le nouveau code valide, **l'ancien (1234) invalidé**, les 3 tentatives d'échec en cours effacées, l'autre membre intact. ✅
+  - **Purge à la clôture** : parcours complet des phases dans la barre du superadmin (`voting → allocating → debating → post_voting/clôture`, via « Clôturer directement »). Après la clôture : **0 code restant sur 2 membres**, `reclaim_attempts` vidée pour la séance. ✅
+  - **Bouton 🔑 côté modérateur** : vue modérateur d'une vraie table en débat, bouton présent dans la ligne du participant, modale affichée (code 3115), nouveau code valide en base et ancien invalidé, aucun autre membre touché. ✅ *Simulation assumée sur deux points, faute de Code Ecclesia : l'autorité d'animation venait de `tables.created_by = auth.uid()` (branche légitime de `is_table_moderator`) et non d'une déclaration modérateur, et `ecclesia_table.isModerator` a été passé à `true` dans le `localStorage` pour obtenir la vue. La RPC, elle, a bien été appelée par le bouton réel avec l'autorisation serveur réelle.*
+  - **Chantier 81** : clos le 19/09 par décision de Jules, entrée dédiée juste au-dessus. La relecture faite ce jour-là a corrigé ce qui était écrit ici : le champ manque sur l'écran de reconquête de `PseudoForm` (distanciel), et ce manque est assumé.
+  - **Membres inscrits avant la migration** : au moment de l'application, **aucune ligne `session_members` n'avait de code** (0 sur 140), donc rien n'a été cassé ni converti. Jules a tranché le 18/09 : **on n'utilise pas les codes pour les séances déjà créées**, aucun chemin de transition n'est nécessaire.
 
 - [x] **Chantier 79 — Écran de comparaison avant/après débat** *(validé le 2026-09-07)* — `src/components/AnalysisPanel.tsx` (`AnalysisComparisonPanel`), `src/lib/analysis.ts` (`pairGroups`, `computeMemberMovements`, `computeConsensusMovements`), `src/screens/SuperadminScreen.tsx` (onglet 📊 Analyse) — ✅ vérifié au navigateur par Jules sur une séance de test générée directement en base (16 membres fictifs, deux camps, votes avant/après débat avec un mouvement de camp réel et une assertion passant de clivante à consensuelle, analyse `pre_closure` calculée avec le vrai pipeline PCA/k-means du projet). Donnée de test supprimée après validation (cascade sur `sessions`).
 

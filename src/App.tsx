@@ -85,12 +85,6 @@ export default function App() {
     init()
   }, [])
 
-  function handleJoined(tableId: string, participantId: string, isModerator: boolean) {
-    if (phase.type === 'entry') {
-      setPhase({ type: 'table', tableId, participantId, userId: phase.userId, isModerator })
-    }
-  }
-
   function handleTableJoined(tableId: string, participantId: string, isModerator: boolean) {
     const userId = phase.type !== 'loading' ? (phase as { userId: string }).userId : ''
     setPhase({ type: 'table', tableId, participantId, userId, isModerator })
@@ -160,7 +154,7 @@ export default function App() {
   }
 
   if (phase.type === 'entry') {
-    return <EntryScreen userId={phase.userId} onJoined={handleJoined} />
+    return <EntryScreen />
   }
 
   return (

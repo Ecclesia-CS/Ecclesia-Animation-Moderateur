@@ -1,0 +1,43 @@
+-- Chantier 104 — Sécurité : restreindre ce qu'un modérateur peut réécrire sur `tables` (C7)
+--
+-- Constat (docs/2026-09-19-audit-chantier100-interruption-exfiltration.md,
+-- docs/2026-09-19-plan-anti-interruption-seance.md, lot 3) : la policy RLS
+-- `tables_update_moderator` (20260902_chantier60_moderator_authority.sql)
+-- autorise l'UPDATE dès que `is_table_moderator(id)` est vrai, mais ne
+-- restreint aucune colonne — et le GRANT UPDATE à anon/authenticated porte
+-- sur toutes les colonnes de `tables`. Un modérateur peut donc réécrire
+-- `join_code` (plus personne ne peut rejoindre la table) ou `session_id`
+-- (rattachement à une autre séance), sans passer par aucune RPC.
+--
+-- Le seul UPDATE direct sur `tables` dans le frontend porte sur
+-- `questionnaire_forced_at` (src/context/TableContext.tsx:538 et :547,
+-- forçage/annulation du questionnaire). Tout le reste (parole en cours,
+-- `leaderless`, numéro de table, rattachement) passe par des RPC
+-- SECURITY DEFINER, que ce privilège de table ne concerne pas.
+--
+-- La policy RLS ne change pas : elle reste la garde d'autorité
+-- (« est-on modérateur de cette table ? »), le GRANT de colonne est la
+-- garde de périmètre (« sur quoi ce privilège porte-t-il ? »).
+
+REVOKE UPDATE ON public.tables FROM anon, authenticated;
+GRANT UPDATE (questionnaire_forced_at) ON public.tables TO anon, authenticated;
+
+-- ─────────────────────────────────────────────────────────────
+-- Vérification (à exécuter après application) :
+--
+-- 1. Plus qu'une seule colonne accordée en UPDATE, pour les deux rôles :
+--    SELECT grantee, column_name
+--    FROM information_schema.column_privileges
+--    WHERE table_schema = 'public' AND table_name = 'tables'
+--      AND privilege_type = 'UPDATE' AND grantee IN ('anon','authenticated')
+--    ORDER BY grantee, column_name;
+--    → attendu : une ligne par rôle, colonne `questionnaire_forced_at`.
+--
+-- 2. Recette navigateur (voir A_VERIFIER.md § Chantier 104) :
+--    - forcer puis annuler le questionnaire depuis les Outils modérateur ;
+--    - un UPDATE direct sur `join_code` depuis le client est refusé
+--      (`permission denied for column join_code` ou équivalent) ;
+--    - un tour de parole complet (prise, fin, avancement automatique) —
+--      passe par les RPC `grant_floor`/`end_turn`/`end_turn_and_advance`
+--      (SECURITY DEFINER), donc non affecté par ce GRANT.
+-- ─────────────────────────────────────────────────────────────

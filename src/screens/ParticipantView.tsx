@@ -12,6 +12,7 @@ import QuestionnaireModal from '../components/QuestionnaireModal'
 import DebateRulesModal from '../components/DebateRulesModal'
 import ConfirmModal from '../components/ConfirmModal'
 import PhaseIndicator from '../components/PhaseIndicator'
+import TableChangeModal from '../components/TableChangeModal'
 
 export default function ParticipantView() {
   const {
@@ -381,6 +382,17 @@ export default function ParticipantView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Chantier 95 — déplacement décidé par le superadmin pendant le débat.
+          Masqué tant qu'un autre overlay z-50 est ouvert (règles, accueil,
+          questionnaire forcé), sinon ils se superposent. */}
+      {session?.phase === 'debating' && table.session_id && !showRules && !showWelcome && !forcedQOpen && (
+        <TableChangeModal
+          sessionId={table.session_id}
+          currentTableId={table.id}
+          pseudo={myParticipant.pseudo}
+        />
       )}
 
       {forcedQOpen && (

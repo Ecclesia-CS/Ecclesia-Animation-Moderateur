@@ -28,8 +28,9 @@
 # liste figée à une date donnée) :
 #   - la branche `main` elle-même ;
 #   - toute branche listée dans PROTECTED_BRANCHES ci-dessous (à ce jour :
-#     chantier-58-colonnes-sessions, chantier-secu-sauvegardes — travail
-#     réel non mergé, décision de Jules le 2026-09-04) ;
+#     chantier-58-colonnes-sessions — travail réel non mergé, décision de
+#     Jules le 2026-09-04 ; chantier-secu-sauvegardes retirée de cette liste
+#     le 2026-09-20, mergée sur `main` — chantier 85) ;
 #   - tout worktree dont `git status --porcelain` n'est pas vide
 #     (modifications ou fichiers non trackés non commités, quels qu'ils
 #     soient) ;
@@ -72,7 +73,7 @@ done
 MAIN_BRANCH="main"
 
 # Branches à ne jamais toucher, quel que soit leur état de merge/push.
-PROTECTED_BRANCHES=("$MAIN_BRANCH" "chantier-58-colonnes-sessions" "chantier-secu-sauvegardes")
+PROTECTED_BRANCHES=("$MAIN_BRANCH" "chantier-58-colonnes-sessions")
 
 # Tags de rollback (pre-merge-chantier-*) créés avant cette date sont
 # considérés obsolètes (décision de Jules le 2026-09-04 : "antérieurs au
