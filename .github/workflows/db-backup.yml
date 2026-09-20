@@ -108,12 +108,21 @@ name: Sauvegarde chiffrée de la base Supabase
 # SECRETS GITHUB REQUIS (à créer par Jules — Settings → Secrets and
 #         variables → Actions → New repository secret ; jamais posés par
 #         une session Claude Code) :
-#   - SUPABASE_DB_URL   Chaîne de connexion Postgres DIRECTE du projet (PAS
-#                       le pooler pgbouncer — `db dump` a besoin d'une vraie
-#                       session Postgres). Dashboard Supabase → Project
-#                       Settings → Database → Connection string → onglet
-#                       "URI" → section "Direct connection", ex.
-#                       postgres://postgres:<mot de passe>@db.<ref>.supabase.co:5432/postgres
+#   - SUPABASE_DB_URL   Chaîne de connexion Postgres du projet, via le
+#                       **Session pooler** (PAS la connexion directe, PAS le
+#                       Transaction pooler). Trouvé au premier run réel
+#                       (2026-09-20) : les runners GitHub Actions n'ont pas
+#                       d'IPv6, or la connexion directe de ce projet n'existe
+#                       qu'en IPv6 (« Network is unreachable ») — le Session
+#                       pooler, lui, est joignable en IPv4 et présente une
+#                       vraie session Postgres (contrairement au Transaction
+#                       pooler, dont le mode pgbouncer casse certaines
+#                       opérations dont `pg_dump` a besoin). Dashboard
+#                       Supabase → bouton "Connect" → section "Session
+#                       pooler", ex.
+#                       postgresql://postgres.<ref>:<mot de passe>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#                       ⚠️ Le nom d'utilisateur est `postgres.<ref>`, pas
+#                       `postgres` seul (différent de la connexion directe).
 #   - BACKUP_PASSPHRASE Phrase de passe longue et aléatoire, DÉDIÉE à cet
 #                       usage (ne pas réutiliser un mot de passe existant,
 #                       ni le code Ecclesia, ni le mot de passe superadmin).
@@ -202,7 +211,15 @@ jobs:
         env:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
 
-      - name: Préparer le Postgres jetable (rôles Supabase absents d'un Postgres nu)
+      - name: Préparer le Postgres jetable (rôles + schéma "auth" absents d'un Postgres nu)
+        # Le dump ne couvre que le schéma "public" (voir LIMITE CONNUE en tête
+        # de fichier), mais plusieurs colonnes de "public" ont un DEFAULT
+        # "auth"."uid"() (ex. private_notes.user_id) — CREATE TABLE échoue si
+        # la fonction n'existe pas, même si elle n'est jamais appelée pendant
+        # la restauration. Stub minimal : seule auth.uid() est référencée
+        # dans tout supabase/migrations/ (vérifié par grep) ; NULL convient
+        # ici, ce job ne teste que la restaurabilité du schéma, pas le
+        # comportement RLS.
         run: |
           psql -h localhost -U postgres -d verif -v ON_ERROR_STOP=1 <<'SQL'
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -219,6 +236,9 @@ jobs:
             END IF;
           END
           $$;
+          CREATE SCHEMA IF NOT EXISTS auth;
+          CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
+            LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
           SQL
 
       - name: Restaurer le dump dans le Postgres jetable
