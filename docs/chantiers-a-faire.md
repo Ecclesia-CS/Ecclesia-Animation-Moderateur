@@ -4,7 +4,7 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-19**.
+Dernière mise à jour : **2026-09-20**.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 >
@@ -13,6 +13,8 @@ Dernière mise à jour : **2026-09-19**.
 > **Ajout du 2026-09-19, en fin de journée** : le chantier **100 est fait** (audit livré), et sa suite est découpée en cinq chantiers de sécurité — **102** (refermer les helpers SQL exposés, l'essentiel du gain, ne dépend de rien), **103** (`auth.uid()` au lieu du `user_id` en paramètre), **104** (colonnes de `tables`, C7), **105** (régression du chantier 51 sur `assertions`) et **105bis** (auto-désignation de modérateur, **bloqué sur un arbitrage de Jules**). Tous renvoient au diagnostic et au plan du jour.
 >
 > **Le 2026-09-20, le chantier 83 est fait** — redéployé via le dashboard Supabase (pas de `supabase login` nécessaire, contrairement à ce que disait l'entrée initiale). Voir `docs/chantiers.md` (chantier 57 mis à jour) et `A_VERIFIER.md`.
+>
+> **Le 2026-09-20 (suite), chantier 83bis fait** : le test navigateur du 83 avait montré que le quota 429 ne se déclenchait jamais (compteur en mémoire, non partagé entre instances Edge Function). Remplacé par un compteur partagé en Postgres (table `gemini_rate_limit_calls` + RPC `check_gemini_rate_limit`), migration appliquée en base. **L'Edge Function reste à redéployer via le dashboard Supabase** (comme au 83) avant que le correctif ne soit effectif en ligne — voir `A_VERIFIER.md`.
 
 ---
 
@@ -53,7 +55,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-19 : aucun chantier en cours.** Le 104 a été livré le jour même — voir `docs/chantiers.md`.
+**Au 2026-09-20 : aucun chantier en cours.** Le 83bis (compteur de quota `gemini-proxy` partagé) a été livré le jour même — voir `docs/chantiers.md` (chantier 57 mis à jour) et `A_VERIFIER.md`.
 
 ---
 

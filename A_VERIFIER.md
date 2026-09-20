@@ -36,6 +36,20 @@ Méthode : serveur de dev local (`.env` copié depuis la racine, jeton de serveu
 
 **À rouvrir si le sujet redevient sensible** : le correctif fiable nécessiterait un compteur partagé côté Postgres (une table dédiée, comme envisagé puis écarté au chantier 57 pour éviter une écriture par appel) plutôt qu'une `Map` en mémoire. Pas fait ici — changement de conception, pas un simple redéploiement, et hors du périmètre du chantier 83.
 
+## Chantier 83bis (2026-09-20) — quota `gemini-proxy` : compteur partagé en Postgres — ⏳ à vérifier au navigateur, à redéployer
+
+**Suite directe du chantier 83 ci-dessus** : la `Map` en mémoire ne protégeait jamais en pratique (0 `429` sur 122 requêtes). Remplacée par un compteur partagé en base : nouvelle table `gemini_rate_limit_calls` + RPC `SECURITY DEFINER` `check_gemini_rate_limit(p_user_id, p_max_requests, p_window_seconds)`, appelée par `gemini-proxy` lui-même (pas par le frontend). Détail dans `docs/reference-fonctions-sql.md`.
+
+**Migration appliquée en base** (`plpjiehqsxxakbuykmkm`, via MCP Supabase `apply_migration`, règle SQL du 2026-09-07) : `supabase/migrations/20260920_chantier83bis_gemini_rate_limit_partage.sql`.
+
+**Piège rencontré, même famille que le chantier 102 mais inversé** : un premier `REVOKE ALL ... FROM PUBLIC` + `GRANT ... TO authenticated` a laissé `anon` capable d'exécuter la fonction — confirmé par `get_advisors` (type `security`) puis par `information_schema.routine_privileges`. Contrairement au chantier 102 (où `anon`/`authenticated` héritaient du grant à `PUBLIC`), ici Supabase accorde `EXECUTE` **directement** à `anon`/`authenticated`/`service_role` par défaut à la création d'une fonction dans `public` (`ALTER DEFAULT PRIVILEGES`), indépendamment de `PUBLIC`. Il a fallu un `REVOKE EXECUTE ... FROM anon` explicite en plus. Revérifié après coup : seuls `authenticated`/`service_role`/`postgres` ont `EXECUTE`. **À retenir pour toute prochaine fonction `SECURITY DEFINER` réservée à `authenticated`** : vérifier `information_schema.routine_privileges`, pas seulement relire le SQL du `GRANT`.
+
+**Pas encore fait par cette session** :
+- **Redéploiement de l'Edge Function.** Comme au chantier 83, `supabase/functions/gemini-proxy/index.ts` doit être copié-collé dans l'éditeur du dashboard Supabase (Edge Functions → gemini-proxy → Code) puis déployé — cette session n'a pas les identifiants pour le faire elle-même. Tant que ce n'est pas fait, la fonction en ligne appelle encore l'ancienne `Map` en mémoire (le code local a changé, pas le code déployé).
+- **Re-test navigateur du quota** une fois redéployé, avec la même méthode que le 20/09 (session anonyme réelle, `action: 'unknown_test'`, salve de >20 requêtes/60s) : vérifier qu'un `429` apparaît bien cette fois, avec `retryAfterSeconds` cohérent.
+- **Non-régression de l'usage nominal** : `LLMModerationPanel`/`AnalysisPanel` sur une séance réelle (quelques appels espacés) ne doivent voir aucun `429` — la RPC ajoute une latence (une écriture DB) à chaque appel accepté, à confirmer imperceptible à l'usage.
+- Le verrou `pg_advisory_xact_lock` par `user_id` (sérialisation des appels parallèles) n'a été vérifié qu'en lecture de code, pas en conditions réelles de concurrence.
+
 ## Chantier 98 (2026-09-19) — allocation : option « interdire les tables sans modérateur » — ✅ validé par Jules le 2026-09-19
 
 **Consigne de Jules (19/09)** : « Dans l'algo d'allocation des tables : mettre la possibilité d'interdire la création de table sans modérateur. Dans ce cas, on laisse d'autres critères être brisés, bien sûr. »
