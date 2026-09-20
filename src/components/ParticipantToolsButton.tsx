@@ -96,7 +96,6 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const infoUrl    = doc_info_url ?? null
   const summaryUrl = doc_summary_url ?? null
   const hasCollab  = !!session_join_code || !!doc_collab_url
-  const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
 
   function handleCollabClick() {
     setPanelOpen(false)
@@ -140,9 +139,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             </div>
 
-            {/* Documentation (si disponible) */}
-            {hasDocs && (
-              <>
+            {/* Documentation */}
+            <>
                 <div className="pt-3 pb-1 px-5">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
                 </div>
@@ -213,9 +211,40 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                     </a>
                   )
                 )}
+                <a
+                  href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={subLinkClass}
+                  onClick={() => setPanelOpen(false)}
+                >
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+                  </svg>
+                  Biais cognitifs
+                </a>
+                <a
+                  href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={subLinkClass}
+                  onClick={() => setPanelOpen(false)}
+                >
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+                  </svg>
+                  Arguments fallacieux
+                </a>
                 <div className="mt-2 border-t border-gray-100" />
               </>
-            )}
 
             {/* Résultats du vote */}
             {!!table.session_id && (
