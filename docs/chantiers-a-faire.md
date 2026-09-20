@@ -164,11 +164,8 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 **Parcours.** Sujet de fond réservé par Jules. Il veut **réexpliquer lui-même** comment l'application et son flux sont censés fonctionner à chaque instant, et préfère une conversation dédiée lancée en **un prompt unique** qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
 
 ### 99 — Fiches pédagogiques : argument fallacieux et biais cognitifs
-**Contenu + documentation.** Nouveau, dicté par Jules le 2026-09-19. **Bloqué sur Jules explicitement** — il l'a dit lui-même.
 
-> **Consigne de Jules (2026-09-19)** : « Ajouter la fiche argument fallacieux, et la fiche biais cognitifs (en améliorer svp) dans l'application, dans la documentation, afin que tout le monde puisse y avoir accès. Puis, sur le site aussi si possible. Ce chantier est clairement en attente de moi : je dois donner les documents. »
-
-**Rien à faire tant que les documents ne sont pas fournis.** Une fois reçus : les rendre accessibles dans l'app (à un endroit visible par tous les participants, pas seulement le modérateur — reste à choisir où), dans la documentation du dépôt, et sur le site public si un tel emplacement existe déjà.
+> ✅ **Fait et mergé le 2026-09-20** — Jules a débloqué le chantier autrement que prévu : au lieu de fournir les documents à intégrer dans l'app, il a donné deux liens vers des fiches déjà publiées sur `ecclesia-centralesupelec.vercel.app/ressources` (ancres `#biais-cognitifs` et `#arguments-fallacieux`). Deux liens statiques ajoutés dans les trois menus « Documentation » de l'app (`DocumentationButton.tsx`, `ParticipantToolsButton.tsx`, `VoteToolsPanel` dans `VoteScreen.tsx`), toujours visibles désormais (avant : masqués si la séance n'avait aucune URL de documentation propre). Détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 99. Vérifié au navigateur par Jules le jour même (séance de test jetable, purgée après validation).
 
 ### 100 — Diagnostic cybersécurité : peut-on interrompre une séance ou voler des données ?
 
