@@ -433,22 +433,22 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
 *Contexte : point F3 de l'audit sécurité du 02/09/2026 (le plus grave des 19 constats) — le projet Supabase tourne sur le plan gratuit, qui n'inclut aucune sauvegarde automatique restaurable. `.github/workflows/db-backup.yml` a été écrit et commité pour combler ça : dump quotidien chiffré (AES-256) stocké en artefact GitHub Actions (rétention 30 jours), suivi automatiquement d'une restauration de vérification dans un Postgres jetable. Détail complet (procédure de restauration réelle, secrets requis, limites) en tête du fichier de workflow.*
 
-- [ ] **2026-09-02 — Secrets GitHub à créer avant tout run réel**
+- [x] **2026-09-02 — Secrets GitHub à créer avant tout run réel** *(fait le 2026-09-20)*
 
-  Le workflow ne peut rien produire tant que Jules n'a pas créé, sur le dépôt GitHub (Settings → Secrets and variables → Actions → New repository secret) :
-  - `SUPABASE_DB_URL` — chaîne de connexion Postgres **directe** (pas le pooler pgbouncer) du projet `plpjiehqsxxakbuykmkm`, trouvable dans le dashboard Supabase → Project Settings → Database → Connection string → onglet "URI" → "Direct connection".
-  - `BACKUP_PASSPHRASE` — phrase de passe longue et aléatoire dédiée (ex. générée avec `openssl rand -base64 32`), à conserver aussi dans le gestionnaire de mots de passe partagé de l'équipe (si ce secret est perdu, les sauvegardes déjà produites deviennent illisibles).
+  Jules a créé les deux secrets sur le dépôt GitHub. Deux itérations ont été nécessaires pour `SUPABASE_DB_URL` : la connexion directe (`db.<ref>.supabase.co:5432`) n'est joignable qu'en IPv6, indisponible sur les runners GitHub Actions (« Network is unreachable ») — remplacée par l'URI du **Session pooler** (`aws-0-<region>.pooler.supabase.com:5432`, utilisateur `postgres.<ref>`, IPv4), après un premier échec d'authentification dû à un mot de passe de base de données incorrect (corrigé par une réinitialisation). `BACKUP_PASSPHRASE` créé sans difficulté.
 
-  **Non fait par la session de chantier** (ni migration ni secret ne sont posés par une session Claude Code — voir la règle en tête de ce fichier).
+- [x] **2026-09-02 — Premier run réel du workflow (`workflow_dispatch`)** *(fait le 2026-09-20)*
 
-- [ ] **2026-09-02 — Premier run réel du workflow (`workflow_dispatch`)**
+  Trois allers-retours avant un run entièrement vert, chacun corrigé dans `db-backup.yml` (voir les commits du 2026-09-20 pour le détail) :
+  1. `SUPABASE_DB_URL` en connexion directe → IPv6 injoignable depuis les runners. Corrigé par le Session pooler (voir point ci-dessus) — la doc du fichier de workflow (section SECRETS GITHUB REQUIS) a été corrigée en conséquence, elle recommandait à tort la connexion directe.
+  2. `verify-restore` : `CREATE TABLE` échouait sur les colonnes `DEFAULT auth.uid()` (ex. `private_notes.user_id`) — le Postgres jetable n'a pas le schéma `auth` de Supabase. Corrigé en ajoutant un schéma `auth` + fonction `auth.uid()` factice (`RETURNS NULL::uuid`) à l'étape de préparation ; seule cette fonction est référencée dans `supabase/migrations/` (vérifié par grep), pas d'autre stub nécessaire.
+  3. `verify-restore` restaurait dans un service container `postgres:15`, alors que le dump est produit par `pg_dump` depuis l'image Supabase Postgres 17 (`supabase db dump`) — `15` ne reconnaît pas le privilège `MAINTAIN` (ajouté en 17). Corrigé en passant le service container en `postgres:17`.
 
-  Une fois les deux secrets créés : déclencher manuellement le workflow (onglet Actions → "Sauvegarde chiffrée de la base Supabase" → "Run workflow"). Vérifier :
-  1. Le job `backup` réussit, produit un artefact `db-backup-<run_id>` contenant `db-backup-YYYY-MM-DD.sql.gpg` d'une taille non nulle.
-  2. Le job `verify-restore` réussit — c'est la preuve que le dump du jour est effectivement restaurable (pas seulement produit). S'il échoue, lire les logs : erreur de déchiffrement → passphrase incorrecte dans le secret ; erreur de restauration Postgres → probablement un rôle/extension Supabase non anticipé par l'étape de préparation du job (à ajouter).
-  3. Après un ou deux jours, confirmer que le cron quotidien (05:00 UTC) s'est bien déclenché tout seul sans intervention.
+  **Run final confirmé vert** : `backup` et `verify-restore` tous deux réussis (page restée affichée en "en cours" après completion réelle en ~1min30 — artefact anomalie d'affichage GitHub, pas un vrai blocage, confirmé par Jules).
 
-  **Non testable en session headless** : aucun secret disponible, donc jamais exécuté. Uniquement vérifié : la syntaxe YAML du workflow (cohérence avec `deploy.yml`/`supabase-ping.yml` du même dossier) et le raisonnement de chaque étape, relus à froid — pas un run réel.
+- [ ] **Confirmer le déclenchement automatique du cron quotidien (05:00 UTC)**
+
+  Après un ou deux jours, vérifier dans l'onglet Actions qu'un run s'est déclenché tout seul sans intervention manuelle, et qu'il est vert.
 
 - [ ] **2026-09-02 — Test de restauration réelle grandeur nature (à faire une fois, pas à chaque run)**
 
