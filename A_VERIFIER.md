@@ -15,6 +15,16 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 83 (2026-09-20) — redéploiement de `gemini-proxy` (anti-abus du chantier 57) — ✅ validé par Jules le 2026-09-20
+
+**Contexte** : le chantier 57 (quota 20 req/60s + plafond 300 Ko sur `gemini-proxy`) était mergé côté code depuis le 2026-09-02 mais jamais redéployé — l'Edge Function en ligne tournait sans aucune limite. Comparaison ligne à ligne le 2026-09-20 entre le fichier local et le code collé par Jules depuis le dashboard : le prompt de fusion durci (typage prescription/jugement/constat) était en fait déjà en ligne ; c'est bien l'anti-abus du 57 qui manquait, pas le prompt.
+
+**Déblocage** : pas besoin de `supabase login`/CLI comme le disait l'entrée d'origine — Jules a copié-collé le contenu de `supabase/functions/gemini-proxy/index.ts` dans l'éditeur intégré du dashboard Supabase (Edge Functions → gemini-proxy → Code) et déployé depuis là.
+
+**Vérifié** : Jules a relancé une fusion d'assertions réelle juste après déploiement — 5 propositions de fusion reçues, fonctionnement inchangé du point de vue utilisateur.
+
+**Non vérifié / laissé ouvert** : le quota (429 après 20 appels/60s) et le plafond de charge utile (413 au-delà de 300 Ko) n'ont pas été testés activement — seul le chemin nominal (une fusion isolée) a été rejoué. Si une automatisation (modération/fusion auto, nommage de camps) déclenche un jour un 429 inattendu, vérifier que `RATE_LIMIT_MAX_REQUESTS`/`RATE_LIMIT_WINDOW_MS` (`supabase/functions/gemini-proxy/index.ts`) sont toujours calibrés au pire cas légitime documenté en commentaire dans le fichier.
+
 ## Chantier 98 (2026-09-19) — allocation : option « interdire les tables sans modérateur » — ✅ validé par Jules le 2026-09-19
 
 **Consigne de Jules (19/09)** : « Dans l'algo d'allocation des tables : mettre la possibilité d'interdire la création de table sans modérateur. Dans ce cas, on laisse d'autres critères être brisés, bien sûr. »

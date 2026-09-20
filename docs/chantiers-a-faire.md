@@ -11,6 +11,8 @@ Dernière mise à jour : **2026-09-19**.
 > **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table — **fait le 19/09**, voir `docs/chantiers.md`), **98** (allocation : interdire les tables sans modérateur — **fait et vérifié au navigateur le 19/09**, voir `docs/chantiers.md`), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauche potentiellement le **87**, à clarifier avant de le lancer).
 >
 > **Ajout du 2026-09-19, en fin de journée** : le chantier **100 est fait** (audit livré), et sa suite est découpée en cinq chantiers de sécurité — **102** (refermer les helpers SQL exposés, l'essentiel du gain, ne dépend de rien), **103** (`auth.uid()` au lieu du `user_id` en paramètre), **104** (colonnes de `tables`, C7), **105** (régression du chantier 51 sur `assertions`) et **105bis** (auto-désignation de modérateur, **bloqué sur un arbitrage de Jules**). Tous renvoient au diagnostic et au plan du jour.
+>
+> **Le 2026-09-20, le chantier 83 est fait** — redéployé via le dashboard Supabase (pas de `supabase login` nécessaire, contrairement à ce que disait l'entrée initiale). Voir `docs/chantiers.md` (chantier 57 mis à jour) et `A_VERIFIER.md`.
 
 ---
 
@@ -217,8 +219,7 @@ Trois options, par friction croissante :
 
 ## Bloqués — rien à faire côté code
 
-### 83 — Redéployer `gemini-proxy`
-Le prompt de fusion d'assertions a été durci (typage prescription / jugement / constat) mais **n'a jamais été redéployé** : la version en ligne est l'ancienne. **Bloqué sur Jules** : demande un `supabase login`.
+**Au 2026-09-20 : aucun chantier bloqué.** Le 83 (redéploiement `gemini-proxy`) et le 85 (sauvegardes chiffrées) sont tous les deux faits — voir `docs/chantiers.md`.
 
 ---
 
