@@ -64,6 +64,23 @@ order by grantee, column_name;
 -- attendu : content, created_at, id, session_id, status — jamais member_id
 ```
 
+## Chantier 105bis (2026-09-20) — ferme l'auto-désignation libre de modérateur (A4) — SQL vérifié, navigateur à faire
+
+**Arbitrage de Jules** : le bouton participant "🎙️ Devenir modérateur" sur une table `leaderless` ne désigne plus personne ; il renvoie vers le superadmin, seul habilité désormais, et seulement s'il est disponible (pas de filet automatique).
+
+**Vérifié en base** (`plpjiehqsxxakbuykmkm`) :
+```sql
+SELECT grantee, privilege_type FROM information_schema.role_routine_grants
+WHERE routine_name = 'designate_moderator';
+-- attendu : service_role, postgres uniquement — ni anon ni authenticated
+```
+Confirmé après application de `20260920_chantier105bis_close_designate_moderator.sql` — `anon`/`authenticated` retirés, `postgres`/`service_role` conservés. `pg_get_functiondef` du corps de la fonction relu avant modification (corps en base identique au fichier de migration existant, seul un `REVOKE` a été ajouté, aucune fonction réécrite).
+
+**À vérifier au navigateur** (pas fait par cette session — aucun serveur de dev lancé) :
+1. Table `leaderless` côté participant → le bouton "🎙️ Devenir modérateur" est toujours visible, mais son clic ouvre la modale informative ("Va voir le superadmin") sans appel réseau qui échoue en silence — vérifier `read_console_messages`/`read_network_requests` pour confirmer qu'aucun appel à `designate_moderator` n'est tenté.
+2. Depuis l'écran superadmin, onglet Tables, sur une séance avec une table `leaderless` : `AddModeratorControl` apparaît bien et `assign_moderator_to_table` fonctionne toujours (non touché par ce chantier, mais à reconfirmer que le chemin de recours fonctionne réellement de bout en bout, pas seulement en lecture de code).
+3. Un appel direct à `supabase.rpc('designate_moderator', ...)` depuis la console navigateur, authentifié en participant anonyme, échoue bien avec une erreur de permission (defense-in-depth : le frontend ne doit pas être la seule barrière).
+
 ## Chantier 99 (2026-09-20) — boutons de guidage dans le menu Documentation — ✅ validé par Jules le 2026-09-20
 
 **Consigne de Jules (20/09)** : pour chaque séance, le menu « Documentation » doit toujours proposer deux liens vers le site externe de ressources : Biais cognitifs (`ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs`) et Arguments fallacieux (`#arguments-fallacieux`).

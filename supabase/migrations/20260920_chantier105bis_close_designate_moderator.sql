@@ -1,0 +1,21 @@
+-- Chantier 105bis — ferme l'auto-désignation libre de modérateur (A4)
+--
+-- Arbitrage de Jules (2026-09-20) : sur une table `leaderless`, un participant
+-- ne doit plus pouvoir se nommer modérateur tout seul (aucun secret demandé,
+-- ouvrait kick_participant/grant_floor/correct_turn/add_offline_participant à
+-- n'importe qui assis à la table). Le bouton participant devient un simple
+-- renvoi vers le superadmin ; seul le superadmin peut désormais accorder le
+-- rôle, via l'infrastructure déjà existante (assign_moderator_to_table /
+-- set_member_moderator, protégées par check_superadmin_password) — aucune
+-- nouvelle RPC n'était nécessaire côté admin.
+--
+-- Défense en profondeur : on ne se contente pas de retirer l'appel côté
+-- frontend (leçon du chantier 105 — une garde posée uniquement côté client,
+-- ou par un GRANT hors migration, peut se défaire sans laisser de trace).
+-- On révoque ici l'exécution en base, dans une migration versionnée.
+--
+-- La fonction elle-même n'est pas supprimée (aucune perte d'information utile
+-- à conserver son corps pour référence/rollback), seulement rendue
+-- inexécutable par anon/authenticated.
+
+REVOKE EXECUTE ON FUNCTION public.designate_moderator(uuid) FROM anon, authenticated, PUBLIC;

@@ -203,16 +203,17 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 
 **Le geste, ensuite** : rétablir la restriction **dans une migration du dépôt**, et vérifier qu'elle tient. Leçon à retenir au passage : une correction de sécurité posée uniquement par `GRANT` peut se défaire sans laisser de trace — le chantier devrait se terminer par une vérification, pas par une application.
 
-### 105bis — Sécurité : l'auto-désignation de modérateur (A4) — **bloqué sur un arbitrage de Jules**
+> ✅ **105bis fait le 2026-09-20** — arbitrage de Jules tranché (voir ci-dessous), détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 105bis.
 
-**Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md). **Ne rien coder avant que Jules ait tranché.**
+### 105bis — Sécurité : l'auto-désignation de modérateur (A4)
 
-`designate_moderator` ne demande **aucun secret** : sur une table `leaderless`, n'importe quel participant se fait modérateur, ce qui lui ouvre d'un coup `kick_participant`, `grant_floor`, `correct_turn`, `add_offline_participant` — et, tant que le 104 n'est pas passé, la réécriture du `join_code`. Ce n'est pas un bug : c'est le mécanisme prévu pour qu'une table sans animateur puisse en désigner un sur place. Le fermer sans rien mettre à la place casse un parcours voulu.
+**Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md).
 
-Trois options, par friction croissante :
-1. **Ne rien faire ici** et se contenter des chantiers 102 à 104. L'auto-désignation reste ouverte, mais ce qu'elle permet de casser est réduit à la table concernée et reste réversible (`release_table_moderation` côté superadmin). Défendable si la salle est physiquement contrôlée — un saboteur y est assis à côté de ses victimes.
-2. **Premier arrivé seulement** : n'autoriser `designate_moderator` que dans une fenêtre après l'ouverture de la table, ou qu'une fois par table — une reprise ultérieure passe par `claim_table_as_moderator`, qui existe déjà et demande le Code Ecclesia. **Recommandation de la session** : garde le parcours voulu, supprime la reprise hostile en cours de débat.
-3. **Demander le Code Ecclesia**, comme `claim_table_as_moderator`. Le plus sûr, le plus contraignant : il faut que le code circule jusqu'aux tables sans animateur le jour J.
+`designate_moderator` ne demandait **aucun secret** : sur une table `leaderless`, n'importe quel participant se faisait modérateur, ce qui lui ouvrait d'un coup `kick_participant`, `grant_floor`, `correct_turn`, `add_offline_participant` — et, tant que le 104 n'est pas passé, la réécriture du `join_code`. Ce n'était pas un bug : c'était le mécanisme prévu pour qu'une table sans animateur puisse en désigner un sur place.
+
+**Arbitrage de Jules (2026-09-20)** : ni « laisser ouvert », ni « demander le Code Ecclesia » — une quatrième option, plus proche du produit que des trois envisagées par la session précédente. Le bouton participant reste visible sur une table `leaderless`, mais ne désigne plus personne : il renvoie vers le superadmin, qui est seul habilité à accorder le rôle, **et seulement s'il est disponible** (pas de filet automatique si personne ne répond — la table reste sans animateur plutôt que de rouvrir la faille).
+
+**Fait** : la RPC `designate_moderator` a son `EXECUTE` révoqué pour `anon`/`authenticated` en base (migration `20260920_chantier105bis_close_designate_moderator.sql`, appliquée). Côté participant (`ParticipantView.tsx`), le bouton "🎙️ Devenir modérateur" ouvre désormais une modale informative au lieu d'appeler la RPC ; `designateModerator` a été retiré de `TableContext.tsx` (plus aucun appelant). Côté admin, **rien à créer** : `AddModeratorControl` (onglet Tables du superadmin) couvrait déjà exactement ce cas depuis le chantier 72 — bouton d'assignation sur toute table sans modérateur, via `assign_moderator_to_table`/`set_member_moderator`, protégées par le mot de passe superadmin.
 
 ---
 
