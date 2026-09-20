@@ -9,11 +9,70 @@
 Liste des points nécessitant une validation humaine, générés lors des sessions Claude Code.
 Ne pas supprimer une entrée sans validation explicite de Jules — se contenter de la déplacer en section "Validé" une fois confirmée. Si un point semble obsolète, le marquer comme tel plutôt que l'effacer.
 
+## Ménage des worktrees/branches/tags obsolètes — simulation faite le 2026-09-19, report volontaire
+
+`scripts/cleanup-worktrees.sh` (déjà présent dans le dépôt) a été relancé en simulation (`--go` **non** utilisé, rien n'a été supprimé). Résultat complet :
+
+- **47 worktrees locaux** identifiés comme supprimables (dossiers frères de la racine, un par ancien chantier — ex. `Ecclesia-chantier-12`, `Ecclesia-chantier-50`... jusqu'à `Ecclesia-chantier-80` — tous mergés sur `main`, `git status` propre) → suppression du dossier + de la branche locale associée.
+- **29 worktrees conservés** : modifications non commitées, branche pas mergée dans `main`, ou HEAD détaché à vérifier à la main (`chantier-56-sql-hardening-6ff22e`, `restrict-session-public-columns-48a6fb`).
+- **~40 branches locales orphelines** (plus de worktree, déjà mergées) supprimables.
+- **~40 branches `origin/*` supprimables via `git push origin --delete`** — la seule partie qui touche le dépôt **distant** GitHub, pas seulement ce disque.
+- **~50 anciens tags `pre-merge-chantier-*`** (antérieurs au 2026-09-02, seuil déjà figé dans le script) supprimables, y compris côté `origin`.
+- Protégés en dur par le script, jamais concernés : `main`, `chantier-58-colonnes-sessions`, `chantier-secu-sauvegardes` (et leurs pendants `origin/`).
+
+**Décision de Jules (2026-09-20)** : ne pas lancer `--go` maintenant. À relancer plus tard, **jamais dans les quelques jours précédant une séance de production réelle** (le nettoyage touche des branches/tags distants sur GitHub — mieux vaut une prod immobile ce jour-là qu'un ménage qui tourne mal au pire moment). Revalider avec `--go` une fois une fenêtre calme trouvée — le script est idempotent, un re-scan avant de lancer `--go` ne coûte rien si du temps a passé entre-temps (de nouveaux chantiers ont pu mériter leur propre worktree depuis).
+
 > **2026-08-03** — Fichier allégé à la demande de Jules avant une remise à zéro de la mémoire Dispatch : toutes les entrées déjà vérifiées/confirmées (chantiers 1 à 32 et vagues de vérification antérieures) ont été retirées — leur historique complet reste dans l'historique git de ce fichier (`git log -p -- A_VERIFIER.md`).
 >
 > **Correction 2026-09-01** : les chantiers **33 et 34** avaient été retirés par cet allégement alors qu'ils n'ont **jamais été vérifiés humainement** (33 : uniquement `tsc`/tests/mock réseau ; 34 : uniquement mock réseau via route de debug) — réintégrés ci-dessous, section Superadmin (33) et Participant (34).
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
+
+## Chantier 105 (2026-09-20) — restriction de colonne `assertions` (chantier 51) — ✅ vérifié en base, cause non tranchée mais sans conséquence
+
+**Suite du 2026-09-20 (même jour)** : Jules confirme n'avoir **pas touché au Table Editor** du dashboard sur `assertions`, écartant la piste ci-dessous. Il avance que les chantiers **101 à 104** (eux aussi issus de l'audit du 100) ont « certainement » corrigé l'erreur en passant — **vérifié, ce n'est pas le cas** : `git grep -i assertions` sur les trois migrations SQL de ces chantiers ne trouve qu'une mention en commentaire (un renvoi vers ce chantier-ci dans `20260919_chantier103_auth_uid_instead_of_param.sql`), aucune n'écrit sur la table `assertions` ou son `GRANT` — le 102/103 portent sur des fonctions (`leave_other_session_tables`, `sync_table_assignment`, etc.), le 104 sur la table `tables`. Donc ni le Table Editor ni les chantiers 101-104 n'expliquent le fait que la restriction était déjà correcte à l'ouverture du 105. **La cause reste non identifiée** — mais sans conséquence pratique : l'état actuel est vérifié correct et maintenant codifié dans une migration du dépôt (`20260920_chantier105_restore_assertions_column_grant.sql`), donc reproductible indépendamment de ce qui s'est passé.
+
+**Vérification de bout en bout ajoutée** (pas seulement `information_schema`, le comportement réel du rôle `anon`) :
+```sql
+begin;
+set local role anon;
+select member_id from assertions limit 1;
+rollback;
+-- résultat obtenu : ERREUR 42501 permission denied for table assertions
+```
+Confirme que `member_id` est bien inaccessible en lecture pour le rôle `anon`, pas seulement absent du catalogue de privilèges.
+
+**Rien de plus à vérifier pour ce chantier** — mergeable.
+
+**Constat à l'ouverture du chantier** : contrairement à ce que disait l'entrée `docs/chantiers-a-faire.md` (écrite le 2026-09-19, sourcée sur l'audit du chantier 100), la restriction posée par `20260902171240_chantier51_hide_assertion_author.sql` **était bien en vigueur en base au moment de l'ouverture du 105** (vérifié via `information_schema.column_privileges` sur `plpjiehqsxxakbuykmkm`, projet `Ecclesia-Animation-Moderateur`) : `SELECT` sur `assertions.member_id` n'était accordé à aucun des rôles `anon`/`authenticated`, seuls `id, session_id, content, status, created_at` l'étaient. La fonction `get_my_assertion_ids` (posée par le même chantier 51) existait aussi correctement, avec `EXECUTE` accordé à `anon`/`authenticated`.
+
+**Donc** : soit le grant a déjà été rétabli correctement entre l'écriture de l'audit (19/09 soir) et l'ouverture de ce chantier (20/09), par un chemin qui n'a laissé aucune trace ici (dashboard ?), soit la requête de l'audit du 100 portait sur autre chose (à vérifier avec Jules si le sujet ressurgit — la reconstitution ci-dessous n'a pas pu être confirmée faute d'accès aux logs Postgres du dashboard au-delà de la fenêtre de rétention).
+
+**Geste fait quand même** : la restriction n'existait jusqu'ici **qu'en base**, posée par le `GRANT` du chantier 51, sans que rien dans le dépôt ne garantisse qu'elle survivrait à un futur événement qui la reposerait à zéro. `20260920_chantier105_restore_assertions_column_grant.sql` la recodifie (idempotent, mêmes statements que le chantier 51) — appliquée et revérifiée en base le 2026-09-20 : état inchangé, toujours correct.
+
+**Piste retenue pour « comment un tel grant pourrait se rétablir tout seul »** (n'a pas pu être confirmée comme la cause réelle, faute de logs remontant assez loin — **à clarifier avec Jules s'il a une explication, en particulier s'il a touché au Table Editor du dashboard sur `assertions` entre le 02/09 et le 19/09**) :
+
+Ce projet a des privilèges par défaut posés au niveau du schéma (`pg_default_acl`, rôles `postgres`/`supabase_admin`) qui accordent **tous les privilèges** (`arwdDxtm`, SELECT compris sur toutes les colonnes) à `anon`/`authenticated` sur **toute nouvelle table** créée dans `public` — c'est le comportement standard d'un projet Supabase neuf, pas une anomalie de ce dépôt. Une restriction posée par un `GRANT`/`REVOKE` explicite sur une table **existante** (comme celle du chantier 51) n'est *a priori* pas affectée par ces privilèges par défaut. Mais si la table `assertions` était un jour **recréée** — `DROP TABLE` + `CREATE TABLE` dans une migration, ou une opération du dashboard Supabase (Table Editor) qui reconstruit la table en coulisse pour certains changements de colonne (type, nullabilité, renommage) — le privilège par défaut du schéma réappliquerait un `SELECT` plein sur toutes les colonnes, **écrasant silencieusement** la restriction posée par le chantier 51, sans passer par aucune migration et donc sans laisser de trace dans `supabase_migrations.schema_migrations` ni dans le dépôt. Aucune migration du dépôt entre le chantier 51 (02/09) et le 105 (20/09) ne recrée `assertions` — si la cause est bien celle-ci, le geste a dû passer par le dashboard, hors dépôt.
+
+**Recette de vérification** (rejouable) :
+```sql
+select grantee, column_name
+from information_schema.column_privileges
+where table_name = 'assertions' and privilege_type = 'SELECT'
+  and grantee in ('anon','authenticated')
+order by grantee, column_name;
+-- attendu : content, created_at, id, session_id, status — jamais member_id
+```
+
+## Chantier 99 (2026-09-20) — boutons de guidage dans le menu Documentation — ✅ validé par Jules le 2026-09-20
+
+**Consigne de Jules (20/09)** : pour chaque séance, le menu « Documentation » doit toujours proposer deux liens vers le site externe de ressources : Biais cognitifs (`ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs`) et Arguments fallacieux (`#arguments-fallacieux`).
+
+**Implémenté** : ajout des deux liens statiques (toujours affichés, indépendamment des `doc_*_url` de la séance) dans les trois endroits qui affichent une section « Documentation » : `DocumentationButton.tsx` (menu modérateur), `ParticipantToolsButton.tsx` et `VoteToolsPanel` (`VoteScreen.tsx`). Les trois composants n'affichaient auparavant rien (ou un message « aucune documentation ») si la séance n'avait aucune URL renseignée — ce cas a disparu, la section Documentation est désormais toujours visible et toujours utile.
+
+**✅ Vérifié au navigateur le 2026-09-20** : séance de test jetable créée en base (« Démo chantier 99 », `join_code` généré via `generate_session_join_code()`, `doc_info_url`/`doc_summary_url` factices), rejouée en local (`#vote/<join_code>`, formulaire d'entrée réel, sans onboarding). Ouverture du menu **Outils → Documentation** confirmée par Jules à l'écran (screenshot) : les deux liens « Biais cognitifs » et « Arguments fallacieux » apparaissent bien, sous les liens propres à la séance. Séance de test supprimée après validation.
+
+**Non rejoué** : seul le parcours `VoteToolsPanel` (`VoteScreen.tsx`) a été montré à l'écran. Les deux autres emplacements (`DocumentationButton.tsx` en vue modérateur, `ParticipantToolsButton.tsx` en débat) reçoivent le même changement mais n'ont pas été ouverts individuellement — même composant de rendu (mêmes classes, même structure), risque de régression jugé négligeable mais pas formellement observé pour ces deux-là.
 
 ## Chantier 83 (2026-09-20) — redéploiement de `gemini-proxy` (anti-abus du chantier 57) — ✅ validé par Jules le 2026-09-20
 
