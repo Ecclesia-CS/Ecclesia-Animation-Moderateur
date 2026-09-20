@@ -1,0 +1,245 @@
+name: Sauvegarde chiffrée de la base Supabase
+
+# ============================================================================
+# POURQUOI CE FICHIER (audit sécurité du 2026-09-02, point F3 — le plus
+# grave des 19 constats) : le projet Supabase `plpjiehqsxxakbuykmkm` tourne
+# sur le plan gratuit (voir le commentaire de `supabase-ping.yml` dans ce
+# même dossier, écrit pour une autre raison mais qui confirme le palier).
+# Le plan gratuit Supabase n'inclut aucune sauvegarde automatique restaurable
+# par l'équipe (les sauvegardes quotidiennes managées sont une fonctionnalité
+# du plan Pro payant). Sans ce workflow, toute suppression accidentelle ou
+# malveillante de données (pseudos, votes, réponses de questionnaire,
+# affectations de tables...) est définitive. Un `db-backup.yml` avait été
+# annoncé comme « écrit » dans une passation antérieure (03/08/2026) mais
+# n'a jamais été commité — vérifié : aucune trace dans l'historique git de
+# ce dépôt (`git log --all --full-history -- '*db-backup*'` ne retourne
+# rien). Ce fichier part donc de zéro.
+#
+# QUOI : dump complet (schéma + données, schéma "public" uniquement — voir
+#        LIMITE CONNUE plus bas) de la base Supabase via `supabase db dump`
+#        (CLI officielle, gère la compatibilité de version pg_dump/serveur
+#        à notre place), chiffré avec gpg (AES-256 symétrique), puis stocké
+#        comme artefact de ce dépôt GitHub.
+#
+# OÙ, ET QUI PEUT Y ACCÉDER : artefact du run (onglet Actions → ce workflow
+#        → run du jour → section Artifacts en bas de page), nommé
+#        `db-backup-<run_id>` et contenant `db-backup-YYYY-MM-DD.sql.gpg`.
+#        Rétention : 30 jours glissants (`retention-days` ci-dessous) — au
+#        30ᵉ jour, GitHub supprime l'artefact automatiquement, sans action
+#        de personne (une sauvegarde plus ancienne perdue n'est pas
+#        rattrapable — 30 j de profondeur a été jugé suffisant pour ce
+#        projet ; voir le rapport de chantier pour l'alternative si Jules
+#        veut une rétention plus longue).
+#        Ce dépôt est **public** : tout compte GitHub connecté peut
+#        techniquement télécharger cette archive depuis l'onglet Actions.
+#        C'est PRÉCISÉMENT pour cette raison que le chiffrement AES-256
+#        n'est pas optionnel — sans lui, l'archive contiendrait pseudos,
+#        réponses de questionnaire et `reclaim_code` en clair, accessibles
+#        à quiconque. Seules les personnes qui connaissent le secret GitHub
+#        `BACKUP_PASSPHRASE` (les mainteneurs y ayant accès via Settings →
+#        Secrets and variables → Actions, plus quiconque le détient via le
+#        gestionnaire de mots de passe partagé de l'équipe, voir plus bas)
+#        peuvent lire le contenu réel. Le contenu déchiffré ne doit JAMAIS
+#        être commité dans ce dépôt ni posté ailleurs (Slack, email...).
+#
+# QUAND : tous les jours à 05:00 UTC (avant le ping keep-alive de 06:00 de
+#         `supabase-ping.yml`), plus déclenchement manuel
+#         (workflow_dispatch, utile pour tester ou sauvegarder juste avant
+#         une opération risquée).
+#         ⚠️ GitHub désactive automatiquement les workflows programmés après
+#         60 jours sans commit sur le dépôt. Si le projet est dormant plus
+#         de 2 mois (creux entre deux semestres), relancer ce workflow une
+#         fois manuellement pour réarmer le cron.
+#
+# PREUVE QUE ÇA MARCHE (le vrai sujet — une sauvegarde jamais testée n'est
+#         pas une sauvegarde) : le job `verify-restore` ci-dessous s'exécute
+#         après CHAQUE sauvegarde, automatiquement. Il télécharge l'archive
+#         qui vient d'être produite, la déchiffre, restaure le dump dans un
+#         Postgres jetable (service container détruit à la fin du job, qui
+#         ne touche jamais la base réelle), puis vérifie que les tables
+#         attendues du modèle de données (CLAUDE.md) sont bien présentes
+#         avec des données. Si le dump était vide, corrompu, ou mal chiffré,
+#         ce job échoue et le run apparaît en rouge dans l'onglet Actions —
+#         ce n'est plus une hypothèse silencieuse.
+#
+# PROCÉDURE DE RESTAURATION RÉELLE (en cas de sinistre sur la base de
+#         production — à faire à la main, jamais automatiquement) :
+#   1. Onglet Actions → "Sauvegarde chiffrée de la base Supabase" → choisir
+#      le run du jour voulu → section Artifacts en bas de page → télécharger
+#      `db-backup-<run_id>.zip` et le dézipper : on obtient
+#      `db-backup-YYYY-MM-DD.sql.gpg`.
+#   2. Déchiffrer EN LOCAL, sur une machine de confiance (jamais sur un
+#      poste partagé — le fichier obtenu contient des données personnelles
+#      en clair) :
+#        gpg --batch --yes --decrypt db-backup-YYYY-MM-DD.sql.gpg > restore.sql
+#      (gpg demande la passphrase de manière interactive ; c'est la valeur
+#      du secret GitHub `BACKUP_PASSPHRASE` — voir "SECRETS REQUIS"
+#      ci-dessous pour savoir qui la détient.)
+#   3. Restaurer dans le projet Supabase cible. **Fortement recommandé** :
+#      créer un NOUVEAU projet Supabase temporaire (gratuit) pour restaurer
+#      et vérifier le contenu AVANT d'écraser quoi que ce soit en
+#      production — ne jamais restaurer en écrasant la prod comme premier
+#      geste.
+#        psql "postgres://postgres:<mdp>@db.<ref-du-projet-cible>.supabase.co:5432/postgres" \
+#          -f restore.sql
+#      Le dump ne contient que le schéma "public" (voir LIMITE CONNUE) — sur
+#      un projet Supabase neuf, les rôles `anon`/`authenticated`/
+#      `service_role` et l'extension `pgcrypto` existent déjà nativement,
+#      donc pas d'étape de préparation supplémentaire nécessaire (contra le
+#      job `verify-restore` ci-dessous, qui restaure sur un Postgres nu et
+#      doit donc recréer ces rôles/extension lui-même — voir ses étapes).
+#   4. Supprimer immédiatement `restore.sql` une fois la restauration
+#      terminée (données personnelles en clair sur disque).
+#   5. Vérifier dans le dashboard Supabase (Table Editor) que les tables
+#      attendues sont bien peuplées, puis si le projet cible a une URL
+#      différente du projet d'origine, mettre à jour les secrets GitHub
+#      `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` et le `.env` local des
+#      contributeurs avant de redéployer le front.
+#
+# LIMITE CONNUE : ce dump couvre uniquement le schéma "public" (les tables
+#         listées dans CLAUDE.md), pas les objets internes Supabase (schéma
+#         `auth`, `storage`, `realtime`...). L'app n'utilise pas Supabase
+#         Storage aujourd'hui (aucune mention de bucket dans CLAUDE.md) et
+#         l'auth est anonyme sans compte à restaurer (`signInAnonymously`)
+#         — cette restriction n'a donc aujourd'hui aucun impact réel. Si un
+#         usage de Storage apparaît plus tard, ce workflow devra être étendu
+#         (retirer `--schema public` ou dumper les buckets séparément).
+#
+# SECRETS GITHUB REQUIS (à créer par Jules — Settings → Secrets and
+#         variables → Actions → New repository secret ; jamais posés par
+#         une session Claude Code) :
+#   - SUPABASE_DB_URL   Chaîne de connexion Postgres DIRECTE du projet (PAS
+#                       le pooler pgbouncer — `db dump` a besoin d'une vraie
+#                       session Postgres). Dashboard Supabase → Project
+#                       Settings → Database → Connection string → onglet
+#                       "URI" → section "Direct connection", ex.
+#                       postgres://postgres:<mot de passe>@db.<ref>.supabase.co:5432/postgres
+#   - BACKUP_PASSPHRASE Phrase de passe longue et aléatoire, DÉDIÉE à cet
+#                       usage (ne pas réutiliser un mot de passe existant,
+#                       ni le code Ecclesia, ni le mot de passe superadmin).
+#                       Générer par ex. avec `openssl rand -base64 32`.
+#                       ⚠️ Si ce secret est un jour perdu (roulé, effacé),
+#                       toutes les sauvegardes déjà produites deviennent
+#                       illisibles — le conserver aussi dans le gestionnaire
+#                       de mots de passe partagé de l'équipe, pas seulement
+#                       dans GitHub.
+# ============================================================================
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump du schéma "public" (schéma + données)
+        run: supabase db dump --db-url "$SUPABASE_DB_URL" --schema public -f db-backup.sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Vérifier que le dump n'est pas vide avant de le chiffrer
+        run: |
+          if [ ! -s db-backup.sql ]; then
+            echo "::error::Le dump est vide — abandon avant chiffrement (secret SUPABASE_DB_URL manquant/invalide ?)"
+            exit 1
+          fi
+          echo "Dump généré : $(wc -l < db-backup.sql) lignes, $(du -h db-backup.sql | cut -f1)"
+
+      - name: Chiffrer (AES-256 symétrique, gpg)
+        run: |
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" --symmetric \
+            --cipher-algo AES256 -o "db-backup-$(date -u +%F).sql.gpg" db-backup.sql
+          rm db-backup.sql
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: db-backup-*.sql.gpg
+          retention-days: 30
+
+  verify-restore:
+    needs: backup
+    runs-on: ubuntu-latest
+    # Postgres jetable : détruit à la fin du job, ne touche jamais la base
+    # réelle. But unique : prouver que le dump produit ci-dessus se
+    # déchiffre et se restaure sans erreur, pas de simuler une vraie
+    # restauration de production (voir la procédure en tête de fichier).
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: verif
+          POSTGRES_DB: verif
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: verif
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+
+      - name: Déchiffrer
+        run: |
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" --decrypt \
+            db-backup-*.sql.gpg > db-restore-test.sql
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+
+      - name: Préparer le Postgres jetable (rôles Supabase absents d'un Postgres nu)
+        run: |
+          psql -h localhost -U postgres -d verif -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+              CREATE ROLE service_role;
+            END IF;
+          END
+          $$;
+          SQL
+
+      - name: Restaurer le dump dans le Postgres jetable
+        run: psql -h localhost -U postgres -d verif -v ON_ERROR_STOP=1 -f db-restore-test.sql
+
+      - name: Vérifier la présence des tables attendues (modèle de données CLAUDE.md)
+        run: |
+          expected="app_config sessions tables participants queue_entries speaking_turns questionnaire_responses session_members entry_responses assertions assertion_votes assertion_merges table_assignments private_notes"
+          missing=""
+          for t in $expected; do
+            found=$(psql -h localhost -U postgres -d verif -tAc "SELECT to_regclass('public.$t') IS NOT NULL;")
+            if [ "$found" != "t" ]; then
+              missing="$missing $t"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Tables manquantes après restauration — sauvegarde suspecte à investiguer :$missing"
+            exit 1
+          fi
+          echo "Les 14 tables attendues sont présentes après restauration du dump."
+
+      - name: Nettoyer le dump en clair du disque du runner
+        if: always()
+        run: rm -f db-restore-test.sql
