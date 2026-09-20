@@ -217,9 +217,6 @@ Trois options, par friction croissante :
 
 ## Bloqués — rien à faire côté code
 
-### 85 — Sauvegardes chiffrées quotidiennes
-Branche `chantier-secu-sauvegardes` prête. **Bloqué sur Jules** : créer les secrets `SUPABASE_DB_URL` et `BACKUP_PASSPHRASE` dans les réglages GitHub du dépôt. C'est le premier item de l'ordre de traitement du plan de sécurité consolidé — une base sans sauvegarde vérifiée est le risque le plus élevé du projet.
-
 ### 83 — Redéployer `gemini-proxy`
 Le prompt de fusion d'assertions a été durci (typage prescription / jugement / constat) mais **n'a jamais été redéployé** : la version en ligne est l'ancienne. **Bloqué sur Jules** : demande un `supabase login`.
 
@@ -229,8 +226,6 @@ Le prompt de fusion d'assertions a été durci (typage prescription / jugement /
 
 **La vérification navigateur.** `A_VERIFIER.md` reste le seul fichier qui dise ce qui a réellement été vu à l'écran, dont une douzaine d'entrées **validées avant la refonte des chantiers 73/74 du 06/09 et à revalider**. Presque tout ce qui est mergé et déployé n'a eu qu'une vérification `tsc` / tests / build. « Mergé » ne veut pas dire « vérifié ». Une seule session à la fois peut lancer le serveur de dev.
 
-**L'ordre de traitement de la sécurité** est donné par `docs/2026-09-06-plan-securite-consolide.md`, qui a relu chaque constat des anciens audits contre le code et la base. Son ordre d'origine était : sauvegardes → réserves `results_public` → test Realtime du 51 → chantier 55 → 56 → 58 → 59. **Mis à jour au 2026-09-19** — seules les sauvegardes (85) restent, tout le reste de cet ordre est fait : réserves `results_public` (chantier 80), test Realtime du 51 (chantier 86), chantier 58, **chantier 59 (clos, « Allow public access » désactivé)**, preuve d'identité (chantier 93, ex-55), **et durcissement SQL (chantier 56)**.
-
-1. **85 — les sauvegardes**, seul point encore ouvert, bloqué sur Jules (deux secrets GitHub). Le plan le classait premier depuis le début : tant qu'elles n'existent pas, chaque chantier qui touche `session_members`, `tables` ou `assertions` s'exécute sans filet.
+**L'ordre de traitement de la sécurité** est donné par `docs/2026-09-06-plan-securite-consolide.md`, qui a relu chaque constat des anciens audits contre le code et la base. Son ordre d'origine était : sauvegardes → réserves `results_public` → test Realtime du 51 → chantier 55 → 56 → 58 → 59. **Mis à jour au 2026-09-20 — tout cet ordre est fait**, y compris les sauvegardes : réserves `results_public` (chantier 80), test Realtime du 51 (chantier 86), chantier 58, **chantier 59 (clos, « Allow public access » désactivé)**, preuve d'identité (chantier 93, ex-55), **durcissement SQL (chantier 56)**, et **sauvegardes chiffrées quotidiennes (chantier 85, mergé sur `main` le 2026-09-20 — les deux secrets GitHub `SUPABASE_DB_URL`/`BACKUP_PASSPHRASE` ont été créés par Jules)**.
 
 **Durcissements jamais élevés au rang de chantier**, listés au §5 du plan consolidé et toujours ouverts : A3 (pas de limitation de débit sur `check_superadmin_password`), C4 (aucune limite de longueur ni de débit sur les soumissions), C7 (`tables_update_moderator` ne restreint aucune colonne — un modérateur peut réécrire le `join_code` ou le `session_id` de sa propre table), et la suppression du second projet Supabase inactif (`fcdhbgsqzvxepzvjweod`).
