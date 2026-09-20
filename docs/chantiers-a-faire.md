@@ -10,6 +10,8 @@ Dernière mise à jour : **2026-09-20**.
 >
 > **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table — **fait le 19/09**, voir `docs/chantiers.md`), **98** (allocation : interdire les tables sans modérateur — **fait et vérifié au navigateur le 19/09**, voir `docs/chantiers.md`), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauchait potentiellement le **87** — **tranché le 2026-09-20 : les deux ont été fusionnés en un seul audit**, voir leurs entrées).
 >
+> **Ajout du 2026-09-20, fin de journée** : l'audit 87/101 est livré et **ses cinq arbitrages ont été tranchés par Jules le jour même**. Sa suite est découpée en sept chantiers, **106 à 112**, en fin de fichier — avec leur ordre de dépendance, qui n'est pas indicatif. Le **112** est indépendant et trivial (trois lignes), le **106** est la fondation dont dépendent les autres. Le **105bis**, qui attendait un arbitrage, est **débloqué par ricochet** et rejoint le 106.
+>
 > **Ajout du 2026-09-19, en fin de journée** : le chantier **100 est fait** (audit livré), et sa suite est découpée en cinq chantiers de sécurité — **102** (refermer les helpers SQL exposés, l'essentiel du gain, ne dépend de rien), **103** (`auth.uid()` au lieu du `user_id` en paramètre), **104** (colonnes de `tables`, C7), **105** (régression du chantier 51 sur `assertions`) et **105bis** (auto-désignation de modérateur, **bloqué sur un arbitrage de Jules**). Tous renvoient au diagnostic et au plan du jour.
 >
 > **Le 2026-09-20, le chantier 83 est fait** — redéployé via le dashboard Supabase (pas de `supabase login` nécessaire, contrairement à ce que disait l'entrée initiale). Voir `docs/chantiers.md` (chantier 57 mis à jour) et `A_VERIFIER.md`.
@@ -211,7 +213,9 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 
 **Le geste, ensuite** : rétablir la restriction **dans une migration du dépôt**, et vérifier qu'elle tient. Leçon à retenir au passage : une correction de sécurité posée uniquement par `GRANT` peut se défaire sans laisser de trace — le chantier devrait se terminer par une vérification, pas par une application.
 
-### 105bis — Sécurité : l'auto-désignation de modérateur (A4) — **bloqué sur un arbitrage de Jules**
+### 105bis — Sécurité : l'auto-désignation de modérateur (A4) — **débloqué le 2026-09-20**
+
+> ✅ **L'arbitrage attendu a été rendu**, par ricochet, en tranchant l'audit 87/101 : Jules a répondu « le modérateur est le premier arrivé, et sinon, le superadmin peut changer les modos de place avec son interface de groupe » — c'est **l'option 2 ci-dessous**, celle que la session recommandait. `designate_moderator` reste ouverte sans secret pour le premier arrivant d'une table `leaderless` ; toute reprise ultérieure passe par `claim_table_as_moderator` (Code Ecclesia exigé). À implémenter **avec le chantier 106**, qui pose précisément la notion de « modérateur en exercice » sur laquelle repose « premier arrivé » — les traiter séparément ferait écrire deux fois la même garde.
 
 **Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md). **Ne rien coder avant que Jules ait tranché.**
 
@@ -221,6 +225,120 @@ Trois options, par friction croissante :
 1. **Ne rien faire ici** et se contenter des chantiers 102 à 104. L'auto-désignation reste ouverte, mais ce qu'elle permet de casser est réduit à la table concernée et reste réversible (`release_table_moderation` côté superadmin). Défendable si la salle est physiquement contrôlée — un saboteur y est assis à côté de ses victimes.
 2. **Premier arrivé seulement** : n'autoriser `designate_moderator` que dans une fenêtre après l'ouverture de la table, ou qu'une fois par table — une reprise ultérieure passe par `claim_table_as_moderator`, qui existe déjà et demande le Code Ecclesia. **Recommandation de la session** : garde le parcours voulu, supprime la reprise hostile en cours de débat.
 3. **Demander le Code Ecclesia**, comme `claim_table_as_moderator`. Le plus sûr, le plus contraignant : il faut que le code circule jusqu'aux tables sans animateur le jour J.
+
+
+---
+
+## Suite de l'audit 87/101 — chantiers 106 à 112 (arbitrages rendus par Jules le 2026-09-20)
+
+> Ces sept chantiers sortent de l'[audit du parcours participant & modérateur](./2026-09-20-audit-chantier87-101-parcours-participant.md). **Les cinq arbitrages que cet audit laissait ouverts ont été tranchés par Jules le 2026-09-20** ; ses décisions sont citées mot pour mot dans chaque entrée sous « Décision de Jules ». Tout ce qui suit sous « Précisions » vient de l'analyse de la session : vérifications dans le code, conséquences déduites, et points explicitement laissés ouverts (signalés « à confirmer »).
+>
+> **Ordre de dépendance** — il n'est pas indicatif, deux branches simultanées sur les mêmes fichiers se casseront :
+> - **112** : indépendant, faisable tout de suite (trois lignes).
+> - **106 → 110** : le 110 a besoin de la notion de « modérateur en exercice » posée par le 106.
+> - **107 → 109** : même fonction SQL, et le 109 est la contrepartie du 107.
+> - **107 → 108 → 111** : ouvrir la déclaration (108) avant que le 107 l'ait rendue inoffensive aggraverait le problème ; et 108 et 111 touchent tous les deux `TableAssignmentCard.tsx`.
+>
+> Le **105bis** (auto-désignation, « premier arrivé ») est à traiter **avec le 106**, qui pose la garde dont il a besoin.
+
+### 106 — Un seul écran modérateur par table (« déclaré » ≠ « en exercice »)
+
+**Modèle de données + SQL + front.** Problème A de l'audit — le plus structurant, et la fondation des autres.
+
+> **Décision de Jules (2026-09-20), arbitrage 2** : « un modo qui n'anime aucune table est un participant : il garde son drapeau, mais perd l'écran. Cela permet au superadmin de voir, au cas où il y a un problème, qu'il y a certaines personnes qui sont modératrices en plus, au cas où. »
+>
+> **Décision de Jules (2026-09-20), arbitrage 4** : « le modérateur est le premier arrivé, et sinon, le superadmin peut changer les modos de place avec son interface de groupe. »
+
+**Le problème** : `TableContext` calcule `isModerator = physicalModerator || sessionMemberIsModerator`, par utilisateur, sans arbitrage ; `is_table_moderator` accorde l'autorité SQL à *tout* membre `is_moderator` assis à cette table. L'allocation assoit sciemment les modérateurs en surplus comme participants ordinaires (chantier 25b) **sans retirer leur drapeau** : deux `ModeratorView` peuvent piloter la même file d'attente et le même chrono.
+
+**Précisions / périmètre** :
+- Nouvelle colonne `tables.active_moderator_member_id` (nullable, FK `session_members`), posée par le **premier** chemin qui attribue l'animation, et exigée par `is_table_moderator` **en plus** des conditions actuelles (les deux branches restent cumulatives — ne surtout pas relâcher le helper, cf. « Ne jamais faire » de `CLAUDE.md`).
+- Le drapeau `session_members.is_moderator` **ne change pas de sémantique** et n'est jamais retiré : c'est la demande explicite de Jules (le superadmin doit continuer à voir qui est modérateur « en plus »).
+- Les cinq chemins qui attribuent aujourd'hui l'animation doivent tous poser la colonne : `apply_allocation`, `claim_moderator_status`, `set_member_moderator`, `assign_moderator_to_table`, `claim_table_as_moderator`. **Un seul oublié fait réapparaître deux écrans** — c'est le risque principal du chantier, à vérifier chemin par chemin.
+- Côté superadmin (onglet Groupes) : distinguer visuellement « modérateur en exercice » et « modérateur en surplus » sur la même table, sinon la décision de Jules de garder le drapeau visible n'a aucun effet à l'écran.
+- **Règle SQL** : `is_table_moderator` est réécrite → comparer son corps à `pg_get_functiondef` **en base**, jamais au fichier de migration.
+- **Fichiers** : `supabase/migrations/…`, `src/context/TableContext.tsx`, l'onglet Groupes de `src/screens/SuperadminScreen.tsx` (et/ou `src/components/ParticipantsTable.tsx`).
+
+### 107 — `claim_moderator_status` ne doit jamais déplacer quelqu'un déjà assis
+
+**SQL uniquement.** Problème B de l'audit, et condition préalable à l'arbitrage 1.
+
+> **Décision de Jules (2026-09-20), arbitrage 1** : « tous les gens qui doivent être modérateurs puissent se déclarer (à l'entrée comme en séance) mais juste que l'algo n'en tienne pas compte et que le superadmin finisse de travailler sur les tables tranquillement. Cela ne doit donc pas faire bouger la répartition lorsqu'il la regarde. »
+
+**Le problème** : si l'appelant est déjà assis sur une table **non** `leaderless`, la branche `ELSE` de `claim_moderator_status` cherche la première table animée sans modérateur et **réécrit son `table_assignments`**. Sa ligne `participants` (sa place physique) ne bouge pas : il obtient l'écran modérateur d'une table où il n'est pas, et **toutes ses actions d'animation échouent en silence RLS** sur la table où il est réellement. Et s'il n'existe aucune table libre, il reste sur place avec le drapeau → retour au problème A.
+
+**Le geste** : la déclaration devient **le drapeau, et rien d'autre**, dans deux cas — (a) l'appelant a déjà une ligne `table_assignments`, quelle que soit la table ; (b) la séance est en phase `allocating`. Le placement d'office ne subsiste que pour quelqu'un sans aucune table, hors `allocating`. La conversion en place d'une table `leaderless` sur laquelle l'appelant est déjà assis (chantier 64) est **conservée** : elle ne déplace personne.
+
+**Précisions** :
+- Même question à examiner pour `set_member_moderator` (chantier 37 : « assied aussi le membre sur la première table animée sans modérateur ») — là c'est le superadmin qui agit sciemment, donc probablement à laisser tel quel. **À confirmer.**
+- **À confirmer avec Jules** : un modérateur qui se déclare pendant `allocating` doit-il être compté si le superadmin **relance** le calcul d'allocation ensuite ? Recommandation de la session : **oui** — « l'algo n'en tient pas compte » veut dire « la répartition ne bouge pas toute seule », pas « ignoré pour toujours » ; un recalcul explicite relit les entrées fraîches.
+- **Règle SQL** : réécriture d'une fonction existante → `pg_get_functiondef` en base d'abord.
+- **Fichiers** : `supabase/migrations/…` uniquement.
+
+### 108 — Harmoniser la déclaration modérateur sur tous les points d'entrée
+
+**Front.** Écarts C1, C2 et C3 de l'audit. **Après le 107** : tant que la déclaration peut déplacer quelqu'un, l'ouvrir davantage aggrave le problème.
+
+> **Décision de Jules (2026-09-20), arbitrage 1** : « tous les gens qui doivent être modérateurs puissent se déclarer (à l'entrée comme en séance) ». Sur l'option « choisir sa table par son code dès l'allocation », proposée par la session : **rejetée**, motif de Jules — « L'option B me parait incohérente : en allocating, les codes de tables n'existent pas forcément encore. » (Exact : les tables sont créées par `apply_allocation`, il n'y a donc aucun code à donner tant que le superadmin n'a pas appliqué sa répartition.)
+
+**Les trois écarts à refermer** :
+- **C1** — la reconquête pré-vote (`PseudoForm`, nom déjà pris → nom + code) **ignore** la case « Je suis modérateur » cochée juste au-dessus, et la perd **sans aucun message**. Rejouer `tryClaimModeratorStatus` après un reclaim réussi, comme le fait déjà `VotingEntryForm`.
+- **C2** — en `allocating`, la déclaration est fermée aux déjà-inscrits (message du chantier 95 sur `AllocatingScreen`) mais **ouverte** à quiconque s'inscrit au même moment. Une fois le 107 passé, la déclaration est inoffensive : **rouvrir** pour les déjà-inscrits et **remplacer** le message du chantier 95 par « tu seras placé à une table au démarrage du débat ».
+- **C3** — le formulaire de secours de `TableAssignmentCard` (membre inscrit, aucune affectation, phase `debating`) ne propose que `switch_table`, **sans** case modérateur, alors que c'est le profil type du modérateur en retard. Y ajouter la case, câblée sur `claim_table_as_moderator` (qui refuse une table déjà animée) — le chemin existe déjà quelques lignes plus haut dans le même composant.
+- **Fichiers** : `src/components/voting/PseudoForm.tsx`, `src/screens/AllocatingScreen.tsx`, `src/components/voting/TableAssignmentCard.tsx`, éventuellement `src/screens/VoteScreen.tsx`.
+
+### 109 — Placement des modérateurs en attente au passage en `debating`
+
+**SQL + superadmin.** Contrepartie du 107 : si la déclaration ne place plus personne pendant l'allocation, il faut que quelqu'un place les modérateurs en attente au démarrage. **Après le 106 et le 107.**
+
+> **Décision de Jules (2026-09-20), arbitrage 1** : « Lorsqu'il a fini de travailler sur les tables, et passent en débat, les modérateurs qui étaient en attente (et qui ont pu se déclarer entre temps) sont associés à leurs tables. »
+
+**Le geste** : au passage `allocating → debating`, une RPC (`assign_pending_moderators(password, session_id)`, à créer — vérifier d'abord dans `docs/reference-fonctions-sql.md` qu'aucune fonction existante ne couvre déjà le besoin) place chaque membre `is_moderator = true` qui n'est en exercice sur aucune table, sur une table animée sans modérateur en exercice. Déterministe, par numéro de table croissant. Pose `active_moderator_member_id` (chantier 106) et déplace `table_assignments` si nécessaire.
+
+**Précisions / garde-fous** :
+- **Ce chantier déplace des gens dans la répartition que le superadmin vient de valider.** C'est voulu et explicitement demandé, mais c'est le seul moment du parcours où ça arrive — à ne pas généraliser.
+- **À confirmer avec Jules** : faut-il un **récapitulatif de confirmation** avant d'appliquer (« 3 modérateurs en attente vont être placés aux tables 2, 5 et 7 — confirmer ? ») ? Recommandation de la session : **oui**. C'est le dernier geste avant le débat, il déplace des participants, et c'est le seul moment où le superadmin peut encore corriger avant que les gens ne soient installés.
+- S'il y a **plus** de modérateurs en attente que de tables libres : le surplus reste participant avec son drapeau — conforme à l'arbitrage 2, aucun traitement particulier.
+- S'il y a **moins** : des tables restent sans modérateur. L'option « interdire les tables sans modérateur » du chantier 98 existe déjà pour éviter d'en arriver là ; le signaler à l'écran suffit, ne rien corriger ici.
+- **Fichiers** : `supabase/migrations/…`, `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`).
+
+### 110 — Bouton « Je suis le modérateur de cette table » dans les Outils + filet d'identité
+
+**Front + SQL léger.** Piège D1 de l'audit. **Après le 106.**
+
+> **Décision de Jules (2026-09-20), arbitrage 5** : « oui, il faut un bouton "je suis le modérateur de cette table" dans outils, pour reprendre la main si on a perdu le compte, c'est une très bonne idée, option A. »
+
+**Le problème** : si le jeton anonyme est renouvelé en séance (téléphone en veille longue, navigateur in-app de Messenger, purge type Safari ITP), `App.tsx` restaure la table depuis `localStorage` et repose `isModerator = r.created_by === userId` — **faux par construction** sur toute table issue de l'allocation, où `created_by` est l'uid du superadmin (anti-pattern nommément interdit par `CLAUDE.md`). La reprise par `session_members` échoue aussi, puisqu'elle est indexée sur le `user_id` justement renouvelé. Le modérateur revient en `ParticipantView` **sans aucun moyen de reprendre la main depuis cet écran**.
+
+**Le geste** : entrée « Je suis le modérateur de cette table » dans `ParticipantToolsButton`, protégée par le Code Ecclesia, qui rejoue `claim_table_as_moderator` sur la table courante ; et suppression du `created_by === userId` de `App.tsx`.
+
+**Précisions** :
+- **À confirmer avec Jules, point important** : `claim_table_as_moderator` **refuse aujourd'hui une table qui a déjà un modérateur**. Or dans le cas qui motive ce chantier, le modérateur en place **c'est lui-même**, sous son ancienne identité — un refus bloquerait exactement le scénario à réparer. Recommandation de la session : sur ce chemin-là, autoriser la **reprise** (transfert de `active_moderator_member_id`), avec un libellé explicite (« Reprendre l'animation de cette table ») et une notification au titulaire précédent. C'est sûr : le Code Ecclesia est exigé, donc seul un vrai modérateur peut le faire. Bénéfice secondaire : ça donne enfin un chemin propre à la **passation de main** en cours de débat, aujourd'hui inexistant.
+- **Fichiers** : `src/components/ParticipantToolsButton.tsx`, `src/App.tsx`, éventuellement `supabase/migrations/…` pour la reprise.
+
+### 111 — Le retardataire entré par code de table doit exister pour la séance
+
+**Front + SQL.** Écart C5 de l'audit. **Après le 108** (les deux touchent `TableAssignmentCard.tsx`).
+
+> **Décision de Jules (2026-09-20), arbitrage 3** : « Oui, un retardataire qui rentre par code de table doit exister pour la séance. […] on peut aussi tout à fait lui donner un bouton : "Assignez moi une table", et on le met à une table aléatoire par exemple. Et on lui propose questionnaire de fin, il voit les résultats (pas les siens, mais ceux de la séance) il peut voter en post vote (juste ce sont de nouveaux votes) etc. »
+
+**Le problème** : quelqu'un qui rejoint une table par `JoinTableForm` sans jamais s'inscrire à la séance n'a pas de ligne `session_members`. Il débat 1 h 30 puis reçoit, en `post_voting`, « le débat vient de se terminer » — sans questionnaire, sans résultats, sans revote. Il est invisible pour la séance.
+
+**Le geste** : l'inscrire à la séance au moment où il rejoint la table (nom + code de rappel, comme tout le monde), et lui offrir en plus un bouton **« Assignez-moi une table »** qui le place sans qu'il ait à quémander un code. Il hérite ensuite de tout le parcours de fin : questionnaire, résultats collectifs, revote.
+
+**Précisions** :
+- **Réponse à la question de Jules** — « un retardataire qui rentre par code de table, c'est un retardataire tout court non ? » : pas tout à fait, il y a **deux** populations distinctes, et c'est ce qui rend le sujet confus. (a) Celui qui a voté et a une affectation : il arrive en débat et clique « Accéder à la table », **il ne tape jamais de code**. (b) Celui qui n'a jamais voté, ou qui s'est inscrit pendant l'allocation après le calcul : il n'a aucune affectation, et **c'est seulement à lui** qu'on demande un code aujourd'hui. Le bouton « Assignez-moi une table » s'adresse exactement à cette seconde population — et il supprime le seul endroit du parcours où l'app demande à quelqu'un d'aller mendier une information à un voisin.
+- **À confirmer avec Jules** : table **aléatoire** (sa proposition) ou **la moins remplie** ? Recommandation de la session : **la moins remplie**, parmi les tables animées. Même coût de code, et ça évite de déséquilibrer une table déjà pleine le soir où trois retardataires arrivent ensemble. L'hétérogénéité d'opinion n'est de toute façon pas calculable pour quelqu'un qui n'a pas voté (il est neutre).
+- Pas de point sur la carte des camps pour lui (aucun vote de la phase de vote) : c'est normal et déjà géré par `ResultsMapScreen` (chantier 34) — ne pas chercher à lui en fabriquer un.
+- **Fichiers** : `src/components/JoinTableForm.tsx`, `src/screens/SessionRouterScreen.tsx`, `src/components/voting/TableAssignmentCard.tsx`, `supabase/migrations/…`.
+
+### 112 — Le modérateur ne voit pas le questionnaire de fin de séance
+
+**Front, trois lignes.** Écart C4 de l'audit. **Indépendant de tous les autres**, faisable immédiatement.
+
+`ParticipantView` a reçu au chantier 63 une garde `!forcedQOpen` sur son overlay « La séance est terminée », pour qu'il ne recouvre pas le questionnaire forcé — les deux sont en `z-50` et s'ouvrent au même instant lors du passage `debating → post_voting`. **`ModeratorView` n'a jamais reçu cette garde** : le modérateur ne voit pas le questionnaire à sa table. Il le retrouve ensuite via « Voir les résultats » (donc rien n'est définitivement perdu), mais l'ordre décrit par Jules — questionnaire, puis résultats, puis revote — n'est pas respecté pour lui, et c'est la personne qui a le plus à dire sur le débat qu'elle vient d'animer.
+
+**Fichiers** : `src/screens/ModeratorView.tsx`.
 
 ---
 
