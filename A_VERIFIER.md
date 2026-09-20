@@ -15,6 +15,28 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 105 (2026-09-20) — restriction de colonne `assertions` (chantier 51) — état en base et piste sur la cause
+
+**Constat à l'ouverture du chantier** : contrairement à ce que disait l'entrée `docs/chantiers-a-faire.md` (écrite le 2026-09-19, sourcée sur l'audit du chantier 100), la restriction posée par `20260902171240_chantier51_hide_assertion_author.sql` **était bien en vigueur en base au moment de l'ouverture du 105** (vérifié via `information_schema.column_privileges` sur `plpjiehqsxxakbuykmkm`, projet `Ecclesia-Animation-Moderateur`) : `SELECT` sur `assertions.member_id` n'était accordé à aucun des rôles `anon`/`authenticated`, seuls `id, session_id, content, status, created_at` l'étaient. La fonction `get_my_assertion_ids` (posée par le même chantier 51) existait aussi correctement, avec `EXECUTE` accordé à `anon`/`authenticated`.
+
+**Donc** : soit le grant a déjà été rétabli correctement entre l'écriture de l'audit (19/09 soir) et l'ouverture de ce chantier (20/09), par un chemin qui n'a laissé aucune trace ici (dashboard ?), soit la requête de l'audit du 100 portait sur autre chose (à vérifier avec Jules si le sujet ressurgit — la reconstitution ci-dessous n'a pas pu être confirmée faute d'accès aux logs Postgres du dashboard au-delà de la fenêtre de rétention).
+
+**Geste fait quand même** : la restriction n'existait jusqu'ici **qu'en base**, posée par le `GRANT` du chantier 51, sans que rien dans le dépôt ne garantisse qu'elle survivrait à un futur événement qui la reposerait à zéro. `20260920_chantier105_restore_assertions_column_grant.sql` la recodifie (idempotent, mêmes statements que le chantier 51) — appliquée et revérifiée en base le 2026-09-20 : état inchangé, toujours correct.
+
+**Piste retenue pour « comment un tel grant pourrait se rétablir tout seul »** (n'a pas pu être confirmée comme la cause réelle, faute de logs remontant assez loin — **à clarifier avec Jules s'il a une explication, en particulier s'il a touché au Table Editor du dashboard sur `assertions` entre le 02/09 et le 19/09**) :
+
+Ce projet a des privilèges par défaut posés au niveau du schéma (`pg_default_acl`, rôles `postgres`/`supabase_admin`) qui accordent **tous les privilèges** (`arwdDxtm`, SELECT compris sur toutes les colonnes) à `anon`/`authenticated` sur **toute nouvelle table** créée dans `public` — c'est le comportement standard d'un projet Supabase neuf, pas une anomalie de ce dépôt. Une restriction posée par un `GRANT`/`REVOKE` explicite sur une table **existante** (comme celle du chantier 51) n'est *a priori* pas affectée par ces privilèges par défaut. Mais si la table `assertions` était un jour **recréée** — `DROP TABLE` + `CREATE TABLE` dans une migration, ou une opération du dashboard Supabase (Table Editor) qui reconstruit la table en coulisse pour certains changements de colonne (type, nullabilité, renommage) — le privilège par défaut du schéma réappliquerait un `SELECT` plein sur toutes les colonnes, **écrasant silencieusement** la restriction posée par le chantier 51, sans passer par aucune migration et donc sans laisser de trace dans `supabase_migrations.schema_migrations` ni dans le dépôt. Aucune migration du dépôt entre le chantier 51 (02/09) et le 105 (20/09) ne recrée `assertions` — si la cause est bien celle-ci, le geste a dû passer par le dashboard, hors dépôt.
+
+**Recette de vérification** (rejouable) :
+```sql
+select grantee, column_name
+from information_schema.column_privileges
+where table_name = 'assertions' and privilege_type = 'SELECT'
+  and grantee in ('anon','authenticated')
+order by grantee, column_name;
+-- attendu : content, created_at, id, session_id, status — jamais member_id
+```
+
 ## Chantier 83 (2026-09-20) — redéploiement de `gemini-proxy` (anti-abus du chantier 57) — ✅ validé par Jules le 2026-09-20
 
 **Contexte** : le chantier 57 (quota 20 req/60s + plafond 300 Ko sur `gemini-proxy`) était mergé côté code depuis le 2026-09-02 mais jamais redéployé — l'Edge Function en ligne tournait sans aucune limite. Comparaison ligne à ligne le 2026-09-20 entre le fichier local et le code collé par Jules depuis le dashboard : le prompt de fusion durci (typage prescription/jugement/constat) était en fait déjà en ligne ; c'est bien l'anti-abus du 57 qui manquait, pas le prompt.

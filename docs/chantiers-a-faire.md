@@ -53,7 +53,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-19 : aucun chantier en cours.** Le 104 a été livré le jour même — voir `docs/chantiers.md`.
+**Au 2026-09-20 : aucun chantier en cours.** Le 105 a été livré le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -193,6 +193,8 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 > ✅ **103 fait et mergé le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 103.
 
 > ✅ **104 fait et mergé sur `main` le 2026-09-19** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 104.
+
+> ✅ **105 fait le 2026-09-20** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 105. **Correction importante à l'ouverture** : contrairement à ce que disait l'entrée ci-dessous (sourcée sur l'audit du 100), la restriction était **déjà en vigueur en base** au moment de lancer le chantier — `member_id` n'était pas accordé. La cause exacte du soupçon initial (« rétabli hors migration ») n'a pas pu être confirmée faute de logs remontant assez loin ; une piste plausible (privilèges par défaut du schéma réappliqués si la table est recréée, ex. via le Table Editor du dashboard) est documentée dans `A_VERIFIER.md`, à confirmer avec Jules. Le geste fait quand même : la restriction, qui n'existait qu'en base, est maintenant recodifiée dans une migration du dépôt (idempotente) pour ne plus dépendre uniquement d'un `GRANT` invisible du code source.
 
 ### 105 — Sécurité : rétablir la restriction de colonne du chantier 51 sur `assertions`
 
