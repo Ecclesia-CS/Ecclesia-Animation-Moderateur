@@ -9,6 +9,19 @@
 Liste des points nécessitant une validation humaine, générés lors des sessions Claude Code.
 Ne pas supprimer une entrée sans validation explicite de Jules — se contenter de la déplacer en section "Validé" une fois confirmée. Si un point semble obsolète, le marquer comme tel plutôt que l'effacer.
 
+## Ménage des worktrees/branches/tags obsolètes — simulation faite le 2026-09-19, report volontaire
+
+`scripts/cleanup-worktrees.sh` (déjà présent dans le dépôt) a été relancé en simulation (`--go` **non** utilisé, rien n'a été supprimé). Résultat complet :
+
+- **47 worktrees locaux** identifiés comme supprimables (dossiers frères de la racine, un par ancien chantier — ex. `Ecclesia-chantier-12`, `Ecclesia-chantier-50`... jusqu'à `Ecclesia-chantier-80` — tous mergés sur `main`, `git status` propre) → suppression du dossier + de la branche locale associée.
+- **29 worktrees conservés** : modifications non commitées, branche pas mergée dans `main`, ou HEAD détaché à vérifier à la main (`chantier-56-sql-hardening-6ff22e`, `restrict-session-public-columns-48a6fb`).
+- **~40 branches locales orphelines** (plus de worktree, déjà mergées) supprimables.
+- **~40 branches `origin/*` supprimables via `git push origin --delete`** — la seule partie qui touche le dépôt **distant** GitHub, pas seulement ce disque.
+- **~50 anciens tags `pre-merge-chantier-*`** (antérieurs au 2026-09-02, seuil déjà figé dans le script) supprimables, y compris côté `origin`.
+- Protégés en dur par le script, jamais concernés : `main`, `chantier-58-colonnes-sessions`, `chantier-secu-sauvegardes` (et leurs pendants `origin/`).
+
+**Décision de Jules (2026-09-20)** : ne pas lancer `--go` maintenant. À relancer plus tard, **jamais dans les quelques jours précédant une séance de production réelle** (le nettoyage touche des branches/tags distants sur GitHub — mieux vaut une prod immobile ce jour-là qu'un ménage qui tourne mal au pire moment). Revalider avec `--go` une fois une fenêtre calme trouvée — le script est idempotent, un re-scan avant de lancer `--go` ne coûte rien si du temps a passé entre-temps (de nouveaux chantiers ont pu mériter leur propre worktree depuis).
+
 > **2026-08-03** — Fichier allégé à la demande de Jules avant une remise à zéro de la mémoire Dispatch : toutes les entrées déjà vérifiées/confirmées (chantiers 1 à 32 et vagues de vérification antérieures) ont été retirées — leur historique complet reste dans l'historique git de ce fichier (`git log -p -- A_VERIFIER.md`).
 >
 > **Correction 2026-09-01** : les chantiers **33 et 34** avaient été retirés par cet allégement alors qu'ils n'ont **jamais été vérifiés humainement** (33 : uniquement `tsc`/tests/mock réseau ; 34 : uniquement mock réseau via route de debug) — réintégrés ci-dessous, section Superadmin (33) et Participant (34).
