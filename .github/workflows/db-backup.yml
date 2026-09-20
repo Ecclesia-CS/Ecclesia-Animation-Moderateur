@@ -186,7 +186,13 @@ jobs:
     # restauration de production (voir la procédure en tête de fichier).
     services:
       postgres:
-        image: postgres:15
+        # Doit suivre la version majeure du serveur Supabase source
+        # (image ghcr.io/supabase/postgres:17.x utilisée par `supabase db
+        # dump`, voir le job backup) — un Postgres 15 ne reconnaît pas le
+        # privilège MAINTAIN (ajouté en 17) et rejette le dump à la
+        # restauration (« unrecognized privilege type "maintain" »),
+        # constaté au run du 2026-09-20.
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: verif
           POSTGRES_DB: verif
