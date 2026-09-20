@@ -64,7 +64,7 @@ order by grantee, column_name;
 -- attendu : content, created_at, id, session_id, status — jamais member_id
 ```
 
-## Chantier 105bis (2026-09-20) — ferme l'auto-désignation libre de modérateur (A4) — SQL vérifié, navigateur à faire
+## Chantier 105bis (2026-09-20) — ferme l'auto-désignation libre de modérateur (A4) — ✅ vérifié au navigateur
 
 **Arbitrage de Jules** : le bouton participant "🎙️ Devenir modérateur" sur une table `leaderless` ne désigne plus personne ; il renvoie vers le superadmin, seul habilité désormais, et seulement s'il est disponible (pas de filet automatique).
 
@@ -76,10 +76,13 @@ WHERE routine_name = 'designate_moderator';
 ```
 Confirmé après application de `20260920_chantier105bis_close_designate_moderator.sql` — `anon`/`authenticated` retirés, `postgres`/`service_role` conservés. `pg_get_functiondef` du corps de la fonction relu avant modification (corps en base identique au fichier de migration existant, seul un `REVOKE` a été ajouté, aucune fonction réécrite).
 
-**À vérifier au navigateur** (pas fait par cette session — aucun serveur de dev lancé) :
-1. Table `leaderless` côté participant → le bouton "🎙️ Devenir modérateur" est toujours visible, mais son clic ouvre la modale informative ("Va voir le superadmin") sans appel réseau qui échoue en silence — vérifier `read_console_messages`/`read_network_requests` pour confirmer qu'aucun appel à `designate_moderator` n'est tenté.
-2. Depuis l'écran superadmin, onglet Tables, sur une séance avec une table `leaderless` : `AddModeratorControl` apparaît bien et `assign_moderator_to_table` fonctionne toujours (non touché par ce chantier, mais à reconfirmer que le chemin de recours fonctionne réellement de bout en bout, pas seulement en lecture de code).
-3. Un appel direct à `supabase.rpc('designate_moderator', ...)` depuis la console navigateur, authentifié en participant anonyme, échoue bien avec une erreur de permission (defense-in-depth : le frontend ne doit pas être la seule barrière).
+**Vérifié au navigateur (2026-09-20, même session)** — table `leaderless` jetable créée par SQL (`TST105B`) + participant assis dessus, via un vrai utilisateur anonyme Supabase créé par l'app (`preview_start`/`ecclesia-dev`) :
+1. `ParticipantView` sur une table `leaderless` affiche toujours le bouton "🎙️ Devenir modérateur" et le bandeau d'accueil met bien à jour son texte ("voyez avec le superadmin de la séance").
+2. Clic sur le bouton → la modale "Va voir le superadmin" s'affiche (capture prise), **aucune requête réseau** vers `designate_moderator` n'a été émise (`read_network_requests` vide sur ce filtre) — confirmé aussi en base : `tables.leaderless` reste `true` et `created_by` inchangé après le clic.
+3. **Défense en profondeur confirmée** : appel direct `POST .../rpc/designate_moderator` avec le JWT du participant anonyme et la clé `anon` → `403 permission denied for function designate_moderator` (code Postgres `42501`). Le blocage tient même en contournant complètement le frontend.
+4. Données de test purgées après coup (`DELETE` sur `participants`/`tables`, `TST105B`).
+
+**Non rejoué** : le chemin de recours superadmin (`AddModeratorControl` → `assign_moderator_to_table`), déjà vérifié bout en bout lors de chantiers antérieurs (72, etc.) et non modifié par celui-ci — pas de raison de le rejouer ici, mais à garder en tête si un doute survient dessus plus tard.
 
 ## Chantier 99 (2026-09-20) — boutons de guidage dans le menu Documentation — ✅ validé par Jules le 2026-09-20
 
