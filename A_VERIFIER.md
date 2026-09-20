@@ -15,7 +15,21 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
-## Chantier 105 (2026-09-20) — restriction de colonne `assertions` (chantier 51) — état en base et piste sur la cause
+## Chantier 105 (2026-09-20) — restriction de colonne `assertions` (chantier 51) — ✅ vérifié en base, cause non tranchée mais sans conséquence
+
+**Suite du 2026-09-20 (même jour)** : Jules confirme n'avoir **pas touché au Table Editor** du dashboard sur `assertions`, écartant la piste ci-dessous. Il avance que les chantiers **101 à 104** (eux aussi issus de l'audit du 100) ont « certainement » corrigé l'erreur en passant — **vérifié, ce n'est pas le cas** : `git grep -i assertions` sur les trois migrations SQL de ces chantiers ne trouve qu'une mention en commentaire (un renvoi vers ce chantier-ci dans `20260919_chantier103_auth_uid_instead_of_param.sql`), aucune n'écrit sur la table `assertions` ou son `GRANT` — le 102/103 portent sur des fonctions (`leave_other_session_tables`, `sync_table_assignment`, etc.), le 104 sur la table `tables`. Donc ni le Table Editor ni les chantiers 101-104 n'expliquent le fait que la restriction était déjà correcte à l'ouverture du 105. **La cause reste non identifiée** — mais sans conséquence pratique : l'état actuel est vérifié correct et maintenant codifié dans une migration du dépôt (`20260920_chantier105_restore_assertions_column_grant.sql`), donc reproductible indépendamment de ce qui s'est passé.
+
+**Vérification de bout en bout ajoutée** (pas seulement `information_schema`, le comportement réel du rôle `anon`) :
+```sql
+begin;
+set local role anon;
+select member_id from assertions limit 1;
+rollback;
+-- résultat obtenu : ERREUR 42501 permission denied for table assertions
+```
+Confirme que `member_id` est bien inaccessible en lecture pour le rôle `anon`, pas seulement absent du catalogue de privilèges.
+
+**Rien de plus à vérifier pour ce chantier** — mergeable.
 
 **Constat à l'ouverture du chantier** : contrairement à ce que disait l'entrée `docs/chantiers-a-faire.md` (écrite le 2026-09-19, sourcée sur l'audit du chantier 100), la restriction posée par `20260902171240_chantier51_hide_assertion_author.sql` **était bien en vigueur en base au moment de l'ouverture du 105** (vérifié via `information_schema.column_privileges` sur `plpjiehqsxxakbuykmkm`, projet `Ecclesia-Animation-Moderateur`) : `SELECT` sur `assertions.member_id` n'était accordé à aucun des rôles `anon`/`authenticated`, seuls `id, session_id, content, status, created_at` l'étaient. La fonction `get_my_assertion_ids` (posée par le même chantier 51) existait aussi correctement, avec `EXECUTE` accordé à `anon`/`authenticated`.
 
