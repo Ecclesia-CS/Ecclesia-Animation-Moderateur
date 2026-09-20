@@ -5,6 +5,8 @@
 
 > **Fusion 87 / 101 assumée.** Le chantier 87 attendait « le texte de Jules » ; ce texte est arrivé, et il couvre exactement le terrain du 101 (toutes les situations d'arrivée d'un participant ou d'un modérateur). Les deux chantiers sont donc traités **en un seul audit**, ce qui lève le chevauchement signalé dans `chantiers-a-faire.md`. Le 101 n'est pas un sous-ensemble détaché : c'est le même sujet.
 >
+> ⚠️ **Note ajoutée au merge, le 2026-09-20 même** : le **chantier 105bis a été livré par une autre session pendant la rédaction de cet audit**, et il change un fait cité ici. `designate_moderator` (auto-désignation sans secret sur une table `leaderless`) **ne désigne plus personne** : le bouton renvoie désormais vers le superadmin, seul habilité à accorder le rôle. Conséquence pour ce document : le piège **D1** (perte de l'identité anonyme) devient **plus** aigu, pas moins — le dernier chemin de reprise sans secret vient de se refermer, et la proposition **P6** (bouton « Je suis le modérateur de cette table », chantier 110) est désormais le **seul** moyen prévu pour un modérateur de reprendre la main depuis son écran. Le reste de l'audit est inchangé.
+>
 > **Nature du document** : constat, pas correctif. Aucune ligne de code applicative n'est modifiée par ce chantier. Les corrections proposées sont listées en §4 sous forme de chantiers candidats, à arbitrer par Jules.
 
 ---

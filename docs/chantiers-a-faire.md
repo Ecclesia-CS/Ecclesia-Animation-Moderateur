@@ -16,7 +16,7 @@ Dernière mise à jour : **2026-09-20**.
 >
 > **Le 2026-09-20 (suite), chantier 83bis fait** : le test navigateur du 83 avait montré que le quota 429 ne se déclenchait jamais (compteur en mémoire, non partagé entre instances Edge Function). Remplacé par un compteur partagé en Postgres (table `gemini_rate_limit_calls` + RPC `check_gemini_rate_limit`), migration appliquée en base. **L'Edge Function reste à redéployer via le dashboard Supabase** (comme au 83) avant que le correctif ne soit effectif en ligne — voir `A_VERIFIER.md`.
 >
-> **Ajout du 2026-09-20, fin de journée** : l'audit 87/101 est livré et **ses cinq arbitrages ont été tranchés par Jules le jour même**. Sa suite est découpée en sept chantiers, **106 à 112**, en fin de fichier — avec leur ordre de dépendance, qui n'est pas indicatif. Le **112** est indépendant et trivial (trois lignes), le **106** est la fondation dont dépendent les autres. Le **105bis**, qui attendait un arbitrage, est **débloqué par ricochet** et rejoint le 106.
+> **Ajout du 2026-09-20, fin de journée** : l'audit 87/101 est livré et **ses cinq arbitrages ont été tranchés par Jules le jour même**. Sa suite est découpée en sept chantiers, **106 à 112**, en fin de fichier — avec leur ordre de dépendance, qui n'est pas indicatif. Le **112** est indépendant et trivial (trois lignes), le **106** est la fondation dont dépendent les autres. ⚠️ **Le 105bis a été tranché et livré le même jour par une autre session**, avec une option que cette session-ci n'avait pas envisagée (le bouton d'auto-désignation ne désigne plus personne et renvoie vers le superadmin) — il ne « rejoint » donc pas le 106, il est **fait**. Voir son entrée et `docs/chantiers.md`.
 
 ---
 
@@ -213,18 +213,17 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 
 **Le geste, ensuite** : rétablir la restriction **dans une migration du dépôt**, et vérifier qu'elle tient. Leçon à retenir au passage : une correction de sécurité posée uniquement par `GRANT` peut se défaire sans laisser de trace — le chantier devrait se terminer par une vérification, pas par une application.
 
-### 105bis — Sécurité : l'auto-désignation de modérateur (A4) — **débloqué le 2026-09-20**
+> ✅ **105bis fait le 2026-09-20** — arbitrage de Jules tranché (voir ci-dessous), détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 105bis.
 
-> ✅ **L'arbitrage attendu a été rendu**, par ricochet, en tranchant l'audit 87/101 : Jules a répondu « le modérateur est le premier arrivé, et sinon, le superadmin peut changer les modos de place avec son interface de groupe » — c'est **l'option 2 ci-dessous**, celle que la session recommandait. `designate_moderator` reste ouverte sans secret pour le premier arrivant d'une table `leaderless` ; toute reprise ultérieure passe par `claim_table_as_moderator` (Code Ecclesia exigé). À implémenter **avec le chantier 106**, qui pose précisément la notion de « modérateur en exercice » sur laquelle repose « premier arrivé » — les traiter séparément ferait écrire deux fois la même garde.
+### 105bis — Sécurité : l'auto-désignation de modérateur (A4)
 
-**Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md). **Ne rien coder avant que Jules ait tranché.**
+**Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md).
 
-`designate_moderator` ne demande **aucun secret** : sur une table `leaderless`, n'importe quel participant se fait modérateur, ce qui lui ouvre d'un coup `kick_participant`, `grant_floor`, `correct_turn`, `add_offline_participant` — et, tant que le 104 n'est pas passé, la réécriture du `join_code`. Ce n'est pas un bug : c'est le mécanisme prévu pour qu'une table sans animateur puisse en désigner un sur place. Le fermer sans rien mettre à la place casse un parcours voulu.
+`designate_moderator` ne demandait **aucun secret** : sur une table `leaderless`, n'importe quel participant se faisait modérateur, ce qui lui ouvrait d'un coup `kick_participant`, `grant_floor`, `correct_turn`, `add_offline_participant` — et, tant que le 104 n'est pas passé, la réécriture du `join_code`. Ce n'était pas un bug : c'était le mécanisme prévu pour qu'une table sans animateur puisse en désigner un sur place.
 
-Trois options, par friction croissante :
-1. **Ne rien faire ici** et se contenter des chantiers 102 à 104. L'auto-désignation reste ouverte, mais ce qu'elle permet de casser est réduit à la table concernée et reste réversible (`release_table_moderation` côté superadmin). Défendable si la salle est physiquement contrôlée — un saboteur y est assis à côté de ses victimes.
-2. **Premier arrivé seulement** : n'autoriser `designate_moderator` que dans une fenêtre après l'ouverture de la table, ou qu'une fois par table — une reprise ultérieure passe par `claim_table_as_moderator`, qui existe déjà et demande le Code Ecclesia. **Recommandation de la session** : garde le parcours voulu, supprime la reprise hostile en cours de débat.
-3. **Demander le Code Ecclesia**, comme `claim_table_as_moderator`. Le plus sûr, le plus contraignant : il faut que le code circule jusqu'aux tables sans animateur le jour J.
+**Arbitrage de Jules (2026-09-20)** : ni « laisser ouvert », ni « demander le Code Ecclesia » — une quatrième option, plus proche du produit que des trois envisagées par la session précédente. Le bouton participant reste visible sur une table `leaderless`, mais ne désigne plus personne : il renvoie vers le superadmin, qui est seul habilité à accorder le rôle, **et seulement s'il est disponible** (pas de filet automatique si personne ne répond — la table reste sans animateur plutôt que de rouvrir la faille).
+
+**Fait** : la RPC `designate_moderator` a son `EXECUTE` révoqué pour `anon`/`authenticated` en base (migration `20260920_chantier105bis_close_designate_moderator.sql`, appliquée). Côté participant (`ParticipantView.tsx`), le bouton "🎙️ Devenir modérateur" ouvre désormais une modale informative au lieu d'appeler la RPC ; `designateModerator` a été retiré de `TableContext.tsx` (plus aucun appelant). Côté admin, **rien à créer** : `AddModeratorControl` (onglet Tables du superadmin) couvrait déjà exactement ce cas depuis le chantier 72 — bouton d'assignation sur toute table sans modérateur, via `assign_moderator_to_table`/`set_member_moderator`, protégées par le mot de passe superadmin.
 
 
 ---
@@ -239,7 +238,7 @@ Trois options, par friction croissante :
 > - **107 → 109** : même fonction SQL, et le 109 est la contrepartie du 107.
 > - **107 → 108 → 111** : ouvrir la déclaration (108) avant que le 107 l'ait rendue inoffensive aggraverait le problème ; et 108 et 111 touchent tous les deux `TableAssignmentCard.tsx`.
 >
-> Le **105bis** (auto-désignation, « premier arrivé ») est à traiter **avec le 106**, qui pose la garde dont il a besoin.
+> **À lire avant de commencer le 106** : le **105bis** (auto-désignation sur table `leaderless`) a été tranché et livré le 2026-09-20 par une autre session, **pendant** la rédaction de ce bloc. Jules y a choisi une quatrième option, non envisagée ici : le bouton participant reste visible mais ne désigne plus personne, il renvoie vers le superadmin, seul habilité à accorder le rôle. Ce n'est **pas** en contradiction avec l'arbitrage 4 du 106 (« le modérateur est le premier arrivé »), qui porte sur une autre question — lequel des modérateurs **déjà déclarés** tient l'écran d'une table. Mais les deux se rejoignent sur une règle que le 106 ne doit pas casser : **plus aucun chemin ne donne l'animation sans secret** (Code Ecclesia) ou sans le superadmin.
 
 ### 106 — Un seul écran modérateur par table (« déclaré » ≠ « en exercice »)
 

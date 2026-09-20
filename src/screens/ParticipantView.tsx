@@ -3,7 +3,6 @@ import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
 import { extractErr } from '../lib/utils'
-import { tableStore } from '../lib/storage'
 import type { QuestionnaireResponse } from '../lib/types'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
@@ -27,14 +26,12 @@ export default function ParticipantView() {
     leaveTable,
     endTurnAndAdvance,
     claimFloor,
-    designateModerator,
   } = useTable()
 
   const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
   const [showWelcome,        setShowWelcome]        = useState(() => !localStorage.getItem('debate_welcome_' + table.id))
   const [err,                setErr]                = useState<string | null>(null)
-  const [showBecomeModConfirm, setShowBecomeModConfirm] = useState(false)
-  const [becomingMod,          setBecomingMod]          = useState(false)
+  const [showAskAdminModal,  setShowAskAdminModal]  = useState(false)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
   const [sessionTitle,       setSessionTitle]       = useState<string | null>(null)
@@ -132,26 +129,6 @@ export default function ParticipantView() {
     handleClaimFloor()
   }, [table.leaderless, table.current_speaker_id, queueInteractive, queueLong, myParticipant.id, handleClaimFloor])
 
-  async function handleBecomeModerator() {
-    setShowBecomeModConfirm(false)
-    setBecomingMod(true)
-    setErr(null)
-    try {
-      await designateModerator()
-      tableStore.set({
-        tableId:       table.id,
-        participantId: myParticipant.id,
-        joinCode:      table.join_code,
-        isModerator:   true,
-        pseudo:        myParticipant.pseudo,
-      })
-    } catch (e) {
-      setErr(extractErr(e))
-    } finally {
-      setBecomingMod(false)
-    }
-  }
-
   async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
     setErr(null)
     if (type === 'long'        && !existing) setPendingLong(true)
@@ -186,11 +163,9 @@ export default function ParticipantView() {
         <div className="flex items-center gap-2">
           {table.leaderless && (
             <button
-              onClick={() => setShowBecomeModConfirm(true)}
-              disabled={becomingMod}
+              onClick={() => setShowAskAdminModal(true)}
               className="text-xs px-3 py-1.5 border border-amber-300 text-amber-700 bg-amber-50 rounded-lg
-                hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300
-                disabled:opacity-50"
+                hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300"
             >
               🎙️ Devenir modérateur
             </button>
@@ -310,13 +285,13 @@ export default function ParticipantView() {
         />
       )}
 
-      {showBecomeModConfirm && (
+      {showAskAdminModal && (
         <ConfirmModal
-          title="Devenir modérateur de cette table ?"
-          body="En devenant animateur de cette table, tu n'auras plus le statut de participant au débat. Tu modéreras, mais tu ne participeras pas : tu seras responsable de donner la parole aux participants, et cette table n'aura plus besoin de l'auto-gestion par file."
-          confirmLabel="Devenir modérateur"
-          onConfirm={handleBecomeModerator}
-          onCancel={() => setShowBecomeModConfirm(false)}
+          title="Va voir le superadmin"
+          body="Pour éviter qu'une table sans animateur puisse être détournée, ce n'est plus un participant qui se désigne lui-même modérateur : va voir la personne qui gère la séance (le superadmin), elle pourra t'accorder ce rôle depuis son écran."
+          confirmLabel="Compris"
+          onConfirm={() => setShowAskAdminModal(false)}
+          onCancel={() => setShowAskAdminModal(false)}
         />
       )}
 
@@ -356,7 +331,7 @@ export default function ParticipantView() {
                   <span className="text-xl shrink-0">🤝</span>
                   <div>
                     <p className="font-semibold text-gray-900">Groupe auto-géré</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. L'un de vous peut aussi devenir modérateur ("🎙️ Devenir modérateur" en haut) — mais renoncera alors à participer au débat.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
                   </div>
                 </div>
               ) : (

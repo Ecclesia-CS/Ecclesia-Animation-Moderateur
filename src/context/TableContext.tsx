@@ -39,7 +39,6 @@ interface TableCtxValue {
   endTurnAsSpeaker(): Promise<void>
   endTurnAndAdvance(): Promise<void>
   claimFloor(): Promise<void>
-  designateModerator(): Promise<void>
   addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive', position?: number): Promise<void>
@@ -98,7 +97,10 @@ export function TableProvider({
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
   const [ready, setReady] = useState(false)
   // Contrôle physique de la table (tables.created_by === userId, tables leaderless
-  // exclues, ou auto-désignation `designate_moderator`) — indépendant de la séance.
+  // exclues) — indépendant de la séance. `designate_moderator` (auto-désignation
+  // libre) a été fermée au chantier 105bis ; ce champ n'est plus posé que par le
+  // superadmin (assign_moderator_to_table/set_member_moderator) ou par
+  // `claim_table_as_moderator` (Code Ecclesia).
   const [physicalModerator, setPhysicalModerator] = useState(initialIsModerator)
   // Chantier 41 — statut `session_members.is_moderator` (assignation superadmin,
   // onglet Tables/Membres, ou auto-déclaration). `false` par défaut : sans séance
@@ -459,17 +461,6 @@ export function TableProvider({
     [tableId, broadcast],
   )
 
-  const designateModerator = useCallback(
-    async () => {
-      await rpc('designate_moderator', { p_table_id: tableId })
-      // Mise à jour locale immédiate — le rebond Realtime confirmera pour les autres clients
-      setTable(prev => prev ? { ...prev, leaderless: false, created_by: userId } : prev)
-      setPhysicalModerator(true)
-      broadcast(['tables'])
-    },
-    [rpc, tableId, userId, broadcast],
-  )
-
   const endTurnAndAdvance = useCallback(
     async () => {
       const { data, error } = await supabase.rpc('end_turn_and_advance', {
@@ -605,7 +596,6 @@ export function TableProvider({
         correctTurn,
         kickParticipant,
         claimFloor,
-        designateModerator,
         forceQuestionnaire,
         cancelForceQuestionnaire,
       }}
