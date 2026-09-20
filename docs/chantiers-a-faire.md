@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-09-20**.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
 >
-> **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table — **fait le 19/09**, voir `docs/chantiers.md`), **98** (allocation : interdire les tables sans modérateur — **fait et vérifié au navigateur le 19/09**, voir `docs/chantiers.md`), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauche potentiellement le **87**, à clarifier avant de le lancer).
+> **Ajout du 2026-09-19** : cinq nouveaux chantiers dictés par Jules — **97** (vue modérateur : badge actif/passif + présence à table — **fait le 19/09**, voir `docs/chantiers.md`), **98** (allocation : interdire les tables sans modérateur — **fait et vérifié au navigateur le 19/09**, voir `docs/chantiers.md`), **99** (fiches pédagogiques, bloqué sur Jules), **100** et **101** (deux diagnostics/audits, cybersécurité et flow participant — le **101** chevauchait potentiellement le **87** — **tranché le 2026-09-20 : les deux ont été fusionnés en un seul audit**, voir leurs entrées).
 >
 > **Ajout du 2026-09-19, en fin de journée** : le chantier **100 est fait** (audit livré), et sa suite est découpée en cinq chantiers de sécurité — **102** (refermer les helpers SQL exposés, l'essentiel du gain, ne dépend de rien), **103** (`auth.uid()` au lieu du `user_id` en paramètre), **104** (colonnes de `tables`, C7), **105** (régression du chantier 51 sur `assertions`) et **105bis** (auto-désignation de modérateur, **bloqué sur un arbitrage de Jules**). Tous renvoient au diagnostic et au plan du jour.
 >
@@ -55,7 +55,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-20 : aucun chantier en cours.** Le 83bis (compteur de quota `gemini-proxy` partagé) et le 105 ont été livrés le jour même — voir `docs/chantiers.md`.
+**Au 2026-09-20 : aucun chantier en cours.** (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont été livrés le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -163,6 +163,9 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 ⚠️ *(Consigne d'origine, respectée)* : peut verrouiller Jules hors de sa propre base — à ne faire que lorsqu'il est disponible et joignable, jamais à l'approche d'une utilisation en production, jamais pendant qu'il dort.
 
 ### 87 — Revue complète des parcours utilisateurs
+
+> ✅ **Fait le 2026-09-20 — 87 et 101 fusionnés en un seul audit.** Jules a fourni le texte que le 87 attendait, et ce texte couvre exactement le terrain du 101 : le chevauchement signalé ci-dessous est donc tranché par la fusion, pas par un choix entre les deux. Audit livré : [`docs/2026-09-20-audit-chantier87-101-parcours-participant.md`](./2026-09-20-audit-chantier87-101-parcours-participant.md). Constat court : le parcours décrit est globalement couvert ; trois problèmes réels — plusieurs écrans modérateurs possibles sur une même table, `claim_moderator_status` qui déplace l'affectation de quelqu'un déjà assis (écran modérateur sans autorité), et une déclaration modérateur incohérente d'un point d'entrée à l'autre. Six correctifs candidats (P1-P6) et **trois arbitrages en attente de Jules** y sont listés — les chantiers correctifs ne sont pas ouverts ici.
+
 **Parcours.** Sujet de fond réservé par Jules. Il veut **réexpliquer lui-même** comment l'application et son flux sont censés fonctionner à chaque instant, et préfère une conversation dédiée lancée en **un prompt unique** qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
 
 ### 99 — Fiches pédagogiques : argument fallacieux et biais cognitifs
@@ -181,6 +184,9 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 **Précisions** : c'est un audit, dans l'esprit de `docs/2026-09-06-plan-securite-consolide.md` — relire l'état actuel du code et de la base (RLS, policies, canaux Realtime, RPC SECURITY DEFINER) contre ces deux questions précises (interruption de séance en cours, exfiltration de données), et produire un constat, pas nécessairement un correctif immédiat. Recouvre partiellement le plan consolidé existant (F6 Realtime, `session_members`/`table_assignments` self-only, etc.) mais avec un angle plus large : « interrompre la séance » n'est pas un point déjà couvert nommément dans le plan — à vérifier explicitement (ex. un participant peut-il changer la phase d'une séance, casser le broadcast d'une table, etc.).
 
 ### 101 — Diagnostic flow participant : toutes les situations d'arrivée sont-elles couvertes ?
+
+> ✅ **Fait le 2026-09-20 — 87 et 101 fusionnés en un seul audit.** Jules a fourni le texte que le 87 attendait, et ce texte couvre exactement le terrain du 101 : le chevauchement signalé ci-dessous est donc tranché par la fusion, pas par un choix entre les deux. Audit livré : [`docs/2026-09-20-audit-chantier87-101-parcours-participant.md`](./2026-09-20-audit-chantier87-101-parcours-participant.md). Constat court : le parcours décrit est globalement couvert ; trois problèmes réels — plusieurs écrans modérateurs possibles sur une même table, `claim_moderator_status` qui déplace l'affectation de quelqu'un déjà assis (écran modérateur sans autorité), et une déclaration modérateur incohérente d'un point d'entrée à l'autre. Six correctifs candidats (P1-P6) et **trois arbitrages en attente de Jules** y sont listés — les chantiers correctifs ne sont pas ouverts ici.
+
 **Parcours, discussion/audit.** Nouveau, dicté par Jules le 2026-09-19.
 
 > **Consigne de Jules (2026-09-19)** : « Flow participant : faire une discussion check pour bien vérifier que toutes les situations possibles d'un participant qui arrive, ou un modérateur qui arrive, puissent rejoindre la séance, et participer comme il se doit, que tout est pris en compte. »
