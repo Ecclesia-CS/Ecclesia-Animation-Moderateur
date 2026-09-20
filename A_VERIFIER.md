@@ -23,7 +23,18 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 
 **Vérifié** : Jules a relancé une fusion d'assertions réelle juste après déploiement — 5 propositions de fusion reçues, fonctionnement inchangé du point de vue utilisateur.
 
-**Non vérifié / laissé ouvert** : le quota (429 après 20 appels/60s) et le plafond de charge utile (413 au-delà de 300 Ko) n'ont pas été testés activement — seul le chemin nominal (une fusion isolée) a été rejoué. Si une automatisation (modération/fusion auto, nommage de camps) déclenche un jour un 429 inattendu, vérifier que `RATE_LIMIT_MAX_REQUESTS`/`RATE_LIMIT_WINDOW_MS` (`supabase/functions/gemini-proxy/index.ts`) sont toujours calibrés au pire cas légitime documenté en commentaire dans le fichier.
+**Mise à jour du 2026-09-20, l'après-midi même — les deux garde-fous testés activement au navigateur, un résultat inattendu.**
+
+Méthode : serveur de dev local (`.env` copié depuis la racine, jeton de serveur pris puis relâché), session anonyme réelle (`signInAnonymously`, JWT + `apikey` extraits du `localStorage` de l'app), appels `fetch` directs vers `https://plpjiehqsxxakbuykmkm.supabase.co/functions/v1/gemini-proxy` avec `action: 'unknown_test'` (rejetée en `400` *après* la vérification de quota mais *avant* tout appel Gemini payant — aucun coût Gemini engendré par ce test).
+
+- **Plafond de taille (413) : ✅ confirmé.** Un payload de 412 585 octets (200 assertions de ~2000 caractères) reçoit bien `413` avec le message `"Charge envoyée trop volumineuse (max 300 Ko)..."`.
+- **Quota de débit (429) : ❌ ne se déclenche jamais en pratique.** 122 requêtes envoyées au total sur le même compte anonyme (22 séquentielles, puis 60 séquentielles, puis 40 en parallèle via `Promise.all`) — très au-dessus des 20 requêtes/60s configurées (`RATE_LIMIT_MAX_REQUESTS`/`RATE_LIMIT_WINDOW_MS`). **Aucune des 122 n'a reçu de `429`.**
+
+**Cause probable, déjà anticipée dans le code lui-même** (commentaire `supabase/functions/gemini-proxy/index.ts` lignes ~83-97) : le compteur `callLog` est une `Map` **en mémoire, par instance**. Sur l'infrastructure Edge Functions de Supabase, rien ne garantit qu'un appel suivant retombe sur la même instance/isolate qu'un appel précédent — même pour un client unique qui enchaîne ses requêtes sans délai. Le test le confirme empiriquement : avec 122 appels rapprochés sans qu'aucun ne déclenche la limite, il est probable que chaque requête (ou presque) atterrit sur une instance dont le compteur repart de zéro.
+
+**Conséquence concrète** : le plafond de taille protège réellement contre un payload disproportionné, mais **le quota de débit ne protège quasiment jamais en pratique** contre un script qui bombarderait la fonction en boucle — exactement le scénario que le chantier 57 visait à couvrir. Ce n'est pas un manque de déploiement (le code testé est bien le code actuellement en ligne), c'est une limite structurelle du choix d'implémentation (compteur en mémoire plutôt qu'en base), déjà identifiée comme un compromis assumé au moment du chantier 57 mais dont l'inefficacité n'avait jamais été mesurée.
+
+**À rouvrir si le sujet redevient sensible** : le correctif fiable nécessiterait un compteur partagé côté Postgres (une table dédiée, comme envisagé puis écarté au chantier 57 pour éviter une écriture par appel) plutôt qu'une `Map` en mémoire. Pas fait ici — changement de conception, pas un simple redéploiement, et hors du périmètre du chantier 83.
 
 ## Chantier 98 (2026-09-19) — allocation : option « interdire les tables sans modérateur » — ✅ validé par Jules le 2026-09-19
 
