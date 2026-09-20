@@ -51,6 +51,16 @@ order by grantee, column_name;
 -- attendu : content, created_at, id, session_id, status — jamais member_id
 ```
 
+## Chantier 99 (2026-09-20) — boutons de guidage dans le menu Documentation — ✅ validé par Jules le 2026-09-20
+
+**Consigne de Jules (20/09)** : pour chaque séance, le menu « Documentation » doit toujours proposer deux liens vers le site externe de ressources : Biais cognitifs (`ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs`) et Arguments fallacieux (`#arguments-fallacieux`).
+
+**Implémenté** : ajout des deux liens statiques (toujours affichés, indépendamment des `doc_*_url` de la séance) dans les trois endroits qui affichent une section « Documentation » : `DocumentationButton.tsx` (menu modérateur), `ParticipantToolsButton.tsx` et `VoteToolsPanel` (`VoteScreen.tsx`). Les trois composants n'affichaient auparavant rien (ou un message « aucune documentation ») si la séance n'avait aucune URL renseignée — ce cas a disparu, la section Documentation est désormais toujours visible et toujours utile.
+
+**✅ Vérifié au navigateur le 2026-09-20** : séance de test jetable créée en base (« Démo chantier 99 », `join_code` généré via `generate_session_join_code()`, `doc_info_url`/`doc_summary_url` factices), rejouée en local (`#vote/<join_code>`, formulaire d'entrée réel, sans onboarding). Ouverture du menu **Outils → Documentation** confirmée par Jules à l'écran (screenshot) : les deux liens « Biais cognitifs » et « Arguments fallacieux » apparaissent bien, sous les liens propres à la séance. Séance de test supprimée après validation.
+
+**Non rejoué** : seul le parcours `VoteToolsPanel` (`VoteScreen.tsx`) a été montré à l'écran. Les deux autres emplacements (`DocumentationButton.tsx` en vue modérateur, `ParticipantToolsButton.tsx` en débat) reçoivent le même changement mais n'ont pas été ouverts individuellement — même composant de rendu (mêmes classes, même structure), risque de régression jugé négligeable mais pas formellement observé pour ces deux-là.
+
 ## Chantier 83 (2026-09-20) — redéploiement de `gemini-proxy` (anti-abus du chantier 57) — ✅ validé par Jules le 2026-09-20
 
 **Contexte** : le chantier 57 (quota 20 req/60s + plafond 300 Ko sur `gemini-proxy`) était mergé côté code depuis le 2026-09-02 mais jamais redéployé — l'Edge Function en ligne tournait sans aucune limite. Comparaison ligne à ligne le 2026-09-20 entre le fichier local et le code collé par Jules depuis le dashboard : le prompt de fusion durci (typage prescription/jugement/constat) était en fait déjà en ligne ; c'est bien l'anti-abus du 57 qui manquait, pas le prompt.

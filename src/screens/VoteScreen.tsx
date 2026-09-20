@@ -1538,7 +1538,6 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
   const summaryUrl = session.doc_summary_url
   const collabUrl  = session.doc_collab_url
   const hasCollab  = !!(session.join_code || collabUrl)
-  const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
 
   function handleCollabClick() {
     onClose()
@@ -1586,32 +1585,44 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
           <div className="pt-3 pb-1 px-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
           </div>
-          {hasDocs ? (
-            <>
-              {infoUrl && (
-                <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
-                  <ExternalIcon />
-                  Fiche information
-                </a>
-              )}
-              {summaryUrl && (
-                <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
-                  <ExternalIcon />
-                  Résumé fiche information
-                </a>
-              )}
-              {hasCollab && (
-                <button onClick={handleCollabClick} className={subLinkClass}>
-                  <ExternalIcon />
-                  Sources collaboratives
-                </button>
-              )}
-            </>
-          ) : (
-            <p className="px-5 py-3 text-sm text-gray-400 italic">
-              Aucune documentation disponible pour cette séance.
-            </p>
+          {infoUrl && (
+            <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+              <ExternalIcon />
+              Fiche information
+            </a>
           )}
+          {summaryUrl && (
+            <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+              <ExternalIcon />
+              Résumé fiche information
+            </a>
+          )}
+          {hasCollab && (
+            <button onClick={handleCollabClick} className={subLinkClass}>
+              <ExternalIcon />
+              Sources collaboratives
+            </button>
+          )}
+          <a
+            href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={subLinkClass}
+            onClick={onClose}
+          >
+            <ExternalIcon />
+            Biais cognitifs
+          </a>
+          <a
+            href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={subLinkClass}
+            onClick={onClose}
+          >
+            <ExternalIcon />
+            Arguments fallacieux
+          </a>
 
           <div className="mt-2 border-t border-gray-100" />
 

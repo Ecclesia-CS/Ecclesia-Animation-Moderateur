@@ -23,7 +23,6 @@ export default function DocumentationButton({ session, className, dropdownClass,
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session
 
   const hasCollab = !!session_join_code || !!doc_collab_url
-  if (!doc_info_url && !doc_summary_url && !hasCollab) return null
 
   const linkClass = `block px-4 py-2 text-sm hover:bg-gray-50 text-gray-700 whitespace-nowrap`
 
@@ -104,6 +103,27 @@ export default function DocumentationButton({ session, className, dropdownClass,
                 )}
               </>
             )}
+            {(doc_info_url || doc_summary_url || hasCollab) && (
+              <div className="my-1 border-t border-gray-100" />
+            )}
+            <a
+              href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+              onClick={() => setOpen(false)}
+            >
+              Biais cognitifs
+            </a>
+            <a
+              href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+              onClick={() => setOpen(false)}
+            >
+              Arguments fallacieux
+            </a>
           </div>
         </>
       )}
