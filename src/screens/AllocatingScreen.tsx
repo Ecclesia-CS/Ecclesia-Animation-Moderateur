@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { getVoteResults, getMyTableAssignment, claimTableAsModerator } from '../lib/voting'
+import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
@@ -12,6 +12,7 @@ import VoteResultsList from '../components/voting/VoteResultsList'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
+import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
 import PairingModal from '../components/voting/PairingModal'
@@ -37,6 +38,14 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
   const [pairingOpen,       setPairingOpen]       = useState(false)
+  // Chantier 108 (C2) — déclaration modérateur rouverte pendant l'allocation,
+  // maintenant que le 107 la rend inoffensive (elle ne pose plus qu'un
+  // drapeau, ne déplace plus personne dans la répartition en cours).
+  const [currentMember,        setCurrentMember]        = useState<SessionMember>(member)
+  const [asModerator,          setAsModerator]          = useState(false)
+  const [moderatorPassword,    setModeratorPassword]    = useState('')
+  const [moderatorDeclareBusy, setModeratorDeclareBusy] = useState(false)
+  const [moderatorDeclareMsg,  setModeratorDeclareMsg]  = useState<{ ok: boolean; text: string } | null>(null)
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
@@ -190,7 +199,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       })
       if (error) throw error
       const r = data as TableResult
-      const isMod = member.is_moderator ?? false
+      const isMod = currentMember.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,
@@ -222,7 +231,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       })
       if (error) throw error
       const r = data as TableResult
-      const isMod = member.is_moderator ?? false
+      const isMod = currentMember.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,
@@ -270,6 +279,26 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     } finally {
       setSwitchLoading(false)
     }
+  }
+
+  // ── Déclaration modérateur en cours d'allocation (chantier 108 / C2) ──
+  // Depuis le chantier 107, `claim_moderator_status` en phase `allocating`
+  // ne fait plus que poser le drapeau — elle ne déplace plus personne dans
+  // la répartition que l'organisateur est en train d'examiner.
+  async function handleDeclareModerator(e: React.FormEvent) {
+    e.preventDefault()
+    if (!moderatorPassword.trim()) return
+    setModeratorDeclareBusy(true)
+    setModeratorDeclareMsg(null)
+    const { member: updated, error } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), currentMember.pseudo)
+    if (updated) {
+      setCurrentMember(updated)
+      setModeratorPassword('')
+      setModeratorDeclareMsg({ ok: true, text: 'Déclaration enregistrée : tu seras placé·e à une table au démarrage du débat.' })
+    } else {
+      setModeratorDeclareMsg({ ok: false, text: error ?? 'Erreur inattendue' })
+    }
+    setModeratorDeclareBusy(false)
   }
 
   // ── Render ────────────────────────────────────────────────────────
@@ -353,15 +382,39 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
           />
         )}
 
-        {/* Chantier 95 — la déclaration modérateur est volontairement fermée pendant
-            l'allocation : elle assoit d'office son auteur à une table animée sans
-            modérateur, ce qui remanierait la répartition pendant que l'organisateur
-            l'examine. Le dire, plutôt que de laisser croire à un oubli. */}
+        {/* Chantier 108 (C2) — rouverte depuis le chantier 107 : la déclaration
+            pendant l'allocation ne fait plus que poser le drapeau modérateur,
+            elle ne déplace plus personne dans la répartition en cours. */}
         {currentSession.phase === 'allocating' && (
-          <p className="text-xs text-gray-400 text-center">
-            Tu es modérateur·rice et tu n'es pas affecté·e à une table ? Signale-le à l'organisateur :
-            les groupes sont en cours de constitution et ne peuvent plus être modifiés depuis cet écran.
-          </p>
+          currentMember.is_moderator ? (
+            <p className="text-xs text-gray-400 text-center">
+              Tu es modérateur·rice. Tu seras placé·e à une table au démarrage du débat.
+            </p>
+          ) : (
+            <form onSubmit={handleDeclareModerator} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <ModeratorDeclareField
+                checked={asModerator}
+                onCheckedChange={setAsModerator}
+                password={moderatorPassword}
+                onPasswordChange={setModeratorPassword}
+              />
+              {moderatorDeclareMsg && (
+                <p className={`text-xs text-center ${moderatorDeclareMsg.ok ? 'text-green-700' : 'text-red-600'}`}>
+                  {moderatorDeclareMsg.text}
+                </p>
+              )}
+              {asModerator && (
+                <button
+                  type="submit"
+                  disabled={moderatorDeclareBusy || !moderatorPassword.trim()}
+                  className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                    text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  {moderatorDeclareBusy ? 'Déclaration…' : 'Me déclarer modérateur·rice'}
+                </button>
+              )}
+            </form>
+          )
         )}
 
         {/* Bannière clôture — affichée en-dessous de la carte */}

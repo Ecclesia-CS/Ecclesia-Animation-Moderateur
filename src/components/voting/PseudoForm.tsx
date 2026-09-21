@@ -32,6 +32,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
   const [asModerator, setAsModerator] = useState(false)
   const [moderatorPassword, setModeratorPassword] = useState('')
   const [pendingMember, setPendingMember] = useState<SessionMember | null>(null)
+  const [pendingIsReclaim, setPendingIsReclaim] = useState(false)
   const [moderatorError, setModeratorError] = useState<string | null>(null)
 
   // Chantier B3 — pseudo déjà inscrit en pré-vote : proposer une reconquête
@@ -84,8 +85,23 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
     setReclaimError(null)
     setReclaimLoading(true)
     try {
-      const member = await reclaimPrevotingMember(session.id, trimmedPseudo, code)
+      let member = await reclaimPrevotingMember(session.id, trimmedPseudo, code)
       lastNameStore.set(trimmedPseudo)
+      // Chantier 108 (C1) — la déclaration modérateur cochée juste au-dessus
+      // du formulaire de reconquête ne doit pas être perdue silencieusement :
+      // rejouer tryClaimModeratorStatus après un reclaim réussi, comme le
+      // fait déjà VotingEntryForm.
+      if (asModerator && moderatorPassword.trim()) {
+        const { member: updated, error: modErr } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
+        if (updated) {
+          member = updated
+        } else {
+          setModeratorError(modErr)
+          setPendingIsReclaim(true)
+          setPendingMember(member)
+          return
+        }
+      }
       onReclaimSuccess(member)
     } catch (err: unknown) {
       setReclaimError(err instanceof Error ? err.message : 'Erreur inattendue')
@@ -104,11 +120,11 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           <div>
             <h1 className="text-xl font-bold text-gray-900">Bienvenue {pendingMember.pseudo} !</h1>
             <p className="mt-2 text-sm text-gray-500">
-              Ton inscription est bien enregistrée, mais la déclaration modérateur a échoué : {moderatorError}
+              {pendingIsReclaim ? 'Tes votes ont bien été récupérés' : 'Ton inscription est bien enregistrée'}, mais la déclaration modérateur a échoué : {moderatorError}
             </p>
           </div>
           <button
-            onClick={() => onSuccess(pendingMember)}
+            onClick={() => (pendingIsReclaim ? onReclaimSuccess(pendingMember) : onSuccess(pendingMember))}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
           >
             Continuer →

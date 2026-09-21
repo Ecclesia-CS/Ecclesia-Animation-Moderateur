@@ -80,6 +80,14 @@ export default function TableAssignmentCard({
     const code = switchCode.trim().toUpperCase()
     if (!code) return
     setLocalSwitchError(null)
+    if (asModerator) {
+      if (!creationCode.trim()) {
+        setLocalSwitchError('Code Ecclesia requis pour reprendre une table.')
+        return
+      }
+      await onSwitchAsModerator?.(code, creationCode)
+      return
+    }
     await onSwitch?.(code)
   }
 
@@ -131,6 +139,33 @@ export default function TableAssignmentCard({
                 tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
                 placeholder:text-gray-300"
             />
+            {/* Chantier 108 (C3) — un modérateur en retard, sans affectation,
+                doit pouvoir se déclarer ici : c'est exactement son profil. */}
+            {onSwitchAsModerator && (
+              <>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={asModerator}
+                    onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-xs font-medium text-gray-700">
+                    Je suis modérateur de cette table
+                  </span>
+                </label>
+                {asModerator && (
+                  <input
+                    type="password"
+                    value={creationCode}
+                    onChange={e => { setCreationCode(e.target.value); setLocalSwitchError(null) }}
+                    placeholder="Code Ecclesia"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+                  />
+                )}
+              </>
+            )}
             {(localSwitchError || switchError) && (
               <p className="text-xs text-red-600 text-center">{localSwitchError || switchError}</p>
             )}
@@ -140,7 +175,7 @@ export default function TableAssignmentCard({
               className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
                 text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              {switchLoading ? 'Connexion…' : 'Rejoindre cette table'}
+              {switchLoading ? 'Connexion…' : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
             </button>
           </div>
         </div>

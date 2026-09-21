@@ -57,7 +57,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-Chantiers livrés le 2026-09-21 : le 106 (fondation) et le 107 (`claim_moderator_status` ne déplace plus personne déjà assis, vérifié en base et au navigateur réel avec le vrai Code Ecclesia) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
+Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur sur tous les points d'entrée, voir `docs/chantiers.md`), le 106 (fondation) et le 107 (`claim_moderator_status` ne déplace plus personne déjà assis, vérifié en base et au navigateur réel avec le vrai Code Ecclesia) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -276,7 +276,9 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - **Règle SQL** : réécriture d'une fonction existante → `pg_get_functiondef` en base d'abord.
 - **Fichiers** : `supabase/migrations/…` uniquement.
 
-### 108 — Harmoniser la déclaration modérateur sur tous les points d'entrée
+### 108 — Harmoniser la déclaration modérateur sur tous les points d'entrée — ✅ fait le 2026-09-21
+
+**Fait** : voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 108 pour le détail complet et la recette de vérification.
 
 **Front.** Écarts C1, C2 et C3 de l'audit. **Après le 107** : tant que la déclaration peut déplacer quelqu'un, l'ouvrir davantage aggrave le problème.
 
