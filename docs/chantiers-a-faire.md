@@ -57,10 +57,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-### 107 — `claim_moderator_status` ne doit jamais déplacer quelqu'un déjà assis
-**Branche** : `claude/chantier-107-61992a` · **Depuis** : 2026-09-21 · **Fichiers touchés** : `supabase/migrations/…` uniquement.
-
-Chantiers livrés le 2026-09-21 : le 106 (fondation) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
+Chantiers livrés le 2026-09-21 : le 106 (fondation) et le 107 (`claim_moderator_status` ne déplace plus personne déjà assis, vérifié en base et au navigateur réel avec le vrai Code Ecclesia) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
 
 ---
 
