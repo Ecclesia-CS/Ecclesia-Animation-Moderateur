@@ -2564,3 +2564,16 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 - Sur les trois écrans (C1 reclaim, C2 allocating, C3 secours debating), refaire le parcours avec le vrai Code Ecclesia et vérifier que `session_members.is_moderator` passe bien à `true` (C1, C2) ou que la table change bien de modérateur (C3), sans effet de bord sur `table_assignments` pendant `allocating` (garantie du chantier 107).
 
 `tsc --noEmit` propre, `npm run build` réussi, suite de tests (`vitest run`) : 119 passés / 4 skip pré-existants, aucune régression.
+
+## Chantier 113 — Fusionner les deux boutons « modérateur » du panneau Outils (2026-09-21)
+
+**Front pur, aucune RPC touchée.** `claim_moderator_status` et `reclaim_table_as_moderator` restent inchangées ; seule la couche UI fusionne les deux entrées « Me déclarer modérateur » (chantier 73) et « Je suis le modérateur de cette table » (chantier 110) du panneau Outils en une seule entrée « Modérateur », dont la modale (`ModeratorActionModal.tsx`, nouveau) explique les deux actions avant de choisir. `ReclaimTableModeratorModal.tsx` supprimé (plus utilisé nulle part). `ModeratorClaimModal.tsx` **conservé** : `VoteScreen.tsx` (`VoteToolsPanel`, phase de vote, avant qu'aucune table de débat n'existe) l'utilise indépendamment — pas de doublon à ce stade, donc hors périmètre de ce chantier.
+
+**Vérifié au navigateur** (`tsc --noEmit` propre), sur la séance de test partagée `C94A01` (« Test chantier 94 »), en tant que nouveau participant simple (bouton « Assignez-moi une table », placé automatiquement sur une table déjà animée) :
+- [x] Le panneau Outils n'affiche plus qu'**un seul** bouton « Modérateur ».
+- [x] La modale affiche bien les **deux** options avec leurs explications, y compris la nuance sur « Me déclarer modérateur de la séance » (prise d'autorité immédiate si assis sur une table `leaderless`, sans effet sur la table sinon) — texte relu contre le code SQL de `claim_moderator_status` (`supabase/migrations/20260921_chantier107_claim_moderator_no_displacement.sql:110-117`).
+- [x] Cliquer une option ouvre bien le formulaire (Code Ecclesia) correspondant ; « Retour » revient au choix ; « Annuler » ferme la modale.
+
+**Non testé — RPC jamais soumises, volontairement** : la table de test utilisée (`C94A01`) est une séance partagée entre sessions Claude Code (visible dans `EntryScreen`), déjà animée par quelqu'un — je n'ai pas voulu risquer de déloger un modérateur réel ou de fausser ses données en soumettant `claim_moderator_status`/`reclaim_table_as_moderator` avec le vrai Code Ecclesia. **Reste à vérifier humainement, sur une séance jetable** :
+- Soumettre réellement les deux actions (avec le vrai Code Ecclesia) et confirmer les écrans de succès affichés (`✅ Tu es marqué·e modérateur…` / `🎙️ Tu animes maintenant cette table.`).
+- Le cas où le bouton « Modérateur » ne doit proposer **que** l'option "reprendre l'animation" (table sans `session_id`, table autonome) et le cas où il doit disparaître entièrement (déjà modérateur ET table sans séance) — ces deux conditions reprennent celles des anciens boutons séparés, non retestées isolément faute de table autonome disponible sur l'environnement partagé.

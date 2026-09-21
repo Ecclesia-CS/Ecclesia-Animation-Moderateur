@@ -59,6 +59,11 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 
 Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur sur tous les points d'entrée, voir `docs/chantiers.md`), le 106 (fondation) et le 107 (`claim_moderator_status` ne déplace plus personne déjà assis, vérifié en base et au navigateur réel avec le vrai Code Ecclesia) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
 
+### 113 — Fusionner les deux boutons « modérateur » du panneau Outils
+**Branche** : `claude/moderator-buttons-duplicate-edfa9e` · **Depuis** : 2026-09-21 · **Fichiers touchés** : `src/components/ParticipantToolsButton.tsx`, `src/components/voting/ModeratorActionModal.tsx` (nouveau), suppression de `src/components/voting/ReclaimTableModeratorModal.tsx`.
+
+Demande de Jules (2026-09-21) : les deux boutons « Me déclarer modérateur » (chantier 73) et « Je suis le modérateur de cette table » (chantier 110) du panneau Outils de `ParticipantToolsButton.tsx` se ressemblent trop (même icône, libellés quasi identiques) sans que rien n'explique leur différence. Front pur, aucune RPC touchée (`claim_moderator_status` et `reclaim_table_as_moderator` restent inchangées) : fusion des deux entrées de menu en une seule, qui ouvre une modale unique expliquant les deux actions avant de choisir. **`ModeratorClaimModal.tsx` (chantier 73) n'a pas été supprimé** — contrairement à ce que le plan initial envisageait — parce que `VoteScreen.tsx` (`VoteToolsPanel`, phase de vote, avant qu'aucune table de débat n'existe) l'utilise indépendamment, sans doublon : à ce stade il n'y a pas de table à « reprendre ». Le bouton 3 (case à cocher « Je suis modérateur de cette table » dans `JoinTableForm.tsx`/`TableAssignmentCard.tsx`, chantier 68) est explicitement laissé tel quel — Jules a confirmé qu'il est bien tel qu'il est.
+
 ---
 
 ## À faire, dans l'ordre

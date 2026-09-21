@@ -8,8 +8,7 @@ import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
-import ModeratorClaimModal from './voting/ModeratorClaimModal'
-import ReclaimTableModeratorModal from './voting/ReclaimTableModeratorModal'
+import ModeratorActionModal from './voting/ModeratorActionModal'
 import PairingModal from './voting/PairingModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
 
@@ -44,15 +43,10 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
   const [voteResultsOpen,    setVoteResultsOpen]    = useState(false)
   const [qrOpen,             setQrOpen]             = useState(false)
-  // Chantier 73 — déclaration modérateur, disponible aussi en débat (table
-  // rattachée à une séance uniquement — sans session_id, il n'y a pas de
-  // statut modérateur Bloc C à déclarer).
-  const [moderatorClaimOpen, setModeratorClaimOpen] = useState(false)
-  // Chantier 110 — filet d'identité : reprendre l'animation de LA TABLE
-  // COURANTE (distinct de "Me déclarer modérateur" ci-dessus, qui ne pose
-  // que le drapeau session_members.is_moderator sans jamais placer sur une
-  // table précise). Disponible même sans séance rattachée (table autonome).
-  const [reclaimTableOpen,  setReclaimTableOpen]  = useState(false)
+  // Chantier 113 — fusionne "Me déclarer modérateur" (chantier 73) et "Je
+  // suis le modérateur de cette table" (chantier 110) en une seule entrée,
+  // dont la modale explique les deux actions avant de choisir.
+  const [moderatorActionOpen, setModeratorActionOpen] = useState(false)
   // Chantier 92 — déclarer / changer ses binômes.
   const [pairingOpen,        setPairingOpen]        = useState(false)
   // Chantier 93 — changer son nom en cours de séance.
@@ -295,11 +289,12 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               Mes notes
             </button>
 
-            {/* Déclaration modérateur — chantier 73, uniquement si la table est
-                rattachée à une séance (statut Bloc C, `session_members.is_moderator`) */}
-            {table.session_id && (
+            {/* Chantier 113 — entrée unique "Modérateur", visible dès qu'au moins
+                une des deux actions (déclaration de séance / reprise de table)
+                a un sens ; la modale explique et propose les deux. */}
+            {(table.session_id || !isModerator) && (
               <button
-                onClick={() => { setPanelOpen(false); setModeratorClaimOpen(true) }}
+                onClick={() => { setPanelOpen(false); setModeratorActionOpen(true) }}
                 className={linkClass}
               >
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
@@ -307,23 +302,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
                 </svg>
-                Me déclarer modérateur
-              </button>
-            )}
-
-            {/* Chantier 110 — filet d'identité, masqué si déjà l'écran modérateur
-                (rien à reprendre) */}
-            {!isModerator && (
-              <button
-                onClick={() => { setPanelOpen(false); setReclaimTableOpen(true) }}
-                className={linkClass}
-              >
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
-                </svg>
-                Je suis le modérateur de cette table
+                Modérateur
               </button>
             )}
 
@@ -397,20 +376,13 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
         />
       )}
 
-      {moderatorClaimOpen && table.session_id && (
-        <ModeratorClaimModal
-          sessionId={table.session_id}
-          pseudo={userPseudo}
-          onClose={() => setModeratorClaimOpen(false)}
-          onClaimed={() => {}}
-        />
-      )}
-
-      {reclaimTableOpen && (
-        <ReclaimTableModeratorModal
+      {moderatorActionOpen && (
+        <ModeratorActionModal
           tableId={table.id}
-          onClose={() => setReclaimTableOpen(false)}
-          onClaimed={() => {}}
+          sessionId={table.session_id ?? null}
+          pseudo={userPseudo}
+          isModerator={isModerator}
+          onClose={() => setModeratorActionOpen(false)}
         />
       )}
 
