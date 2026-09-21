@@ -36,7 +36,7 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 `id`, `table_id` (CASCADE), `participant_id` (CASCADE), `started_at` (NOT NULL, posé par serveur), `ended_at?` (NULL = en cours), `source` (`'long'`|`'interactive'`|`'manual'`)
 
 ### `session_members` — Bloc C
-`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`. **Chantier 49** : purgé — `NULL` — dès que la séance passe en `closed`, voir « Rétention des données »), `is_moderator` (boolean, défaut `false` — chantier 19)
+`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code_hash?` (text, bcrypt — ⚠️ **colonne renommée et changée de nature au chantier 93** (20260918), remplace l'ancienne `reclaim_code` en clair du chantier B3/23-06 ; vérifié en base par un chantier 116 qui en avait besoin, ni ce fichier ni CLAUDE.md n'avaient été mis à jour à l'époque. Un code haché est irrécupérable : voir `regenerate_reclaim_code_admin`/`_moderator`/`_self` dans `docs/reference-fonctions-sql.md`. **Chantier 49** : purgé — `NULL` — dès que la séance passe en `closed`, voir « Rétention des données »), `is_moderator` (boolean, défaut `false` — chantier 19)
 Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
 - `attending_in_person = false` → inscrit en pré-vote depuis chez soi. Exclu du clustering.
 - `attending_in_person = true` → a confirmé sa présence physique (`confirm_attendance`). Inclus dans le clustering.
@@ -79,9 +79,9 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 
 ### Rétention des données — codes de rappel (chantier 49)
 
-`session_members.reclaim_code` (PIN 4 chiffres, **en clair**) n'a d'utilité que pendant que la séance est encore ouverte au vote à distance ou présentiel (`confirm_attendance` et `reclaim_prevoting_member` sont les deux seuls lecteurs, tous deux sans usage possible sur une séance close — voir plus bas). Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma : elle permet de reprendre l'identité de quelqu'un.
+`session_members.reclaim_code_hash` (PIN 4 chiffres, **haché bcrypt depuis le chantier 93** — texte clair auparavant, sous le nom `reclaim_code`) n'a d'utilité que pendant que la séance est encore ouverte au vote à distance ou présentiel (`confirm_attendance` et `reclaim_prevoting_member` sont les deux seuls lecteurs, tous deux sans usage possible sur une séance close — voir plus bas). Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma : elle permet de reprendre l'identité de quelqu'un.
 
-**Politique** : `reclaim_code` est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase` (migration `20260902_chantier49_purge_reclaim_codes.sql`), pas de tâche périodique séparée. Une purge ponctuelle (même migration) a aussi nettoyé les séances déjà closes au moment du chantier.
+**Politique** : la colonne est effacée (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase` (migration `20260902_chantier49_purge_reclaim_codes.sql`, portée sur la colonne hachée depuis le chantier 93), pas de tâche périodique séparée. Une purge ponctuelle (même migration originale) a aussi nettoyé les séances déjà closes au moment du chantier.
 
 **Pourquoi aucune régression fonctionnelle** :
 - `confirm_attendance` (phase `voting`/`allocating` uniquement côté frontend — `VoteScreen.tsx`, chemin `#vote/`) n'est jamais atteignable sur une séance `closed` : le routeur redirige vers le questionnaire post-débat ou les résultats avant d'y arriver.

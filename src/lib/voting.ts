@@ -136,6 +136,23 @@ export async function regenerateReclaimCodeAdmin(
 }
 
 /**
+ * Chantier 116 — self-service : le participant fait réapparaître SON code.
+ * Le code étant haché (bcrypt, `reclaim_code_hash`, depuis le chantier 93),
+ * il est impossible de le relire : cette fonction en émet un nouveau, qui
+ * invalide l'ancien (même mécanique que les deux régénérations admin/
+ * modérateur ci-dessous, ciblée sur l'appelant via `auth.uid()`).
+ */
+export async function regenerateReclaimCodeSelf(
+  sessionId: string
+): Promise<{ pseudo: string; new_reclaim_code: string }> {
+  const { data, error } = await supabase.rpc('regenerate_reclaim_code_self', {
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { pseudo: string; new_reclaim_code: string }
+}
+
+/**
  * Idem, par le modérateur — restreint aux participants assis à SA table, et
  * ciblé par pseudo : `session_members` est en self-only (chantier 50), un
  * modérateur n'a aucun `member_id` sous la main.

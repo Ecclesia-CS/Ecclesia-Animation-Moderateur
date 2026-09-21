@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
 import { listPublicClosedSessions } from '../lib/sessions'
 import type { Session } from '../lib/types'
+import ecclesiaLogo from '../assets/ecclesia-logo.webp'
 
 // ── Lien externe vers le site public Ecclesia (chantier 46) ────
 const ALL_DEBATES_URL = 'https://ecclesia-centralesupelec.vercel.app/#debats'
@@ -71,14 +72,8 @@ export default function EntryScreen() {
 
         {/* Brand header */}
         <div className="px-6 pt-7 pb-2 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
+            <img src={ecclesiaLogo} alt="Ecclesia" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-lg font-semibold text-gray-900 leading-tight">Ecclesia</h1>

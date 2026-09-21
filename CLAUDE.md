@@ -139,7 +139,9 @@ Les deux tables avaient une policy `SELECT USING (true)`. Comme il n'y a pas de 
 
 ### Rétention des données — codes de rappel (chantier 49)
 
-`session_members.reclaim_code` (PIN 4 chiffres, **en clair**) est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase`, pas de tâche périodique. Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma. Le reste de `session_members` n'est **pas** purgé (c'est l'historique du débat, réutilisé par les écrans de résultats sans limite de durée).
+`session_members.reclaim_code` (PIN 4 chiffres, **en clair** à l'origine) est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase`, pas de tâche périodique. Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma. Le reste de `session_members` n'est **pas** purgé (c'est l'historique du débat, réutilisé par les écrans de résultats sans limite de durée).
+
+> ⚠️ **Colonne renommée et changée de nature au chantier 93** (`20260918_chantier93_identite_participant.sql`, découvert au chantier 116 en comparant à `information_schema.columns`) : `reclaim_code` (texte clair) a été remplacé par `reclaim_code_hash` (bcrypt, comme `session_members.reclaim_code_hash` d'avant le 23/06). Un code haché est irrécupérable par construction — d'où l'existence de `regenerate_reclaim_code_admin`/`_moderator`/`_self` (émettre un nouveau code plutôt que relire l'ancien). Le reste de ce paragraphe (purge à la clôture, sensibilité de la donnée) reste vrai à l'identique, seule la représentation en base a changé.
 
 > 📎 Justification détaillée, preuve d'absence de régression et recommandation d'anonymisation non implémentée : [`docs/reference-modele-donnees.md`](./docs/reference-modele-donnees.md).
 

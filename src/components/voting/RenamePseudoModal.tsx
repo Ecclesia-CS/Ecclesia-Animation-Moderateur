@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { renameSessionMember, PSEUDO_PUBLIC_NOTICE } from '../../lib/voting'
+import { renameSessionMember, regenerateReclaimCodeSelf, PSEUDO_PUBLIC_NOTICE } from '../../lib/voting'
 
 interface RenamePseudoModalProps {
   sessionId: string
@@ -14,6 +14,11 @@ interface RenamePseudoModalProps {
  * en file d'attente (le nom changerait sous les yeux du modérateur en plein
  * tour). Le renommage est propagé côté base aux deux copies du pseudo
  * (`participants`, `session_sources`) — rien à faire ici.
+ *
+ * Chantier 116 — cette même modale permet aussi de faire réapparaître son
+ * code de rappel. Le code étant haché depuis le chantier 93, il ne peut pas
+ * être relu : le bouton en émet un nouveau (`regenerateReclaimCodeSelf`), qui
+ * invalide l'ancien — la personne doit le noter à nouveau.
  */
 export default function RenamePseudoModal({
   sessionId,
@@ -25,6 +30,10 @@ export default function RenamePseudoModal({
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [done,    setDone]    = useState(false)
+
+  const [codeLoading, setCodeLoading] = useState(false)
+  const [codeError,   setCodeError]   = useState<string | null>(null)
+  const [newCode,     setNewCode]     = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -43,13 +52,26 @@ export default function RenamePseudoModal({
     }
   }
 
+  async function handleRegenerateCode() {
+    setCodeError(null)
+    setCodeLoading(true)
+    try {
+      const result = await regenerateReclaimCodeSelf(sessionId)
+      setNewCode(result.new_reclaim_code)
+    } catch (err: unknown) {
+      setCodeError(err instanceof Error ? err.message : 'Erreur inattendue')
+    } finally {
+      setCodeLoading(false)
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 px-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">Changer mon nom</h2>
+        <h2 className="text-sm font-semibold text-gray-900">Nom et code de rappel</h2>
 
         {done ? (
           <>
@@ -103,6 +125,37 @@ export default function RenamePseudoModal({
             </div>
           </form>
         )}
+
+        <div className="border-t border-gray-100 pt-4 space-y-2">
+          <p className="text-sm font-medium text-gray-700">Code de rappel oublié ?</p>
+
+          {newCode ? (
+            <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-center">
+              <p className="text-xs text-gray-500 mb-1">Ton nouveau code, à noter tout de suite :</p>
+              <p className="text-2xl font-bold tracking-widest text-indigo-700">{newCode}</p>
+              <p className="text-xs text-gray-400 mt-1">L'ancien code ne fonctionne plus.</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-400">
+                Ton code est chiffré, on ne peut pas le relire — seulement t'en donner un nouveau. L'ancien cessera de fonctionner.
+              </p>
+              {codeError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  {codeError}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleRegenerateCode}
+                disabled={codeLoading}
+                className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+              >
+                {codeLoading ? 'Génération…' : 'Faire réapparaître mon code'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

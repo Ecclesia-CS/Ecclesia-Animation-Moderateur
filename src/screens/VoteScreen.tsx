@@ -1652,13 +1652,14 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
             Me déclarer modérateur
           </button>
 
-          {/* Chantier 93 — renommage libre : le nom est public pendant le débat. */}
+          {/* Chantier 93 — renommage libre : le nom est public pendant le débat.
+              Chantier 116 — même modale, pour aussi faire réapparaître son code. */}
           <button
             onClick={() => { onClose(); onOpenRename() }}
             className={linkClass}
           >
             <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
-            Changer mon nom
+            Changer mon nom / code
           </button>
 
           {/* Chantier 92 — vœu de table, en phase présentielle uniquement : c'est

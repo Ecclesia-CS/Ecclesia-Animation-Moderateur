@@ -337,11 +337,13 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             </button>
 
             {/* Chantier 93 — le nom est celui que le modérateur lit à voix haute :
-                on doit pouvoir le corriger sans attendre la fin du débat. */}
+                on doit pouvoir le corriger sans attendre la fin du débat.
+                Chantier 116 — même modale, pour aussi faire réapparaître son
+                code de rappel (régénéré, pas relu — il est haché en base). */}
             {table.session_id && (
               <button onClick={() => { setPanelOpen(false); setRenameOpen(true) }} className={linkClass}>
                 <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
-                Changer mon nom
+                Changer mon nom / code
               </button>
             )}
 
