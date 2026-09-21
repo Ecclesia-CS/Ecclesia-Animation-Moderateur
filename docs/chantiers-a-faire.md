@@ -59,9 +59,6 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 
 Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur sur tous les points d'entrée, voir `docs/chantiers.md`), le 106 (fondation) et le 107 (`claim_moderator_status` ne déplace plus personne déjà assis, vérifié en base et au navigateur réel avec le vrai Code Ecclesia) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
 
-### 109 — Placement des modérateurs en attente au passage en `debating`
-**Branche** : `claude/chantier-109-browser-tests-b1f6d8` · **Depuis** : 2026-09-21 · **Fichiers touchés** : `supabase/migrations/20260921_chantier109_assign_pending_moderators.sql`, `src/lib/voting.ts`, `src/screens/SuperadminScreen.tsx`, `src/components/ConfirmModal.tsx`
-
 ---
 
 ## À faire, dans l'ordre
@@ -293,7 +290,7 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - **C3** — le formulaire de secours de `TableAssignmentCard` (membre inscrit, aucune affectation, phase `debating`) ne propose que `switch_table`, **sans** case modérateur, alors que c'est le profil type du modérateur en retard. Y ajouter la case, câblée sur `claim_table_as_moderator` (qui refuse une table déjà animée) — le chemin existe déjà quelques lignes plus haut dans le même composant.
 - **Fichiers** : `src/components/voting/PseudoForm.tsx`, `src/screens/AllocatingScreen.tsx`, `src/components/voting/TableAssignmentCard.tsx`, éventuellement `src/screens/VoteScreen.tsx`.
 
-### 109 — Placement des modérateurs en attente au passage en `debating`
+### 109 — Placement des modérateurs en attente au passage en `debating` — ✅ fait le 2026-09-21, voir `docs/chantiers.md`
 
 **SQL + superadmin.** Contrepartie du 107 : si la déclaration ne place plus personne pendant l'allocation, il faut que quelqu'un place les modérateurs en attente au démarrage. **Après le 106 et le 107.**
 
