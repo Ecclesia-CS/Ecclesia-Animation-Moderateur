@@ -62,6 +62,9 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 ### 109 — Placement des modérateurs en attente au passage en `debating`
 **Branche** : `claude/chantier-109-browser-tests-b1f6d8` · **Depuis** : 2026-09-21 · **Fichiers touchés** : `supabase/migrations/20260921_chantier109_assign_pending_moderators.sql`, `src/lib/voting.ts`, `src/screens/SuperadminScreen.tsx`, `src/components/ConfirmModal.tsx`
 
+### 110 — Bouton « Je suis le modérateur de cette table » dans les Outils + filet d'identité
+**Branche** : `claude/chantier-110-c54053` · **Depuis** : 2026-09-21 · **Fichiers touchés** : `supabase/migrations/20260921_chantier110_reclaim_table_as_moderator.sql`, `src/components/ParticipantToolsButton.tsx`, `src/components/voting/ReclaimTableModeratorModal.tsx`, `src/lib/voting.ts`, `src/App.tsx`, `src/context/TableContext.tsx` — livré, en attente de merge
+
 ---
 
 ## À faire, dans l'ordre
@@ -309,7 +312,7 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - **Fichiers** : `supabase/migrations/…`, `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`).
 
 ### 110 — Bouton « Je suis le modérateur de cette table » dans les Outils + filet d'identité
-> ✅ **Fait le 2026-09-21** — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 110 pour le détail complet et la recette de vérification.
+> 🟡 **Livré le 2026-09-21, pas encore mergé** (`claude/chantier-110-c54053`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 110 pour le détail complet et la recette de vérification.
 
 **Front + SQL léger.** Piège D1 de l'audit. **Après le 106.**
 
