@@ -9,6 +9,7 @@ import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
 import ModeratorClaimModal from './voting/ModeratorClaimModal'
+import ReclaimTableModeratorModal from './voting/ReclaimTableModeratorModal'
 import PairingModal from './voting/PairingModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
 
@@ -37,7 +38,7 @@ function isComplete(r: QuestionnaireResponse | null): boolean {
 }
 
 export default function ParticipantToolsButton({ session, userPseudo, className = '' }: Props) {
-  const { table } = useTable()
+  const { table, isModerator } = useTable()
   const [panelOpen,          setPanelOpen]          = useState(false)
   const [notesOpen,          setNotesOpen]          = useState(false)
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
@@ -47,6 +48,11 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   // rattachée à une séance uniquement — sans session_id, il n'y a pas de
   // statut modérateur Bloc C à déclarer).
   const [moderatorClaimOpen, setModeratorClaimOpen] = useState(false)
+  // Chantier 110 — filet d'identité : reprendre l'animation de LA TABLE
+  // COURANTE (distinct de "Me déclarer modérateur" ci-dessus, qui ne pose
+  // que le drapeau session_members.is_moderator sans jamais placer sur une
+  // table précise). Disponible même sans séance rattachée (table autonome).
+  const [reclaimTableOpen,  setReclaimTableOpen]  = useState(false)
   // Chantier 92 — déclarer / changer ses binômes.
   const [pairingOpen,        setPairingOpen]        = useState(false)
   // Chantier 93 — changer son nom en cours de séance.
@@ -305,6 +311,22 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             )}
 
+            {/* Chantier 110 — filet d'identité, masqué si déjà l'écran modérateur
+                (rien à reprendre) */}
+            {!isModerator && (
+              <button
+                onClick={() => { setPanelOpen(false); setReclaimTableOpen(true) }}
+                className={linkClass}
+              >
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
+                </svg>
+                Je suis le modérateur de cette table
+              </button>
+            )}
+
             {/* Binômes — chantier 92 */}
             {table.session_id && (
               <button
@@ -380,6 +402,14 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           sessionId={table.session_id}
           pseudo={userPseudo}
           onClose={() => setModeratorClaimOpen(false)}
+          onClaimed={() => {}}
+        />
+      )}
+
+      {reclaimTableOpen && (
+        <ReclaimTableModeratorModal
+          tableId={table.id}
+          onClose={() => setReclaimTableOpen(false)}
           onClaimed={() => {}}
         />
       )}

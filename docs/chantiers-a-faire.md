@@ -309,6 +309,7 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - **Fichiers** : `supabase/migrations/…`, `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`).
 
 ### 110 — Bouton « Je suis le modérateur de cette table » dans les Outils + filet d'identité
+> ✅ **Fait le 2026-09-21** — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 110 pour le détail complet et la recette de vérification.
 
 **Front + SQL léger.** Piège D1 de l'audit. **Après le 106.**
 

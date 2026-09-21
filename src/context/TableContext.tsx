@@ -129,6 +129,11 @@ export function TableProvider({
   // seul, qui reflète `is_table_moderator` côté SQL (branche b).
   const [sessionMemberId, setSessionMemberId] = useState<string | null>(null)
   const [sessionMemberIsModerator, setSessionMemberIsModerator] = useState(false)
+  // Chantier 110 — miroir de sessionMemberId lisible depuis le listener
+  // Realtime `tables` (useEffect à deps stables, cf. plus bas) sans devoir
+  // le resubscribe à chaque changement de statut modérateur.
+  const sessionMemberIdRef = useRef<string | null>(null)
+  useEffect(() => { sessionMemberIdRef.current = sessionMemberId }, [sessionMemberId])
   const isActiveSessionModerator =
     sessionMemberIsModerator &&
     sessionMemberId !== null &&
@@ -234,14 +239,30 @@ export function TableProvider({
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
       ({ new: row, old: prev }) => {
-        setTable(row as Table)
-        if ((row as Table).leaderless) {
+        const prevTable = prev as Table
+        const newTable  = row as Table
+        setTable(newTable)
+        if (newTable.leaderless) {
           // Chantier 35 — auparavant ignoré : si la table passe leaderless
           // (created_by inchangé), le modérateur physique restait bloqué à
           // `true` côté client jusqu'au prochain changement de created_by.
           setPhysicalModerator(false)
-        } else if ((prev as Table).created_by !== (row as Table).created_by) {
-          setPhysicalModerator((row as Table).created_by === userId)
+        } else if (prevTable.created_by !== newTable.created_by) {
+          setPhysicalModerator(newTable.created_by === userId)
+        }
+
+        // Chantier 110 — notifie le titulaire précédent (créateur physique
+        // et/ou modérateur Bloc C en exercice) quand `reclaim_table_as_moderator`
+        // le déloge des deux branches d'un coup : son écran bascule déjà tout
+        // seul en ParticipantView (isModerator recalculé au rendu suivant),
+        // ce toast dit juste ce qui vient de se passer.
+        const smId = sessionMemberIdRef.current
+        const wasHolder = prevTable.created_by === userId
+          || (smId !== null && prevTable.active_moderator_member_id === smId)
+        const stillHolder = newTable.created_by === userId
+          || (smId !== null && newTable.active_moderator_member_id === smId)
+        if (wasHolder && !stillHolder) {
+          showToast('Quelqu’un d’autre a repris l’animation de cette table.', 'info')
         }
       },
     )

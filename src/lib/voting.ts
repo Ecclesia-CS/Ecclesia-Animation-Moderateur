@@ -676,6 +676,27 @@ export async function claimTableAsModerator(
   return data as TableResult
 }
 
+/**
+ * Chantier 110 — depuis l'intérieur d'une table (bouton Outils « Je suis le
+ * modérateur de cette table »), reprend l'autorité d'animation, Code
+ * Ecclesia requis. Distinct de `claimTableAsModerator` : pas de join_code ni
+ * de pseudo à saisir (l'appelant est déjà assis à la table, seule preuve
+ * d'identité utile ici), et réussit MÊME si un modérateur est déjà en place
+ * — c'est un transfert volontaire assumé, pas une prise d'une table libre.
+ */
+export async function reclaimTableAsModerator(
+  tableId: string,
+  creationCode: string
+): Promise<{ activeModeratorMemberId: string | null }> {
+  const { data, error } = await supabase.rpc('reclaim_table_as_moderator', {
+    p_table_id: tableId,
+    p_creation_code: creationCode,
+  })
+  if (error) throw new Error(extractErr(error))
+  const result = data as { table_id: string; active_moderator_member_id: string | null }
+  return { activeModeratorMemberId: result.active_moderator_member_id }
+}
+
 // --- Admin wrappers (C2) ---
 
 // Note (E2) : pas de member_pseudo / member_id — l'identité de l'auteur

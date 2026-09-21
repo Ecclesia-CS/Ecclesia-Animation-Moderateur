@@ -68,9 +68,19 @@ export default function App() {
             })
             if (rpcData) {
               const r = rpcData as TableResult
-              const isMod = r.created_by === userId
-              tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: isMod, pseudo: stored.pseudo })
-              setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: isMod })
+              // Chantier 110 — `r.created_by === userId` était toujours faux ici :
+              // `created_by` vient de LA TABLE AVANT ce join_table (dont l'appelant
+              // renouvelé n'était par définition pas encore le créateur), et sur une
+              // table issue de l'allocation c'est de toute façon l'uid du superadmin
+              // (anti-pattern « Ne jamais faire » de CLAUDE.md). Un ex-modérateur
+              // dont le jeton a été renouvelé redémarre donc toujours en
+              // ParticipantView — TableContext.load() recalcule ensuite en direct le
+              // statut modérateur de séance (session_members), mais pas l'autorité
+              // physique (tables.created_by), qui n'a aucun chemin de reprise
+              // automatique après renouvellement : voir le bouton « Je suis le
+              // modérateur de cette table » (ParticipantToolsButton), seul filet.
+              tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo: stored.pseudo })
+              setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
               return
             }
           } catch { /* table supprimée ou réseau mort → écran d'entrée */ }
