@@ -1661,14 +1661,17 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
             Changer mon nom
           </button>
 
-          {/* Chantier 92 — binômes, à partir de la phase présentielle. */}
-          {['voting', 'allocating', 'debating'].includes(session.phase) && (
+          {/* Chantier 92 — vœu de table, en phase présentielle uniquement : c'est
+              une préférence pour le calcul d'allocation, sans effet une fois les
+              tables créées (chantier 113 — plus de rattachement en allocating/debating,
+              voir « Changer de table » côté débat à la place). */}
+          {session.phase === 'voting' && (
             <button
               onClick={() => { onClose(); onOpenPairing() }}
               className={linkClass}
             >
               <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
-              Mes binômes
+              Être avec un ami (facultatif)
             </button>
           )}
 

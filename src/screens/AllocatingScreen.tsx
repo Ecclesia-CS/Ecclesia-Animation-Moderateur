@@ -15,7 +15,6 @@ import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireF
 import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
-import PairingModal from '../components/voting/PairingModal'
 import { hasQuestionnaireResponse } from '../lib/voting'
 
 interface AllocatingScreenProps {
@@ -39,7 +38,6 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [assignError,       setAssignError]       = useState<string | null>(null)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
-  const [pairingOpen,       setPairingOpen]       = useState(false)
   // Chantier 108 (C2) — déclaration modérateur rouverte pendant l'allocation,
   // maintenant que le 107 la rend inoffensive (elle ne pose plus qu'un
   // drapeau, ne déplace plus personne dans la répartition en cours).
@@ -391,27 +389,6 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
           />
         </div>
 
-        {/* Chantier 92 — binômes : un retardataire sans table est rattaché à
-            celle de la personne citée (réciproquement). */}
-        {!sessionClosed && (currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-          <button
-            onClick={() => setPairingOpen(true)}
-            className="w-full text-center text-xs text-indigo-600 hover:underline"
-          >
-            🔗 Mes binômes
-          </button>
-        )}
-        {pairingOpen && (
-          <PairingModal
-            sessionId={currentSession.id}
-            onClose={() => {
-              setPairingOpen(false)
-              getMyTableAssignment(currentSession.id)
-                .then(a => { if (a) setAssignment(a as AssignmentWithTable) })
-                .catch(() => {})
-            }}
-          />
-        )}
 
         {/* Chantier 108 (C2) — rouverte depuis le chantier 107 : la déclaration
             pendant l'allocation ne fait plus que poser le drapeau modérateur,

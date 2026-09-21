@@ -9,7 +9,7 @@ import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
 import ModeratorActionModal from './voting/ModeratorActionModal'
-import PairingModal from './voting/PairingModal'
+import ChangeTableModal from './voting/ChangeTableModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
 
 type SessionDocs = {
@@ -47,8 +47,10 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   // suis le modérateur de cette table" (chantier 110) en une seule entrée,
   // dont la modale explique les deux actions avant de choisir.
   const [moderatorActionOpen, setModeratorActionOpen] = useState(false)
-  // Chantier 92 — déclarer / changer ses binômes.
-  const [pairingOpen,        setPairingOpen]        = useState(false)
+  // Chantier 114 — changer de table en débat (remplace le rattachement par
+  // binôme du chantier 92, qui ne déplaçait de toute façon qu'un retardataire
+  // sans table, jamais un participant déjà assis).
+  const [changeTableOpen,    setChangeTableOpen]    = useState(false)
   // Chantier 93 — changer son nom en cours de séance.
   const [renameOpen,         setRenameOpen]         = useState(false)
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
@@ -306,14 +308,14 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             )}
 
-            {/* Binômes — chantier 92 */}
+            {/* Changer de table — chantier 114 */}
             {table.session_id && (
               <button
-                onClick={() => { setPanelOpen(false); setPairingOpen(true) }}
+                onClick={() => { setPanelOpen(false); setChangeTableOpen(true) }}
                 className={linkClass}
               >
-                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
-                Mes binômes
+                <span className="w-4 text-center text-gray-400 shrink-0">🔀</span>
+                Changer de table
               </button>
             )}
 
@@ -356,8 +358,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
         />
       )}
 
-      {pairingOpen && table.session_id && (
-        <PairingModal sessionId={table.session_id} onClose={() => setPairingOpen(false)} />
+      {changeTableOpen && (
+        <ChangeTableModal pseudo={userPseudo} onClose={() => setChangeTableOpen(false)} />
       )}
 
       {qrOpen && (

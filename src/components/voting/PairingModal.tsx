@@ -3,7 +3,8 @@ import { getMyPairings, setMyPairings, type PairingResult } from '../../lib/voti
 import { extractErr } from '../../lib/utils'
 
 // Chantier 92 — appairage entre participants. Saisie partagée entre la
-// question d'onboarding et la modale « Mes binômes » des Outils.
+// question d'onboarding et la modale « Être avec un ami » des Outils du vote
+// (chantier 113 — restreinte à la phase voting, plus d'usage en débat).
 
 export const PAIRING_EXPLANATION =
   "Écris le prénom et le nom exacts, tels que la personne les a saisis."
@@ -114,7 +115,7 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
         <div>
-          <h2 className="text-lg font-bold text-gray-900">🔗 Mes binômes</h2>
+          <h2 className="text-lg font-bold text-gray-900">🔗 Être avec un ami (facultatif)</h2>
           <p className="text-sm text-gray-600 mt-1">Avec qui aimerais-tu être à table ? (2 personnes au plus)</p>
           <p className="text-xs text-gray-400 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
         </div>
