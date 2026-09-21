@@ -4,7 +4,6 @@ import { useTable } from '../context/TableContext'
 import { useToast } from '../context/ToastContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
-import { regenerateReclaimCodeModerator } from '../lib/voting'
 import SpeakerTimer from './SpeakerTimer'
 import ConfirmModal from './ConfirmModal'
 import type { Participant, Table } from '../lib/types'
@@ -18,19 +17,6 @@ export default function ParticipantsTable() {
   const now = useLiveMs()
   const [kickTarget, setKickTarget] = useState<Participant | null>(null)
   const [kickErr, setKickErr]       = useState<string | null>(null)
-  // Chantier 93 — un participant de la table a perdu son code de rappel. Le
-  // code étant haché, on ne peut pas le relire : on en tire un nouveau, que le
-  // modérateur lit à la personne. L'ancien cesse alors de fonctionner.
-  const [newCode, setNewCode] = useState<{ pseudo: string; code: string } | null>(null)
-
-  async function handleRegenerateCode(pseudo: string) {
-    try {
-      const res = await regenerateReclaimCodeModerator(table.id, pseudo)
-      setNewCode({ pseudo: res.pseudo, code: res.new_reclaim_code })
-    } catch (e) {
-      showToast(extractErr(e), 'error')
-    }
-  }
 
   function cumMs(participantId: string): number {
     return speakingTurns
@@ -94,7 +80,6 @@ export default function ParticipantsTable() {
                 table={table}
                 onGrantFloor={() => grantFloor(p.id, 'manual')}
                 onKick={() => setKickTarget(p)}
-                onRegenerateCode={table.session_id ? () => handleRegenerateCode(p.pseudo) : undefined}
               />
             )
           })}
@@ -126,28 +111,6 @@ export default function ParticipantsTable() {
       {kickErr && (
         <p className="px-4 pb-3 text-xs text-red-400">{kickErr}</p>
       )}
-
-      {newCode && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
-          onMouseDown={e => { if (e.target === e.currentTarget) setNewCode(null) }}
-        >
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 text-center">
-            <h2 className="text-sm font-semibold text-slate-100">Nouveau code de rappel</h2>
-            <p className="text-sm text-slate-400">
-              À lire à <strong className="text-slate-200">{newCode.pseudo}</strong>.
-              L'ancien code ne fonctionne plus, et celui-ci ne sera plus affiché.
-            </p>
-            <p className="text-4xl font-mono font-bold tracking-widest text-amber-400">{newCode.code}</p>
-            <button
-              onClick={() => setNewCode(null)}
-              className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-xl transition-colors"
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -155,7 +118,7 @@ export default function ParticipantsTable() {
 // ── Draggable row ──────────────────────────────────────────────
 
 function DraggableRow({
-  p, ms, pct, isSpeaking, isSelf, table, onGrantFloor, onKick, onRegenerateCode,
+  p, ms, pct, isSpeaking, isSelf, table, onGrantFloor, onKick,
 }: {
   p: Participant
   ms: number
@@ -165,8 +128,6 @@ function DraggableRow({
   table: Table
   onGrantFloor(): void
   onKick(): void
-  /** Chantier 93 — absent hors séance (pas de session_members à cibler). */
-  onRegenerateCode?: () => void
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: 'p-' + p.id,
@@ -257,17 +218,6 @@ function DraggableRow({
           >
             Donner la parole
           </button>
-          {onRegenerateCode && (
-            <button
-              onClick={onRegenerateCode}
-              title="Cette personne a perdu son code de rappel : en générer un nouveau, à lui lire (l'ancien cesse de fonctionner)"
-              className="p-1.5 rounded-lg border border-amber-700/50 text-amber-400
-                hover:bg-amber-900/30 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 focus:ring-offset-slate-800"
-            >
-              🔑
-            </button>
-          )}
           {!isSelf && (
             <button
               onClick={onKick}

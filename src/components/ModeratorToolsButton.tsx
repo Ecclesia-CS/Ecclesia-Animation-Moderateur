@@ -10,6 +10,7 @@ import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
+import ParticipantCodesModal from './ParticipantCodesModal'
 
 interface Props {
   className?: string
@@ -50,6 +51,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [correctOpen,   setCorrectOpen]   = useState(false)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
+  const [codesOpen,     setCodesOpen]     = useState(false)
 
   const [addPersonName,    setAddPersonName]    = useState('')
   const [addPersonLoading, setAddPersonLoading] = useState(false)
@@ -207,6 +209,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Ajouter une personne sans téléphone
             </button>
 
+            {table.session_id && (
+              <button onClick={() => { setPanelOpen(false); setCodesOpen(true) }} className={linkClass}>
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                Code participant
+              </button>
+            )}
+
             <button onClick={() => { setPanelOpen(false); setCorrectOpen(true) }} className={linkClass}>
               <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
@@ -333,6 +344,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       )}
 
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
+
+      {codesOpen && <ParticipantCodesModal onClose={() => setCodesOpen(false)} />}
 
       {correctOpen && <CorrectTurnModal onClose={() => setCorrectOpen(false)} />}
 
