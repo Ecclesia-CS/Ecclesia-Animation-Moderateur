@@ -34,8 +34,9 @@ import {
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
   releaseTableModeration,
   regenerateReclaimCodeAdmin,
+  assignPendingModerators,
 } from '../lib/voting'
-import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
+import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs, AssignPendingModeratorsResult } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
 import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
@@ -1244,6 +1245,51 @@ function SessionDetail({
     }
   }
 
+  /**
+   * Chantier 109 — ouvre le récapitulatif de confirmation avant « Ouvrir le
+   * débat » : calcule en dry-run (`apply=false`) le placement des
+   * modérateurs restés « en attente » depuis le chantier 107, sans rien
+   * écrire. Le superadmin voit qui sera placé où, qui ne le sera pas (plus
+   * de modérateurs en attente que de tables libres), et quelles tables
+   * animées resteront sans modérateur (pas assez de modérateurs en attente).
+   */
+  async function openDebateConfirm() {
+    setShowDebateConfirm(true)
+    setDebatePreviewErr(null)
+    setDebatePreviewLoading(true)
+    try {
+      const password = getPwd()!
+      const preview = await assignPendingModerators(password, currentSession.id, false)
+      setDebatePreview(preview)
+    } catch (e) {
+      setDebatePreviewErr(extractErr(e))
+    } finally {
+      setDebatePreviewLoading(false)
+    }
+  }
+
+  /**
+   * Rejoue le même calcul en écriture (`apply=true`) puis fait passer la
+   * séance en `debating`. Les deux appels renvoient la même forme tant que
+   * rien n'a changé entre l'ouverture du récapitulatif et sa confirmation.
+   */
+  async function confirmOpenDebate() {
+    const password = getPwd()!
+    setPhaseActing(true)
+    try {
+      await assignPendingModerators(password, currentSession.id, true)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+      setPhaseActing(false)
+      return
+    }
+    setShowDebateConfirm(false)
+    setDebatePreview(null)
+    await handlePhaseChange('debating')
+  }
+
   // ── Assertions (C2) ────────────────────────────────────────
   const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
   const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
@@ -1371,6 +1417,12 @@ function SessionDetail({
   const [assignError,     setAssignError]     = useState<string | null>(null)
   const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
   const [showDebateConfirm, setShowDebateConfirm] = useState(false)
+  // Chantier 109 — récapitulatif obligatoire du placement des modérateurs en
+  // attente, calculé en dry-run (`apply=false`) au moment d'ouvrir la
+  // confirmation, appliqué (`apply=true`) seulement si le superadmin confirme.
+  const [debatePreview,        setDebatePreview]        = useState<AssignPendingModeratorsResult | null>(null)
+  const [debatePreviewLoading, setDebatePreviewLoading] = useState(false)
+  const [debatePreviewErr,     setDebatePreviewErr]     = useState<string | null>(null)
   // Chantier 30 (J8) — vue récapitulative en lecture seule, prête à capturer.
   const [rosterOpen, setRosterOpen] = useState(false)
 
@@ -2931,7 +2983,7 @@ function SessionDetail({
                           </p>
                         )}
                         <button
-                          onClick={() => setShowDebateConfirm(true)}
+                          onClick={openDebateConfirm}
                           className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
                             text-sm font-semibold rounded-xl transition-colors"
                         >
@@ -3431,10 +3483,46 @@ function SessionDetail({
       {showDebateConfirm && (
         <ConfirmModal
           title="Ouvrir le débat"
-          body="Passer la séance en phase « Débat » ? Les participants verront le code de leur table et pourront rejoindre immédiatement."
+          body={
+            <div className="space-y-2 text-left">
+              <p>Passer la séance en phase « Débat » ? Les participants verront le code de leur table et pourront rejoindre immédiatement.</p>
+              {debatePreviewLoading && (
+                <p className="text-xs text-gray-400">Calcul du placement des modérateurs en attente…</p>
+              )}
+              {debatePreviewErr && (
+                <p className="text-xs text-red-600">{debatePreviewErr}</p>
+              )}
+              {debatePreview && (
+                <div className="text-xs bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5">
+                  {debatePreview.placements.length > 0 ? (
+                    <p>
+                      <strong>{debatePreview.placements.length}</strong> modérateur(s) en attente
+                      {' '}vont être placés : {debatePreview.placements
+                        .map(p => `${p.pseudo} → table ${p.table_number}`)
+                        .join(', ')}.
+                    </p>
+                  ) : (
+                    <p>Aucun modérateur en attente à placer.</p>
+                  )}
+                  {debatePreview.unplaced_moderators.length > 0 && (
+                    <p className="text-amber-700">
+                      ⚠️ Resteront sans table (plus de modérateurs en attente que de tables libres) :
+                      {' '}{debatePreview.unplaced_moderators.map(m => m.pseudo).join(', ')}.
+                    </p>
+                  )}
+                  {debatePreview.tables_without_moderator.length > 0 && (
+                    <p className="text-amber-700">
+                      ⚠️ Resteront sans modérateur :
+                      {' '}table(s) {debatePreview.tables_without_moderator.map(t => t.table_number).join(', ')}.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          }
           confirmLabel="Ouvrir le débat →"
-          onConfirm={() => { setShowDebateConfirm(false); handlePhaseChange('debating') }}
-          onCancel={() => setShowDebateConfirm(false)}
+          onConfirm={confirmOpenDebate}
+          onCancel={() => { setShowDebateConfirm(false); setDebatePreview(null); setDebatePreviewErr(null) }}
         />
       )}
 

@@ -550,6 +550,42 @@ export async function assignModeratorToTable(
   if (error) throw new Error(extractErr(error))
 }
 
+export interface PendingModeratorPlacement {
+  member_id: string
+  pseudo: string
+  table_number: number
+  table_id: string
+}
+
+export interface AssignPendingModeratorsResult {
+  placements: PendingModeratorPlacement[]
+  unplaced_moderators: { member_id: string; pseudo: string }[]
+  tables_without_moderator: { table_number: number }[]
+}
+
+/**
+ * Chantier 109 — contrepartie du 107 : place chaque modérateur « en attente »
+ * (drapeau `is_moderator=true`, pas en exercice — `active_moderator_member_id`
+ * du chantier 106) sur une table animée sans modérateur en exercice, par
+ * numéro de table croissant. `apply = false` (défaut) calcule le placement
+ * SANS écrire — récapitulatif de confirmation avant le geste réel,
+ * `apply = true` rejoue le même calcul et l'applique. Les deux appels
+ * renvoient la même forme tant que rien n'a changé entre-temps.
+ */
+export async function assignPendingModerators(
+  password: string,
+  sessionId: string,
+  apply: boolean = false,
+): Promise<AssignPendingModeratorsResult> {
+  const { data, error } = await supabase.rpc('assign_pending_moderators', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_apply: apply,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as AssignPendingModeratorsResult
+}
+
 /** G4 — marque/démarque un membre comme modérateur de cette séance. */
 export async function setMemberModerator(
   password: string,

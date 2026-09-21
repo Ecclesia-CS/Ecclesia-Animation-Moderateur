@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
+
 interface Props {
   title: string
-  body: string
+  body: ReactNode
   confirmLabel: string
   onConfirm(): void
   onCancel(): void
@@ -28,7 +30,7 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-              <p className="mt-1 text-sm text-gray-500 leading-relaxed">{body}</p>
+              <div className="mt-1 text-sm text-gray-500 leading-relaxed">{body}</div>
             </div>
           </div>
 
