@@ -1,4 +1,4 @@
--- Chantier 114 — resserre set_my_pairings à la phase voting.
+-- Chantier 115 — resserre set_my_pairings à la phase voting.
 --
 -- Le rattachement automatique d'un retardataire à la table d'un binôme
 -- réciproque (chantier 92, phases allocating/debating) est retiré : décision

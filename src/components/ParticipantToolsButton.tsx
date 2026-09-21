@@ -47,7 +47,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   // suis le modérateur de cette table" (chantier 110) en une seule entrée,
   // dont la modale explique les deux actions avant de choisir.
   const [moderatorActionOpen, setModeratorActionOpen] = useState(false)
-  // Chantier 114 — changer de table en débat (remplace le rattachement par
+  // Chantier 115 — changer de table en débat (remplace le rattachement par
   // binôme du chantier 92, qui ne déplaçait de toute façon qu'un retardataire
   // sans table, jamais un participant déjà assis).
   const [changeTableOpen,    setChangeTableOpen]    = useState(false)
@@ -308,7 +308,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             )}
 
-            {/* Changer de table — chantier 114 */}
+            {/* Changer de table — chantier 115 */}
             {table.session_id && (
               <button
                 onClick={() => { setPanelOpen(false); setChangeTableOpen(true) }}

@@ -4,7 +4,7 @@ import { extractErr } from '../../lib/utils'
 
 // Chantier 92 — appairage entre participants. Saisie partagée entre la
 // question d'onboarding et la modale « Être avec un ami » des Outils du vote
-// (chantier 114 — restreinte à la phase voting, plus d'usage en débat).
+// (chantier 115 — restreinte à la phase voting, plus d'usage en débat).
 
 export const PAIRING_EXPLANATION =
   "Écris le prénom et le nom exacts, tels que la personne les a saisis."

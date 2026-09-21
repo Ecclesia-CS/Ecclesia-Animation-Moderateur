@@ -1663,7 +1663,7 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
 
           {/* Chantier 92 — vœu de table, en phase présentielle uniquement : c'est
               une préférence pour le calcul d'allocation, sans effet une fois les
-              tables créées (chantier 114 — plus de rattachement en allocating/debating,
+              tables créées (chantier 115 — plus de rattachement en allocating/debating,
               voir « Changer de table » côté débat à la place). */}
           {session.phase === 'voting' && (
             <button
