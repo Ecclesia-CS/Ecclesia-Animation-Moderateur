@@ -755,8 +755,11 @@ export default function ModeratorView() {
         </div>
       )}
 
-      {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini) */}
-      {(session?.phase === 'closed' || session?.phase === 'post_voting') && (
+      {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini).
+          Chantier 112 — masqué tant que le questionnaire forcé est actif, sinon il
+          recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir. */}
+      {(session?.phase === 'closed' || session?.phase === 'post_voting') &&
+        !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now()) && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">La séance a été clôturée par le superadmin.</p>

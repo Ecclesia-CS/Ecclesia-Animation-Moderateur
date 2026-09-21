@@ -332,13 +332,9 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - Pas de point sur la carte des camps pour lui (aucun vote de la phase de vote) : c'est normal et déjà géré par `ResultsMapScreen` (chantier 34) — ne pas chercher à lui en fabriquer un.
 - **Fichiers** : `src/components/JoinTableForm.tsx`, `src/screens/SessionRouterScreen.tsx`, `src/components/voting/TableAssignmentCard.tsx`, `supabase/migrations/…`.
 
-### 112 — Le modérateur ne voit pas le questionnaire de fin de séance
+### 112 — ✅ Fait et mergé le 2026-09-21
 
-**Front, trois lignes.** Écart C4 de l'audit. **Indépendant de tous les autres**, faisable immédiatement.
-
-`ParticipantView` a reçu au chantier 63 une garde `!forcedQOpen` sur son overlay « La séance est terminée », pour qu'il ne recouvre pas le questionnaire forcé — les deux sont en `z-50` et s'ouvrent au même instant lors du passage `debating → post_voting`. **`ModeratorView` n'a jamais reçu cette garde** : le modérateur ne voit pas le questionnaire à sa table. Il le retrouve ensuite via « Voir les résultats » (donc rien n'est définitivement perdu), mais l'ordre décrit par Jules — questionnaire, puis résultats, puis revote — n'est pas respecté pour lui, et c'est la personne qui a le plus à dire sur le débat qu'elle vient d'animer.
-
-**Fichiers** : `src/screens/ModeratorView.tsx`.
+Détail complet dans `docs/chantiers.md` (chantier 112) et `A_VERIFIER.md` § Chantier 112.
 
 ---
 
