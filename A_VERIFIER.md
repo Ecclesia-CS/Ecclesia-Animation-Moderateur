@@ -2663,3 +2663,41 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 - Ouvrir le superadmin sur la séance « Réunion apprentissage modération 21/09 », onglet Groupes, table N°1 : confirmer que « Jules Bec Ordi » apparaît bien comme modérateur actif à côté de « Jules Bec tel ».
 - Cliquer « Retirer » sur ce badge : confirmer que la table redevient reprenable (`tables.created_by` repasse à l'uid superadmin) sans planter, et que le badge disparaît après rechargement.
 - Vérifier que les seuils affichés (« assez d'actifs », taille de table) ne comptent pas ce modérateur en trop — comparer le nombre affiché aux lignes réelles de `table_assignments`.
+
+## Chantier 120 (2026-09-21) — Désynchronisation de `session_members.user_id` au renouvellement du jeton anonyme — ⚠️ BUG CONFIRMÉ, correctif non codé (décision de sécurité à trancher avec Jules)
+
+Suspicion documentée dans `docs/chantiers-a-faire.md` § 120 (trouvée en aparté au chantier 119). Confirmée par repro en base le 2026-09-21, transaction jetable `BEGIN … ROLLBACK` sur le projet `plpjiehqsxxakbuykmkm` (rien de permanent) :
+
+**Recette de vérification (rejouable telle quelle, tout est annulé par le `ROLLBACK` final)** :
+```sql
+begin;
+
+insert into sessions (id, title, phase, moderation_policy) values
+  ('00000000-0000-0000-0000-000000000120', 'QA chantier 120', 'debating', 'open');
+
+insert into tables (id, session_id, join_code, created_by, table_number) values
+  ('00000000-0000-0000-0000-0000000001a1', '00000000-0000-0000-0000-000000000120', 'QA120XX', gen_random_uuid(), 1);
+
+-- membre existant, ancien jeton (simule un participant déjà inscrit)
+insert into session_members (id, session_id, user_id, pseudo, joined_phase, attending_in_person, reclaim_code_hash)
+values ('00000000-0000-0000-0000-0000000002a1', '00000000-0000-0000-0000-000000000120',
+        '11111111-1111-1111-1111-111111111111', 'Jean QA', 'debating', true, crypt('1234', gen_salt('bf')));
+
+insert into table_assignments (session_id, member_id, table_number, table_id)
+values ('00000000-0000-0000-0000-000000000120', '00000000-0000-0000-0000-0000000002a1', 1, '00000000-0000-0000-0000-0000000001a1');
+
+-- simule le jeton anonyme renouvelé : nouvel auth.uid(), même pseudo, comme App.tsx le ferait via join_table
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+
+select sync_table_assignment('00000000-0000-0000-0000-000000000120'::uuid, '00000000-0000-0000-0000-0000000001a1'::uuid, 'Jean QA') as rpc_result;
+select id, user_id, pseudo from session_members where session_id = '00000000-0000-0000-0000-000000000120';
+select member_id, table_id from table_assignments where session_id = '00000000-0000-0000-0000-000000000120';
+
+rollback;
+```
+
+**Résultat observé** : `rpc_result` = `null` (aucun `new_reclaim_code`, échec totalement silencieux — le `EXCEPTION WHEN OTHERS … RAISE WARNING` du chantier 111 avale l'erreur `UNIQUE(session_id, pseudo)`). `session_members` ne contient **toujours qu'une ligne**, avec l'**ancien** `user_id` (`1111…1`). Le nouvel `auth.uid()` (`2222…2`) — celui du jeton renouvelé, donc de l'appareil réel du participant à partir de maintenant — n'a **aucune** ligne `session_members` ni `table_assignments`. Le mécanisme suspecté est donc exactement confirmé : après renouvellement du jeton (veille longue, navigateur in-app Messenger, purge Safari ITP), `App.tsx` rappelle silencieusement `join_table`, qui échoue à relier la nouvelle identité sans jamais le signaler à l'écran — la personne perd l'accès au questionnaire post-débat, aux résultats et au vote (`cast_vote`/`submit_entry_response` cherchent `session_members` par `user_id = auth.uid()`), indépendamment de tout code de rappel qu'elle pourrait avoir noté.
+
+**Pourquoi le correctif n'est pas codé dans ce chantier** : en creusant `join_table` (`pg_get_functiondef`), la table `participants` (identité *de table*, sans code) résout déjà exactement ce cas par un `ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = excluded.user_id` — une réassignation silencieuse par simple connaissance du pseudo. Copier ce même geste sur `session_members` (identité *de séance*, protégée par `reclaim_code_hash` depuis le chantier 93) rouvrirait exactement le vecteur de prise d'identité que le chantier 93 a fermé : n'importe qui connaissant le pseudo d'un participant (visible dans la file d'attente, à table) pourrait, par un `join_table` ordinaire, se faire réattribuer sa ligne `session_members` — ses votes, son droit de revote, son questionnaire — sans jamais connaître son code. L'autre option de la spec (traiter ce cas comme une reconnexion explicite, pseudo + code, via `confirm_attendance`) préserve la protection du chantier 93 mais casse la continuité silencieuse actuelle : l'utilisateur devrait ressaisir un code qu'il n'a peut-être jamais noté ou qu'il a perdu, en plein milieu d'un débat, sans écran dédié à ce moment (`App.tsx` s'exécute avant tout affichage). **Décision de sécurité/produit à trancher avec Jules avant de coder** — voir la question posée dans le message de fin de chantier.
+
+**Fichiers concernés une fois la décision prise** : `supabase/migrations/…` (`sync_table_assignment`), `src/App.tsx` (point d'appel), potentiellement un nouvel écran de reconnexion si l'option « confirm_attendance » est retenue.
