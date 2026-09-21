@@ -5,7 +5,7 @@ import { extractErr } from '../../lib/utils'
 import type { TableResult } from '../../lib/supabase'
 
 /**
- * Chantier 113 — remplace le mécanisme de rattachement par binôme en débat
+ * Chantier 114 — remplace le mécanisme de rattachement par binôme en débat
  * (chantier 92) : plutôt que de deviner qui veut être assis avec qui,
  * le participant demande le code de la table visée et le saisit lui-même.
  * Reprend le bloc « code manuel » déjà écrit dans TableChangeModal.tsx.
