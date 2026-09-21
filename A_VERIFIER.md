@@ -50,6 +50,33 @@ Demandé par Jules après avoir constaté à l'écran qu'un débatteur rejoignan
 
 ---
 
+## Chantier 118 (2026-09-21) — Modérateur « physique » retiré devient un session_member flagué — ✅ vérifié en base par transactions jetables, ⚠️ non rejoué au navigateur
+
+**Origine** : retour de Jules après avoir testé le chantier 117 — « quand je tente de cliquer sur "enlever" ou "libérer la modération de cette table" ce n'est pas possible, il y a marqué "membre introuvable pour cette séance" [...] le but, c'est que quand ils ne tiennent plus la modération d'une table, ils soient comme des participants normaux, avec des codes, des votes, etc, mais juste flagué modérateur ». Diagnostic du message d'erreur : comportement front attendu (`handleRemoveTableModerator` n'est jamais câblée sur un modérateur physique) — le vrai problème est que `release_table_moderation` (chantier 72) ne posait ni ne garantissait aucun flag `is_moderator` à la libération.
+
+**Amendement découvert en lisant `pg_get_functiondef` avant de coder** : le chantier 119, mergé sur `main` le même jour, avait déjà fait la moitié du travail — `claim_table_as_moderator` appelle désormais `sync_table_assignment` dès la prise de table (« Option B » de la spec d'origine), créant une ligne `session_members`/`table_assignments` + un code de rappel, mais sans jamais poser `is_moderator = true`. Ce chantier ferme ce qui restait ouvert.
+
+**Correctif** (migration `20260921_chantier118_physical_moderator_becomes_member.sql`, appliquée en base) :
+- `claim_table_as_moderator` flague désormais `is_moderator = true` sur la ligne `session_members` que `sync_table_assignment` vient de créer/retrouver, et pose `active_moderator_member_id` (COALESCE, comme les 5 autres chemins du chantier 106) — le modérateur physique devient un modérateur « en exercice » Bloc C complet dès sa prise de table.
+- `release_table_moderation` change de philosophie, sur demande explicite de Jules : **ne retire plus** `session_members.is_moderator` (avant : mettait à `false`). Démet seulement `active_moderator_member_id` (perd l'écran, garde le drapeau — « modérateur en surplus » au sens du chantier 106, visible du superadmin). Rattrape en plus les modérateurs physiques orphelins de `session_members` créés **avant** le chantier 119 (aucune ligne du tout) : leur pose une ligne flaguée + un code de rappel neuf à ce moment-là, avec repli silencieux (`physical_member_ensured: false`) en cas de collision de pseudo plutôt que d'échouer le retrait.
+- `table_has_moderator` (chantier 68) avait une lacune symétrique à celle déjà corrigée sur `is_table_moderator` au chantier 106 : sa branche (b) ne vérifiait pas `active_moderator_member_id`, donc un modérateur resté flagué (surplus) après retrait aurait continué à bloquer toute reprise de sa table. Corrigée pour exiger `sm.id = t.active_moderator_member_id`, comme `is_table_moderator`.
+- `list_table_assignments_admin` (hack d'affichage du chantier 117, `UNION ALL`) **n'est pas retiré** : reste nécessaire pour les modérateurs physiques réclamés avant le chantier 119, tant qu'ils n'ont pas encore été libérés une fois (le rattrapage n'agit qu'au moment du retrait).
+- `ReleaseTableModerationResult` (`src/lib/voting.ts`) mis à jour : `released_members` (comptait des démotions qui n'existent plus) remplacé par `released_active` + `physical_member_ensured` + `new_reclaim_code`.
+
+**Vérifié en base le 2026-09-21** (trois transactions jetables `BEGIN...ROLLBACK` via `DO $$ ... RAISE EXCEPTION ... $$`, Code Ecclesia et mot de passe superadmin de test posés puis restaurés dans la même transaction) :
+1. `claim_table_as_moderator` sur une table `leaderless` fraîche → `session_members.is_moderator = true` et `tables.active_moderator_member_id = ` l'id du membre créé.
+2. `release_table_moderation` sur cette même table → `is_moderator` reste `true` (inchangé), `active_moderator_member_id` repasse à `NULL`, `table_has_moderator` repasse à `false` ; un tiers peut immédiatement reprendre la table (`claim_table_as_moderator` réussit).
+3. Rattrapage orphelin (table avec `created_by` + `participants` correspondant, **aucune** ligne `session_members`, simulant un claim antérieur au chantier 119) → `release_table_moderation` crée la ligne `session_members` (`is_moderator = true`, code de rappel haché) et la ligne `table_assignments` correspondante ; `physical_member_ensured: true`.
+
+`tsc --noEmit`, `npm run build` et `npx vitest run` (119 tests) propres.
+
+**Non vérifié au navigateur** : les trois scénarios ci-dessus n'ont été joués qu'en base directe (MCP Supabase, transactions annulées) — aucune trace laissée en production. **Reste à vérifier humainement**, avec le vrai mot de passe superadmin et le vrai Code Ecclesia, sur une séance jetable :
+- Un modérateur rejoint par Code Ecclesia (`claim_table_as_moderator`) → onglet Groupes du superadmin : il apparaît en badge indigo « Modérateur » (actif), pas seulement via la ligne synthétique du chantier 117.
+- Cliquer « Libérer la modération de cette table » → le badge passe en ambre « Modérateur en surplus » (garde son pseudo, ne disparaît plus) ; un autre modérateur peut alors reprendre la table par Code Ecclesia depuis un autre appareil.
+- Le modérateur libéré reste capable de voter/consulter les résultats comme un participant normal (le but exact demandé par Jules).
+
+---
+
 ## Chantier 116 (2026-09-21) — « Changer mon nom / code » : régénération self-service du code de rappel — ✅ vérifié en base ET au navigateur réel
 
 Dicté par Jules en chat : « en plus de pouvoir changer de nom, on peut faire réapparaître son code pour ne pas l'oublier ». **Écart découvert avant d'écrire la migration** : `session_members.reclaim_code` (texte clair) a été remplacé par `reclaim_code_hash` (bcrypt) au chantier 93 (20260918) — vérifié directement en base (`information_schema.columns`), alors que CLAUDE.md et `docs/reference-modele-donnees.md` décrivaient encore l'ancienne colonne en clair. Un code bcrypt ne peut pas être « affiché » : seule option, une nouvelle RPC self-service `regenerate_reclaim_code_self(session_id)`, calquée sur `regenerate_reclaim_code_admin`/`_moderator` (mêmes corps vérifiés en base par `pg_get_functiondef` avant d'écrire le fichier), ciblée sur `auth.uid()`. Bouton « Changer mon nom » renommé « Changer mon nom / code » dans `ParticipantToolsButton.tsx` et dans `VoteToolsPanel` (`VoteScreen.tsx`) ; `RenamePseudoModal.tsx` gagne un bloc « Code de rappel oublié ? » qui appelle la RPC et affiche le nouveau code, avec l'avertissement que l'ancien cesse de fonctionner.

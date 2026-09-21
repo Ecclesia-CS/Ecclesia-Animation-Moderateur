@@ -1010,29 +1010,48 @@ export async function moveMembersToGroup(
 // Re-export types for convenience
 export type { SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment }
 
-/** Chantier 72 — compte rendu de `release_table_moderation`. */
+/**
+ * Chantier 72, revue au chantier 118 — compte rendu de
+ * `release_table_moderation`. Depuis le 118, la fonction ne retire plus
+ * `session_members.is_moderator` (un modérateur retiré reste flagué, cf.
+ * `released_active` ci-dessous) — `released_members` (nombre de démotions
+ * is_moderator=false) a donc disparu du retour.
+ */
 export interface ReleaseTableModerationResult {
   /** `tables.created_by` pointait sur un modérateur physique, il a été libéré. */
   released_physical: boolean
-  /** Nombre de membres `session_members.is_moderator` retirés de cette table. */
-  released_members: number
+  /** `tables.active_moderator_member_id` a été démis (le titulaire garde son drapeau, perd l'écran). */
+  released_active: boolean
+  /**
+   * Le modérateur physique évincé a désormais une ligne `session_members`
+   * flaguée `is_moderator = true` — soit déjà posée par
+   * `claim_table_as_moderator` (chantier 119/118), soit créée à la volée ici
+   * (rattrapage des lignes antérieures au chantier 119). `false` seulement
+   * en cas de collision de pseudo (nom déjà pris par un autre membre).
+   */
+  physical_member_ensured: boolean
+  /** Code de rappel émis si une ligne `session_members` a été créée à la volée. */
+  new_reclaim_code: string | null
   /** État de `table_has_moderator` APRÈS libération — doit valoir `false`. */
   has_moderator: boolean
 }
 
 /**
- * Chantier 72 — le superadmin libère la modération d'une TABLE.
+ * Chantier 72, revue au chantier 118 — le superadmin libère la modération
+ * d'une TABLE.
  *
  * `setMemberModerator(..., false)` part d'un membre et ne peut donc pas
  * atteindre un modérateur « physique » (table prise via
- * `designate_moderator` ou `claim_table_as_moderator`) : celui-ci n'a aucun
- * flag `session_members.is_moderator`, donc aucun `member_id` à viser, et
- * n'apparaît nulle part dans la carte de groupe. Tant que
- * `tables.created_by` pointe sur lui et qu'il reste assis, la table répond
- * « déjà un modérateur » à toute tentative de reprise.
+ * `designate_moderator` ou `claim_table_as_moderator`) : celui-ci n'apparaît
+ * nulle part dans la carte de groupe tant qu'il n'anime aucune table Bloc C.
+ * Tant que `tables.created_by` pointe sur lui et qu'il reste assis, la table
+ * répond « déjà un modérateur » à toute tentative de reprise.
  *
- * Cette RPC coupe les deux branches de `table_has_moderator` d'un coup.
- * Migration `20260906_chantier72_1_reprise_moderation.sql` (§2).
+ * Cette RPC coupe les deux branches de `table_has_moderator` d'un coup, et
+ * garde le modérateur retiré flagué `is_moderator = true` (chantier 118 :
+ * « modérateur en surplus » au sens du chantier 106, visible du superadmin)
+ * plutôt que de le faire disparaître. Migration
+ * `20260921_chantier118_physical_moderator_becomes_member.sql`.
  */
 export async function releaseTableModeration(
   password: string,
