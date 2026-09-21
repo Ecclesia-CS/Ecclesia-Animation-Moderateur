@@ -13,11 +13,19 @@ import SessionRouterScreen from './screens/SessionRouterScreen'
 import JoinTableScreen from './screens/JoinTableScreen'
 import PublicResultsScreen from './screens/PublicResultsScreen'
 import NotFoundScreen from './screens/NotFoundScreen'
+import ReconnectPrompt from './components/ReconnectPrompt'
 
 type AppPhase =
   | { type: 'loading' }
   | { type: 'entry'; userId: string }
   | { type: 'table'; tableId: string; participantId: string; userId: string; isModerator: boolean }
+  /**
+   * Chantier 120 — jeton anonyme renouvelé sur un pseudo déjà inscrit à la
+   * séance : `sync_table_assignment` a répondu `reconnect_required` plutôt
+   * que de réassigner l'identité par simple pseudo. Il faut le code de
+   * rappel avant de pouvoir rappeler `join_table`.
+   */
+  | { type: 'reconnect'; sessionId: string; pseudo: string; joinCode: string; userId: string }
 
 export default function App() {
   const { showToast } = useToast()
@@ -29,6 +37,43 @@ export default function App() {
     window.addEventListener('hashchange', handler)
     return () => window.removeEventListener('hashchange', handler)
   }, [])
+
+  /**
+   * Chantier 120 — rejoint la table, et bascule vers l'écran de reconnexion
+   * (code de rappel) plutôt que de réassigner silencieusement l'identité de
+   * séance quand `join_table` répond `reconnect_required` (jeton anonyme
+   * renouvelé sur un pseudo déjà inscrit). Lève si la réponse est vide ou
+   * incohérente (`reconnect_required` sans `session_id`) — l'appelant décide
+   * alors du repli (écran d'entrée).
+   */
+  async function joinAndHandleReconnect(pseudo: string, joinCode: string, userId: string) {
+    const { data: rpcData } = await supabase.rpc('join_table', {
+      p_join_code: joinCode,
+      p_pseudo: pseudo,
+    })
+    if (!rpcData) throw new Error('join_table: réponse vide')
+    const r = rpcData as TableResult
+
+    if (r.reconnect_required) {
+      if (!r.session_id) throw new Error('reconnect_required sans session_id')
+      setPhase({ type: 'reconnect', sessionId: r.session_id, pseudo, joinCode, userId })
+      return
+    }
+
+    // Chantier 110 — `r.created_by === userId` était toujours faux ici :
+    // `created_by` vient de LA TABLE AVANT ce join_table (dont l'appelant
+    // renouvelé n'était par définition pas encore le créateur), et sur une
+    // table issue de l'allocation c'est de toute façon l'uid du superadmin
+    // (anti-pattern « Ne jamais faire » de CLAUDE.md). Un ex-modérateur
+    // dont le jeton a été renouvelé redémarre donc toujours en
+    // ParticipantView — TableContext.load() recalcule ensuite en direct le
+    // statut modérateur de séance (session_members), mais pas l'autorité
+    // physique (tables.created_by), qui n'a aucun chemin de reprise
+    // automatique après renouvellement : voir le bouton « Je suis le
+    // modérateur de cette table » (ParticipantToolsButton), seul filet.
+    tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo })
+    setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
+  }
 
   useEffect(() => {
     async function init() {
@@ -59,31 +104,13 @@ export default function App() {
           return
         }
         // Participant trouvé mais user_id différent (auth anonyme renouvelé), ou non trouvé →
-        // join_table relie l'auth.uid() courant via ON CONFLICT DO UPDATE
+        // joinAndHandleReconnect relie l'auth.uid() courant (ou bascule vers
+        // l'écran de reconnexion si un autre user_id porte déjà ce pseudo).
         if (stored.pseudo && stored.joinCode) {
           try {
-            const { data: rpcData } = await supabase.rpc('join_table', {
-              p_join_code: stored.joinCode,
-              p_pseudo: stored.pseudo,
-            })
-            if (rpcData) {
-              const r = rpcData as TableResult
-              // Chantier 110 — `r.created_by === userId` était toujours faux ici :
-              // `created_by` vient de LA TABLE AVANT ce join_table (dont l'appelant
-              // renouvelé n'était par définition pas encore le créateur), et sur une
-              // table issue de l'allocation c'est de toute façon l'uid du superadmin
-              // (anti-pattern « Ne jamais faire » de CLAUDE.md). Un ex-modérateur
-              // dont le jeton a été renouvelé redémarre donc toujours en
-              // ParticipantView — TableContext.load() recalcule ensuite en direct le
-              // statut modérateur de séance (session_members), mais pas l'autorité
-              // physique (tables.created_by), qui n'a aucun chemin de reprise
-              // automatique après renouvellement : voir le bouton « Je suis le
-              // modérateur de cette table » (ParticipantToolsButton), seul filet.
-              tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo: stored.pseudo })
-              setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
-              return
-            }
-          } catch { /* table supprimée ou réseau mort → écran d'entrée */ }
+            await joinAndHandleReconnect(stored.pseudo, stored.joinCode, userId)
+            return
+          } catch { /* table supprimée, réseau mort, ou réponse incohérente → écran d'entrée */ }
         }
 
         tableStore.clear()
@@ -165,6 +192,28 @@ export default function App() {
 
   if (phase.type === 'entry') {
     return <EntryScreen />
+  }
+
+  if (phase.type === 'reconnect') {
+    const { sessionId, pseudo, joinCode, userId } = phase
+    return (
+      <ReconnectPrompt
+        sessionId={sessionId}
+        pseudo={pseudo}
+        onConfirmed={() => {
+          setPhase({ type: 'loading' })
+          joinAndHandleReconnect(pseudo, joinCode, userId).catch(() => {
+            tableStore.clear()
+            showToast("La reconnexion a échoué. Réessaie depuis l'écran d'entrée.", 'info')
+            setPhase({ type: 'entry', userId })
+          })
+        }}
+        onGiveUp={() => {
+          tableStore.clear()
+          setPhase({ type: 'entry', userId })
+        }}
+      />
+    )
   }
 
   return (

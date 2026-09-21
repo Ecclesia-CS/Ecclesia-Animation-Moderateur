@@ -2701,3 +2701,29 @@ rollback;
 **Pourquoi le correctif n'est pas codé dans ce chantier** : en creusant `join_table` (`pg_get_functiondef`), la table `participants` (identité *de table*, sans code) résout déjà exactement ce cas par un `ON CONFLICT (table_id, pseudo) DO UPDATE SET user_id = excluded.user_id` — une réassignation silencieuse par simple connaissance du pseudo. Copier ce même geste sur `session_members` (identité *de séance*, protégée par `reclaim_code_hash` depuis le chantier 93) rouvrirait exactement le vecteur de prise d'identité que le chantier 93 a fermé : n'importe qui connaissant le pseudo d'un participant (visible dans la file d'attente, à table) pourrait, par un `join_table` ordinaire, se faire réattribuer sa ligne `session_members` — ses votes, son droit de revote, son questionnaire — sans jamais connaître son code. L'autre option de la spec (traiter ce cas comme une reconnexion explicite, pseudo + code, via `confirm_attendance`) préserve la protection du chantier 93 mais casse la continuité silencieuse actuelle : l'utilisateur devrait ressaisir un code qu'il n'a peut-être jamais noté ou qu'il a perdu, en plein milieu d'un débat, sans écran dédié à ce moment (`App.tsx` s'exécute avant tout affichage). **Décision de sécurité/produit à trancher avec Jules avant de coder** — voir la question posée dans le message de fin de chantier.
 
 **Fichiers concernés une fois la décision prise** : `supabase/migrations/…` (`sync_table_assignment`), `src/App.tsx` (point d'appel), potentiellement un nouvel écran de reconnexion si l'option « confirm_attendance » est retenue.
+
+### Suite du 2026-09-21 — Jules a tranché (option B), correctif codé et vérifié en base ET au navigateur réel
+
+**Décision de Jules** : « Option B, on redemande le code, car le modo peut lui redonner aussi son code au cas où, et le superadmin aussi, donc je ne vois pas trop le problème de cette option là. »
+
+**Correctif** (`supabase/migrations/20260921_chantier120_reconnexion_explicite_token_renouvele.sql`, `CREATE OR REPLACE` sans `DROP` — ACL vérifiée identique après coup, `pg_proc.proacl` comparé avant/après, aucune régression) :
+- `sync_table_assignment` : quand `user_id` ne trouve aucun membre mais qu'une ligne `session_members` existe déjà pour ce `(session_id, pseudo)`, ne crée ni ne modifie plus rien — renvoie `{"reconnect_required": true}` au lieu de tenter l'`INSERT` qui échouait en silence.
+- `join_table` : renvoie désormais `session_id` dans son résultat (nécessaire côté client pour lancer `confirm_attendance`).
+- `src/App.tsx` : nouvelle fonction `joinAndHandleReconnect` — si `reconnect_required` est présent, bascule vers un nouvel écran (`src/components/ReconnectPrompt.tsx`) demandant le code de rappel (pseudo déjà connu, préaffiché) plutôt que d'entrer directement dans `TableView`. À la confirmation réussie (`confirmAttendance`, RPC déjà existante du chantier 93), rappelle `join_table` — qui réussit cette fois normalement puisque `session_members.user_id` est désormais aligné.
+
+**Vérifié en base** (transaction jetable `BEGIN…ROLLBACK`, mêmes identités fictives que la recette ci-dessus, table temporaire pour capturer chaque étape) :
+- Jeton renouvelé, même pseudo → `sync_table_assignment` renvoie `{"reconnect_required": true}` ; `session_members` reste inchangée (toujours l'ancien `user_id`), aucune ligne créée pour le nouveau.
+- `confirm_attendance` avec un **mauvais** code → `{"error": "Code de rappel invalide."}`, rien ne bouge.
+- `confirm_attendance` avec le **bon** code → `session_members.user_id` réassigné au nouvel `auth.uid()`.
+- `sync_table_assignment` rejoué après ce `confirm_attendance` → trouve le membre normalement, `table_assignments` à jour, une seule ligne (pas de doublon).
+
+**Vérifié au navigateur réel** (dev server sur ce worktree, `.env` copié depuis la racine, séance/table/membre QA créés et purgés en base pour ce test — ids `…12001` à `…12004`, supprimés après coup) :
+1. Séance de départ : `ecclesia_table` posé en `localStorage`, identité auth de départ = A → rechargement → restauration directe dans `TableView` (comportement inchangé, cas nominal).
+2. Simulation du renouvellement de jeton : suppression de la seule clé `sb-…-auth-token` (le `localStorage` applicatif `ecclesia_table` reste intact, comme un vrai renouvellement) → rechargement → nouvelle identité auth B générée automatiquement → **écran « Reconnexion nécessaire » affiché**, pseudo préaffiché, champ code vide.
+3. Code erroné (`0000`) saisi → message « Code de rappel invalide. » affiché, écran reste sur place (pas de blocage, pas de perte de l'écran).
+4. Bon code (`7777`) saisi → reconnexion réussie, retour direct dans `TableView` (« Étape 4 · Débat », participant bien affiché).
+5. Vérifié en base après coup : `session_members.user_id` **et** `participants.user_id` portent tous les deux la nouvelle identité B, une seule ligne `table_assignments`, aucun doublon.
+
+`tsc --noEmit` et `npm run build` propres. `npx vitest run` : 107 tests passent ; le seul échec (`src/lib/groupNaming.test.ts`, `supabaseUrl is required`) est un défaut d'environnement préexistant du worktree (pas de `.env` copié avant ce test), sans rapport avec ce chantier — non-régression confirmée séparément par le test navigateur réel une fois `.env` copié.
+
+**Rien à revérifier humainement** : les trois chemins (cas nominal, code erroné, bon code) ont été rejoués à l'écran avec des données réelles, pas seulement en base.

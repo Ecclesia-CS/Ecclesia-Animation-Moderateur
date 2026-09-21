@@ -36,4 +36,12 @@ export type TableResult = {
    * existait déjà (ex. changer de table en cours de séance).
    */
   new_reclaim_code?: string | null
+  /**
+   * Chantier 120 — présent (`true`) quand `sync_table_assignment` a trouvé un
+   * membre déjà inscrit sous ce pseudo, pour un `user_id` différent (jeton
+   * anonyme renouvelé). Rien n'a été créé ni modifié côté `session_members`/
+   * `table_assignments` : le client doit passer par `confirmAttendance`
+   * (pseudo + code) avant de rappeler `join_table`. Absent/`null` sinon.
+   */
+  reconnect_required?: boolean
 }
