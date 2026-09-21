@@ -1722,6 +1722,10 @@ function SessionDetail({
       await setMemberModerator(password, currentSession.id, memberId, false)
       await loadGroups()
       await loadMembers()
+      // Chantier 117 (retour de Jules) — un succès doit lever un message
+      // d'échec laissé par une tentative précédente, sinon le bandeau reste
+      // affiché et fait croire à un échec de CETTE action-ci.
+      setAssignError(null)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1755,6 +1759,8 @@ function SessionDetail({
       await releaseTableModeration(password, tableId)
       await loadGroups()
       await loadMembers()
+      // Chantier 117 (retour de Jules) — voir handleRemoveTableModerator.
+      setAssignError(null)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
