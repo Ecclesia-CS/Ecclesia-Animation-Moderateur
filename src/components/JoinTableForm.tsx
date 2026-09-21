@@ -4,6 +4,7 @@ import { claimTableAsModerator } from '../lib/voting'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
+import ReclaimCodeDisplay from './voting/ReclaimCodeDisplay'
 
 interface Props {
   /** Code pré-rempli (ex: venu d'un lien #table/<code>). Si fourni, le champ est verrouillé. */
@@ -30,6 +31,22 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   const [moderatorCode, setModeratorCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Chantier 119 — présent uniquement si cet appel a créé la ligne
+  // session_members (première inscription) : on montre le code avant de
+  // continuer, comme VoteScreen le fait déjà pour l'inscription via le vote.
+  const [pendingReclaim, setPendingReclaim] = useState<{ r: TableResult; pseudo: string; isModerator: boolean } | null>(null)
+
+  function finishJoin(r: TableResult, name: string, isModerator: boolean) {
+    tableStore.set({
+      tableId:       r.id,
+      participantId: r.participant_id,
+      joinCode:      r.join_code,
+      isModerator,
+      pseudo:        name,
+    })
+    lastNameStore.set(name)
+    onJoined(r.id, r.participant_id, isModerator)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -53,20 +70,27 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
         if (err) throw err
         r = data as TableResult
       }
-      tableStore.set({
-        tableId:       r.id,
-        participantId: r.participant_id,
-        joinCode:      r.join_code,
-        isModerator:   asModerator,
-        pseudo:        name,
-      })
-      lastNameStore.set(name)
-      onJoined(r.id, r.participant_id, asModerator)
+      if (r.new_reclaim_code) {
+        setPendingReclaim({ r, pseudo: name, isModerator: asModerator })
+      } else {
+        finishJoin(r, name, asModerator)
+      }
     } catch (err) {
       setError(extractErr(err))
     } finally {
       setLoading(false)
     }
+  }
+
+  if (pendingReclaim && pendingReclaim.r.new_reclaim_code) {
+    return (
+      <ReclaimCodeDisplay
+        pseudo={pendingReclaim.pseudo}
+        code={pendingReclaim.r.new_reclaim_code}
+        continueLabel="Rejoindre la table →"
+        onContinue={() => finishJoin(pendingReclaim.r, pendingReclaim.pseudo, pendingReclaim.isModerator)}
+      />
+    )
   }
 
   return (

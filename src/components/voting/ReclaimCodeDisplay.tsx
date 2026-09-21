@@ -4,9 +4,11 @@ interface ReclaimCodeDisplayProps {
   pseudo: string
   code: string
   onContinue: () => void
+  /** Chantier 119 — texte du bouton, contextuel selon l'appelant (vote, table…). */
+  continueLabel?: string
 }
 
-export default function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProps) {
+export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueLabel = 'Continuer vers le vote →' }: ReclaimCodeDisplayProps) {
   const [copied, setCopied] = useState(false)
 
   function handleCopy() {
@@ -58,7 +60,7 @@ export default function ReclaimCodeDisplay({ pseudo, code, onContinue }: Reclaim
           onClick={onContinue}
           className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
         >
-          Continuer vers le vote →
+          {continueLabel}
         </button>
       </div>
     </div>

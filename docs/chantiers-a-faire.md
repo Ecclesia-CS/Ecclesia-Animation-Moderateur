@@ -65,6 +65,10 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 
 ## À faire, dans l'ordre
 
+### 119 — Angles morts du code de rappel (inscriptions sans code) — ✅ fait, voir `docs/chantiers.md`
+
+**Fait le 2026-09-21** (numéroté 117 puis 118 au fil de deux rebases, faute de synchronisation avec deux autres sessions ayant pris ces numéros le même jour — définitivement 119). Détail complet (constat, fix, vérifications en base et au navigateur, angle hors périmètre découvert en cours de route) : entrée « 119 » de [`docs/chantiers.md`](./chantiers.md) et section « Chantier 119 » de [`../A_VERIFIER.md`](../A_VERIFIER.md). ⚠️ **Recoupe le chantier 118 ci-dessous** — voir l'amendement en tête de son entrée.
+
 > Les six premiers (90 à 95) ont été dictés par Jules le **2026-09-16**. Ses consignes sont citées **mot pour mot** dans chaque entrée, sous « Consigne de Jules » ; tout ce qui suit sous « Précisions » vient de l'analyse faite avec lui le même jour — vérifications faites dans le code, arbitrages qu'il a tranchés en conversation, et points qu'il a explicitement laissés ouverts. Ne pas confondre les deux registres : sa consigne fait foi, mes précisions sont un accompagnement.
 >
 > **Parallélisation** : 90, 93, 94 et 95 touchent des fichiers disjoints et peuvent tourner en même temps. **91 et 92 touchent tous les deux `src/lib/allocation.ts` et doivent être séquencés — 91 d'abord.**
@@ -350,6 +354,8 @@ Détail complet dans `docs/chantiers.md` (chantier 112) et `A_VERIFIER.md` § Ch
 Détail complet dans `docs/chantiers.md` (chantier 114) et `A_VERIFIER.md` § Chantier 114.
 
 ### 118 — Un modérateur « physique » retiré doit devenir un session_member normal, flagué modérateur
+
+> ⚠️ **Amendement (session parallèle, même jour)** : le chantier 119 (`docs/chantiers.md`), mergé sur `main` juste après l'écriture de cette spec, a modifié `claim_table_as_moderator` pour qu'elle appelle désormais `sync_table_assignment` **dès la prise de table** — c'est très exactement l'« Option B » décrite plus bas. Concrètement, **depuis ce merge, tout nouveau modérateur physique obtient déjà une ligne `session_members`/`table_assignments` + un code de rappel dès `claim_table_as_moderator`**, avec `is_moderator` laissé à `false` (mêmes sémantiques que `join_table`/`create_table` — pas encore un membre Bloc C). Ce qui reste donc réellement ouvert dans ce chantier 118 : (a) décider si ce modérateur doit en plus recevoir `is_moderator = true` (pour être géré comme un « modérateur en surplus » du chantier 106 une fois retiré, plutôt qu'un participant anonyme) — probablement la seule pièce manquante de l'Option B désormais ; (b) le sort des lignes créées par `claim_table_as_moderator` **avant** ce merge (aucune ligne `session_members` pour elles — non rétroactif) ; (c) si (a) est fait, le hack d'affichage du chantier 117 (`UNION ALL` dans `list_table_assignments_admin`) ne sert plus que pour ces lignes historiques, et pourrait à terme être retiré. Vérifier l'état réel de `claim_table_as_moderator` par `pg_get_functiondef` avant de coder quoi que ce soit ici — ne pas repartir de la description ci-dessous comme si rien n'avait changé.
 
 **Modèle de données + SQL + front.** Suite directe du chantier 117 (`docs/chantiers.md`), qui n'était qu'un correctif d'affichage : ce chantier-ci traite la vraie cause, dans le modèle de données.
 

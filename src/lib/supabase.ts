@@ -28,4 +28,12 @@ export type TableResult = {
   session_id: string | null
   questionnaire_forced_at: string | null
   participant_id: string
+  /**
+   * Chantier 119 — présent uniquement quand cet appel a créé la ligne
+   * `session_members` (première inscription à la séance, quelle que soit la
+   * phase) : `join_table`/`switch_table`/`create_table`/`claim_table_as_moderator`
+   * le retournent via `sync_table_assignment`. Absent/`null` si le membre
+   * existait déjà (ex. changer de table en cours de séance).
+   */
+  new_reclaim_code?: string | null
 }
