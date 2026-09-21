@@ -398,7 +398,11 @@ export async function listSessionSources(sessionId: string): Promise<CollabSourc
 
 export type TableAssignmentAdminRow = {
   table_number: number
-  member_id: string
+  // Chantier 117 — NULL pour un modérateur « physique » (tables.created_by,
+  // claim_table_as_moderator/designate_moderator) qui n'a aucune ligne
+  // session_members à référencer. `active_moderator_member_id` vaut aussi
+  // NULL pour cette ligne : la comparaison ci-dessous les fait matcher.
+  member_id: string | null
   table_id: string | null
   pseudo: string
   is_moderator: boolean

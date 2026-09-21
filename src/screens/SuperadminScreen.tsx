@@ -1036,9 +1036,13 @@ interface GroupRow {
    * chargement. Chantier 106 — `active` distingue, parmi les membres
    * `is_moderator`, celui qui anime réellement cette table
    * (`tables.active_moderator_member_id`) des éventuels modérateurs en
-   * surplus assis là sans y animer (chantier 25b).
+   * surplus assis là sans y animer (chantier 25b). Chantier 117 —
+   * `member_id` est `null` pour un modérateur « physique » sans aucune
+   * ligne `session_members` (rejoint par Code Ecclesia) : pas de flag à
+   * retirer via `set_member_moderator`, seul `handleReleaseTableModeration`
+   * (au niveau table) peut agir dessus.
    */
-  members: { pseudo: string; member_id: string; is_moderator: boolean; active: boolean }[]
+  members: { pseudo: string; member_id: string | null; is_moderator: boolean; active: boolean }[]
   table_id: string | null
   join_code: string | null
   /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
@@ -1427,7 +1431,7 @@ function SessionDetail({
   const [rosterOpen, setRosterOpen] = useState(false)
 
   // ── DnD déplacement membres entre groupes ─────────────────
-  const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string } | null>(null)
+  const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string | null } | null>(null)
   const [movingMember,   setMovingMember]   = useState(false)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -1808,13 +1812,18 @@ function SessionDetail({
 
   // Chantier 19 (§7) — diagnostics recalculés à chaque changement de `groups`,
   // donc mis à jour en direct après un glisser-déposer.
+  //
+  // Chantier 117 — un modérateur « physique » (member_id null, jamais passé
+  // par le vote/l'allocation) est filtré ici : il n'existe dans aucun des
+  // tableaux d'entrée de l'algorithme (`allocInputs`), le compter grossirait
+  // artificiellement la taille de sa table pour les seuils.
   const groupDiagnostics = React.useMemo(() => {
     if (!allocInputs || groups.length === 0) return []
     return diagnoseAllocation(
       groups.map(g => ({
         table_number: g.table_number,
         moderated:    g.moderated,
-        member_ids:   g.members.map(m => m.member_id),
+        member_ids:   g.members.map(m => m.member_id).filter((id): id is string => id !== null),
       })),
       allocInputs.members,
       allocInputs.opinionsAvailable,
@@ -1835,7 +1844,10 @@ function SessionDetail({
     return map
   }, [clusters])
   const brokenGroupClusters = React.useMemo(
-    () => countBrokenClusters(groups.map(g => ({ member_ids: g.members.map(m => m.member_id) })), clusters),
+    () => countBrokenClusters(
+      groups.map(g => ({ member_ids: g.members.map(m => m.member_id).filter((id): id is string => id !== null) })),
+      clusters,
+    ),
     [groups, clusters],
   )
 
@@ -2767,14 +2779,22 @@ function SessionDetail({
                                   {activeMods.length > 0 && (
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       {activeMods.map(mod => (
-                                        <span key={mod.member_id}
+                                        <span key={mod.member_id ?? `physical-${g.table_id}`}
                                           className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
                                           🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                          {/* Chantier 117 — modérateur « physique » (rejoint par
+                                              Code Ecclesia, aucune ligne session_members) : pas de
+                                              flag à retirer, seule la libération de la table a un
+                                              effet (elle redevient reprenable). */}
                                           <button
-                                            onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                            onClick={() => mod.member_id
+                                              ? handleRemoveTableModerator(mod.member_id)
+                                              : g.table_id && handleReleaseTableModeration(g.table_id)}
                                             disabled={movingMember}
                                             className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
-                                            title="Redevient un participant ordinaire de cette table"
+                                            title={mod.member_id
+                                              ? "Redevient un participant ordinaire de cette table"
+                                              : "Rejoint par Code Ecclesia, non inscrit à la séance — remet la table à disposition"}
                                           >
                                             Retirer
                                           </button>
@@ -2784,13 +2804,16 @@ function SessionDetail({
                                   )}
                                   {surplusMods.length > 0 && (
                                     <div className="flex items-center gap-1.5 flex-wrap">
+                                      {/* Chantier 117 — un modérateur « physique » (member_id
+                                          null) est toujours `active` (cf. SQL), donc jamais dans
+                                          `surplusMods` : le `!` ci-dessous est sûr. */}
                                       {surplusMods.map(mod => (
                                         <span key={mod.member_id}
                                           className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-100 inline-flex items-center gap-1"
                                           title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
                                           🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
                                           <button
-                                            onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                            onClick={() => handleRemoveTableModerator(mod.member_id!)}
                                             disabled={movingMember}
                                             className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
                                             title="Retire le drapeau modérateur"
@@ -2862,13 +2885,16 @@ function SessionDetail({
                                   En attente de participants — glisse quelqu'un ici, ou communique le code ci-dessous.
                                 </span>
                               )}
+                              {/* Chantier 117 — seul un membre `is_moderator` peut avoir
+                                  `member_id` null (modérateur physique) : ce filtre exclut
+                                  donc déjà toute ligne synthétique, le `!` ci-dessous est sûr. */}
                               {g.members.filter(m => !m.is_moderator).map(m => (
                                 <DraggableMemberChip
                                   key={m.member_id}
-                                  memberId={m.member_id}
+                                  memberId={m.member_id!}
                                   pseudo={m.pseudo}
-                                  profile={memberProfiles.get(m.member_id)}
-                                  linkedWith={clusterOf.get(m.member_id)
+                                  profile={memberProfiles.get(m.member_id!)}
+                                  linkedWith={clusterOf.get(m.member_id!)
                                     ?.filter(id => id !== m.member_id)
                                     .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
                                 />

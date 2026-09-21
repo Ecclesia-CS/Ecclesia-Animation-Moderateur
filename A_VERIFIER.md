@@ -2618,3 +2618,18 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 
 **Reste à vérifier humainement** :
 - Confirmer à l'écran que le texte s'affiche correctement (pas de débordement sur mobile) et que le sens voulu par Jules passe bien.
+
+## Chantier 117 — Vue Groupes : afficher un modérateur « physique » invisible du superadmin (2026-09-21)
+
+**Origine** : Jules a rapporté, sur la vraie séance « Réunion apprentissage modération 21/09 » (`fb9a2c6b-42a7-40c6-bd88-d8f1db3505d4`), qu'un modérateur (visible et fonctionnel côté `ModeratorView`) n'apparaissait jamais dans l'onglet Groupes du superadmin, reload ou pas. Diagnostic posé par lecture directe en base (MCP Supabase) : ce modérateur (« Jules Bec Ordi ») a rejoint la table par Code Ecclesia (`claim_table_as_moderator`) sans jamais s'inscrire à la séance — aucune ligne `session_members`. `list_table_assignments_admin` (chantier 50/106) ne lit que `table_assignments` × `session_members`, donc ne peut structurellement pas le voir. C'est le « défaut A » déjà documenté dans `20260906_chantier72_1_reprise_moderation.sql`, jamais corrigé côté affichage.
+
+**Correctif** : `list_table_assignments_admin` (migration `20260921_chantier117_list_table_assignments_admin_physical_moderator.sql`, appliquée en base) ajoute une branche `UNION ALL` : pour chaque table de la séance dont `created_by` correspond à un `participants` réellement assis dessus, sans AUCUNE ligne `session_members` pour ce `user_id`, on émet une ligne synthétique (`member_id = NULL`, `is_moderator = true`, `active_moderator_member_id = NULL`). Aucune autorité SQL touchée (`is_table_moderator`, `claim_table_as_moderator`, `release_table_moderation` inchangées) — chantier purement d'affichage.
+
+**Frontend** (`src/lib/sessions.ts`, `src/screens/SuperadminScreen.tsx`) : `TableAssignmentAdminRow.member_id` et `GroupRow.members[].member_id` passent à `string | null`. Le bouton « Retirer » sur un modérateur physique (`member_id` null) appelle `handleReleaseTableModeration(table_id)` au lieu de `handleRemoveTableModerator(member_id)` (qui n'a pas de member_id à cibler). Les tableaux d'entrée de l'algorithme (`groupDiagnostics`, `brokenGroupClusters`) filtrent explicitement les `member_id` null : ce modérateur n'a jamais été vu par l'algorithme d'allocation, le compter fausserait les seuils de taille de table.
+
+**Vérifié en base (MCP Supabase, requête directe reproduisant le corps de la fonction)** : sur la séance réelle de Jules, la table N°1 renvoie désormais 2 lignes — « Jules Bec tel » (participant Bloc C existant, inchangé) et une ligne synthétique `{member_id: null, pseudo: "Jules Bec Ordi", is_moderator: true}`. `tsc --noEmit` et `npm run build` propres.
+
+**Non vérifié au navigateur** : ouvrir l'onglet Groupes exige le mot de passe superadmin (haché en base, non détenu par cette session) — impossible de confirmer visuellement le rendu (badge « 🎙️ Modérateur : Jules Bec Ordi », bouton « Retirer » fonctionnel) sans lui. **Reste à vérifier humainement** :
+- Ouvrir le superadmin sur la séance « Réunion apprentissage modération 21/09 », onglet Groupes, table N°1 : confirmer que « Jules Bec Ordi » apparaît bien comme modérateur actif à côté de « Jules Bec tel ».
+- Cliquer « Retirer » sur ce badge : confirmer que la table redevient reprenable (`tables.created_by` repasse à l'uid superadmin) sans planter, et que le badge disparaît après rechargement.
+- Vérifier que les seuils affichés (« assez d'actifs », taille de table) ne comptent pas ce modérateur en trop — comparer le nombre affiché aux lignes réelles de `table_assignments`.
