@@ -321,7 +321,9 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - **Attention à l'ordre** : la reprise transfère `active_moderator_member_id`, qui n'existe qu'après le 106. Lancer le 110 avant le 106 obligerait à écrire la reprise deux fois.
 - **Fichiers** : `src/components/ParticipantToolsButton.tsx`, `src/App.tsx`, éventuellement `supabase/migrations/…` pour la reprise.
 
-### 111 — Le retardataire entré par code de table doit exister pour la séance
+### 111 — ✅ Fait et mergé le 2026-09-21 — Le retardataire entré par code de table doit exister pour la séance
+
+**Fait** : voir `docs/chantiers.md` (chantier 111) et `A_VERIFIER.md` § Chantier 111 pour le détail complet et la recette de vérification. Constat clé : l'inscription automatique en `session_members` (le cœur de l'écart C5) était **déjà** assurée depuis les chantiers 66/67 — seul le bouton « Assignez-moi une table » manquait réellement.
 
 **Front + SQL.** Écart C5 de l'audit. **Après le 108** (les deux touchent `TableAssignmentCard.tsx`).
 

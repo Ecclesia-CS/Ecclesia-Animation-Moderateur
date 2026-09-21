@@ -36,6 +36,15 @@ interface TableAssignmentCardProps {
    * l'app décide.
    */
   onSwitchAsModerator?: (joinCode: string, creationCode: string) => Promise<void>
+  /**
+   * Chantier 111 — « Assignez-moi une table » : place l'appelant sur la
+   * table animée la moins remplie de la séance, sans code à taper
+   * (`assign_least_filled_table`). Proposé à côté du formulaire de secours
+   * par code, pour le même profil (sans affectation, phase `debating`).
+   */
+  onAssignLeastFilled?: () => Promise<void>
+  assignLoading?: boolean
+  assignError?: string | null
 }
 
 /**
@@ -69,6 +78,7 @@ interface TableAssignmentCardProps {
 export default function TableAssignmentCard({
   assignment, loading, phase, onJoin, joinLoading, joinError,
   onSwitch, switchLoading, switchError, onSwitchAsModerator,
+  onAssignLeastFilled, assignLoading, assignError,
 }: TableAssignmentCardProps) {
   const [showSwitchForm, setShowSwitchForm] = useState(false)
   const [switchCode, setSwitchCode] = useState('')
@@ -128,6 +138,24 @@ export default function TableAssignmentCard({
             Demande le code à 6 caractères d'une table à un ami déjà installé là-bas, ou à son
             modérateur, pour la rejoindre.
           </p>
+          {/* Chantier 111 — pas de code sous la main : placement automatique
+              sur la table animée la moins remplie de la séance. */}
+          {onAssignLeastFilled && (
+            <div className="pt-1">
+              <button
+                onClick={onAssignLeastFilled}
+                disabled={assignLoading}
+                className="w-full py-2.5 px-3 bg-white border border-indigo-300 hover:bg-indigo-50
+                  disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-lg transition-colors"
+              >
+                {assignLoading ? 'Placement…' : 'Assignez-moi une table'}
+              </button>
+              {assignError && (
+                <p className="text-xs text-red-600 text-center mt-1.5">{assignError}</p>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-gray-400 text-center pt-1">— ou —</p>
           <div className="pt-1 space-y-2">
             <input
               type="text"

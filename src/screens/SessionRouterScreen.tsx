@@ -6,7 +6,9 @@ import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
 import JoinTableForm from '../components/JoinTableForm'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
-import { hasQuestionnaireResponse } from '../lib/voting'
+import { hasQuestionnaireResponse, assignLeastFilledTable } from '../lib/voting'
+import { tableStore, lastNameStore } from '../lib/storage'
+import { extractErr } from '../lib/utils'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -31,6 +33,10 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   const [sessionId,    setSessionId]    = useState<string | null>(null)
   const [fullSession,  setFullSession]  = useState<Session | null>(null)
   const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
+  // Chantier 111 — « Assignez-moi une table » (retardataire jamais inscrit)
+  const [assignPseudo, setAssignPseudo] = useState(() => lastNameStore.get())
+  const [assignLoading, setAssignLoading] = useState(false)
+  const [assignError,   setAssignError]   = useState<string | null>(null)
 
   useEffect(() => {
     async function route() {
@@ -135,6 +141,30 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     route()
   }, [sessionJoinCode])
 
+  // ── Assignez-moi une table (chantier 111) ───────────────────────
+  async function handleAssignLeastFilled() {
+    const pseudo = assignPseudo.trim()
+    if (!pseudo || !sessionId) return
+    setAssignLoading(true)
+    setAssignError(null)
+    try {
+      const r = await assignLeastFilledTable(sessionId, pseudo)
+      lastNameStore.set(pseudo)
+      tableStore.set({
+        tableId:       r.id,
+        participantId: r.participant_id,
+        joinCode:      r.join_code,
+        isModerator:   false,
+        pseudo,
+      })
+      if (onTableJoined) onTableJoined(r.id, r.participant_id, false)
+    } catch (err) {
+      setAssignError(extractErr(err))
+    } finally {
+      setAssignLoading(false)
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────
   if (status === 'questionnaire' && fullSession) {
     return (
@@ -181,6 +211,31 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
             </p>
           </div>
+          {/* Chantier 111 — pas de code sous la main : placement automatique
+              sur la table animée la moins remplie de la séance. */}
+          <div className="space-y-2 mb-4">
+            <input
+              type="text"
+              value={assignPseudo}
+              onChange={e => { setAssignPseudo(e.target.value); setAssignError(null) }}
+              placeholder="Prénom Nom"
+              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                placeholder:text-gray-300 transition-shadow"
+            />
+            <button
+              onClick={handleAssignLeastFilled}
+              disabled={assignLoading || !assignPseudo.trim()}
+              className="w-full py-3 px-4 bg-white border border-indigo-300 hover:bg-indigo-50
+                disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-xl transition-colors"
+            >
+              {assignLoading ? 'Placement…' : 'Assignez-moi une table'}
+            </button>
+            {assignError && (
+              <p className="text-xs text-red-600 text-center">{assignError}</p>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 text-center mb-2">— ou, si tu as un code —</p>
           <JoinTableForm
             sessionId={sessionId ?? undefined}
             onJoined={(tableId, participantId, isModerator) => {

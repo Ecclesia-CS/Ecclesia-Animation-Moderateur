@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus } from '../lib/voting'
+import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus, assignLeastFilledTable } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
@@ -35,6 +35,8 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [joinError,         setJoinError]         = useState<string | null>(null)
   const [switchLoading,     setSwitchLoading]     = useState(false)
   const [switchError,       setSwitchError]       = useState<string | null>(null)
+  const [assignLoading,     setAssignLoading]     = useState(false)
+  const [assignError,       setAssignError]       = useState<string | null>(null)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
   const [pairingOpen,       setPairingOpen]       = useState(false)
@@ -251,6 +253,32 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     }
   }
 
+  // ── Assignez-moi une table (chantier 111 — sans code, table la moins remplie) ──
+  async function handleAssignLeastFilled() {
+    setAssignLoading(true)
+    setAssignError(null)
+    try {
+      const r = await assignLeastFilledTable(session.id, member.pseudo)
+      const isMod = currentMember.is_moderator ?? false
+      tableStore.set({
+        tableId:       r.id,
+        participantId: r.participant_id,
+        joinCode:      r.join_code,
+        isModerator:   isMod,
+        pseudo:        member.pseudo,
+      })
+      if (onTableJoined) {
+        onTableJoined(r.id, r.participant_id, isMod)
+      } else {
+        window.location.href = window.location.pathname + window.location.search
+      }
+    } catch (err) {
+      setAssignError(extractErr(err))
+    } finally {
+      setAssignLoading(false)
+    }
+  }
+
   /**
    * Chantier 95 — reprendre par son code une table précise en tant que
    * modérateur. `claim_table_as_moderator` refuse si le Code Ecclesia est
@@ -357,6 +385,9 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             switchLoading={switchLoading}
             switchError={switchError}
             onSwitchAsModerator={handleSwitchAsModerator}
+            onAssignLeastFilled={handleAssignLeastFilled}
+            assignLoading={assignLoading}
+            assignError={assignError}
           />
         </div>
 

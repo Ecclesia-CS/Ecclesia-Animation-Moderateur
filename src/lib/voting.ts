@@ -677,6 +677,27 @@ export async function claimTableAsModerator(
 }
 
 /**
+ * Chantier 111 — « Assignez-moi une table » : un retardataire en phase
+ * `debating`, jamais passé par le vote, n'a aucun code de table à taper.
+ * Inscrit l'appelant en `session_members` s'il ne l'est pas déjà (avec un
+ * vrai code de rappel, retourné une seule fois dans `new_reclaim_code`,
+ * comme `registerSessionMember`), puis le place sur la table ANIMÉE la
+ * moins remplie de la séance (déterministe — cf. `assign_least_filled_table`
+ * en base).
+ */
+export async function assignLeastFilledTable(
+  sessionId: string,
+  pseudo: string
+): Promise<TableResult & { new_reclaim_code: string | null }> {
+  const { data, error } = await supabase.rpc('assign_least_filled_table', {
+    p_session_id: sessionId,
+    p_pseudo: pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as TableResult & { new_reclaim_code: string | null }
+}
+
+/**
  * Chantier 110 — depuis l'intérieur d'une table (bouton Outils « Je suis le
  * modérateur de cette table »), reprend l'autorité d'animation, Code
  * Ecclesia requis. Distinct de `claimTableAsModerator` : pas de join_code ni
