@@ -343,6 +343,10 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 
 Détail complet dans `docs/chantiers.md` (chantier 112) et `A_VERIFIER.md` § Chantier 112.
 
+### 114 — ✅ Fait le 2026-09-21 — Onboarding : clarifier que « passif » n'est pas un engagement définitif
+
+Détail complet dans `docs/chantiers.md` (chantier 114) et `A_VERIFIER.md` § Chantier 114.
+
 ---
 
 ## Bloqués — rien à faire côté code

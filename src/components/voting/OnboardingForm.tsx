@@ -253,10 +253,13 @@ function QuestionStyle({
         <h2 className="text-xl font-bold text-gray-900 leading-snug">
           Comment comptes-tu participer ?
         </h2>
+        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+          Ce n'est pas définitif : tu pourras toujours prendre la parole en cours de débat, même si tu choisis « Plutôt écouter ».
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Plutôt écouter" />
-        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Participer activement" />
+        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Plutôt écouter" sub="Je ne prévois pas de parler" />
+        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Participer activement" sub="Je compte prendre la parole" />
       </div>
     </div>
   )

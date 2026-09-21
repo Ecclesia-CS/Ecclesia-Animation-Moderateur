@@ -2577,3 +2577,14 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 **Non testé — RPC jamais soumises, volontairement** : la table de test utilisée (`C94A01`) est une séance partagée entre sessions Claude Code (visible dans `EntryScreen`), déjà animée par quelqu'un — je n'ai pas voulu risquer de déloger un modérateur réel ou de fausser ses données en soumettant `claim_moderator_status`/`reclaim_table_as_moderator` avec le vrai Code Ecclesia. **Reste à vérifier humainement, sur une séance jetable** :
 - Soumettre réellement les deux actions (avec le vrai Code Ecclesia) et confirmer les écrans de succès affichés (`✅ Tu es marqué·e modérateur…` / `🎙️ Tu animes maintenant cette table.`).
 - Le cas où le bouton « Modérateur » ne doit proposer **que** l'option "reprendre l'animation" (table sans `session_id`, table autonome) et le cas où il doit disparaître entièrement (déjà modérateur ET table sans séance) — ces deux conditions reprennent celles des anciens boutons séparés, non retestées isolément faute de table autonome disponible sur l'environnement partagé.
+
+## Chantier 114 — Onboarding : clarifier que « passif » n'est pas un engagement définitif (2026-09-21)
+
+**Front pur, changement de texte uniquement.** `src/components/voting/OnboardingForm.tsx`, composant `QuestionStyle` (question 3/4, « Comment comptes-tu participer ? ») : ajout d'une phrase d'introduction précisant que le choix n'est pas définitif, et d'un sous-libellé sous chaque bouton (« Je ne prévois pas de parler » / « Je compte prendre la parole »). Aucun champ de données touché — `participationStyle` reste `'listener' | 'active'`, stockage `entry_responses.participation_style` inchangé (chantier 91).
+
+`tsc --noEmit` propre.
+
+**Non vérifié au navigateur** : ce worktree n'a pas de `.env` Supabase (`supabaseUrl is required` en console dès le chargement), et l'écran d'onboarding n'est atteignable qu'après inscription à une séance en phase `pre_voting`/`voting` — pas de raccourci pour l'atteindre isolément. Vu le faible risque (texte statique, pas de logique), pas de séance de test montée pour ce seul changement.
+
+**Reste à vérifier humainement** :
+- Confirmer à l'écran que le texte s'affiche correctement (pas de débordement sur mobile) et que le sens voulu par Jules passe bien.
