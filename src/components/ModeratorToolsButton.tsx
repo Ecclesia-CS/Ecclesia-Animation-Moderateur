@@ -10,6 +10,7 @@ import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
+import ParticipantCodesModal from './ParticipantCodesModal'
 
 interface Props {
   className?: string
@@ -50,6 +51,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [correctOpen,   setCorrectOpen]   = useState(false)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
+  const [codesOpen,     setCodesOpen]     = useState(false)
 
   const [addPersonName,    setAddPersonName]    = useState('')
   const [addPersonLoading, setAddPersonLoading] = useState(false)
@@ -207,6 +209,16 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Ajouter une personne sans téléphone
             </button>
 
+            {table.session_id && (
+              <button onClick={() => { setPanelOpen(false); setCodesOpen(true) }} className={linkClass}>
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="8" cy="15" r="4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 12l7-7m0 0h-4m4 0v4" />
+                </svg>
+                Code participant
+              </button>
+            )}
+
             <button onClick={() => { setPanelOpen(false); setCorrectOpen(true) }} className={linkClass}>
               <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
@@ -333,6 +345,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       )}
 
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
+
+      {codesOpen && <ParticipantCodesModal onClose={() => setCodesOpen(false)} />}
 
       {correctOpen && <CorrectTurnModal onClose={() => setCorrectOpen(false)} />}
 
