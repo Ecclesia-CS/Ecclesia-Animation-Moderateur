@@ -57,7 +57,10 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-21 : aucun chantier en cours** — le 106 (fondation) a été livré le jour même, voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont été livrés le jour même — voir `docs/chantiers.md`.
+### 107 — `claim_moderator_status` ne doit jamais déplacer quelqu'un déjà assis
+**Branche** : `claude/chantier-107-61992a` · **Depuis** : 2026-09-21 · **Fichiers touchés** : `supabase/migrations/…` uniquement.
+
+Chantiers livrés le 2026-09-21 : le 106 (fondation) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`.
 
 ---
 
