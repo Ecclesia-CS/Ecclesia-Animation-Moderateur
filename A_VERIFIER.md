@@ -28,6 +28,27 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 106 (2026-09-21) — « déclaré » ≠ « en exercice » : un seul écran modérateur par table — ✅ vérifié au navigateur, ⚠️ onglet Groupes superadmin non vérifié à l'écran (pas de mot de passe superadmin pour cette session)
+
+Nouvelle colonne `tables.active_moderator_member_id` (nullable, FK `session_members`), exigée en plus des conditions actuelles par `is_table_moderator` (branche b — modérateur désigné de la séance). Posée (COALESCE, ne déloge jamais qui est déjà en exercice) par les 5 chemins qui attribuent l'animation : `apply_allocation`, `claim_moderator_status`, `set_member_moderator`, `assign_moderator_to_table`, `claim_table_as_moderator`. Vidée par `set_member_moderator` au retrait du drapeau, si c'était bien ce membre qui était en exercice. `list_table_assignments_admin` renvoie désormais ce champ par ligne, pour que l'onglet Groupes distingue visuellement « en exercice » (badge indigo, comme avant) de « en surplus » (nouveau badge ambre « Modérateur en surplus »).
+
+**Vérification SQL directe le 2026-09-21** (bypass RLS via le rôle service de l'outil Supabase MCP, `auth.uid()` simulé par `set_config('request.jwt.claim.sub', …)`, séance/table/membres jetables créés puis purgés) :
+1. Table avec deux `session_members.is_moderator = true` assis dessus, `active_moderator_member_id` posé sur l'un des deux → `is_table_moderator(id)` répond `true` pour l'actif, `false` pour le surplus. ✅
+2. `active_moderator_member_id` remis à `NULL` (reproduisant la clause de retrait de `set_member_moderator`) → `is_table_moderator(id)` répond `false` pour l'ancien actif (plus personne en exercice tant qu'un chemin ne réattribue pas). ✅
+3. Comparaison `pg_get_functiondef` en base des 6 fonctions concernées avant réécriture (règle SQL du CLAUDE.md) : une seule différence trouvée avec le fichier de migration lu initialement par l'agent d'exploration — `claim_table_as_moderator` appelle `leave_other_session_tables` avec **2** arguments en base (pas 3, comme documenté dans `A_VERIFIER.md` au chantier précédent, ligne 193) ; corrigé avant application. Le reste des 6 fonctions correspondait exactement à la base.
+
+**Vérifié au navigateur le 2026-09-21** (séance QA jetable créée directement en base — `sessions.title = '🧪 QA chantier 106 (jetable)'`, purgée après coup ; pas de mot de passe superadmin/Code Ecclesia utilisé, le modérateur a été posé via `localStorage.ecclesia_table` + une ligne `participants`, comme au chantier 112) :
+1. `active_moderator_member_id` de la table pointant vers le `session_members` du navigateur de test (`is_moderator = true`) → `ModeratorView` s'affiche (panneau "Donner la parole", liste des participants). ✅
+2. `active_moderator_member_id` basculé vers un **autre** `session_members` (le navigateur de test garde `is_moderator = true` mais n'est plus en exercice) → même rechargement, **`ParticipantView`** s'affiche (« Demander la parole », pas de panneau de gestion) — confirme qu'un modérateur en surplus garde son drapeau mais perd bien l'écran, sans avoir à toucher `is_moderator`. ✅
+
+**Non vérifié à l'écran** (pas de mot de passe superadmin pour cette session) :
+- Onglet Groupes : badge « Modérateur en surplus » (ambre) affiché à côté du badge « Modérateur » (indigo) actif quand deux `is_moderator=true` sont assis à la même table.
+- Modale « Table physique » : colonne Modérateur n'affiche que l'actif, pas le surplus.
+- `AddModeratorControl` réapparaît bien quand une table n'a aucun modérateur *actif* (même si un surplus y est assis) — condition passée de `mods.length === 0` à `activeMods.length === 0`.
+- Recette complète de bout en bout via une vraie allocation (superadmin) avec plus de modérateurs déclarés que de tables, pour vérifier `apply_allocation` en conditions réelles (le geste testé ici a posé `active_moderator_member_id` directement en SQL, pas via `apply_allocation`).
+
+`tsc --noEmit` et `npx vitest run` (119 tests) passent sans erreur avec ces changements.
+
 ## Chantier 112 (2026-09-21) — overlay "séance terminée" du modérateur masqué pendant le questionnaire forcé — ✅ vérifié au navigateur
 
 **`src/screens/ModeratorView.tsx`** — l'overlay "La séance est terminée" (phase `post_voting`/`closed`) est désormais masqué tant que `table.questionnaire_forced_at` est dans sa fenêtre active (1h), pour laisser le modérateur ouvrir "Outils Modo" → questionnaire, comme le fait déjà la garde `!forcedQOpen` de `ParticipantView`. Contrairement à `ParticipantView`, `ModeratorView` n'ouvre pas automatiquement de modal questionnaire (le modérateur l'ouvre lui-même via le panneau) — la garde masque donc l'overlay pendant toute la fenêtre de forçage plutôt que pendant l'ouverture effective d'un modal, ce qui est le seul signal disponible côté `ModeratorView`.

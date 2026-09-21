@@ -57,7 +57,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > **Branche** : <nom> · **Depuis** : <date> · **Fichiers touchés** : <liste>
 > ```
 
-**Au 2026-09-20 : aucun chantier en cours.** (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont été livrés le jour même — voir `docs/chantiers.md`.
+**Au 2026-09-21 : aucun chantier en cours** — le 106 (fondation) a été livré le jour même, voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont été livrés le jour même — voir `docs/chantiers.md`.
 
 ---
 
@@ -240,7 +240,9 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 >
 > **À lire avant de commencer le 106** : le **105bis** (auto-désignation sur table `leaderless`) a été tranché et livré le 2026-09-20 par une autre session, **pendant** la rédaction de ce bloc. Jules y a choisi une quatrième option, non envisagée ici : le bouton participant reste visible mais ne désigne plus personne, il renvoie vers le superadmin, seul habilité à accorder le rôle. Ce n'est **pas** en contradiction avec l'arbitrage 4 du 106 (« le modérateur est le premier arrivé »), qui porte sur une autre question — lequel des modérateurs **déjà déclarés** tient l'écran d'une table. Mais les deux se rejoignent sur une règle que le 106 ne doit pas casser : **plus aucun chemin ne donne l'animation sans secret** (Code Ecclesia) ou sans le superadmin.
 
-### 106 — Un seul écran modérateur par table (« déclaré » ≠ « en exercice »)
+### 106 — Un seul écran modérateur par table (« déclaré » ≠ « en exercice ») — ✅ fait le 2026-09-21
+
+**Fait** : voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 106 pour le détail complet et la recette de vérification.
 
 **Modèle de données + SQL + front.** Problème A de l'audit — le plus structurant, et la fondation des autres.
 

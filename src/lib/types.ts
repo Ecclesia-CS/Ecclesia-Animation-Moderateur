@@ -56,6 +56,10 @@ export interface Table {
   session_id: string | null
   leaderless: boolean
   questionnaire_forced_at: string | null
+  // Chantier 106 — le session_members dont is_moderator donne l'autorité
+  // d'animation SQL sur cette table (is_table_moderator). Nullable : aucun
+  // modérateur de séance en exercice ici.
+  active_moderator_member_id: string | null
 }
 
 export interface Participant {

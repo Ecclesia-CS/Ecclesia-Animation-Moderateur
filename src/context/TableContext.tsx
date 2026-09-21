@@ -120,8 +120,20 @@ export function TableProvider({
   // `apply_allocation`/`create_tables_batch`, jamais celui du participant
   // assigné — `physicalModerator` y est donc déjà `false`, et `is_moderator
   // = false` suffit à lui seul à garder `isModerator` à `false`.
+  //
+  // Chantier 106 — `is_moderator` seul ne suffit plus : un modérateur en
+  // surplus (assis à une table qu'il n'anime pas, chantier 25b) garde son
+  // drapeau mais ne doit plus obtenir l'écran modérateur. `sessionMemberId`
+  // (sa propre ligne `session_members`) est comparé à
+  // `table.active_moderator_member_id` — c'est CE couple, pas `is_moderator`
+  // seul, qui reflète `is_table_moderator` côté SQL (branche b).
+  const [sessionMemberId, setSessionMemberId] = useState<string | null>(null)
   const [sessionMemberIsModerator, setSessionMemberIsModerator] = useState(false)
-  const isModerator = physicalModerator || sessionMemberIsModerator
+  const isActiveSessionModerator =
+    sessionMemberIsModerator &&
+    sessionMemberId !== null &&
+    table?.active_moderator_member_id === sessionMemberId
+  const isModerator = physicalModerator || isActiveSessionModerator
 
   // Guard against double-calling onTableEnd
   const endedRef = useRef(false)
@@ -164,13 +176,16 @@ export function TableProvider({
       // si rien d'autre ne change côté session_members entre-temps).
       const { data: member } = await supabase
         .from('session_members')
-        .select('is_moderator')
+        .select('id, is_moderator')
         .eq('session_id', tbl.session_id)
         .eq('user_id', userId)
         .maybeSingle()
-      setSessionMemberIsModerator((member as { is_moderator?: boolean } | null)?.is_moderator === true)
+      const m = member as { id?: string; is_moderator?: boolean } | null
+      setSessionMemberId(m?.id ?? null)
+      setSessionMemberIsModerator(m?.is_moderator === true)
     } else {
       setSession(null)
+      setSessionMemberId(null)
       setSessionMemberIsModerator(false)
     }
     setReady(true)

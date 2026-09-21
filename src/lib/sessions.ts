@@ -402,6 +402,11 @@ export type TableAssignmentAdminRow = {
   table_id: string | null
   pseudo: string
   is_moderator: boolean
+  // Chantier 106 — le session_members en exercice sur cette table
+  // (tables.active_moderator_member_id). Comparer à member_id pour
+  // distinguer, parmi les membres is_moderator=true assis à la même
+  // table, celui qui anime réellement des modérateurs en surplus.
+  active_moderator_member_id: string | null
 }
 
 // Chantier 50 — session_members et table_assignments ne sont plus lisibles

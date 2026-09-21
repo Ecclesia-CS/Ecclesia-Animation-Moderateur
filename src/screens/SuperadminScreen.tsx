@@ -1030,8 +1030,14 @@ function Spinner() {
 
 interface GroupRow {
   table_number: number
-  /** Chantier 26 (H21) — `is_moderator` vient de `session_members`, posé au chargement. */
-  members: { pseudo: string; member_id: string; is_moderator: boolean }[]
+  /**
+   * Chantier 26 (H21) — `is_moderator` vient de `session_members`, posé au
+   * chargement. Chantier 106 — `active` distingue, parmi les membres
+   * `is_moderator`, celui qui anime réellement cette table
+   * (`tables.active_moderator_member_id`) des éventuels modérateurs en
+   * surplus assis là sans y animer (chantier 25b).
+   */
+  members: { pseudo: string; member_id: string; is_moderator: boolean; active: boolean }[]
   table_id: string | null
   join_code: string | null
   /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
@@ -1093,6 +1099,10 @@ async function loadTableAssignmentRows(sessionId: string): Promise<TableAssignme
       table_id:     (r.table_id ?? null) as string | null,
       pseudo:       (r.session_members?.pseudo ?? '?') as string,
       is_moderator: r.session_members?.is_moderator === true,
+      // Chantier 106 — repli pré-migration uniquement (tables reste
+      // inaccessible au superadmin en lecture directe, is_table_participant
+      // échoue toujours pour lui) : dégradé sans distinction en/hors exercice.
+      active_moderator_member_id: null,
     }))
   }
 }
@@ -1567,6 +1577,7 @@ function SessionDetail({
           pseudo: r.pseudo ?? '?',
           member_id: r.member_id,
           is_moderator: r.is_moderator === true,
+          active: r.is_moderator === true && r.active_moderator_member_id === r.member_id,
         })
       }
 
@@ -2694,11 +2705,16 @@ function SessionDetail({
                                 dans la liste de puces ci-dessous (cf. filtre sur `g.members`). */}
                             {(() => {
                               const mods = g.members.filter(m => m.is_moderator)
+                              // Chantier 106 — un membre is_moderator peut être assis ici
+                              // sans y animer (surplus, chantier 25b) : seul `active` tient
+                              // l'écran ModeratorView (is_table_moderator, branche b).
+                              const activeMods = mods.filter(m => m.active)
+                              const surplusMods = mods.filter(m => !m.active)
                               return (
                                 <div className="mb-2 space-y-1.5">
-                                  {mods.length > 0 && (
+                                  {activeMods.length > 0 && (
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      {mods.map(mod => (
+                                      {activeMods.map(mod => (
                                         <span key={mod.member_id}
                                           className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
                                           🎙️ Modérateur : <strong>{mod.pseudo}</strong>
@@ -2707,6 +2723,25 @@ function SessionDetail({
                                             disabled={movingMember}
                                             className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
                                             title="Redevient un participant ordinaire de cette table"
+                                          >
+                                            Retirer
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {surplusMods.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {surplusMods.map(mod => (
+                                        <span key={mod.member_id}
+                                          className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-100 inline-flex items-center gap-1"
+                                          title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
+                                          🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
+                                          <button
+                                            onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                            disabled={movingMember}
+                                            className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                            title="Retire le drapeau modérateur"
                                           >
                                             Retirer
                                           </button>
@@ -2724,7 +2759,7 @@ function SessionDetail({
                                       `assign_moderator_to_table` convertit déjà la table
                                       (`leaderless = false`) depuis le chantier 64 ; seul le
                                       chemin d'accès manquait. */}
-                                  {mods.length === 0 && (
+                                  {activeMods.length === 0 && (
                                     <AddModeratorControl
                                       tableNumber={g.table_number}
                                       candidates={members}
@@ -3990,7 +4025,9 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
             </thead>
             <tbody>
               {sorted.map(g => {
-                const mod = g.members.find(m => m.is_moderator)
+                // Chantier 106 — un modérateur en surplus (is_moderator mais
+                // pas en exercice ici) ne doit pas se substituer à « en attente ».
+                const mod = g.members.find(m => m.active)
                 return (
                   <tr key={g.table_number} className="border-b border-gray-100 last:border-0">
                     <td className="py-2.5 pr-3 font-semibold text-gray-900">N°{g.table_number}</td>
