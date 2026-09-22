@@ -60,10 +60,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > ```
 
 
-### 125 — Accordéon « J'ai déjà un code de rappel » sur les écrans d'entrée
-**Branche** : claude/session-entry-code-pseudo-d1b6bb · **Depuis** : 2026-09-22 · **Fichiers touchés** : `src/screens/VoteScreen.tsx` (VotingEntryForm), `src/components/voting/PseudoForm.tsx`
-
-Livré et vérifié au navigateur (voir `docs/chantiers.md` et `A_VERIFIER.md`), **pas encore mergé sur `main`**.
+Le 125 (accordéon « J'ai déjà un code de rappel » sur les écrans d'entrée, demande directe de Jules hors file d'attente) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
 Le 124 (verrouiller la proposition d'assertions, superadmin only) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
