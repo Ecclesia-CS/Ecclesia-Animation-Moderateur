@@ -16,7 +16,7 @@ import PasswordInput from '../components/PasswordInput'
 import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
-  setSessionOnboardingEnabled,
+  setSessionOnboardingEnabled, setSessionAssertionsLocked,
   listSessionTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
@@ -286,6 +286,30 @@ export default function SuperadminScreen() {
     }
   }
 
+  // ── Bascule verrouillage des propositions d'assertions (chantier 124) ──
+  const [assertionsLockedErr, setAssertionsLockedErr] = useState<Record<string, string>>({})
+
+  async function handleToggleAssertionsLocked(target: SessionRow, next: boolean) {
+    const password = getPwd()!
+    setAssertionsLockedErr(prev => {
+      const { [target.id]: _omit, ...rest } = prev
+      return rest
+    })
+    // Optimiste, même schéma que handleToggleResultsPublic/handleToggleOnboardingEnabled.
+    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, assertions_locked: next } : s))
+    try {
+      await setSessionAssertionsLocked(password, target.id, next)
+    } catch (e) {
+      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, assertions_locked: !next } : s))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+        return
+      }
+      setAssertionsLockedErr(prev => ({ ...prev, [target.id]: msg }))
+    }
+  }
+
   // ── Session created ────────────────────────────────────────────
   function handleCreated(s: Session) {
     setSessions(prev => sortSessions([{ ...s, tableCount: 0, memberCount: 0 }, ...prev]))
@@ -492,6 +516,8 @@ export default function SuperadminScreen() {
                 resultsPublicError={resultsPublicErr[s.id]}
                 onOnboardingChange={next => handleToggleOnboardingEnabled(s, next)}
                 onboardingError={onboardingErr[s.id]}
+                onAssertionsLockedChange={next => handleToggleAssertionsLocked(s, next)}
+                assertionsLockedError={assertionsLockedErr[s.id]}
               />
             ))}
           </div>
@@ -534,7 +560,7 @@ export default function SuperadminScreen() {
 
 function SessionCard({
   session, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
-  onOnboardingChange, onboardingError,
+  onOnboardingChange, onboardingError, onAssertionsLockedChange, assertionsLockedError,
 }: {
   session: SessionRow
   onClose(): void
@@ -544,6 +570,8 @@ function SessionCard({
   resultsPublicError?: string
   onOnboardingChange(next: boolean): void
   onboardingError?: string
+  onAssertionsLockedChange(next: boolean): void
+  assertionsLockedError?: string
 }) {
   const isClosed = session.phase === 'closed'
   const [expanded, setExpanded]   = useState(false)
@@ -683,6 +711,39 @@ function SessionCard({
             </button>
             {onboardingError && (
               <p className="text-xs text-red-600 mt-1">{onboardingError}</p>
+            )}
+          </div>
+
+          {/* Verrou propositions d'assertions (chantier 124) */}
+          <div onClick={e => e.stopPropagation()} className="pt-0.5">
+            <button
+              onClick={() => onAssertionsLockedChange(!session.assertions_locked)}
+              title={
+                session.assertions_locked
+                  ? 'Seul le superadmin peut débloquer : plus personne d\'autre ne peut proposer de nouvelle assertion sur cette séance'
+                  : 'Interdire à tout le monde sauf le superadmin de proposer de nouvelles assertions sur cette séance'
+              }
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                session.assertions_locked
+                  ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span
+                className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
+                  session.assertions_locked ? 'bg-red-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                    session.assertions_locked ? 'translate-x-3' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+              {session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
+            </button>
+            {assertionsLockedError && (
+              <p className="text-xs text-red-600 mt-1">{assertionsLockedError}</p>
             )}
           </div>
         </div>

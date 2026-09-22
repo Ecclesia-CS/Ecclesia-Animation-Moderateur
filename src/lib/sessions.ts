@@ -107,6 +107,21 @@ export async function setSessionOnboardingEnabled(
   return data as Session
 }
 
+// Chantier 124 — bascule superadmin par séance (même forme que setSessionOnboardingEnabled).
+export async function setSessionAssertionsLocked(
+  password: string,
+  sessionId: string,
+  assertionsLocked: boolean,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('set_session_assertions_locked', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_assertions_locked: assertionsLocked,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
 export async function updateSessionDocs(
   password: string,
   sessionId: string,

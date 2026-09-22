@@ -6,6 +6,19 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## Chantier 124 — verrouiller la proposition d'assertions, superadmin only (2026-09-22)
+
+Migration `supabase/migrations/20260922_chantier124_verrouiller_assertions.sql` **appliquée en base de production** le 2026-09-22 (règle SQL du 07/09) : nouvelle colonne `sessions.assertions_locked` (défaut `false`), nouvelle RPC `set_session_assertions_locked`, et `submit_assertion` réécrite pour refuser toute proposition quand le verrou est actif. La définition vivante de `submit_assertion` a été comparée (`pg_get_functiondef`) avant réécriture — identique au corps historique de `20260528_voting_app.sql` à l'exception du type de retour (`jsonb`).
+
+**Vérifié en base** : `SELECT column_name, data_type, column_default ...` confirme la colonne posée avec défaut `false` ; une lecture directe (`SELECT assertions_locked FROM sessions LIMIT 1`) renvoie `false`. `tsc --noEmit` et `npm run build` propres.
+
+**Non vérifié** — pas de mot de passe superadmin disponible en session headless :
+1. Le bouton toggle dans `SuperadminScreen.tsx` (pastille rouge « Propositions verrouillées » / grise « Propositions ouvertes ») bascule effectivement `assertions_locked` en base et revient en arrière proprement si le mot de passe est refusé (comportement optimiste, même code que `handleToggleResultsPublic`/`handleToggleOnboardingEnabled`, jamais rejoué à l'écran pour ce nouveau toggle précisément).
+2. `SubmitAssertionModal.tsx` affiche bien le message « Propositions désactivées » et masque le formulaire quand `session.assertions_locked` est vrai (logique symétrique au blocage déjà affiché pour `moderation_policy`, jamais rejouée à l'écran).
+3. Un membre inscrit qui tente `submit_assertion` sur une séance verrouillée reçoit bien l'erreur SQL et la voit s'afficher via `extractErr` dans le modal (chemin d'erreur non testé en conditions réelles, seule la RPC a été relue).
+
+Requêtes de vérification complètes dans le fichier de migration.
+
 ## Chantier 123 — modération effective : DnD, promotion, bouton « sans animateur », binôme du modérateur (2026-09-22)
 
 Migration `supabase/migrations/20260922_chantier123_moderation_effective.sql` **appliquée en base de production** le 2026-09-22 (règle SQL du 07/09). Elle réécrit `assign_moderator_to_table`, `move_member_to_group`, `sync_table_assignment`, et ajoute `has_effective_moderator`, `release_moderator_on_leave`, `set_table_leaderless`. Les trois fonctions réécrites ont été comparées à leur définition courante (`pg_get_functiondef`) avant réécriture, pas aux fichiers de migration.

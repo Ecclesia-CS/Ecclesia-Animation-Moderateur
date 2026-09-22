@@ -44,6 +44,11 @@ export interface Session {
   // actuel préservé). false → la phase `voting` saute l'onboarding (entry_responses)
   // et va directement au vote, comme le fait déjà `pre_voting` de façon permanente.
   onboarding_enabled: boolean
+  // Chantier 124 — bascule superadmin par séance : false par défaut (comportement
+  // actuel préservé). true → submit_assertion refuse toute nouvelle proposition
+  // pour cette séance (le superadmin, seul à pouvoir activer ce verrou, n'est
+  // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
+  assertions_locked: boolean
 }
 
 export interface Table {
