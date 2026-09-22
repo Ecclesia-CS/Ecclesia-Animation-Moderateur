@@ -6,6 +6,27 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## Chantier 124 — verrouiller la proposition d'assertions, superadmin only (2026-09-22)
+
+Migration `supabase/migrations/20260922_chantier124_verrouiller_assertions.sql` **appliquée en base de production** le 2026-09-22 (règle SQL du 07/09) : nouvelle colonne `sessions.assertions_locked` (défaut `false`), nouvelle RPC `set_session_assertions_locked`, et `submit_assertion` réécrite pour refuser toute proposition quand le verrou est actif. La définition vivante de `submit_assertion` a été comparée (`pg_get_functiondef`) avant réécriture — identique au corps historique de `20260528_voting_app.sql` à l'exception du type de retour (`jsonb`).
+
+`tsc --noEmit` et `npm run build` propres.
+
+**Vérifié en base** (transaction non nécessaire, séance QA jetable créée puis supprimée — `INSERT`/`UPDATE`/`DELETE` directs sur `sessions`, pas de RLS à contourner) :
+- Colonne posée avec défaut `false` sur les séances existantes.
+- `submit_assertion` appelée en HTTP direct (fetch avec le token anonyme réel du participant QA, contournant le cache client) : verrou actif → **HTTP 400**, message exact `"La proposition de nouvelles assertions est désactivée par le superadmin pour cette séance"` ; verrou levé → **HTTP 200**, assertion créée normalement (`status: "approved"`, cohérent avec `moderation_policy = 'open'`).
+- `set_session_assertions_locked` avec un mauvais mot de passe → rejetée avec `Mot de passe superadmin incorrect` (via `check_superadmin_password`). **Le vrai mot de passe n'a pas été utilisé** (jamais saisi ni lu par cette session) — la bascule avec le bon mot de passe n'est donc validée qu'indirectement (RPC identique en tout point à `set_session_onboarding_enabled`, elle-même déjà en usage courant).
+
+**Vérifié au navigateur réel** (séance QA jetable `QA124TEST`, `npm run dev` sur ce worktree, `.env` déjà présent ; participant inscrit via le vrai flux `#vote/<join_code>` → pseudo → code de rappel, aucune donnée forgée) :
+1. **Verrou inactif** : bouton « ✏️ Proposer » ouvre le formulaire normalement, soumission réussie, l'assertion apparaît dans « Voir toutes les assertions (1) ».
+2. **Verrou activé en base** puis **rechargement complet de la page** (`location.reload()`, pas juste un changement de hash) : le modal affiche bien « 🔒 Propositions désactivées — Le superadmin a désactivé la proposition de nouvelles assertions pour cette séance. », formulaire absent.
+   ⚠️ **Piège découvert en testant** : un simple changement de hash via le tab du Browser pane (`navigate` vers la même origine) **ne remonte pas** `VoteScreen` et donc ne refait pas l'appel `getSessionByJoinCode` — la première tentative montrait un faux négatif (ancien état affiché). Sans rapport avec le code de ce chantier : c'est un comportement du SPA (l'`useEffect` d'init ne se redéclenche qu'au vrai montage du composant), à garder en tête pour tout futur test navigateur qui bascule un flag serveur en cours de séance — un `location.reload()` explicite est nécessaire, pas juste une nouvelle URL de hash.
+3. Le bouton toggle dans `SuperadminScreen.tsx` (pastille rouge « Propositions verrouillées » / grise « Propositions ouvertes »), lui, n'a **pas** été rejoué à l'écran — pas de mot de passe superadmin disponible en session headless. Code identique à `handleToggleResultsPublic`/`handleToggleOnboardingEnabled`, déjà en usage courant et jamais pris en défaut.
+
+Séance QA (`fcbd3247-7d15-41be-b0ed-a2591276fd8d`) et toutes ses lignes (`session_members`, `assertions`) supprimées après coup — vérifié : 0 ligne restante.
+
+Requêtes de vérification complètes dans le fichier de migration.
+
 ## Chantier 123 — modération effective : DnD, promotion, bouton « sans animateur », binôme du modérateur (2026-09-22)
 
 Migration `supabase/migrations/20260922_chantier123_moderation_effective.sql` **appliquée en base de production** le 2026-09-22 (règle SQL du 07/09). Elle réécrit `assign_moderator_to_table`, `move_member_to_group`, `sync_table_assignment`, et ajoute `has_effective_moderator`, `release_moderator_on_leave`, `set_table_leaderless`. Les trois fonctions réécrites ont été comparées à leur définition courante (`pg_get_functiondef`) avant réécriture, pas aux fichiers de migration.

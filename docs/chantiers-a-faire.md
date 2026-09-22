@@ -60,6 +60,8 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > ```
 
 
+Le 124 (verrouiller la proposition d'assertions, superadmin only) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
+
 Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur sur tous les points d'entrée, voir `docs/chantiers.md`), le 106 (fondation) et le 107 (`claim_moderator_status` ne déplace plus personne déjà assis, vérifié en base et au navigateur réel avec le vrai Code Ecclesia) — voir `docs/chantiers.md`. (Les chantiers 87/101 ont tourné ce jour-là sur `claude/ecclesia-audit-participant-509f81` — audit, aucun fichier de `src/` touché, donc aucun risque de conflit ; entrée retirée à la livraison.) Le 83bis (compteur de quota `gemini-proxy` partagé), le 105 et les 87/101 ont aussi été livrés le jour même — voir `docs/chantiers.md`. Le 113 (fusion des deux boutons « modérateur » du panneau Outils) a été mergé sur `main` le jour même — voir `docs/chantiers.md` ; entrée retirée à la livraison. Le 117 (vue Groupes : afficher un modérateur « physique » sans ligne `session_members`) a aussi été mergé sur `main` le jour même — voir `docs/chantiers.md` ; entrée retirée à la livraison. Le 119 (angles morts du code de rappel) a aussi tourné sur `supabase/migrations` et modifié `claim_table_as_moderator`/`sync_table_assignment` — voir l'entrée 118 ci-dessous. Le 118 (modérateur physique retiré devient un session_member flagué, branche `claude/chantier-118-ff6067`) a été livré ce même jour — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
 ---
