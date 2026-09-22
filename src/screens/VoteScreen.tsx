@@ -26,6 +26,7 @@ import PhaseIndicator from '../components/PhaseIndicator'
 import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
 import RenamePseudoModal from '../components/voting/RenamePseudoModal'
 import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
+import DocNudge from '../components/voting/DocNudge'
 
 interface VoteScreenProps {
   sessionJoinCode: string
@@ -1691,76 +1692,6 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
       </div>
 
     </>
-  )
-}
-
-// ── DocNudge ──────────────────────────────────────────────────────────────────
-
-interface DocNudgeProps {
-  session: Session
-  memberPseudo: string
-}
-
-function DocNudge({ session, memberPseudo }: DocNudgeProps) {
-  const infoUrl    = session.doc_info_url
-  const summaryUrl = session.doc_summary_url
-  const collabUrl  = session.doc_collab_url
-  const hasDocs    = !!(infoUrl || summaryUrl || collabUrl || session.join_code)
-
-  function handleCollabClick() {
-    sessionStorage.setItem('ecclesia_collab_return', `#vote/${session.join_code}`)
-    if (session.join_code) {
-      sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
-      window.location.hash = `#collab/${session.join_code}`
-    } else if (collabUrl) {
-      window.open(collabUrl, '_blank', 'noopener,noreferrer')
-    }
-  }
-
-  const linkClass = 'flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors'
-
-  return (
-    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-      <p className="text-xs font-semibold text-indigo-700 mb-2">📄 Profites-en pour lire la documentation</p>
-      {hasDocs ? (
-        <div className="space-y-1.5">
-          {infoUrl && (
-            <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
-              </svg>
-              Fiche information
-            </a>
-          )}
-          {summaryUrl && (
-            <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
-              </svg>
-              Résumé fiche information
-            </a>
-          )}
-          {(collabUrl || session.join_code) && (
-            <button onClick={handleCollabClick} className={linkClass}>
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
-              </svg>
-              Sources collaboratives
-            </button>
-          )}
-        </div>
-      ) : (
-        <p className="text-xs text-indigo-400 italic">
-          Aucune fiche d'information n'est disponible pour cette séance.
-        </p>
-      )}
-    </div>
   )
 }
 

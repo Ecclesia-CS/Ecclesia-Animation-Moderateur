@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus, assignLeastFilledTable } from '../lib/voting'
+import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus, assignLeastFilledTable, getMyPairings } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
@@ -13,6 +13,9 @@ import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
 import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
+import { PairingResultsList } from '../components/voting/PairingModal'
+import type { PairingResult } from '../lib/voting'
+import DocNudge from '../components/voting/DocNudge'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
 import { hasQuestionnaireResponse } from '../lib/voting'
@@ -46,6 +49,9 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [moderatorPassword,    setModeratorPassword]    = useState('')
   const [moderatorDeclareBusy, setModeratorDeclareBusy] = useState(false)
   const [moderatorDeclareMsg,  setModeratorDeclareMsg]  = useState<{ ok: boolean; text: string } | null>(null)
+  // Chantier 122 — binôme visible en allocating, lecture seule (aucune
+  // possibilité de changer son choix depuis cet écran).
+  const [pairings, setPairings] = useState<PairingResult[]>([])
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
@@ -69,6 +75,10 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     }
 
     load()
+
+    getMyPairings(session.id)
+      .then(list => setPairings(list.map(p => ({ pseudo: p.pseudo, found: true, reciprocal: p.reciprocal }))))
+      .catch(() => { /* pas de binôme à afficher, écran non bloquant */ })
   }, [session.id])
 
   // ── Realtime ──────────────────────────────────────────────────────
@@ -389,6 +399,20 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
           />
         </div>
 
+        {/* Chantier 122 — binôme visible en allocating, lecture seule (le
+            changement de choix reste indisponible à ce stade, inchangé). */}
+        {pairings.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ton binôme</p>
+            <div className="bg-white rounded-2xl border border-gray-200 p-4">
+              <PairingResultsList results={pairings} />
+            </div>
+          </div>
+        )}
+
+        {/* Chantier 122 — mêmes liens documentaires que sur les écrans de vote,
+            désormais visibles aussi en phase allocation. */}
+        <DocNudge session={currentSession} memberPseudo={member.pseudo} />
 
         {/* Chantier 108 (C2) — rouverte depuis le chantier 107 : la déclaration
             pendant l'allocation ne fait plus que poser le drapeau modérateur,

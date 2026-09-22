@@ -28,6 +28,22 @@ Ne pas supprimer une entrée sans validation explicite de Jules — se contenter
 >
 > **⚠️ 2026-09-02 (session de consolidation) — toute la vague récente repose entièrement sur la passe manuelle de Jules.** Les recettes des chantiers **50, 51, 53, 57, 60, 61 et 62** ont été écrites par des sessions headless (harnais partagé, pas de mot de passe superadmin/Code Ecclesia, consigne explicite de ne lancer aucun serveur de dev ni test navigateur) — **aucune d'elles n'a été jouée à l'écran**, ni par une session Claude Code ni par Jules, au moment de l'écriture de cette note. Tout ce qui suit dans ce fichier pour ces sept chantiers (y compris les scénarios détaillés, marqués "Déjà vérifié : tsc/build/tests uniquement") reste donc à dérouler intégralement à la main avant de les considérer clos.
 
+## Chantier 122 (2026-09-22) — Liens docs biais/fallacieux par phase + binôme visible à l'écran d'allocation — ✅ vérifié au navigateur réel, deux cas annexes non rejoués
+
+Deux sous-tâches indépendantes demandées par Jules (`docs/chantiers-a-faire.md` § 122).
+
+**1. Liens biais cognitifs / arguments fallacieux.** Ces deux liens fixes existaient déjà dans le panneau Outils (`ParticipantToolsButton.tsx`) mais pas sous le bandeau "📄 Profites-en pour lire la documentation" des écrans pré-vote/vote/allocation. Le composant `DocNudge` (auparavant défini en privé dans `VoteScreen.tsx`) a été extrait en `src/components/voting/DocNudge.tsx` pour être réutilisé sans duplication, et les deux liens fixes y ont été ajoutés (toujours affichés, contrairement aux liens `doc_info_url`/`doc_summary_url`/collab qui restent conditionnés à leur présence en base).
+
+**2. Binôme visible à l'écran d'allocation.** Nouvelle carte "Ton binôme" dans `AllocatingScreen.tsx`, au-dessus du nudge documentaire, alimentée par `getMyPairings()` (RPC `get_my_pairings`, chantier 92) et affichée avec le composant déjà existant `PairingResultsList` (`PairingModal.tsx`, non modifié) — lecture seule, aucune possibilité de changer son binôme depuis cet écran (inchangé, comme demandé par Jules). N'apparaît que si au moins un binôme a été déclaré (carte absente sinon, pas de message "aucun binôme").
+
+**Précision de routage découverte en testant** : `AllocatingScreen.tsx` n'est monté pour le participant qu'au passage en phase `debating` — pendant la phase `allocating` elle-même, `VoteScreen.tsx` reste sur l'écran de vote avec la bannière ambre ("L'organisateur forme les groupes..."). Le nom du composant ne correspond donc pas au nom de la phase DB à laquelle il apparaît réellement ; reste le bon endroit pour ce chantier car c'est l'écran où le participant voit effectivement "Ton groupe" (et donc, désormais, son binôme).
+
+**Vérifié au navigateur réel** (`ecclesia-dev` sur ce worktree, `.env` copié depuis la racine, séance/membres/table/binôme QA créés directement en base via l'outil Supabase MCP et purgés après coup — `sessions.title = '🧪 QA chantier 122'`) :
+- Écran de vote (phase `pre_voting`, 1 assertion votée, `doc_info_url`/`doc_summary_url` renseignés) : les 5 liens (Fiche information, Résumé fiche information, Sources collaboratives, Biais cognitifs, Arguments fallacieux) s'affichent sous le nudge documentaire.
+- Passage en phase `debating` avec `table_assignments` posé (table 1) et un binôme réciproque (deux lignes `member_pairings` croisées) : la carte "Ton groupe" (Table 1) s'affiche, suivie de la carte "Ton binôme" ("🔗 QA Binome122 : vous vous êtes cités tous les deux, vous serez ensemble"), suivie des 5 mêmes liens documentaires.
+
+**Non rejoué à l'écran** : le cas binôme non réciproque (message "⏳ en attente") et le cas séance sans aucun binôme déclaré (carte absente) — les deux passent par `PairingResultsList`, composant déjà utilisé ailleurs et non modifié par ce chantier, risque de régression jugé négligeable. `tsc --noEmit`, `npm run build` et `npx vitest run` (119 tests) propres.
+
 ## Chantier 121 (2026-09-22) — Œil mot de passe, nudge assertion, actifs par table — ⚠️ tsc + navigateur partiel, deux points non rejoués à l'écran
 
 Trois sous-tâches indépendantes demandées par Jules (`docs/chantiers-a-faire.md` § 121).

@@ -86,7 +86,9 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 
 Périmètre de fichiers (à affiner en démarrant) : composant(s) mot de passe partagés, `VoteScreen.tsx` (popup assertion), vue Groupes du superadmin.
 
-#### 122 — Liens docs par phase + binôme visible en allocating
+#### 122 — Liens docs par phase + binôme visible en allocating — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-22.** Détail complet (composant `DocNudge` extrait et partagé, carte "Ton binôme" dans `AllocatingScreen.tsx`, précision sur le routage réel de cet écran) et recette de vérification dans `docs/chantiers.md` (chantier 122) et `A_VERIFIER.md` § Chantier 122. Vérifié au navigateur réel de bout en bout ; seuls deux cas annexes du composant d'affichage du binôme (non réciproque, absent) restent non rejoués à l'écran.
 
 **Consigne de Jules** : « En dessous de "profite-en pour lire le docu", il faut aussi mettre le docu biais cogni, et les arguments fallacieux. Prevote, vote, et allocation je pense en terme de phase. [Les liens] sont désormais tout le temps disponibles quand on va dans outils [ils existent déjà, il s'agit juste de les faire apparaître aussi sous "profite-en pour lire le docu" sur ces trois écrans]. [...] En allocating, il faut toujours pouvoir voir avec qui on est appairé (pour les binômes). Il est en revanche effectivement impossible de changer son choix, comme actuellement [ce point-là reste inchangé]. »
 
