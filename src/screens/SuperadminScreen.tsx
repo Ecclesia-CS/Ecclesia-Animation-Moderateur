@@ -11,6 +11,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
+import PasswordInput from '../components/PasswordInput'
 import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
@@ -949,36 +950,25 @@ function Field({
   type?: string
   placeholder?: string
 }) {
-  const [showPwd, setShowPwd] = useState(false)
   const isPassword = type === 'password'
-  const inputType  = isPassword ? (showPwd ? 'text' : 'password') : type
 
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
-      <div className="relative">
+      {isPassword ? (
+        <PasswordInput value={value} onChange={onChange} placeholder={placeholder} />
+      ) : (
         <input
-          type={inputType}
+          type={type}
           required
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+          className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-            placeholder:text-gray-300 transition-shadow
-            ${isPassword ? 'pr-10' : ''}`}
+            placeholder:text-gray-300 transition-shadow"
         />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPwd(v => !v)}
-            tabIndex={-1}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            {showPwd ? <EyeOff /> : <Eye />}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }
@@ -994,25 +984,6 @@ function SubmitBtn({ loading, label, className = 'w-full' }: { loading: boolean;
     >
       {loading ? <><Spinner />Chargement…</> : label}
     </button>
-  )
-}
-
-function Eye() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-    </svg>
-  )
-}
-
-function EyeOff() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    </svg>
   )
 }
 
@@ -2724,6 +2695,17 @@ function SessionDetail({
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
                               <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              {/* Chantier 121 — nombre d'actifs, ce qui guide les choix du superadmin (seuils du chantier 91) */}
+                              {(() => {
+                                const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
+                                if (withProfile.length === 0) return null
+                                const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
+                                return (
+                                  <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
+                                    {activeCount} actif{activeCount !== 1 ? 's' : ''}
+                                  </span>
+                                )
+                              })()}
                               {/* Chantier 19 — statut des seuils, recalculé en direct */}
                               {(() => {
                                 const d = groupDiagnostics.find(x => x.table_number === g.table_number)

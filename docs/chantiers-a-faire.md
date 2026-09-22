@@ -73,7 +73,9 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 >
 > ⚠️ **123 recoupe aussi thématiquement 122** sur le sujet binôme/allocation (122 rend le binôme visible en allocating, 123 diagnostique pourquoi deux binômes ne sont parfois pas assis à la même table) — fichiers différents (`AllocatingScreen` vs `lib/allocation.ts`/`apply_allocation`), donc pas de conflit de merge, mais **123 doit lire le résultat de 122 avant de conclure** : si le binôme n'était que mal *affiché*, ce n'est pas la même cause que « pas placé à la même table ».
 
-#### 121 — Petites corrections UI (mot de passe visible, popup assertion, actifs par table)
+#### 121 — Petites corrections UI (mot de passe visible, popup assertion, actifs par table) — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-22.** Détail complet (composant `PasswordInput` partagé, fix du seuil de nudge dans `loadVoteData`, badge actifs par table) et recette de vérification restante dans `docs/chantiers.md` (chantier 121) et `A_VERIFIER.md` § Chantier 121. Seul le toggle œil a été rejoué au navigateur ; le nudge assertion et le badge actifs restent à vérifier à l'écran (séance de vote à 10+ votes, allocation calculée).
 
 **Consigne de Jules** : « Il faut qu'on puisse cliquer sur un petit symbole d'œil pour voir le code qu'on tape [mot de passe Ecclesia modérateur en prevote]. C'est plus pratique. [...] De manière générale, quand il y a un mdp à mettre, il faut un œil pour pouvoir le voir éventuellement. [...] Tous les mdp de l'app (il y en a qui sont déjà faits). [...] A chaque fois qu'on reload en vote et prevote, et qu'on a dépassé 10 votes, le message de proposition d'assertion revient. Il faudrait éviter cela [après reload uniquement — ne pas réapparaître automatiquement, mais rester accessible via un bouton]. [...] Dans l'onglet groupe du superadmin, il est absolument nécessaire d'afficher pour chaque table le nombre précis d'actifs, car c'est ce qui va déterminer les choix du superadmin. »
 

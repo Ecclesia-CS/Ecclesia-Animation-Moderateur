@@ -115,6 +115,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // Proposition nudge every 10 votes
   const [nextNudgeAt,      setNextNudgeAt]      = useState(10)
   const [showProposalNudge, setShowProposalNudge] = useState(false)
+  // Chantier 121 — n'initialiser le seuil qu'une fois par montage, sur le premier
+  // chargement réel des votes : sans ça, chaque reload repart de nextNudgeAt=10 et
+  // rouvre immédiatement le nudge dès que le seuil de 10 votes est déjà dépassé.
+  const nudgeInitializedRef = useRef(false)
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
@@ -359,6 +363,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     setMyVotes(voteMap)
     setProposedCount(myAssertionIds.length)
     setAssertionIndex(0)
+    // Chantier 121 — seuil du nudge "Proposer" initialisé sur le compte déjà voté,
+    // pas remis à 10 : sinon le popup revient à chaque reload une fois 10 votes dépassés.
+    if (!nudgeInitializedRef.current) {
+      nudgeInitializedRef.current = true
+      setNextNudgeAt(Math.floor(voteMap.size / 10) * 10 + 10)
+    }
     // F3 — affiché une seule fois par séance, pas à chaque rechargement/re-vote.
     if (!localStorage.getItem(`ecclesia_vote_intro_${s.id}`)) setShowVoteIntro(true)
     setStep('vote')

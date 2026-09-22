@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { TableAssignment } from '../../lib/types'
 import type { Session } from '../../lib/types'
+import PasswordInput from '../PasswordInput'
 
 export interface AssignmentWithTable extends TableAssignment {
   tables: { join_code: string } | null
@@ -183,12 +184,12 @@ export default function TableAssignmentCard({
                   </span>
                 </label>
                 {asModerator && (
-                  <input
-                    type="password"
+                  <PasswordInput
+                    required={false}
                     value={creationCode}
-                    onChange={e => { setCreationCode(e.target.value); setLocalSwitchError(null) }}
+                    onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
                     placeholder="Code Ecclesia"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
+                    className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg
                       focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
                   />
                 )}
@@ -366,12 +367,12 @@ export default function TableAssignmentCard({
                       </span>
                     </label>
                     {asModerator && (
-                      <input
-                        type="password"
+                      <PasswordInput
+                        required={false}
                         value={creationCode}
-                        onChange={e => { setCreationCode(e.target.value); setLocalSwitchError(null) }}
+                        onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
                         placeholder="Code Ecclesia"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
+                        className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg
                           focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
                       />
                     )}
