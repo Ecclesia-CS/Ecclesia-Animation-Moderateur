@@ -6,6 +6,24 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## Chantier 123 — modération effective : DnD, promotion, bouton « sans animateur », binôme du modérateur (2026-09-22)
+
+Migration `supabase/migrations/20260922_chantier123_moderation_effective.sql` **appliquée en base de production** le 2026-09-22 (règle SQL du 07/09). Elle réécrit `assign_moderator_to_table`, `move_member_to_group`, `sync_table_assignment`, et ajoute `has_effective_moderator`, `release_moderator_on_leave`, `set_table_leaderless`. Les trois fonctions réécrites ont été comparées à leur définition courante (`pg_get_functiondef`) avant réécriture, pas aux fichiers de migration.
+
+**Constat de production relevé pendant le diagnostic, non corrigé** : deux tables (`table_number` 1 et 2) portaient un `active_moderator_member_id` **périmé** (personne qui n'y est plus assise). Le nouveau code les ignore désormais (`has_effective_moderator` renvoie `false`, donc la prochaine désignation écrase la valeur), mais ces deux lignes n'ont **pas** été nettoyées en base — rien n'a été supprimé sans accord. Requête de contrôle : `select id, table_number from tables where active_moderator_member_id is not null and not has_effective_moderator(id)`.
+
+**Rien de tout ceci n'a été joué au navigateur.** Recette à dérouler (séance en phase `allocating` ou `debating`, onglet Groupes du superadmin) :
+
+1. **DnD sur une table sans modérateur** — glisser un participant sur la zone « Table sans animateur » d'une table `leaderless`. Attendu : il apparaît comme modérateur **principal** (pas « en surplus »), le badge jaune « Sans animateur » disparaît, et de son côté il obtient l'**écran modérateur**.
+2. **DnD sur une table VIDE** (créée à la main, chantier 95, aucune assignation) — même attendu. C'était le cas qui produisait un no-op silencieux.
+3. **Promotion d'un surplus** — sur une table dont le modérateur a été retiré, cliquer « En faire le principal » sur un badge ambre « Modérateur en surplus ». Attendu : il devient principal et obtient l'écran modérateur ; le bouton disparaît dès qu'un principal existe.
+4. **Bouton « Refaire une table sans animateur »** — sur une table modérée. Attendu : badge « Sans animateur » de retour, l'ancien modérateur **repasse à l'écran participant**, la parole s'auto-attribue au premier de la file (`claimFloor`), et son drapeau `is_moderator` est **conservé** (il reste dans la liste des modérateurs). ⚠️ Cette RPC pose aussi `leaderless_by_design = true` et rend `created_by` au superadmin — vérifier qu'une reprise ultérieure par le formulaire de rattrapage (`claim_table_as_moderator`) fonctionne toujours sur cette table.
+5. **Déplacement d'un modérateur par DnD vers une autre table** — attendu : sa table d'origine **perd son animateur** mais ne devient PAS `leaderless` (sauf `leaderless_by_design = true`, règle du chantier 64 inchangée), et un nouveau modérateur déposé dessus ensuite devient bien **principal** (c'est le scénario exact qui produisait le bug).
+6. **Binôme d'un modérateur qui anime** — déclarer un appairage réciproque entre un participant et une personne flaguée modérateur, puis lancer l'allocation depuis `AllocationPanel`. Attendu : le participant est à la table qu'anime son binôme. Couvert par 3 tests unitaires, **jamais joué à l'écran**.
+7. **Non-régression de l'allocation sur une population réaliste** — la réparation par échange peut dégrader l'hétérogénéité ou un seuil d'actifs (c'est le coût assumé de la règle 1, chantier 92). Vérifier sur le tableau de bord de seuils d'`AllocationPanel` que la dégradation reste marginale sur une séance de taille réelle avec plusieurs binômes impliquant des modérateurs.
+
+**Point non tranché, laissé ouvert** : le bouton « Refaire une table sans animateur » ne retire pas le drapeau `is_moderator` de la personne (geste séparé, bouton « Retirer »). Choix argumenté en conversation avec Jules le 22/09 (le drapeau est un titre de « modérateur potentiel » qui sert d'entrée à l'algorithme : le retirer en silence ferait produire au recalcul suivant une table animée en moins). Jules avait dit qu'il était ouvert à la fusion des deux gestes — à confirmer après usage réel.
+
 Liste des points nécessitant une validation humaine, générés lors des sessions Claude Code.
 Ne pas supprimer une entrée sans validation explicite de Jules — se contenter de la déplacer en section "Validé" une fois confirmée. Si un point semble obsolète, le marquer comme tel plutôt que l'effacer.
 

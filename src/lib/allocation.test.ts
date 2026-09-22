@@ -735,6 +735,44 @@ describe('chantier 92 — grappes d’appairage', () => {
     expect(JSON.stringify(runAllocation(base).tables)).toBe(JSON.stringify(runAllocation({ ...base, pairs: [] }).tables))
   })
 
+  // ── Chantier 123 — le binôme d'un modérateur qui anime ──
+  //
+  // Avant ce chantier, un modérateur animant était placé par simple ordre
+  // d'index, hors du solveur : son binôme était systématiquement placé sans lui,
+  // et `brokenClusters` ne le voyait même pas (il lit `member_ids`, qui n'inclut
+  // pas les modérateurs).
+
+  it('un participant appairé à un modérateur qui anime est assis à SA table', () => {
+    const members = mix(45, 10)
+    const r = runAllocation({
+      members, moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['mo-1', 'x-2'], ['mo-2', 'x-7'], ['mo-3', 'x-19']] as [string, string][],
+    })
+    for (const [mod, participant] of [['mo-1', 'x-2'], ['mo-2', 'x-7'], ['mo-3', 'x-19']]) {
+      const modTable = r.tables.find(t => t.moderator_member_ids.includes(mod))
+      expect(modTable, `table de ${mod}`).toBeDefined()
+      expect(modTable!.member_ids, `${participant} avec ${mod}`).toContain(participant)
+    }
+  })
+
+  it('un passif appairé à un modérateur qui anime rejoint sa table', () => {
+    const members = mix(30, 10)
+    const r = runAllocation({
+      members, moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['mo-1', 'x-35']] as [string, string][],
+    })
+    const modTable = r.tables.find(t => t.moderator_member_ids.includes('mo-1'))
+    expect(modTable!.member_ids).toContain('x-35')
+  })
+
+  it('une grappe comprenant un modérateur animant reste déterministe', () => {
+    const input = {
+      members: mix(45, 10), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['mo-2', 'x-7'], ['mo-3', 'x-12'], ['x-0', 'x-9']] as [string, string][],
+    }
+    expect(JSON.stringify(runAllocation(input).tables)).toBe(JSON.stringify(runAllocation(input).tables))
+  })
+
   it('countBrokenClusters compte une grappe répartie sur deux tables', () => {
     const tables = [{ member_ids: ['a', 'b'] }, { member_ids: ['c'] }]
     expect(countBrokenClusters(tables, [['a', 'b'], ['b', 'c']])).toBe(1)

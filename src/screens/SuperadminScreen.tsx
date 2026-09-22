@@ -34,6 +34,7 @@ import {
   listSessionMembersAdmin, adminSubmitAssertion, moveMembersToGroup,
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
   releaseTableModeration,
+  setTableLeaderless,
   regenerateReclaimCodeAdmin,
   assignPendingModerators,
 } from '../lib/voting'
@@ -1743,6 +1744,31 @@ function SessionDetail({
     }
   }, [onAuthError, loadGroups, loadMembers])
 
+  /**
+   * Chantier 123 — refait d'une table modérée une table sans animateur
+   * (`set_table_leaderless`). Symétrique des chemins d'entrée décrits dans
+   * `docs/reference-tables-leaderless.md` : c'était le seul sens qui manquait.
+   * Le drapeau `is_moderator` de l'ancien animateur est conservé (cf. wrapper).
+   */
+  const handleMakeTableLeaderless = useCallback(async (tableId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await setTableLeaderless(password, tableId)
+      await loadGroups()
+      await loadMembers()
+      setAssignError(null)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [onAuthError, loadGroups, loadMembers])
+
   useEffect(() => {
     const p = currentSession.phase
     if (p === 'allocating' || p === 'debating') loadGroups()
@@ -2800,6 +2826,22 @@ function SessionDetail({
                                           className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-100 inline-flex items-center gap-1"
                                           title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
                                           🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
+                                          {/* Chantier 123 — Jules : « il faut juste qu'il
+                                              puisse passer en principal ». `assign_moderator_to_table`
+                                              (corrigée par ce chantier) écrase désormais un
+                                              `active_moderator_member_id` périmé et fait sortir la
+                                              table de `leaderless`. Masqué si la table a déjà un
+                                              animateur effectif : le surplus est alors légitime. */}
+                                          {activeMods.length === 0 && (
+                                            <button
+                                              onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
+                                              disabled={movingMember}
+                                              className="text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
+                                              title="En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
+                                            >
+                                              En faire le principal
+                                            </button>
+                                          )}
                                           <button
                                             onClick={() => handleRemoveTableModerator(mod.member_id!)}
                                             disabled={movingMember}
@@ -2847,6 +2889,23 @@ function SessionDetail({
                                         + "toute reprise (« cette table a déjà un modérateur »)."}
                                     >
                                       Libérer la modération de cette table
+                                    </button>
+                                  )}
+                                  {/* Chantier 123 — chemin symétrique, demandé par Jules :
+                                      « si on peut proposer un bouton pour la refaire devenir
+                                      leaderless c'est l'idéal ». Les quatre chemins d'entrée
+                                      existaient, aucun chemin de sortie. Inutile sur une table
+                                      déjà sans animateur. */}
+                                  {g.table_id && g.moderated && (
+                                    <button
+                                      onClick={() => handleMakeTableLeaderless(g.table_id!)}
+                                      disabled={movingMember}
+                                      className="text-xs text-gray-400 hover:text-amber-700 underline disabled:opacity-50"
+                                      title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
+                                        + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
+                                        + "disponible pour une autre table) — utilise « Retirer » pour le lui enlever aussi."}
+                                    >
+                                      Refaire une table sans animateur
                                     </button>
                                   )}
                                 </div>

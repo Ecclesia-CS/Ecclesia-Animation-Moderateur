@@ -1064,3 +1064,26 @@ export async function releaseTableModeration(
   if (error) throw new Error(extractErr(error))
   return data as ReleaseTableModerationResult
 }
+
+/**
+ * Chantier 123 — refait d'une table modérée une table SANS ANIMATEUR
+ * (`tables.leaderless = true`), chemin symétrique des quatre chemins d'entrée
+ * décrits dans `docs/reference-tables-leaderless.md`.
+ *
+ * Ne touche PAS à `session_members.is_moderator` : ce drapeau est un titre de
+ * « modérateur potentiel » qui sert d'entrée à l'algorithme d'allocation. Le
+ * retirer est un geste distinct (bouton « Retirer »), pour que le superadmin
+ * voie ce qu'il change — sinon la capacité de modération baisse en silence et
+ * le recalcul suivant produit une table animée en moins.
+ */
+export async function setTableLeaderless(
+  password: string,
+  tableId: string,
+): Promise<{ table_id: string; leaderless: boolean; has_moderator: boolean }> {
+  const { data, error } = await supabase.rpc('set_table_leaderless', {
+    p_password: password,
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { table_id: string; leaderless: boolean; has_moderator: boolean }
+}

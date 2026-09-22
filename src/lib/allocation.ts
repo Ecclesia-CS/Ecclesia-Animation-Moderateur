@@ -1552,9 +1552,84 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     }
   }
 
-  // Répartition des modérateurs : un par table modérée, dans l'ordre.
+  // Répartition des modérateurs : un par table modérée.
+  //
+  // Chantier 123 — l'affectation était `animatingIds.forEach((mid, idx) => …)`,
+  // soit un placement par simple ordre d'index, HORS du solveur : un modérateur
+  // qui anime n'entre jamais dans `assign[]`, donc `clusterOfId` ne le concerne
+  // pas et son binôme était placé sans lui, structurellement (bug rapporté par
+  // Jules le 22/09 : « un participant n'est pas mis à la même table que celui
+  // avec qui il est affilié par le binôme »). Un modérateur en SURPLUS, lui,
+  // repasse par le pool (`seatProfile`) et son appairage était déjà respecté —
+  // d'où le fait que le recalcul suivant « le remettait » à la bonne table.
+  //
+  // Correctif (arbitrage de Jules, option a) : le binôme du modérateur est
+  // assigné à SA table. On ne peut pas déplacer le modérateur dans le solveur
+  // sans revoir tout le dimensionnement ; on choisit donc l'ORDRE d'affectation
+  // des modérateurs aux tables animées de façon à maximiser le nombre de
+  // grappes respectées. Glouton stable, départage par plus petit indice de
+  // table : entièrement déterministe, aucun `Math.random()` (invariant §6).
   const moderatorsByTable: string[][] = Array.from({ length: T }, () => [])
-  animatingIds.forEach((mid, idx) => { moderatorsByTable[idx].push(mid) })
+  {
+    const membersOfTable = activeIdsByTable.map((ids, t) => [...ids, ...placed.byTable[t]])
+    const freeTables = new Set(animatingIds.map((_, idx) => idx))
+    // Les modérateurs appairés passent d'abord : ce sont les seuls dont le choix
+    // de table porte une information. Les autres prennent ce qui reste.
+    const ranked = animatingIds
+      .map((mid, idx) => ({ mid, idx, cluster: clusterOfId.get(mid) }))
+      .sort((a, b) => {
+        const pa = a.cluster === undefined ? 1 : 0
+        const pb = b.cluster === undefined ? 1 : 0
+        return pa - pb || a.idx - b.idx
+      })
+    for (const { mid, cluster } of ranked) {
+      let best = -1
+      let bestScore = -1
+      for (const t of freeTables) {
+        const score = cluster === undefined
+          ? 0
+          : membersOfTable[t].filter(id => clusterOfId.get(id) === cluster).length
+        if (score > bestScore || (score === bestScore && (best === -1 || t < best))) {
+          best = t; bestScore = score
+        }
+      }
+      if (best === -1) continue
+      freeTables.delete(best)
+      moderatorsByTable[best].push(mid)
+    }
+
+    // Réparation : le choix de table ci-dessus ne suffit pas quand le binôme du
+    // modérateur a atterri sur une table non animée, ou sur une table déjà prise
+    // par un autre modérateur. On tire alors le binôme vers la table de son
+    // modérateur, par ÉCHANGE à effectif constant (les tailles de table, donc la
+    // forme retenue par le solveur, sont préservées). Le partenaire d'échange est
+    // choisi parmi les non-appairés, pour ne pas casser une grappe en en
+    // réparant une autre. Ordre de parcours fixe → déterministe.
+    //
+    // La règle 1 (appairage) prime sur l'hétérogénéité et les seuils d'actifs
+    // (chantier 92) : l'échange peut les dégrader, et les diagnostics recalculés
+    // plus bas le montrent honnêtement. S'il n'existe aucun partenaire
+    // échangeable, on renonce — l'algorithme ne lève jamais (invariant §6).
+    const tableOfAnimator = new Map<string, number>()
+    moderatorsByTable.forEach((mods, t) => mods.forEach(mid => tableOfAnimator.set(mid, t)))
+    for (const cluster of clusters) {
+      const mid = cluster.find(id => tableOfAnimator.has(id))
+      if (mid === undefined) continue
+      const target = tableOfAnimator.get(mid)!
+      for (const id of cluster) {
+        if (id === mid) continue
+        const pool = activeIdsByTable.some(ids => ids.includes(id)) ? activeIdsByTable : placed.byTable
+        const from = pool.findIndex(ids => ids.includes(id))
+        if (from === -1 || from === target) continue
+        const swapIdx = pool[target].findIndex(other =>
+          clusterOfId.get(other) === undefined && !tableOfAnimator.has(other))
+        if (swapIdx === -1) continue
+        const swapped = pool[target][swapIdx]
+        pool[target][swapIdx] = id
+        pool[from][pool[from].indexOf(id)] = swapped
+      }
+    }
+  }
 
   // ── Retours explicites au superadmin (chantier 25 / H13, H15, H17) ──
   if (seatedModeratorIds.length > 0) {
@@ -1604,17 +1679,34 @@ export function runAllocation(input: AllocationInput): AllocationResult {
     moderator_member_ids: moderatorsByTable[t],
   }))
 
-  const brokenClusters = countBrokenClusters(tables, clusters)
+  // Chantier 123 — `member_ids` n'inclut PAS les modérateurs qui animent : sans
+  // la fusion ci-dessous, un modérateur séparé de son binôme était compté comme
+  // « absent » et sa grappe cassée n'apparaissait dans aucun compteur. La règle 1
+  // se dégradait donc en silence, seul l'avertissement `involvesAnimator` en
+  // parlait.
+  const brokenClusters = countBrokenClusters(
+    tables.map(t => ({ member_ids: [...t.member_ids, ...t.moderator_member_ids] })),
+    clusters,
+  )
   if (brokenClusters > 0) {
     warnings.push(
       `${brokenClusters} grappe(s) d'appairage n'ont pas pu être gardées ensemble (règle 1 dégradée).`,
     )
   }
-  const involvesAnimator = clusters.filter(c => c.some(id => animatingIds.includes(id))).length
-  if (involvesAnimator > 0) {
+  // Chantier 123 — l'avertissement ne se déclenche plus dès qu'une grappe
+  // comprend un modérateur animant (c'est désormais le cas NOMINAL : il est
+  // assis avec ses binômes), mais seulement quand elle n'a pas pu être tenue.
+  const brokenWithAnimator = clusters.filter(c => {
+    if (!c.some(id => animatingIds.includes(id))) return false
+    return countBrokenClusters(
+      tables.map(t => ({ member_ids: [...t.member_ids, ...t.moderator_member_ids] })),
+      [c],
+    ) > 0
+  }).length
+  if (brokenWithAnimator > 0) {
     warnings.push(
-      `${involvesAnimator} grappe(s) d'appairage comprennent un modérateur qui anime : ses binômes sont ` +
-      `placés sans lui.`,
+      `${brokenWithAnimator} grappe(s) d'appairage comprennent un modérateur qui anime et n'ont pas pu être ` +
+      `tenues : une seule table peut lui être confiée, ses binômes sont placés sans lui.`,
     )
   }
 
