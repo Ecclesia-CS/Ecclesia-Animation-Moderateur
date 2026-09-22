@@ -6,6 +6,20 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## Chantier 125 — accordéon « J'ai déjà un code de rappel » (2026-09-22)
+
+Demande directe de Jules (hors file d'attente). Deux fichiers touchés, `tsc --noEmit` propre :
+- `src/screens/VoteScreen.tsx` (`VotingEntryForm`, phases `voting`/`allocating`) : le champ code de rappel, autrefois toujours visible à côté du pseudo, est masqué derrière une case à cocher « J'ai déjà un code de rappel ». Sur « pseudo déjà pris », la case se coche automatiquement et le focus part sur le champ code.
+- `src/components/voting/PseudoForm.tsx` (phase `pre_voting`) : ajout d'un lien « J'ai déjà un code de rappel → » sous le formulaire, qui bascule directement vers l'écran de reconquête pseudo+code déjà existant (`showReclaim`), sans attendre l'échec.
+
+**Vérifié au navigateur réel** (`ecclesia-dev`, deux séances QA jetables créées puis supprimées via le MCP Supabase — `sessions`/`session_members` insérés/supprimés directement, pas de compte réel) :
+1. `VotingEntryForm`, phase `voting` : champ code masqué par défaut ; case cochée manuellement → champ apparaît. Après rechargement complet (`location.reload()`), case revenue décochée (pas d'état parasite entre deux sessions).
+2. Saisie d'un pseudo déjà pris (« Jean Test », créé en base), case non cochée au préalable : la case se coche automatiquement, le champ code apparaît avec `PSEUDO_TAKEN_MESSAGE`, et le focus est bien sur le champ code (vérifié via `document.activeElement`). Saisie du bon code (`1234`) → reconnexion réussie, écran « Bienvenue Jean Test ! ».
+3. `PseudoForm`, phase `pre_voting` : lien « J'ai déjà un code de rappel → » visible sous le formulaire dès l'arrivée. Clic → bascule vers l'écran de reconquête (pseudo + code), sans passer par un pseudo refusé. Saisie du bon pseudo (« Marie Test ») + code (`5678`) → reconnexion réussie, arrivée sur l'écran de vote.
+   ⚠️ Piège rencontré en testant (sans lien avec le code de ce chantier) : le modal d'intro « Comment se déroule la séance ? » se réaffiche à chaque nouvelle séance (nouveau `join_code` → nouvelle clé de dismissal) et intercepte les clics sur les éléments en dessous tant qu'il n'est pas fermé — à garder en tête pour tout futur test navigateur sur une séance neuve.
+
+Les deux séances QA et leurs `session_members` ont été supprimés après coup (cascade delete vérifié, 0 ligne restante).
+
 ## Chantier 124 — verrouiller la proposition d'assertions, superadmin only (2026-09-22)
 
 Migration `supabase/migrations/20260922_chantier124_verrouiller_assertions.sql` **appliquée en base de production** le 2026-09-22 (règle SQL du 07/09) : nouvelle colonne `sessions.assertions_locked` (défaut `false`), nouvelle RPC `set_session_assertions_locked`, et `submit_assertion` réécrite pour refuser toute proposition quand le verrou est actif. La définition vivante de `submit_assertion` a été comparée (`pg_get_functiondef`) avant réécriture — identique au corps historique de `20260528_voting_app.sql` à l'exception du type de retour (`jsonb`).

@@ -269,6 +269,16 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           >
             {loading ? 'Connexion…' : 'Continuer →'}
           </button>
+
+          {/* Chantier 125 — accès direct à la reconquête (pseudo + code),
+              sans attendre l'échec « pseudo déjà pris ». */}
+          <button
+            type="button"
+            onClick={() => { setReclaimError(null); setShowReclaim(true) }}
+            className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            J'ai déjà un code de rappel →
+          </button>
         </form>
       </div>
     </div>

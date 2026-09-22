@@ -1715,6 +1715,9 @@ function AllocatingEntryNotice() {
 //  · champ code vide  → inscription neuve (un code est remis à l'écran suivant) ;
 //  · nom déjà pris    → PSEUDO_TAKEN_MESSAGE, il faut le code pour continuer ;
 //  · nom + code       → reconnexion (la reprise par nom seul n'existe plus).
+// Chantier 125 — le champ code était toujours visible à côté du pseudo, comme
+// un second champ à remplir « si ça se trouve ». Masqué derrière une case à
+// cocher, ouverte automatiquement (+ focus) si le pseudo tapé est déjà pris.
 
 interface VotingEntryFormProps {
   session: Session
@@ -1725,6 +1728,8 @@ interface VotingEntryFormProps {
 function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormProps) {
   const [pseudoInput,  setPseudoInput]  = useState(() => lastNameStore.get())
   const [codeInput,    setCodeInput]    = useState('')
+  const [useCode,      setUseCode]      = useState(false)
+  const codeInputRef = useRef<HTMLInputElement>(null)
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   // Chantier 73 — déclaration modérateur dès l'inscription/reclaim.
@@ -1739,7 +1744,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const pseudo = pseudoInput.trim()
-    const code   = codeInput.trim()
+    const code   = useCode ? codeInput.trim() : ''
     if (!pseudo) return
     setError(null)
     setLoading(true)
@@ -1760,7 +1765,11 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           const msg = regErr instanceof Error ? regErr.message : ''
           if (msg.includes('Pseudo déjà pris')) {
             // Chantier 93 — plus de reprise automatique par le nom seul.
+            // Chantier 125 — ouvrir directement le champ code plutôt que de
+            // laisser deviner qu'il faut cocher la case au-dessus.
             setError(PSEUDO_TAKEN_MESSAGE)
+            setUseCode(true)
+            requestAnimationFrame(() => codeInputRef.current?.focus())
             return
           }
           throw regErr
@@ -1851,25 +1860,41 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Code de rappel — seulement si tu es déjà inscrit(e)
-            </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
             <input
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              value={codeInput}
-              onChange={e => setCodeInput(e.target.value.replace(/\D/g, ''))}
-              placeholder="_ _ _ _"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              type="checkbox"
+              checked={useCode}
+              onChange={e => {
+                setUseCode(e.target.checked)
+                if (!e.target.checked) setCodeInput('')
+              }}
+              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
-            <p className="text-xs text-gray-400 mt-1.5">
-              Tu as déjà voté à distance, ou tu changes d'appareil ? Entre ton nom
-              <strong> et </strong>ton code. Première inscription : laisse vide, un
-              code te sera donné.
-            </p>
-          </div>
+            J'ai déjà un code de rappel
+          </label>
+
+          {useCode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Code de rappel (4 chiffres)
+              </label>
+              <input
+                ref={codeInputRef}
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                value={codeInput}
+                onChange={e => setCodeInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="_ _ _ _"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">
+                Tu as déjà voté à distance, ou tu changes d'appareil ? Entre ton nom
+                <strong> et </strong>ton code.
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
