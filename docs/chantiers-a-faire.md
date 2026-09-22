@@ -65,6 +65,53 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 
 ## À faire, dans l'ordre
 
+### 121, 122, 123 — Retours de Jules du 2026-09-22 (7 points), en 3 chantiers
+
+> **Consigne de Jules (2026-09-22)**, citée intégralement puis découpée avec lui en conversation. **121 et 122 peuvent tourner en parallèle** — pas de conflit de fichier bloquant identifié entre eux. Ils touchent tous les deux `VoteScreen` (121 sur le bug du popup d'assertion, 122 sur l'ajout des liens docs) mais sur des zones différentes du composant : conflit peu probable, mais celui qui merge en second devra sans doute rebaser sur l'autre.
+>
+> ⚠️ **123 recoupe potentiellement 121** sur l'onglet Groupes du superadmin (121 y ajoute un affichage du nombre d'actifs, 123 y change la logique de DnD du modérateur et ajoute un bouton « redevenir leaderless »). **Lancer 123 après le merge de 121 sur ce fichier**, ou au moins vérifier avant de coder que 121 a fini d'y toucher.
+>
+> ⚠️ **123 recoupe aussi thématiquement 122** sur le sujet binôme/allocation (122 rend le binôme visible en allocating, 123 diagnostique pourquoi deux binômes ne sont parfois pas assis à la même table) — fichiers différents (`AllocatingScreen` vs `lib/allocation.ts`/`apply_allocation`), donc pas de conflit de merge, mais **123 doit lire le résultat de 122 avant de conclure** : si le binôme n'était que mal *affiché*, ce n'est pas la même cause que « pas placé à la même table ».
+
+#### 121 — Petites corrections UI (mot de passe visible, popup assertion, actifs par table)
+
+**Consigne de Jules** : « Il faut qu'on puisse cliquer sur un petit symbole d'œil pour voir le code qu'on tape [mot de passe Ecclesia modérateur en prevote]. C'est plus pratique. [...] De manière générale, quand il y a un mdp à mettre, il faut un œil pour pouvoir le voir éventuellement. [...] Tous les mdp de l'app (il y en a qui sont déjà faits). [...] A chaque fois qu'on reload en vote et prevote, et qu'on a dépassé 10 votes, le message de proposition d'assertion revient. Il faudrait éviter cela [après reload uniquement — ne pas réapparaître automatiquement, mais rester accessible via un bouton]. [...] Dans l'onglet groupe du superadmin, il est absolument nécessaire d'afficher pour chaque table le nombre précis d'actifs, car c'est ce qui va déterminer les choix du superadmin. »
+
+**Trois sous-tâches indépendantes** :
+1. **Œil pour afficher/masquer le mot de passe** sur **tous** les champs mot de passe de l'app (certains l'ont déjà — les recenser d'abord, ne modifier que ceux qui ne l'ont pas). Probablement un composant `PasswordInput` partagé à généraliser plutôt que dupliqué à chaque écran.
+2. **Popup "proposer une assertion" après 10 votes** : actuellement réaffiché à chaque reload en `pre_voting`/`voting` une fois le seuil dépassé. Ne doit plus réapparaître **automatiquement** après reload, mais l'utilisateur doit garder un moyen manuel de la rouvrir (bouton). Vérifier où vit l'état actuel (localStorage ? re-calcul à chaque montage du composant ?) avant de choisir la persistance.
+3. **Onglet Groupes du superadmin** : afficher le nombre précis de participants **actifs** par table (pas seulement le total). Utile car c'est ce qui guide les décisions du superadmin (cf. seuils d'actifs du chantier 91).
+
+Périmètre de fichiers (à affiner en démarrant) : composant(s) mot de passe partagés, `VoteScreen.tsx` (popup assertion), vue Groupes du superadmin.
+
+#### 122 — Liens docs par phase + binôme visible en allocating
+
+**Consigne de Jules** : « En dessous de "profite-en pour lire le docu", il faut aussi mettre le docu biais cogni, et les arguments fallacieux. Prevote, vote, et allocation je pense en terme de phase. [Les liens] sont désormais tout le temps disponibles quand on va dans outils [ils existent déjà, il s'agit juste de les faire apparaître aussi sous "profite-en pour lire le docu" sur ces trois écrans]. [...] En allocating, il faut toujours pouvoir voir avec qui on est appairé (pour les binômes). Il est en revanche effectivement impossible de changer son choix, comme actuellement [ce point-là reste inchangé]. »
+
+**Deux sous-tâches indépendantes** :
+1. **Liens biais cognitifs + arguments fallacieux** sous "profite-en pour lire le docu", sur les écrans des phases prevote, vote et allocating. Les liens/docs existent déjà (accessibles depuis Outils) — récupérer les mêmes URLs/références, ne pas en recréer.
+2. **Binôme visible en allocating** : afficher lisiblement avec qui le participant est appairé, en lecture seule (aucune interaction de changement à ajouter).
+
+Périmètre de fichiers (à affiner en démarrant) : écrans de `pre_voting`/`voting` (là où vit déjà "profite-en pour lire le docu"), `AllocatingScreen.tsx`.
+
+#### 123 — Diagnostic commun : binôme pas à la même table + promotion modérateur par DnD — **Opus demandé par Jules**
+
+**Consigne de Jules** : « Un participant n'est pas mis par l'algo à la même table que celui avec qui il est affilié par le système de binôme. C'est probablement dû au fait que l'un d'eux est un modérateur d'une table, ça peut poser problème je pense. Plus tard, après recalcul de l'algo, il y a été mis, mais quand même, il faut vérifier qu'il n'y a pas de gros bugs. [Cas observé dans] ma session séance test de bout en bout, mais elle a évolué [pas de session figée à rejouer telle quelle, repartir du code]. [...] Quand je mets quelqu'un en tant que modérateur, avec mon DnD, dans une table sans modérateur, cela le met en tant que "modérateur en surplus", et pas en modérateur... je n'ai pas forcément voulu ce statut mais pourquoi pas le garder, il faut juste qu'il puisse passer en principal, et quand il n'est pas en principal, qu'il soit comme un participant normal, et n'ait pas d'écran de modérateur. [Une fois promu principal] elle doit cesser d'être leaderless. Si on peut proposer un bouton pour la refaire devenir leaderless c'est l'idéal. [...] Pour les 2 derniers points, [faire] un diag pour les erreurs qui soient semblables, afin de ne pas les retrouver dans d'autres cas. »
+
+**Deux bugs, un diagnostic commun demandé** — les deux touchent la frontière modérateur/binôme/table, Jules veut qu'on cherche une cause structurelle partagée plutôt que deux correctifs isolés qui laisseraient la même classe de bug ailleurs :
+
+1. **Bug binôme/table** : un binôme peut se retrouver sur deux tables différentes après allocation, probablement parce qu'un des deux membres est déjà modérateur d'une table (donc traité hors du pool normal de placement — cf. `loadAllocationInputs` qui sépare modérateurs animants et participants ordinaires, voir CLAUDE.md § Ne jamais faire). Pas de session de test figée à rejouer (« elle a évolué ») — repartir de la logique d'appairage (`lib/allocation.ts`, chantier 92) et de son interaction avec le traitement des modérateurs (chantier 91).
+2. **DnD superadmin → désignation modérateur** : aujourd'hui, glisser quelqu'un comme modérateur sur une table `leaderless` le met en « modérateur en surplus » plutôt qu'en modérateur principal de cette table précise. Comportement voulu : si la table n'a **aucun** modérateur, le DnD doit désigner un vrai principal et faire sortir la table de `leaderless` (comme les 3 chemins déjà décrits dans `docs/reference-tables-leaderless.md`, chantier 64 — celui-ci en devient un 4e). Le statut « en surplus » est conservé comme état possible (modérateur sans table à animer), mais doit rester **promouvable** en principal, et **tant qu'il n'est pas principal, la personne doit avoir l'écran participant normal, jamais l'écran modérateur.**
+3. **Nouveau bouton** : proposer de faire redemander à une table modérée de redevenir `leaderless` (symétrique du chemin d'entrée).
+
+**Diagnostic demandé avant tout correctif** : identifier si ces deux bugs partagent une racine commune (ex. un endroit du code qui traite modérateur et binôme comme des cas à part, de façon incohérente entre `lib/allocation.ts` et le DnD superadmin) — et si oui, documenter les autres endroits qui pourraient être touchés par la même classe d'erreur, pour éviter qu'elle ne réapparaisse ailleurs. Consigner ce diagnostic (même bref) dans l'entrée `docs/chantiers.md` du chantier avant de coder le correctif.
+
+**Garde-fou** : lire `docs/reference-tables-leaderless.md` en entier avant de toucher à `tables.leaderless` (déjà source d'erreurs répétées), et relire le § « Ne jamais faire » de `CLAUDE.md` sur `is_table_moderator`/`created_by`/`table_assignments`.
+
+Périmètre de fichiers (à affiner en démarrant) : `src/lib/allocation.ts`, RPC d'allocation (`apply_allocation`), DnD du superadmin (vue Tables/Groupes), `set_member_moderator`/`assign_moderator_to_table`, `tables.leaderless`.
+
+---
+
 ### 119 — Angles morts du code de rappel (inscriptions sans code) — ✅ fait, voir `docs/chantiers.md`
 
 **Fait le 2026-09-21** (numéroté 117 puis 118 au fil de deux rebases, faute de synchronisation avec deux autres sessions ayant pris ces numéros le même jour — définitivement 119). Détail complet (constat, fix, vérifications en base et au navigateur, angle hors périmètre découvert en cours de route) : entrée « 119 » de [`docs/chantiers.md`](./chantiers.md) et section « Chantier 119 » de [`../A_VERIFIER.md`](../A_VERIFIER.md). ⚠️ **Recoupe le chantier 118 ci-dessous** — voir l'amendement en tête de son entrée.
