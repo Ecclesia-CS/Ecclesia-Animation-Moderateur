@@ -7,6 +7,7 @@ import {
   useSensors,
   useDroppable,
   useDraggable,
+  pointerWithin,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -2708,6 +2709,30 @@ function SessionDetail({
                     ) : (
                       <DndContext
                         sensors={dndSensors}
+                        /* Chantier 123 — SANS `collisionDetection`, dnd-kit applique
+                           `rectIntersection`, qui classe les cibles par AIRE
+                           d'intersection. `add-moderator-<n>` (la petite boîte ambre
+                           « glisse un participant ici ») est imbriquée dans
+                           `group-<n>` (toute la carte de table) : le parent gagnait
+                           donc systématiquement, et la zone « désigner un
+                           modérateur » était **inatteignable au glisser-déposer**.
+                           Le drop partait en `move_member_to_group`, qui ne promeut
+                           personne — d'où le symptôme rapporté par Jules le 22/09
+                           (« je le mets en modérateur par DnD et il arrive en
+                           modérateur en surplus ») : sur quelqu'un déjà flagué
+                           `is_moderator`, un simple déplacement vers une table sans
+                           animateur donne exactement cet affichage.
+                           `pointerWithin` ne retient que les cibles qui contiennent
+                           réellement le pointeur, classées par distance au centre —
+                           l'imbriquée gagne. Même stratégie que le DnD de
+                           `ModeratorView` (cf. CLAUDE.md § DnD). On force en plus
+                           `add-moderator-*` en tête quand il est dans la liste, pour
+                           que l'intention ne dépende pas d'un calcul de distance. */
+                        collisionDetection={args => {
+                          const hits = pointerWithin(args)
+                          const mod = hits.find(h => String(h.id).startsWith('add-moderator-'))
+                          return mod ? [mod] : hits
+                        }}
                         onDragStart={(e: DragStartEvent) => {
                           const member = groups.flatMap(g => g.members).find(m => m.member_id === e.active.id)
                           if (member) setDraggingMember(member)
