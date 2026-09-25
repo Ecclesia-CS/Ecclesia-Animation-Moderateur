@@ -6,6 +6,22 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## Chantier 128 — modérateur affiché en double sur une même table, vue superadmin (2026-09-25)
+
+**Diagnostic confirmé en base (pas une hypothèse)** : dans une séance, un modérateur déjà « en exercice » Bloc C (ligne `session_members`, `tables.active_moderator_member_id` posé sur cette ligne) réclame ensuite la MÊME table par Code Ecclesia (`claim_table_as_moderator`) sous une **nouvelle identité anonyme** (`auth.uid()` renouvelé — nouvel appareil, ou `localStorage` vidé), en retapant le même pseudo. `active_moderator_member_id = COALESCE(…)` (chantier 106/118) ne bascule jamais sur cette nouvelle identité. `list_table_assignments_admin` (branche `UNION ALL` du chantier 117) l'affiche alors comme un SECOND modérateur, car son `NOT EXISTS` ne testait que `user_id`, pas le pseudo.
+
+Deux occurrences réelles trouvées en base et utilisées pour vérifier le correctif (aucune séance QA créée pour ce chantier, la donnée existait déjà) :
+- séance `76de0462-0222-4a28-bac5-d2e664338c4d`, table 1 — « Maxence reinaudo » en double (le cas exact rapporté par Jules).
+- séance `5fcdcb3a-b537-4694-a137-48c511a48d93`, table 1 — « Antoine » en double, même mécanisme, découvert en vérifiant que le correctif ne masquait pas un homonyme légitime.
+
+**Correctif** (`supabase/migrations/20260925_chantier128_dedupe_physical_moderator_by_pseudo.sql`, **appliqué en base**, `pg_get_functiondef` comparé avant réécriture — corps identique au chantier 117) : le `NOT EXISTS` de la branche `UNION ALL` exclut désormais aussi un pseudo déjà porté par une ligne `session_members` de la séance (`UNIQUE(session_id, pseudo)` garantit qu'il ne peut y en avoir qu'une). Purement un correctif d'affichage — aucune fonction d'autorité touchée (`claim_table_as_moderator`, `release_table_moderation`, `table_has_moderator` inchangées).
+
+**Vérifié directement en base** (requête SQL reproduisant le corps de la fonction, avant/après) sur les deux occurrences ci-dessus : une seule ligne « Maxence reinaudo » / une seule ligne « Antoine » par table désormais, avec le `member_id` réel (branche `session_members`), pas la ligne synthétique. Non-régression vérifiée : le cas d'origine du chantier 117 (modérateur physique dont aucune ligne `session_members` n'existe, ni par `user_id` ni par pseudo, dans la séance) reste visible.
+
+⚠️ **Non vérifié au navigateur réel** (mot de passe superadmin non disponible dans cette session headless) — à confirmer visuellement dans l'onglet Groupes/Tables du superadmin sur une des deux séances ci-dessus (ou une nouvelle reproduction) : une seule carte modérateur par table, pas deux carrés côte à côte.
+
+⚠️ **Risque résiduel assumé, documenté dans la migration** : un participant non inscrit à la séance qui partage par coïncidence le pseudo d'un membre `session_members` distinct serait aussi masqué par ce correctif. Jugé plus rare et moins gênant qu'un doublon visible de la même personne — mais à garder en tête si un modérateur physique disparaît un jour de la vue Groupes sans raison apparente.
+
 ## Chantier 125 — accordéon « J'ai déjà un code de rappel » (2026-09-22)
 
 Demande directe de Jules (hors file d'attente). Deux fichiers touchés, `tsc --noEmit` propre :
