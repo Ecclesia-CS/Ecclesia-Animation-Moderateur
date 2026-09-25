@@ -60,8 +60,7 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > ```
 
 
-### 126 — Diagnostic et nettoyage du GitHub
-**Branche** : `claude/chantier-126-a39daf` · **Depuis** : 2026-09-25 · **Fichiers touchés** : tout le dépôt (diagnostic en lecture), suppressions ciblées de doublons/obsolètes à la marge (`docs/`, éventuellement `src/`, migrations, branches non mergées)
+Le 126 (diagnostic et nettoyage du GitHub) a été livré sur `claude/chantier-126-a39daf` le 2026-09-25 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
 Le 125 (accordéon « J'ai déjà un code de rappel » sur les écrans d'entrée, demande directe de Jules hors file d'attente) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
@@ -136,7 +135,7 @@ Périmètre de fichiers (à affiner en démarrant) : `src/lib/allocation.ts`, RP
 > - ⚠️ **134** a un impact potentiel large sur le flux de phases Bloc C (création de séance, état des phases) — à lancer seul, pas en parallèle d'un autre chantier touchant ce flux.
 > - **135 dépend de 134** — ne pas lancer avant que 134 soit tranché et si possible mergé, la conception de 134 conditionne directement le périmètre de 135.
 
-#### 126 — Diagnostic et nettoyage du GitHub
+#### 126 — Diagnostic et nettoyage du GitHub — ✅ fait, voir `docs/chantiers.md`
 
 **Consigne de Jules** : « Mission prio : nettoyage du Github. Beaucoup de document sont apparemment en doubles, certains sont pt obsolète, etc., l'objectif de cette discussion est de faire un diagnostic de l'état du github. » Précisé en conversation : scope libre (pas limité à `docs/`, peut couvrir `src/`, migrations, branches non mergées) ; **droit de supprimer directement les doublons évidents**, pas besoin d'attendre une validation — « le rapport est plus pour que la discussion en elle-même nettoie ».
 
