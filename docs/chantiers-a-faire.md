@@ -143,7 +143,7 @@ Périmètre : tout le dépôt. Croiser avec `docs/registre-merges-en-attente.md`
 
 #### 127 — Bug : reset vers `allocating` laisse des participants bloqués sur leur ancienne table — ✅ fait, voir `docs/chantiers.md`
 
-> **Fait le 2026-09-25.** Cause réelle : `App.tsx` restaurait une table depuis `tableStore` sans revérifier la phase de la séance. Détail complet et recette de vérification dans `docs/chantiers.md` (chantier 127) et `A_VERIFIER.md` § Chantier 127. Point resté ouvert (non demandé par la consigne) : pas de détection en direct pour un participant déjà affiché dans `TableView` au moment précis du reset, sans reload.
+> **Fait le 2026-09-25, entièrement vérifié au navigateur réel par la session.** Cause réelle : `App.tsx` restaurait une table depuis `tableStore` sans revérifier la phase de la séance. Détail complet et recette de vérification dans `docs/chantiers.md` (chantier 127). Point resté ouvert (non demandé par la consigne) : pas de détection en direct pour un participant déjà affiché dans `TableView` au moment précis du reset, sans reload.
 
 #### 128 — Bug : modérateur affiché en double sur une même table (vue superadmin)
 

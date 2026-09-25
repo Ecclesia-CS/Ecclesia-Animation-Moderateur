@@ -6,21 +6,6 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
-## Chantier 127 — reset vers `allocating` laissait des participants bloqués sur leur ancienne table (2026-09-25)
-
-**Cause réelle** : `App.tsx` restaure une table depuis `localStorage` (`tableStore`) dès que la ligne `participants` existe encore et que son `user_id` correspond à l'`auth.uid()` courant — **sans jamais revérifier la phase de la séance**. Un reset superadmin `debating → allocating` (ou toute phase antérieure) ne supprime ni la table ni la ligne `participants` : au reload, le participant retombait donc directement dans `TableView`, sans jamais monter `VoteScreen`/`AllocatingScreen` (qui, eux, gèrent déjà correctement les retours en arrière de phase — mais seulement une fois montés). `TableContext` lui-même ne s'abonne à aucun changement de `sessions.phase` : un participant déjà affiché dans `TableView` au moment du reset (sans reload) ne le détecte donc pas non plus, mais c'est un axe de complétude non demandé par la consigne — non traité ici.
-
-**Correctif** (`src/App.tsx`, fonction `init()`) : avant de restaurer directement en phase `table`, si la table a un `session_id`, on relit la séance (`getSessionById`) et on ne restaure directement que si elle est encore en `debating`. Sinon : `tableStore.clear()` puis redirection vers `#vote/<join_code de la SÉANCE>` (pas celui de la table — piège rencontré en testant, voir plus bas) pour laisser `VoteScreen` reprendre la main normalement (bannière allocation, etc.). Une table sans `session_id` (hors Bloc C) n'est pas concernée par ce garde.
-
-**Vérifié au navigateur réel** (`ecclesia-dev`, séance QA jetable `🧪 QA chantier 127 (jetable)` créée puis supprimée via le MCP Supabase — `sessions`/`tables`/`participants`/`session_members` insérés directement en base, `localStorage.ecclesia_table` posé à la main, jamais de mot de passe superadmin saisi) :
-1. Séance en `debating`, `tableStore` pointant vers la table du participant, reload → **TableView** s'affiche normalement (comportement de base inchangé). ✅
-2. Passage direct en base de `sessions.phase` à `allocating` (simulation du reset superadmin), reload → le participant atterrit sur **VoteScreen** avec la bannière « L'organisateur forme les groupes de débat… » (Étape 3 · Allocation), plus aucun accès à l'ancienne `TableView`. ✅
-3. Un premier essai avait révélé un bug dans le correctif lui-même : `tableStore.joinCode` est le join_code de la **table** (`#table/<code>`), pas celui de la **séance** attendu par `#vote/<code>` — la première version redirigeait vers un join_code introuvable, et `get_session_by_join_code` (fonction SQL non `STRICT` renvoyant une ligne de `NULL` plutôt que zéro ligne) masquait l'échec en un faux écran « Le vote est terminé ». Corrigé en utilisant le `join_code` de la séance rechargée (`sess.join_code`), pas celui du `tableStore`.
-
-`tsc --noEmit`, `npm test` (122 passants, 4 skip pré-existants) et `npm run build` propres.
-
-**Reste ouvert, non demandé par la consigne** : un participant déjà affiché dans `TableView` au moment précis du reset (sans reload) ne serait pas notifié en direct — `TableContext` ne s'abonne à aucun changement Realtime sur `sessions`. Le correctif ne couvre que le cas rapporté par Jules (reload après reset).
-
 ## Chantier 125 — accordéon « J'ai déjà un code de rappel » (2026-09-22)
 
 Demande directe de Jules (hors file d'attente). Deux fichiers touchés, `tsc --noEmit` propre :
