@@ -549,6 +549,23 @@ Le chantier 119 avait déjà posé la moitié du travail (`sync_table_assignment
 
 **Fichiers concernés si confirmé** : `supabase/migrations/…` (`sync_table_assignment`), potentiellement `src/App.tsx` (le point d'appel).
 
+### 136 — `scripts/cleanup-worktrees.sh` ne connaît pas `dev` (script obsolète depuis l'introduction du workflow dev/main)
+
+**Origine** : signalé par une autre conversation, confirmé et discuté avec Jules le 2026-09-25 — pas un bug qui casse quoi que ce soit (le script se trompe du côté prudent), mais une désynchronisation avec le workflow dev/main introduit ce jour-là (voir `CLAUDE.md` § Environnements — dev / prod).
+
+Le script :
+- refuse de tourner si la racine locale n'est pas sur `main` (`MAIN_BRANCH="main"` codé en dur, vérification stricte en tout début de script) ;
+- décide qu'un worktree/branche est nettoyable via `git merge-base --is-ancestor <sha> "$MAIN_BRANCH"` — donc tout ce qui n'est mergé que dans `dev` (et pas encore promu vers `main`) est vu comme « pas mergé » et reste indéfiniment listé comme conservé, même une fois le chantier terminé côté `dev`.
+
+**Effet concret** : les worktrees/branches de chantiers déjà mergés dans `dev` mais pas encore dans `main` s'accumulent sans que ce script les nettoie — il rattrape tout dès que `dev` est mergé vers `main`, mais pas avant. Aucune perte de données possible (le script ne supprime jamais une branche qui n'est pas un ancêtre de la branche de comparaison), juste un nettoyage moins fréquent que prévu.
+
+**Corrections à envisager** (à trancher en démarrant, pas figées) :
+1. Comparer à `dev` **et** `main` (un worktree/branche ancêtre de l'un ou l'autre est nettoyable), plutôt qu'à `main` seul.
+2. Assouplir la vérification de branche courante en tête de script pour accepter `dev` en plus de `main` (actuellement `exit 1` si ni l'un ni l'autre).
+3. Vérifier que `PROTECTED_BRANCHES` et le comportement des sections 2/3 (branches locales/distantes sans worktree) restent cohérents une fois `dev` introduit comme second point de comparaison — ne pas se contenter de rustiner la seule section 1 (worktrees).
+
+Périmètre de fichiers : `scripts/cleanup-worktrees.sh` uniquement. Pas de garde-fou particulier au-delà de la prudence déjà intégrée au script (`set -uo pipefail`, mode simulation par défaut) — tester en dry-run avant tout `--go`.
+
 ---
 
 ## Bloqués — rien à faire côté code
