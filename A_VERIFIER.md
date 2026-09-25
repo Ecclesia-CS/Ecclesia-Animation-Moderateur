@@ -35,6 +35,26 @@ Un seul fichier touché, `src/App.tsx`, `tsc --noEmit` propre. Cause : `tableSto
 
 **Non couvert par ce test** : le scénario exact rapporté par Jules passait probablement par un vrai QR code (`#session/`) scanné après un vrai parcours de débat (pas des lignes SQL insérées directement) — le mécanisme reproduit ici (tableStore global + hash de navigation) est bien la cause du symptôme observé, mais le parcours complet bout-en-bout (créer une vraie séance, vraiment débattre, vraiment scanner un nouveau QR code) n'a pas été rejoué de bout en bout à l'écran.
 
+## Chantier 130 — historique des tables accessible au superadmin après clôture (2026-09-25)
+
+**Premier chantier à utiliser le nouvel environnement dev/prod** (Vercel + Supabase, documenté dans `CLAUDE.md` le jour même) : migration prévue préparée puis **appliquée sur le projet Supabase dev** (`mnjqrlrrzrycuconlfqb`), pas sur prod — voir plus bas pourquoi elle n'a finalement pas été livrée.
+
+**Aucune RPC nouvelle livrée.** En préparant `get_session_table_history_admin` (migration rédigée, appliquée sur dev pour test), découverte que `get_table_participants(password, table_id)` et `get_table_speaking_turns_admin(password, table_id)` — SECURITY DEFINER, mot de passe superadmin, **aucune restriction de phase** — existent déjà en base et sont déjà utilisées par `SuperadminScreen.handleExportSpeakingTimes`/`handleExportHistory` (export CSV, onglet Préparation, disponible quelle que soit la phase). Elles n'étaient documentées ni dans `docs/reference-fonctions-sql.md` (corrigé dans ce chantier), ni exposées ailleurs que par un export CSV à télécharger. Plutôt que d'écrire une RPC redondante : la migration a été **annulée** (`DROP FUNCTION`, dev uniquement, jamais appliquée sur prod) et le correctif est resté **purement frontend**.
+
+**Livré** : nouvelle section accordéon « Historique des tables » dans l'onglet 🪑 Tables du superadmin (`src/screens/SuperadminScreen.tsx`), visible uniquement quand `currentSession.phase === 'closed'`. Réutilise `attachedTables` (déjà chargé), et charge à la demande — table par table dépliée — `getTableParticipants`/`getTableSpeakingTurnsAdmin` (nouveau composant `TableHistoryRow`) : liste des participants triée par temps de parole total décroissant (tours, durée `mm:ss`), puis déroulé chronologique des tours de parole (numéro, pseudo, source — file longue/coupe-file/manuel —, heure de début, durée ou « en cours »). `get_public_results` non touché : reste le seul chemin d'accès public, toujours gated `phase='closed'`.
+
+**Vérifié** :
+- `tsc --noEmit` propre.
+- **En base, sur le projet dev** : données de test jetables insérées directement (1 séance close, 1 table, 2 participants « Alice Test »/« Bob Test », 3 tours de parole), la requête SQL sous-jacente de `get_table_participants` rejouée sans le mot de passe (rôle postgres, bypass du `check_superadmin_password`) produit exactement la forme attendue par `TableHistoryRow` : Alice 2 tours/300000ms (`5min 0s`), Bob 1 tour/120000ms (`2min 0s`) — tri par `total_ms` décroissant confirmé. Données de test supprimées après coup (`sessions`/`tables` : 0 ligne restante sur dev).
+
+⚠️ **Non vérifié au clic dans le navigateur** — mot de passe superadmin non disponible en session headless (même limite que les chantiers 118/119/121/124/128). Le `.env` de ce worktree a été pointé vers le projet **dev** pour ce chantier (pas prod) ; serveur `ecclesia-dev` lancé puis arrêté sans pouvoir se connecter à l'écran superadmin. **À rejouer par Jules ou une session disposant du mot de passe**, sur une séance close réelle :
+1. Onglet 🪑 Tables → accordéon « Historique des tables » (badge = nombre de tables) → déplier.
+2. Une table sans participant → message « Personne n'a rejoint cette table ».
+3. Une table avec débat réel → participants triés par temps de parole, déroulé chronologique cohérent avec ce qui a été observé pendant le débat (ordre des tours, source correcte).
+4. Confirmer que la section n'apparaît **pas** dans une autre phase (`debating` notamment).
+
+**Rappel de circulation (règle du 2026-09-25)** : rien à appliquer sur prod pour ce chantier — aucune migration livrée, uniquement du frontend qui se propage par le merge git normal.
+
 ## Chantier 125 — accordéon « J'ai déjà un code de rappel » (2026-09-22)
 
 Demande directe de Jules (hors file d'attente). Deux fichiers touchés, `tsc --noEmit` propre :
