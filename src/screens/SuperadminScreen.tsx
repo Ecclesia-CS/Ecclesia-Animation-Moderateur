@@ -26,7 +26,7 @@ import {
   adminCreateSessionTable, updateGroupNames, listTableAssignmentsAdmin, listSessionsAdmin,
   updateSessionMeta,
 } from '../lib/sessions'
-import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
+import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
@@ -1168,6 +1168,16 @@ function SessionDetail({
   const [isQForced,    setIsQForced]    = useState(false)
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
+
+  // Chantier 130 — historique des tables après clôture (participants +
+  // tours de parole par table). Chargement à la demande, par table
+  // repliée/dépliée, pour ne pas imposer N appels RPC dès l'ouverture de
+  // l'onglet sur une grosse séance.
+  const [historyOpen,        setHistoryOpen]        = useState(false)
+  const [expandedHistoryId,  setExpandedHistoryId]  = useState<string | null>(null)
+  const [historyByTable,     setHistoryByTable]     = useState<Record<string, { parts: TableParticipantRow[]; turns: TableSpeakingTurnRow[] }>>({})
+  const [historyLoadingId,   setHistoryLoadingId]   = useState<string | null>(null)
+  const [historyErr,         setHistoryErr]         = useState<string | null>(null)
 
   const [docsOpen,        setDocsOpen]        = useState(false)
 
@@ -2428,6 +2438,38 @@ function SessionDetail({
     }
   }
 
+  // Chantier 130 — déplie/charge l'historique d'une table (participants +
+  // tours de parole). Réutilise get_table_participants/get_table_speaking_
+  // turns_admin (déjà utilisées par handleExportHistory ci-dessus, aucune
+  // restriction de phase côté SQL) plutôt que d'écrire une RPC redondante.
+  async function handleToggleTableHistory(tableId: string) {
+    if (expandedHistoryId === tableId) {
+      setExpandedHistoryId(null)
+      return
+    }
+    setExpandedHistoryId(tableId)
+    if (historyByTable[tableId]) return
+    const password = getPwd()!
+    setHistoryLoadingId(tableId)
+    setHistoryErr(null)
+    try {
+      const [turns, parts] = await Promise.all([
+        getTableSpeakingTurnsAdmin(password, tableId),
+        getTableParticipants(password, tableId),
+      ])
+      setHistoryByTable(prev => ({ ...prev, [tableId]: { parts, turns } }))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setHistoryErr(msg)
+    } finally {
+      setHistoryLoadingId(null)
+    }
+  }
+
   async function handleToggleQuestionnaire() {
     const password = getPwd()!
     setQActing(true)
@@ -3159,6 +3201,43 @@ function SessionDetail({
                     <span>Table créée ! Code : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
                     <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
                   </div>
+                )}
+
+                {/* Chantier 130 — historique des tables, séance clôturée
+                    uniquement (consigne de Jules : accès superadmin à
+                    l'historique après clôture, sans rouvrir l'accès public —
+                    get_public_results reste seul gated sur phase='closed').
+                    Réutilise attachedTables (déjà chargé par load() plus
+                    haut) + les RPC déjà en place pour l'export CSV. */}
+                {currentSession.phase === 'closed' && (
+                  <SectionAccordion
+                    title="Historique des tables"
+                    open={historyOpen}
+                    onToggle={() => setHistoryOpen(o => !o)}
+                    badge={`${attachedTables.length}`}
+                  >
+                    {attachedTables.length === 0 ? (
+                      <p className="text-sm text-gray-400 py-2 text-center">Aucune table pour cette séance</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {historyErr && (
+                          <p className="text-sm text-red-600">{historyErr}</p>
+                        )}
+                        {[...attachedTables]
+                          .sort((a, b) => (a.table_number ?? 0) - (b.table_number ?? 0))
+                          .map(t => (
+                            <TableHistoryRow
+                              key={t.id}
+                              table={t}
+                              expanded={expandedHistoryId === t.id}
+                              loading={historyLoadingId === t.id}
+                              history={historyByTable[t.id]}
+                              onToggle={() => handleToggleTableHistory(t.id)}
+                            />
+                          ))}
+                      </div>
+                    )}
+                  </SectionAccordion>
                 )}
 
               </div>
@@ -4015,6 +4094,116 @@ function SectionAccordion({
       </div>
       {open && <div className="mt-3">{children}</div>}
     </section>
+  )
+}
+
+// ── TableHistoryRow ───────────────────────────────────────────────
+// Chantier 130 — une ligne dépliable par table dans l'historique post-
+// clôture : en-tête (numéro, code, modérateur, effectif), et une fois
+// dépliée, les participants (temps de parole total) puis le déroulé
+// chronologique des tours de parole.
+
+const HISTORY_SOURCE_LABEL: Record<string, string> = {
+  long: 'File longue',
+  interactive: 'Coupe file',
+  manual: 'Manuel',
+}
+
+function formatDurationShort(ms: number): string {
+  const totalSec = Math.round(ms / 1000)
+  const min = Math.floor(totalSec / 60)
+  const sec = totalSec % 60
+  return min > 0 ? `${min}min ${sec}s` : `${sec}s`
+}
+
+function TableHistoryRow({
+  table,
+  expanded,
+  loading,
+  history,
+  onToggle,
+}: {
+  table: SessionTableRow
+  expanded: boolean
+  loading: boolean
+  history?: { parts: TableParticipantRow[]; turns: TableSpeakingTurnRow[] }
+  onToggle(): void
+}) {
+  const sortedTurns = history
+    ? [...history.turns].sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
+    : []
+  const sortedParts = history
+    ? [...history.parts].sort((a, b) => b.total_ms - a.total_ms)
+    : []
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-sm text-gray-700">
+          {table.table_number != null ? `Table ${table.table_number}` : 'Table'}
+          {table.moderator_pseudo && <span className="text-gray-400"> · anime : {table.moderator_pseudo}</span>}
+        </span>
+        <span className="flex items-center gap-2 text-xs text-gray-400 shrink-0">
+          {table.participant_count} participant{table.participant_count !== 1 ? 's' : ''}
+          <svg
+            className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          ><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </button>
+      {expanded && (
+        <div className="border-t border-gray-100 px-3 py-3 space-y-3 bg-gray-50">
+          {loading ? (
+            <p className="text-xs text-gray-400 py-2">Chargement…</p>
+          ) : !history ? null : (
+            <>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Participants</h4>
+                {sortedParts.length === 0 ? (
+                  <p className="text-xs text-gray-400">Personne n'a rejoint cette table</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {sortedParts.map(p => (
+                      <li key={p.participant_id} className="flex items-center justify-between text-xs text-gray-600">
+                        <span>{p.pseudo}</span>
+                        <span className="text-gray-400">{p.turn_count} tour{p.turn_count !== 1 ? 's' : ''} · {formatDurationShort(p.total_ms)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Déroulé des tours de parole</h4>
+                {sortedTurns.length === 0 ? (
+                  <p className="text-xs text-gray-400">Aucun tour de parole enregistré</p>
+                ) : (
+                  <ol className="space-y-1">
+                    {sortedTurns.map((turn, i) => {
+                      const pseudo = history.parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '—'
+                      const durMs = turn.ended_at
+                        ? new Date(turn.ended_at).getTime() - new Date(turn.started_at).getTime()
+                        : null
+                      return (
+                        <li key={turn.id} className="flex items-center justify-between text-xs text-gray-600">
+                          <span>{i + 1}. {pseudo} <span className="text-gray-400">({HISTORY_SOURCE_LABEL[turn.source] ?? turn.source})</span></span>
+                          <span className="text-gray-400">
+                            {new Date(turn.started_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            {durMs != null ? ` · ${formatDurationShort(durMs)}` : ' · en cours'}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

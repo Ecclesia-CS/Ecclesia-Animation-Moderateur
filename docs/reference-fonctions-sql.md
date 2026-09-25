@@ -33,6 +33,8 @@
 | `detach_table_from_session(password, table_id)` | Détache |
 | `close_session(password, session_id)` | phase → 'closed' |
 | `list_session_tables(password, session_id)` | Tables rattachées (bypass RLS) — inclut `leaderless` |
+| `get_table_participants(password, table_id)` | Participants d'une table (`pseudo`, `total_ms` et `turn_count` agrégés depuis `speaking_turns` — tours **terminés** uniquement, `is_current_speaker`). Aucune restriction de phase. Repérée seulement au **chantier 130** en préparant une RPC redondante : déjà utilisée par `SuperadminScreen.handleExportSpeakingTimes`/`handleExportHistory` (export CSV) et par la section « Historique des tables » (chantier 130, post-clôture). N'était documentée nulle part avant. |
+| `get_table_speaking_turns_admin(password, table_id)` | Tours de parole bruts d'une table (`participant_id`, `started_at`, `ended_at`, `source`), triés par `started_at`. Aucune restriction de phase. Même découverte tardive que `get_table_participants` ci-dessus (chantier 130) — déjà utilisée par `handleExportHistory` et par « Historique des tables ». |
 | `list_available_tables(password, since?)` | Tables sans séance (48h) — inclut `leaderless` |
 | `submit_questionnaire(table_id, ...)` | Upsert questionnaire_responses |
 | `update_session_docs(password, session_id, doc_*?)` | Met à jour les 3 URLs docs |

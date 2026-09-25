@@ -165,15 +165,11 @@ Périmètre de fichiers (à affiner en démarrant) : vue Groupes/Tables du super
 
 Périmètre de fichiers (à affiner en démarrant) : `SessionRouterScreen.tsx`, `VoteScreen.tsx`, `AttendanceConfirmScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`).
 
-#### 130 — Historique des tables accessible au superadmin après clôture, sans rouvrir l'accès public
+#### 130 — Historique des tables accessible au superadmin après clôture, sans rouvrir l'accès public — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-25.** Aucune RPC nouvelle : `get_table_participants`/`get_table_speaking_turns_admin` couvraient déjà le besoin (déjà utilisées par l'export CSV « Historique », non documentées jusqu'ici). Nouvelle section « Historique des tables » dans l'onglet Tables du superadmin, visible en phase `closed`. Détail complet dans `docs/chantiers.md` (chantier 130) et `A_VERIFIER.md` § Chantier 130 — reste à vérifier au clic (mot de passe superadmin non disponible en session headless).
 
 **Consigne de Jules** : « Lorsqu'une session est clôturée, j'aimerai toujours, en tant que superadmin, avoir accès à l'historique des tables. Notamment pour retrouver les problèmes qui ont pu avoir lieu, sans rendre publique à nouveau la séance. »
-
-Nécessite probablement une nouvelle RPC SECURITY DEFINER réservée au superadmin (mot de passe superadmin en paramètre, même patron que `list_table_assignments_admin`) qui lit `tables`/`table_assignments`/`speaking_turns`/`queue_entries` pour une séance `closed`, sans toucher à `get_public_results` (qui reste le seul chemin d'accès public, gated sur `phase = 'closed'` — ne pas élargir son périmètre). Nouvel onglet ou section dans la vue superadmin pour l'afficher.
-
-⚠️ **Le 128 est fait** (voir `docs/chantiers.md`) : `list_table_assignments_admin` a été réécrite (migration `20260925_chantier128_dedupe_physical_moderator_by_pseudo.sql`) pour corriger un doublon d'affichage. Si ce chantier-ci touche à nouveau cette fonction, repartir de sa définition **courante en base** (`pg_get_functiondef`), pas du fichier de migration du 117.
-
-Périmètre de fichiers (à affiner en démarrant) : nouvelle RPC (vérifier d'abord `docs/reference-fonctions-sql.md` qu'aucune fonction existante ne couvre déjà ce besoin), vue superadmin.
 
 #### 131 — Bouton "sujet suivant" + tag de sujet à la prise de parole
 
