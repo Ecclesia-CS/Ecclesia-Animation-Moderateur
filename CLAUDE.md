@@ -62,6 +62,34 @@ Documenter dans `A_VERIFIER.md` le chemin du fichier, ce qu'il change, et le fai
 
 ---
 
+## Environnements — dev / prod (Vercel + Supabase, chantier du 2026-09-25)
+
+Deux environnements complets, déployés automatiquement à chaque push :
+
+| | Branche | Déploiement | Base Supabase |
+|---|---|---|---|
+| **Prod** | `main` | GitHub Pages (workflow existant) **et** Vercel — `ecclesia-animation-moderateur.vercel.app` | `Ecclesia-Animation-Moderateur` (`plpjiehqsxxakbuykmkm`) |
+| **Dev** | `dev` | Vercel uniquement — `ecclesia-animation-moderateur-git-dev-ecclesia5.vercel.app` (lien stable, à partager pour tester) | `Ecclesia-Animation-Moderateur-dev` (`mnjqrlrrzrycuconlfqb`) |
+
+Le projet Vercel a un build command dédié (`npm run build -- --base=/`, qui écrase pour ce déploiement seulement le `base` GitHub Pages de `vite.config.ts` — le fichier source n'est pas modifié) et la protection SSO désactivée (liens ouvrables sans compte Vercel). Les variables `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` sont scopées par environnement Vercel (Production → base prod, Preview → base dev) — ne jamais les fusionner en un seul scope, ni recopier la valeur prod dans le scope Preview.
+
+**Schéma dev** : cloné le 2026-09-25 par introspection de l'état *courant* de prod (pas un rejeu de l'historique des migrations, qui contient des étapes obsolètes comme l'ancien renommage `sessions → tables`) — tables, contraintes, index, policies RLS, fonctions et droits d'exécution (GRANT/REVOKE issus des chantiers 102/103) reproduits à l'identique. `app_config` contient les mêmes hash bcrypt que prod (mêmes codes de test) ; aucune donnée participant copiée.
+
+### Règle de circulation : dev d'abord, main ensuite — dans les deux sens
+
+- **Nouveau chantier → partir de `dev`**, jamais de `main` directement (le réglage GitHub "branche par défaut" reste `main` : c'est une discipline manuelle, pas un automatisme d'outil).
+- **Toute migration SQL doit être appliquée deux fois, dans l'ordre** : d'abord sur la base dev (pour tester), puis sur la base prod au moment du merge vers `main`. Le code se propage tout seul par le merge git ; **le schéma de base ne se synchronise jamais automatiquement** — c'est un geste manuel à ne pas oublier à chaque merge.
+- **Toute migration appliquée doit avoir son fichier `.sql` commité dans le même geste, sans exception.** Une migration appliquée en direct sans fichier casse la seule méthode fiable de savoir « qu'est-ce qui manque à prod » (comparer les fichiers de migration de `dev` à `list_migrations` sur prod). Cas réel : le chantier 128 a été appliqué sur prod le 25/09 sans fichier commité pendant plusieurs heures — repéré seulement en clonant le schéma pour dev, par chance avant qu'une autre session ne le recommence en double.
+
+### Nettoyage au merge — worktree et branche
+
+Au merge d'un chantier vers `dev` (ou vers `main`) :
+- **Supprimer la branche GitHub distante** (`git push origin --delete <branche>`) dans la foulée — un dépôt qui accumule des dizaines de branches de chantiers mergés (constaté au chantier 126) rend `git branch -a` inutilisable.
+- **Tenter `ExitWorktree`** si la session a elle-même ouvert son worktree via `EnterWorktree`. La plupart des sessions reçoivent leur worktree déjà provisionné par le harnais au démarrage plutôt que de l'ouvrir elles-mêmes — dans ce cas `ExitWorktree` est un no-op silencieux (l'outil n'agit que sur un worktree qu'il a lui-même créé dans la session courante). Ne pas bloquer dessus : le signaler en une ligne (« worktree à nettoyer manuellement ») plutôt que d'insister.
+- **Filet de sécurité, au merge `dev` → `main`** : une passe croise `git worktree list` avec les chantiers marqués faits dans `docs/chantiers.md` (et l'absence dans `docs/registre-merges-en-attente.md`) pour purger les worktrees/branches orphelins de chantiers terminés que le nettoyage immédiat aurait manqués.
+
+---
+
 ## Test navigateur automatisé
 
 **Solution retenue : le Browser pane intégré au harnais Claude Code** (outils `mcp__Claude_Browser__*` — `preview_start`, `navigate`, `read_page`, `find`, `computer`, `get_page_text`...), piloté via `.claude/launch.json` (commité, racine du repo).
