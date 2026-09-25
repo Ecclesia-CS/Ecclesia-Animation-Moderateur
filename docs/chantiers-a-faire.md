@@ -10,6 +10,8 @@ Dernière mise à jour : **2026-09-21**.
 
 _(aucun actuellement)_
 
+> **Le 2026-09-26, le chantier 133 est fait** — le nudge « Proposer une assertion » (toutes les 10 assertions votées) ne se déclenche plus, et ne peut plus rester affiché, quand `session.assertions_locked` est actif. Un seul fichier touché, `src/screens/VoteScreen.tsx`, aucune RPC/migration. Non vérifié au navigateur (auth anonyme indisponible sur le projet Supabase dev, puis lancement du serveur de dev refusé par le classifieur de permission en repli sur prod) — recette à rejouer dans `A_VERIFIER.md`. Voir `docs/chantiers.md`.
+
 > **Le 2026-09-21, le chantier 116 est fait** — « Changer mon nom » devient « Changer mon nom / code », avec un bloc « Code de rappel oublié ? » dans `RenamePseudoModal.tsx`. **Changement de périmètre découvert en cours de route** : la consigne demandait de « faire réapparaître » le code, mais depuis le chantier 93 (20260918), `session_members.reclaim_code` (texte clair) a été remplacé par `reclaim_code_hash` (bcrypt) — vérifié directement en base (`information_schema.columns`), ce que ni CLAUDE.md ni `docs/reference-modele-donnees.md` ne reflétaient encore. Un code haché ne peut littéralement pas être relu. Solution retenue : une nouvelle RPC self-service, `regenerate_reclaim_code_self(session_id)` (migration `20260921_chantier116_regenerate_reclaim_code_self.sql`, calquée sur `regenerate_reclaim_code_admin`/`_moderator` déjà existantes, ciblée sur `auth.uid()`), qui **émet un nouveau code et invalide l'ancien** — le participant doit le renoter. Vérifié en base (l'ancien code cesse de matcher, le nouveau matche) et au navigateur réel (séance de test créée puis supprimée). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
@@ -198,14 +200,6 @@ Le plus gros des trois chantiers "fonctionnalités table de débat" — nouveau 
 ⚠️ Croise **131** sur le même fichier racine — voir avertissement en tête de section.
 
 Périmètre de fichiers (à affiner en démarrant) : nouvelles tables SQL (ex. `table_votes`/`table_vote_options`/`table_vote_responses`), nouvelle(s) RPC, `ModeratorView.tsx`, `ParticipantView.tsx`, `lib/realtime.ts` si nouveau topic.
-
-#### 133 — Le popup de proposition d'assertion doit disparaître entièrement quand les propositions sont verrouillées
-
-**Consigne de Jules** : « Actuellement, il existe déjà ce réglage de désactiver les propositions d'assertions, sur les séances, c'est juste incomplet. [...] Moi, je veux que ce popup, qui apparaît toutes les 10 assertions, n'apparaisse pas quand la séance voit les propositions d'assertion désactivées. »
-
-**Contexte retrouvé en préparant ce chantier** : le réglage existe déjà — `sessions.assertions_locked`, ajouté par le **chantier 124** (`docs/chantiers.md`, livré le 22/09), avec la RPC `set_session_assertions_locked` et le masquage du formulaire dans `SubmitAssertionModal.tsx`. Il ne couvre pas le popup/nudge périodique du **chantier 121** (celui qui réapparaissait au reload après 10 votes, déjà corrigé pour ne plus réapparaître *automatiquement* au reload — mais rien n'empêche aujourd'hui l'utilisateur de le rouvrir manuellement même si `assertions_locked = true`). Ce chantier-ci est donc bien distinct du 121, comme confirmé par Jules : faire lire `session.assertions_locked` à l'endroit qui gère ce nudge (probablement `VoteScreen.tsx`, cf. chantier 121) pour qu'aucune mention du bouton/popup de proposition d'assertion ne subsiste, sous quelque forme que ce soit, quand le verrou est actif.
-
-Périmètre de fichiers (à affiner en démarrant) : `VoteScreen.tsx` (zone touchée par le chantier 121), `SubmitAssertionModal.tsx` en vérification croisée.
 
 #### 134 — "Nouvelle séance" : 3 modes (séance complète / débat simple / sondage) — usage interne — **Opus demandé par Jules**
 

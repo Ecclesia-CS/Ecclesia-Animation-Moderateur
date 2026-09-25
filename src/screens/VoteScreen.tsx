@@ -534,13 +534,16 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // ── Nudge "Proposer" toutes les 10 assertions votées ─────────────────────
   useEffect(() => {
     if (step !== 'vote') return
+    // Chantier 133 — pas de nudge à proposer une assertion si la séance a
+    // désactivé les propositions.
+    if (session?.assertions_locked) return
     const votedCount = myVotes.size
     const allVoted = assertions.length > 0 && votedCount === assertions.length
     if (votedCount > 0 && votedCount >= nextNudgeAt && !allVoted) {
       setShowProposalNudge(true)
       setNextNudgeAt(n => n + 10)
     }
-  }, [myVotes.size, nextNudgeAt, assertions.length, step])
+  }, [myVotes.size, nextNudgeAt, assertions.length, step, session?.assertions_locked])
 
   // ── Redirect vers SessionRouterScreen quand session clôturée ─────────────
   useEffect(() => {
@@ -1332,8 +1335,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           />
         )}
 
-        {/* Nudge proposition toutes les 10 assertions */}
-        {showProposalNudge && (
+        {/* Nudge proposition toutes les 10 assertions — masqué si le verrou
+            s'active pendant que le popup est déjà ouvert (chantier 133) */}
+        {showProposalNudge && !session.assertions_locked && (
           <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowProposalNudge(false)}>
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"

@@ -55,6 +55,19 @@ Un seul fichier touché, `src/App.tsx`, `tsc --noEmit` propre. Cause : `tableSto
 
 **Rappel de circulation (règle du 2026-09-25)** : rien à appliquer sur prod pour ce chantier — aucune migration livrée, uniquement du frontend qui se propage par le merge git normal.
 
+## Chantier 133 — le nudge « Proposer une assertion » ne doit plus apparaître quand les propositions sont verrouillées (2026-09-26)
+
+**Aucune RPC ni migration** — correctif purement frontend, un seul fichier touché : `src/screens/VoteScreen.tsx`. Le réglage `sessions.assertions_locked` (chantier 124) masquait déjà le formulaire dans `SubmitAssertionModal.tsx`, mais pas le nudge périodique (chantier 121) qui réapparaît tous les 10 votes et peut encore être rouvert manuellement. Fix : l'`useEffect` qui déclenche `setShowProposalNudge(true)` sort désormais tôt si `session?.assertions_locked` est vrai (ajouté aux dépendances), et le rendu du popup est doublement gardé (`showProposalNudge && !session.assertions_locked`) pour couvrir le cas où le verrou s'active via Realtime pendant que le popup est déjà ouvert.
+
+**Vérifié** :
+- `tsc --noEmit` propre.
+
+⚠️ **Non vérifié au navigateur** — deux obstacles rencontrés dans cette session, dans cet ordre :
+1. **Écart d'environnement dev découvert en préparant ce chantier** : la base `Ecclesia-Animation-Moderateur-dev` (`mnjqrlrrzrycuconlfqb`) a son schéma cloné (chantier du 2026-09-25) mais **l'auth anonyme (`signInAnonymously`) n'y est pas activée** — `#vote/<join_code>` échoue avec « Impossible de créer une session anonyme » (422 sur l'appel Supabase Auth). C'est un réglage de projet Auth, pas du schéma SQL, donc hors du clonage par introspection documenté dans `CLAUDE.md`. **À corriger côté dashboard Supabase (Authentication → Providers → Anonymous Sign-Ins) sur le projet dev** avant qu'un test navigateur participant n'y soit possible. Deux séances de test jetables créées puis supprimées sur dev pendant ce diagnostic (aucune trace restante).
+2. En basculant sur prod pour contourner (deux séances de test jetables `TEST133 unlocked/locked - jetable`, 11 assertions chacune, créées puis **supprimées immédiatement après**, 0 ligne restante confirmée), le lancement du serveur `ecclesia-dev` (`preview_start`) a été **refusé de façon répétée par le classifieur de permission de cette session** (« Modify Shared Resources »), sans rapport avec le code — non contourné, conformément à la consigne de ne pas insister sur un refus de ce type.
+
+**À rejouer par une session capable de lancer le serveur de dev**, sur une séance de test (`assertions_locked = true`, ≥ 11 assertions approuvées) : voter sur 10 assertions sans que le popup « Tu as voté sur 10 assertions ! » n'apparaisse ; puis vérifier sur une séance non verrouillée que le nudge apparaît toujours normalement (non-régression). Envisager aussi de signaler séparément le point 1 (auth anonyme absente sur dev) à Jules, indépendamment de ce chantier.
+
 ## Chantier 125 — accordéon « J'ai déjà un code de rappel » (2026-09-22)
 
 Demande directe de Jules (hors file d'attente). Deux fichiers touchés, `tsc --noEmit` propre :
