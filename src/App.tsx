@@ -27,6 +27,12 @@ type AppPhase =
    */
   | { type: 'reconnect'; sessionId: string; pseudo: string; joinCode: string; userId: string }
 
+// Chantier 129 — préfixes de hash qui expriment une intention de navigation
+// explicite (lien/QR code fraîchement scanné). Partagé entre `init()` (pour
+// ne pas la court-circuiter en restaurant une ancienne table) et le rendu
+// (détection de hash inconnu, chantier 88).
+const KNOWN_HASH_PREFIXES = ['#superadmin', '#collab/', '#session/', '#vote/', '#results/', '#table/']
+
 export default function App() {
   const { showToast } = useToast()
   const [phase, setPhase] = useState<AppPhase>({ type: 'loading' })
@@ -89,8 +95,22 @@ export default function App() {
       }
       const userId = session.user.id
 
+      // Chantier 129 — `tableStore` (localStorage `ecclesia_table`) est une
+      // clé globale, non scopée par séance : elle garde la dernière table
+      // rejointe, toutes séances confondues sur cet appareil. La restaurer
+      // sans condition ici court-circuitait un lien/QR code fraîchement
+      // scanné vers une NOUVELLE séance (#session/, #vote/, #table/…) —
+      // le participant retombait sur son ancienne table (et son éventuel
+      // questionnaire forcé resté ouvert) au lieu de l'écran d'identification
+      // de la nouvelle séance. Un hash de navigation explicite au chargement
+      // exprime une intention plus récente que l'état restauré : on ne
+      // restaure la table précédente que si aucun lien de ce type n'a amené
+      // l'utilisateur ici (rechargement en cours de débat, hash déjà vidé par
+      // `handleTableJoined`).
+      const cameFromExplicitLink = KNOWN_HASH_PREFIXES.some(p => window.location.hash.startsWith(p))
+
       // Try to restore a previous table from localStorage
-      const stored = tableStore.get()
+      const stored = cameFromExplicitLink ? null : tableStore.get()
       if (stored) {
         const { data: pRow } = await supabase
           .from('participants')
@@ -177,7 +197,6 @@ export default function App() {
 
   // Hash non vide mais ne correspondant à aucune route connue — lien cassé ou
   // mal copié plutôt qu'un retour silencieux à l'accueil (chantier 88).
-  const KNOWN_HASH_PREFIXES = ['#superadmin', '#collab/', '#session/', '#vote/', '#results/', '#table/']
   if (hash.length > 1 && phase.type !== 'table' && !KNOWN_HASH_PREFIXES.some(p => hash === p || hash.startsWith(p))) {
     return <NotFoundScreen />
   }
