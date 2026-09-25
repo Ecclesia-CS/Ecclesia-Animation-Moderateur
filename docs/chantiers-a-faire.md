@@ -6,6 +6,10 @@
 
 Dernière mise à jour : **2026-09-21**.
 
+## Chantiers en cours
+
+_(aucun actuellement)_
+
 > **Le 2026-09-21, le chantier 116 est fait** — « Changer mon nom » devient « Changer mon nom / code », avec un bloc « Code de rappel oublié ? » dans `RenamePseudoModal.tsx`. **Changement de périmètre découvert en cours de route** : la consigne demandait de « faire réapparaître » le code, mais depuis le chantier 93 (20260918), `session_members.reclaim_code` (texte clair) a été remplacé par `reclaim_code_hash` (bcrypt) — vérifié directement en base (`information_schema.columns`), ce que ni CLAUDE.md ni `docs/reference-modele-donnees.md` ne reflétaient encore. Un code haché ne peut littéralement pas être relu. Solution retenue : une nouvelle RPC self-service, `regenerate_reclaim_code_self(session_id)` (migration `20260921_chantier116_regenerate_reclaim_code_self.sql`, calquée sur `regenerate_reclaim_code_admin`/`_moderator` déjà existantes, ciblée sur `auth.uid()`), qui **émet un nouveau code et invalide l'ancien** — le participant doit le renoter. Vérifié en base (l'ancien code cesse de matcher, le nouveau matche) et au navigateur réel (séance de test créée puis supprimée). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
@@ -145,13 +149,7 @@ Périmètre : tout le dépôt. Croiser avec `docs/registre-merges-en-attente.md`
 
 > **Fait le 2026-09-25, entièrement vérifié au navigateur réel par la session.** Cause réelle : `App.tsx` restaurait une table depuis `tableStore` sans revérifier la phase de la séance. Détail complet et recette de vérification dans `docs/chantiers.md` (chantier 127). Point resté ouvert (non demandé par la consigne) : pas de détection en direct pour un participant déjà affiché dans `TableView` au moment précis du reset, sans reload.
 
-#### 128 — Bug : modérateur affiché en double sur une même table (vue superadmin)
-
-**Consigne de Jules** : « À un moment, dans une séance, en vision superadmin, il y avait deux fois la vision "Maxence Reinaudo" comme modérateur sur la table, deux carrés côte à côte. »
-
-Pas de recette de reproduction garantie — probablement une dérive d'affichage liée à une double ligne `session_members`/`table_assignments` pour le même `user_id` (cf. CLAUDE.md § pièges d'identité : un `user_id` peut avoir plusieurs lignes `participants`) ou une clé de rendu React non déduplique. Investiguer `list_table_assignments_admin` et son rendu dans la vue Groupes/Tables du superadmin.
-
-⚠️ Croise **130** sur le même fichier — voir avertissement en tête de section.
+#### 128 — Bug : modérateur affiché en double sur une même table (vue superadmin) — ✅ fait, voir `docs/chantiers.md`
 
 Périmètre de fichiers (à affiner en démarrant) : vue Groupes/Tables du superadmin (`SuperadminScreen.tsx` et sous-composants), `list_table_assignments_admin`.
 
@@ -173,7 +171,7 @@ Périmètre de fichiers (à affiner en démarrant) : `SessionRouterScreen.tsx`, 
 
 Nécessite probablement une nouvelle RPC SECURITY DEFINER réservée au superadmin (mot de passe superadmin en paramètre, même patron que `list_table_assignments_admin`) qui lit `tables`/`table_assignments`/`speaking_turns`/`queue_entries` pour une séance `closed`, sans toucher à `get_public_results` (qui reste le seul chemin d'accès public, gated sur `phase = 'closed'` — ne pas élargir son périmètre). Nouvel onglet ou section dans la vue superadmin pour l'afficher.
 
-⚠️ Croise **128** sur le même fichier — voir avertissement en tête de section.
+⚠️ **Le 128 est fait** (voir `docs/chantiers.md`) : `list_table_assignments_admin` a été réécrite (migration `20260925_chantier128_dedupe_physical_moderator_by_pseudo.sql`) pour corriger un doublon d'affichage. Si ce chantier-ci touche à nouveau cette fonction, repartir de sa définition **courante en base** (`pg_get_functiondef`), pas du fichier de migration du 117.
 
 Périmètre de fichiers (à affiner en démarrant) : nouvelle RPC (vérifier d'abord `docs/reference-fonctions-sql.md` qu'aucune fonction existante ne couvre déjà ce besoin), vue superadmin.
 
