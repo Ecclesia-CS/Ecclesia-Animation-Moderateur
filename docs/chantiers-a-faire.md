@@ -155,7 +155,9 @@ Pas de recette de reproduction garantie — probablement une dérive d'affichage
 
 Périmètre de fichiers (à affiner en démarrant) : vue Groupes/Tables du superadmin (`SuperadminScreen.tsx` et sous-composants), `list_table_assignments_admin`.
 
-#### 129 — Bug : identité inter-séances, questionnaire de l'ancienne séance au lieu de l'écran d'identification de la nouvelle
+#### 129 — Bug : identité inter-séances, questionnaire de l'ancienne séance au lieu de l'écran d'identification de la nouvelle — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-25.** Cause réelle différente de la piste envisagée ci-dessous : `hasQuestionnaireResponse` et les clés localStorage de `VoteScreen.tsx`/`SessionRouterScreen.tsx` sont toutes déjà correctement scopées par `session_id` — pas le bug. Le vrai coupable est `tableStore` (`src/lib/storage.ts`), une clé globale à l'appareil (jamais scopée par séance), restaurée sans condition par `App.tsx.init()` avant même de regarder le hash de navigation — un lien `#session/<nouveau_code>` fraîchement scanné se faisait donc silencieusement écraser par l'ancienne table. Détail complet, correctif et recette de vérification (deux séances QA, navigateur réel) dans `docs/chantiers.md` (chantier 129) et `A_VERIFIER.md` § Chantier 129.
 
 **Consigne de Jules** : « Des personnes ont participé à une séance précédente, et maintenant, quand je leur donne le QR code d'une nouvelle séance, ils reviennent sur le questionnaire de la séance précédente, alors qu'avec ce nouveau QR code, ils devaient arriver sur l'écran d'identification de la nouvelle séance. »
 

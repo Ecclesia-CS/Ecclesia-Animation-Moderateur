@@ -6,6 +6,19 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## Chantier 129 — identité inter-séances, lien QR d'une nouvelle séance ramenait sur l'ancienne (2026-09-25)
+
+Un seul fichier touché, `src/App.tsx`, `tsc --noEmit` propre. Cause : `tableStore` (`src/lib/storage.ts`, clé localStorage `ecclesia_table`) n'est pas scopée par séance — elle garde la dernière table de débat rejointe sur l'appareil, toutes séances confondues — et `App.tsx.init()` la restaurait sans regarder le hash de navigation au chargement. Un lien/QR code `#session/<nouveau_code>` était donc ignoré si l'appareil avait déjà une table stockée : la garde `phase.type !== 'table'` de toutes les routes hash bloquait alors le routage vers la nouvelle séance. Fix : `init()` ne restaure plus automatiquement quand le hash au chargement correspond à une route de navigation explicite (`#session/`, `#vote/`, `#table/`, `#collab/`, `#results/`, `#superadmin`).
+
+**Vérifié au navigateur réel** (`ecclesia-dev`, `.env` copié depuis la racine du dépôt dans ce worktree — absent au départ) :
+1. Deux séances QA jetables créées via le MCP Supabase (`sessions`/`tables`/`participants` insérés directement) : séance A (`QA129OLD`, phase `closed`) avec une table+participant pour le `user_id` de l'auth anonyme du navigateur de test ; séance B (`QA129NEW`, phase `pre_voting`).
+2. `localStorage.ecclesia_table` posé manuellement sur la table de la séance A (simulateur d'un appareil ayant déjà débattu).
+3. Navigation vers `#session/QA129NEW` → écran d'identification de la séance B affiché correctement (titre « QA129 Nouvelle séance », formulaire pseudo), pas de retour vers l'ancienne table ni vers un quelconque questionnaire de la séance A.
+4. Navigation vers la racine sans hash (simulant un reload en cours de débat, cas nominal après `handleTableJoined`) → restauration normale dans `TableView` de l'ancienne table (« QA129 Ancienne séance ») — confirme que le cas nominal n'est pas régressé.
+5. Séances QA, table et participant supprimés après coup — vérifié : 0 ligne restante.
+
+**Non couvert par ce test** : le scénario exact rapporté par Jules passait probablement par un vrai QR code (`#session/`) scanné après un vrai parcours de débat (pas des lignes SQL insérées directement) — le mécanisme reproduit ici (tableStore global + hash de navigation) est bien la cause du symptôme observé, mais le parcours complet bout-en-bout (créer une vraie séance, vraiment débattre, vraiment scanner un nouveau QR code) n'a pas été rejoué de bout en bout à l'écran.
+
 ## Chantier 125 — accordéon « J'ai déjà un code de rappel » (2026-09-22)
 
 Demande directe de Jules (hors file d'attente). Deux fichiers touchés, `tsc --noEmit` propre :
