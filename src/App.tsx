@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { tableStore } from './lib/storage'
 import type { TableResult } from './lib/supabase'
+import { getSessionById } from './lib/sessions'
 import { TableProvider } from './context/TableContext'
 import { useToast } from './context/ToastContext'
 import EntryScreen from './screens/EntryScreen'
@@ -99,8 +100,39 @@ export default function App() {
           .maybeSingle()
 
         if (pRow && (pRow as { id: string; user_id: string }).user_id === userId) {
-          // Même auth.uid → restauration directe sans RPC
-          setPhase({ type: 'table', tableId: stored.tableId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
+          // Chantier 127 — un reset de séance vers une phase antérieure à
+          // `debating` (typiquement `allocating`, ex. le superadmin relance
+          // l'allocation) ne supprime ni la table ni la ligne `participants` :
+          // sans ce garde, la restauration directe depuis `tableStore` renvoyait
+          // le participant droit dans TableView, y compris après reload, alors
+          // que la séance n'y est plus. `table.session_id` peut être `null`
+          // (table hors Bloc C) — dans ce cas, aucune séance à revérifier.
+          const { data: tblRow } = await supabase
+            .from('tables')
+            .select('session_id')
+            .eq('id', stored.tableId)
+            .maybeSingle()
+          const sessionId = (tblRow as { session_id: string | null } | null)?.session_id ?? null
+          const sess = sessionId ? await getSessionById(sessionId).catch(() => null) : null
+
+          if (sessionId === null || sess?.phase === 'debating') {
+            // Même auth.uid → restauration directe sans RPC
+            setPhase({ type: 'table', tableId: stored.tableId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
+            return
+          }
+
+          tableStore.clear()
+          // `stored.joinCode` est le join_code de la TABLE (#table/<code>), pas
+          // celui de la SÉANCE qu'attend VoteScreen (#vote/<code>) — il faut
+          // celui de `sess`, pas celui du tableStore.
+          if (sess?.join_code) {
+            showToast("La séance est revenue au vote — rejoins-la depuis là.", 'info')
+            window.location.hash = '#vote/' + sess.join_code
+            setPhase({ type: 'entry', userId })
+            return
+          }
+          showToast("La table que tu avais rejointe n'est plus disponible.", 'info')
+          setPhase({ type: 'entry', userId })
           return
         }
         // Participant trouvé mais user_id différent (auth anonyme renouvelé), ou non trouvé →

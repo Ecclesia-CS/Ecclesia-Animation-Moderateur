@@ -141,13 +141,9 @@ Périmètre de fichiers (à affiner en démarrant) : `src/lib/allocation.ts`, RP
 
 Périmètre : tout le dépôt. Croiser avec `docs/registre-merges-en-attente.md` (branches volontairement retenues, ne pas les traiter comme des oublis) avant de supprimer quoi que ce soit lié à une branche.
 
-#### 127 — Bug : reset vers `allocating` laisse des participants bloqués sur leur ancienne table
+#### 127 — Bug : reset vers `allocating` laisse des participants bloqués sur leur ancienne table — ✅ fait, voir `docs/chantiers.md`
 
-**Consigne de Jules** : « Quand on est rentré dans une table avec débat, et que le superadmin remets allocation, certaines personnes, même en reloadant, restent sur leurs tables, plutôt que de revoir la vue vote. »
-
-Probablement lié à `tableStore`/`localStorage` (persistance du join côté client) qui n'est pas invalidé quand la séance repasse `debating → allocating` côté serveur, ou à un listener Realtime/polling qui ne redirige pas correctement au reload. Vérifier `TableContext`, `App.handleTableJoined`, et ce que fait `AllocatingScreen`/`VoteScreen` au montage si un `tableStore` local pointe vers une table dont la séance n'est plus en phase `debating`.
-
-Périmètre de fichiers (à affiner en démarrant) : `TableContext.tsx`, `App.tsx` (routage de phase), `lib/tableStore` (ou équivalent), `AllocatingScreen.tsx`.
+> **Fait le 2026-09-25.** Cause réelle : `App.tsx` restaurait une table depuis `tableStore` sans revérifier la phase de la séance. Détail complet et recette de vérification dans `docs/chantiers.md` (chantier 127) et `A_VERIFIER.md` § Chantier 127. Point resté ouvert (non demandé par la consigne) : pas de détection en direct pour un participant déjà affiché dans `TableView` au moment précis du reset, sans reload.
 
 #### 128 — Bug : modérateur affiché en double sur une même table (vue superadmin)
 
