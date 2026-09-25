@@ -60,6 +60,9 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > ```
 
 
+### 126 — Diagnostic et nettoyage du GitHub
+**Branche** : `claude/chantier-126-a39daf` · **Depuis** : 2026-09-25 · **Fichiers touchés** : tout le dépôt (diagnostic en lecture), suppressions ciblées de doublons/obsolètes à la marge (`docs/`, éventuellement `src/`, migrations, branches non mergées)
+
 Le 125 (accordéon « J'ai déjà un code de rappel » sur les écrans d'entrée, demande directe de Jules hors file d'attente) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
 Le 124 (verrouiller la proposition d'assertions, superadmin only) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
