@@ -123,6 +123,126 @@ Périmètre de fichiers (à affiner en démarrant) : `src/lib/allocation.ts`, RP
 
 ---
 
+### 126 à 135 — Retours de Jules du 2026-09-25 (10 points), en 10 chantiers
+
+> **Consigne de Jules (2026-09-25)**, citée intégralement puis découpée avec lui en conversation. Demande explicite de rediviser en chantiers plus petits que la première proposition (initialement 4 chantiers plus gros) — d'où 10 entrées indépendantes plutôt que 4.
+>
+> **Croisements de fichiers signalés par Jules à surveiller** :
+> - ⚠️ **128 et 130** touchent tous les deux la vue superadmin Groupes/Tables (`SuperadminScreen.tsx` et sous-composants) — zone déjà chargée par les chantiers 121/123. Se prévenir mutuellement des zones touchées avant de coder, ou séquencer.
+> - ⚠️ **131 et 132** touchent tous les deux `ParticipantView`/`ModeratorView` et la couche Realtime par table — zones a priori différentes (file d'attente vs nouveau panneau de vote) mais même fichier racine ; prudence au merge, rebase probable pour le second.
+> - ⚠️ **134** a un impact potentiel large sur le flux de phases Bloc C (création de séance, état des phases) — à lancer seul, pas en parallèle d'un autre chantier touchant ce flux.
+> - **135 dépend de 134** — ne pas lancer avant que 134 soit tranché et si possible mergé, la conception de 134 conditionne directement le périmètre de 135.
+
+#### 126 — Diagnostic et nettoyage du GitHub
+
+**Consigne de Jules** : « Mission prio : nettoyage du Github. Beaucoup de document sont apparemment en doubles, certains sont pt obsolète, etc., l'objectif de cette discussion est de faire un diagnostic de l'état du github. » Précisé en conversation : scope libre (pas limité à `docs/`, peut couvrir `src/`, migrations, branches non mergées) ; **droit de supprimer directement les doublons évidents**, pas besoin d'attendre une validation — « le rapport est plus pour que la discussion en elle-même nettoie ».
+
+Périmètre : tout le dépôt. Croiser avec `docs/registre-merges-en-attente.md` (branches volontairement retenues, ne pas les traiter comme des oublis) avant de supprimer quoi que ce soit lié à une branche.
+
+#### 127 — Bug : reset vers `allocating` laisse des participants bloqués sur leur ancienne table
+
+**Consigne de Jules** : « Quand on est rentré dans une table avec débat, et que le superadmin remets allocation, certaines personnes, même en reloadant, restent sur leurs tables, plutôt que de revoir la vue vote. »
+
+Probablement lié à `tableStore`/`localStorage` (persistance du join côté client) qui n'est pas invalidé quand la séance repasse `debating → allocating` côté serveur, ou à un listener Realtime/polling qui ne redirige pas correctement au reload. Vérifier `TableContext`, `App.handleTableJoined`, et ce que fait `AllocatingScreen`/`VoteScreen` au montage si un `tableStore` local pointe vers une table dont la séance n'est plus en phase `debating`.
+
+Périmètre de fichiers (à affiner en démarrant) : `TableContext.tsx`, `App.tsx` (routage de phase), `lib/tableStore` (ou équivalent), `AllocatingScreen.tsx`.
+
+#### 128 — Bug : modérateur affiché en double sur une même table (vue superadmin)
+
+**Consigne de Jules** : « À un moment, dans une séance, en vision superadmin, il y avait deux fois la vision "Maxence Reinaudo" comme modérateur sur la table, deux carrés côte à côte. »
+
+Pas de recette de reproduction garantie — probablement une dérive d'affichage liée à une double ligne `session_members`/`table_assignments` pour le même `user_id` (cf. CLAUDE.md § pièges d'identité : un `user_id` peut avoir plusieurs lignes `participants`) ou une clé de rendu React non déduplique. Investiguer `list_table_assignments_admin` et son rendu dans la vue Groupes/Tables du superadmin.
+
+⚠️ Croise **130** sur le même fichier — voir avertissement en tête de section.
+
+Périmètre de fichiers (à affiner en démarrant) : vue Groupes/Tables du superadmin (`SuperadminScreen.tsx` et sous-composants), `list_table_assignments_admin`.
+
+#### 129 — Bug : identité inter-séances, questionnaire de l'ancienne séance au lieu de l'écran d'identification de la nouvelle
+
+**Consigne de Jules** : « Des personnes ont participé à une séance précédente, et maintenant, quand je leur donne le QR code d'une nouvelle séance, ils reviennent sur le questionnaire de la séance précédente, alors qu'avec ce nouveau QR code, ils devaient arriver sur l'écran d'identification de la nouvelle séance. »
+
+À investiguer : un état côté client (localStorage/sessionStorage) scopé par device plutôt que par `session_id`, qui fait que `hasQuestionnaireResponse`/le routage `SessionRouterScreen` retombe sur la mauvaise séance. Vérifier toutes les clés de stockage utilisées par le parcours participant (`AttendanceConfirmScreen`, `SessionRouterScreen`, `VoteScreen`) pour repérer celles qui ne sont pas préfixées/scopées par `session_id`.
+
+**Garde-fou** : c'est exactement la classe de bug décrite dans `CLAUDE.md` § Ne jamais faire sur `JSON.parse(localStorage…) as T` — vérifier si une clé de stockage manque de scoping par séance plutôt que de valeur.
+
+Périmètre de fichiers (à affiner en démarrant) : `SessionRouterScreen.tsx`, `VoteScreen.tsx`, `AttendanceConfirmScreen.tsx`, `lib/voting.ts` (`hasQuestionnaireResponse`).
+
+#### 130 — Historique des tables accessible au superadmin après clôture, sans rouvrir l'accès public
+
+**Consigne de Jules** : « Lorsqu'une session est clôturée, j'aimerai toujours, en tant que superadmin, avoir accès à l'historique des tables. Notamment pour retrouver les problèmes qui ont pu avoir lieu, sans rendre publique à nouveau la séance. »
+
+Nécessite probablement une nouvelle RPC SECURITY DEFINER réservée au superadmin (mot de passe superadmin en paramètre, même patron que `list_table_assignments_admin`) qui lit `tables`/`table_assignments`/`speaking_turns`/`queue_entries` pour une séance `closed`, sans toucher à `get_public_results` (qui reste le seul chemin d'accès public, gated sur `phase = 'closed'` — ne pas élargir son périmètre). Nouvel onglet ou section dans la vue superadmin pour l'afficher.
+
+⚠️ Croise **128** sur le même fichier — voir avertissement en tête de section.
+
+Périmètre de fichiers (à affiner en démarrant) : nouvelle RPC (vérifier d'abord `docs/reference-fonctions-sql.md` qu'aucune fonction existante ne couvre déjà ce besoin), vue superadmin.
+
+#### 131 — Bouton "sujet suivant" + tag de sujet à la prise de parole
+
+**Consigne de Jules** : « Vue participant : proposer un bouton pour chaque participant qu'il peut activer, pour dire que le participant est d'accord pour passer au sujet suivant. Le modérateur voit le nombre de personnes qui appuient sur le bouton, et peut donc passer au sujet suivant. [...] Lorsque quelqu'un appuie sur le bouton "prendre la parole", il peut marquer le sujet ou thème dont il souhaite parler, qui peut s'inscrire à côté de son prénom. »
+
+Deux sous-tâches regroupées (même zone d'écran, taille comparable) :
+1. **Bouton "d'accord pour le sujet suivant"** par participant dans `ParticipantView`, avec compteur visible côté `ModeratorView`. À définir en démarrant : le compteur se réinitialise-t-il automatiquement quand le modérateur passe au sujet suivant, ou faut-il un reset manuel ?
+2. **Tag de sujet optionnel** à la prise de parole, propagé dans la file d'attente et affiché à côté du prénom (probablement une colonne texte libre sur `queue_entries`, à broadcaster comme le reste de la file — cf. CLAUDE.md § Broadcast par action, `addToQueue` diffuse déjà `queue_entries`).
+
+⚠️ Croise **132** sur le même fichier racine — voir avertissement en tête de section.
+
+Périmètre de fichiers (à affiner en démarrant) : `ParticipantView.tsx`, `ModeratorView.tsx`, `queue_entries` (migration éventuelle pour le tag de sujet).
+
+#### 132 — Outil "proposer un vote" côté modérateur
+
+**Consigne de Jules** : « Donner la possibilité au modérateur de proposer un vote parmi plusieurs options. Il écrit les options, et chaque personne peut dire qu'il est d'accord sur chacune des options ou non. À la fin des votes, tout le monde peut avoir accès au résultat. » Précisé en conversation : « dans la vue modérateur, c'est un nouvel outil "proposer un vote", et cela s'affiche ensuite dans la vue participant avec une fenêtre qui pop. Totalement séparé du système d'assertion. Le modo ne doit pas voir qui a voté quoi, juste des décomptes. Une question, un résultat, terminé, mais le modo peut relancer d'autres votes derrière. Le modo doit accéder à l'historique de ces votes. »
+
+Le plus gros des trois chantiers "fonctionnalités table de débat" — nouveau mécanisme complet, à ne pas confondre avec le système d'assertions/vote du Bloc C (Jules insiste : totalement séparé) :
+- Nouvel outil dans `ModeratorView` : rédaction d'un vote à N options.
+- Popup côté `ParticipantView` : chaque participant répond oui/non par option.
+- Décompte agrégé **uniquement** (pas de vue nominative pour le modérateur — probablement une table dédiée avec des votes anonymisés côté lecture modérateur, ou simplement ne jamais exposer `user_id` dans la RPC de lecture des résultats).
+- Cycle de vie : un vote actif → résultat → terminé ; le modérateur peut en relancer d'autres ensuite (donc plusieurs votes possibles par débat, historisés).
+- Historique des votes accessible au modérateur (et sans doute au superadmin par la même occasion, à trancher en démarrant).
+- Nouveau canal Realtime probable pour la diffusion du vote et de sa clôture — **ne pas oublier `can_join_realtime_topic`** si un nouveau topic est créé (fail-closed, cf. CLAUDE.md § Canaux Realtime privés).
+
+⚠️ Croise **131** sur le même fichier racine — voir avertissement en tête de section.
+
+Périmètre de fichiers (à affiner en démarrant) : nouvelles tables SQL (ex. `table_votes`/`table_vote_options`/`table_vote_responses`), nouvelle(s) RPC, `ModeratorView.tsx`, `ParticipantView.tsx`, `lib/realtime.ts` si nouveau topic.
+
+#### 133 — Le popup de proposition d'assertion doit disparaître entièrement quand les propositions sont verrouillées
+
+**Consigne de Jules** : « Actuellement, il existe déjà ce réglage de désactiver les propositions d'assertions, sur les séances, c'est juste incomplet. [...] Moi, je veux que ce popup, qui apparaît toutes les 10 assertions, n'apparaisse pas quand la séance voit les propositions d'assertion désactivées. »
+
+**Contexte retrouvé en préparant ce chantier** : le réglage existe déjà — `sessions.assertions_locked`, ajouté par le **chantier 124** (`docs/chantiers.md`, livré le 22/09), avec la RPC `set_session_assertions_locked` et le masquage du formulaire dans `SubmitAssertionModal.tsx`. Il ne couvre pas le popup/nudge périodique du **chantier 121** (celui qui réapparaissait au reload après 10 votes, déjà corrigé pour ne plus réapparaître *automatiquement* au reload — mais rien n'empêche aujourd'hui l'utilisateur de le rouvrir manuellement même si `assertions_locked = true`). Ce chantier-ci est donc bien distinct du 121, comme confirmé par Jules : faire lire `session.assertions_locked` à l'endroit qui gère ce nudge (probablement `VoteScreen.tsx`, cf. chantier 121) pour qu'aucune mention du bouton/popup de proposition d'assertion ne subsiste, sous quelque forme que ce soit, quand le verrou est actif.
+
+Périmètre de fichiers (à affiner en démarrant) : `VoteScreen.tsx` (zone touchée par le chantier 121), `SubmitAssertionModal.tsx` en vérification croisée.
+
+#### 134 — "Nouvelle séance" : 3 modes (séance complète / débat simple / sondage) — usage interne — **Opus demandé par Jules**
+
+**Consigne de Jules** : « Discussion opus (et probablement à scinder en deux) : Quand on fait "nouvelle séance" dans le menu superadmin, on propose 3 choses : séance complète, débat simple, et sondage. La séance complète est comme actuellement, le débat simple est juste la création d'une table, avec modérateur, et sans vote préalable, ou après, ou tout fonctionnement lié aux assertions. Au contraire, le sondage, c'est tout le fonctionnement lié aux assertions (votes distanciel uniquement, sans besoin de faire de présentiel derrière, et une vision des résultats et des camps qui peut s'actualiser) mais sans le débat avec la table de débat, et l'allocation. »
+
+Arbitrage tranché avec Jules le 2026-09-25 sur la relation avec le point suivant (135) : **134 est le premier étage, usage interne à Ecclesia** — proposer ces 3 modes dans l'UI superadmin actuelle, sans notion de compte/organisation externe. 135 (ouverture à des tiers) est un second étage qui **dépend de 134** et ne doit pas être lancé avant.
+
+À trancher en démarrant, probablement avec Jules avant de coder (chantier Opus, périmètre volontairement ouvert par la consigne) :
+- Nouvelle colonne `sessions.session_type` (ou équivalent) pour distinguer les 3 modes, et son impact sur la state machine de phases actuelle (`draft → pre_voting → voting → allocating → debating → post_voting → closed`) — un "débat simple" n'a probablement besoin d'aucune des phases de vote, un "sondage" n'a probablement pas besoin de `allocating`/`debating`. Voir si c'est un sous-ensemble de phases existantes ou une state machine dédiée par mode.
+- Impact sur tous les écrans qui supposent aujourd'hui qu'une séance traverse toutes les phases (superadmin, `PhaseIndicator`, tous les écrans participant).
+- Le "sondage" reprend la description exacte du système d'assertions/vote Bloc C existant (distanciel, résultats/camps actualisables) — vérifier ce qui peut être réutilisé tel quel vs. ce qui suppose implicitement un débat en aval.
+
+**Garde-fou** : chantier structurant touchant le cœur du flux de phases — ne pas le lancer en parallèle d'un autre chantier qui touche ce même flux (voir avertissement en tête de section).
+
+Périmètre de fichiers : large et à définir en démarrant — au minimum `sessions` (schéma + RPC de création), `SuperadminScreen.tsx` (flux "nouvelle séance"), la state machine de phases.
+
+#### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134
+
+**Consigne de Jules** : « Discussion à faire avec Opus : le but est de rendre possible des fonctionnalités pour des associations externes à Ecclesia. Notamment, dans un premier temps, deux fonctionnalités : le sondage (faire une séance de vote, mais ne pas faire de débat derrière) et la création d'une table de modérateur (un modérateur, avec des participants pour gérer la séance, et la possibilité d'avoir une table de participant tout court, mais sans tout ce qui est lié au vote). »
+
+Confirmé par Jules le 2026-09-25 : **134 d'abord**, 135 ensuite. Ce chantier reprend deux des trois modes du 134 (sondage, débat simple) mais change complètement d'échelle : ce n'est plus une option dans le menu du superadmin d'Ecclesia, c'est une ouverture à des **organisations tierces**, ce qui implique probablement :
+- Un modèle de comptes/organisations distinct du superadmin unique actuel (`app_config.superadmin_code_hash`) — actuellement il n'existe qu'un seul superadmin pour tout le système.
+- Une isolation des données entre organisations (RLS à revoir en profondeur — tout le modèle actuel de `session_members`/`table_assignments` self-only suppose une seule organisation).
+- Potentiellement un système d'authentification différent de l'auth anonyme actuelle pour ces comptes externes.
+
+**Ne pas lancer avant que 134 soit tranché** — son résultat conditionne directement ce qui est réutilisable ici (state machine par mode) vs. ce qu'il faut construire spécifiquement pour le multi-organisation.
+
+Périmètre de fichiers : à définir entièrement une fois 134 tranché — chantier d'architecture, pas une simple extension de fichiers existants.
+
+---
+
 ### 119 — Angles morts du code de rappel (inscriptions sans code) — ✅ fait, voir `docs/chantiers.md`
 
 **Fait le 2026-09-21** (numéroté 117 puis 118 au fil de deux rebases, faute de synchronisation avec deux autres sessions ayant pris ces numéros le même jour — définitivement 119). Détail complet (constat, fix, vérifications en base et au navigateur, angle hors périmètre découvert en cours de route) : entrée « 119 » de [`docs/chantiers.md`](./chantiers.md) et section « Chantier 119 » de [`../A_VERIFIER.md`](../A_VERIFIER.md). ⚠️ **Recoupe le chantier 118 ci-dessous** — voir l'amendement en tête de son entrée.
