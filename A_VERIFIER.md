@@ -872,9 +872,9 @@ Les points sont groupés **par écran/parcours**, pas par chantier, pour permett
 
   **Run final confirmé vert** : `backup` et `verify-restore` tous deux réussis (page restée affichée en "en cours" après completion réelle en ~1min30 — artefact anomalie d'affichage GitHub, pas un vrai blocage, confirmé par Jules).
 
-- [ ] **Confirmer le déclenchement automatique du cron quotidien (05:00 UTC)**
+- [x] **Confirmer le déclenchement automatique du cron quotidien (05:00 UTC)** *(confirmé le 2026-09-25)*
 
-  Après un ou deux jours, vérifier dans l'onglet Actions qu'un run s'est déclenché tout seul sans intervention manuelle, et qu'il est vert.
+  Runs `Scheduled` (pas manuels) tous les jours du 21/09 au 25/09, tous verts (~1m15-1m36s chacun). ⚠️ **Décalage constaté** : déclenchement observé vers 11h30-12h15 GMT+2, pas 07h00 GMT+2 comme attendrait un cron à `05:00 UTC` — écart récurrent de 4-6h. Comportement documenté par GitHub lui-même (un workflow programmé n'est pas garanti de démarrer pile à l'heure, surtout sur un dépôt public/gratuit à faible activité) : pas un bug à corriger, mais à savoir si une sauvegarde du jour est attendue avant la mi-journée.
 
 - [ ] **2026-09-02 — Test de restauration réelle grandeur nature (à faire une fois, pas à chaque run)**
 
