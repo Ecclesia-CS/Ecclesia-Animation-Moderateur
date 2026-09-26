@@ -451,24 +451,24 @@ export default function ModeratorView() {
     <div className="min-h-screen bg-slate-900 text-white">
 
       {/* ── Header ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-700 px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-700 px-3 py-2 sm:px-4 sm:py-3">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
 
           {/* Left: session title + join code + live mini-speaker */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {sessionDocs?.title && (
               <span className="hidden sm:block text-sm font-medium text-slate-400 truncate max-w-[180px]"
                 title={sessionDocs.title}>
                 {sessionDocs.title}
               </span>
             )}
-            <span className="font-mono text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
+            <span className="font-mono text-lg sm:text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
               {table.join_code}
             </span>
             {speaker && table.current_turn_started_at && (
               <>
-                <span className="text-slate-700 shrink-0">|</span>
-                <span className="flex items-center gap-2 text-sm min-w-0">
+                <span className="text-slate-700 shrink-0 hidden sm:inline">|</span>
+                <span className="flex items-center gap-2 text-sm min-w-0 basis-full sm:basis-auto order-1 sm:order-none">
                   <span className="text-slate-300 truncate">{speaker.pseudo}</span>
                   <SpeakerTimer
                     startedAt={table.current_turn_started_at}
@@ -481,19 +481,19 @@ export default function ModeratorView() {
           </div>
 
           {/* Right: moderator badge + actions */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end">
             <DocumentationButton
               session={sessionDocs}
               userPseudo={myParticipant?.pseudo}
               currentTableJoinCode={table.join_code}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
-                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
+                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 whitespace-nowrap"
             />
             <ModeratorToolsButton
               onError={setErr}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-slate-500 flex items-center gap-1.5"
+                focus:ring-slate-500 flex items-center gap-1.5 whitespace-nowrap"
             />
             <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-300">
               <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
@@ -503,7 +503,7 @@ export default function ModeratorView() {
               </span>
             </div>
             <span
-              className="md:hidden text-slate-400"
+              className="md:hidden text-slate-400 shrink-0"
               title={`${myParticipant.pseudo} — Modérateur`}
               aria-label={`${myParticipant.pseudo} — Modérateur`}
             >
@@ -512,9 +512,9 @@ export default function ModeratorView() {
 
             <button
               onClick={leaveTable}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg
                 text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-slate-500"
+                focus:ring-2 focus:ring-slate-500 whitespace-nowrap shrink-0"
             >
               Quitter
             </button>
@@ -532,10 +532,10 @@ export default function ModeratorView() {
         onDragEnd={handleMasterDragEnd}
         onDragCancel={handleDragCancel}
       >
-      <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-start">
+      <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-start">
 
         {/* ── Colonne principale ─────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="w-full flex-1 min-w-0 space-y-4">
 
         {err && (
           <div className="p-3 rounded-xl bg-red-900/30 border border-red-700 text-sm text-red-300">

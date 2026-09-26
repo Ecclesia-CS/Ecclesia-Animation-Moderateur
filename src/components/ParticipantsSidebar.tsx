@@ -106,7 +106,7 @@ export default function ParticipantsSidebar({
   }
 
   return (
-    <aside className={`w-full lg:w-52 shrink-0 border rounded-2xl p-3 flex flex-col gap-2 self-start sticky top-20 ${
+    <aside className={`w-full lg:w-52 shrink-0 border rounded-2xl p-3 flex flex-col gap-2 self-start lg:sticky lg:top-20 ${
       dark
         ? 'bg-slate-800/50 border-slate-700'
         : 'bg-white border-gray-200 shadow-sm'
