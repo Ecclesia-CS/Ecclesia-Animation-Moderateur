@@ -79,6 +79,13 @@ const PHASE_LABEL: Record<string, string> = {
   closed:        'Clôturée',
 }
 
+// Chantier 134 — dans un sondage, `pre_voting` est l'unique phase de vote
+// (rien ne suit, pas de présentiel) : « Pré-vote » y serait trompeur.
+function phaseLabel(phase: Session['phase'], type: SessionType = 'full'): string {
+  if (type === 'poll' && phase === 'pre_voting') return 'Vote'
+  return PHASE_LABEL[phase] ?? phase
+}
+
 const PHASE_CLASS: Record<string, string> = {
   draft:         'bg-gray-100 text-gray-600',
   pre_voting:    'bg-amber-100 text-amber-700',
@@ -624,7 +631,7 @@ function SessionCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[session.phase] ?? session.phase}
+              {phaseLabel(session.phase, sessionTypeOf(session))}
             </span>
             {sessionTypeOf(session) !== 'full' && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
@@ -2580,7 +2587,7 @@ function SessionDetail({
                 l'onglet Préparation, sans repasser par la liste des séances. */}
             <span className="text-sm font-semibold text-gray-900 truncate">{currentSession.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[currentSession.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[currentSession.phase] ?? currentSession.phase}
+              {phaseLabel(currentSession.phase, sessionType)}
             </span>
             {session.join_code && (
               <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
@@ -2608,6 +2615,7 @@ function SessionDetail({
         {/* ── Phase bar ───────────────────────────────────── */}
         <PhaseBar
           sequence={PHASE_SEQUENCE}
+          sessionType={sessionType}
           currentPhase={currentSession.phase}
           nextPhase={nextPhase}
           prevPhase={prevPhase}
@@ -2616,12 +2624,12 @@ function SessionDetail({
             if (!nextPhase) return
             // Débat simple : pas de post-vote, la sortie du débat est la clôture.
             if (currentSession.phase === 'debating' && sessionType === 'full') { setDebateExitChoice(true); return }
-            setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })
+            setPhaseConfirm({ phase: nextPhase, label: phaseLabel(nextPhase, sessionType), isBack: false })
           }}
-          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
+          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: phaseLabel(prevPhase, sessionType), isBack: true })}
           onPhaseSelect={(phase) => {
             const isBack = PHASE_SEQUENCE.indexOf(phase) < phaseIdx
-            setPhaseConfirm({ phase, label: PHASE_LABEL[phase] ?? phase, isBack })
+            setPhaseConfirm({ phase, label: phaseLabel(phase, sessionType), isBack })
           }}
         />
 
@@ -4029,6 +4037,7 @@ const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
 
 function PhaseBar({
   sequence,
+  sessionType,
   currentPhase,
   nextPhase,
   prevPhase,
@@ -4038,6 +4047,7 @@ function PhaseBar({
   onPhaseSelect,
 }: {
   sequence: Session['phase'][]
+  sessionType: SessionType
   currentPhase: Session['phase']
   nextPhase: Session['phase'] | null
   prevPhase: Session['phase'] | null
@@ -4049,7 +4059,9 @@ function PhaseBar({
   // Chantier 134 — seules les phases du mode de la séance. Pour une séance
   // complète, rien ne change ; pour un mode partiel, les cercles sont
   // renumérotés 0..n (la numérotation suit l'index, pas la phase).
-  const steps = PHASE_SEQUENCE_LABELS.filter(p => sequence.includes(p.phase))
+  const steps = PHASE_SEQUENCE_LABELS
+    .filter(p => sequence.includes(p.phase))
+    .map(p => sessionType === 'poll' && p.phase === 'pre_voting' ? { ...p, short: 'Vote' } : p)
   const currentIdx = steps.findIndex(p => p.phase === currentPhase)
 
   return (
@@ -4103,7 +4115,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs text-gray-400 hover:text-gray-600 py-1.5 px-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
           >
-            ← {PHASE_LABEL[prevPhase]}
+            ← {phaseLabel(prevPhase, sessionType)}
           </button>
         )}
         <div className="flex-1" />
@@ -4113,7 +4125,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50"
           >
-            {acting ? '…' : `Passer en ${PHASE_LABEL[nextPhase]} →`}
+            {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)} →`}
           </button>
         )}
         {!nextPhase && currentPhase !== 'closed' && (

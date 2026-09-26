@@ -39,7 +39,7 @@
 **Reste à vérifier par Jules** (mot de passe superadmin et Code Ecclesia non disponibles dans la session) :
 1. **Superadmin, modale « + Nouvelle séance »** : les trois cartes de type, les champs masqués selon le type (débat simple : pas de configuration du vote ; sondage : pas de case onboarding), le badge de type dans la liste des séances.
 2. **Superadmin, fiche d'un débat simple** : barre de phases à trois étapes (Phase 0 → Débat → Clôturée), onglets Tables / Préparation / Analyse seulement, table 1 visible dans l'onglet Tables pendant le débat, assignation/déplacement du modérateur par les outils existants, « Clôturer » depuis Débat sans passer par le choix post-vote, questionnaire forcé chez les participants à table.
-3. **Superadmin, fiche d'un sondage** : barre à trois étapes (Phase 0 → Pré-vote → Clôturée), onglets En direct / Préparation / Analyse, lancement de l'analyse puis **mise à jour des camps chez un participant** en rouvrant « Voir les résultats ».
+3. **Superadmin, fiche d'un sondage** : barre à trois étapes (Phase 0 → Vote → Clôturée — `pre_voting` en interne, libellé « Vote » pour un sondage), onglets En direct / Préparation / Analyse, lancement de l'analyse puis **mise à jour des camps chez un participant** en rouvrant « Voir les résultats ».
 4. **Débat simple, entrée « Je suis le modérateur » avec le vrai Code Ecclesia** : arrivée directe sur `ModeratorView`.
 5. **Débat simple, prise de modération depuis Outils** (« Je suis le modérateur de cette table », chantier 110) par un participant déjà assis.
 
