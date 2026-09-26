@@ -8,7 +8,8 @@ Dernière mise à jour : **2026-09-21**.
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+### 135 — Comptes associations externes (débat simple)
+**Branche** : `claude/chantier-135-external-users-592b48` · **Depuis** : 2026-09-26 · **Fichiers touchés** : pour l'instant `docs/chantier-135-conception.md` seulement (conception en attente des arbitrages de Jules). Prévus : nouvelle migration `organizations` + `sessions.organization_id`, ~15 RPC du débat simple (helper `check_session_admin`), RPC de modération (`claim_table_as_moderator` & co.), `SuperadminScreen.tsx` (onglet Associations), nouvel écran `#asso`, `EntryScreen.tsx` (filtre), `App.tsx` (route).
 
 > **Le 2026-09-26, le chantier 134 est mergé dans `dev`** (types de séance : séance complète / débat simple / sondage) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 134 ; entrée « en cours » retirée au merge. Précision sur la note de suivi dev/prod ci-dessous : le 134 était bien déclaré « en cours », mais sur sa propre branche (commit `cdf4c40`), pas encore sur `dev` — d'où l'impression d'une migration non déclarée. Ses deux migrations restent à appliquer sur **prod** au merge vers `main`.
 
@@ -227,6 +228,8 @@ Arbitrage tranché avec Jules le 2026-09-25 sur la relation avec le point suivan
 Périmètre de fichiers : large et à définir en démarrant — au minimum `sessions` (schéma + RPC de création), `SuperadminScreen.tsx` (flux "nouvelle séance"), la state machine de phases.
 
 #### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134
+
+> 🟡 **Lancé le 2026-09-26** (`claude/chantier-135-external-users-592b48`) — note de conception et questions à Jules : [`docs/chantier-135-conception.md`](./chantier-135-conception.md). Précision de Jules au lancement : pas de sondage ni de questionnaire post-débat pour les assos, comptes créés par lui (nom de l'asso + mot de passe dédié).
 
 **Consigne de Jules** : « Discussion à faire avec Opus : le but est de rendre possible des fonctionnalités pour des associations externes à Ecclesia. Notamment, dans un premier temps, deux fonctionnalités : le sondage (faire une séance de vote, mais ne pas faire de débat derrière) et la création d'une table de modérateur (un modérateur, avec des participants pour gérer la séance, et la possibilité d'avoir une table de participant tout court, mais sans tout ce qui est lié au vote). »
 
