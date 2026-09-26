@@ -47,3 +47,19 @@ Une seule fonction `phaseSequenceFor(session_type)` dans `lib/phaseLabels.ts`, l
 4. **Sondage — quand voir les résultats** : après bascule manuelle en phase « Résultats » (réutilise `post_voting`, écrans existants), ou déjà pendant le vote ? → **bascule manuelle** ; l'actualisation vient du revote et des nouvelles assertions, et de chaque relance d'analyse par le superadmin.
 5. **Sondage — retardataires** : quelqu'un qui arrive pendant la phase Résultats peut-il encore s'inscrire et voter ? → **oui** (sinon « qui peut s'actualiser » ne vaut que pour les premiers inscrits).
 6. **Sondage — `closed`** : garde-t-on la clôture qui coupe le revote et rend les résultats publics (`get_public_results`), comme aujourd'hui ? → **oui, inchangé**.
+
+---
+
+## Arbitrages de Jules (2026-09-26) et ce qui en découle
+
+1. **Débat simple, démarrage** : Jules hésitait (« il n'y a pas beaucoup de choses à régler en phase 0, seule la question du modérateur »). Retenu : **la séance passe par `draft`** comme les autres — le superadmin la crée à l'avance et affiche le QR quand il veut ouvrir. Désigner le modérateur en `draft` n'a pas de sens (personne n'est encore entré) : la modération s'attribue **pendant le débat**, par trois chemins qui existaient déjà ou presque :
+   - le superadmin l'assigne ou la déplace depuis l'onglet Tables (`AddModeratorControl`, glisser-déposer du chantier 123) ;
+   - quelqu'un se déclare modérateur **en rejoignant** (case « Je suis le modérateur » + Code Ecclesia sur l'écran d'entrée — nouveau, `join_simple_debate`) ;
+   - un participant déjà assis la prend depuis Outils → « Je suis le modérateur de cette table » (chantier 110, Code Ecclesia), ce qui permet aussi de la **déplacer** d'une personne à l'autre.
+2. **Une seule table par défaut**, créée avec la séance. Le superadmin peut en ajouter et déplacer les participants avec les outils existants de l'onglet Tables.
+3. **Questionnaire de fin** : oui, proposé à la clôture (forcé à la table, puis à l'entrée par le QR si pas encore répondu), puis écran « Séance terminée ».
+4. **Sondage, résultats** : visibles **déjà pendant le vote** (pas de risque de polarisation ici).
+5. **Sondage, retardataires** : on peut voter tant que la séance n'est pas close. À la clôture, résultats affichés et sondage **ajouté aux séances consultables** par tous.
+6. **Sondage, pas de post-vote** : tout se fait dans une seule phase de vote, distancielle uniquement. Le code de rappel sert seulement à retrouver son identité en changeant d'appareil. → séquence `draft → pre_voting → closed`.
+
+**Règle transverse** demandée par Jules : la plupart des évolutions des séances complètes doivent se transférer aux séances partielles, et chaque session doit se poser la question. Consignée dans `CLAUDE.md` § « Types de séance ».

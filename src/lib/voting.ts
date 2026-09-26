@@ -715,6 +715,34 @@ export async function assignLeastFilledTable(
 }
 
 /**
+ * Chantier 134 — entrée d'un participant dans un débat simple
+ * (`sessions.session_type = 'debate'`, phase `debating`). Inscription à la
+ * séance si besoin (code de rappel renvoyé une seule fois), place à table
+ * (celle où il est déjà assis, sinon la moins remplie) et, si le Code
+ * Ecclesia est fourni, prise de l'animation d'une table sans modérateur.
+ * Atomique côté serveur : une erreur n'inscrit personne à moitié.
+ */
+export async function joinSimpleDebate(
+  sessionId: string,
+  pseudo: string,
+  creationCode?: string,
+): Promise<TableResult & { new_reclaim_code: string | null; is_moderator: boolean; pseudo: string }> {
+  const { data, error } = await supabase.rpc('join_simple_debate', {
+    p_session_id:    sessionId,
+    p_pseudo:        pseudo,
+    p_creation_code: creationCode ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  const r = data as TableResult & { new_reclaim_code?: string | null; is_moderator?: boolean | null; pseudo?: string | null }
+  return {
+    ...r,
+    new_reclaim_code: r.new_reclaim_code ?? null,
+    is_moderator:     r.is_moderator === true,
+    pseudo:           r.pseudo ?? pseudo,
+  }
+}
+
+/**
  * Chantier 110 — depuis l'intérieur d'une table (bouton Outils « Je suis le
  * modérateur de cette table »), reprend l'autorité d'animation, Code
  * Ecclesia requis. Distinct de `claimTableAsModerator` : pas de join_code ni

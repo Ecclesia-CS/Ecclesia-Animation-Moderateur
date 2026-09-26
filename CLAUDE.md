@@ -127,6 +127,20 @@ Après tout test navigateur, ou toute implémentation dont le comportement reste
 
 ---
 
+## Types de séance — toute évolution se questionne pour les trois (chantier 134)
+
+Depuis le chantier 134, une séance a un **type**, fixé à la création (`sessions.session_type`) :
+
+| Type | Phases | Contenu |
+|---|---|---|
+| `full` — séance complète | `draft → pre_voting → voting → allocating → debating → post_voting → closed` | le parcours historique |
+| `debate` — débat simple | `draft → debating → closed` | une table modérée (d'autres ajoutables), questionnaire de fin, aucun vote |
+| `poll` — sondage | `draft → pre_voting → closed` | vote distanciel seul, résultats et camps visibles pendant le vote, publics à la clôture |
+
+La séquence vit à deux endroits qui doivent rester identiques : `session_type_allows_phase` (SQL, garde de `set_session_phase`) et `phaseSequenceFor` (`src/lib/phaseLabels.ts`). Lire le type via `sessionTypeOf(session)`, jamais `session.session_type` brut.
+
+> ⚠️ **Règle demandée par Jules (2026-09-26) — à appliquer par chaque session, sans attendre qu'on le lui rappelle** : la plupart des modifications apportées aux séances complètes doivent **se transférer aux séances partielles** (débat simple, sondage). Toute session qui touche un écran, une RPC ou une règle du parcours doit **se poser explicitement la question** : « ce changement concerne-t-il aussi `debate` et/ou `poll` ? » — et soit l'y appliquer, soit dire dans son compte rendu (et dans `docs/chantiers.md`) pourquoi il ne s'y applique pas. Un changement qui teste `phase === '…'` sans penser au type est le cas typique où l'oubli passe inaperçu : un débat simple n'a jamais de `voting`, un sondage jamais de `debating`.
+
 ## Modèle de données
 
 > 📎 **Détail colonne par colonne : [`docs/reference-modele-donnees.md`](./docs/reference-modele-donnees.md)** — toutes les tables (`sessions`, `tables`, `participants`, `queue_entries`, `session_members`, `entry_responses`, `assertions`, `assertion_votes`, `assertion_merges`, `table_assignments`, `speaking_turns`, `questionnaire_responses`, `private_notes`, `app_config`) et la politique de rétention des codes de rappel.
