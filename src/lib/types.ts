@@ -73,6 +73,8 @@ export interface Participant {
   user_id: string
   pseudo: string
   created_at: string
+  // Chantier 131 — "d'accord pour passer au sujet suivant", toggle self-service
+  wants_next_topic: boolean
 }
 
 export interface QueueEntry {
@@ -82,6 +84,8 @@ export interface QueueEntry {
   queue_type: 'long' | 'interactive'
   position: number
   created_at: string
+  // Chantier 131 — tag de sujet optionnel, saisi à la prise de parole
+  topic_tag: string | null
 }
 
 export interface SpeakingTurn {

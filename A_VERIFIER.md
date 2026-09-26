@@ -6,6 +6,33 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## ✅ Lacune d'environnement dev, découverte en préparant le chantier 131 — corrigée le 2026-09-26
+
+**Constat initial** : sur le projet Supabase **dev** (`mnjqrlrrzrycuconlfqb`, cloné le 25/09), deux réglages bloquaient toute session anonyme réelle depuis un navigateur — les deux **corrigés le 2026-09-26**, confirmés par Jules avant action :
+
+1. **Fournisseur d'authentification anonyme désactivé** (`422 anonymous_provider_disabled` sur `signInAnonymously()`, réglage du dashboard Supabase). **Activé par Jules** le jour même (Authentication → Sign In / Providers → « Allow anonymous sign-ins »).
+2. **Aucune table `public` n'avait de GRANT pour `anon`/`authenticated`.** `pg_default_acl` (schéma `public`) était entièrement vide sur dev, alors que prod a un `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES/SEQUENCES TO anon, authenticated, service_role` — réglage posé une fois par Supabase au bootstrap du projet, jamais écrit dans une migration versionnée, donc invisible à toute introspection du schéma courant. Corrigé par `supabase/migrations/20260926_fix_dev_grants_tables_sequences.sql` : `GRANT ALL` explicite sur les 22 tables + la séquence existantes, et `ALTER DEFAULT PRIVILEGES` pour que toute table future créée par une migration hérite des mêmes droits automatiquement (comme sur prod). Vérifié : `information_schema.role_table_grants` passe de 0 à 308 lignes pour anon/authenticated/service_role sur dev.
+
+Les deux corrections déverrouillent la vérification navigateur sur dev pour **tout** chantier, pas seulement le 131.
+
+## Chantier 131 — bouton "sujet suivant" + tag de sujet à la prise de parole (2026-09-26)
+
+**Vérifié en base**, sur dev, par transaction jetable (`BEGIN…ROLLBACK`, `auth.uid()` simulé via `set_config('request.jwt.claims', …)`, aucune ligne laissée) :
+- `add_to_queue(..., p_topic_tag)` : tag trimmé et stocké (`"  Le climat  "` → `"Le climat"`), tag composé uniquement d'espaces → `NULL`.
+- Contrainte `queue_entries_topic_tag_length` : un tag de 61 caractères est refusé.
+- `set_next_topic_vote` : un participant peut poser son propre drapeau à `true` ; tenter de le poser pour un AUTRE participant lève `Not authorized`.
+- `reset_next_topic_votes` : refusé pour un appelant non-modérateur (`Not authorized`) ; le modérateur effectif (`created_by` de la table) le déclenche avec succès et remet tous les drapeaux à `false`.
+
+**Vérifié au navigateur réel** (dev server sur ce worktree, `preview_start`/`ecclesia-dev`, session anonyme réelle une fois le point 1 ci-dessus activé — table + 2 participants QA insérés en base avec ce `user_id` réel, `localStorage.ecclesia_table` posé à la main pour basculer entre les deux perspectives, supprimés après coup) :
+- **Participant** : champ de tag rempli ("Le climat") sous "Demander la parole" → clic → entrée en file créée avec le tag, confirmation "Sujet indiqué : Le climat" affichée, remplace le champ de saisie. Bouton "👍 Je suis d'accord pour passer au sujet suivant" bascule bien en style plein (vert) au clic, texte change en "D'accord pour le sujet suivant (appuyer pour annuler)".
+- **Effet de bord observé, conforme au comportement documenté** : dès qu'un modérateur ouvre son écran avec la file non vide et personne ne parlant, le fallback d'auto-avancement (`ModeratorView`, condition de course) attribue immédiatement la parole au premier de la file — comportement voulu (CLAUDE.md § Auto-avancement), pas un bug, juste à anticiper en préparant un scénario de test avec une file non consommée (il faut qu'un orateur occupe déjà le micro).
+- **Modérateur** : panneau "Sujet suivant" affiche "1 / 2 d'accord pour passer au sujet suivant" en direct après le clic du participant (aucun reload). Clic "Réinitialiser" → repasse à "0 / 2", confirmé en base (`wants_next_topic = false` pour les deux), et la vue participant rechargée montre bien le bouton retombé en style non actif.
+- Le tag de sujet s'affiche correctement à côté du prénom dans `QueuePanel` (vue modérateur, ex. "ModoQA131 — Économie locale") et dans `ReadOnlyQueuePanel` (vue participant, y compris pour les entrées des AUTRES participants).
+
+**Rien à revérifier humainement** pour ce chantier — tous les chemins ont été rejoués à l'écran avec des données réelles, pas seulement en base.
+
+**Migration** : `supabase/migrations/20260926_chantier131_sujet_suivant_et_tag.sql`, appliquée sur **dev uniquement**. À réappliquer sur **prod** au moment du merge vers `main` (règle de circulation dev→main, `CLAUDE.md`).
+
 ## Chantier 128 — modérateur affiché en double sur une même table, vue superadmin (2026-09-25)
 
 **Diagnostic confirmé en base (pas une hypothèse)** : dans une séance, un modérateur déjà « en exercice » Bloc C (ligne `session_members`, `tables.active_moderator_member_id` posé sur cette ligne) réclame ensuite la MÊME table par Code Ecclesia (`claim_table_as_moderator`) sous une **nouvelle identité anonyme** (`auth.uid()` renouvelé — nouvel appareil, ou `localStorage` vidé), en retapant le même pseudo. `active_moderator_member_id = COALESCE(…)` (chantier 106/118) ne bascule jamais sur cette nouvelle identité. `list_table_assignments_admin` (branche `UNION ALL` du chantier 117) l'affiche alors comme un SECOND modérateur, car son `NOT EXISTS` ne testait que `user_id`, pas le pseudo.

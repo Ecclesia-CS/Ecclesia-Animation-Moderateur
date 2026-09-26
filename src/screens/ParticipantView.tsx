@@ -26,6 +26,7 @@ export default function ParticipantView() {
     leaveTable,
     endTurnAndAdvance,
     claimFloor,
+    setNextTopicVote,
   } = useTable()
 
   const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
@@ -34,6 +35,8 @@ export default function ParticipantView() {
   const [showAskAdminModal,  setShowAskAdminModal]  = useState(false)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
+  const [topicTag,           setTopicTag]           = useState('')
+  const [pendingNextTopic,   setPendingNextTopic]   = useState(false)
   const [sessionTitle,       setSessionTitle]       = useState<string | null>(null)
   const [sessionDocs,        setSessionDocs]        = useState<{
     doc_info_url: string | null
@@ -134,12 +137,29 @@ export default function ParticipantView() {
     if (type === 'long'        && !existing) setPendingLong(true)
     if (type === 'interactive' && !existing) setPendingInteractive(true)
     try {
-      if (existing) await removeFromQueue(existing.id)
-      else await addToQueue(myParticipant.id, type)
+      if (existing) {
+        await removeFromQueue(existing.id)
+        if (type === 'long') setTopicTag('')
+      } else {
+        await addToQueue(myParticipant.id, type, undefined, type === 'long' ? topicTag : undefined)
+      }
     } catch (e) {
       setErr(extractErr(e))
       if (type === 'long')        setPendingLong(false)
       else                        setPendingInteractive(false)
+    }
+  }
+
+  // Chantier 131 — "d'accord pour passer au sujet suivant"
+  async function handleToggleNextTopic() {
+    setErr(null)
+    setPendingNextTopic(true)
+    try {
+      await setNextTopicVote(!myParticipant.wants_next_topic)
+    } catch (e) {
+      setErr(extractErr(e))
+    } finally {
+      setPendingNextTopic(false)
     }
   }
 
@@ -219,6 +239,21 @@ export default function ParticipantView() {
             disabled={iAmSpeaking}
             onClick={() => toggle('long', myLong)}
           />
+          {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
+          {!myLong && !pendingLong ? (
+            <input
+              type="text"
+              value={topicTag}
+              onChange={e => setTopicTag(e.target.value.slice(0, 60))}
+              placeholder="Sujet ou thème dont tu veux parler (optionnel)"
+              className="w-full text-sm px-3.5 py-2 rounded-xl border border-gray-200 text-gray-700
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+            />
+          ) : myLong?.topic_tag ? (
+            <p className="text-xs text-gray-500 px-1">
+              Sujet indiqué : <span className="font-medium text-gray-700">{myLong.topic_tag}</span>
+            </p>
+          ) : null}
           <QueueToggle
             label="Coupe file"
             sub="Pour répondre à ce qui est dit actuellement uniquement"
@@ -230,6 +265,28 @@ export default function ParticipantView() {
             disabled={iAmSpeaking}
             onClick={() => toggle('interactive', myInteractive)}
           />
+
+          {/* Chantier 131 — "d'accord pour passer au sujet suivant" */}
+          <button
+            onClick={handleToggleNextTopic}
+            disabled={pendingNextTopic}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2
+              text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 ${
+              myParticipant.wants_next_topic
+                ? 'bg-emerald-600 border-emerald-600 text-white'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50/50'
+            }`}
+          >
+            {pendingNextTopic ? (
+              <span className="w-4 h-4 rounded-full border-2 border-current/60 border-t-transparent animate-spin" />
+            ) : (
+              <span>👍</span>
+            )}
+            {myParticipant.wants_next_topic
+              ? "D'accord pour le sujet suivant (appuyer pour annuler)"
+              : 'Je suis d’accord pour passer au sujet suivant'}
+          </button>
         </div>
 
         {err && (
