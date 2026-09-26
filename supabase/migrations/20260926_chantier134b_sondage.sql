@@ -9,6 +9,10 @@
 --    qu'il rejoigne les séances consultables par tous à la clôture. Le
 --    superadmin garde la bascule (set_session_results_public) pour l'en retirer.
 --    Même signature que 134a : CREATE OR REPLACE, droits conservés.
+--
+-- Note : une session de synchronisation dev/prod avait reconstitué ce fichier
+-- depuis la base dev (commit 73298a1) avant qu'il ne soit poussé ; SQL
+-- identique, cette version d'origine (commentée) le remplace au merge.
 
 -- ── 1. get_results_map ─────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_results_map(p_session_id uuid, p_member_id uuid)
