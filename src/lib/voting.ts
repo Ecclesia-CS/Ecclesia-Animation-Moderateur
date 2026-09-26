@@ -33,6 +33,10 @@ export const PSEUDO_TAKEN_MESSAGE =
 export const PSEUDO_PUBLIC_NOTICE =
   "Ce nom sera utilisé par le modérateur pour te donner la parole pendant le débat."
 
+/** Chantier 134 — un sondage n'a ni débat ni modérateur : le nom sert seulement à retrouver ses votes. */
+export const PSEUDO_POLL_NOTICE =
+  "Ce nom, avec ton code de rappel, te permet de retrouver tes votes sur un autre appareil."
+
 /**
  * Chantier 93 — les RPC d'identité ne lèvent PAS sur un refus d'identification
  * (mauvais code, blocage après 10 essais) : elles renvoient `{ error }`. Un

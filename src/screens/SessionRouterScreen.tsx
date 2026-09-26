@@ -155,6 +155,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               // Chantier 39 — plus de phase 'questionnaire' dédiée : un membre
               // inscrit qui n'a pas encore répondu au questionnaire post-débat
               // le voit avant sa carte de résultats (scatter + point self).
+              // Chantier 134 — un sondage n'a pas de débat, donc pas de
+              // questionnaire post-débat : directement les résultats.
+              if (sessionTypeOf(s) === 'poll') {
+                setStatus('results_map')
+                return
+              }
               const answered = await hasQuestionnaireResponse(s.id)
               // Chantier 134 — un débat simple n'a pas de carte de résultats :
               // questionnaire de fin (demandé par Jules), puis écran de fin.

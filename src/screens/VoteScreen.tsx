@@ -24,6 +24,8 @@ import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
+import { sessionTypeOf } from '../lib/phaseLabels'
+import ResultsMapScreen from './ResultsMapScreen'
 import RenamePseudoModal from '../components/voting/RenamePseudoModal'
 import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
 import DocNudge from '../components/voting/DocNudge'
@@ -99,6 +101,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // vit dans le parent, pas dans VoteToolsPanel, sinon onClose() démonte le panneau
   // avant que la modale ne s'ouvre.
   const [showModeratorClaimModal, setShowModeratorClaimModal] = useState(false)
+  const [showLiveResults, setShowLiveResults] = useState(false)
   // Chantier 93 — changer son nom depuis les outils du vote.
   const [showRenameModal, setShowRenameModal] = useState(false)
   // Chantier 92 — binômes (état dans le parent, même piège que NotesModal).
@@ -190,7 +193,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       }
 
       // G12 — annonce du vote à distance, une fois par séance, uniquement en pre_voting
-      if (s.phase === 'pre_voting' && !localStorage.getItem(`ecclesia_prevoting_announce_${s.id}`)) {
+      if (s.phase === 'pre_voting' && sessionTypeOf(s) !== 'poll' && !localStorage.getItem(`ecclesia_prevoting_announce_${s.id}`)) {
         setShowPreVotingAnnounce(true)
       }
 
@@ -542,6 +545,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     }
   }, [myVotes.size, nextNudgeAt, assertions.length, step])
 
+  // ── Chantier 134 — sondage : pas de débat, donc pas de questionnaire
+  // post-débat. Les quatre chemins qui mènent à 'questionnaire' (init,
+  // Realtime, polling, onboarding) sont court-circuités ici en un seul point.
+  useEffect(() => {
+    if (step === 'questionnaire' && sessionTypeOf(session) === 'poll') setStep('closed')
+  }, [step, session])
+
   // ── Redirect vers SessionRouterScreen quand session clôturée ─────────────
   useEffect(() => {
     if (step === 'closed') {
@@ -744,7 +754,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       return (
         <>
           <QuitLink />
-          <PhaseIndicator phase={session.phase} floating />
+          <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
           <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
               <div className="text-center mb-4">
@@ -768,7 +778,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        <PhaseIndicator phase={session?.phase} floating />
+        <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session?.phase} floating />
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">🎉</div>
@@ -787,7 +797,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        <PhaseIndicator phase={session.phase} floating />
+        <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
         {showAppIntro
           ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />
           : showPreVotingAnnounce && <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />}
@@ -829,7 +839,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       return (
         <>
           <QuitLink />
-          <PhaseIndicator phase={session.phase} floating />
+          <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
           {intro}
           <VotingEntryForm
             session={session}
@@ -842,7 +852,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        <PhaseIndicator phase={session.phase} floating />
+        <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
         {intro}
         <PseudoForm
           session={session}
@@ -857,7 +867,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        <PhaseIndicator phase={session.phase} floating />
+        <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
         <ReclaimCodeDisplay
           pseudo={member.pseudo}
           code={reclaimCode}
@@ -871,7 +881,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        <PhaseIndicator phase={session.phase} floating />
+        <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
         {showAppIntro
           ? <AppIntroModal session={session} onClose={() => setShowAppIntro(false)} />
           : showPreVotingAnnounce && <PreVotingAnnounceModal session={session} onClose={() => setShowPreVotingAnnounce(false)} />}
@@ -895,10 +905,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return (
       <>
         <QuitLink />
-        <PhaseIndicator phase={session.phase} floating />
+        <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
         <OnboardingForm sessionId={session.id} member={member} onSuccess={handleOnboardingSuccess} />
       </>
     )
+  }
+
+  // Chantier 134 — sondage : résultats et camps consultables pendant le vote.
+  if (step === 'vote' && session && member && showLiveResults) {
+    return <ResultsMapScreen session={session} memberId={member.id} onBack={() => setShowLiveResults(false)} />
   }
 
   if (step === 'vote' && session && member) {
@@ -933,8 +948,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <PhaseIndicator phase={session.phase} />
-              {member.is_moderator && (
+              <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} />
+              {member.is_moderator && sessionTypeOf(session) !== 'poll' && (
                 <button
                   type="button"
                   onClick={() => setShowModeratorInfo(true)}
@@ -976,6 +991,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Progress */}
         <VoteProgress voted={votedCount} total={assertions.length} proposed={proposedCount} />
+
+        {sessionTypeOf(session) === 'poll' && (
+          <div className="mx-4 mt-3">
+            <button
+              onClick={() => setShowLiveResults(true)}
+              className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl transition-colors"
+            >
+              📊 Voir les résultats et les camps en direct
+            </button>
+          </div>
+        )}
 
         {/* Vote area */}
         {allVoted ? (
@@ -1317,6 +1343,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <RenamePseudoModal
             sessionId={session.id}
             currentPseudo={member.pseudo}
+            isPoll={sessionTypeOf(session) === 'poll'}
             onClose={() => setShowRenameModal(false)}
             onRenamed={next => setMember(m => (m ? { ...m, pseudo: next } : m))}
           />
@@ -1391,7 +1418,12 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   // (chantier 39), qui a introduit un palier « Distanciel » distinct du vote
   // présentiel et fusionné le questionnaire dans « Post-débat » : ce modal en
   // annonçait encore 4, la 5e (pré-vote) n'apparaissait nulle part.
-  const introSteps: Array<{ icon: string; label: string; description: string }> = [
+  const introSteps: Array<{ icon: string; label: string; description: string }> = sessionTypeOf(session) === 'poll' ? [
+    { icon: '🗳️', label: '1. Vote',
+      description: "Vote sur les assertions, et propose les tiennes. Tu peux voir les résultats et les camps d'opinion à tout moment." },
+    { icon: '📊', label: '2. Résultats',
+      description: 'À la clôture, les résultats restent consultables par tous.' },
+  ] : [
     { icon: '🏠', label: '1. Distanciel',
       description: "Si le vote à distance est ouvert, tu peux voter depuis chez toi avant le jour J." },
     { icon: '🗳️', label: '2. Vote en présentiel',
@@ -1652,6 +1684,7 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
           {/* Chantier 73 — déclaration modérateur, déplacée ici depuis le header
               (trop apparent). Reste proposée même à un modérateur déjà déclaré :
               un second appel est sans effet côté serveur. */}
+          {sessionTypeOf(session) !== 'poll' && (
           <button
             onClick={() => { onClose(); onOpenModeratorClaim() }}
             className={linkClass}
@@ -1662,6 +1695,7 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
             </svg>
             Me déclarer modérateur
           </button>
+          )}
 
           {/* Chantier 93 — renommage libre : le nom est public pendant le débat.
               Chantier 116 — même modale, pour aussi faire réapparaître son code. */}

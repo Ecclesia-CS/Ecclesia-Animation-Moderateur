@@ -28,7 +28,10 @@
 | `reorder_queue_entry(entry_id, new_position)` | Déplace atomiquement |
 | `kick_participant(table_id, participant_id)` | Exclut + cascade |
 | `correct_turn(turn_id, started_at, ended_at, participant_id)` | COALESCE — NULL = ne pas modifier |
-| `create_session(password, title, description?, scheduled_at?, doc_*?)` | Crée une séance |
+| `create_session(password, title, description?, scheduled_at?, doc_*?, onboarding_enabled?, session_type?)` | Crée une séance. **Chantier 134** : `p_session_type` (`full` par défaut, `debate`, `poll`) — un débat simple naît avec sa table unique (`admin_create_session_table`, animée) et l'onboarding désactivé ; un sondage naît avec `results_public = true`. |
+| `session_type_allows_phase(session_type, phase)` | **Chantier 134** — séquence de phases autorisée par type de séance, lue par `set_session_phase`. Miroir front : `phaseSequenceFor` (`src/lib/phaseLabels.ts`) — les deux doivent rester identiques. |
+| `join_simple_debate(session_id, pseudo, creation_code?)` | **Chantier 134** — entrée d'un participant dans un débat simple (phase `debating`) : inscription `session_members` si besoin (code de rappel renvoyé une fois dans `new_reclaim_code`), retour à sa table s'il y est déjà assis, sinon table la moins remplie ; avec le Code Ecclesia, prend l'animation d'une table **sans** modérateur (drapeau + `active_moderator_member_id` + `created_by`), refus explicite si toutes sont tenues. Atomique : une erreur n'inscrit personne. Renvoie aussi `is_moderator` et `pseudo`. |
+| `get_results_map(session_id, member_id)` | Carte des camps d'un membre (`ResultsMapScreen`) : dernière analyse `done`/`current`, points (avec `is_self`), consensus, repness. Ouverte en `closed` seulement — **chantier 134** : aussi en `pre_voting` pour un sondage. ⚠️ Pas ouverte en `post_voting` d'une séance complète (constat du chantier 134, non corrigé). |
 | `attach_table_to_session(password, table_id, session_id)` | Rattache |
 | `detach_table_from_session(password, table_id)` | Détache |
 | `close_session(password, session_id)` | phase → 'closed' |
@@ -47,7 +50,7 @@
 | `get_vote_results(session_id)` | Retourne assertions approved avec consensus_score |
 | `approve_assertion(password, assertion_id)` | status → 'approved' |
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |
-| `set_session_phase(password, session_id, phase)` | Change la phase (inclut `pre_voting`). **Chantier 49** : passage à `closed` → purge aussi `reclaim_code_hash` (NULL) pour tous les membres de la séance, voir « Rétention des données » |
+| `set_session_phase(password, session_id, phase)` | Change la phase (inclut `pre_voting`). **Chantier 134** : refuse une phase hors de la séquence du type de séance (`session_type_allows_phase`). **Chantier 49** : passage à `closed` → purge aussi `reclaim_code_hash` (NULL) pour tous les membres de la séance, voir « Rétention des données » |
 | `regenerate_reclaim_code_admin(password, member_id)` | Superadmin — émet un nouveau code de rappel pour un membre ciblé par `member_id`, invalide l'ancien. Retourne `{pseudo, new_reclaim_code}` (une seule fois, en clair) |
 | `regenerate_reclaim_code_moderator(table_id, pseudo)` | Idem, par le modérateur d'une table — restreint à un membre assis à SA table, ciblé par pseudo (`session_members` self-only, pas de `member_id` côté client) |
 | `regenerate_reclaim_code_self(session_id)` | **Chantier 116** — idem, self-service : le participant régénère SON propre code (ciblé par `auth.uid()`). Seule façon de « retrouver » son code depuis que `reclaim_code_hash` est haché (chantier 93) — un code bcrypt ne peut pas être relu, seulement remplacé |

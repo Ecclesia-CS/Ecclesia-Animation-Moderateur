@@ -9,7 +9,7 @@ Dernière mise à jour : **2026-09-21**.
 ## Chantiers en cours
 
 ### 134 — « Nouvelle séance » : 3 modes (séance complète / débat simple / sondage)
-**Branche** : `claude/chantier-134-80bd0f` · **Depuis** : 2026-09-26 · **Fichiers touchés (prévus)** : `supabase/migrations/…` (`sessions.session_type`, `create_session`, `set_session_phase`), `src/screens/SuperadminScreen.tsx` (modale de création, barre de phases, onglets), `src/lib/phaseLabels.ts`, `src/components/PhaseIndicator.tsx`, `src/lib/sessions.ts`, `src/lib/types.ts` ; en 134b : `VoteScreen.tsx`, `SessionRouterScreen.tsx`. **État** : note de conception livrée ([`chantier-134-conception.md`](./chantier-134-conception.md)), en attente des arbitrages de Jules — aucun code écrit. ⚠️ Touche le flux de phases Bloc C : ne pas lancer en parallèle un chantier sur ce flux.
+**Branche** : `claude/chantier-134-80bd0f` · **Depuis** : 2026-09-26 · **Fichiers touchés** : `supabase/migrations/20260926_chantier134{a,b}_*.sql` (`sessions.session_type`, `create_session`, `set_session_phase`, `join_simple_debate`, `get_results_map`, `list_public_closed_sessions`), `SuperadminScreen.tsx`, `SessionRouterScreen.tsx`, `VoteScreen.tsx`, `ResultsMapScreen.tsx`, `ParticipantView.tsx`, `PhaseIndicator.tsx`, `PseudoForm.tsx`, `RenamePseudoModal.tsx`, `SessionQuestionnaireForm.tsx`, nouveau `DebateEntryForm.tsx`, `lib/{types,phaseLabels,sessions,voting}.ts`, `CLAUDE.md`. **État** : 134a (socle + débat simple) et 134b (sondage) **livrés sur la branche, pas mergés** ; migrations appliquées sur **dev** seulement. Entrée à retirer au merge. ⚠️ Touche le flux de phases Bloc C : ne pas lancer en parallèle un chantier sur ce flux.
 
 > **Le 2026-09-26, le chantier 131 est fait** — bouton "d'accord pour le sujet suivant" + tag de sujet optionnel à la prise de parole. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
@@ -213,6 +213,8 @@ Périmètre de fichiers (à affiner en démarrant) : nouvelles tables SQL (ex. `
 Périmètre de fichiers (à affiner en démarrant) : `VoteScreen.tsx` (zone touchée par le chantier 121), `SubmitAssertionModal.tsx` en vérification croisée.
 
 #### 134 — "Nouvelle séance" : 3 modes (séance complète / débat simple / sondage) — usage interne — **Opus demandé par Jules**
+
+> 🟡 **Livré le 2026-09-26, pas mergé** (`claude/chantier-134-80bd0f`). Arbitrages de Jules et conception : [`docs/chantier-134-conception.md`](./chantier-134-conception.md) ; détail dans `docs/chantiers.md` et recette dans `A_VERIFIER.md` § Chantier 134. **Le 135 n'est plus bloqué sur la conception** (type de séance + séquence de phases par type = la brique réutilisable), mais reste à lancer après le merge du 134.
 
 **Consigne de Jules** : « Discussion opus (et probablement à scinder en deux) : Quand on fait "nouvelle séance" dans le menu superadmin, on propose 3 choses : séance complète, débat simple, et sondage. La séance complète est comme actuellement, le débat simple est juste la création d'une table, avec modérateur, et sans vote préalable, ou après, ou tout fonctionnement lié aux assertions. Au contraire, le sondage, c'est tout le fonctionnement lié aux assertions (votes distanciel uniquement, sans besoin de faire de présentiel derrière, et une vision des résultats et des camps qui peut s'actualiser) mais sans le débat avec la table de débat, et l'allocation. »
 
