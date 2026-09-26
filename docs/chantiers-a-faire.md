@@ -8,7 +8,8 @@ Dernière mise à jour : **2026-09-21**.
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+### 134 — « Nouvelle séance » : 3 modes (séance complète / débat simple / sondage)
+**Branche** : `claude/chantier-134-80bd0f` · **Depuis** : 2026-09-26 · **Fichiers touchés (prévus)** : `supabase/migrations/…` (`sessions.session_type`, `create_session`, `set_session_phase`), `src/screens/SuperadminScreen.tsx` (modale de création, barre de phases, onglets), `src/lib/phaseLabels.ts`, `src/components/PhaseIndicator.tsx`, `src/lib/sessions.ts`, `src/lib/types.ts` ; en 134b : `VoteScreen.tsx`, `SessionRouterScreen.tsx`. **État** : note de conception livrée ([`chantier-134-conception.md`](./chantier-134-conception.md)), en attente des arbitrages de Jules — aucun code écrit. ⚠️ Touche le flux de phases Bloc C : ne pas lancer en parallèle un chantier sur ce flux.
 
 > **Le 2026-09-26, le chantier 131 est fait** — bouton "d'accord pour le sujet suivant" + tag de sujet optionnel à la prise de parole. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
