@@ -6,7 +6,7 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
-## ⚠️ Correctif Realtime dev (policies manquantes sur `realtime.messages`) — appliqué le 2026-09-26, à confirmer au navigateur
+## ✅ Correctif Realtime dev (policies manquantes sur `realtime.messages`) — appliqué et vérifié au navigateur le 2026-09-26
 
 **Contexte** : suivi dev/prod (voir `docs/chantiers.md`, ligne « Suivi dev/prod »). `realtime.messages` avait RLS activé mais **zéro policy** sur dev (`mnjqrlrrzrycuconlfqb`), alors que prod (`plpjiehqsxxakbuykmkm`) en a deux (`ecclesia_realtime_read`, `ecclesia_realtime_write`, posées par le chantier 59). RLS activé + zéro policy = refus par défaut pour tout rôle non-superuser → `Unauthorized: You do not have permissions to read from this Channel topic` sur **tous** les canaux Realtime privés de l'app côté dev (`table:<id>`, `vote:<session_id>`, `session-member:<id>`, `allocating:<id>`, `postvote:...`, etc.). Ces deux policies vivent dans le schéma `realtime` (table système Supabase), hors du périmètre `public` introspecté au clonage du schéma dev le 25/09 — c'est pour ça qu'elles n'ont jamais été reproduites.
 
@@ -14,7 +14,7 @@
 
 **Appliqué** (`supabase/migrations/20260926_fix_dev_realtime_messages_policies.sql`, copie conforme des deux policies de prod) et **vérifié en base après coup** : `pg_policies` sur dev liste maintenant `ecclesia_realtime_read` (SELECT) et `ecclesia_realtime_write` (INSERT), comme sur prod.
 
-**Ce qui reste à vérifier au navigateur (non fait par cette session, pas de serveur de dev lancé)** : ouvrir deux onglets sur une même table en environnement dev (`ecclesia-animation-moderateur-git-dev-ecclesia5.vercel.app` ou `npm run dev` local pointé sur dev) et confirmer qu'une action d'un onglet (drag & drop de file d'attente, passage de parole, changement de phase superadmin) se reflète **en direct** dans l'autre, sans attendre le polling de secours (5-10s) ni un reload. Avant ce correctif, seul le filet de rattrapage fonctionnait — plus lent, avec des reloads intempestifs en cas d'erreur de canal (`CHANNEL_ERROR`/`TIMED_OUT`, § Realtime latence de `CLAUDE.md`).
+**Vérifié au navigateur réel** (dev server local sur ce worktree, `.env` temporaire pointé vers la base dev — non commité, supprimé après le test) : séance + table de test créées en base (`join_code` jetable `RTQATB`), deux onglets du Browser pane rejoignant la même table. Action « Coupe file » cliquée dans un onglet → apparue dans l'autre onglet **en ~2 secondes, sans reload et sans attendre le polling de secours (5-10s)** — confirme que le canal privé `table:<id>` fonctionne. Limite de la méthode : les deux onglets du Browser pane partagent le même `localStorage` (même origine), donc la même session anonyme (`auth.uid()` identique) — le test ne distingue donc pas deux identités différentes, mais il confirme bien que le blocage total (« zéro policy = refus pour tout rôle ») est levé, ce qui était le seul point en cause ici. Séance/table/participants/queue_entries de test purgés en base après coup.
 
 ## ✅ Lacune d'environnement dev, découverte en préparant le chantier 131 — corrigée le 2026-09-26
 
