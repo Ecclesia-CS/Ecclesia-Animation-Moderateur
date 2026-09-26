@@ -6,6 +6,32 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## ⚠️ Lacune d'environnement dev, découverte en préparant le chantier 131 (2026-09-26), sans rapport avec ce chantier
+
+**Constat** : sur le projet Supabase **dev** (`mnjqrlrrzrycuconlfqb`, cloné le 25/09), deux réglages bloquent toute session anonyme réelle depuis un navigateur — donc toute vérification navigateur de n'importe quel chantier tant qu'ils ne sont pas corrigés :
+
+1. **Fournisseur d'authentification anonyme désactivé.** `POST /auth/v1/signup` (endpoint utilisé par `signInAnonymously()`) répond `422 anonymous_provider_disabled`. Sur prod, ce même appel fonctionne (c'est ce que fait l'app à chaque nouveau participant). Réglage Auth du dashboard Supabase, pas quelque chose que la copie de schéma du 25/09 pouvait reproduire automatiquement.
+2. **Aucune table `public` n'a de GRANT pour `anon`/`authenticated`.** Vérifié : `select count(*) from information_schema.role_table_grants where table_schema='public' and grantee in ('anon','authenticated')` → **0** sur dev, **274** sur prod. RLS, policies et droits d'exécution des fonctions (chantiers 102/103) ont bien été reproduits sur dev (confirmé : les RPC `SECURITY DEFINER` fonctionnent normalement, elles s'exécutent avec les privilèges du propriétaire) — mais les `GRANT SELECT/INSERT/UPDATE/DELETE` **au niveau table** n'en font pas partie et n'ont, semble-t-il, jamais été recopiés. Concrètement : même avec l'auth anonyme réactivée, tout `supabase.from(...)` du frontend échouerait avec `permission denied for table …`, quelle que soit la policy RLS.
+
+**Pourquoi ce n'est pas corrigé ici** : périmètre bien plus large que le chantier 131 (concerne tout le schéma, pas un fichier), et une mauvaise recopie de la matrice de droits de prod serait risquée à corriger sans validation. Comparer `information_schema.role_table_grants` entre les deux projets (`plpjiehqsxxakbuykmkm` vs `mnjqrlrrzrycuconlfqb`) donnerait directement la liste des `GRANT` manquants à rejouer sur dev.
+
+**Impact pratique immédiat** : le chantier 131 (voir entrée ci-dessous) n'a pu être vérifié qu'en base (transactions jetables, `auth.uid()` simulé), pas au navigateur. Tout chantier suivant qui compte tester au navigateur sur dev butera sur le même mur tant que ces deux points ne sont pas corrigés — à signaler à Jules.
+
+## Chantier 131 — bouton "sujet suivant" + tag de sujet à la prise de parole (2026-09-26)
+
+**Ce qui a été vérifié** — en base, sur dev, par transaction jetable (`BEGIN…ROLLBACK`, `auth.uid()` simulé via `set_config('request.jwt.claims', …)`, aucune ligne laissée) :
+- `add_to_queue(..., p_topic_tag)` : tag trimmé et stocké (`"  Le climat  "` → `"Le climat"`), tag composé uniquement d'espaces → `NULL`.
+- Contrainte `queue_entries_topic_tag_length` : un tag de 61 caractères est refusé.
+- `set_next_topic_vote` : un participant peut poser son propre drapeau à `true` ; tenter de le poser pour un AUTRE participant lève `Not authorized`.
+- `reset_next_topic_votes` : refusé pour un appelant non-modérateur (`Not authorized`) ; le modérateur effectif (`created_by` de la table) le déclenche avec succès et remet tous les drapeaux à `false`.
+
+**Non vérifié au navigateur** — bloqué par la lacune d'environnement décrite juste au-dessus (auth anonyme désactivée + aucun GRANT de table sur dev), découverte en préparant cette recette, sans rapport avec le code de ce chantier. Reste à rejouer une fois l'un des deux corrigé (ou après merge sur `main`, contre prod) :
+- Vue participant : le bouton "👍 D'accord pour le sujet suivant" bascule bien d'état, et le champ de tag sous "Demander la parole" (masqué une fois dans la file, remplacé par "Sujet indiqué : …") se comporte comme attendu.
+- Vue modérateur : `NextTopicPanel` affiche le bon décompte en direct (Realtime, sans reload) quand un participant coche/décoche, et "Réinitialiser" remet le compteur à 0 pour tout le monde.
+- Le tag de sujet s'affiche bien à côté du prénom dans `QueuePanel` (vue modo) et `ReadOnlyQueuePanel` (vue participant).
+
+**Migration** : `supabase/migrations/20260926_chantier131_sujet_suivant_et_tag.sql`, appliquée sur **dev uniquement**. À réappliquer sur **prod** au moment du merge vers `main` (règle de circulation dev→main, `CLAUDE.md`).
+
 ## Chantier 128 — modérateur affiché en double sur une même table, vue superadmin (2026-09-25)
 
 **Diagnostic confirmé en base (pas une hypothèse)** : dans une séance, un modérateur déjà « en exercice » Bloc C (ligne `session_members`, `tables.active_moderator_member_id` posé sur cette ligne) réclame ensuite la MÊME table par Code Ecclesia (`claim_table_as_moderator`) sous une **nouvelle identité anonyme** (`auth.uid()` renouvelé — nouvel appareil, ou `localStorage` vidé), en retapant le même pseudo. `active_moderator_member_id = COALESCE(…)` (chantier 106/118) ne bascule jamais sur cette nouvelle identité. `list_table_assignments_admin` (branche `UNION ALL` du chantier 117) l'affiche alors comme un SECOND modérateur, car son `NOT EXISTS` ne testait que `user_id`, pas le pseudo.

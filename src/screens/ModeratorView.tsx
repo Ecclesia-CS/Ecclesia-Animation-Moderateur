@@ -25,6 +25,7 @@ import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import DocumentationButton from '../components/DocumentationButton'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
+import NextTopicPanel from '../components/NextTopicPanel'
 
 export default function ModeratorView() {
   const {
@@ -347,6 +348,7 @@ export default function ModeratorView() {
         queue_type:     overQT,
         position:       0,
         created_at:     '',
+        topic_tag:      null,
       }
 
       // Insérer le ghost à la position survolée (haut = avant, bas = après)
@@ -673,6 +675,9 @@ export default function ModeratorView() {
             ghostId={GHOST_ID}
           />
         </div>
+
+        {/* ── Sujet suivant (chantier 131) ───────────────────── */}
+        <NextTopicPanel />
 
         {/* ── Temps de parole par camp idéologique (chantier 94) ── */}
         {table.session_id && (

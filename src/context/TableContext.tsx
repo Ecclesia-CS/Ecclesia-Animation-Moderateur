@@ -39,7 +39,7 @@ interface TableCtxValue {
   endTurnAsSpeaker(): Promise<void>
   endTurnAndAdvance(): Promise<void>
   claimFloor(): Promise<void>
-  addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
+  addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number, topicTag?: string): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive', position?: number): Promise<void>
   moveQueueEntry(entryId: string, direction: 'up' | 'down'): Promise<void>
@@ -48,6 +48,8 @@ interface TableCtxValue {
   kickParticipant(participantId: string): Promise<void>
   forceQuestionnaire(): Promise<void>
   cancelForceQuestionnaire(): Promise<void>
+  setNextTopicVote(value: boolean): Promise<void>
+  resetNextTopicVotes(): Promise<void>
 }
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
@@ -432,10 +434,10 @@ export function TableProvider({
   )
 
   const addToQueue = useCallback(
-    async (pId: string, qt: 'long' | 'interactive', position?: number) => {
-      const args = position !== undefined
-        ? { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt, p_position: position }
-        : { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt }
+    async (pId: string, qt: 'long' | 'interactive', position?: number, topicTag?: string) => {
+      const args: Record<string, unknown> = { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt }
+      if (position !== undefined) args.p_position = position
+      if (topicTag !== undefined) args.p_topic_tag = topicTag
       await rpc('add_to_queue', args)
       // Refetch local immédiat (fire-and-forget) — n'attend pas le rebond du broadcast
       refetch(['queue_entries'])
@@ -577,6 +579,20 @@ export function TableProvider({
     broadcast(['tables'])
   }, [tableId, broadcast])
 
+  // Chantier 131 — "d'accord pour passer au sujet suivant". `participants` n'a
+  // aucune policy UPDATE : passe par une RPC self-service comme le reste.
+  const setNextTopicVote = useCallback(async (value: boolean) => {
+    await rpc('set_next_topic_vote', { p_participant_id: participantId, p_value: value })
+    setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, wants_next_topic: value } : p))
+    broadcast(['participants'])
+  }, [rpc, participantId, broadcast])
+
+  const resetNextTopicVotes = useCallback(async () => {
+    await rpc('reset_next_topic_votes', { p_table_id: tableId })
+    setParticipants(prev => prev.map(p => ({ ...p, wants_next_topic: false })))
+    broadcast(['participants'])
+  }, [rpc, tableId, broadcast])
+
   // ── Render ────────────────────────────────────────────────────
 
   const myParticipant = useMemo(
@@ -634,6 +650,8 @@ export function TableProvider({
         claimFloor,
         forceQuestionnaire,
         cancelForceQuestionnaire,
+        setNextTopicVote,
+        resetNextTopicVotes,
       }}
     >
       {children}

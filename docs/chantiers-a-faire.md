@@ -10,6 +10,8 @@ Dernière mise à jour : **2026-09-21**.
 
 _(aucun actuellement)_
 
+> **Le 2026-09-26, le chantier 131 est fait** — bouton "d'accord pour le sujet suivant" + tag de sujet optionnel à la prise de parole. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
+
 > **Le 2026-09-21, le chantier 116 est fait** — « Changer mon nom » devient « Changer mon nom / code », avec un bloc « Code de rappel oublié ? » dans `RenamePseudoModal.tsx`. **Changement de périmètre découvert en cours de route** : la consigne demandait de « faire réapparaître » le code, mais depuis le chantier 93 (20260918), `session_members.reclaim_code` (texte clair) a été remplacé par `reclaim_code_hash` (bcrypt) — vérifié directement en base (`information_schema.columns`), ce que ni CLAUDE.md ni `docs/reference-modele-donnees.md` ne reflétaient encore. Un code haché ne peut littéralement pas être relu. Solution retenue : une nouvelle RPC self-service, `regenerate_reclaim_code_self(session_id)` (migration `20260921_chantier116_regenerate_reclaim_code_self.sql`, calquée sur `regenerate_reclaim_code_admin`/`_moderator` déjà existantes, ciblée sur `auth.uid()`), qui **émet un nouveau code et invalide l'ancien** — le participant doit le renoter. Vérifié en base (l'ancien code cesse de matcher, le nouveau matche) et au navigateur réel (séance de test créée puis supprimée). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 
 > **Purge du 2026-09-16** : les chantiers **79, 80, 86, 58, 89 et 88** ont été livrés et mergés entre le 07/09 et le 15/09 — ils étaient encore listés ici comme « à faire » parce que les sessions qui les ont exécutés n'ont pas mis ce fichier à jour. Leur détail est dans `docs/chantiers.md`. Le **75** a été absorbé par le **95**, le **55** par le **93**. Les chantiers **90 à 95** sont nouveaux, dictés par Jules le 2026-09-16.
@@ -171,7 +173,9 @@ Périmètre de fichiers (à affiner en démarrant) : `SessionRouterScreen.tsx`, 
 
 **Consigne de Jules** : « Lorsqu'une session est clôturée, j'aimerai toujours, en tant que superadmin, avoir accès à l'historique des tables. Notamment pour retrouver les problèmes qui ont pu avoir lieu, sans rendre publique à nouveau la séance. »
 
-#### 131 — Bouton "sujet suivant" + tag de sujet à la prise de parole
+#### 131 — Bouton "sujet suivant" + tag de sujet à la prise de parole — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-26.** Détail complet (`participants.wants_next_topic` + `queue_entries.topic_tag`, RPC `set_next_topic_vote`/`reset_next_topic_votes`, reset manuel faute de notion de "sujet courant" en base) dans `docs/chantiers.md` (chantier 131). Migration appliquée sur **dev uniquement** — reste à appliquer sur prod au merge vers `main`. Vérifié en base (transaction jetable), **pas au navigateur** : deux lacunes d'environnement dev sans rapport avec ce chantier bloquent toute session anonyme réelle (auth anonyme désactivée + aucun GRANT de table pour anon/authenticated), signalées séparément — voir `A_VERIFIER.md`.
 
 **Consigne de Jules** : « Vue participant : proposer un bouton pour chaque participant qu'il peut activer, pour dire que le participant est d'accord pour passer au sujet suivant. Le modérateur voit le nombre de personnes qui appuient sur le bouton, et peut donc passer au sujet suivant. [...] Lorsque quelqu'un appuie sur le bouton "prendre la parole", il peut marquer le sujet ou thème dont il souhaite parler, qui peut s'inscrire à côté de son prénom. »
 
