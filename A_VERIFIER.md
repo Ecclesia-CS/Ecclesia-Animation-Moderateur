@@ -6,27 +6,30 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
-## ⚠️ Lacune d'environnement dev, découverte en préparant le chantier 131 (2026-09-26), sans rapport avec ce chantier
+## ✅ Lacune d'environnement dev, découverte en préparant le chantier 131 — corrigée le 2026-09-26
 
-**Constat** : sur le projet Supabase **dev** (`mnjqrlrrzrycuconlfqb`, cloné le 25/09), deux réglages bloquaient toute session anonyme réelle depuis un navigateur :
+**Constat initial** : sur le projet Supabase **dev** (`mnjqrlrrzrycuconlfqb`, cloné le 25/09), deux réglages bloquaient toute session anonyme réelle depuis un navigateur — les deux **corrigés le 2026-09-26**, confirmés par Jules avant action :
 
-1. **Fournisseur d'authentification anonyme désactivé.** `POST /auth/v1/signup` (endpoint utilisé par `signInAnonymously()`) répond `422 anonymous_provider_disabled`. Sur prod, ce même appel fonctionne (c'est ce que fait l'app à chaque nouveau participant). Réglage du dashboard Supabase (Authentication → Sign In / Providers → « Allow anonymous sign-ins ») — **toujours ouvert**, à activer par Jules (aucun outil MCP disponible dans cette session pour le faire à sa place) : `https://supabase.com/dashboard/project/mnjqrlrrzrycuconlfqb/auth/providers`.
-2. ~~**Aucune table `public` n'a de GRANT pour `anon`/`authenticated`.**~~ **Corrigé le 2026-09-26**, confirmé par Jules avant application (`supabase/migrations/20260926_fix_dev_grants_tables_sequences.sql`) : `pg_default_acl` (schéma `public`) était entièrement vide sur dev, alors que prod a un `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES/SEQUENCES TO anon, authenticated, service_role` — réglage posé une fois par Supabase au bootstrap du projet, jamais écrit dans une migration versionnée, donc invisible à toute introspection du schéma courant. Corrigé : `GRANT ALL` explicite sur les 22 tables + la séquence existantes, et `ALTER DEFAULT PRIVILEGES` pour que toute table future créée par une migration hérite des mêmes droits automatiquement (comme sur prod). Vérifié : `information_schema.role_table_grants` passe de 0 à 308 lignes pour anon/authenticated/service_role sur dev.
+1. **Fournisseur d'authentification anonyme désactivé** (`422 anonymous_provider_disabled` sur `signInAnonymously()`, réglage du dashboard Supabase). **Activé par Jules** le jour même (Authentication → Sign In / Providers → « Allow anonymous sign-ins »).
+2. **Aucune table `public` n'avait de GRANT pour `anon`/`authenticated`.** `pg_default_acl` (schéma `public`) était entièrement vide sur dev, alors que prod a un `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES/SEQUENCES TO anon, authenticated, service_role` — réglage posé une fois par Supabase au bootstrap du projet, jamais écrit dans une migration versionnée, donc invisible à toute introspection du schéma courant. Corrigé par `supabase/migrations/20260926_fix_dev_grants_tables_sequences.sql` : `GRANT ALL` explicite sur les 22 tables + la séquence existantes, et `ALTER DEFAULT PRIVILEGES` pour que toute table future créée par une migration hérite des mêmes droits automatiquement (comme sur prod). Vérifié : `information_schema.role_table_grants` passe de 0 à 308 lignes pour anon/authenticated/service_role sur dev.
 
-**Impact pratique** : le point 2 étant réglé, il ne reste plus que le point 1 (auth anonyme désactivée) pour qu'une vraie session participant fonctionne au navigateur sur dev. Le chantier 131 (voir entrée ci-dessous) n'a pu être vérifié qu'en base (transactions jetables, `auth.uid()` simulé), pas au navigateur — à rejouer une fois le point 1 activé.
+Les deux corrections déverrouillent la vérification navigateur sur dev pour **tout** chantier, pas seulement le 131.
 
 ## Chantier 131 — bouton "sujet suivant" + tag de sujet à la prise de parole (2026-09-26)
 
-**Ce qui a été vérifié** — en base, sur dev, par transaction jetable (`BEGIN…ROLLBACK`, `auth.uid()` simulé via `set_config('request.jwt.claims', …)`, aucune ligne laissée) :
+**Vérifié en base**, sur dev, par transaction jetable (`BEGIN…ROLLBACK`, `auth.uid()` simulé via `set_config('request.jwt.claims', …)`, aucune ligne laissée) :
 - `add_to_queue(..., p_topic_tag)` : tag trimmé et stocké (`"  Le climat  "` → `"Le climat"`), tag composé uniquement d'espaces → `NULL`.
 - Contrainte `queue_entries_topic_tag_length` : un tag de 61 caractères est refusé.
 - `set_next_topic_vote` : un participant peut poser son propre drapeau à `true` ; tenter de le poser pour un AUTRE participant lève `Not authorized`.
 - `reset_next_topic_votes` : refusé pour un appelant non-modérateur (`Not authorized`) ; le modérateur effectif (`created_by` de la table) le déclenche avec succès et remet tous les drapeaux à `false`.
 
-**Non vérifié au navigateur** — bloqué par la lacune d'environnement décrite juste au-dessus (auth anonyme désactivée + aucun GRANT de table sur dev), découverte en préparant cette recette, sans rapport avec le code de ce chantier. Reste à rejouer une fois l'un des deux corrigé (ou après merge sur `main`, contre prod) :
-- Vue participant : le bouton "👍 D'accord pour le sujet suivant" bascule bien d'état, et le champ de tag sous "Demander la parole" (masqué une fois dans la file, remplacé par "Sujet indiqué : …") se comporte comme attendu.
-- Vue modérateur : `NextTopicPanel` affiche le bon décompte en direct (Realtime, sans reload) quand un participant coche/décoche, et "Réinitialiser" remet le compteur à 0 pour tout le monde.
-- Le tag de sujet s'affiche bien à côté du prénom dans `QueuePanel` (vue modo) et `ReadOnlyQueuePanel` (vue participant).
+**Vérifié au navigateur réel** (dev server sur ce worktree, `preview_start`/`ecclesia-dev`, session anonyme réelle une fois le point 1 ci-dessus activé — table + 2 participants QA insérés en base avec ce `user_id` réel, `localStorage.ecclesia_table` posé à la main pour basculer entre les deux perspectives, supprimés après coup) :
+- **Participant** : champ de tag rempli ("Le climat") sous "Demander la parole" → clic → entrée en file créée avec le tag, confirmation "Sujet indiqué : Le climat" affichée, remplace le champ de saisie. Bouton "👍 Je suis d'accord pour passer au sujet suivant" bascule bien en style plein (vert) au clic, texte change en "D'accord pour le sujet suivant (appuyer pour annuler)".
+- **Effet de bord observé, conforme au comportement documenté** : dès qu'un modérateur ouvre son écran avec la file non vide et personne ne parlant, le fallback d'auto-avancement (`ModeratorView`, condition de course) attribue immédiatement la parole au premier de la file — comportement voulu (CLAUDE.md § Auto-avancement), pas un bug, juste à anticiper en préparant un scénario de test avec une file non consommée (il faut qu'un orateur occupe déjà le micro).
+- **Modérateur** : panneau "Sujet suivant" affiche "1 / 2 d'accord pour passer au sujet suivant" en direct après le clic du participant (aucun reload). Clic "Réinitialiser" → repasse à "0 / 2", confirmé en base (`wants_next_topic = false` pour les deux), et la vue participant rechargée montre bien le bouton retombé en style non actif.
+- Le tag de sujet s'affiche correctement à côté du prénom dans `QueuePanel` (vue modérateur, ex. "ModoQA131 — Économie locale") et dans `ReadOnlyQueuePanel` (vue participant, y compris pour les entrées des AUTRES participants).
+
+**Rien à revérifier humainement** pour ce chantier — tous les chemins ont été rejoués à l'écran avec des données réelles, pas seulement en base.
 
 **Migration** : `supabase/migrations/20260926_chantier131_sujet_suivant_et_tag.sql`, appliquée sur **dev uniquement**. À réappliquer sur **prod** au moment du merge vers `main` (règle de circulation dev→main, `CLAUDE.md`).
 
