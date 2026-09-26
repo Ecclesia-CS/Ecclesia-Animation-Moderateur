@@ -8,8 +8,10 @@ Dernière mise à jour : **2026-09-21**.
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+_(aucun actuellement — mais voir la note du 26/09 ci-dessous sur le chantier 134, dont les migrations tournent déjà sur dev sans déclaration ici.)_
 
+> **Le 2026-09-26, suivi dev/prod** : vérification de synchronisation (`list_migrations` dev vs. fichiers du repo vs. prod). Deux migrations trouvées en base dev sans fichier commité nulle part — voir `docs/chantiers.md` (ligne « Suivi dev/prod ») pour le détail. Point notable pour toute session qui reprendrait le chantier 134 : ses migrations (`chantier134a_modes_de_seance`, `chantier134b_sondage`) sont **déjà appliquées sur la base dev**, alors que seul le fichier du 134a existe, et seulement sur la branche `claude/chantier-134-80bd0f` (pas mergée dans `dev`) — ne pas repartir de zéro en pensant que rien n'est fait côté base. `CLAUDE.md` a été complété : règle de vérification en lecture seule sur prod avant une migration qui modifie une colonne/contrainte existante, et recette de merge `dev → main`.
+>
 > **Le 2026-09-26, le chantier 133 est fait et vérifié au navigateur** — le nudge « Proposer une assertion » (toutes les 10 assertions votées) ne se déclenche plus, et ne peut plus rester affiché, quand `session.assertions_locked` est actif. Un seul fichier touché, `src/screens/VoteScreen.tsx`, aucune RPC/migration. Vérifié en conditions réelles sur dev (parcours complet au clic, deux séances de test) : absent quand verrouillé, toujours présent sinon (non-régression). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 >
 > **Le 2026-09-26, le chantier 131 est fait** — bouton "d'accord pour le sujet suivant" + tag de sujet optionnel à la prise de parole. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
@@ -543,7 +545,9 @@ Le chantier 119 avait déjà posé la moitié du travail (`sync_table_assignment
 
 **Fichiers concernés si confirmé** : `supabase/migrations/…` (`sync_table_assignment`), potentiellement `src/App.tsx` (le point d'appel).
 
-### 136 — `scripts/cleanup-worktrees.sh` ne connaît pas `dev` (script obsolète depuis l'introduction du workflow dev/main)
+### 136 — `scripts/cleanup-worktrees.sh` ne connaît pas `dev` (script obsolète depuis l'introduction du workflow dev/main) — ✅ fait le 2026-09-26
+
+> **Fait le 2026-09-26**, dans le cadre du suivi dev/prod (voir `docs/chantiers.md`). Option 1+2 retenues : `DEV_BRANCH="dev"` ajoutée aux côtés de `MAIN_BRANCH`, ajoutée à `PROTECTED_BRANCHES` (jamais supprimée elle-même), nouvelle fonction `is_ancestor_of_main_or_dev()` utilisée aux trois points de décision (worktrees, branches locales, branches distantes) à la place du `git merge-base --is-ancestor … "$MAIN_BRANCH"` unique. La vérification de branche courante en tête de script accepte désormais `main` **ou** `dev`. Point 3 de la consigne (cohérence des sections 2/3) vérifié : elles utilisent la même fonction, donc le même critère. `bash -n` (vérification de syntaxe) passe. **Dry-run réel non joué** : le script refuse de tourner ailleurs qu'à la racine d'un clone sur `main`/`dev` (pas un worktree — vérification `[ ! -d ".git" ]` en tête de script), et cette session travaille dans un worktree. À lancer en dry-run (`bash scripts/cleanup-worktrees.sh`, sans `--go`) depuis la racine avant tout `--go` réel, comme toujours.
 
 **Origine** : signalé par une autre conversation, confirmé et discuté avec Jules le 2026-09-25 — pas un bug qui casse quoi que ce soit (le script se trompe du côté prudent), mais une désynchronisation avec le workflow dev/main introduit ce jour-là (voir `CLAUDE.md` § Environnements — dev / prod).
 
