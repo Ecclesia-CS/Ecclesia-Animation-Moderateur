@@ -8,7 +8,8 @@ Dernière mise à jour : **2026-09-21**.
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+### 132 — Outil "proposer un vote" côté modérateur
+**Branche** : claude/chantier-132-3f4289 · **Depuis** : 2026-09-26 · **Fichiers touchés (prévu)** : nouvelles tables SQL (`table_votes`/`table_vote_options`/`table_vote_responses`), nouvelle(s) RPC, `ModeratorView.tsx`, `ParticipantView.tsx`, `lib/realtime.ts` (nouveau topic éventuel)
 
 > **Le 2026-09-26, le chantier 133 est fait et vérifié au navigateur** — le nudge « Proposer une assertion » (toutes les 10 assertions votées) ne se déclenche plus, et ne peut plus rester affiché, quand `session.assertions_locked` est actif. Un seul fichier touché, `src/screens/VoteScreen.tsx`, aucune RPC/migration. Vérifié en conditions réelles sur dev (parcours complet au clic, deux séances de test) : absent quand verrouillé, toujours présent sinon (non-régression). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 >
