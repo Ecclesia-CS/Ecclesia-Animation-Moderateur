@@ -5,9 +5,11 @@ import {
   tryClaimModeratorStatus,
   PSEUDO_TAKEN_MESSAGE,
   PSEUDO_PUBLIC_NOTICE,
+  PSEUDO_POLL_NOTICE,
 } from '../../lib/voting'
 import { lastNameStore } from '../../lib/storage'
 import ModeratorDeclareField from './ModeratorDeclareField'
+import { sessionTypeOf } from '../../lib/phaseLabels'
 import type { Session, SessionMember } from '../../lib/types'
 
 interface PseudoFormProps {
@@ -245,7 +247,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
               className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1.5">
-              {PSEUDO_PUBLIC_NOTICE} Tu pourras le changer plus tard.
+              {sessionTypeOf(session) === 'poll' ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE} Tu pourras le changer plus tard.
             </p>
           </div>
 
@@ -255,12 +257,14 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             </div>
           )}
 
+          {sessionTypeOf(session) !== 'poll' && (
           <ModeratorDeclareField
             checked={asModerator}
             onCheckedChange={setAsModerator}
             password={moderatorPassword}
             onPasswordChange={setModeratorPassword}
           />
+          )}
 
           <button
             type="submit"

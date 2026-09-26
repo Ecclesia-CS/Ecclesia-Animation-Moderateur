@@ -1,28 +1,20 @@
--- =============================================================
--- Chantier 134b — mode "sondage" (session_type = 'poll') :
---   - get_results_map expose les résultats aussi en pre_voting pour
---     une séance de type 'poll' (pas seulement 'closed')
---   - create_session accepte p_session_type et route 'poll' vers
---     results_public = true
+-- Chantier 134b — mode sondage (sessions.session_type = 'poll').
 --
--- Fichier reconstitué a posteriori par la session de synchronisation
--- dev/prod du 2026-09-26 (chantier de suivi, sans numéro), à partir de
--- `list_migrations`/introspection sur le projet dev
--- (mnjqrlrrzrycuconlfqb, version 20260926110701) : appliqué en base sur
--- dev sans fichier commité nulle part dans le dépôt, sur aucune branche.
--- Ne réapplique rien de nouveau — documente ce qui tourne déjà sur dev,
--- pour que `list_migrations` (dev) et les fichiers du repo concordent
--- (cf. CLAUDE.md § Environnements — dev / prod, règle sur le fichier
--- .sql obligatoire, cas du chantier 128 puis de celui-ci).
+-- 1. get_results_map : la carte des camps s'ouvre aussi PENDANT le vote d'un
+--    sondage (phase 'pre_voting'), décision de Jules du 2026-09-26 (« pas de
+--    problème de polarisation pendant le vote »). Séance complète inchangée
+--    (toujours 'closed' seulement). Corps repris de pg_get_functiondef au
+--    2026-09-26 ; seule la garde de phase change, et search_path est figé.
+-- 2. create_session : un sondage naît avec results_public = true — Jules veut
+--    qu'il rejoigne les séances consultables par tous à la clôture. Le
+--    superadmin garde la bascule (set_session_results_public) pour l'en retirer.
+--    Même signature que 134a : CREATE OR REPLACE, droits conservés.
 --
--- ⚠️ Chantier 134 (dont ce 134b fait partie) est encore en conception
--- (voir docs/chantiers-a-faire.md #134) et vit aussi sur la branche
--- claude/chantier-134-80bd0f (134a, `20260926_chantier134a_modes_de_seance.sql`,
--- pas encore mergée dans dev). Ce fichier ne préjuge pas que 134 soit
--- terminé ni prêt à merger vers dev/main — seulement que la migration
--- listée ci-dessous est réellement en place sur la base dev à cette date.
--- =============================================================
+-- Note : une session de synchronisation dev/prod avait reconstitué ce fichier
+-- depuis la base dev (commit 73298a1) avant qu'il ne soit poussé ; SQL
+-- identique, cette version d'origine (commentée) le remplace au merge.
 
+-- ── 1. get_results_map ─────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_results_map(p_session_id uuid, p_member_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -92,6 +84,7 @@ BEGIN
 END;
 $function$;
 
+-- ── 2. create_session ──────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION create_session(
   p_password           text,
   p_title              text,
@@ -122,11 +115,16 @@ BEGIN
                         onboarding_enabled, session_type, results_public)
   VALUES (p_title, p_description, p_scheduled_at, generate_session_join_code(),
           p_doc_info_url, p_doc_summary_url, p_doc_collab_url,
+          -- Un débat simple n'a pas de phase de vote : l'onboarding (questionnaire
+          -- d'entrée avant le vote) n'a rien à précéder.
           CASE WHEN p_session_type = 'debate' THEN false ELSE p_onboarding_enabled END,
           p_session_type,
           p_session_type = 'poll')
   RETURNING * INTO v_session;
 
+  -- Débat simple : une seule table par défaut, animée (pas leaderless) et en
+  -- attente de son modérateur. Le superadmin peut en ajouter d'autres depuis
+  -- l'onglet Tables (admin_create_session_table, chantier 95).
   IF p_session_type = 'debate' THEN
     PERFORM admin_create_session_table(p_password, v_session.id, false);
   END IF;

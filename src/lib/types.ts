@@ -21,6 +21,12 @@ export interface GroupNameResult {
   description: string
 }
 
+// Chantier 134 — mode de séance, fixé à la création (sessions.session_type,
+// NOT NULL DEFAULT 'full'). 'full' = parcours complet ; 'debate' = une table
+// modérée sans vote ; 'poll' = vote distanciel seul, sans table. Lire via
+// sessionTypeOf() (lib/phaseLabels.ts), qui retombe sur 'full' si absent.
+export type SessionType = 'full' | 'debate' | 'poll'
+
 export interface Session {
   id: string
   title: string
@@ -49,6 +55,7 @@ export interface Session {
   // pour cette séance (le superadmin, seul à pouvoir activer ce verrou, n'est
   // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
   assertions_locked: boolean
+  session_type: SessionType
 }
 
 export interface Table {
