@@ -2,15 +2,18 @@ import { useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { extractErr, QUESTIONNAIRE_THEMES } from '../../lib/utils'
 import PhaseIndicator from '../PhaseIndicator'
+import type { SessionType } from '../../lib/types'
 
 const THEMES_INITIAL = 5
 
 interface Props {
   sessionId: string
   onDone: () => void
+  /** Chantier 134 — un débat simple n'a pas de post-vote : repère « Terminé ». */
+  sessionType?: SessionType
 }
 
-export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
+export default function SessionQuestionnaireForm({ sessionId, onDone, sessionType = 'full' }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess,  setShowSuccess]  = useState(false)
   const [err,          setErr]          = useState<string | null>(null)
@@ -63,7 +66,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone }: Props) {
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0 space-y-2">
-          <PhaseIndicator phase="post_voting" />
+          <PhaseIndicator phase={sessionType === 'debate' ? 'closed' : 'post_voting'} sessionType={sessionType} />
           <h2 className="text-lg font-bold text-gray-900">Questionnaire post-débat</h2>
           <p className="text-sm text-gray-500 mt-0.5 leading-snug">
             Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.

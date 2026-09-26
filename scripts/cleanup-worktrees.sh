@@ -23,10 +23,18 @@
 # silencieusement ignoré au tour suivant, seul ce qui reste à nettoyer est
 # retraité.
 #
+# Chantier 136 (2026-09-26) : depuis l'introduction du workflow dev/main
+# (CLAUDE.md § Environnements — dev / prod, 2026-09-25), `dev` est une
+# branche de travail légitime au même titre que `main` — un chantier mergé
+# dans `dev` mais pas encore promu vers `main` n'est pas « pas fini », juste
+# pas encore livré en prod. Le script compare donc désormais à `main` OU
+# `dev` (ancêtre de l'une des deux = nettoyable), et accepte d'être lancé
+# depuis l'une ou l'autre.
+#
 # Ce que le script ne supprime JAMAIS, par construction (pas seulement par
 # convention — ce sont des vérifications faites à l'exécution, pas une
 # liste figée à une date donnée) :
-#   - la branche `main` elle-même ;
+#   - les branches `main` et `dev` elles-mêmes ;
 #   - toute branche listée dans PROTECTED_BRANCHES ci-dessous (à ce jour :
 #     chantier-58-colonnes-sessions — travail réel non mergé, décision de
 #     Jules le 2026-09-04 ; chantier-secu-sauvegardes retirée de cette liste
@@ -34,8 +42,8 @@
 #   - tout worktree dont `git status --porcelain` n'est pas vide
 #     (modifications ou fichiers non trackés non commités, quels qu'ils
 #     soient) ;
-#   - toute branche qui n'est pas un ancêtre de `main` (`git merge-base
-#     --is-ancestor`) ;
+#   - toute branche qui n'est un ancêtre ni de `main` ni de `dev` (`git
+#     merge-base --is-ancestor`) ;
 #   - toute branche mergée localement mais introuvable sur une branche
 #     distante `origin/*` (évite de supprimer un commit qui n'existe nulle
 #     part ailleurs que sur ce disque).
@@ -71,9 +79,20 @@ for arg in "$@"; do
 done
 
 MAIN_BRANCH="main"
+DEV_BRANCH="dev"
 
 # Branches à ne jamais toucher, quel que soit leur état de merge/push.
-PROTECTED_BRANCHES=("$MAIN_BRANCH" "chantier-58-colonnes-sessions")
+PROTECTED_BRANCHES=("$MAIN_BRANCH" "$DEV_BRANCH" "chantier-58-colonnes-sessions")
+
+# Une branche/worktree est nettoyable si elle est un ancêtre de main OU de
+# dev — mergée dans l'une des deux, elle n'a plus d'utilité en tant que
+# branche de travail séparée, même si l'autre ne l'a pas encore intégrée.
+is_ancestor_of_main_or_dev() {
+  local sha="$1"
+  git merge-base --is-ancestor "$sha" "$MAIN_BRANCH" 2>/dev/null && return 0
+  git merge-base --is-ancestor "$sha" "$DEV_BRANCH" 2>/dev/null && return 0
+  return 1
+}
 
 # Tags de rollback (pre-merge-chantier-*) créés avant cette date sont
 # considérés obsolètes (décision de Jules le 2026-09-04 : "antérieurs au
@@ -102,9 +121,9 @@ if [ ! -d ".git" ]; then
 fi
 
 current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
-if [ "$current_branch" != "$MAIN_BRANCH" ]; then
-  echo "Attention : la racine n'est pas sur '$MAIN_BRANCH' (actuellement '$current_branch')." >&2
-  echo "Le script compare tout à '$MAIN_BRANCH' local — passe d'abord sur cette branche." >&2
+if [ "$current_branch" != "$MAIN_BRANCH" ] && [ "$current_branch" != "$DEV_BRANCH" ]; then
+  echo "Attention : la racine n'est ni sur '$MAIN_BRANCH' ni sur '$DEV_BRANCH' (actuellement '$current_branch')." >&2
+  echo "Le script compare tout à '$MAIN_BRANCH' et '$DEV_BRANCH' locaux — passe d'abord sur l'une des deux." >&2
   exit 1
 fi
 
@@ -177,8 +196,8 @@ $wbranch"
     continue
   fi
 
-  if ! git merge-base --is-ancestor "$wsha" "$MAIN_BRANCH" 2>/dev/null; then
-    echo "  [conservé] $name (branche $wbranch) — pas mergée dans $MAIN_BRANCH"
+  if ! is_ancestor_of_main_or_dev "$wsha"; then
+    echo "  [conservé] $name (branche $wbranch) — pas mergée dans $MAIN_BRANCH ni $DEV_BRANCH"
     kept_count=$((kept_count + 1))
     continue
   fi
@@ -221,8 +240,8 @@ while IFS= read -r br; do
   sha="$(git rev-parse "refs/heads/$br" 2>/dev/null)"
   [ -z "$sha" ] && continue
 
-  if ! git merge-base --is-ancestor "$sha" "$MAIN_BRANCH" 2>/dev/null; then
-    echo "  [conservée] $br — pas mergée dans $MAIN_BRANCH"
+  if ! is_ancestor_of_main_or_dev "$sha"; then
+    echo "  [conservée] $br — pas mergée dans $MAIN_BRANCH ni $DEV_BRANCH"
     continue
   fi
   if ! git branch -r --contains "$sha" 2>/dev/null | grep -q '^[[:space:]]*origin/'; then
@@ -255,8 +274,8 @@ while IFS= read -r rb; do
   sha="$(git rev-parse "$rb" 2>/dev/null)"
   [ -z "$sha" ] && continue
 
-  if ! git merge-base --is-ancestor "$sha" "$MAIN_BRANCH" 2>/dev/null; then
-    echo "  [conservée] origin/$name — pas mergée dans $MAIN_BRANCH"
+  if ! is_ancestor_of_main_or_dev "$sha"; then
+    echo "  [conservée] origin/$name — pas mergée dans $MAIN_BRANCH ni $DEV_BRANCH"
     continue
   fi
 

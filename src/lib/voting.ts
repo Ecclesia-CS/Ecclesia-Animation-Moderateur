@@ -33,6 +33,10 @@ export const PSEUDO_TAKEN_MESSAGE =
 export const PSEUDO_PUBLIC_NOTICE =
   "Ce nom sera utilisé par le modérateur pour te donner la parole pendant le débat."
 
+/** Chantier 134 — un sondage n'a ni débat ni modérateur : le nom sert seulement à retrouver ses votes. */
+export const PSEUDO_POLL_NOTICE =
+  "Ce nom, avec ton code de rappel, te permet de retrouver tes votes sur un autre appareil."
+
 /**
  * Chantier 93 — les RPC d'identité ne lèvent PAS sur un refus d'identification
  * (mauvais code, blocage après 10 essais) : elles renvoient `{ error }`. Un
@@ -712,6 +716,34 @@ export async function assignLeastFilledTable(
   })
   if (error) throw new Error(extractErr(error))
   return data as TableResult & { new_reclaim_code: string | null }
+}
+
+/**
+ * Chantier 134 — entrée d'un participant dans un débat simple
+ * (`sessions.session_type = 'debate'`, phase `debating`). Inscription à la
+ * séance si besoin (code de rappel renvoyé une seule fois), place à table
+ * (celle où il est déjà assis, sinon la moins remplie) et, si le Code
+ * Ecclesia est fourni, prise de l'animation d'une table sans modérateur.
+ * Atomique côté serveur : une erreur n'inscrit personne à moitié.
+ */
+export async function joinSimpleDebate(
+  sessionId: string,
+  pseudo: string,
+  creationCode?: string,
+): Promise<TableResult & { new_reclaim_code: string | null; is_moderator: boolean; pseudo: string }> {
+  const { data, error } = await supabase.rpc('join_simple_debate', {
+    p_session_id:    sessionId,
+    p_pseudo:        pseudo,
+    p_creation_code: creationCode ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  const r = data as TableResult & { new_reclaim_code?: string | null; is_moderator?: boolean | null; pseudo?: string | null }
+  return {
+    ...r,
+    new_reclaim_code: r.new_reclaim_code ?? null,
+    is_moderator:     r.is_moderator === true,
+    pseudo:           r.pseudo ?? pseudo,
+  }
 }
 
 /**

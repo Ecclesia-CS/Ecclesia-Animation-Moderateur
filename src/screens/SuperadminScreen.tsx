@@ -27,7 +27,8 @@ import {
   updateSessionMeta,
 } from '../lib/sessions'
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
-import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import type { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import { SESSION_TYPE_LABEL, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
@@ -76,6 +77,13 @@ const PHASE_LABEL: Record<string, string> = {
   debating:      'Débat',
   post_voting:   'Post-vote',
   closed:        'Clôturée',
+}
+
+// Chantier 134 — dans un sondage, `pre_voting` est l'unique phase de vote
+// (rien ne suit, pas de présentiel) : « Pré-vote » y serait trompeur.
+function phaseLabel(phase: Session['phase'], type: SessionType = 'full'): string {
+  if (type === 'poll' && phase === 'pre_voting') return 'Vote'
+  return PHASE_LABEL[phase] ?? phase
 }
 
 const PHASE_CLASS: Record<string, string> = {
@@ -623,8 +631,13 @@ function SessionCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[session.phase] ?? session.phase}
+              {phaseLabel(session.phase, sessionTypeOf(session))}
             </span>
+            {sessionTypeOf(session) !== 'full' && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
+                {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
+              </span>
+            )}
           </div>
 
           {/* Meta row */}
@@ -843,6 +856,8 @@ function CreateModal({
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [onboardingEnabled, setOnboardingEnabled] = useState(true)
+  // Chantier 134 — mode de séance, choisi une fois pour toutes à la création.
+  const [sessionType, setSessionType]   = useState<SessionType>('full')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -861,9 +876,10 @@ function CreateModal({
         docSummaryUrl || undefined,
         undefined,
         onboardingEnabled,
+        sessionType,
       )
       // Apply moderation policy if not the default
-      if (moderationPolicy !== 'closed') {
+      if (sessionType !== 'debate' && moderationPolicy !== 'closed') {
         await updateSessionConfig(password, session.id, moderationPolicy)
       }
       onCreated(session)
@@ -902,6 +918,37 @@ function CreateModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+          {/* Chantier 134 — trois modes. Non modifiable après création : la
+              séquence de phases en dépend (garde de set_session_phase). */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Type de séance</label>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: 'full',   icon: '🏛️', hint: 'Vote, allocation, débat, résultats' },
+                { id: 'debate', icon: '🗣️', hint: 'Une table modérée, sans vote' },
+                { id: 'poll',   icon: '📊', hint: 'Vote à distance et camps, sans débat' },
+              ] as { id: SessionType; icon: string; hint: string }[]).map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSessionType(opt.id)}
+                  className={`py-2 px-2 rounded-xl border-2 text-left transition-all ${
+                    sessionType === opt.id
+                      ? 'border-indigo-600 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-200'
+                  }`}
+                >
+                  <span className="block text-base leading-none mb-1">{opt.icon}</span>
+                  <span className={`block text-xs font-semibold ${sessionType === opt.id ? 'text-indigo-700' : 'text-gray-700'}`}>
+                    {SESSION_TYPE_LABEL[opt.id]}
+                  </span>
+                  <span className="block text-[10px] text-gray-400 leading-tight mt-0.5">{opt.hint}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-gray-400">Le type ne pourra plus être changé après la création.</p>
+          </div>
+
           <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale — mai 2026" />
 
           <div>
@@ -943,6 +990,7 @@ function CreateModal({
             </p>
           </div>
 
+          {sessionType !== 'debate' && (
           <div className="pt-1 border-t border-gray-100">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               Configuration du vote <span className="font-normal normal-case text-gray-400">(optionnel)</span>
@@ -967,6 +1015,9 @@ function CreateModal({
               </div>
             </div>
 
+            {/* Un sondage ne passe que par le vote à distance (pre_voting),
+                qui saute toujours l'onboarding : la case n'aurait aucun effet. */}
+            {sessionType === 'full' && (
             <label className="mt-3 flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
               <input
                 type="checkbox"
@@ -976,7 +1027,16 @@ function CreateModal({
               />
               Onboarding (questionnaire d'entrée avant le vote)
             </label>
+            )}
           </div>
+          )}
+
+          {sessionType === 'debate' && (
+            <p className="pt-3 border-t border-gray-100 text-xs text-gray-500">
+              Une table est créée automatiquement. Le modérateur la prend avec le Code Ecclesia
+              en rejoignant, ou tu le désignes depuis l'onglet Tables ; tu peux aussi y ajouter d'autres tables.
+            </p>
+          )}
 
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -1085,8 +1145,18 @@ interface GroupRow {
 
 type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
 
-function defaultTab(phase: Session['phase']): AdminTab {
+// Chantier 134 — onglets utiles selon le mode : pas de vote dans un débat
+// simple (En direct n'y montre que des statistiques de vote), pas de table
+// dans un sondage.
+const TABS_BY_TYPE: Record<SessionType, AdminTab[]> = {
+  full:   ['live', 'tables', 'prep', 'analysis'],
+  debate: ['tables', 'prep', 'analysis'],
+  poll:   ['live', 'prep', 'analysis'],
+}
+
+function defaultTab(phase: Session['phase'], type: SessionType = 'full'): AdminTab {
   if (phase === 'draft') return 'prep'
+  if (type === 'debate') return phase === 'closed' ? 'analysis' : 'tables'
   if (phase === 'pre_voting' || phase === 'voting' || phase === 'allocating' || phase === 'debating' || phase === 'post_voting') return 'live'
   return 'analysis'
 }
@@ -1184,8 +1254,9 @@ function SessionDetail({
   const adminTabKey = `ecclesia_admin_tab_${session.id}`
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const stored = sessionStorage.getItem(`ecclesia_admin_tab_${session.id}`)
-    if (stored === 'live' || stored === 'tables' || stored === 'prep' || stored === 'analysis') return stored
-    return defaultTab(session.phase)
+    const allowed = TABS_BY_TYPE[sessionTypeOf(session)]
+    if (stored && (allowed as string[]).includes(stored)) return stored as AdminTab
+    return defaultTab(session.phase, sessionTypeOf(session))
   })
   const [postSessionOpen, setPostSessionOpen] = useState(false)
   const [synthOpen,       setSynthOpen]       = useState(false)
@@ -1216,7 +1287,9 @@ function SessionDetail({
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
 
   // ── Phase transitions ──────────────────────────────────────
-  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
+  // Chantier 134 — la séquence dépend du mode de séance (miroir de la garde SQL).
+  const sessionType = sessionTypeOf(currentSession)
+  const PHASE_SEQUENCE = phaseSequenceFor(sessionType)
   const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
   const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
   const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
@@ -1340,7 +1413,7 @@ function SessionDetail({
 
   // ── Assertions (C2) ────────────────────────────────────────
   const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
-  const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
+  const showVotingSections = VOTE_PHASES.includes(currentSession.phase) && sessionType !== 'debate'
 
   const [assertions,        setAssertions]        = useState<AssertionAdmin[]>([])
   const [assertionsLoading, setAssertionsLoading] = useState(false)
@@ -2514,7 +2587,7 @@ function SessionDetail({
                 l'onglet Préparation, sans repasser par la liste des séances. */}
             <span className="text-sm font-semibold text-gray-900 truncate">{currentSession.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[currentSession.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[currentSession.phase] ?? currentSession.phase}
+              {phaseLabel(currentSession.phase, sessionType)}
             </span>
             {session.join_code && (
               <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
@@ -2541,19 +2614,22 @@ function SessionDetail({
 
         {/* ── Phase bar ───────────────────────────────────── */}
         <PhaseBar
+          sequence={PHASE_SEQUENCE}
+          sessionType={sessionType}
           currentPhase={currentSession.phase}
           nextPhase={nextPhase}
           prevPhase={prevPhase}
           acting={phaseActing}
           onNext={() => {
             if (!nextPhase) return
-            if (currentSession.phase === 'debating') { setDebateExitChoice(true); return }
-            setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })
+            // Débat simple : pas de post-vote, la sortie du débat est la clôture.
+            if (currentSession.phase === 'debating' && sessionType === 'full') { setDebateExitChoice(true); return }
+            setPhaseConfirm({ phase: nextPhase, label: phaseLabel(nextPhase, sessionType), isBack: false })
           }}
-          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
+          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: phaseLabel(prevPhase, sessionType), isBack: true })}
           onPhaseSelect={(phase) => {
             const isBack = PHASE_SEQUENCE.indexOf(phase) < phaseIdx
-            setPhaseConfirm({ phase, label: PHASE_LABEL[phase] ?? phase, isBack })
+            setPhaseConfirm({ phase, label: phaseLabel(phase, sessionType), isBack })
           }}
         />
 
@@ -2564,7 +2640,7 @@ function SessionDetail({
             { id: 'tables',   label: '🪑 Tables' },
             { id: 'prep',     label: '⚙️ Préparation' },
             { id: 'analysis', label: '📊 Analyse' },
-          ] as { id: AdminTab; label: string }[]).map(tab => (
+          ] as { id: AdminTab; label: string }[]).filter(tab => TABS_BY_TYPE[sessionType].includes(tab.id)).map(tab => (
             <button
               key={tab.id}
               onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
@@ -3960,6 +4036,8 @@ const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
 ]
 
 function PhaseBar({
+  sequence,
+  sessionType,
   currentPhase,
   nextPhase,
   prevPhase,
@@ -3968,6 +4046,8 @@ function PhaseBar({
   onPrev,
   onPhaseSelect,
 }: {
+  sequence: Session['phase'][]
+  sessionType: SessionType
   currentPhase: Session['phase']
   nextPhase: Session['phase'] | null
   prevPhase: Session['phase'] | null
@@ -3976,13 +4056,19 @@ function PhaseBar({
   onPrev(): void
   onPhaseSelect(phase: Session['phase']): void
 }) {
-  const currentIdx = PHASE_SEQUENCE_LABELS.findIndex(p => p.phase === currentPhase)
+  // Chantier 134 — seules les phases du mode de la séance. Pour une séance
+  // complète, rien ne change ; pour un mode partiel, les cercles sont
+  // renumérotés 0..n (la numérotation suit l'index, pas la phase).
+  const steps = PHASE_SEQUENCE_LABELS
+    .filter(p => sequence.includes(p.phase))
+    .map(p => sessionType === 'poll' && p.phase === 'pre_voting' ? { ...p, short: 'Vote' } : p)
+  const currentIdx = steps.findIndex(p => p.phase === currentPhase)
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 space-y-4">
       {/* Step indicators */}
       <div className="flex items-center gap-0">
-        {PHASE_SEQUENCE_LABELS.map((p, i) => {
+        {steps.map((p, i) => {
           const isPast    = i < currentIdx
           const isCurrent = i === currentIdx
           const isFuture  = i > currentIdx
@@ -4013,7 +4099,7 @@ function PhaseBar({
                   {p.short}
                 </span>
               </div>
-              {i < PHASE_SEQUENCE_LABELS.length - 1 && (
+              {i < steps.length - 1 && (
                 <div className={`flex-1 h-0.5 mx-1 ${i < currentIdx ? 'bg-indigo-300' : 'bg-gray-200'}`} />
               )}
             </div>
@@ -4029,7 +4115,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs text-gray-400 hover:text-gray-600 py-1.5 px-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
           >
-            ← {PHASE_LABEL[prevPhase]}
+            ← {phaseLabel(prevPhase, sessionType)}
           </button>
         )}
         <div className="flex-1" />
@@ -4039,7 +4125,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50"
           >
-            {acting ? '…' : `Passer en ${PHASE_LABEL[nextPhase]} →`}
+            {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)} →`}
           </button>
         )}
         {!nextPhase && currentPhase !== 'closed' && (

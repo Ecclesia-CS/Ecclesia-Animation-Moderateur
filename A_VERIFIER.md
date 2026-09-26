@@ -6,6 +6,16 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
+## ✅ Correctif Realtime dev (policies manquantes sur `realtime.messages`) — appliqué et vérifié au navigateur le 2026-09-26
+
+**Contexte** : suivi dev/prod (voir `docs/chantiers.md`, ligne « Suivi dev/prod »). `realtime.messages` avait RLS activé mais **zéro policy** sur dev (`mnjqrlrrzrycuconlfqb`), alors que prod (`plpjiehqsxxakbuykmkm`) en a deux (`ecclesia_realtime_read`, `ecclesia_realtime_write`, posées par le chantier 59). RLS activé + zéro policy = refus par défaut pour tout rôle non-superuser → `Unauthorized: You do not have permissions to read from this Channel topic` sur **tous** les canaux Realtime privés de l'app côté dev (`table:<id>`, `vote:<session_id>`, `session-member:<id>`, `allocating:<id>`, `postvote:...`, etc.). Ces deux policies vivent dans le schéma `realtime` (table système Supabase), hors du périmètre `public` introspecté au clonage du schéma dev le 25/09 — c'est pour ça qu'elles n'ont jamais été reproduites.
+
+**Vérifié avant application** : `pg_get_functiondef('public.can_join_realtime_topic(text)')` identique caractère pour caractère entre dev et prod.
+
+**Appliqué** (`supabase/migrations/20260926_fix_dev_realtime_messages_policies.sql`, copie conforme des deux policies de prod) et **vérifié en base après coup** : `pg_policies` sur dev liste maintenant `ecclesia_realtime_read` (SELECT) et `ecclesia_realtime_write` (INSERT), comme sur prod.
+
+**Vérifié au navigateur réel** (dev server local sur ce worktree, `.env` temporaire pointé vers la base dev — non commité, supprimé après le test) : séance + table de test créées en base (`join_code` jetable `RTQATB`), deux onglets du Browser pane rejoignant la même table. Action « Coupe file » cliquée dans un onglet → apparue dans l'autre onglet **en ~2 secondes, sans reload et sans attendre le polling de secours (5-10s)** — confirme que le canal privé `table:<id>` fonctionne. Limite de la méthode : les deux onglets du Browser pane partagent le même `localStorage` (même origine), donc la même session anonyme (`auth.uid()` identique) — le test ne distingue donc pas deux identités différentes, mais il confirme bien que le blocage total (« zéro policy = refus pour tout rôle ») est levé, ce qui était le seul point en cause ici. Séance/table/participants/queue_entries de test purgés en base après coup.
+
 ## ✅ Lacune d'environnement dev, découverte en préparant le chantier 131 — corrigée le 2026-09-26
 
 **Constat initial** : sur le projet Supabase **dev** (`mnjqrlrrzrycuconlfqb`, cloné le 25/09), deux réglages bloquaient toute session anonyme réelle depuis un navigateur — les deux **corrigés le 2026-09-26**, confirmés par Jules avant action :
@@ -14,6 +24,34 @@
 2. **Aucune table `public` n'avait de GRANT pour `anon`/`authenticated`.** `pg_default_acl` (schéma `public`) était entièrement vide sur dev, alors que prod a un `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES/SEQUENCES TO anon, authenticated, service_role` — réglage posé une fois par Supabase au bootstrap du projet, jamais écrit dans une migration versionnée, donc invisible à toute introspection du schéma courant. Corrigé par `supabase/migrations/20260926_fix_dev_grants_tables_sequences.sql` : `GRANT ALL` explicite sur les 22 tables + la séquence existantes, et `ALTER DEFAULT PRIVILEGES` pour que toute table future créée par une migration hérite des mêmes droits automatiquement (comme sur prod). Vérifié : `information_schema.role_table_grants` passe de 0 à 308 lignes pour anon/authenticated/service_role sur dev.
 
 Les deux corrections déverrouillent la vérification navigateur sur dev pour **tout** chantier, pas seulement le 131.
+
+## Chantier 134 — trois types de séance : séance complète / débat simple / sondage (2026-09-26)
+
+**Migrations** (appliquées sur la base **dev** `mnjqrlrrzrycuconlfqb` uniquement — **à appliquer sur prod au merge vers `main`, dans l'ordre**) :
+- `supabase/migrations/20260926_chantier134a_modes_de_seance.sql` : colonne `sessions.session_type` (`full`/`debate`/`poll`, défaut `full`) ; `session_type_allows_phase` ; `create_session` (+ `p_session_type`, **DROP puis CREATE** car un argument s'ajoute, regrant `anon, authenticated`) ; garde de mode dans `set_session_phase` ; nouvelle RPC `join_simple_debate` ; `list_public_closed_sessions` exclut les débats simples.
+- `supabase/migrations/20260926_chantier134b_sondage.sql` : `get_results_map` ouvre la carte pendant le vote d'un sondage (`pre_voting`) ; `create_session` pose `results_public = true` pour un sondage.
+- ⚠️ **Avant d'appliquer sur prod** : comparer `create_session`, `set_session_phase`, `get_results_map` et `list_public_closed_sessions` à `pg_get_functiondef` **sur prod** (les corps ont été repris de la base **dev** le 26/09, clonée de prod le 25/09 — un chantier appliqué sur prod entre-temps serait effacé).
+
+**Vérifié en base (dev)**, transactions jetables `BEGIN…ROLLBACK` avec `auth.uid()` simulé et hash de test posés temporairement puis annulés :
+- `create_session(..., p_session_type => 'debate')` → séance en `draft`, onboarding désactivé, **une** table animée (`leaderless = false`).
+- `set_session_phase` refuse `post_voting` sur un débat simple (« Phase post_voting indisponible pour ce type de séance »), accepte `closed`.
+- `join_simple_debate` : mauvais Code Ecclesia → refus sans rien écrire ; bon code → assis, `is_moderator = true`, `table_has_moderator = true` ; un second « modérateur » → refus explicite (« Toutes les tables ont déjà un modérateur… ») ; le même comme participant → assis, `is_moderator = false`.
+- Sondage clos avec `results_public = true` → apparaît dans `list_public_closed_sessions`.
+
+**Vérifié au navigateur réel** (serveur de dev de ce worktree branché sur la base **dev**, deux séances QA créées puis **purgées** en base) :
+- **Débat simple** : `#session/<code>` → formulaire « Rejoindre le débat » → code de rappel affiché → `ParticipantView`, repère « Étape 1 · Débat » ; rechargement / nouveau scan du QR → retour direct à la table ; stockage vidé (autre appareil) → même nom refusé (« Ce nom est déjà utilisé… utilise ton code de rappel ») → avec le code de rappel, retour à la même table, une seule ligne `session_members` et `participants`, `user_id` alignés ; séance passée en `closed` → questionnaire de fin (repère « Étape 2 · Terminé ») → « Séance terminée ».
+- **Sondage** : `#session/<code>` → `#vote/` → intro à deux étapes (Vote / Résultats), pas de case modérateur, mention du nom adaptée, repère « Étape 1 · Vote » ; vote → bouton « 📊 Voir les résultats et les camps en direct » → sans analyse : décompte des votes + message « les camps apparaissent dès que l'organisateur lance l'analyse » ; avec une analyse (insérée à la main en base) : carte « Votre groupe », carte des opinions, bouton « ← Retour au vote » ; séance passée en `closed` → membre : résultats directs, **sans questionnaire**, « Étape 2 · Résultats » ; visiteur non inscrit : résumé public.
+- `npm run build`, `tsc --noEmit` et `npm test` (122 tests) propres.
+- Au passage : le constat « lacune d'environnement dev » du chantier 131 (ci-dessus) **n'est plus vrai le 26/09 à la mi-journée** — l'auth anonyme fonctionne sur dev et `role_table_grants` compte 308 lignes pour `anon`/`authenticated`. Quelqu'un l'a corrigé entre-temps ; entrée laissée en place (fichier append-only), à passer en « Validé » par Jules.
+
+**Reste à vérifier par Jules** (mot de passe superadmin et Code Ecclesia non disponibles dans la session) :
+1. **Superadmin, modale « + Nouvelle séance »** : les trois cartes de type, les champs masqués selon le type (débat simple : pas de configuration du vote ; sondage : pas de case onboarding), le badge de type dans la liste des séances.
+2. **Superadmin, fiche d'un débat simple** : barre de phases à trois étapes (Phase 0 → Débat → Clôturée), onglets Tables / Préparation / Analyse seulement, table 1 visible dans l'onglet Tables pendant le débat, assignation/déplacement du modérateur par les outils existants, « Clôturer » depuis Débat sans passer par le choix post-vote, questionnaire forcé chez les participants à table.
+3. **Superadmin, fiche d'un sondage** : barre à trois étapes (Phase 0 → Vote → Clôturée — `pre_voting` en interne, libellé « Vote » pour un sondage), onglets En direct / Préparation / Analyse, lancement de l'analyse puis **mise à jour des camps chez un participant** en rouvrant « Voir les résultats ».
+4. **Débat simple, entrée « Je suis le modérateur » avec le vrai Code Ecclesia** : arrivée directe sur `ModeratorView`.
+5. **Débat simple, prise de modération depuis Outils** (« Je suis le modérateur de cette table », chantier 110) par un participant déjà assis.
+
+**Limite connue, assumée** : les camps d'un sondage ne se recalculent que quand le superadmin relance l'analyse (le calcul tourne dans son navigateur et exige son mot de passe). Le décompte des votes, lui, est à jour à chaque ouverture de l'écran de résultats. Une actualisation automatique serait un chantier à part.
 
 ## Chantier 131 — bouton "sujet suivant" + tag de sujet à la prise de parole (2026-09-26)
 

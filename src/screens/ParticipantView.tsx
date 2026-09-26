@@ -11,6 +11,7 @@ import QuestionnaireModal from '../components/QuestionnaireModal'
 import DebateRulesModal from '../components/DebateRulesModal'
 import ConfirmModal from '../components/ConfirmModal'
 import PhaseIndicator from '../components/PhaseIndicator'
+import { sessionTypeOf } from '../lib/phaseLabels'
 import TableChangeModal from '../components/TableChangeModal'
 import TableVoteModal from '../components/TableVoteModal'
 
@@ -191,7 +192,7 @@ export default function ParticipantView() {
             <span className="text-xs text-gray-400 truncate max-w-[140px]">{sessionTitle}</span>
           )}
           {session && (
-            <div className="mt-1"><PhaseIndicator phase={session.phase} /></div>
+            <div className="mt-1"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
           )}
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
@@ -476,7 +477,7 @@ export default function ParticipantView() {
           résultats (avec revote possible) ; 'closed' n'en est que la suite définitive. */}
       {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
-          <PhaseIndicator phase={session.phase} />
+          <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} />
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">Merci pour votre participation.</p>
           {session.join_code && (

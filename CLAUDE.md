@@ -79,7 +79,8 @@ Le projet Vercel a un build command dédié (`npm run build -- --base=/`, qui é
 
 - **Nouveau chantier → partir de `dev`**, jamais de `main` directement (le réglage GitHub "branche par défaut" reste `main` : c'est une discipline manuelle, pas un automatisme d'outil).
 - **Toute migration SQL doit être appliquée deux fois, dans l'ordre** : d'abord sur la base dev (pour tester), puis sur la base prod au moment du merge vers `main`. Le code se propage tout seul par le merge git ; **le schéma de base ne se synchronise jamais automatiquement** — c'est un geste manuel à ne pas oublier à chaque merge.
-- **Toute migration appliquée doit avoir son fichier `.sql` commité dans le même geste, sans exception.** Une migration appliquée en direct sans fichier casse la seule méthode fiable de savoir « qu'est-ce qui manque à prod » (comparer les fichiers de migration de `dev` à `list_migrations` sur prod). Cas réel : le chantier 128 a été appliqué sur prod le 25/09 sans fichier commité pendant plusieurs heures — repéré seulement en clonant le schéma pour dev, par chance avant qu'une autre session ne le recommence en double.
+- **Toute migration appliquée doit avoir son fichier `.sql` commité dans le même geste, sans exception.** Une migration appliquée en direct sans fichier casse la seule méthode fiable de savoir « qu'est-ce qui manque à prod » (comparer les fichiers de migration de `dev` à `list_migrations` sur prod). Cas réel : le chantier 128 a été appliqué sur prod le 25/09 sans fichier commité pendant plusieurs heures — repéré seulement en clonant le schéma pour dev, par chance avant qu'une autre session ne le recommence en double. **Deuxième cas réel, le 26/09** : les chantiers 130 (annulée, `DROP FUNCTION` derrière elle — sans conséquence) et 134b (`get_results_map`/`create_session` modifiées pour le mode sondage) ont été appliqués sur dev sans qu'aucun fichier n'existe nulle part dans le dépôt, sur aucune branche — repéré par une session de synchronisation dev/prod qui comparait `list_migrations` (dev) aux fichiers du repo. Le chantier 134a, lui, avait bien un fichier (`20260926_chantier134a_modes_de_seance.sql`), mais seulement sur la branche de chantier `claude/chantier-134-80bd0f`, jamais mergée dans `dev` — alors que sa migration, elle, était déjà appliquée sur la base dev **et** que le chantier n'était pas déclaré dans la section « Chantiers en cours » de `docs/chantiers-a-faire.md`. Une migration appliquée en base et un fichier commité sur une branche non mergée ne sont pas équivalents : tant que la branche n'est pas dans `dev`, le repo ne peut pas reconstruire ce qui tourne réellement sur la base dev à partir des fichiers seuls.
+- **Avant d'appliquer une migration qui modifie une colonne ou une contrainte existante, vérifier par un `SELECT` en lecture seule sur **prod** que les données n'ont pas dérivé depuis le dernier clonage du schéma dev** (2026-09-25 à ce jour — voir date ci-dessus, à mettre à jour si le schéma est re-cloné). Le clonage initial suppose que prod n'a pas bougé pendant que dev prenait de l'avance ; c'est vrai tant que rien n'est mergé vers `main`, mais ça ne va pas de soi indéfiniment — une migration corrective appliquée directement sur prod (hors du cycle dev → main normal, par exemple un hotfix urgent) romprait cette hypothèse sans que dev le sache. Ça ne coûte qu'une requête en plus de la vérification `pg_get_functiondef` déjà en vigueur (§ Règle SQL ci-dessus) — décision de Jules, principe validé le 26/09.
 
 ### Nettoyage au merge — worktree et branche
 
@@ -87,6 +88,19 @@ Au merge d'un chantier vers `dev` (ou vers `main`) :
 - **Supprimer la branche GitHub distante** (`git push origin --delete <branche>`) dans la foulée — un dépôt qui accumule des dizaines de branches de chantiers mergés (constaté au chantier 126) rend `git branch -a` inutilisable.
 - **Tenter `ExitWorktree`** si la session a elle-même ouvert son worktree via `EnterWorktree`. La plupart des sessions reçoivent leur worktree déjà provisionné par le harnais au démarrage plutôt que de l'ouvrir elles-mêmes — dans ce cas `ExitWorktree` est un no-op silencieux (l'outil n'agit que sur un worktree qu'il a lui-même créé dans la session courante). Ne pas bloquer dessus : le signaler en une ligne (« worktree à nettoyer manuellement ») plutôt que d'insister.
 - **Filet de sécurité, au merge `dev` → `main`** : une passe croise `git worktree list` avec les chantiers marqués faits dans `docs/chantiers.md` (et l'absence dans `docs/registre-merges-en-attente.md`) pour purger les worktrees/branches orphelins de chantiers terminés que le nettoyage immédiat aurait manqués.
+
+### Recette : merge `dev` → `main`
+
+Dans l'ordre, chaque étape suppose la précédente faite :
+
+1. **Lire [`docs/registre-merges-en-attente.md`](./docs/registre-merges-en-attente.md)** — une partie de ce qui est sur `dev` peut y être volontairement retenue (gel avant utilisation réelle, migration qui casserait l'existant tant que le code n'est pas déployé).
+2. **Comparer les migrations** : `list_migrations` sur le projet prod (`plpjiehqsxxakbuykmkm`) vs. les fichiers de `supabase/migrations/` présents sur `dev` — tout fichier de `dev` absent des noms retournés par prod est à appliquer à l'étape 5. Vérifier aussi qu'aucune migration n'a été appliquée sur dev sans fichier commité (`list_migrations` dev vs. fichiers du repo) — sinon la combler d'abord (reconstruire le fichier depuis `pg_get_functiondef`/introspection, le committer sur `dev`) avant de continuer.
+3. **Vérification en lecture seule sur prod** (règle ci-dessus) pour toute migration à appliquer qui modifie une colonne/contrainte existante : `SELECT` de contrôle avant d'écrire quoi que ce soit.
+4. **Merger `dev` dans `main`** (`git checkout main && git merge dev` ou via PR GitHub) et pousser.
+5. **Appliquer sur la base prod**, dans l'ordre chronologique des fichiers identifiés à l'étape 2, chaque migration encore manquante — une par une via `apply_migration`, pas un rejeu brut de fichiers concaténés (les migrations de test/nettoyage ponctuelles, si dev en a accumulé, ne doivent pas être rejouées sur prod).
+6. **Vérifier après coup** : `list_migrations` sur prod inclut maintenant tous les fichiers de `dev` ; `get_advisors` (sécurité + performance) sur prod ne régresse pas.
+7. **Nettoyage** (section ci-dessus) : branches distantes mergées supprimées, worktrees orphelins purgés, entrées « Chantiers en cours » retirées.
+8. **Documenter** : `docs/chantiers.md` à jour pour chaque chantier livré, `A_VERIFIER.md` pour ce qui reste à confirmer au navigateur sur prod (une vérification faite sur dev ne vaut pas pour prod — bases de données différentes, même si le code est identique).
 
 ---
 
@@ -126,6 +140,20 @@ Ne **jamais** enchaîner une action (clic, RPC déclenchant un changement de pha
 Après tout test navigateur, ou toute implémentation dont le comportement reste incertain (edge case non couvert, résultat visuel à confirmer, comportement ambigu sur peu de données), consigner une entrée dans [A_VERIFIER.md](./A_VERIFIER.md) avec la date, le fichier concerné, et une description courte du point à vérifier. Ne jamais supprimer une entrée de ce fichier sans confirmation explicite de l'utilisateur — se contenter de la déplacer en section "Validé" une fois la confirmation obtenue. Le fichier est commité avec les changements de code concernés (pas de `.gitignore`) pour rester visible par les autres contributeurs.
 
 ---
+
+## Types de séance — toute évolution se questionne pour les trois (chantier 134)
+
+Depuis le chantier 134, une séance a un **type**, fixé à la création (`sessions.session_type`) :
+
+| Type | Phases | Contenu |
+|---|---|---|
+| `full` — séance complète | `draft → pre_voting → voting → allocating → debating → post_voting → closed` | le parcours historique |
+| `debate` — débat simple | `draft → debating → closed` | une table modérée (d'autres ajoutables), questionnaire de fin, aucun vote |
+| `poll` — sondage | `draft → pre_voting → closed` | vote distanciel seul, résultats et camps visibles pendant le vote, publics à la clôture |
+
+La séquence vit à deux endroits qui doivent rester identiques : `session_type_allows_phase` (SQL, garde de `set_session_phase`) et `phaseSequenceFor` (`src/lib/phaseLabels.ts`). Lire le type via `sessionTypeOf(session)`, jamais `session.session_type` brut.
+
+> ⚠️ **Règle demandée par Jules (2026-09-26) — à appliquer par chaque session, sans attendre qu'on le lui rappelle** : la plupart des modifications apportées aux séances complètes doivent **se transférer aux séances partielles** (débat simple, sondage). Toute session qui touche un écran, une RPC ou une règle du parcours doit **se poser explicitement la question** : « ce changement concerne-t-il aussi `debate` et/ou `poll` ? » — et soit l'y appliquer, soit dire dans son compte rendu (et dans `docs/chantiers.md`) pourquoi il ne s'y applique pas. Un changement qui teste `phase === '…'` sans penser au type est le cas typique où l'oubli passe inaperçu : un débat simple n'a jamais de `voting`, un sondage jamais de `debating`.
 
 ## Modèle de données
 

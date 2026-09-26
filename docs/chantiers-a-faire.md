@@ -12,6 +12,10 @@ _(aucun actuellement)_
 
 > **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
+> **Le 2026-09-26, le chantier 134 est mergé dans `dev`** (types de séance : séance complète / débat simple / sondage) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 134 ; entrée « en cours » retirée au merge. Précision sur la note de suivi dev/prod ci-dessous : le 134 était bien déclaré « en cours », mais sur sa propre branche (commit `cdf4c40`), pas encore sur `dev` — d'où l'impression, vue depuis `dev` seul, d'une migration non déclarée. Ses deux migrations restent à appliquer sur **prod** au merge vers `main`.
+
+> **Le 2026-09-26, suivi dev/prod** : vérification de synchronisation (`list_migrations` dev vs. fichiers du repo vs. prod). Deux migrations trouvées en base dev sans fichier commité nulle part — voir `docs/chantiers.md` (ligne « Suivi dev/prod ») pour le détail. Au moment de cette vérification, le chantier 134 semblait en cours sans être déclaré dans **cette** section — en réalité il l'était, mais sur sa propre branche, pas encore visible depuis `dev` (cf. note ci-dessus une fois le 134 mergé). `CLAUDE.md` complété : règle de vérification en lecture seule sur prod avant une migration qui modifie une colonne/contrainte existante, et recette de merge `dev → main`. Correctif Realtime dev (policies manquantes sur `realtime.messages`) appliqué et **vérifié au navigateur** le même jour (deux onglets, propagation en ~2s sans reload) — voir `A_VERIFIER.md`.
+>
 > **Le 2026-09-26, le chantier 133 est fait et vérifié au navigateur** — le nudge « Proposer une assertion » (toutes les 10 assertions votées) ne se déclenche plus, et ne peut plus rester affiché, quand `session.assertions_locked` est actif. Un seul fichier touché, `src/screens/VoteScreen.tsx`, aucune RPC/migration. Vérifié en conditions réelles sur dev (parcours complet au clic, deux séances de test) : absent quand verrouillé, toujours présent sinon (non-régression). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 >
 > **Le 2026-09-26, le chantier 131 est fait** — bouton "d'accord pour le sujet suivant" + tag de sujet optionnel à la prise de parole. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
@@ -210,6 +214,8 @@ Le plus gros des trois chantiers "fonctionnalités table de débat" — nouveau 
 Périmètre de fichiers (à affiner en démarrant) : nouvelles tables SQL (ex. `table_votes`/`table_vote_options`/`table_vote_responses`), nouvelle(s) RPC, `ModeratorView.tsx`, `ParticipantView.tsx`, `lib/realtime.ts` si nouveau topic.
 
 #### 134 — "Nouvelle séance" : 3 modes (séance complète / débat simple / sondage) — usage interne — **Opus demandé par Jules**
+
+> 🟡 **Livré le 2026-09-26, pas mergé** (`claude/chantier-134-80bd0f`). Arbitrages de Jules et conception : [`docs/chantier-134-conception.md`](./chantier-134-conception.md) ; détail dans `docs/chantiers.md` et recette dans `A_VERIFIER.md` § Chantier 134. **Le 135 n'est plus bloqué sur la conception** (type de séance + séquence de phases par type = la brique réutilisable), mais reste à lancer après le merge du 134.
 
 **Consigne de Jules** : « Discussion opus (et probablement à scinder en deux) : Quand on fait "nouvelle séance" dans le menu superadmin, on propose 3 choses : séance complète, débat simple, et sondage. La séance complète est comme actuellement, le débat simple est juste la création d'une table, avec modérateur, et sans vote préalable, ou après, ou tout fonctionnement lié aux assertions. Au contraire, le sondage, c'est tout le fonctionnement lié aux assertions (votes distanciel uniquement, sans besoin de faire de présentiel derrière, et une vision des résultats et des camps qui peut s'actualiser) mais sans le débat avec la table de débat, et l'allocation. »
 
@@ -547,7 +553,9 @@ Le chantier 119 avait déjà posé la moitié du travail (`sync_table_assignment
 
 **Fichiers concernés si confirmé** : `supabase/migrations/…` (`sync_table_assignment`), potentiellement `src/App.tsx` (le point d'appel).
 
-### 136 — `scripts/cleanup-worktrees.sh` ne connaît pas `dev` (script obsolète depuis l'introduction du workflow dev/main)
+### 136 — `scripts/cleanup-worktrees.sh` ne connaît pas `dev` (script obsolète depuis l'introduction du workflow dev/main) — ✅ fait le 2026-09-26
+
+> **Fait le 2026-09-26**, dans le cadre du suivi dev/prod (voir `docs/chantiers.md`). Option 1+2 retenues : `DEV_BRANCH="dev"` ajoutée aux côtés de `MAIN_BRANCH`, ajoutée à `PROTECTED_BRANCHES` (jamais supprimée elle-même), nouvelle fonction `is_ancestor_of_main_or_dev()` utilisée aux trois points de décision (worktrees, branches locales, branches distantes) à la place du `git merge-base --is-ancestor … "$MAIN_BRANCH"` unique. La vérification de branche courante en tête de script accepte désormais `main` **ou** `dev`. Point 3 de la consigne (cohérence des sections 2/3) vérifié : elles utilisent la même fonction, donc le même critère. `bash -n` (vérification de syntaxe) passe. **Dry-run réel non joué** : le script refuse de tourner ailleurs qu'à la racine d'un clone sur `main`/`dev` (pas un worktree — vérification `[ ! -d ".git" ]` en tête de script), et cette session travaille dans un worktree. À lancer en dry-run (`bash scripts/cleanup-worktrees.sh`, sans `--go`) depuis la racine avant tout `--go` réel, comme toujours.
 
 **Origine** : signalé par une autre conversation, confirmé et discuté avec Jules le 2026-09-25 — pas un bug qui casse quoi que ce soit (le script se trompe du côté prudent), mais une désynchronisation avec le workflow dev/main introduit ce jour-là (voir `CLAUDE.md` § Environnements — dev / prod).
 
