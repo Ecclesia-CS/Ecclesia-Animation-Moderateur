@@ -12,6 +12,7 @@ import DebateRulesModal from '../components/DebateRulesModal'
 import ConfirmModal from '../components/ConfirmModal'
 import PhaseIndicator from '../components/PhaseIndicator'
 import TableChangeModal from '../components/TableChangeModal'
+import TableVoteModal from '../components/TableVoteModal'
 
 export default function ParticipantView() {
   const {
@@ -51,6 +52,20 @@ export default function ParticipantView() {
   const [forcedQResponse, setForcedQResponse] = useState<QuestionnaireResponse | null>(null)
   const lastForcedRef  = useRef<string | null>(null)
   const forcedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Chantier 132 — outil "proposer un vote" du modérateur. Contrairement au
+  // questionnaire forcé, ce popup est dismissible : on retient le dernier
+  // active_vote_id vu pour ne le rouvrir automatiquement que sur un NOUVEAU
+  // vote (un vote fermé/dismiss reste accessible via la bannière ci-dessous).
+  const [voteModalOpen, setVoteModalOpen] = useState(false)
+  const lastVoteIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const voteId = table.active_vote_id
+    if (!voteId || voteId === lastVoteIdRef.current) return
+    lastVoteIdRef.current = voteId
+    setVoteModalOpen(true)
+  }, [table.active_vote_id])
 
   // Ouvrir le modal quand le forçage est activé
   useEffect(() => {
@@ -225,6 +240,18 @@ export default function ParticipantView() {
       <div className="flex-1 flex gap-4 p-4 pt-6 max-w-2xl mx-auto w-full items-start">
 
       <div className="flex-1 flex flex-col items-center gap-5 min-w-0">
+
+        {/* Chantier 132 — bannière de réouverture du vote en cours, après un dismiss */}
+        {table.active_vote_id && !voteModalOpen && (
+          <button
+            onClick={() => setVoteModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+              border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium
+              hover:bg-indigo-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          >
+            🗳️ Voir le vote en cours
+          </button>
+        )}
 
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">
@@ -432,6 +459,13 @@ export default function ParticipantView() {
           savedResponse={forcedQResponse}
           forced={!forcedExpired}
           onClose={() => setForcedQOpen(false)}
+        />
+      )}
+
+      {voteModalOpen && table.active_vote_id && (
+        <TableVoteModal
+          voteId={table.active_vote_id}
+          onClose={() => setVoteModalOpen(false)}
         />
       )}
 

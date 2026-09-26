@@ -11,6 +11,7 @@ import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
+import ModeratorVoteModal from './ModeratorVoteModal'
 
 interface Props {
   className?: string
@@ -52,6 +53,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
   const [codesOpen,     setCodesOpen]     = useState(false)
+  const [voteToolOpen,  setVoteToolOpen]  = useState(false)
 
   const [addPersonName,    setAddPersonName]    = useState('')
   const [addPersonLoading, setAddPersonLoading] = useState(false)
@@ -236,6 +238,11 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Historique
             </button>
 
+            <button onClick={() => { setPanelOpen(false); setVoteToolOpen(true) }} className={linkClass}>
+              <span className="w-4 text-center text-gray-400 shrink-0">🗳️</span>
+              {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
+            </button>
+
             <button
               onClick={() => {
                 setPanelOpen(false)
@@ -374,6 +381,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           </div>
         </div>
       )}
+
+      {voteToolOpen && <ModeratorVoteModal onClose={() => setVoteToolOpen(false)} />}
 
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
 

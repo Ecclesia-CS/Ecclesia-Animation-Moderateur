@@ -50,6 +50,8 @@ interface TableCtxValue {
   cancelForceQuestionnaire(): Promise<void>
   setNextTopicVote(value: boolean): Promise<void>
   resetNextTopicVotes(): Promise<void>
+  openTableVote(question: string, options: string[]): Promise<string>
+  closeActiveTableVote(voteId: string): Promise<void>
 }
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
@@ -593,6 +595,28 @@ export function TableProvider({
     broadcast(['participants'])
   }, [rpc, tableId, broadcast])
 
+  // Chantier 132 — outil "proposer un vote". `tables.active_vote_id` piggyback
+  // sur le canal/broadcast/polling déjà en place sur `tables` (comme
+  // `questionnaire_forced_at`) : aucun nouveau topic Realtime nécessaire.
+  const openTableVote = useCallback(async (question: string, options: string[]) => {
+    const { data, error } = await supabase.rpc('create_table_vote', {
+      p_table_id: tableId,
+      p_question: question,
+      p_options: options,
+    })
+    if (error) throw error
+    const voteId = data as string
+    setTable(prev => prev ? { ...prev, active_vote_id: voteId } : prev)
+    broadcast(['tables'])
+    return voteId
+  }, [tableId, broadcast])
+
+  const closeActiveTableVote = useCallback(async (voteId: string) => {
+    const { error } = await supabase.rpc('close_table_vote', { p_vote_id: voteId })
+    if (error) throw error
+    broadcast(['tables'])
+  }, [broadcast])
+
   // ── Render ────────────────────────────────────────────────────
 
   const myParticipant = useMemo(
@@ -652,6 +676,8 @@ export function TableProvider({
         cancelForceQuestionnaire,
         setNextTopicVote,
         resetNextTopicVotes,
+        openTableVote,
+        closeActiveTableVote,
       }}
     >
       {children}

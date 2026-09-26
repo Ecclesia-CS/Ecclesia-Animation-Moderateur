@@ -65,6 +65,56 @@ export interface Table {
   // d'animation SQL sur cette table (is_table_moderator). Nullable : aucun
   // modérateur de séance en exercice ici.
   active_moderator_member_id: string | null
+  // Chantier 132 — dernier vote "outil modérateur" créé pour cette table (Bloc C
+  // exclu, totalement séparé). Jamais remis à NULL à la clôture : pointe toujours
+  // le dernier vote, actif ou clôturé, tant qu'aucun nouveau n'a été créé.
+  active_vote_id: string | null
+}
+
+// Chantier 132 — outil "proposer un vote" côté modérateur (table-scoped, séparé
+// du Bloc C assertions/vote). Réponse oui/non indépendante par option, décomptes
+// agrégés uniquement — jamais de lecture nominative des réponses d'autrui.
+export interface TableVote {
+  id: string
+  table_id: string
+  question: string
+  status: 'active' | 'closed'
+  created_by: string
+  created_at: string
+  closed_at: string | null
+}
+
+export interface TableVoteOption {
+  id: string
+  vote_id: string
+  label: string
+  position: number
+}
+
+export interface TableVoteResult {
+  option_id: string
+  label: string
+  position: number
+  yes_count: number
+  no_count: number
+  total_count: number
+}
+
+export interface TableVoteHistoryOption {
+  option_id: string
+  label: string
+  position: number
+  yes_count: number
+  no_count: number
+}
+
+export interface TableVoteHistoryEntry {
+  id: string
+  question: string
+  status: 'active' | 'closed'
+  created_at: string
+  closed_at: string | null
+  options: TableVoteHistoryOption[]
 }
 
 export interface Participant {

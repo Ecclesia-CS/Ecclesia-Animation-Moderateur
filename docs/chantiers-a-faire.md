@@ -8,8 +8,9 @@ Dernière mise à jour : **2026-09-21**.
 
 ## Chantiers en cours
 
-### 132 — Outil "proposer un vote" côté modérateur
-**Branche** : claude/chantier-132-3f4289 · **Depuis** : 2026-09-26 · **Fichiers touchés (prévu)** : nouvelles tables SQL (`table_votes`/`table_vote_options`/`table_vote_responses`), nouvelle(s) RPC, `ModeratorView.tsx`, `ParticipantView.tsx`, `lib/realtime.ts` (nouveau topic éventuel)
+_(aucun actuellement)_
+
+> **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
 > **Le 2026-09-26, le chantier 133 est fait et vérifié au navigateur** — le nudge « Proposer une assertion » (toutes les 10 assertions votées) ne se déclenche plus, et ne peut plus rester affiché, quand `session.assertions_locked` est actif. Un seul fichier touché, `src/screens/VoteScreen.tsx`, aucune RPC/migration. Vérifié en conditions réelles sur dev (parcours complet au clic, deux séances de test) : absent quand verrouillé, toujours présent sinon (non-régression). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 >
@@ -190,7 +191,9 @@ Deux sous-tâches regroupées (même zone d'écran, taille comparable) :
 
 Périmètre de fichiers (à affiner en démarrant) : `ParticipantView.tsx`, `ModeratorView.tsx`, `queue_entries` (migration éventuelle pour le tag de sujet).
 
-#### 132 — Outil "proposer un vote" côté modérateur
+#### 132 — Outil "proposer un vote" côté modérateur — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-26.** Détail complet (`tables.active_vote_id`, tables `table_votes`/`table_vote_options`/`table_vote_responses`, RPC `create_table_vote`/`close_table_vote`/`submit_table_vote_response`/`get_table_vote_results`/`list_table_votes`, composants `ModeratorVoteModal.tsx`/`TableVoteModal.tsx`) dans `docs/chantiers.md` (chantier 132) et `A_VERIFIER.md` § Chantier 132. Vérifié en base sur dev (transaction jetable), **pas au navigateur**.
 
 **Consigne de Jules** : « Donner la possibilité au modérateur de proposer un vote parmi plusieurs options. Il écrit les options, et chaque personne peut dire qu'il est d'accord sur chacune des options ou non. À la fin des votes, tout le monde peut avoir accès au résultat. » Précisé en conversation : « dans la vue modérateur, c'est un nouvel outil "proposer un vote", et cela s'affiche ensuite dans la vue participant avec une fenêtre qui pop. Totalement séparé du système d'assertion. Le modo ne doit pas voir qui a voté quoi, juste des décomptes. Une question, un résultat, terminé, mais le modo peut relancer d'autres votes derrière. Le modo doit accéder à l'historique de ces votes. »
 

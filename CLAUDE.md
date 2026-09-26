@@ -257,6 +257,7 @@ Les 4 couches sont **inchangées par le chantier 59** — elles sont ce qui rend
 `grantFloor`/`endTurn`/`endTurnAndAdvance` → `tables, queue_entries, speaking_turns`
 `addToQueue`/`removeFromQueue`/`moveQueueEntry`/`reorderQueueEntry`/`changeQueueType` → `queue_entries`
 `kickParticipant` → `tables, participants, queue_entries, speaking_turns`
+`openTableVote`/`closeActiveTableVote` (chantier 132) → `tables` (`active_vote_id`/statut piggyback sur `tables`, jamais de broadcast des réponses individuelles — anonymat)
 
 ### DnD (ModeratorView)
 - Stratégie `pointerWithin` **sans** fallback `closestCenter` — drop hors panel ignoré, sinon insertion en dernière position
