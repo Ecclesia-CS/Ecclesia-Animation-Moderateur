@@ -18,7 +18,16 @@ Phase order : `draft → pre_voting → voting → allocating → debating → c
 - **Chantier 39** : la phase `questionnaire` a été supprimée de l'énumération — voir « Nomenclature des phases côté participant » plus bas pour la correspondance à jour et le mécanisme de déclenchement automatique du questionnaire post-débat.
 
 ### `tables`
-`id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`), `leaderless_by_design` (boolean, défaut `false` — **chantier 64**, voir « Tables leaderless » plus bas : `leaderless` décrit l'état courant, `leaderless_by_design` décrit ce que la table est censée être — seule une création ou un (re)calcul d'allocation la pose, jamais une conversion/bascule organique)
+`id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`), `leaderless_by_design` (boolean, défaut `false` — **chantier 64**, voir « Tables leaderless » plus bas : `leaderless` décrit l'état courant, `leaderless_by_design` décrit ce que la table est censée être — seule une création ou un (re)calcul d'allocation la pose, jamais une conversion/bascule organique), `active_vote_id?` (FK→table_votes ON DELETE SET NULL — **chantier 132**, voir plus bas : pointe le DERNIER vote "outil modérateur" créé pour cette table, jamais remis à `NULL` à la clôture)
+
+### `table_votes` / `table_vote_options` / `table_vote_responses` — chantier 132
+Outil "proposer un vote" côté modérateur, table-scoped, **totalement séparé** du système d'assertions/vote du Bloc C (`sessions`/`session_members`/`assertions`).
+
+- `table_votes` : `id`, `table_id` (CASCADE), `question` (1-300 car.), `status` (`'active'`|`'closed'`, défaut `'active'`), `created_by` (auth.uid()), `created_at`, `closed_at?`.
+- `table_vote_options` : `id`, `vote_id` (CASCADE), `label` (1-200 car.), `position`.
+- `table_vote_responses` : `id`, `option_id` (CASCADE), `vote_id` (CASCADE, dénormalisé pour éviter un JOIN), `user_id` (auth.uid()), `answer` (boolean), `created_at`, `updated_at`. Contrainte `UNIQUE(option_id, user_id)` — un participant répond au plus une fois par option, upsert sur changement d'avis.
+
+**RLS et anonymat** : `table_votes`/`table_vote_options` sont lisibles par tout participant ou modérateur de la table (`is_table_participant`/`is_table_moderator`). `table_vote_responses` n'a **qu'une seule policy**, `SELECT USING (user_id = auth.uid())` — un participant ne voit que ses propres réponses (état "déjà répondu"), et **personne, pas même le modérateur, n'a de policy pour lire les réponses d'autrui**. Le seul moyen de connaître un décompte est la RPC `get_table_vote_results` (agrégats uniquement). Écriture exclusivement via RPC SECURITY DEFINER (`create_table_vote`, `close_table_vote`, `submit_table_vote_response`) — aucune policy INSERT/UPDATE/DELETE sur les trois tables.
 
 ### `participants`
 `id`, `table_id` (CASCADE), `user_id`, `pseudo`, `created_at`

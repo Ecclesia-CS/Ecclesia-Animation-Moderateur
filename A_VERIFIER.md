@@ -6,7 +6,7 @@
 >
 > 🗂️ [`docs/A_VERIFIER-passe-validation-jules-20260906.md`](./docs/A_VERIFIER-passe-validation-jules-20260906.md) reste dans le dépôt comme trace de ce qu'il a réellement vu à l'écran ce jour-là. Ne pas le supprimer ; ne plus s'en servir comme source de statut.
 
-## ⚠️ Correctif Realtime dev (policies manquantes sur `realtime.messages`) — appliqué le 2026-09-26, à confirmer au navigateur
+## ✅ Correctif Realtime dev (policies manquantes sur `realtime.messages`) — appliqué et vérifié au navigateur le 2026-09-26
 
 **Contexte** : suivi dev/prod (voir `docs/chantiers.md`, ligne « Suivi dev/prod »). `realtime.messages` avait RLS activé mais **zéro policy** sur dev (`mnjqrlrrzrycuconlfqb`), alors que prod (`plpjiehqsxxakbuykmkm`) en a deux (`ecclesia_realtime_read`, `ecclesia_realtime_write`, posées par le chantier 59). RLS activé + zéro policy = refus par défaut pour tout rôle non-superuser → `Unauthorized: You do not have permissions to read from this Channel topic` sur **tous** les canaux Realtime privés de l'app côté dev (`table:<id>`, `vote:<session_id>`, `session-member:<id>`, `allocating:<id>`, `postvote:...`, etc.). Ces deux policies vivent dans le schéma `realtime` (table système Supabase), hors du périmètre `public` introspecté au clonage du schéma dev le 25/09 — c'est pour ça qu'elles n'ont jamais été reproduites.
 
@@ -14,7 +14,7 @@
 
 **Appliqué** (`supabase/migrations/20260926_fix_dev_realtime_messages_policies.sql`, copie conforme des deux policies de prod) et **vérifié en base après coup** : `pg_policies` sur dev liste maintenant `ecclesia_realtime_read` (SELECT) et `ecclesia_realtime_write` (INSERT), comme sur prod.
 
-**Ce qui reste à vérifier au navigateur (non fait par cette session, pas de serveur de dev lancé)** : ouvrir deux onglets sur une même table en environnement dev (`ecclesia-animation-moderateur-git-dev-ecclesia5.vercel.app` ou `npm run dev` local pointé sur dev) et confirmer qu'une action d'un onglet (drag & drop de file d'attente, passage de parole, changement de phase superadmin) se reflète **en direct** dans l'autre, sans attendre le polling de secours (5-10s) ni un reload. Avant ce correctif, seul le filet de rattrapage fonctionnait — plus lent, avec des reloads intempestifs en cas d'erreur de canal (`CHANNEL_ERROR`/`TIMED_OUT`, § Realtime latence de `CLAUDE.md`).
+**Vérifié au navigateur réel** (dev server local sur ce worktree, `.env` temporaire pointé vers la base dev — non commité, supprimé après le test) : séance + table de test créées en base (`join_code` jetable `RTQATB`), deux onglets du Browser pane rejoignant la même table. Action « Coupe file » cliquée dans un onglet → apparue dans l'autre onglet **en ~2 secondes, sans reload et sans attendre le polling de secours (5-10s)** — confirme que le canal privé `table:<id>` fonctionne. Limite de la méthode : les deux onglets du Browser pane partagent le même `localStorage` (même origine), donc la même session anonyme (`auth.uid()` identique) — le test ne distingue donc pas deux identités différentes, mais il confirme bien que le blocage total (« zéro policy = refus pour tout rôle ») est levé, ce qui était le seul point en cause ici. Séance/table/participants/queue_entries de test purgés en base après coup.
 
 ## ✅ Lacune d'environnement dev, découverte en préparant le chantier 131 — corrigée le 2026-09-26
 
@@ -2971,6 +2971,28 @@ rollback;
 5. Vérifié en base après coup : `session_members.user_id` **et** `participants.user_id` portent tous les deux la nouvelle identité B, une seule ligne `table_assignments`, aucun doublon.
 
 `tsc --noEmit` et `npm run build` propres. `npx vitest run` : 107 tests passent ; le seul échec (`src/lib/groupNaming.test.ts`, `supabaseUrl is required`) est un défaut d'environnement préexistant du worktree (pas de `.env` copié avant ce test), sans rapport avec ce chantier — non-régression confirmée séparément par le test navigateur réel une fois `.env` copié.
+
+## Chantier 132 (2026-09-26) — Outil "proposer un vote" côté modérateur
+
+Migration `supabase/migrations/20260926_chantier132_table_votes.sql` appliquée sur **dev** (`mnjqrlrrzrycuconlfqb`) uniquement — reste à appliquer sur prod au merge vers `main`. `tsc --noEmit` propre.
+
+**Vérifié en base sur dev** (bloc `DO $$ … RAISE EXCEPTION 'ROLLBACK_TEST_JETABLE'` jetable, `auth.uid()` simulé via `set_config('request.jwt.claims', …, true)`, rollback confirmé et absence de ligne résiduelle vérifiée après coup — `select count(*) from tables where join_code='TST99'` → 0) :
+- Création d'un vote par le modérateur physique (`created_by`) avec 3 options dont une vide/blanche → filtrée, 2 options valides créées, `tables.active_vote_id` posé.
+- Un utilisateur non assis à la table tente de répondre → refusé (`is_table_participant` faux).
+- Une fois assis (`participants` inséré), deux participants distincts répondent (oui/non/oui sur les deux options) sans exception.
+- `get_table_vote_results` renvoie les décomptes agrégés attendus par option.
+- Le modérateur clôture le vote (`close_table_vote`) → `status` passe à `'closed'`.
+- Un participant tente de voter après clôture → refusé (« Ce vote est clôturé »).
+- `list_table_votes` (modérateur) renvoie la question, le statut et les décomptes en historique.
+
+**Non vérifié au navigateur** — aucune séance de test réelle jouée dans cette session (pas de mot de passe superadmin/Code Ecclesia disponible en session headless pour créer une vraie table modérée, même limite que les chantiers 118/119/121/128/130). À rejouer par Jules ou une session disposant des identifiants :
+1. Modérateur : ouvrir Outils Modo → "Proposer un vote" → saisir une question et 2+ options → "Lancer le vote".
+2. Participant(s) (autre appareil/onglet) : le popup doit s'ouvrir automatiquement (sans reload, via le canal Realtime existant `table:<id>` + polling 5s de secours) ; répondre pour/contre sur chaque option indépendamment.
+3. Modérateur : vérifier que le décompte affiché se met à jour en direct (polling 4s) sans jamais révéler qui a répondu quoi.
+4. Modérateur : "Clôturer le vote" → vérifier que le popup participant (s'il est resté ouvert, ou rouvert via la bannière "Voir le vote en cours") bascule automatiquement sur les résultats, sans reload, dans les ~4s.
+5. Modérateur : relancer un second vote → vérifier qu'il remplace bien le premier dans la vue "en cours" côté participant.
+6. Modérateur : ouvrir "Voir l'historique des votes de cette table" → vérifier que les deux votes y apparaissent avec leurs décomptes respectifs.
+7. Vérifier qu'un participant qui ferme (croix) le popup sans répondre peut le rouvrir via la bannière "🗳️ Voir le vote en cours", et qu'un tout nouveau vote rouvre le popup automatiquement même si le précédent avait été fermé manuellement.
 
 **Rien à revérifier humainement** : les trois chemins (cas nominal, code erroné, bon code) ont été rejoués à l'écran avec des données réelles, pas seulement en base.
 

@@ -12,6 +12,7 @@ import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
 import { useSessionOrganizationName } from '../lib/organizations'
+import ModeratorVoteModal from './ModeratorVoteModal'
 
 interface Props {
   className?: string
@@ -53,6 +54,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
   const [codesOpen,     setCodesOpen]     = useState(false)
+  const [voteToolOpen,  setVoteToolOpen]  = useState(false)
   // Chantier 135 — débat d'une association : ni camps, ni assertions, ni
   // questionnaire Ecclesia.
   const orgName = useSessionOrganizationName(table.session_id)
@@ -240,6 +242,11 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Historique
             </button>
 
+            <button onClick={() => { setPanelOpen(false); setVoteToolOpen(true) }} className={linkClass}>
+              <span className="w-4 text-center text-gray-400 shrink-0">🗳️</span>
+              {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
+            </button>
+
             {!orgName && (
             <button
               onClick={() => {
@@ -382,6 +389,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           </div>
         </div>
       )}
+
+      {voteToolOpen && <ModeratorVoteModal onClose={() => setVoteToolOpen(false)} />}
 
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
 

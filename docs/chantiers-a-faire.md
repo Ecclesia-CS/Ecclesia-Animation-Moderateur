@@ -4,16 +4,19 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-21**.
+Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 ## Chantiers en cours
 
-### 135 — Comptes associations externes (débat simple)
-**Branche** : `claude/chantier-135-external-users-592b48` · **Depuis** : 2026-09-26 · **Livré le 2026-09-28, pas mergé** · **Fichiers touchés** : 3 migrations `20260926_chantier135*` + `20260928_chantier135c*` (appliquées sur dev), `src/lib/organizations.ts`, `SuperadminScreen.tsx`, `SessionRouterScreen.tsx`, `EntryScreen.tsx`, `VoteScreen.tsx`, `ModeratorView.tsx`, `App.tsx`, `DebateEntryForm.tsx`, `DocumentationButton.tsx`, `ModeratorToolsButton.tsx`, `ParticipantToolsButton.tsx`, `DocNudge.tsx`, `ModeratorActionModal.tsx`, `types.ts`. ⚠️ Recouvre `SuperadminScreen.tsx` et les écrans participant : rebaser avant de toucher ces fichiers en parallèle.
+_(aucun actuellement)_
 
-> **Le 2026-09-26, le chantier 134 est mergé dans `dev`** (types de séance : séance complète / débat simple / sondage) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 134 ; entrée « en cours » retirée au merge. Précision sur la note de suivi dev/prod ci-dessous : le 134 était bien déclaré « en cours », mais sur sa propre branche (commit `cdf4c40`), pas encore sur `dev` — d'où l'impression d'une migration non déclarée. Ses deux migrations restent à appliquer sur **prod** au merge vers `main`.
+> **Le 2026-09-28, le chantier 135 est mergé dans `dev`** (comptes associations externes : débat simple + sondage, espace `#asso`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 135 ; entrée « en cours » retirée au merge. Ses **trois** migrations (`20260926_chantier135_comptes_associations`, `20260926_chantier135b_refus_asso_explicite`, `20260928_chantier135c_nommage_camps_asso`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 134.
 
-> **Le 2026-09-26, suivi dev/prod** : vérification de synchronisation (`list_migrations` dev vs. fichiers du repo vs. prod). Deux migrations trouvées en base dev sans fichier commité nulle part — voir `docs/chantiers.md` (ligne « Suivi dev/prod ») pour le détail. Point notable pour toute session qui reprendrait le chantier 134 : ses migrations (`chantier134a_modes_de_seance`, `chantier134b_sondage`) sont **déjà appliquées sur la base dev**, alors que seul le fichier du 134a existe, et seulement sur la branche `claude/chantier-134-80bd0f` (pas mergée dans `dev`) — ne pas repartir de zéro en pensant que rien n'est fait côté base. `CLAUDE.md` a été complété : règle de vérification en lecture seule sur prod avant une migration qui modifie une colonne/contrainte existante, et recette de merge `dev → main`.
+> **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
+
+> **Le 2026-09-26, le chantier 134 est mergé dans `dev`** (types de séance : séance complète / débat simple / sondage) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 134 ; entrée « en cours » retirée au merge. Précision sur la note de suivi dev/prod ci-dessous : le 134 était bien déclaré « en cours », mais sur sa propre branche (commit `cdf4c40`), pas encore sur `dev` — d'où l'impression, vue depuis `dev` seul, d'une migration non déclarée. Ses deux migrations restent à appliquer sur **prod** au merge vers `main`.
+
+> **Le 2026-09-26, suivi dev/prod** : vérification de synchronisation (`list_migrations` dev vs. fichiers du repo vs. prod). Deux migrations trouvées en base dev sans fichier commité nulle part — voir `docs/chantiers.md` (ligne « Suivi dev/prod ») pour le détail. Au moment de cette vérification, le chantier 134 semblait en cours sans être déclaré dans **cette** section — en réalité il l'était, mais sur sa propre branche, pas encore visible depuis `dev` (cf. note ci-dessus une fois le 134 mergé). `CLAUDE.md` complété : règle de vérification en lecture seule sur prod avant une migration qui modifie une colonne/contrainte existante, et recette de merge `dev → main`. Correctif Realtime dev (policies manquantes sur `realtime.messages`) appliqué et **vérifié au navigateur** le même jour (deux onglets, propagation en ~2s sans reload) — voir `A_VERIFIER.md`.
 >
 > **Le 2026-09-26, le chantier 133 est fait et vérifié au navigateur** — le nudge « Proposer une assertion » (toutes les 10 assertions votées) ne se déclenche plus, et ne peut plus rester affiché, quand `session.assertions_locked` est actif. Un seul fichier touché, `src/screens/VoteScreen.tsx`, aucune RPC/migration. Vérifié en conditions réelles sur dev (parcours complet au clic, deux séances de test) : absent quand verrouillé, toujours présent sinon (non-régression). Voir `docs/chantiers.md` et `A_VERIFIER.md`.
 >
@@ -194,7 +197,9 @@ Deux sous-tâches regroupées (même zone d'écran, taille comparable) :
 
 Périmètre de fichiers (à affiner en démarrant) : `ParticipantView.tsx`, `ModeratorView.tsx`, `queue_entries` (migration éventuelle pour le tag de sujet).
 
-#### 132 — Outil "proposer un vote" côté modérateur
+#### 132 — Outil "proposer un vote" côté modérateur — ✅ fait, voir `docs/chantiers.md`
+
+> **Fait le 2026-09-26.** Détail complet (`tables.active_vote_id`, tables `table_votes`/`table_vote_options`/`table_vote_responses`, RPC `create_table_vote`/`close_table_vote`/`submit_table_vote_response`/`get_table_vote_results`/`list_table_votes`, composants `ModeratorVoteModal.tsx`/`TableVoteModal.tsx`) dans `docs/chantiers.md` (chantier 132) et `A_VERIFIER.md` § Chantier 132. Vérifié en base sur dev (transaction jetable), **pas au navigateur**.
 
 **Consigne de Jules** : « Donner la possibilité au modérateur de proposer un vote parmi plusieurs options. Il écrit les options, et chaque personne peut dire qu'il est d'accord sur chacune des options ou non. À la fin des votes, tout le monde peut avoir accès au résultat. » Précisé en conversation : « dans la vue modérateur, c'est un nouvel outil "proposer un vote", et cela s'affiche ensuite dans la vue participant avec une fenêtre qui pop. Totalement séparé du système d'assertion. Le modo ne doit pas voir qui a voté quoi, juste des décomptes. Une question, un résultat, terminé, mais le modo peut relancer d'autres votes derrière. Le modo doit accéder à l'historique de ces votes. »
 
@@ -229,7 +234,7 @@ Périmètre de fichiers : large et à définir en démarrant — au minimum `ses
 
 #### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134
 
-> 🟡 **Livré le 2026-09-28, pas mergé** (`claude/chantier-135-external-users-592b48`) — conception et arbitrages : [`docs/chantier-135-conception.md`](./chantier-135-conception.md) ; détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 135, mode d'emploi : [`docs/mode-emploi-associations.md`](./mode-emploi-associations.md). Arbitrage final de Jules : débat simple **et** sondage, sans questionnaire, une table par débat, 3 séances en cours, expiration facultative.
+> 🟡 **Livré le 2026-09-28, mergé dans `dev` le même jour, pas dans `main`** (branche `claude/chantier-135-external-users-592b48`, supprimée) — conception et arbitrages : [`docs/chantier-135-conception.md`](./chantier-135-conception.md) ; détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 135, mode d'emploi : [`docs/mode-emploi-associations.md`](./mode-emploi-associations.md). Arbitrage final de Jules : débat simple **et** sondage, sans questionnaire, une table par débat, 3 séances en cours, expiration facultative.
 
 **Consigne de Jules** : « Discussion à faire avec Opus : le but est de rendre possible des fonctionnalités pour des associations externes à Ecclesia. Notamment, dans un premier temps, deux fonctionnalités : le sondage (faire une séance de vote, mais ne pas faire de débat derrière) et la création d'une table de modérateur (un modérateur, avec des participants pour gérer la séance, et la possibilité d'avoir une table de participant tout court, mais sans tout ce qui est lié au vote). »
 
@@ -241,6 +246,100 @@ Confirmé par Jules le 2026-09-25 : **134 d'abord**, 135 ensuite. Ce chantier re
 **Ne pas lancer avant que 134 soit tranché** — son résultat conditionne directement ce qui est réutilisable ici (state machine par mode) vs. ce qu'il faut construire spécifiquement pour le multi-organisation.
 
 Périmètre de fichiers : à définir entièrement une fois 134 tranché — chantier d'architecture, pas une simple extension de fichiers existants.
+
+---
+
+### 137 à 141 — Retours de Jules du 2026-09-28 (6 points + 1 chantier de tests), en 5 chantiers
+
+> **Consigne de Jules (2026-09-28)**, citée puis amendée en conversation (12 questions posées, réponses de Jules intégrées ci-dessous). Jules précise que **tous les chantiers précédents (jusqu'au 136) sont effectués**. **Workflow dev/main** : chaque chantier part de `dev`, toute migration s'applique d'abord sur la base dev (voir `CLAUDE.md` § Environnements).
+>
+> **Croisements de fichiers à surveiller** :
+> - ⚠️ **137, 138 et 139 touchent tous `SuperadminScreen.tsx`**, dans des zones différentes : l'accordéon participants (137, croix de suppression), l'onglet Tables/Groupes (138 historique, 139 désignation du modérateur). **138 et 139 touchent la même zone** (onglet Groupes) : les séquencer, ou se prévenir mutuellement avant de coder.
+> - ⚠️ **139 touche `TableContext.tsx`** (bascule d'écran participant/modérateur) et **137-F touche `ParticipantView.tsx`** — zones a priori distinctes, rebase probable pour le second à merger.
+> - ⚠️ **140 est en croisement avec le chantier 135** (ouverture à des associations externes, branche `claude/chantier-135-external-users-592b48`) : les deux touchent l'identité et la RLS. Vérifier dans `docs/chantiers.md` où en est le 135 avant de lancer 140, et lire ses changements avant de coder.
+> - **141 (tests automatisés) dépend de tous les autres** pour ses vérifications d'`A_VERIFIER.md` : le lancer en dernier, ou par lots au fil des merges.
+> - **Règle « types de séance » (`CLAUDE.md`)** : chaque chantier doit dire s'il s'applique aussi aux séances `debate` et `poll`. 137-D, 138 : tous types. 137-E/F et 139 : types avec tables (`full`, `debate`). 140 : toutes les portes d'entrée, sondage compris.
+
+#### 137 — Petits correctifs : suppression d'un participant, icône du bannissement, vote qui se réaffiche au reload
+
+Trois sous-tâches indépendantes, sur des fichiers distincts.
+
+**D — Croix rouge de suppression dans l'accordéon participants (superadmin).** **Consigne de Jules** : « Vue superadmin : dans l'accordéon participant, le superadmin doit avoir une croix rouge pour pouvoir supprimer un participant de la base de donnée. » Précisé en conversation : « oui bonne proposition », « une confirmation à donner à n'importe quelle phase ».
+- Aucune RPC de suppression de `session_members` n'existe (vérifié : rien dans `docs/reference-fonctions-sql.md` ni dans `supabase/migrations`) — **nouvelle RPC SECURITY DEFINER** protégée par le mot de passe superadmin, à écrire (vérifier d'abord qu'elle n'existe pas sous un autre nom).
+- **Ce qui disparaît avec le participant** (proposition validée) : son inscription (`session_members`), ses votes (`assertion_votes`), ses réponses d'onboarding (`entry_responses`) et de questionnaire (`questionnaire_responses`), son siège de table (`participants`) et son affectation (`table_assignments`). **Ses assertions proposées sont conservées, auteur détaché** — pour ne pas fausser les votes des autres.
+- **Confirmation obligatoire avant suppression, à toute phase** (y compris `closed`).
+- **À traiter** : si le membre supprimé est le modérateur d'une table, ou l'un des deux membres d'un binôme, ne pas laisser d'état incohérent (table sans modérateur → `leaderless`, binôme orphelin). Vérifier aussi l'effet sur une analyse déjà calculée (les camps peuvent bouger au recalcul — le signaler, pas le bloquer).
+
+**E — Icône poubelle pour le bouton de bannissement (vue modérateur).** **Consigne de Jules** : « Vue modérateur : le bouton pour supprimer un participant, en le ban, doit avoir un icon de poubelle, plutôt que de croix, pour se différencier du bouton qui enlève des files d'attente. » Précisé : « oui, seul l'icone » — 🗑 à la place de la croix, la confirmation actuelle est conservée, info-bulle « Bannir » souhaitable. Fichier : `src/components/ParticipantsTable.tsx` (appelle `kickParticipant`).
+
+**F — La fenêtre de vote ne doit plus se rouvrir à chaque reload.** **Consigne de Jules** : « Proposition de vote du modérateur : dès qu'on reload, la fenêtre de vote se raffiche pour un participant (ou un modo, à voir). Le mieux est qu'elle ne s'affiche que lorsqu'on clique sur le bouton. » Précisé après une question de ma part : « je me suis mal exprimé. L'ouverture pop / automatique quand le modo déclenche le vote est bonne à prendre. En revanche quand on reload, elle ne doit pas réapparaître à chaque fois, et juste réapparaître quand on clique sur le bouton correspondant. » **Donc : ouverture automatique une seule fois, quand le vote arrive en direct ; jamais au reload ; réouverture uniquement par le bouton « Vote en cours ».** Le modérateur ne reçoit jamais cette fenêtre (confirmé par Jules — à vérifier quand même en testant).
+- **Cause trouvée** : `src/screens/ParticipantView.tsx` (autour des lignes 59-69) retient « quel `active_vote_id` j'ai déjà vu » dans une variable **en mémoire seulement** ; au reload elle est vide et la fenêtre se rouvre. Le bouton « Vote en cours » existe déjà (ligne ~246) — c'est lui qui doit rester le seul chemin de réouverture.
+- Persister le « déjà vu » par `(table, vote)` dans `localStorage`, **en validant la forme relue** (`CLAUDE.md` § Ne jamais faire, `JSON.parse(localStorage…) as T`) — ou n'y stocker qu'une chaîne simple.
+- **Attention** : `tables.active_vote_id` n'est jamais remis à `NULL` à la clôture (chantier 132) — ne pas se baser sur sa seule présence pour décider d'ouvrir. Le chantier 132 n'est pas encore sur prod : vérifiable sur dev uniquement tant que `dev` n'est pas mergé dans `main`.
+
+Périmètre de fichiers : `SuperadminScreen.tsx` + nouvelle migration (D), `ParticipantsTable.tsx` (E), `ParticipantView.tsx`, éventuellement `TableVoteModal.tsx` (F).
+
+#### 138 — Historique des tables : même vue que l'onglet Groupes, accessible dès que les tables existent
+
+**Consigne de Jules** : « L'historique des tables dans la vue superadmin : j'aimerai que ce soit exactement la même chose que l'onglet groupe en fait : quelque chose qui permet de voir les tables, et toutes les informations pertinentes sur tout le monde. Actuellement, ce n'est qu'un test qui trace l'historique des tables. » Précisé en conversation : « tu peux enlever l'accordéon actuel et le remplacer par ce dont tu parles. Je veux que les tables soient accessibles dans toutes les phases une fois qu'elles ont été créées. »
+
+Suite du chantier 130, qui avait livré un accordéon « Historique des tables » visible uniquement en `closed` (participants triés par temps de parole, puis tours de parole, via `get_table_participants` et `get_table_speaking_turns_admin`).
+- **Supprimer cet accordéon** et le remplacer par une vue **équivalente à l'onglet Groupes, en lecture seule** (camps d'opinion, actifs/passifs, nombre précis d'actifs par table — chantier 121 —, binômes, modérateurs), **sans glisser-déposer**.
+- **Disponible dans toutes les phases, dès que les tables existent** (et plus seulement en `closed`) — donc y compris pendant `allocating`, `debating`, `post_voting` et après clôture. À clarifier en démarrant : en phase `allocating`/`debating`, comment cette vue lecture seule se distingue-t-elle de l'onglet Groupes éditable déjà présent (probable : l'onglet Groupes reste l'outil d'édition, cette vue est la consultation figée/complète, sans jamais dépendre d'une phase).
+- **Ne perd rien** : les tours de parole et le temps de parole que l'accordéon affichait doivent rester consultables quelque part dans la nouvelle vue (ne pas régresser sur ce que 130 a livré). Non vérifié au navigateur au chantier 130 — à rejouer ici (`A_VERIFIER.md` § Chantier 130).
+- **Garde-fous SQL** : lire `list_table_assignments_admin` (jamais de jointure imbriquée PostgREST pour le superadmin, `CLAUDE.md` § Ne jamais faire) ; `get_public_results` reste le seul chemin public, ne pas l'élargir. Après clôture, `reclaim_code_hash` est purgé — ne rien en attendre.
+
+⚠️ **Croise 139** sur l'onglet Groupes du superadmin (voir avertissement en tête de section).
+
+Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (onglet Tables/Groupes, composant `TableHistoryRow` du chantier 130 à retirer), éventuellement un composant partagé extrait de la vue Groupes pour ne pas dupliquer son rendu.
+
+#### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas — **diagnostic d'abord**
+
+**Consigne de Jules** : « Actuellement, durant la phase débat, le fait de sélectionner qui est modérateur, en les mettant en table modérateur par le superadmin, ne fonctionne pas DU TOUT. On peut être bloqué en participant, alors qu'on est modo, et inversement. Est-ce parce que les changements sont censés être faits en allocation ? » Reproduction donnée par Jules : **sur prod** ; « en appuyant sur "modérateur" dans la vue superadmin, dans la liste des participants, puis en tentant le glisser-déposer » ; **recharger la page ne change pas le problème** ; **la table était déjà modérée** (donc pas `leaderless`).
+
+**Rien n'est diagnostiqué à ce stade** — ne pas partir d'une hypothèse. Points à vérifier en premier, sans présumer :
+- La question de Jules (« les changements sont-ils censés être faits en allocation ? ») : la doc n'y voit **pas** de limite voulue (les RPC de désignation n'ont pas de garde de phase), mais rien ne dit que le chemin a été testé en `debating`. Le chantier 123 a corrigé le glisser-déposer surtout côté allocation/onglet Groupes (`collisionDetection` du `DndContext`, `COALESCE` d'un animateur périmé, nettoyage de la table quittée) — **relire son entrée dans `docs/chantiers.md`** avant de conclure.
+- Le cas décrit est **table déjà modérée** : c'est précisément là que `COALESCE` ne remplaçait jamais un animateur périmé (chantier 123) et qu'un modérateur « en exercice » peut apparaître en double (chantier 128). Vérifier que ces correctifs couvrent le glisser-déposer **en phase `debating`** et pas seulement en `allocating`.
+- **Le symptôme est double et inversé** : quelqu'un reste en écran participant alors qu'il est modérateur, et inversement. Regarder comment `TableContext` recalcule `isModerator` (`physicalModerator || sessionMemberIsModerator`) quand `session_members.is_moderator` ou la table change, et si le client est bien notifié en cours de débat (canaux `session-member:<member_id>` et `session-member-status:<table_id>`, `docs` § Canaux Realtime privés) — un participant déjà assis à sa table ne repasse pas par le placement du chantier 109 (`allocating → debating`).
+- **Vérifier prod ET dev** : le problème a été vu sur prod ; reproduire sur dev avant de corriger, et comparer les fonctions en base (`pg_get_functiondef`) entre les deux — prod et dev peuvent différer si une migration n'a pas été rejouée.
+- Une fois la cause trouvée : **diagnostic des cas voisins**, comme au chantier 123 (cette classe d'erreur — écran modérateur/participant incohérent avec `is_moderator` — peut se retrouver ailleurs).
+
+**Garde-fou** : lire `docs/reference-tables-leaderless.md` en entier avant de toucher à `tables.leaderless`, et le § « Ne jamais faire » de `CLAUDE.md` sur `is_table_moderator`/`created_by`/`table_assignments`.
+
+⚠️ Croise **138** (onglet Groupes) et **137-F** (`ParticipantView`) — voir avertissement en tête de section.
+
+Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (liste participants + glisser-déposer), `TableContext.tsx`, `set_member_moderator`/`assign_moderator_to_table` et les RPC voisines.
+
+#### 140 — Portes d'entrée : le code est toujours accessible, et un nom déjà pris ouvre l'accordéon — **Opus demandé par Jules**
+
+**Consigne de Jules** : « J'ai réussi à rentrer dans un débat, dans un nom qui n'était pas le mien, sans qu'on me demande le numéro. De plus, j'ai essayé à un moment de rentrer, on m'a dit que le nom était déjà pris, mais on ne m'a pas proposé de mettre le code secret... Est-ce qu'on peut faire un check sur ces fonctionnalités, et les mettre sur toutes les entrées de notre appli ? Discussion à faire en Opus. » Précisé en conversation : « pendant le débat je crois bien [que c'est arrivé]. J'aimerai qu'on rende toujours possible de rentrer avec le code (juste une ligne sur laquelle cliquer, comme quand on veut changer un mdp sur internet), et que lorsqu'on tente de rentrer, mais que le nom existe déjà, on ouvre cet accordéon automatiquement. Oui, c'est ça pour toutes les portes, y compris modo. Quand on rentre en modo, pas besoin de se déclarer modo, et si on se redéclare, c'est idempotent. C'est un fort travail à faire ce chantier, pt en opus. »
+
+**Règle cible (validée par Jules)**, à appliquer à **toutes** les portes d'entrée, sondage et débat simple compris :
+1. **Une ligne cliquable « J'ai déjà un code de rappel » toujours présente** sur chaque écran d'entrée (patron « mot de passe oublié »). Le chantier 125 a déjà livré un accordéon de ce nom sur les écrans d'entrée — **auditer quelles portes ne l'ont pas** plutôt que de le refaire.
+2. **Si le nom saisi existe déjà dans la séance, l'accordéon s'ouvre automatiquement**, avec le message « nom déjà pris » — au lieu de laisser l'utilisateur dans une impasse (symptôme 2 de Jules).
+3. **Un nom déjà pris ne donne jamais accès sans le code à 4 chiffres** (symptôme 1 de Jules : entrée sous le nom d'un autre, sans code demandé — **c'est une usurpation d'identité, à traiter en priorité dans ce chantier**). Un mauvais code ne donne pas accès au nom.
+4. **Porte modérateur incluse** : entrer en modérateur ne demande pas de se déclarer modérateur en plus, et **se redéclarer est idempotent** (aucun déplacement, aucune erreur, aucun doublon — cf. chantiers 107 et 108).
+
+**Point de départ obligatoire** : la matrice des situations d'arrivée de l'audit **87/101** (`docs/chantiers.md`) et les correctifs des chantiers **93** (identité/pseudo/collisions), **108** (déclaration modérateur sur tous les points d'entrée), **111** (retardataire entré par code de table), **125** (accordéon code de rappel) et **129** (identité inter-séances). Le symptôme a été vu « pendant le débat », donc vraisemblablement par la porte du **code de table** (`join_table(join_code, pseudo)`, chantier 111) — à confirmer en reproduisant, sans l'exclure.
+
+**Méthode** : lister toutes les portes (QR `#session`, lien `#vote`, code de table, création/reprise de table par le Code Ecclesia, entrée modérateur, retardataire, reprise après reload), croiser avec les quatre règles ci-dessus, **écrire le tableau des écarts avant de coder**, puis corriger côté SQL (la vraie protection) et côté écrans. Le contrôle du code se fait uniquement en SECURITY DEFINER (`crypt()`), jamais côté client.
+
+⚠️ **Croise le chantier 135** (identité, RLS, organisations externes) — voir avertissement en tête de section. Chantier lourd, à lancer seul, pas en parallèle d'un autre qui touche l'identité.
+
+Périmètre de fichiers : large, à définir après l'audit — au minimum `EntryScreen`, `VotingEntryForm`, `SessionRouterScreen`, `AttendanceConfirmScreen`, l'accordéon du chantier 125, et les RPC d'entrée (`join_table`, reclaim, `claim_*`).
+
+#### 141 — Passe de vérification automatisée de `A_VERIFIER.md` (navigateur)
+
+**Consigne de Jules** : « Ajoute un autre chantier, sur lequel on va faire tous les tests d'A_VERIF en automation (j'expliquerai à la conv). »
+
+**Périmètre à préciser par Jules dans la conversation dédiée** — ce chantier est volontairement laissé ouvert ici. Ce qui est déjà connu :
+- Objectif : rejouer au navigateur (Browser pane, `.claude/launch.json`, voir `CLAUDE.md` § Test navigateur automatisé) les vérifications restantes de [`A_VERIFIER.md`](../A_VERIFIER.md) et les déplacer en section « Validé » **uniquement sur confirmation de Jules** (règle du fichier : ne jamais supprimer une entrée sans son accord).
+- **Limite récurrente à lever d'abord** : les chantiers 118, 119, 121, 128 et 130 n'ont pas pu rejouer les parcours superadmin au clic, faute de mot de passe superadmin disponible en session headless. Demander à Jules comment le fournir en sécurité (jamais dans un fichier commité, jamais en clair dans un compte rendu), et **sur quel environnement** : `dev` (base `mnjqrlrrzrycuconlfqb`) par défaut, prod seulement sur décision explicite.
+- Respecter la règle des états asynchrones du `CLAUDE.md` : relire l'état en boucle bornée après chaque changement de phase, jamais d'assertion immédiate.
+- **Dépend des chantiers 137 à 140** pour leurs propres recettes ; à lancer après leurs merges, ou par lots.
+- Une vérification faite sur dev ne vaut pas pour prod (bases distinctes) — le noter dans `A_VERIFIER.md`.
+
+Périmètre de fichiers : `A_VERIFIER.md` principalement ; aucun changement de `src/` attendu (tout bug trouvé devient un chantier à part, à proposer à Jules plutôt qu'à corriger en passant).
 
 ---
 
