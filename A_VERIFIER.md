@@ -3071,6 +3071,35 @@ Migrations **appliquées sur dev uniquement** (`mnjqrlrrzrycuconlfqb`), à appli
 - [ ] **Nommage Gemini réel** pour une asso : sur dev, l'Edge Function `gemini-proxy` **n'est pas déployée** (404) — l'app a donc utilisé ses noms de secours (« Plutôt pour : … »). Manque d'environnement dev, antérieur et sans lien avec ce chantier ; à vérifier sur prod après merge (ou déployer `gemini-proxy` sur dev avec sa clé).
 - [ ] Un nommage est décompté même si Gemini échoue ensuite (le décompte précède l'appel). Choix assumé : simple, et 5/jour laisse de la marge.
 
+## Chantier 139 — Désigner un modérateur sur une table déjà modérée (2026-09-28)
+
+Fichiers : `supabase/migrations/20260928_chantier139_designation_remplace_animateur.sql` (**appliquée sur dev uniquement** — à appliquer sur prod au merge vers `main`, après les migrations du 135, dont elle dépend via `check_session_admin`), `src/screens/SuperadminScreen.tsx`, `src/context/TableContext.tsx`.
+
+**Vérifié le 2026-09-28 sur dev (base + navigateur réel, données de test supprimées ensuite, mot de passe superadmin de dev revenu à l'identique — empreinte comparée à prod) :**
+- En base : sur une table déjà modérée, désigner P → P passe `is_table_moderator`, l'ancien animateur non (il garde son drapeau, reste assis) ; rejouer la même désignation est sans effet ; table tenue par un modérateur physique (`created_by`) → l'ancien perd son pouvoir, `created_by` rendu au superadmin, ancien devenu membre flagué ; table sans animateur → comportement inchangé.
+- Au navigateur : participante assise à une table modérée, désignée modératrice → **vue modérateur en moins de 6 s sans rechargement** ; table redonnée à l'ancien animateur → retour en vue participant sans rechargement ; cache local `isModerator:true` périmé + rechargement → vue participant (avec le correctif) ; **même test sans le correctif → vue modérateur à tort** (bug reproduit).
+
+**À vérifier par Jules (écran superadmin, mot de passe requis — non testable en session) :**
+1. Séance en `debating`, une table déjà modérée : l'encart de la carte de groupe affiche « 🔁 Remplacer le modérateur » (avant : absent).
+2. Glisser un participant de la table sur cet encart, ou saisir son nom → **fenêtre de confirmation** « Remplacer le modérateur de la table N°X ? » nommant les deux personnes. « Annuler » ne change rien.
+3. Après « Remplacer » : la carte montre le nouveau modérateur, l'ancien en « Modérateur en surplus » ; le nouveau voit l'écran modérateur en quelques secondes, l'ancien repasse en écran participant.
+4. Un « modérateur en surplus » sur une table modérée a maintenant « En faire le principal » (avec la même confirmation).
+5. Table sans animateur : rien ne change (pas de confirmation, désignation directe).
+6. Cas voisin non corrigé à connaître : une personne désignée pour une **autre** table que celle où elle est assise doit rejoindre cette table (fenêtre « Changement de table », chantier 95) — vérifier qu'elle devient bien modératrice une fois arrivée.
+7. Sur prod, après application de la migration : rejouer 1 à 3 sur une séance de test.
+
+**Complément du 2026-09-28 — écran superadmin vérifié au navigateur sur dev** (mot de passe saisi par Jules dans le panneau, séance de test jetable en `debating` avec deux tables modérées, supprimée ensuite ; 0 reste) : points **1** (encart « 🔁 Remplacer le modérateur » sur les deux tables modérées), **2** (saisie du nom → fenêtre de confirmation nommant les deux personnes ; « Annuler » ne change rien en base), **3** (« Remplacer » → nouvel animateur, ancien en « Modérateur en surplus », base cohérente), **4** (« En faire le principal » sur le surplus → même confirmation, animation rendue) et **5** (table « sans animateur » : désignation directe, sans confirmation, libellé d'origine conservé) confirmés. **Reste non vu :** le **glisser-déposer à la souris** sur l'encart (le pointeur synthétique ne déclenche pas dnd-kit, ni en glisser natif ni en événements pointeur simulés — il passe par la même fonction `handleAssignTableModerator` que la saisie de nom, testée) ; points **6** (fenêtre « Changement de table » pour une désignation sur une autre table) et **7** (prod, après application de la migration).
+
+**Point 6 vérifié le 2026-09-28 (dev, navigateur réel, séance de test jetable supprimée ensuite)** : participante assise à la table 1 (modérée par quelqu'un d'autre), désignée modératrice de la **table 2** côté base → la fenêtre « Changement de table — table N°2 » apparaît seule en moins de 10 s (après fermeture des fenêtres d'accueil et de règles, qui la masquent volontairement) → « Rejoindre la table N°2 » → l'écran est celui de la table 2 **en modérateur** (badge « Modérateur », participants de la table 2). Son siège de la table 1 a été déplacé, pas dupliqué (`join_table`). Reste à voir : uniquement le glisser-déposer à la souris (point non déclenchable par pointeur synthétique) et la prod (point 7).
+
+
+### Chantier 139 — Reste à vérifier (état au merge dans `dev`, 2026-09-28)
+
+Tout le reste de la recette ci-dessus est vu et confirmé sur dev. Il ne reste que :
+- [ ] **Glisser-déposer à la souris** d'un participant sur l'encart « 🔁 Remplacer le modérateur » (table déjà modérée) → la fenêtre de confirmation doit s'ouvrir, puis « Remplacer » fait du participant l'animateur. Non déclenchable en session automatisée (dnd-kit ignore le pointeur synthétique) ; passe par la même fonction que la saisie de nom, déjà vérifiée. **À faire par un humain, sur une séance de test.**
+- [ ] **Sur prod, après merge `dev` → `main` et application de la migration `20260928_chantier139_designation_remplace_animateur`** (après celles du 135, qui créent `check_session_admin`) : rejouer sur une séance de test les points 1 à 3 (encart, confirmation, remplacement) et la vue de l'ancien animateur qui repasse en écran participant. Une vérification faite sur dev ne vaut pas pour prod.
+- [ ] **Cas voisins signalés, non corrigés, à arbitrer par Jules** (détail dans `docs/chantiers.md`, ligne 139) : (a) déplacer l'animateur d'une table par glisser-déposer la laisse sans animateur ni « sans animateur » ; (b) le bouton « modérateur » de la liste des participants peut réaffecter silencieusement la personne à une autre table en plein débat ; (c) la fenêtre « Changement de table » reste masquée tant que les fenêtres d'accueil et de règles sont ouvertes (voulu, mais une personne qui ne les a jamais fermées ne voit pas la demande).
+
 ---
 
 ## Chantier 140 — Portes d'entrée : nom déjà pris ⇒ code de rappel obligatoire (2026-09-28)
@@ -3103,3 +3132,23 @@ Reste à vérifier :
 - [ ] `add_offline_participant` (modérateur qui ajoute quelqu'un sans téléphone) : refuse désormais un nom déjà assis à la table — non rejoué au clic.
 - [ ] **Sur prod, après merge** : contrôler le renommage du doublon de la séance du 03/06 et rejouer une inscription avec une autre casse.
 - [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). **Devenu le chantier 142** (`docs/chantiers-a-faire.md`, décision de Jules du 2026-09-28).
+
+## Chantier 143 — Un seul champ « Prénom Nom » par porte d'entrée (2026-09-28)
+
+**Aucune migration.** Front seul : `src/components/JoinTableForm.tsx` (nouvelle prop `offerAutoAssign`) et `src/screens/SessionRouterScreen.tsx`.
+
+**Diagnostic** (lecture de toutes les portes où l'on tape un nom) : un seul vrai doublon. L'écran « Débat en cours » d'un retardataire jamais inscrit (`debating_no_member`) avait **deux** champs « Prénom Nom » et **deux** lignes « J'ai déjà un code de rappel » : « Assignez-moi une table » (chantier 111, copie écrite dans `SessionRouterScreen`) puis, dessous, `JoinTableForm` (entrée par code de table). Le nom tapé dans l'un n'était pas repris par l'autre (`lastNameStore` n'est renseigné qu'en cas de succès).
+**Corrigé** : `JoinTableForm` porte maintenant les deux actions sur un même champ nom et une même ligne de code de rappel — ordre : nom → code de rappel → « Assignez-moi une table » → « — ou, si tu as un code de table — » → code de table → case modérateur → « Rejoindre ». Le bouton d'assignation applique la même règle que les autres portes (chantier 140) : nom pris ⇒ message + accordéon ouvert, jamais d'entrée sans code.
+**Vérifié, pas de doublon** : `DebateEntryForm` (débat simple, un seul champ), `VotingEntryForm`, `PseudoForm` (l'écran de reconquête réutilise le même état `pseudo`, prérempli), `AttendanceConfirmScreen` (nom prérempli / affiché), `ReconnectPrompt` (nom affiché, non saisi), `JoinTableScreen`/`#table/` (un champ), `TableAssignmentCard` (déjà membre : pas de nom), `ModeratorToolsButton` (nom d'*une autre* personne, légitime).
+**Hors périmètre, laissé au chantier 142** : `CollabDocScreen` (`#collab/`) demande encore « Votre pseudo » à qui ouvre le lien sans passer par l'app — identité parallèle à `session_members`, refondue par le 142.
+**Types de séance** : `debate` (`DebateEntryForm`) et `poll` n'avaient déjà qu'un champ ; le doublon n'existait qu'en séance complète (phase `debating`, retardataire).
+
+**Vérifié au navigateur** (build statique du worktree, `.env` temporaire pointé sur la base **dev** — non commité ; le serveur de dev Vite est inutilisable dans le Browser pane, qui bloque `/@vite/client`) sur la séance dev `F1223D` en `debating`, nom de test `Test143 Zed` :
+- [x] l'écran n'affiche plus qu'un champ nom et une ligne de code de rappel ;
+- [x] « Assignez-moi une table » avec nom vide → « Indique ton prénom et ton nom. » ;
+- [x] nom neuf → écran du code de rappel → « Rejoindre la table → » → assis à la table `C6EABF` ;
+- [x] autre appareil (stockage vidé), même nom en autre casse (`test143 ZED`) → « Ce nom est déjà utilisé… », accordéon ouvert, **pas d'entrée** ; mauvais code → « Code de rappel invalide. » ; bon code → assis à la même table.
+- Données de test purgées en base dev (1 membre, 1 participant, 1 affectation).
+- [x] Cas modérateur, joué avec le vrai Code Ecclesia saisi par Jules (nom neuf `Test143 Modo`, code de table `C6EABF`, case cochée) : code accepté, puis refus explicite « Cette table a déjà un modérateur — choisis-en une autre ou contacte le superadmin » (la seule table de `F1223D` avait déjà un modérateur) ; rien n écrit en base.
+- [ ] **Non rejoué** : la prise effective de modération d une table libre (séance de test avec une table sans modérateur nécessaire) ; l entrée par code de table sans modérateur ; un mobile réel (Messenger in-app).
+- [ ] **Sur prod, après merge** : contrôle visuel de l'écran « Débat en cours » d'un retardataire.

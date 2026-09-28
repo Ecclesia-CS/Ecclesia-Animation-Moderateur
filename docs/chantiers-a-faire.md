@@ -4,12 +4,17 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du 142).
+Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du 142 ; le 143 est fait).
 
 ## Chantiers en cours
 
-### 142 — Document collaboratif : identité des sources sans code
-**Branche** : `claude/chantier-142-ceb037` · **Depuis** : 2026-09-28 · **Fichiers touchés** : `CollabDocScreen.tsx`, `lib/sessions.ts`, `lib/types.ts`, `VoteScreen.tsx`, `DocNudge.tsx`, `ParticipantToolsButton.tsx`, `DocumentationButton.tsx`, `ModeratorView.tsx`, `AllocatingScreen.tsx`, migration `20260928_chantier142_collab_identite_membre.sql` (appliquée sur dev). **Fait et vérifié sur dev, pas encore mergé dans `dev`** — entrée à retirer au merge.
+_(aucun actuellement)_
+
+> **Le 2026-09-28, le chantier 142 est mergé dans `dev`** (document collaboratif : écrire ses sources exige d'être inscrit sur l'appareil ou de donner nom + code de rappel ; identité = `session_members`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 142. Vérifié au navigateur sur dev (vote, table, débat simple, modérateur). Sa migration (`20260928_chantier142_collab_identite_membre`, qui **supprime** `register_collab_pseudo` et la table `collab_session_users`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 140/140b (elle utilise `pseudo_key`).
+
+> **Le 2026-09-28, le chantier 143 est mergé dans `dev`** (un seul champ « Prénom Nom » sur l'écran « Débat en cours » du retardataire : « Assignez-moi une table » et l'entrée par code partagent le même nom et la même ligne de code de rappel) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 143 ; entrée « en cours » retirée au merge. Front seul, **aucune migration**. `CollabDocScreen` non touché (chantier 142).
+
+> **Le 2026-09-28, le chantier 139 est mergé dans `dev`** (désigner un modérateur sur une table déjà modérée le remplace, avec confirmation ; `TableContext` réconcilie le modérateur physique à la baisse) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 139 ; entrée « en cours » retirée au merge. Sa migration (`20260928_chantier139_designation_remplace_animateur`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (elle utilise `check_session_admin`).
 
 > **Le 2026-09-28, le chantier 140 est mergé dans `dev`** (portes d'entrée : un nom déjà pris n'entre jamais sans code, ligne « J'ai déjà un code de rappel » partout ; 140b : noms comparés sans tenir compte des majuscules) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 140. Ses **deux** migrations (`20260928_chantier140_portes_entree_identite`, `20260928_chantier140b_pseudos_insensibles_casse`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (et dans cet ordre). La 140b renomme un doublon de nom sur prod (séance close du 03/06).
 
@@ -304,7 +309,7 @@ Suite du chantier 130, qui avait livré un accordéon « Historique des tables �
 
 Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (onglet Tables/Groupes, composant `TableHistoryRow` du chantier 130 à retirer), éventuellement un composant partagé extrait de la vue Groupes pour ne pas dupliquer son rendu.
 
-#### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas — **diagnostic d'abord**
+#### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas — **diagnostic d'abord** — ✅ fait le 2026-09-28, voir `docs/chantiers.md` (le texte ci-dessous est la consigne d'origine, conservée)
 
 **Consigne de Jules** : « Actuellement, durant la phase débat, le fait de sélectionner qui est modérateur, en les mettant en table modérateur par le superadmin, ne fonctionne pas DU TOUT. On peut être bloqué en participant, alors qu'on est modo, et inversement. Est-ce parce que les changements sont censés être faits en allocation ? » Reproduction donnée par Jules : **sur prod** ; « en appuyant sur "modérateur" dans la vue superadmin, dans la liste des participants, puis en tentant le glisser-déposer » ; **recharger la page ne change pas le problème** ; **la table était déjà modérée** (donc pas `leaderless`).
 

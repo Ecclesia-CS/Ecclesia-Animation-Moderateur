@@ -173,6 +173,16 @@ export function TableProvider({
     if (!s.data) { showToast('Cette table n\'existe plus.', 'error'); handleEnd(); return }
     const tbl = s.data as Table
     setTable(tbl)
+    // Chantier 139 — `physicalModerator` démarre du cache `tableStore` (posé au
+    // join, jamais relu) et n'était recalculé que par le listener Realtime, sur
+    // un changement de `created_by`. Un modérateur physique délogé pendant qu'il
+    // était hors ligne, ou dont l'événement a été manqué, restait donc en écran
+    // modérateur à chaque rechargement alors que le serveur (`is_table_moderator`)
+    // lui refusait déjà toute action : « bloqué en modo alors qu'on est
+    // participant », et recharger ne changeait rien. On réconcilie ici, mais
+    // seulement À LA BAISSE : ne jamais promouvoir depuis `created_by === userId`
+    // (deux onglets d'un même userId, cf. CLAUDE.md § isModerator).
+    setPhysicalModerator(prev => prev && !tbl.leaderless && tbl.created_by === userId)
     setParticipants((p.data ?? []) as Participant[])
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])

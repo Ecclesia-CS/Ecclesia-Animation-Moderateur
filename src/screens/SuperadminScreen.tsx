@@ -2288,13 +2288,14 @@ function SessionDetail({
    * entrées : `assign_moderator_to_table` pose `is_moderator` et (dé)place
    * la ligne `table_assignments` en une seule transaction.
    */
-  const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+  const doAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
     const password = getPwd()!
     setMovingMember(true)
     try {
       await assignModeratorToTable(password, currentSession.id, tableNumber, memberId)
       await loadGroups()
       await loadMembers()
+      setAssignError(null)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -2305,6 +2306,35 @@ function SessionDetail({
       setMovingMember(false)
     }
   }, [currentSession.id, onAuthError, loadGroups, loadMembers])
+
+  /**
+   * Chantier 139 — la désignation est explicite : désigner X modérateur de la
+   * table N fait de X l'animateur de N, y compris sur une table DÉJÀ modérée
+   * (jusque-là la zone de dépôt n'existait que sur les tables sans animateur, et
+   * le RPC laissait le titulaire en place : X devenait « en surplus » sans écran
+   * modérateur). Le titulaire perd l'écran pendant le débat, donc on confirme.
+   */
+  const [pendingReplacement, setPendingReplacement] = useState<{
+    tableNumber: number
+    memberId: string
+    newPseudo: string
+    currentPseudos: string[]
+  } | null>(null)
+
+  const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+    const g = groups.find(x => x.table_number === tableNumber)
+    const holders = (g?.members ?? []).filter(m => m.is_moderator && m.active && m.member_id !== memberId)
+    if (holders.length === 0) {
+      await doAssignTableModerator(tableNumber, memberId)
+      return
+    }
+    const newPseudo = members.find(m => m.id === memberId)?.pseudo
+      ?? g?.members.find(m => m.member_id === memberId)?.pseudo
+      ?? 'ce participant'
+    setPendingReplacement({
+      tableNumber, memberId, newPseudo, currentPseudos: holders.map(h => h.pseudo),
+    })
+  }, [groups, members, doAssignTableModerator])
 
   /**
    * Chantier 33 (point 2) — « retirer » un modérateur d'une table : il
@@ -3566,18 +3596,19 @@ function SessionDetail({
                                               puisse passer en principal ». `assign_moderator_to_table`
                                               (corrigée par ce chantier) écrase désormais un
                                               `active_moderator_member_id` périmé et fait sortir la
-                                              table de `leaderless`. Masqué si la table a déjà un
-                                              animateur effectif : le surplus est alors légitime. */}
-                                          {activeMods.length === 0 && (
-                                            <button
-                                              onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
-                                              disabled={movingMember}
-                                              className="text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
-                                              title="En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
-                                            >
-                                              En faire le principal
-                                            </button>
-                                          )}
+                                              table de `leaderless`. Chantier 139 : plus masqué quand la
+                                              table a déjà un animateur — le bouton le remplace, avec
+                                              confirmation (cf. handleAssignTableModerator). */}
+                                          <button
+                                            onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
+                                            disabled={movingMember}
+                                            className="text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
+                                            title={activeMods.length === 0
+                                              ? "En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
+                                              : "En fait le modérateur principal de cette table, à la place de l'animateur actuel (confirmation demandée)."}
+                                          >
+                                            En faire le principal
+                                          </button>
                                           <button
                                             onClick={() => handleRemoveTableModerator(mod.member_id!)}
                                             disabled={movingMember}
@@ -3600,15 +3631,19 @@ function SessionDetail({
                                       `assign_moderator_to_table` convertit déjà la table
                                       (`leaderless = false`) depuis le chantier 64 ; seul le
                                       chemin d'accès manquait. */}
-                                  {activeMods.length === 0 && (
-                                    <AddModeratorControl
-                                      tableNumber={g.table_number}
-                                      candidates={members}
-                                      onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
-                                      disabled={movingMember}
-                                      leaderless={!g.moderated}
-                                    />
-                                  )}
+                                  {/* Chantier 139 — désormais aussi sur une table déjà
+                                      modérée : c'était le geste naturel (glisser quelqu'un
+                                      sur la table) et il n'existait pas, le dépôt tombait
+                                      sur la carte et ne faisait que déplacer la personne. */}
+                                  <AddModeratorControl
+                                    tableNumber={g.table_number}
+                                    candidates={members}
+                                    onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
+                                    disabled={movingMember}
+                                    leaderless={!g.moderated}
+                                    replacing={activeMods.length > 0}
+                                  />
+
                                   {/* Chantier 72 (défaut A du bug 1) — filet quand la table
                                       reste bloquée : un modérateur « physique »
                                       (tables.created_by, posé par « Devenir modérateur » ou
@@ -4382,6 +4417,36 @@ function SessionDetail({
         <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
       )}
 
+      {pendingReplacement && (
+        <ConfirmModal
+          title={`Remplacer le modérateur de la table N°${pendingReplacement.tableNumber} ?`}
+          body={
+            <div className="space-y-2 text-left">
+              <p>
+                <strong>{pendingReplacement.newPseudo}</strong> devient le modérateur de cette
+                table, tout de suite.
+              </p>
+              <p>
+                <strong>{pendingReplacement.currentPseudos.join(', ')}</strong> perd l'écran
+                modérateur et reste assis·e à la table (drapeau modérateur conservé :
+                « modérateur en surplus »).
+              </p>
+              <p className="text-xs text-amber-700">
+                Pendant le débat, la personne concernée voit son écran changer dans les
+                secondes qui suivent.
+              </p>
+            </div>
+          }
+          confirmLabel="Remplacer"
+          onConfirm={() => {
+            const p = pendingReplacement
+            setPendingReplacement(null)
+            void doAssignTableModerator(p.tableNumber, p.memberId)
+          }}
+          onCancel={() => setPendingReplacement(null)}
+        />
+      )}
+
       {memberToDelete && (
         <ConfirmModal
           title={`Supprimer ${memberToDelete.pseudo} de la base ?`}
@@ -5137,7 +5202,7 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
  * UNIQUE(session_id, pseudo), donc un pseudo désigne au plus un membre.
  */
 function AddModeratorControl({
-  tableNumber, candidates, onAssign, disabled, leaderless,
+  tableNumber, candidates, onAssign, disabled, leaderless, replacing,
 }: {
   tableNumber: number
   candidates: SessionMemberAdmin[]
@@ -5149,6 +5214,12 @@ function AddModeratorControl({
    * du « en attente » qui laisserait croire à un oubli d'allocation.
    */
   leaderless?: boolean
+  /**
+   * Chantier 139 — la table a déjà un animateur effectif : désigner quelqu'un
+   * ici le REMPLACE (l'ancien reste assis, en surplus). Le libellé le dit ; la
+   * confirmation est demandée par l'appelant.
+   */
+  replacing?: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `add-moderator-${tableNumber}` })
   const [name,  setName]  = useState('')
@@ -5177,7 +5248,9 @@ function AddModeratorControl({
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className="text-xs text-amber-800 inline-flex items-center gap-1">
-          {leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
+          {replacing
+            ? '🔁 Remplacer le modérateur'
+            : leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
         </span>
         <span className="text-xs text-gray-400">glisse un participant ici, ou :</span>
       </div>
