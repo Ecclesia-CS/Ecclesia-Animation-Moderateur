@@ -3080,6 +3080,7 @@ Tout le reste de la recette ci-dessus est vu et confirmé sur dev. Il ne reste q
 - [ ] **Glisser-déposer à la souris** d'un participant sur l'encart « 🔁 Remplacer le modérateur » (table déjà modérée) → la fenêtre de confirmation doit s'ouvrir, puis « Remplacer » fait du participant l'animateur. Non déclenchable en session automatisée (dnd-kit ignore le pointeur synthétique) ; passe par la même fonction que la saisie de nom, déjà vérifiée. **À faire par un humain, sur une séance de test.**
 - [ ] **Sur prod, après merge `dev` → `main` et application de la migration `20260928_chantier139_designation_remplace_animateur`** (après celles du 135, qui créent `check_session_admin`) : rejouer sur une séance de test les points 1 à 3 (encart, confirmation, remplacement) et la vue de l'ancien animateur qui repasse en écran participant. Une vérification faite sur dev ne vaut pas pour prod.
 - [ ] **Cas voisins signalés, non corrigés, à arbitrer par Jules** (détail dans `docs/chantiers.md`, ligne 139) : (a) déplacer l'animateur d'une table par glisser-déposer la laisse sans animateur ni « sans animateur » ; (b) le bouton « modérateur » de la liste des participants peut réaffecter silencieusement la personne à une autre table en plein débat ; (c) la fenêtre « Changement de table » reste masquée tant que les fenêtres d'accueil et de règles sont ouvertes (voulu, mais une personne qui ne les a jamais fermées ne voit pas la demande).
+
 ---
 
 ## Chantier 140 — Portes d'entrée : nom déjà pris ⇒ code de rappel obligatoire (2026-09-28)
