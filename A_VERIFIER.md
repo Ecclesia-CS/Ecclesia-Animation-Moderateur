@@ -33,10 +33,16 @@ Les deux corrections déverrouillent la vérification navigateur sur dev pour **
 
 **Vérifié au navigateur sur dev** (serveur local, `.env.local` pointé vers dev, séance jetable `T142DOC` supprimée ensuite) : lecture seule sans identité, aucun bouton modifier sur la source d'autrui ; « alice test » → accordéon « J'ai déjà un code de rappel » ouvert tout seul + message ; code faux → « Code de rappel invalide. » ; bon code → nom en en-tête, « + Ajouter », source modifiable, modification et ajout OK ; identité conservée au rechargement ; stockage vidé (autre appareil) → retour en lecture seule ; nom non inscrit → message + lien « Rejoindre la séance ». Aucune erreur console.
 
-**Reste à vérifier** :
-1. Un participant **déjà inscrit sur l'appareil** arrive par « Sources collaboratives » depuis `#vote`, une table (Outils / Documentation) et une séance `debate` : il doit être reconnu directement, sans rien taper.
-2. Après le correctif du formulaire : modifier une source puis « + Ajouter » → le formulaire est vide (corrigé après le test navigateur, non revu à l'écran).
-3. **Sur prod**, après application : refaire le parcours ci-dessus (base différente).
+**Vérifié au navigateur sur dev, seconde passe du même jour** (trois séances jetables `T142VOTE`/`T142TAB`/`T142DEB`, supprimées ensuite ; stockage vidé entre chaque pour simuler trois appareils) :
+1. ✅ **Vote** (`full`, `voting`) : inscription « Vera Vote » par le vrai parcours (nom → code affiché → questions d'accueil) → Outils → « Sources collaboratives » : reconnue directement, nom en en-tête, aucun panneau d'identification.
+2. ✅ **Table** (`full`, `debating`, porte code de table) : « Tom Table » assis → Outils → « Sources collaboratives » : reconnu directement ; source ajoutée rangée sous « Table T142T1 ».
+3. ✅ **Débat simple** (`debate`, `debating`) : « Dora Debat » par `DebateEntryForm` → Outils → « Sources collaboratives » : reconnue directement.
+4. ✅ **Correctif du formulaire** : ajouter, modifier, puis « + Ajouter » → titre, lien et notes vides.
+Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rapport.
+
+**Non vérifié** : le bouton « Documentation » du **modérateur** (`ModeratorView`) — même lien que chez le participant, identité lue en base de la même façon.
+
+**Reste à vérifier** : **sur prod**, après application de la migration, refaire le parcours (base différente).
 
 ## Chantier 137 — suppression d'un participant, poubelle du bannissement, vote qui ne se rouvre plus (2026-09-28)
 
