@@ -4,11 +4,13 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du 142).
+Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du 142 ; le 143 est fait).
 
 ## Chantiers en cours
 
 _(aucun actuellement)_
+
+> **Le 2026-09-28, le chantier 143 est mergé dans `dev`** (un seul champ « Prénom Nom » sur l'écran « Débat en cours » du retardataire : « Assignez-moi une table » et l'entrée par code partagent le même nom et la même ligne de code de rappel) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 143 ; entrée « en cours » retirée au merge. Front seul, **aucune migration**. `CollabDocScreen` non touché (chantier 142).
 
 > **Le 2026-09-28, le chantier 139 est mergé dans `dev`** (désigner un modérateur sur une table déjà modérée le remplace, avec confirmation ; `TableContext` réconcilie le modérateur physique à la baisse) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 139 ; entrée « en cours » retirée au merge. Sa migration (`20260928_chantier139_designation_remplace_animateur`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (elle utilise `check_session_admin`).
 

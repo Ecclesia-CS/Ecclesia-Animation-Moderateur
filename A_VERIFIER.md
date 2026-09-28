@@ -3113,3 +3113,23 @@ Reste à vérifier :
 - [ ] `add_offline_participant` (modérateur qui ajoute quelqu'un sans téléphone) : refuse désormais un nom déjà assis à la table — non rejoué au clic.
 - [ ] **Sur prod, après merge** : contrôler le renommage du doublon de la séance du 03/06 et rejouer une inscription avec une autre casse.
 - [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). **Devenu le chantier 142** (`docs/chantiers-a-faire.md`, décision de Jules du 2026-09-28).
+
+## Chantier 143 — Un seul champ « Prénom Nom » par porte d'entrée (2026-09-28)
+
+**Aucune migration.** Front seul : `src/components/JoinTableForm.tsx` (nouvelle prop `offerAutoAssign`) et `src/screens/SessionRouterScreen.tsx`.
+
+**Diagnostic** (lecture de toutes les portes où l'on tape un nom) : un seul vrai doublon. L'écran « Débat en cours » d'un retardataire jamais inscrit (`debating_no_member`) avait **deux** champs « Prénom Nom » et **deux** lignes « J'ai déjà un code de rappel » : « Assignez-moi une table » (chantier 111, copie écrite dans `SessionRouterScreen`) puis, dessous, `JoinTableForm` (entrée par code de table). Le nom tapé dans l'un n'était pas repris par l'autre (`lastNameStore` n'est renseigné qu'en cas de succès).
+**Corrigé** : `JoinTableForm` porte maintenant les deux actions sur un même champ nom et une même ligne de code de rappel — ordre : nom → code de rappel → « Assignez-moi une table » → « — ou, si tu as un code de table — » → code de table → case modérateur → « Rejoindre ». Le bouton d'assignation applique la même règle que les autres portes (chantier 140) : nom pris ⇒ message + accordéon ouvert, jamais d'entrée sans code.
+**Vérifié, pas de doublon** : `DebateEntryForm` (débat simple, un seul champ), `VotingEntryForm`, `PseudoForm` (l'écran de reconquête réutilise le même état `pseudo`, prérempli), `AttendanceConfirmScreen` (nom prérempli / affiché), `ReconnectPrompt` (nom affiché, non saisi), `JoinTableScreen`/`#table/` (un champ), `TableAssignmentCard` (déjà membre : pas de nom), `ModeratorToolsButton` (nom d'*une autre* personne, légitime).
+**Hors périmètre, laissé au chantier 142** : `CollabDocScreen` (`#collab/`) demande encore « Votre pseudo » à qui ouvre le lien sans passer par l'app — identité parallèle à `session_members`, refondue par le 142.
+**Types de séance** : `debate` (`DebateEntryForm`) et `poll` n'avaient déjà qu'un champ ; le doublon n'existait qu'en séance complète (phase `debating`, retardataire).
+
+**Vérifié au navigateur** (build statique du worktree, `.env` temporaire pointé sur la base **dev** — non commité ; le serveur de dev Vite est inutilisable dans le Browser pane, qui bloque `/@vite/client`) sur la séance dev `F1223D` en `debating`, nom de test `Test143 Zed` :
+- [x] l'écran n'affiche plus qu'un champ nom et une ligne de code de rappel ;
+- [x] « Assignez-moi une table » avec nom vide → « Indique ton prénom et ton nom. » ;
+- [x] nom neuf → écran du code de rappel → « Rejoindre la table → » → assis à la table `C6EABF` ;
+- [x] autre appareil (stockage vidé), même nom en autre casse (`test143 ZED`) → « Ce nom est déjà utilisé… », accordéon ouvert, **pas d'entrée** ; mauvais code → « Code de rappel invalide. » ; bon code → assis à la même table.
+- Données de test purgées en base dev (1 membre, 1 participant, 1 affectation).
+- [x] Cas modérateur, joué avec le vrai Code Ecclesia saisi par Jules (nom neuf `Test143 Modo`, code de table `C6EABF`, case cochée) : code accepté, puis refus explicite « Cette table a déjà un modérateur — choisis-en une autre ou contacte le superadmin » (la seule table de `F1223D` avait déjà un modérateur) ; rien n écrit en base.
+- [ ] **Non rejoué** : la prise effective de modération d une table libre (séance de test avec une table sans modérateur nécessaire) ; l entrée par code de table sans modérateur ; un mobile réel (Messenger in-app).
+- [ ] **Sur prod, après merge** : contrôle visuel de l'écran « Débat en cours » d'un retardataire.
