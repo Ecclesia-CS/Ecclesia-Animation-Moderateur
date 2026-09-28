@@ -25,6 +25,18 @@
 
 Les deux corrections déverrouillent la vérification navigateur sur dev pour **tout** chantier, pas seulement le 131.
 
+## Chantier 137 — suppression d'un participant, poubelle du bannissement, vote qui ne se rouvre plus (2026-09-28)
+
+**Migration** `supabase/migrations/20260928_chantier137_delete_session_member_admin.sql` — appliquée sur la base **dev** uniquement, **à appliquer sur prod au merge vers `main`**. Elle crée `delete_session_member_admin` (aucune fonction existante réécrite) et change `assertions.member_id` : `NOT NULL` → nullable, FK `ON DELETE CASCADE` → `ON DELETE SET NULL`. Avant prod : `SELECT` de contrôle en lecture seule sur `assertions`/FK (règle `CLAUDE.md`).
+
+**Vérifié** (2026-09-28) : RPC en base dev, jeu de données jetable dans une transaction annulée. **Jamais vu à l'écran** — les trois recettes ci-dessous restent à faire au navigateur.
+
+1. **D — croix rouge** (`SuperadminScreen.tsx`, accordéon « Participants inscrits ») : dernière colonne, ✕ rouge par ligne → fenêtre de confirmation → « Supprimer définitivement » → fenêtre de compte rendu. À vérifier : (a) annuler ne supprime rien ; (b) la ligne disparaît, les compteurs de l'onglet Groupes et les stats de vote bougent ; (c) sur une séance `closed` aussi ; (d) **supprimer un modérateur assis à une table en `debating`** : la table passe « Sans animateur », son écran modérateur bascule en participant ; (e) supprimer quelqu'un qui **parle** : la parole se libère ; (f) ses assertions restent visibles dans l'onglet Assertions et les votes des autres dessus sont intacts ; (g) une analyse déjà calculée n'est pas recalculée (mention dans le compte rendu).
+2. **E — poubelle** (`ParticipantsTable.tsx`, vue modérateur) : 🗑 à la place de la croix, info-bulle « Bannir », confirmation « Exclure … ? » inchangée ; le bouton qui retire des files (`QueuePanel`) garde sa croix.
+3. **F — vote qui ne se rouvre plus** (`ParticipantView.tsx`) : le modérateur propose un vote → la fenêtre s'ouvre chez le participant **en direct** ; la fermer, **recharger** → elle ne se rouvre pas ; le bouton « Voir le vote en cours » la rouvre. Vérifier aussi qu'un **second** vote (nouvel id) s'ouvre bien en direct, et que le modérateur ne reçoit jamais cette fenêtre. Note : ce bouton reste affiché après clôture du vote (`active_vote_id` n'est jamais remis à `NULL`, chantier 132) et son libellé dit « en cours » — hors périmètre, à signaler si gênant.
+
+**Points ouverts** : (i) un binôme dissous laisse le partenaire sans binôme (rien à corriger côté données, à confirmer voulu) ; (ii) `leaderless_by_design` n'est pas touché à la suppression d'un animateur — la table est `leaderless = true` mais reste reconvertible comme le prévoit `docs/reference-tables-leaderless.md`.
+
 ## Chantier 134 — trois types de séance : séance complète / débat simple / sondage (2026-09-26)
 
 **Migrations** (appliquées sur la base **dev** `mnjqrlrrzrycuconlfqb` uniquement — **à appliquer sur prod au merge vers `main`, dans l'ordre**) :

@@ -233,7 +233,8 @@ export interface EntryResponse {
 export interface Assertion {
   id: string
   session_id: string
-  member_id: string
+  /** NULL depuis le chantier 137-D : auteur supprimé, assertion conservée. */
+  member_id: string | null
   content: string
   status: 'pending' | 'approved' | 'rejected'
   created_at: string

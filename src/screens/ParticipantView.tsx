@@ -58,8 +58,14 @@ export default function ParticipantView() {
   // questionnaire forcé, ce popup est dismissible : on retient le dernier
   // active_vote_id vu pour ne le rouvrir automatiquement que sur un NOUVEAU
   // vote (un vote fermé/dismiss reste accessible via la bannière ci-dessous).
+  // Chantier 137-F : la référence est amorcée avec le vote déjà présent au
+  // montage — un reload (ou un changement d'écran participant/modérateur) ne
+  // rouvre donc jamais la fenêtre ; seule l'arrivée EN DIRECT d'un nouveau vote
+  // l'ouvre. `active_vote_id` n'est jamais remis à NULL à la clôture (132) :
+  // sa seule présence ne dit pas qu'un vote est ouvert. `table` est déjà chargé
+  // ici (TableContext ne rend ses enfants qu'une fois `ready`).
   const [voteModalOpen, setVoteModalOpen] = useState(false)
-  const lastVoteIdRef = useRef<string | null>(null)
+  const lastVoteIdRef = useRef<string | null>(table.active_vote_id)
 
   useEffect(() => {
     const voteId = table.active_vote_id

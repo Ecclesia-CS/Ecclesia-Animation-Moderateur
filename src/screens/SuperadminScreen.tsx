@@ -38,9 +38,10 @@ import {
   releaseTableModeration,
   setTableLeaderless,
   regenerateReclaimCodeAdmin,
+  deleteSessionMemberAdmin,
   assignPendingModerators,
 } from '../lib/voting'
-import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs, AssignPendingModeratorsResult } from '../lib/voting'
+import type { DeleteMemberResult, AssertionAdmin,SessionVotingStats, SessionMemberAdmin, AllocationInputs, AssignPendingModeratorsResult } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
 import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
@@ -1657,6 +1658,37 @@ function SessionDetail({
     }
   }, [session.id, onAuthError])
 
+  // ── Chantier 137-D — suppression d'un participant de la base ───────────
+  // Confirmation obligatoire à toute phase (y compris `closed`) : l'action est
+  // irréversible et emporte les votes de la personne. Ses assertions restent.
+  const [memberToDelete,  setMemberToDelete]  = useState<{ id: string; pseudo: string } | null>(null)
+  const [deletingMember,  setDeletingMember]  = useState(false)
+  const [deleteMemberReport, setDeleteMemberReport] = useState<DeleteMemberResult | null>(null)
+
+  async function handleDeleteMember() {
+    if (!memberToDelete) return
+    const password = getPwd()!
+    setDeletingMember(true)
+    try {
+      const res = await deleteSessionMemberAdmin(password, session.id, memberToDelete.id)
+      setMembers(prev => prev.filter(m => m.id !== memberToDelete.id))
+      setMemberToDelete(null)
+      setDeleteMemberReport(res)
+      // Les tables, les stats de vote et les assertions ont pu bouger.
+      loadMembers()
+      loadGroups(true)
+      loadStats()
+      loadAssertions()
+    } catch (e) {
+      setMemberToDelete(null)
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setDeletingMember(false)
+    }
+  }
+
   // ── Création de table admin ────────────────────────────────
   const [creatingTable, setCreatingTable] = useState(false)
   const [newTableCode,  setNewTableCode]  = useState<string | null>(null)
@@ -2801,6 +2833,7 @@ function SessionDetail({
                       loading={membersLoading}
                       onToggleModerator={handleToggleModerator}
                       onRegenerateCode={handleRegenerateCode}
+                      onDeleteMember={(id, pseudo) => setMemberToDelete({ id, pseudo })}
                     />
                   </SectionAccordion>
                 )}
@@ -3842,6 +3875,69 @@ function SessionDetail({
 
       {rosterOpen && (
         <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
+      )}
+
+      {memberToDelete && (
+        <ConfirmModal
+          title={`Supprimer ${memberToDelete.pseudo} de la base ?`}
+          body={
+            <div className="space-y-2 text-left">
+              <p>
+                Suppression <strong>définitive</strong>, à n'importe quelle phase : son
+                inscription, ses votes, ses réponses (onboarding, questionnaire), son
+                siège de table et son affectation disparaissent.
+              </p>
+              <p>
+                Les assertions qu'elle a proposées sont <strong>conservées</strong> (auteur
+                détaché) pour ne pas fausser les votes des autres. Si elle animait une
+                table, celle-ci repasse sans animateur.
+              </p>
+              <p className="text-xs text-amber-700">
+                Une analyse déjà calculée n'est pas recalculée : les camps peuvent bouger
+                au prochain calcul.
+              </p>
+              {deletingMember && <p className="text-xs text-gray-400">Suppression en cours…</p>}
+            </div>
+          }
+          confirmLabel="Supprimer définitivement"
+          onConfirm={handleDeleteMember}
+          onCancel={() => { if (!deletingMember) setMemberToDelete(null) }}
+        />
+      )}
+
+      {deleteMemberReport && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          onMouseDown={e => { if (e.target === e.currentTarget) setDeleteMemberReport(null) }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-900">
+              {deleteMemberReport.pseudo} a été supprimé·e
+            </h2>
+            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-0.5">
+              <li>{deleteMemberReport.votes_deleted} vote(s) supprimé(s)</li>
+              <li>{deleteMemberReport.assertions_detached} assertion(s) conservée(s), auteur détaché</li>
+              {deleteMemberReport.seats_removed > 0 && (
+                <li>{deleteMemberReport.seats_removed} siège(s) de table retiré(s)</li>
+              )}
+              {deleteMemberReport.pairings_dissolved > 0 && (
+                <li>{deleteMemberReport.pairings_dissolved} binôme(s) dissous — le partenaire reste sans binôme</li>
+              )}
+              {deleteMemberReport.tables_now_leaderless > 0 && (
+                <li>{deleteMemberReport.tables_now_leaderless} table(s) repassée(s) sans animateur</li>
+              )}
+              {deleteMemberReport.analysis_rows_removed > 0 && (
+                <li>Retiré·e de l'analyse déjà calculée — les camps peuvent bouger au recalcul</li>
+              )}
+            </ul>
+            <button
+              onClick={() => setDeleteMemberReport(null)}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Chantier 93 — nouveau code de rappel, à lire à la personne. Affiché une
@@ -5083,9 +5179,12 @@ function MembersPanel({
   loading,
   onToggleModerator,
   onRegenerateCode,
+  onDeleteMember,
 }: {
   members: SessionMemberAdmin[]
   loading: boolean
+  /** Chantier 137-D — croix rouge : supprimer le participant de la base (avec confirmation). */
+  onDeleteMember?: (memberId: string, pseudo: string) => void
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
   /** Chantier 93 — capture d'écran perdue : nouveau code, à lire à la personne. */
@@ -5144,6 +5243,7 @@ function MembersPanel({
             />
             {/* Chantier 93 — régénération du code de rappel. */}
             {onRegenerateCode && <th className="text-center py-2 pl-3 font-medium">Code</th>}
+            {onDeleteMember && <th className="py-2 pl-3 w-8" aria-label="Supprimer" />}
           </tr>
         </thead>
         <tbody>
@@ -5201,6 +5301,18 @@ function MembersPanel({
                     className="px-1.5 py-0.5 rounded text-[10px] font-medium border bg-white border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-600 transition-colors"
                   >
                     🔑 nouveau
+                  </button>
+                </td>
+              )}
+              {onDeleteMember && (
+                <td className="py-2 pl-3 text-center">
+                  <button
+                    onClick={() => onDeleteMember(m.id, m.pseudo)}
+                    title="Supprimer ce participant de la base (confirmation demandée)"
+                    aria-label={`Supprimer ${m.pseudo}`}
+                    className="w-5 h-5 leading-none rounded text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                  >
+                    ✕
                   </button>
                 </td>
               )}

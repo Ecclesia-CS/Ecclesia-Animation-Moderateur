@@ -10,6 +10,8 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 _(aucun actuellement)_
 
+> **Le 2026-09-28, le chantier 137 est fait** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — branche `claude/chantier-137-6defe6`, à merger dans `dev`. Voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
+
 > **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
 > **Le 2026-09-26, le chantier 134 est mergé dans `dev`** (types de séance : séance complète / débat simple / sondage) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 134 ; entrée « en cours » retirée au merge. Précision sur la note de suivi dev/prod ci-dessous : le 134 était bien déclaré « en cours », mais sur sa propre branche (commit `cdf4c40`), pas encore sur `dev` — d'où l'impression, vue depuis `dev` seul, d'une migration non déclarée. Ses deux migrations restent à appliquer sur **prod** au merge vers `main`.
@@ -257,6 +259,8 @@ Périmètre de fichiers : à définir entièrement une fois 134 tranché — cha
 > - **Règle « types de séance » (`CLAUDE.md`)** : chaque chantier doit dire s'il s'applique aussi aux séances `debate` et `poll`. 137-D, 138 : tous types. 137-E/F et 139 : types avec tables (`full`, `debate`). 140 : toutes les portes d'entrée, sondage compris.
 
 #### 137 — Petits correctifs : suppression d'un participant, icône du bannissement, vote qui se réaffiche au reload
+
+> ✅ **FAIT le 2026-09-28** — détail dans `docs/chantiers.md` ; l'énoncé ci-dessous est conservé tel que dicté. Un écart au cahier : le lien `participants` ↔ membre se fait par `user_id` + tables de la séance (aucune FK), et `assertions.member_id` a dû devenir nullable pour conserver les assertions sans auteur.
 
 Trois sous-tâches indépendantes, sur des fichiers distincts.
 
