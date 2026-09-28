@@ -3004,3 +3004,5 @@ Fichier : `src/screens/SuperadminScreen.tsx` (composant `TableOverviewCard`, rem
 3. « Temps et tours de parole » déplie participants (tri par temps de parole) et déroulé des tours, comme au chantier 130 (jamais vérifié non plus).
 4. Après un glisser-déposer dans l'onglet Groupes (en `debating`), la vue se met à jour au prochain rafraîchissement (bouton ↻ ou polling 10 s).
 5. Débat simple : la carte de la table unique s'affiche en `debating` / `closed`.
+
+**Vérification au navigateur du 2026-09-28 (dev, séance clôturée « Multiculturalisme », mot de passe saisi par Jules) :** points 1 (phase `closed` seulement testée), 2 (sauf barre de camps, cette séance n'a pas d'analyse) et 3 confirmés. Un écart trouvé et corrigé : les tables sans numéro ni affectation (2 sur 3 ici) n'apparaissaient pas ; elles sont maintenant listées « Table sans numéro ». **Reste à vérifier** : phases `debating` / `post_voting`, point 4 (mise à jour après glisser-déposer), point 5 (débat simple), barre de camps sur une séance analysée.

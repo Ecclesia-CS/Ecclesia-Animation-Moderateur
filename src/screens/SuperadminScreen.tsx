@@ -1980,6 +1980,25 @@ function SessionDetail({
     )
   }, [groups, allocInputs])
 
+  // Chantier 138 — la vue « Tables » ne doit rien perdre de ce qu'affichait
+  // l'ancien historique : une table de la séance sans numéro ni affectation
+  // (héritée, ou table de débat simple) n'est pas un « groupe » de
+  // `loadGroups`, mais reste consultable ici (numéro 0 = sans numéro).
+  const overviewGroups = React.useMemo<GroupRow[]>(() => {
+    if (!['allocating', 'debating', 'post_voting', 'closed'].includes(currentSession.phase)) return groups
+    const known = new Set(groups.map(g => g.table_id).filter((id): id is string => id !== null))
+    const extra = attachedTables
+      .filter(t => !known.has(t.id))
+      .map<GroupRow>(t => ({
+        table_number: t.table_number ?? 0,
+        members: [],
+        table_id: t.id,
+        join_code: t.join_code,
+        moderated: t.leaderless === false,
+      }))
+    return [...groups, ...extra]
+  }, [groups, attachedTables, currentSession.phase])
+
   // Chantier 92 — grappes d'appairage (liens réciproques, 3 personnes max).
   const clusters = React.useMemo(() => {
     if (!allocInputs) return []
@@ -3292,12 +3311,12 @@ function SessionDetail({
                     toutes les phases dès que des tables existent. Remplace
                     l'accordéon « Historique des tables » du chantier 130 ;
                     tours et temps de parole restent dépliables par table. */}
-                {groups.length > 0 && (
+                {overviewGroups.length > 0 && (
                   <SectionAccordion
                     title="Tables (consultation)"
                     open={historyOpen}
                     onToggle={() => setHistoryOpen(o => !o)}
-                    badge={`${groups.length}`}
+                    badge={`${overviewGroups.length}`}
                     onRefresh={() => { void loadGroups(true) }}
                   >
                     <div className="space-y-2">
@@ -3305,7 +3324,7 @@ function SessionDetail({
                         <p className="text-sm text-red-600">{historyErr}</p>
                       )}
                       <MemberBadgeLegend />
-                      {groups.map(g => (
+                      {overviewGroups.map(g => (
                         <TableOverviewCard
                           key={g.table_number}
                           group={g}
@@ -4242,7 +4261,9 @@ function TableOverviewCard({
     <div className="border border-gray-200 rounded-xl overflow-hidden">
       <div className="px-3 py-2 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
+          <span className="text-sm font-bold text-indigo-700">
+            {g.table_number > 0 ? `Table N°${g.table_number}` : 'Table sans numéro'}
+          </span>
           <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
           {withProfile.length > 0 && (
             <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
