@@ -23,6 +23,7 @@ import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import DocumentationButton from '../components/DocumentationButton'
+import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
@@ -107,6 +108,8 @@ export default function ModeratorView() {
 
   // H23 — panorama d'accueil modérateur, affiché une seule fois par table
   const [showModWelcome, setShowModWelcome] = useState(() => !localStorage.getItem('mod_welcome_' + table.id))
+  // Chantier 135 — débat d'une association : pas de camps, d'assertions ni de questionnaire.
+  const orgName = useSessionOrganizationName(table.session_id)
 
   // Session docs pour le bouton Documentation
   const [sessionDocs, setSessionDocs] = useState<{
@@ -486,6 +489,7 @@ export default function ModeratorView() {
               session={sessionDocs}
               userPseudo={myParticipant?.pseudo}
               currentTableJoinCode={table.join_code}
+              sessionId={table.session_id}
               className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 whitespace-nowrap"
             />
@@ -741,7 +745,9 @@ export default function ModeratorView() {
                 <span className="text-xl shrink-0">🔧</span>
                 <div>
                   <p className="font-semibold text-gray-900">Outils Modo</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.</p>
+                  <p className="text-gray-500 text-xs mt-0.5">{orgName
+                    ? "QR code de la table, ajout d'une personne sans téléphone, codes participants, historique et notes. Seule la documentation reste accessible depuis un bouton séparé du header."
+                    : 'Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.'}</p>
                 </div>
               </div>
             </div>

@@ -56,6 +56,11 @@ export interface Session {
   // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
   assertions_locked: boolean
   session_type: SessionType
+  // Chantier 135 — association externe propriétaire de la séance (null =
+  // séance Ecclesia). Toujours un débat simple ou un sondage. Colonne ajoutée
+  // par 20260926_chantier135_comptes_associations.sql : absente d'un blob
+  // relu d'avant, d'où l'optionnel.
+  organization_id?: string | null
 }
 
 export interface Table {

@@ -51,7 +51,8 @@ export default function DocNudge({ session, memberPseudo }: DocNudgeProps) {
             Résumé fiche information
           </a>
         )}
-        {(collabUrl || session.join_code) && (
+        {/* Chantier 135 — pas de document collaboratif pour une association. */}
+        {!session.organization_id && (collabUrl || session.join_code) && (
           <button onClick={handleCollabClick} className={linkClass}>
             {iconPath}
             Sources collaboratives

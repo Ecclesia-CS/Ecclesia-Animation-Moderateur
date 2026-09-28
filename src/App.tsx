@@ -32,7 +32,7 @@ type AppPhase =
 // explicite (lien/QR code fraîchement scanné). Partagé entre `init()` (pour
 // ne pas la court-circuiter en restaurant une ancienne table) et le rendu
 // (détection de hash inconnu, chantier 88).
-const KNOWN_HASH_PREFIXES = ['#superadmin', '#collab/', '#session/', '#vote/', '#results/', '#table/']
+const KNOWN_HASH_PREFIXES = ['#superadmin', '#asso', '#collab/', '#session/', '#vote/', '#results/', '#table/']
 
 export default function App() {
   const { showToast } = useToast()
@@ -190,6 +190,11 @@ export default function App() {
   // Route /superadmin via hash — indépendant du flow principal
   if (hash === '#superadmin') {
     return <SuperadminScreen />
+  }
+  // Chantier 135 — espace des associations externes : même écran, en mode
+  // restreint (jeton d'association, liste blanche de RPC côté serveur).
+  if (hash === '#asso') {
+    return <SuperadminScreen mode="org" />
   }
 
   // Route #collab/<join_code> — document collaboratif de sources

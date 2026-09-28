@@ -161,6 +161,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
                 setStatus('results_map')
                 return
               }
+              // Chantier 135 — débat d'une association : pas de questionnaire
+              // de fin (consigne de Jules), directement l'écran de fin.
+              if (isSimpleDebate && s.organization_id) {
+                setStatus('closed')
+                return
+              }
               const answered = await hasQuestionnaireResponse(s.id)
               // Chantier 134 — un débat simple n'a pas de carte de résultats :
               // questionnaire de fin (demandé par Jules), puis écran de fin.

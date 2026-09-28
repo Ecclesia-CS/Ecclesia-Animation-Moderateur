@@ -155,6 +155,15 @@ La séquence vit à deux endroits qui doivent rester identiques : `session_type_
 
 > ⚠️ **Règle demandée par Jules (2026-09-26) — à appliquer par chaque session, sans attendre qu'on le lui rappelle** : la plupart des modifications apportées aux séances complètes doivent **se transférer aux séances partielles** (débat simple, sondage). Toute session qui touche un écran, une RPC ou une règle du parcours doit **se poser explicitement la question** : « ce changement concerne-t-il aussi `debate` et/ou `poll` ? » — et soit l'y appliquer, soit dire dans son compte rendu (et dans `docs/chantiers.md`) pourquoi il ne s'y applique pas. Un changement qui teste `phase === '…'` sans penser au type est le cas typique où l'oubli passe inaperçu : un débat simple n'a jamais de `voting`, un sondage jamais de `debating`.
 
+### Séances d'association (chantier 135)
+
+Une séance peut appartenir à une **association externe** (`sessions.organization_id` non NULL — toujours `debate` ou `poll`). L'association administre ses séances depuis `#asso` (même `SuperadminScreen`, mode restreint : `useOrg()` / `adminMode === 'org'`) avec un **jeton** `org_…` qui circule dans le `p_password` des RPC.
+
+> ⚠️ **Règle, dans la continuité de celle des types** : toute évolution du débat simple ou du sondage doit **aussi** se demander « est-ce ouvert aux associations ? » — **non par défaut** (fail-closed).
+> - **Nouvelle RPC d'administration** : elle appelle `check_superadmin_password` et reste donc fermée aux associations. Pour l'ouvrir, utiliser `check_session_admin(p_password, <session>)` (ou `check_table_admin`/`check_assertion_admin`/`check_member_admin`) — jamais relâcher `check_superadmin_password` lui-même.
+> - **Nouveau bouton dans `SuperadminScreen`** : s'il appelle une RPC hors liste blanche, le masquer quand `isOrg`/`isOrgMode` (sinon l'asso voit « Action réservée à Ecclesia »).
+> - **Côté participant**, ce qui est propre à Ecclesia (questionnaire, document collaboratif, camps nommés par IA, accueil public) est masqué via `session.organization_id` ou `useSessionOrganizationName()` (`lib/organizations.ts`).
+
 ## Modèle de données
 
 > 📎 **Détail colonne par colonne : [`docs/reference-modele-donnees.md`](./docs/reference-modele-donnees.md)** — toutes les tables (`sessions`, `tables`, `participants`, `queue_entries`, `session_members`, `entry_responses`, `assertions`, `assertion_votes`, `assertion_merges`, `table_assignments`, `speaking_turns`, `questionnaire_responses`, `private_notes`, `app_config`) et la politique de rétention des codes de rappel.
@@ -178,6 +187,7 @@ Ce qu'il faut connaître sans aller voir :
 | **Code Ecclesia** | `app_config.creation_code_hash` (bcrypt) | Créer une table + reprendre la modération |
 | **join_code** | `tables.join_code` (clair) | Rejoindre une table |
 | **Mot de passe superadmin** | `app_config.superadmin_code_hash` (bcrypt) | Gérer les séances |
+| **Mot de passe d'association** (chantier 135) | `organizations.password_hash` (bcrypt) | Connexion `#asso` (→ jeton `org_…` haché dans `organization_tokens`) + prise de modération sur les séances de cette asso uniquement |
 
 **Aucun hash ne quitte jamais la base.** RLS + SECURITY DEFINER uniquement. Auth anonyme (`signInAnonymously`).
 

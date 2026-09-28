@@ -10,7 +10,9 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 _(aucun actuellement)_
 
-> **Le 2026-09-28, le chantier 137 est fait** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — branche `claude/chantier-137-6defe6`, à merger dans `dev`. Voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
+> **Le 2026-09-28, le chantier 137 est mergé dans `dev`** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Sa migration (`20260928_chantier137_delete_session_member_admin`, qui change aussi la contrainte `assertions.member_id`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, après celles du 134 et du 135.
+
+> **Le 2026-09-28, le chantier 135 est mergé dans `dev`** (comptes associations externes : débat simple + sondage, espace `#asso`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 135 ; entrée « en cours » retirée au merge. Ses **trois** migrations (`20260926_chantier135_comptes_associations`, `20260926_chantier135b_refus_asso_explicite`, `20260928_chantier135c_nommage_camps_asso`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 134.
 
 > **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
@@ -233,6 +235,8 @@ Arbitrage tranché avec Jules le 2026-09-25 sur la relation avec le point suivan
 Périmètre de fichiers : large et à définir en démarrant — au minimum `sessions` (schéma + RPC de création), `SuperadminScreen.tsx` (flux "nouvelle séance"), la state machine de phases.
 
 #### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134
+
+> 🟡 **Livré le 2026-09-28, mergé dans `dev` le même jour, pas dans `main`** (branche `claude/chantier-135-external-users-592b48`, supprimée) — conception et arbitrages : [`docs/chantier-135-conception.md`](./chantier-135-conception.md) ; détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 135, mode d'emploi : [`docs/mode-emploi-associations.md`](./mode-emploi-associations.md). Arbitrage final de Jules : débat simple **et** sondage, sans questionnaire, une table par débat, 3 séances en cours, expiration facultative.
 
 **Consigne de Jules** : « Discussion à faire avec Opus : le but est de rendre possible des fonctionnalités pour des associations externes à Ecclesia. Notamment, dans un premier temps, deux fonctionnalités : le sondage (faire une séance de vote, mais ne pas faire de débat derrière) et la création d'une table de modérateur (un modérateur, avec des participants pour gérer la séance, et la possibilité d'avoir une table de participant tout court, mais sans tout ce qui est lié au vote). »
 
