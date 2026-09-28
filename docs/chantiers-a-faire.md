@@ -8,7 +8,8 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+### 142 — Document collaboratif : identité des sources sans code
+**Branche** : `claude/chantier-142-ceb037` · **Depuis** : 2026-09-28 · **Fichiers touchés** (prévus, à affiner après diagnostic) : `src/screens/CollabDocScreen.tsx`, `src/lib/sessions.ts`, nouvelle migration `supabase/migrations/20260928_chantier142_*.sql` (RPC `register_collab_pseudo` et écriture des sources, policies `session_sources`/`collab_session_users`). Phase actuelle : diagnostic, décision de Jules attendue avant de coder.
 
 > **Le 2026-09-28, le chantier 140 est mergé dans `dev`** (portes d'entrée : un nom déjà pris n'entre jamais sans code, ligne « J'ai déjà un code de rappel » partout ; 140b : noms comparés sans tenir compte des majuscules) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 140. Ses **deux** migrations (`20260928_chantier140_portes_entree_identite`, `20260928_chantier140b_pseudos_insensibles_casse`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (et dans cet ordre). La 140b renomme un doublon de nom sur prod (séance close du 03/06).
 
@@ -376,6 +377,17 @@ Même famille de faille que celle corrigée au 140 dans `join_table` : **taper l
 **Types de séance** : le document collaboratif existe-t-il en `debate` et `poll` ? À vérifier en démarrant.
 
 Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx`, `lib/sessions.ts`, RPC `register_collab_pseudo` et celles d'écriture des sources, policies de `session_sources`/`collab_session_users`, nouvelle migration.
+
+**Diagnostic fait le 2026-09-28** (session `claude/chantier-142-ceb037`, lecture de `pg_get_functiondef` sur dev **et** prod : les 5 RPC sont identiques, à un commentaire près) :
+- **Faille confirmée, pire que prévu** : `register_collab_pseudo` (EXECUTE `anon`/`authenticated`) ne vérifie rien — ni l'appartenance à la séance, ni un code. N'importe quel appareil qui tape « Alice » récupère le `user_id` de toutes ses sources ; `update_collab_source`/`delete_collab_source` (gardées par `user_id = auth.uid()`) le laissent alors **modifier et supprimer** ses sources. La vraie Alice perd l'accès (sa ligne `collab_session_users` est réécrite). On peut aussi publier sous n'importe quel nom, membre ou non. Comparaison sensible à la casse (« alice » ≠ « Alice »). L'écran lui-même l'avoue : « Quiconque connaît votre pseudo peut reprendre votre identité ».
+- **Lecture** : `session_sources` en `SELECT USING (true)` et `list_session_sources` exécutable par `anon` → tout le monde lit tout, séance par séance (comme le canal `collab:<session_id>`). Probablement voulu (document public), à confirmer.
+- **Écriture directe** : aucune policy INSERT/UPDATE/DELETE sur les deux tables → tout passe par les RPC. Pas de faille par PostgREST direct.
+- **Identité parallèle** : `collab_session_users` n'a aucun lien avec `session_members`. Les autres écrans passent le pseudo du membre via `sessionStorage` (auto-enregistrement sans preuve, mais c'est bien le pseudo de l'appareil). `rename_session_member` propage déjà vers `session_sources` **par `user_id`**.
+- **Types de séance** : document dispo en `full`, `debate` et `poll`. Masqué dans l'UI pour les **associations** (chantier 135), mais `#collab/<code>` et les RPC ne vérifient pas `organization_id` — l'accès direct reste ouvert.
+- **Données prod** : **0 source** jamais écrite, 5 lignes `collab_session_users` (dont 1 sans membre correspondant). Une migration ne peut rien casser côté données.
+- Écart de droits sans conséquence : sur prod, `register_collab_pseudo` est aussi accordée à `PUBLIC`, pas sur dev.
+
+**En attente de Jules** : choix d'identité (rattacher à `session_members`, recommandé), sort du visiteur non membre, fermeture côté serveur pour les associations.
 
 ---
 
