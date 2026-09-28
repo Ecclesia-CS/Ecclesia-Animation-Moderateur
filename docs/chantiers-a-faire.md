@@ -12,6 +12,8 @@ _(aucun actuellement)_
 
 > **Le 2026-09-28, le chantier 140 est mergé dans `dev`** (portes d'entrée : un nom déjà pris n'entre jamais sans code, ligne « J'ai déjà un code de rappel » partout ; 140b : noms comparés sans tenir compte des majuscules) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 140. Ses **deux** migrations (`20260928_chantier140_portes_entree_identite`, `20260928_chantier140b_pseudos_insensibles_casse`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (et dans cet ordre). La 140b renomme un doublon de nom sur prod (séance close du 03/06).
 
+> **Le 2026-09-28, le chantier 138 est mergé dans `dev`** (vue « Tables (consultation) » du superadmin, lecture seule, toutes phases, remplace l'accordéon « Historique des tables » du 130) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 138. Vérifié au navigateur sur dev. Aucune migration. Le chantier 139 peut maintenant partir : il touche le même onglet Groupes.
+
 > **Le 2026-09-28, le chantier 137 est mergé dans `dev`** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Sa migration (`20260928_chantier137_delete_session_member_admin`, qui change aussi la contrainte `assertions.member_id`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, après celles du 134 et du 135.
 
 > **Le 2026-09-28, le chantier 135 est mergé dans `dev`** (comptes associations externes : débat simple + sondage, espace `#asso`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 135 ; entrée « en cours » retirée au merge. Ses **trois** migrations (`20260926_chantier135_comptes_associations`, `20260926_chantier135b_refus_asso_explicite`, `20260928_chantier135c_nommage_camps_asso`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 134.
@@ -286,6 +288,8 @@ Trois sous-tâches indépendantes, sur des fichiers distincts.
 Périmètre de fichiers : `SuperadminScreen.tsx` + nouvelle migration (D), `ParticipantsTable.tsx` (E), `ParticipantView.tsx`, éventuellement `TableVoteModal.tsx` (F).
 
 #### 138 — Historique des tables : même vue que l'onglet Groupes, accessible dès que les tables existent
+
+> ✅ **Fait et mergé dans `dev` le 2026-09-28** — voir `docs/chantiers.md`. Détail conservé ci-dessous pour mémoire.
 
 **Consigne de Jules** : « L'historique des tables dans la vue superadmin : j'aimerai que ce soit exactement la même chose que l'onglet groupe en fait : quelque chose qui permet de voir les tables, et toutes les informations pertinentes sur tout le monde. Actuellement, ce n'est qu'un test qui trace l'historique des tables. » Précisé en conversation : « tu peux enlever l'accordéon actuel et le remplacer par ce dont tu parles. Je veux que les tables soient accessibles dans toutes les phases une fois qu'elles ont été créées. »
 
