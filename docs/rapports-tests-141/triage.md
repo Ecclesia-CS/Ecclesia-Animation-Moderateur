@@ -39,3 +39,23 @@ Priorité aux items non déjà validés à l'écran :
 
 Par anomalie : identifiant · chantier d'origine · environnement · étapes · attendu · observé · preuve · gravité proposée (bloquant / grave / mineur / cosmétique) · type de correctif (front / SQL / environnement).
 Les items qui passent reçoivent dans `A_VERIFIER.md` « vérifié automatiquement sur dev le … », **sans passer en « Validé »** (décision de Jules).
+
+---
+
+# Sous-chantiers 141a à 141e — à lancer chacun dans sa conversation
+
+**Amorce à coller au début de chaque conversation** (remplacer la lettre) :
+
+> Chantier 141, sous-chantier 141X. Lis `docs/rapports-tests-141/triage.md` (section « Sous-chantiers ») et `docs/rapports-tests-141/lot-*.md` existants, puis exécute uniquement 141X. Branche `claude/chantier-141-automated-tests-a071a2` (ou la branche de chantier la plus récente de `dev`). Tout se passe sur **dev**. Ne corrige rien dans `src/`.
+
+**Préparation commune (chaque conversation)** : `git fetch` puis remettre la branche à jour sur `origin/dev` ; créer `.env.local` (ignoré par git) avec l'URL et la clé publique de dev (`get_publishable_keys` sur `mnjqrlrrzrycuconlfqb`) — **jamais** le `.env` de prod ; `preview_start ecclesia-dev` ; séances de test préfixées `QA141-`, purgées à la fin (vérifier 0 ligne restante) ; relire l'état en boucle bornée après tout changement de phase ; un rapport `docs/rapports-tests-141/lot-<lettre>.md` par sous-chantier, au format ci-dessus ; annotations « vérifié automatiquement sur dev le … » dans `A_VERIFIER.md`, sans jamais passer en « Validé ». Commit à la fin, sans pousser.
+
+| Sous-chantier | Contenu | Mot de passe |
+|---|---|---|
+| **141a** — participant et modérateur, sans mot de passe | Reste du lot 1 (`lot-1.md`, « Non joué ») : tri final des lignes 1300-1900 ; résultats publics et accueil (l. 1268-1301) ; C4 et D1 (l. 2868-2870) ; `add_offline_participant` (l. 3113) ; ménage des tables de test (l. 1729-1733, **accord de Jules avant toute suppression**). Lever d'abord la limite d'identité (Vite avec `--host 127.0.0.1`). | Aucun |
+| **141b** — superadmin, phases et séances | `PhaseBar` et phases (l. 1007-1012), chantiers 128, 130/138, 134 (points 1-3), 137-D (points d et g), 135. | Superadmin, saisi par Jules |
+| **141c** — superadmin, modérateurs et groupes | Désignation de modérateur et onglet Groupes (139, 106, 109, 117, 118), allocation. | Superadmin |
+| **141d** — anciens chantiers + portes Code Ecclesia | Anciens jalons 33-39, 50, 54, 65 (côté superadmin), 72, 74 ; scénarios du 68 (l. 1224-1269) ; portes modérateur (107, 110, 140, l. 3095-3098) ; 134 point 4. | Superadmin **et** Code Ecclesia |
+| **141e** — consolidation | Fusionner les rapports `lot-*.md` en un rapport unique trié par gravité pour l'autre conversation ; nettoyer `A_VERIFIER.md` ; lister ce qui reste à faire par un humain (glisser-déposer, Gemini réel, expiration, points « Sur prod après merge ») ; retirer l'entrée de `docs/chantiers-a-faire.md` et consigner dans `docs/chantiers.md`. | Aucun |
+
+Ordre conseillé : 141a → 141b → 141c → 141d → 141e (141a n'a besoin de personne ; 141e vient en dernier). 141b, c et d peuvent tourner dans n'importe quel ordre entre elles.
