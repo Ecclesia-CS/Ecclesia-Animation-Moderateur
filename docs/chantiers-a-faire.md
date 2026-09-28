@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+- **Chantier 138** — branche `claude/chantier-138-762719` — `src/screens/SuperadminScreen.tsx` (vue « Tables » en lecture seule, retrait de `TableHistoryRow`), docs — 2026-09-28. ⚠️ Croise 139 (même onglet Groupes).
 
 > **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 

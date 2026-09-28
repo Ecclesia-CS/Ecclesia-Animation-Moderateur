@@ -44,7 +44,7 @@ import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, Allocation
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
 import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
-import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember } from '../lib/allocation'
+import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember, type TableDiagnostics } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
@@ -1916,7 +1916,9 @@ function SessionDetail({
 
   useEffect(() => {
     const p = currentSession.phase
-    if (p === 'allocating' || p === 'debating') loadGroups()
+    // Chantier 138 — la vue « Tables » en lecture seule est consultable dès
+    // que les tables existent, donc aussi après le débat (post_voting, closed).
+    if (p === 'allocating' || p === 'debating' || p === 'post_voting' || p === 'closed') loadGroups()
   }, [currentSession.phase, loadGroups])
 
   // Chantier 20 (G6) → Chantier 59 — abonnement Realtime `table_assignments`
@@ -3285,34 +3287,38 @@ function SessionDetail({
                     get_public_results reste seul gated sur phase='closed').
                     Réutilise attachedTables (déjà chargé par load() plus
                     haut) + les RPC déjà en place pour l'export CSV. */}
-                {currentSession.phase === 'closed' && (
+                {/* Chantier 138 — vue « Tables » en lecture seule, même contenu
+                    que l'onglet Groupes (sans glisser-déposer), disponible à
+                    toutes les phases dès que des tables existent. Remplace
+                    l'accordéon « Historique des tables » du chantier 130 ;
+                    tours et temps de parole restent dépliables par table. */}
+                {groups.length > 0 && (
                   <SectionAccordion
-                    title="Historique des tables"
+                    title="Tables (consultation)"
                     open={historyOpen}
                     onToggle={() => setHistoryOpen(o => !o)}
-                    badge={`${attachedTables.length}`}
+                    badge={`${groups.length}`}
+                    onRefresh={() => { void loadGroups(true) }}
                   >
-                    {attachedTables.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-2 text-center">Aucune table pour cette séance</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {historyErr && (
-                          <p className="text-sm text-red-600">{historyErr}</p>
-                        )}
-                        {[...attachedTables]
-                          .sort((a, b) => (a.table_number ?? 0) - (b.table_number ?? 0))
-                          .map(t => (
-                            <TableHistoryRow
-                              key={t.id}
-                              table={t}
-                              expanded={expandedHistoryId === t.id}
-                              loading={historyLoadingId === t.id}
-                              history={historyByTable[t.id]}
-                              onToggle={() => handleToggleTableHistory(t.id)}
-                            />
-                          ))}
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      {historyErr && (
+                        <p className="text-sm text-red-600">{historyErr}</p>
+                      )}
+                      <MemberBadgeLegend />
+                      {groups.map(g => (
+                        <TableOverviewCard
+                          key={g.table_number}
+                          group={g}
+                          diagnostic={groupDiagnostics.find(x => x.table_number === g.table_number)}
+                          memberProfiles={memberProfiles}
+                          clusterOf={clusterOf}
+                          expanded={g.table_id != null && expandedHistoryId === g.table_id}
+                          loading={g.table_id != null && historyLoadingId === g.table_id}
+                          history={g.table_id ? historyByTable[g.table_id] : undefined}
+                          onToggle={() => { if (g.table_id) void handleToggleTableHistory(g.table_id) }}
+                        />
+                      ))}
+                    </div>
                   </SectionAccordion>
                 )}
 
@@ -4202,14 +4208,20 @@ function formatDurationShort(ms: number): string {
   return min > 0 ? `${min}min ${sec}s` : `${sec}s`
 }
 
-function TableHistoryRow({
-  table,
+function TableOverviewCard({
+  group: g,
+  diagnostic: d,
+  memberProfiles,
+  clusterOf,
   expanded,
   loading,
   history,
   onToggle,
 }: {
-  table: SessionTableRow
+  group: GroupRow
+  diagnostic?: TableDiagnostics
+  memberProfiles: Map<string, AllocationMember>
+  clusterOf: Map<string, string[]>
   expanded: boolean
   loading: boolean
   history?: { parts: TableParticipantRow[]; turns: TableSpeakingTurnRow[] }
@@ -4221,25 +4233,104 @@ function TableHistoryRow({
   const sortedParts = history
     ? [...history.parts].sort((a, b) => b.total_ms - a.total_ms)
     : []
+  const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
+  const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
+  const activeMods = g.members.filter(m => m.is_moderator && m.active)
+  const surplusMods = g.members.filter(m => m.is_moderator && !m.active)
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
-      >
-        <span className="text-sm text-gray-700">
-          {table.table_number != null ? `Table ${table.table_number}` : 'Table'}
-          {table.moderator_pseudo && <span className="text-gray-400"> · anime : {table.moderator_pseudo}</span>}
-        </span>
-        <span className="flex items-center gap-2 text-xs text-gray-400 shrink-0">
-          {table.participant_count} participant{table.participant_count !== 1 ? 's' : ''}
+      <div className="px-3 py-2 space-y-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
+          <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+          {withProfile.length > 0 && (
+            <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
+              {activeCount} actif{activeCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          {d && (
+            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+              d.audience_ok && !d.over_capacity && d.veterans_ok ? 'bg-green-50 text-green-700' : 'bg-amber-100 text-amber-700'
+            }`}>
+              {d.audience_ok && !d.over_capacity && d.veterans_ok ? '✓ seuils OK' : '⚠️ seuils non atteints'}
+            </span>
+          )}
+          {d && (
+            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {d.recordable ? '🎙️ enregistrable' : 'non enregistrable'}
+            </span>
+          )}
+          {g.join_code && (
+            <span className="text-xs font-mono tracking-widest text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
+              {g.join_code}
+            </span>
+          )}
+        </div>
+        {(activeMods.length > 0 || surplusMods.length > 0 || !g.moderated) && (
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            {activeMods.map(m => (
+              <span key={m.member_id ?? `physical-${g.table_id}`} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-100">
+                🎙️ Modérateur : <strong>{m.pseudo}</strong>
+              </span>
+            ))}
+            {surplusMods.map(m => (
+              <span key={m.member_id} className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-100">
+                🎙️ En surplus : <strong>{m.pseudo}</strong>
+              </span>
+            ))}
+            {activeMods.length === 0 && (
+              <span className="text-gray-400 italic">Table sans animateur</span>
+            )}
+          </div>
+        )}
+        {d && <CampCompositionBar d={d} />}
+        <div className="flex flex-wrap gap-1.5">
+          {g.members.filter(m => !m.is_moderator).map(m => {
+            const profile = m.member_id ? memberProfiles.get(m.member_id) : undefined
+            const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
+            const linkedWith = m.member_id
+              ? clusterOf.get(m.member_id)?.filter(id => id !== m.member_id).map(id => memberProfiles.get(id)?.pseudo ?? '?')
+              : undefined
+            return (
+              <span
+                key={m.member_id ?? m.pseudo}
+                title={[
+                  profile ? memberProfileTitle(profile) : null,
+                  linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')}` : null,
+                ].filter(Boolean).join(' · ') || undefined}
+                style={color ? { borderColor: color, background: `${color}1a` } : undefined}
+                className={`px-2 py-0.5 rounded-md text-xs font-medium border inline-flex items-center gap-1 ${
+                  color ? 'text-gray-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                }`}
+              >
+                <span>{m.pseudo}</span>
+                {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
+                {profile && (
+                  <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
+                    <span className={profile.is_active ? '' : 'line-through'}>a</span>
+                    <span className={profile.consents ? '' : 'line-through'}>e</span>
+                    <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
+                  </span>
+                )}
+              </span>
+            )
+          })}
+          {g.members.length === 0 && <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>}
+        </div>
+      </div>
+      {g.table_id && (
+        <button
+          onClick={onToggle}
+          className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs text-gray-500 border-t border-gray-100 hover:bg-gray-50 transition-colors"
+        >
+          <span>Temps et tours de parole</span>
           <svg
             className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
           ><polyline points="6 9 12 15 18 9"/></svg>
-        </span>
-      </button>
+        </button>
+      )}
       {expanded && (
         <div className="border-t border-gray-100 px-3 py-3 space-y-3 bg-gray-50">
           {loading ? (

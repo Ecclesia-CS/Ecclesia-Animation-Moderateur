@@ -2995,3 +2995,12 @@ Migration `supabase/migrations/20260926_chantier132_table_votes.sql` appliquée 
 7. Vérifier qu'un participant qui ferme (croix) le popup sans répondre peut le rouvrir via la bannière "🗳️ Voir le vote en cours", et qu'un tout nouveau vote rouvre le popup automatiquement même si le précédent avait été fermé manuellement.
 
 **Rien à revérifier humainement** : les trois chemins (cas nominal, code erroné, bon code) ont été rejoués à l'écran avec des données réelles, pas seulement en base.
+
+## Chantier 138 — Vue « Tables (consultation) » du superadmin (2026-09-28)
+
+Fichier : `src/screens/SuperadminScreen.tsx` (composant `TableOverviewCard`, remplace `TableHistoryRow`). `tsc` propre, **non vérifié au navigateur** (mot de passe superadmin requis). À vérifier :
+1. Séance avec tables, onglet 🪑 Tables : l'accordéon « Tables (consultation) » apparaît en `allocating`, `debating`, `post_voting` et `closed` (pas avant que des tables existent).
+2. Chaque carte reproduit l'onglet Groupes : actifs, seuils, enregistrable, modérateur / surplus, barre de camps, puces (couleur, a/e/n, 🔗), code. Aucun glisser-déposer.
+3. « Temps et tours de parole » déplie participants (tri par temps de parole) et déroulé des tours, comme au chantier 130 (jamais vérifié non plus).
+4. Après un glisser-déposer dans l'onglet Groupes (en `debating`), la vue se met à jour au prochain rafraîchissement (bouton ↻ ou polling 10 s).
+5. Débat simple : la carte de la table unique s'affiche en `debating` / `closed`.
