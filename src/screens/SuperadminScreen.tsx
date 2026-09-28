@@ -3326,7 +3326,7 @@ function SessionDetail({
                       <MemberBadgeLegend />
                       {overviewGroups.map(g => (
                         <TableOverviewCard
-                          key={g.table_number}
+                          key={g.table_id ?? `n${g.table_number}`}
                           group={g}
                           diagnostic={groupDiagnostics.find(x => x.table_number === g.table_number)}
                           memberProfiles={memberProfiles}
