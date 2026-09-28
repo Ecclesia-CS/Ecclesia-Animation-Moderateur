@@ -2973,3 +2973,23 @@ rollback;
 `tsc --noEmit` et `npm run build` propres. `npx vitest run` : 107 tests passent ; le seul échec (`src/lib/groupNaming.test.ts`, `supabaseUrl is required`) est un défaut d'environnement préexistant du worktree (pas de `.env` copié avant ce test), sans rapport avec ce chantier — non-régression confirmée séparément par le test navigateur réel une fois `.env` copié.
 
 **Rien à revérifier humainement** : les trois chemins (cas nominal, code erroné, bon code) ont été rejoués à l'écran avec des données réelles, pas seulement en base.
+
+
+## Chantier 135 — Comptes associations externes (2026-09-28)
+
+Migrations **appliquées sur dev uniquement** (`mnjqrlrrzrycuconlfqb`), à appliquer sur **prod** au merge `dev → main`, dans cet ordre :
+1. `supabase/migrations/20260926_chantier135_comptes_associations.sql` — tables `organizations`/`organization_tokens`, colonne `sessions.organization_id`, helpers (`check_session_admin` & co., `check_moderator_code`), trigger de quota `sessions_org_rules`, RPC de connexion (`org_login`…) et de gestion (`create_organization`…), réécriture de 7 RPC à la main et de 35 autres par remplacement du seul bloc de contrôle (fait depuis `pg_get_functiondef` : rejouable sur prod sans écraser un corps plus récent — la migration échoue proprement si un bloc n'est pas trouvé exactement une fois).
+2. `supabase/migrations/20260926_chantier135b_refus_asso_explicite.sql` — `check_superadmin_password` : message « Action réservée à Ecclesia » pour un jeton d'association (au lieu de « mot de passe incorrect », qui déconnecterait l'asso).
+
+⚠️ Sur prod, la migration dépend du chantier 134 (`session_type`, `join_simple_debate`) : appliquer les migrations 134a/134b **avant**.
+
+### Vérifié le 2026-09-28
+- **En base (transactions annulées)** : connexion (nom insensible à la casse), refus mauvais mot de passe, type `full` refusé pour une asso, limite de 3 séances (création **et** réouverture d'une séance clôturée), cloisonnement entre deux assos (phase, assertions, listes), suppression refusée hors Phase 0, IA refusée, ajout de table et résultats publics refusés, mot de passe d'asso accepté comme code modérateur sur ses séances et refusé sur celles d'une autre, changement de mot de passe, compte désactivé → jeton refusé, fonctions d'analyse accessibles à l'asso, nommage IA refusé.
+- **Au navigateur (dev, avec la session superadmin de Jules)** : panneau Associations (création, mot de passe < 8 refusé, expiration, modification, **désactivation → l'asso est déconnectée et « Ce compte est désactivé »**) ; badge « Asso : X » sur leurs séances ; espace `#asso` (connexion, compteur N/3, création débat/sondage, seuls ces deux types proposés, onglets restreints) ; débat : ouverture, participant « Organisé par … », mot de passe d'asso faux refusé (« Mot de passe de l'association incorrect ») puis accepté → écran modérateur, Outils Modo et Documentation sans camps/assertions/questionnaire/document collaboratif, onglet Tables sans ajout/suppression de table, clôture → « Séance terminée » **sans questionnaire**, `questionnaire_forced_at` nul, codes de rappel purgés ; sondage : modération sans IA, ajout d'assertions, vote, statistiques ; 4ᵉ séance refusée (« Limite atteinte ») ; accueil Ecclesia sans les séances d'asso.
+
+### Reste à vérifier
+- [ ] **« Analyser les camps » au clic** sur un sondage d'asso avec au moins 2-3 votants distincts (vérifié en base seulement : les RPC d'analyse répondent au jeton d'asso ; le calcul lui-même n'a pas été lancé à l'écran faute de votants).
+- [ ] **Changement de mot de passe par l'asso elle-même** (lien « Mot de passe » de `#asso`) : vérifié en base, pas au clic.
+- [ ] **Expiration** : un compte dont la date est dépassée ne peut plus se connecter (vérifié par la logique SQL, pas avec une vraie date passée).
+- [ ] **Sur prod, après merge** : refaire au moins création d'un compte + connexion `#asso` + prise de modération avec le mot de passe d'asso.
+- [ ] Constat hors périmètre : un sondage n'affiche pas de camps nommés pour une asso (nommage Gemini réservé à Ecclesia) — « Groupe 1, 2… ». Voulu, à confirmer par Jules.

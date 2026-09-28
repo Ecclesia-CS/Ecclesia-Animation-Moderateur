@@ -69,3 +69,20 @@ Les séances d'asso sont de type `debate` : tout changement futur sur le débat 
 6. **Nom de l'asso côté participant** : afficher « Débat organisé par <asso> » sur l'écran d'entrée et la table ? → **oui**, discret : utile pour qu'un participant sache qu'il n'est pas chez Ecclesia.
 7. **Documentation et liens Ecclesia** (règles du débat, docs biais cognitifs/arguments fallacieux, bouton Outils → document collaboratif) : on les laisse aux assos ? → **règles du débat et fiches pédagogiques oui, document collaboratif non** (lié aux sources d'une séance Ecclesia).
 8. **Mode d'emploi** : veux-tu une petite page d'aide imprimable/envoyable aux assos (se connecter, créer un débat, afficher le QR, donner le code modérateur) ? → **oui**, courte, je la rédige à la fin du 135b.
+
+---
+
+## Arbitrages de Jules (2026-09-26) et ce qui en découle
+
+1. **Périmètre** : débat simple **et** sondage (pas de questionnaire post-débat, pas de séance complète).
+2. **Mot de passe** : un par association, choisi par Jules à la création, modifiable par Jules **et** par l'association elle-même.
+3. **Modération** : quiconque a le mot de passe de l'association peut se déclarer modérateur avec, à l'entrée comme en cours de séance.
+4. **Limite** : 3 séances non clôturées à la fois (débats + sondages confondus) ; **une seule table** par débat (ni ajout de tables, ni allocation) ; date d'expiration facultative.
+5 à 8. Oui : Jules voit tout, rien de public ; « Organisé par … » ; règles et fiches pédagogiques gardées, document collaboratif retiré ; mode d'emploi rédigé ([`docs/mode-emploi-associations.md`](./mode-emploi-associations.md)) ; règle transverse ajoutée à CLAUDE.md.
+
+### Changements par rapport à la proposition initiale
+
+- **Connexion par nom + mot de passe, puis jeton** (`org_login` → jeton `org_…` 24 h), et non par mot de passe seul : sinon un refus « mot de passe déjà pris » lors d'un changement de mot de passe révélerait celui d'une autre association. Le jeton circule dans le paramètre `p_password` existant : aucune signature de RPC ne change.
+- **Même écran que le superadmin, en mode restreint** (`#asso` → `SuperadminScreen mode="org"`), et non un écran dédié : avec le sondage dans le périmètre, l'asso a besoin des outils d'assertions, statistiques et analyse — les recoder aurait dupliqué une grande partie du superadmin. La frontière de sécurité est côté serveur (liste blanche de 29 RPC via `check_session_admin`) ; l'interface ne fait que masquer ce qui serait refusé. Une RPC hors liste appelée avec un jeton renvoie « Action réservée à Ecclesia » (et non « mot de passe incorrect », qui déconnecterait l'asso).
+- **Limite de séances par trigger** (`sessions_org_rules`) : couvre aussi la réouverture d'une séance clôturée.
+- Modération IA et nommage IA des camps réservés à Ecclesia (quota Gemini partagé) : les camps d'un sondage d'asso restent « Groupe N ».
