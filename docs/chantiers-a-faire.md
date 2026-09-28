@@ -8,7 +8,8 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+### 140 — Portes d'entrée : code de rappel toujours accessible, nom pris ⇒ accordéon, jamais d'accès sans code
+**Branche** : `claude/lancer-140-b126c2` · **Depuis** : 2026-09-28 · **Fichiers touchés** (à affiner après l'audit) : `EntryScreen`, `VotingEntryForm`, `SessionRouterScreen`, `AttendanceConfirmScreen`, accordéon du chantier 125, `lib/sessions.ts`/`lib/voting.ts`, RPC d'entrée (`join_table`, reclaim, `claim_*`) + nouvelle migration
 
 > **Le 2026-09-28, le chantier 137 est mergé dans `dev`** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Sa migration (`20260928_chantier137_delete_session_member_admin`, qui change aussi la contrainte `assertions.member_id`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, après celles du 134 et du 135.
 
