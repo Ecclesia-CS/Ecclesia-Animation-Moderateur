@@ -4,6 +4,7 @@ import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import ReclaimCodeDisplay from './voting/ReclaimCodeDisplay'
 import PasswordInput from './PasswordInput'
+import { useSessionOrganizationName, orgCodeError } from '../lib/organizations'
 
 type JoinResult = Awaited<ReturnType<typeof joinSimpleDebate>>
 
@@ -27,6 +28,9 @@ interface Props {
  *     (`confirm_attendance`, pseudo + code), puis retour à sa table.
  */
 export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: Props) {
+  // Chantier 135 — débat d'une association : son mot de passe tient lieu de
+  // Code Ecclesia pour prendre l'animation (check_moderator_code).
+  const orgName = useSessionOrganizationName(sessionId)
   const [pseudo, setPseudo]             = useState(() => lastNameStore.get())
   const [asModerator, setAsModerator]   = useState(false)
   const [creationCode, setCreationCode] = useState('')
@@ -62,7 +66,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
       if (r.new_reclaim_code) setPending(r)
       else finish(r)
     } catch (err) {
-      setError(extractErr(err))
+      setError(orgCodeError(extractErr(err), orgName))
     } finally {
       setLoading(false)
     }
@@ -90,6 +94,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
           <div className="text-5xl mb-4">🗣️</div>
           <h1 className="text-lg font-bold text-gray-900">Rejoindre le débat</h1>
           {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
+          {orgName && <p className="text-xs text-gray-400 mt-1">Organisé par {orgName}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -118,7 +123,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
             <PasswordInput
               value={creationCode}
               onChange={v => { setCreationCode(v); setError(null) }}
-              placeholder="Code Ecclesia"
+              placeholder={orgName ? "Mot de passe de l'association" : 'Code Ecclesia'}
             />
           )}
 

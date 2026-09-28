@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { claimModeratorStatus, reclaimTableAsModerator } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
 import PasswordInput from '../PasswordInput'
+import { useSessionOrganizationName, orgCodeError } from '../../lib/organizations'
 
 interface Props {
   tableId: string
@@ -30,6 +31,9 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Chantier 135 — séance d'association : son mot de passe au lieu du Code Ecclesia.
+  const orgName = useSessionOrganizationName(sessionId)
+  const codeLabel = orgName ? "Mot de passe de l'association" : 'Code Ecclesia'
 
   const canClaimSession = !!sessionId
   const canReclaimTable = !isModerator
@@ -53,7 +57,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
       }
       setStep('done')
     } catch (err) {
-      setError(extractErr(err))
+      setError(orgCodeError(extractErr(err), orgName))
     } finally {
       setLoading(false)
     }
@@ -119,12 +123,16 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
         {step === 'form' && (
           <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
             <p className="text-xs text-gray-500">
-              {action === 'session'
-                ? 'Confirme avec le mot de passe Ecclesia que tu es bien modérateur pour cette séance.'
-                : 'Confirme avec le Code Ecclesia pour reprendre la main sur cette table.'}
+              {orgName
+                ? (action === 'session'
+                  ? `Confirme avec le mot de passe de ${orgName} que tu es bien modérateur pour cette séance.`
+                  : `Confirme avec le mot de passe de ${orgName} pour reprendre la main sur cette table.`)
+                : (action === 'session'
+                  ? 'Confirme avec le mot de passe Ecclesia que tu es bien modérateur pour cette séance.'
+                  : 'Confirme avec le Code Ecclesia pour reprendre la main sur cette table.')}
             </p>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Code Ecclesia</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">{codeLabel}</label>
               <PasswordInput
                 autoFocus
                 value={password}

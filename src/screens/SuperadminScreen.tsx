@@ -56,12 +56,32 @@ import type { LoadedAnalysis } from '../lib/analysis'
 import { generateGroupNames, groupsFingerprint, namingGroupsFromAnalysis } from '../lib/groupNaming'
 import type { NamingGroup } from '../lib/groupNaming'
 import QrCodeModal from '../components/QrCodeModal'
+import {
+  orgLogin, orgWhoami, orgLogout, orgChangePassword,
+  listOrganizationsAdmin, createOrganization, updateOrganization, setOrganizationPassword,
+} from '../lib/organizations'
+import type { OrgInfo, OrganizationAdminRow } from '../lib/organizations'
 
-const PWD_KEY = 'ecclesia_superadmin_pwd'
+// Chantier 135 — le même écran sert au superadmin (#superadmin) et aux
+// associations externes (#asso). En mode association, ce qui est stocké ici
+// est un JETON d'association (org_login), pas un mot de passe : il est passé
+// tel quel dans `p_password` et le serveur n'accepte que la liste blanche du
+// débat simple et du sondage (check_session_admin). Clés distinctes par mode,
+// pour qu'une connexion superadmin ne soit jamais relue comme un jeton.
+// Variable de module et non contexte React : getPwd() est appelé dans des
+// dizaines de gestionnaires hors rendu, et une seule route est montée à la fois.
+type AdminMode = 'superadmin' | 'org'
+let adminMode: AdminMode = 'superadmin'
+const pwdKey     = () => adminMode === 'org' ? 'ecclesia_asso_token' : 'ecclesia_superadmin_pwd'
+const sessionKey = () => adminMode === 'org' ? 'ecclesia_asso_session' : 'ecclesia_superadmin_session'
 
-const getPwd = () => sessionStorage.getItem(PWD_KEY)
-const setPwd = (p: string) => sessionStorage.setItem(PWD_KEY, p)
-const clearPwd = () => sessionStorage.removeItem(PWD_KEY)
+const getPwd = () => sessionStorage.getItem(pwdKey())
+const setPwd = (p: string) => sessionStorage.setItem(pwdKey(), p)
+const clearPwd = () => sessionStorage.removeItem(pwdKey())
+
+/** Association connectée (mode #asso), `null` pour le superadmin. */
+const OrgContext = React.createContext<OrgInfo | null>(null)
+const useOrg = () => React.useContext(OrgContext)
 
 type SessionRow = Session & { tableCount: number; memberCount: number }
 
@@ -113,9 +133,17 @@ function sortSessions(list: SessionRow[]): SessionRow[] {
 
 // ── Main screen ───────────────────────────────────────────────────
 
-export default function SuperadminScreen() {
+export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: AdminMode }) {
+  adminMode = mode
+  const isOrgMode = mode === 'org'
   const [authed, setAuthed]         = useState(false)
   const [pwd, setPwdState]          = useState('')
+  // Chantier 135 — mode association : nom du compte + association connectée.
+  const [orgName, setOrgName]       = useState('')
+  const [org, setOrg]               = useState<OrgInfo | null>(null)
+  const [showPwdChange, setShowPwdChange] = useState(false)
+  // Superadmin : nom de l'association propriétaire, pour le badge des séances.
+  const [orgNames, setOrgNames]     = useState<Record<string, string>>({})
   const [authLoading, setAuthLoad]  = useState(false)
   const [authErr, setAuthErr]       = useState<string | null>(null)
 
@@ -139,6 +167,14 @@ export default function SuperadminScreen() {
     setListErr(null)
     try {
       const pwd = getPwd()!
+      if (adminMode === 'org') {
+        // Rafraîchit le compteur « N/M séances en cours » de l'en-tête.
+        orgWhoami(pwd).then(setOrg).catch(() => {})
+      } else {
+        listOrganizationsAdmin(pwd)
+          .then(rows => setOrgNames(Object.fromEntries(rows.map(o => [o.id, o.name]))))
+          .catch(() => {})
+      }
       const [sessData, countRows, memberRows] =
         await Promise.all([
           listSessionsAdmin(pwd),
@@ -160,12 +196,14 @@ export default function SuperadminScreen() {
       )
       setSessions(sorted)
 
-      const storedSessionId = sessionStorage.getItem('ecclesia_superadmin_session')
+      const storedSessionId = sessionStorage.getItem(sessionKey())
       if (storedSessionId) {
         const found = sorted.find(s => s.id === storedSessionId)
         if (found) setView({ type: 'detail', session: found })
       }
 
+      // Questionnaire post-débat : propre à Ecclesia, absent des séances d'association.
+      if (adminMode === 'org') return
       setAllVotesLoading(true)
       setAllVotesErr(null)
       getThemeStatsAll(pwd)
@@ -184,7 +222,10 @@ export default function SuperadminScreen() {
     const stored = getPwd()
     if (!stored) return
     setAuthLoad(true)
-    verifyPassword(stored)
+    const check = adminMode === 'org'
+      ? orgWhoami(stored).then(info => { setOrg(info) })
+      : verifyPassword(stored)
+    check
       .then(() => { setAuthed(true); loadSessions() })
       .catch(() => { clearPwd(); setAuthErr(null) })
       .finally(() => setAuthLoad(false))
@@ -196,8 +237,15 @@ export default function SuperadminScreen() {
     setAuthErr(null)
     setAuthLoad(true)
     try {
-      await verifyPassword(pwd)
-      setPwd(pwd)
+      if (adminMode === 'org') {
+        const { token, organization } = await orgLogin(orgName, pwd)
+        setPwd(token)
+        setOrg(organization)
+        setPwdState('')
+      } else {
+        await verifyPassword(pwd)
+        setPwd(pwd)
+      }
       setAuthed(true)
       loadSessions()
     } catch (e) {
@@ -218,6 +266,7 @@ export default function SuperadminScreen() {
       setSessions(prev =>
         sortSessions(prev.map(s => s.id === target.id ? { ...s, phase: 'closed' as const } : s))
       )
+      if (adminMode === 'org') loadSessions()  // chantier 135 — libère une place du quota
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -236,6 +285,7 @@ export default function SuperadminScreen() {
     try {
       await deleteSession(password, target.id)
       setSessions(prev => prev.filter(s => s.id !== target.id))
+      if (adminMode === 'org') loadSessions()  // chantier 135 — libère une place du quota
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -322,10 +372,23 @@ export default function SuperadminScreen() {
   function handleCreated(s: Session) {
     setSessions(prev => sortSessions([{ ...s, tableCount: 0, memberCount: 0 }, ...prev]))
     setShowCreate(false)
+    // Recharge : compteur de tables (débat simple = 1 table créée d'office)
+    // et, pour une association, le compteur « N/M séances en cours ».
+    loadSessions()
   }
 
   // ── Auth error (called from child) ────────────────────────────
   function handleAuthError() { clearPwd(); setAuthed(false) }
+
+  async function handleOrgLogout() {
+    const token = getPwd()
+    if (token) await orgLogout(token).catch(() => {})
+    clearPwd()
+    sessionStorage.removeItem(sessionKey())
+    setOrg(null)
+    setAuthed(false)
+    setView({ type: 'list' })
+  }
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -334,13 +397,15 @@ export default function SuperadminScreen() {
     // plus bas. Celle-ci rattrape le reste de l'écran (barre de phase, vues
     // Groupes et Tables) pour qu'une exception n'emporte plus tout le superadmin.
     return (
+      <OrgContext.Provider value={isOrgMode ? org : null}>
       <PanelErrorBoundary label="Détail de la séance">
         <SessionDetail
           session={view.session}
-          onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
+          onBack={() => { sessionStorage.removeItem(sessionKey()); setView({ type: 'list' }); loadSessions() }}
           onAuthError={handleAuthError}
         />
       </PanelErrorBoundary>
+      </OrgContext.Provider>
     )
   }
 
@@ -368,14 +433,26 @@ export default function SuperadminScreen() {
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900 leading-tight">Ecclesia · Superadmin</h1>
-              <p className="text-xs text-gray-400 leading-tight">Accès restreint</p>
+              <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+                {isOrgMode ? 'Ecclesia · Espace association' : 'Ecclesia · Superadmin'}
+              </h1>
+              <p className="text-xs text-gray-400 leading-tight">
+                {isOrgMode ? 'Débats et sondages de votre association' : 'Accès restreint'}
+              </p>
             </div>
           </div>
 
           <form onSubmit={handleAuth} className="p-6 space-y-4">
+            {isOrgMode && (
+              <Field
+                label="Nom de l'association"
+                value={orgName}
+                onChange={setOrgName}
+                placeholder="Tel que communiqué par Ecclesia"
+              />
+            )}
             <Field
-              label="Mot de passe superadmin"
+              label={isOrgMode ? 'Mot de passe' : 'Mot de passe superadmin'}
               value={pwd}
               onChange={setPwdState}
               type="password"
@@ -395,6 +472,7 @@ export default function SuperadminScreen() {
   }
 
   return (
+    <OrgContext.Provider value={isOrgMode ? org : null}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4">
@@ -420,10 +498,27 @@ export default function SuperadminScreen() {
               </svg>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-gray-900 leading-tight truncate">Ecclesia · Superadmin</h1>
-              <p className="text-xs text-gray-400 leading-tight">Gestion des séances</p>
+              <h1 className="text-sm font-semibold text-gray-900 leading-tight truncate">
+                {isOrgMode ? (org?.name ?? 'Espace association') : 'Ecclesia · Superadmin'}
+              </h1>
+              <p className="text-xs text-gray-400 leading-tight">
+                {isOrgMode && org
+                  ? `${org.open_sessions ?? '…'}/${org.max_open_sessions} séance${org.max_open_sessions > 1 ? 's' : ''} en cours`
+                    + (org.expires_at ? ` · compte valable jusqu'au ${new Date(org.expires_at).toLocaleDateString('fr-FR')}` : '')
+                  : 'Gestion des séances'}
+              </p>
             </div>
           </div>
+          {isOrgMode && (
+            <div className="shrink-0 flex flex-col items-end gap-0.5">
+              <button onClick={() => setShowPwdChange(true)} className="text-xs text-gray-500 hover:text-indigo-600">
+                Mot de passe
+              </button>
+              <button onClick={handleOrgLogout} className="text-xs text-gray-500 hover:text-red-600">
+                Déconnexion
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setShowCreate(true)}
             className="shrink-0 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white
@@ -444,7 +539,11 @@ export default function SuperadminScreen() {
           </div>
         )}
 
+        {/* Chantier 135 — comptes des associations externes (superadmin seul). */}
+        {!isOrgMode && <OrganizationsPanel onChanged={loadSessions} />}
+
         {/* ── Votes toutes séances ───────────────────────────── */}
+        {!isOrgMode && (
         <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <button
             onClick={() => setAllVotesOpen(o => !o)}
@@ -496,6 +595,7 @@ export default function SuperadminScreen() {
             </div>
           )}
         </div>
+        )}
 
         {listLoading ? (
           <div className="flex items-center justify-center py-20 text-sm text-gray-400">
@@ -508,7 +608,7 @@ export default function SuperadminScreen() {
               onClick={() => setShowCreate(true)}
               className="text-sm text-indigo-600 hover:underline"
             >
-              Créer la première séance
+              {isOrgMode ? 'Créer votre premier débat ou sondage' : 'Créer la première séance'}
             </button>
           </div>
         ) : (
@@ -519,7 +619,8 @@ export default function SuperadminScreen() {
                 session={s}
                 onClose={() => setToClose(s)}
                 onDelete={() => setToDelete(s)}
-                onClick={() => { sessionStorage.setItem('ecclesia_superadmin_session', s.id); setView({ type: 'detail', session: s }) }}
+                orgName={!isOrgMode && s.organization_id ? (orgNames[s.organization_id] ?? 'Association') : null}
+                onClick={() => { sessionStorage.setItem(sessionKey(), s.id); setView({ type: 'detail', session: s }) }}
                 onResultsPublicChange={next => handleToggleResultsPublic(s, next)}
                 resultsPublicError={resultsPublicErr[s.id]}
                 onOnboardingChange={next => handleToggleOnboardingEnabled(s, next)}
@@ -560,17 +661,24 @@ export default function SuperadminScreen() {
           onCancel={() => setToDelete(null)}
         />
       )}
+
+      {showPwdChange && (
+        <OrgPasswordModal onClose={() => setShowPwdChange(false)} onAuthError={handleAuthError} />
+      )}
     </div>
+    </OrgContext.Provider>
   )
 }
 
 // ── SessionCard ───────────────────────────────────────────────────
 
 function SessionCard({
-  session, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
+  session, orgName, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
   onOnboardingChange, onboardingError, onAssertionsLockedChange, assertionsLockedError,
 }: {
   session: SessionRow
+  /** Chantier 135 — nom de l'association propriétaire (vue superadmin), null sinon. */
+  orgName?: string | null
   onClose(): void
   onDelete(): void
   onClick(): void
@@ -582,6 +690,7 @@ function SessionCard({
   assertionsLockedError?: string
 }) {
   const isClosed = session.phase === 'closed'
+  const isOrgMode = useOrg() !== null
   const [expanded, setExpanded]   = useState(false)
   const [tables, setTables]       = useState<SessionTableRow[] | null>(null)
   const [tablesErr, setTablesErr] = useState<string | null>(null)
@@ -638,6 +747,11 @@ function SessionCard({
                 {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
               </span>
             )}
+            {orgName && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700">
+                Asso : {orgName}
+              </span>
+            )}
           </div>
 
           {/* Meta row */}
@@ -660,7 +774,7 @@ function SessionCard({
           )}
 
           {/* Résultats publics (chantier 46) — uniquement pertinent une fois close */}
-          {isClosed && (
+          {isClosed && !isOrgMode && (
             <div onClick={e => e.stopPropagation()} className="pt-0.5">
               <button
                 onClick={() => onResultsPublicChange(!session.results_public)}
@@ -694,7 +808,9 @@ function SessionCard({
             </div>
           )}
 
-          {/* Onboarding (chantier 71) */}
+          {/* Onboarding (chantier 71) — questions propres à Ecclesia, pas
+              d'onboarding dans une séance d'association (chantier 135). */}
+          {!isOrgMode && (
           <div onClick={e => e.stopPropagation()} className="pt-0.5">
             <button
               onClick={() => onOnboardingChange(!session.onboarding_enabled)}
@@ -726,8 +842,11 @@ function SessionCard({
               <p className="text-xs text-red-600 mt-1">{onboardingError}</p>
             )}
           </div>
+          )}
 
-          {/* Verrou propositions d'assertions (chantier 124) */}
+          {/* Verrou propositions d'assertions (chantier 124) — sans objet dans
+              un débat simple (aucune assertion). */}
+          {sessionTypeOf(session) !== 'debate' && (
           <div onClick={e => e.stopPropagation()} className="pt-0.5">
             <button
               onClick={() => onAssertionsLockedChange(!session.assertions_locked)}
@@ -759,6 +878,7 @@ function SessionCard({
               <p className="text-xs text-red-600 mt-1">{assertionsLockedError}</p>
             )}
           </div>
+          )}
         </div>
 
         {/* Action buttons */}
@@ -772,6 +892,7 @@ function SessionCard({
               Fermer
             </button>
           )}
+          {(!isOrgMode || session.phase === 'draft') && (
           <button
             onClick={onDelete}
             title="Supprimer la séance"
@@ -786,6 +907,7 @@ function SessionCard({
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
             </svg>
           </button>
+          )}
         </div>
       </div>
 
@@ -838,6 +960,300 @@ function SessionCard({
   )
 }
 
+// ── Chantier 135 — comptes des associations (superadmin) ─────────
+
+/** `datetime-local` ↔ ISO, jour entier : une expiration se règle à la date près. */
+function dateInputValue(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : ''
+}
+function endOfDayIso(date: string): string | null {
+  return date ? new Date(`${date}T23:59:59`).toISOString() : null
+}
+
+function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
+  const [open, setOpen]       = useState(false)
+  const [rows, setRows]       = useState<OrganizationAdminRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [err, setErr]         = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<OrganizationAdminRow | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErr(null)
+    try {
+      setRows(await listOrganizationsAdmin(getPwd()!))
+    } catch (e) {
+      setErr(extractErr(e))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { if (open) load() }, [open, load])
+
+  function done() {
+    setCreating(false)
+    setEditing(null)
+    load()
+    onChanged()
+  }
+
+  return (
+    <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          Associations
+          {rows.length > 0 && (
+            <span className="ml-2 font-normal normal-case text-gray-400">({rows.length})</span>
+          )}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`}
+          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+          <p className="text-xs text-gray-500">
+            Comptes des associations externes : elles se connectent sur{' '}
+            <span className="font-mono">#asso</span> avec leur nom et leur mot de passe, et n'ont accès
+            qu'au débat simple et au sondage, sur leurs propres séances.
+          </p>
+          {err && <p className="text-xs text-red-600">{err}</p>}
+          {loading && rows.length === 0 ? (
+            <p className="text-sm text-gray-400">Chargement…</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-gray-400">Aucune association pour l'instant.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {rows.map(o => {
+                const expired = o.expires_at !== null && new Date(o.expires_at) <= new Date()
+                return (
+                  <div key={o.id} className="py-2 flex items-center gap-3 text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900 truncate">{o.name}</span>
+                        {!o.active && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Désactivée</span>
+                        )}
+                        {expired && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Expirée</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {o.open_sessions}/{o.max_open_sessions} en cours · {o.total_sessions} au total
+                        {o.expires_at && ` · expire le ${new Date(o.expires_at).toLocaleDateString('fr-FR')}`}
+                        {o.note && ` · ${o.note}`}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setEditing(o)}
+                      className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:border-indigo-200 hover:text-indigo-600"
+                    >
+                      Modifier
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <button
+            onClick={() => setCreating(true)}
+            className="text-sm text-indigo-600 hover:underline"
+          >
+            + Nouvelle association
+          </button>
+        </div>
+      )}
+      {(creating || editing) && (
+        <OrganizationModal
+          org={editing}
+          onClose={() => { setCreating(false); setEditing(null) }}
+          onDone={done}
+        />
+      )}
+    </div>
+  )
+}
+
+function OrganizationModal({
+  org, onClose, onDone,
+}: {
+  org: OrganizationAdminRow | null
+  onClose(): void
+  onDone(): void
+}) {
+  const [name, setName]         = useState(org?.name ?? '')
+  const [password, setPassword] = useState('')
+  const [expires, setExpires]   = useState(dateInputValue(org?.expires_at ?? null))
+  const [maxOpen, setMaxOpen]   = useState(String(org?.max_open_sessions ?? 3))
+  const [note, setNote]         = useState(org?.note ?? '')
+  const [active, setActive]     = useState(org?.active ?? true)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    const max = Number.parseInt(maxOpen, 10)
+    if (!Number.isFinite(max) || max < 0) { setError('Nombre de séances invalide'); return }
+    setLoading(true)
+    const pwd = getPwd()!
+    try {
+      if (org) {
+        await updateOrganization(pwd, {
+          id: org.id, name, active, expires_at: endOfDayIso(expires), max_open_sessions: max, note: note || null,
+        })
+        // Mot de passe laissé vide = inchangé.
+        if (password) await setOrganizationPassword(pwd, org.id, password)
+      } else {
+        await createOrganization(pwd, {
+          name, orgPassword: password, expiresAt: endOfDayIso(expires), maxOpenSessions: max, note: note || null,
+        })
+      }
+      onDone()
+    } catch (e) {
+      setError(extractErr(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <h2 className="text-base font-semibold text-gray-900">
+            {org ? `Modifier « ${org.name} »` : 'Nouvelle association'}
+          </h2>
+          <Field label="Nom de l'association (sert d'identifiant de connexion)" value={name} onChange={setName} placeholder="Les Amis du Débat" />
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              {org ? 'Nouveau mot de passe' : 'Mot de passe'}
+              <span className="text-gray-400 font-normal">
+                {org ? ' (laisser vide pour ne pas le changer)' : ' (8 caractères minimum)'}
+              </span>
+            </label>
+            {/* En modification, vide = mot de passe inchangé : champ facultatif. */}
+            <PasswordInput value={password} onChange={setPassword} placeholder="••••••••" required={!org} />
+            {org && password && (
+              <p className="mt-1 text-[11px] text-amber-600">Les connexions ouvertes de l'association seront fermées.</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Séances en cours max.</label>
+              <input
+                type="number" min={0} value={maxOpen} onChange={e => setMaxOpen(e.target.value)}
+                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Expire le <span className="text-gray-400 font-normal">(facultatif)</span></label>
+              <input
+                type="date" value={expires} onChange={e => setExpires(e.target.value)}
+                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Note interne <span className="text-gray-400 font-normal">(facultatif)</span></label>
+            <input
+              value={note} onChange={e => setNote(e.target.value)} placeholder="Contact, contexte…"
+              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+            />
+          </div>
+          {org && (
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              Compte actif (décocher coupe l'accès immédiatement, sans rien supprimer)
+            </label>
+          )}
+          {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
+              Annuler
+            </button>
+            <SubmitBtn loading={loading} label={org ? 'Enregistrer' : 'Créer le compte'} className="flex-1" />
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+/** Chantier 135 — l'association change elle-même son mot de passe. */
+function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthError(): void }) {
+  const [oldPwd, setOldPwd]   = useState('')
+  const [newPwd, setNewPwd]   = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [done, setDone]       = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (newPwd !== confirm) { setError('Les deux nouveaux mots de passe ne correspondent pas'); return }
+    setLoading(true)
+    try {
+      await orgChangePassword(getPwd()!, oldPwd, newPwd)
+      setDone(true)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('session expirée')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        {done ? (
+          <div className="p-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-900">Mot de passe changé</h2>
+            <p className="text-sm text-gray-600">
+              Pensez à le communiquer à vos modérateurs : c'est aussi avec lui qu'ils prennent l'animation d'une table.
+            </p>
+            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">
+              OK
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-900">Changer le mot de passe</h2>
+            <Field label="Mot de passe actuel" value={oldPwd} onChange={setOldPwd} type="password" />
+            <Field label="Nouveau mot de passe (8 caractères minimum)" value={newPwd} onChange={setNewPwd} type="password" />
+            <Field label="Confirmer le nouveau mot de passe" value={confirm} onChange={setConfirm} type="password" />
+            <p className="text-xs text-gray-500">
+              Le mot de passe sert aussi à vos modérateurs pour prendre l'animation d'une table.
+            </p>
+            {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose}
+                className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
+                Annuler
+              </button>
+              <SubmitBtn loading={loading} label="Changer" className="flex-1" />
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── CreateModal ───────────────────────────────────────────────────
 
 function CreateModal({
@@ -856,8 +1272,10 @@ function CreateModal({
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [onboardingEnabled, setOnboardingEnabled] = useState(true)
+  // Chantier 135 — une association n'a que le débat simple et le sondage.
+  const isOrgMode = useOrg() !== null
   // Chantier 134 — mode de séance, choisi une fois pour toutes à la création.
-  const [sessionType, setSessionType]   = useState<SessionType>('full')
+  const [sessionType, setSessionType]   = useState<SessionType>(isOrgMode ? 'debate' : 'full')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -922,12 +1340,12 @@ function CreateModal({
               séquence de phases en dépend (garde de set_session_phase). */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Type de séance</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {([
                 { id: 'full',   icon: '🏛️', hint: 'Vote, allocation, débat, résultats' },
                 { id: 'debate', icon: '🗣️', hint: 'Une table modérée, sans vote' },
                 { id: 'poll',   icon: '📊', hint: 'Vote à distance et camps, sans débat' },
-              ] as { id: SessionType; icon: string; hint: string }[]).map(opt => (
+              ] as { id: SessionType; icon: string; hint: string }[]).filter(opt => !isOrgMode || opt.id !== 'full').map(opt => (
                 <button
                   key={opt.id}
                   type="button"
@@ -984,10 +1402,12 @@ function CreateModal({
               <DocFileField label="Fiche information" placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
               <DocFileField label="Résumé" placeholder="https://…" value={docSummaryUrl} onChange={setDocSummaryUrl} />
             </div>
+            {!isOrgMode && (
             <p className="mt-3 text-xs text-gray-400">
               Le document de sources collaboratives est disponible automatiquement pour chaque séance
               avec un code de rejoindre.
             </p>
+            )}
           </div>
 
           {sessionType !== 'debate' && (
@@ -997,8 +1417,8 @@ function CreateModal({
             </p>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['closed', 'open', 'ai'] as const).map(val => (
+              <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {(isOrgMode ? (['closed', 'open'] as const) : (['closed', 'open', 'ai'] as const)).map(val => (
                   <button
                     key={val}
                     type="button"
@@ -1033,8 +1453,9 @@ function CreateModal({
 
           {sessionType === 'debate' && (
             <p className="pt-3 border-t border-gray-100 text-xs text-gray-500">
-              Une table est créée automatiquement. Le modérateur la prend avec le Code Ecclesia
-              en rejoignant, ou tu le désignes depuis l'onglet Tables ; tu peux aussi y ajouter d'autres tables.
+              {isOrgMode
+                ? "Une table est créée automatiquement. Le modérateur la prend en rejoignant avec le mot de passe de votre association, ou vous le désignez depuis l'onglet Tables."
+                : "Une table est créée automatiquement. Le modérateur la prend avec le Code Ecclesia en rejoignant, ou tu le désignes depuis l'onglet Tables ; tu peux aussi y ajouter d'autres tables."}
             </p>
           )}
 
@@ -1154,6 +1575,19 @@ const TABS_BY_TYPE: Record<SessionType, AdminTab[]> = {
   poll:   ['live', 'prep', 'analysis'],
 }
 
+// Chantier 135 — association : l'onglet Analyse (questionnaire Ecclesia,
+// exports, comparaison avant/après débat) n'a pas d'objet ; l'analyse des
+// camps d'un sondage vit déjà dans « En direct ».
+const ORG_TABS_BY_TYPE: Record<SessionType, AdminTab[]> = {
+  full:   [],
+  debate: ['tables', 'prep'],
+  poll:   ['live', 'prep'],
+}
+
+function allowedTabs(type: SessionType, isOrg: boolean): AdminTab[] {
+  return (isOrg ? ORG_TABS_BY_TYPE : TABS_BY_TYPE)[type]
+}
+
 function defaultTab(phase: Session['phase'], type: SessionType = 'full'): AdminTab {
   if (phase === 'draft') return 'prep'
   if (type === 'debate') return phase === 'closed' ? 'analysis' : 'tables'
@@ -1251,12 +1685,15 @@ function SessionDetail({
 
   const [docsOpen,        setDocsOpen]        = useState(false)
 
+  // Chantier 135 — association connectée (#asso), null pour le superadmin.
+  const isOrg = useOrg() !== null
   const adminTabKey = `ecclesia_admin_tab_${session.id}`
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const stored = sessionStorage.getItem(`ecclesia_admin_tab_${session.id}`)
-    const allowed = TABS_BY_TYPE[sessionTypeOf(session)]
+    const allowed = allowedTabs(sessionTypeOf(session), isOrg)
     if (stored && (allowed as string[]).includes(stored)) return stored as AdminTab
-    return defaultTab(session.phase, sessionTypeOf(session))
+    const def = defaultTab(session.phase, sessionTypeOf(session))
+    return allowed.includes(def) ? def : allowed[0]
   })
   const [postSessionOpen, setPostSessionOpen] = useState(false)
   const [synthOpen,       setSynthOpen]       = useState(false)
@@ -1353,7 +1790,9 @@ function SessionDetail({
       // (choix du superadmin dans DebateExitModal) doit forcer le
       // questionnaire tout autant, sans quoi le raccourci le ferait
       // silencieusement sauter.
-      if (currentSession.phase === 'debating' && (targetPhase === 'post_voting' || targetPhase === 'closed')) {
+      // Chantier 135 — pas de questionnaire de fin dans une séance d'association
+      // (consigne de Jules : partage de technologie, rien de propre à Ecclesia).
+      if (!isOrg && currentSession.phase === 'debating' && (targetPhase === 'post_voting' || targetPhase === 'closed')) {
         await forceSessionQuestionnaire(password, currentSession.id)
         setIsQForced(true)
       }
@@ -1780,8 +2219,9 @@ function SessionDetail({
       // Chantier 19 — attributs des membres pour le recalcul des seuils.
       // Non bloquant : si la migration n'est pas appliquée, le tableau de
       // bord des seuils est simplement masqué.
+      // Chantier 135 — pas d'allocation pour une association (RPC hors liste blanche).
       try {
-        setAllocInputs(await loadAllocationInputs(getPwd()!, session.id))
+        setAllocInputs(adminMode === 'org' ? null : await loadAllocationInputs(getPwd()!, session.id))
       } catch {
         setAllocInputs(null)
       }
@@ -2090,6 +2530,7 @@ function SessionDetail({
   // d'où l'inclusion de `closed`, seule voie de réparation d'une séance déjà
   // terminée (l'écran de résultats participant en dépend).
   useEffect(() => {
+    if (isOrg) return  // chantier 135 — nommage IA des camps réservé à Ecclesia
     const p = currentSession.phase
     if (p !== 'allocating' && p !== 'debating' && p !== 'post_voting' && p !== 'closed') return
     let cancelled = false
@@ -2103,16 +2544,17 @@ function SessionDetail({
       } catch { /* silencieux — les camps restent sans nom */ }
     })()
     return () => { cancelled = true }
-  }, [currentSession.phase, currentSession.id, runNaming])
+  }, [currentSession.phase, currentSession.id, runNaming, isOrg])
 
   // E3 — Nommage systématique après une analyse en phase vote/pré-vote.
   // Déclenché par AnalysisPanel après un calcul manuel.
   // Retourne la promesse : `AnalysisPanel.handleAnalyze` l'attend pour garder le
   // bouton verrouillé pendant les appels Gemini (chantier 28).
   const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis): Promise<void> => {
+    if (isOrg) return Promise.resolve()  // chantier 135 — camps non nommés par IA
     if (!['voting', 'pre_voting'].includes(currentSession.phase)) return Promise.resolve()
     return runNaming(namingGroupsFromAnalysis(analysis.members))
-  }, [currentSession.phase, runNaming])
+  }, [currentSession.phase, runNaming, isOrg])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
     const password = getPwd()!
@@ -2282,6 +2724,7 @@ function SessionDetail({
   // vue à jour, et qui la tenait déjà. Rien à compenser.
 
   const loadResponses = useCallback(async () => {
+    if (isOrg) return  // chantier 135 — pas de questionnaire côté association
     const password = getPwd()!
     setResponsesLoading(true)
     try {
@@ -2292,11 +2735,12 @@ function SessionDetail({
     } finally {
       setResponsesLoading(false)
     }
-  }, [session.id])
+  }, [session.id, isOrg])
 
   useEffect(() => { loadResponses() }, [loadResponses])
 
   const loadSources = useCallback(async () => {
+    if (isOrg) return  // chantier 135 — pas de document collaboratif côté association
     setSourcesLoading(true)
     try {
       const rows = await listSessionSources(session.id)
@@ -2306,7 +2750,7 @@ function SessionDetail({
     } finally {
       setSourcesLoading(false)
     }
-  }, [session.id])
+  }, [session.id, isOrg])
 
   useEffect(() => { loadSources() }, [loadSources])
 
@@ -2640,7 +3084,7 @@ function SessionDetail({
             { id: 'tables',   label: '🪑 Tables' },
             { id: 'prep',     label: '⚙️ Préparation' },
             { id: 'analysis', label: '📊 Analyse' },
-          ] as { id: AdminTab; label: string }[]).filter(tab => TABS_BY_TYPE[sessionType].includes(tab.id)).map(tab => (
+          ] as { id: AdminTab; label: string }[]).filter(tab => allowedTabs(sessionType, isOrg).includes(tab.id)).map(tab => (
             <button
               key={tab.id}
               onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
@@ -2682,6 +3126,7 @@ function SessionDetail({
                 )}
 
                 <ModerationPolicyEditor
+                  allowAi={!isOrg}
                   currentPolicy={currentSession.moderation_policy}
                   onSave={async (policy) => {
                     const pwd = getPwd()!
@@ -2727,7 +3172,7 @@ function SessionDetail({
                   </SectionAccordion>
                 )}
 
-                {showVotingSections && (
+                {showVotingSections && !isOrg && (
                   <PanelErrorBoundary label="Modération IA">
                     <LLMModerationPanel session={currentSession} password={getPwd()!} />
                   </PanelErrorBoundary>
@@ -2833,7 +3278,9 @@ function SessionDetail({
                       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
                       <div className="flex items-center gap-2">
                         {/* Chantier 95 — création d'une table de rattrapage, pendant
-                            l'allocation comme pendant le débat. */}
+                            l'allocation comme pendant le débat. Chantier 135 — une
+                            association n'a qu'une table (consigne de Jules). */}
+                        {!isOrg && (<>
                         <button
                           onClick={() => handleCreateGroupTable(false)}
                           disabled={creatingTable}
@@ -2854,6 +3301,7 @@ function SessionDetail({
                         >
                           {creatingTable ? '…' : '+ Sans modérateur'}
                         </button>
+                        </>)}
                         {groups.length > 0 && (
                           <button
                             onClick={() => setRosterOpen(true)}
@@ -3164,7 +3612,7 @@ function SessionDetail({
                                   {/* Chantier 95 — seule porte de suppression restante
                                       depuis le retrait des accordéons, volontairement
                                       limitée aux tables vides. */}
-                                  {g.members.length === 0 && g.table_id && (
+                                  {!isOrg && g.members.length === 0 && g.table_id && (
                                     <button
                                       onClick={() => {
                                         const row = attachedTables.find(t => t.id === g.table_id)
@@ -3176,6 +3624,7 @@ function SessionDetail({
                                       Supprimer
                                     </button>
                                   )}
+                                  {!isOrg && (
                                   <button
                                     onClick={() => handleAssignGroup(g.table_number, null)}
                                     disabled={assigningGroup === g.table_number}
@@ -3185,8 +3634,9 @@ function SessionDetail({
                                   >
                                     {assigningGroup === g.table_number ? '…' : 'Détacher'}
                                   </button>
+                                  )}
                                 </div>
-                              ) : (
+                              ) : isOrg ? null : (
                                 <div className="flex items-center gap-2">
                                   <select
                                     value={selectedTableId[g.table_number] ?? ''}
@@ -3476,7 +3926,7 @@ function SessionDetail({
                           {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
                             <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
                           )}
-                          {session.join_code && (
+                          {session.join_code && !isOrg && (
                             <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
                               <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
                               <a
@@ -3898,7 +4348,10 @@ function SessionDetail({
 function ModerationPolicyEditor({
   currentPolicy,
   onSave,
+  allowAi = true,
 }: {
+  /** Chantier 135 — false pour une association (modération IA réservée à Ecclesia). */
+  allowAi?: boolean
   currentPolicy: ModerationPolicy
   onSave(policy: ModerationPolicy): Promise<void>
 }) {
@@ -3925,8 +4378,8 @@ function ModerationPolicyEditor({
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
         Politique de modération
       </p>
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {(['closed', 'open', 'ai'] as const).map(val => (
+      <div className={`grid gap-2 mb-3 ${allowAi ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {(allowAi ? (['closed', 'open', 'ai'] as const) : (['closed', 'open'] as const)).map(val => (
           <button
             key={val}
             type="button"

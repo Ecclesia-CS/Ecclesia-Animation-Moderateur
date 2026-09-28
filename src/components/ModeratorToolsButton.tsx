@@ -11,6 +11,7 @@ import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
+import { useSessionOrganizationName } from '../lib/organizations'
 
 interface Props {
   className?: string
@@ -52,6 +53,9 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
   const [codesOpen,     setCodesOpen]     = useState(false)
+  // Chantier 135 — débat d'une association : ni camps, ni assertions, ni
+  // questionnaire Ecclesia.
+  const orgName = useSessionOrganizationName(table.session_id)
 
   const [addPersonName,    setAddPersonName]    = useState('')
   const [addPersonLoading, setAddPersonLoading] = useState(false)
@@ -169,7 +173,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             </div>
 
             {/* ── Camps & assertions — vue d'ensemble de l'idéologie de la table, en premier ── */}
-            {table.session_id && (
+            {table.session_id && !orgName && (
               <>
                 <p className={sectionLabelClass}>Camps &amp; assertions</p>
 
@@ -236,6 +240,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Historique
             </button>
 
+            {!orgName && (
             <button
               onClick={() => {
                 setPanelOpen(false)
@@ -254,6 +259,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 ? 'Annuler forçage questionnaire'
                 : 'Forcer questionnaire'}
             </button>
+            )}
 
             <div className={dividerClass} />
 
@@ -268,6 +274,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Mes notes
             </button>
 
+            {!orgName && (
             <button
               onClick={() => { if (!questionnaireDone) { setPanelOpen(false); setQuestionnaireOpen(true) } }}
               disabled={questionnaireDone}
@@ -282,6 +289,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Questionnaire post-débat
               {questionnaireDone && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
             </button>
+            )}
 
             <div className="pb-2" />
           </div>
