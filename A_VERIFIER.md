@@ -40,7 +40,7 @@ Les deux corrections déverrouillent la vérification navigateur sur dev pour **
 4. ✅ **Correctif du formulaire** : ajouter, modifier, puis « + Ajouter » → titre, lien et notes vides.
 Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rapport.
 
-**Non vérifié** : le bouton « Documentation » du **modérateur** (`ModeratorView`) — même lien que chez le participant, identité lue en base de la même façon.
+5. ✅ **Modérateur** (`ModeratorView`, bouton « Documentation ») : séance jetable `T142MOD` ; « Max Modo » entré par code de table, puis passé modérateur en base (`is_moderator` + `tables.active_moderator_member_id`, ce que fait `assign_moderator_to_table`) → vue modérateur → Documentation → « Sources collaboratives » : reconnu directement ; source ajoutée rangée sous « Table T142M1 », modifiable. Séance supprimée ensuite.
 
 **Reste à vérifier** : **sur prod**, après application de la migration, refaire le parcours (base différente).
 
