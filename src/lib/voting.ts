@@ -49,6 +49,42 @@ function unwrapIdentity<T>(data: unknown): T {
   return data as T
 }
 
+/**
+ * Chantier 140 — `join_table`, `switch_table` et `claim_table_as_moderator`
+ * répondent `{ reconnect_required, session_id, pseudo }` SANS RIEN ÉCRIRE
+ * quand le nom tapé appartient à un autre membre de la séance. Avant ce
+ * chantier, seul `App.tsx` lisait ce drapeau : `JoinTableForm` l'ignorait et
+ * faisait entrer l'utilisateur sous le nom d'un autre. Toute porte passe
+ * désormais par `assertSeated`, qui lève cette erreur typée — la porte ouvre
+ * alors l'accordéon « J'ai déjà un code de rappel ».
+ */
+export class PseudoTakenError extends Error {
+  constructor(public readonly sessionId: string, public readonly pseudo: string) {
+    super(PSEUDO_TAKEN_MESSAGE)
+    this.name = 'PseudoTakenError'
+  }
+}
+
+export function assertSeated(data: unknown): TableResult {
+  const r = data as TableResult | null
+  if (r?.reconnect_required) {
+    if (!r.session_id) throw new Error(PSEUDO_TAKEN_MESSAGE)
+    throw new PseudoTakenError(r.session_id, r.pseudo ?? '')
+  }
+  if (!r?.id || !r.participant_id) throw new Error('Réponse inattendue du serveur — réessaie.')
+  return r
+}
+
+/** Chantier 140 — `join_table` + `assertSeated` (voir `PseudoTakenError`). */
+export async function joinTable(joinCode: string, pseudo: string): Promise<TableResult> {
+  const { data, error } = await supabase.rpc('join_table', {
+    p_join_code: joinCode,
+    p_pseudo: pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return assertSeated(data)
+}
+
 export async function registerSessionMember(
   sessionId: string,
   pseudo: string
@@ -735,7 +771,7 @@ export async function claimTableAsModerator(
     p_session_id: sessionId ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as TableResult
+  return assertSeated(data)
 }
 
 /**

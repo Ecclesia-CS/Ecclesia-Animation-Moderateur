@@ -4,12 +4,15 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
+Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du 142).
 
 ## Chantiers en cours
 
-### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas (diagnostic d'abord)
-**Branche** : `claude/chantier-139-2e7941` · **Depuis** : 2026-09-28 · **Fichiers touchés** : `SuperadminScreen.tsx`, `TableContext.tsx`, `supabase/migrations/20260928_chantier139_designation_remplace_animateur.sql`. **Livré le 2026-09-28, en attente de merge dans `dev`** — **retirer cette entrée au merge**. Détail : `docs/chantiers.md`, recette : `A_VERIFIER.md` § Chantier 139.
+_(aucun actuellement)_
+
+> **Le 2026-09-28, le chantier 139 est mergé dans `dev`** (désigner un modérateur sur une table déjà modérée le remplace, avec confirmation ; `TableContext` réconcilie le modérateur physique à la baisse) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 139 ; entrée « en cours » retirée au merge. Sa migration (`20260928_chantier139_designation_remplace_animateur`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (elle utilise `check_session_admin`).
+
+> **Le 2026-09-28, le chantier 140 est mergé dans `dev`** (portes d'entrée : un nom déjà pris n'entre jamais sans code, ligne « J'ai déjà un code de rappel » partout ; 140b : noms comparés sans tenir compte des majuscules) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 140. Ses **deux** migrations (`20260928_chantier140_portes_entree_identite`, `20260928_chantier140b_pseudos_insensibles_casse`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (et dans cet ordre). La 140b renomme un doublon de nom sur prod (séance close du 03/06).
 
 > **Le 2026-09-28, le chantier 138 est mergé dans `dev`** (vue « Tables (consultation) » du superadmin, lecture seule, toutes phases, remplace l'accordéon « Historique des tables » du 130) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 138. Vérifié au navigateur sur dev. Aucune migration. Le chantier 139 peut maintenant partir : il touche le même onglet Groupes.
 
@@ -321,6 +324,8 @@ Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (lis
 
 #### 140 — Portes d'entrée : le code est toujours accessible, et un nom déjà pris ouvre l'accordéon — **Opus demandé par Jules**
 
+> ✅ **FAIT et mergé dans `dev` le 2026-09-28** (branche `claude/lancer-140-b126c2`) — tableau des écarts et détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 140. Cause du symptôme 1 : `join_table` (et quatre RPC sœurs) réécrivait le siège `participants` du titulaire avant tout contrôle. Migration appliquée sur dev uniquement ; sur prod, après celles du 135. Casse : traitée dans la foulée (140b, décision de Jules).
+
 **Consigne de Jules** : « J'ai réussi à rentrer dans un débat, dans un nom qui n'était pas le mien, sans qu'on me demande le numéro. De plus, j'ai essayé à un moment de rentrer, on m'a dit que le nom était déjà pris, mais on ne m'a pas proposé de mettre le code secret... Est-ce qu'on peut faire un check sur ces fonctionnalités, et les mettre sur toutes les entrées de notre appli ? Discussion à faire en Opus. » Précisé en conversation : « pendant le débat je crois bien [que c'est arrivé]. J'aimerai qu'on rende toujours possible de rentrer avec le code (juste une ligne sur laquelle cliquer, comme quand on veut changer un mdp sur internet), et que lorsqu'on tente de rentrer, mais que le nom existe déjà, on ouvre cet accordéon automatiquement. Oui, c'est ça pour toutes les portes, y compris modo. Quand on rentre en modo, pas besoin de se déclarer modo, et si on se redéclare, c'est idempotent. C'est un fort travail à faire ce chantier, pt en opus. »
 
 **Règle cible (validée par Jules)**, à appliquer à **toutes** les portes d'entrée, sondage et débat simple compris :
@@ -349,6 +354,30 @@ Périmètre de fichiers : large, à définir après l'audit — au minimum `Entr
 - Une vérification faite sur dev ne vaut pas pour prod (bases distinctes) — le noter dans `A_VERIFIER.md`.
 
 Périmètre de fichiers : `A_VERIFIER.md` principalement ; aucun changement de `src/` attendu (tout bug trouvé devient un chantier à part, à proposer à Jules plutôt qu'à corriger en passant).
+
+#### 142 — Document collaboratif : on récupère les sources d'un autre en tapant son nom, sans code — **Opus demandé par Jules**
+
+**Origine** : repéré pendant le chantier 140 (2026-09-28), laissé hors périmètre. **Consigne de Jules** : « tu peux écrire cela en tant qu'un nouveau chantier 142 […] Je la lancerai en Opus aussi. »
+
+**Constat (lecture de la définition en base dev, non reproduit à l'écran)** : la porte `#collab/<join_code>` (`CollabDocScreen`) identifie l'auteur des sources par un pseudo libre, via `register_collab_pseudo(p_session_id, p_pseudo)` (`src/lib/sessions.ts`, ~l. 254) :
+```sql
+INSERT INTO collab_session_users (session_id, pseudo, user_id) VALUES (…, p_pseudo, auth.uid())
+ON CONFLICT (session_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id;
+UPDATE session_sources SET user_id = auth.uid() WHERE session_id = p_session_id AND pseudo = p_pseudo;
+```
+Même famille de faille que celle corrigée au 140 dans `join_table` : **taper le nom de quelqu'un suffit à devenir propriétaire de toutes ses sources** (et, selon les policies de `session_sources`, à pouvoir les modifier ou les supprimer). Aucun code demandé, comparaison sensible à la casse (contrairement aux membres depuis le 140b).
+
+**À faire, dans l'ordre** :
+1. **Diagnostic d'abord** : lire `CollabDocScreen`, les policies RLS de `session_sources` et de `collab_session_users`, `list_session_sources`, et les autres RPC d'écriture des sources (`pg_get_functiondef` sur dev **et** prod). Établir ce qu'un usurpateur peut réellement faire (lire ? modifier ? supprimer ?), et si un visiteur non inscrit à la séance peut ouvrir le document.
+2. **Décider avec Jules** avant de coder, en proposant plutôt l'option simple : rattacher l'identité du document collaboratif à `session_members` (le pseudo de l'appareil déjà inscrit, et sinon nom + code de rappel via `confirm_attendance`, comme toutes les portes depuis le 140), plutôt qu'une identité parallèle sans preuve. Question ouverte : que faire d'un visiteur qui n'est pas membre de la séance (lecture seule ? inscription ?).
+3. Appliquer les règles du 140 : ligne « J'ai déjà un code de rappel » (`ReclaimCodeAccordion`), ouverte d'elle-même sur un nom pris ; jamais d'accès aux sources d'un autre sans code ; comparaison des noms via `pseudo_key()` (140b).
+4. Ne pas casser l'existant : les sources déjà écrites (colonne `session_sources.pseudo`) doivent rester attribuées ; `rename_session_member` propage déjà le pseudo vers `session_sources`.
+
+**Garde-fous** : vérifier dans `docs/reference-fonctions-sql.md` ce qui existe déjà (`resolve_table_entry_pseudo`, `pseudo_key`, `confirm_attendance`) ; comparer à `pg_get_functiondef` avant toute réécriture ; migration sur dev d'abord, prod au merge vers `main` ; canal Realtime `collab:<session_id>` ouvert à tout authentifié (`CLAUDE.md` § Canaux Realtime privés) — le prendre en compte dans le diagnostic.
+
+**Types de séance** : le document collaboratif existe-t-il en `debate` et `poll` ? À vérifier en démarrant.
+
+Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx`, `lib/sessions.ts`, RPC `register_collab_pseudo` et celles d'écriture des sources, policies de `session_sources`/`collab_session_users`, nouvelle migration.
 
 ---
 

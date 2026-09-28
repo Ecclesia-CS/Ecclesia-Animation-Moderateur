@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { tableStore } from '../../lib/storage'
 import { extractErr } from '../../lib/utils'
-import type { TableResult } from '../../lib/supabase'
+import { assertSeated } from '../../lib/voting'
 
 /**
  * Chantier 115 — remplace le mécanisme de rattachement par binôme en débat
@@ -31,7 +31,7 @@ export default function ChangeTableModal({
         p_pseudo: pseudo,
       })
       if (err) throw err
-      const r = data as TableResult
+      const r = assertSeated(data)
       tableStore.set({
         tableId: r.id,
         participantId: r.participant_id,

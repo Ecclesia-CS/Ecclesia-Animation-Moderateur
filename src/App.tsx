@@ -78,7 +78,9 @@ export default function App() {
     // physique (tables.created_by), qui n'a aucun chemin de reprise
     // automatique après renouvellement : voir le bouton « Je suis le
     // modérateur de cette table » (ParticipantToolsButton), seul filet.
-    tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo })
+    // Chantier 140 — `r.pseudo` : pseudo du membre de séance (peut différer
+    // du pseudo mémorisé, ex. après un renommage — chantier 93).
+    tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo: r.pseudo ?? pseudo })
     setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
   }
 
