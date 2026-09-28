@@ -1141,6 +1141,12 @@ interface GroupRow {
   join_code: string | null
   /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
   moderated: boolean
+  /**
+   * Chantier 138 — uniquement pour une table sans affectation (vue « Tables »
+   * en consultation) : nombre de personnes assises (`participants`), qui ne
+   * passent pas par `table_assignments`.
+   */
+  seated?: number
 }
 
 type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
@@ -1995,6 +2001,7 @@ function SessionDetail({
         table_id: t.id,
         join_code: t.join_code,
         moderated: t.leaderless === false,
+        seated: t.participant_count,
       }))
     return [...groups, ...extra]
   }, [groups, attachedTables, currentSession.phase])
@@ -4264,7 +4271,11 @@ function TableOverviewCard({
           <span className="text-sm font-bold text-indigo-700">
             {g.table_number > 0 ? `Table N°${g.table_number}` : 'Table sans numéro'}
           </span>
-          <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+          <span className="text-xs text-gray-400">
+            {g.seated != null && g.members.length === 0
+              ? `(${g.seated} personne${g.seated !== 1 ? 's' : ''} à table)`
+              : `(${g.members.length} membre${g.members.length !== 1 ? 's' : ''})`}
+          </span>
           {withProfile.length > 0 && (
             <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
               {activeCount} actif{activeCount !== 1 ? 's' : ''}
@@ -4337,7 +4348,9 @@ function TableOverviewCard({
               </span>
             )
           })}
-          {g.members.length === 0 && <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>}
+          {g.members.length === 0 && (g.seated ?? 0) === 0 && (
+            <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>
+          )}
         </div>
       </div>
       {g.table_id && (
