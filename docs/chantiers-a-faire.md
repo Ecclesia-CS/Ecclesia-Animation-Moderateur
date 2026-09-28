@@ -4,7 +4,7 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
+Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du 142).
 
 ## Chantiers en cours
 
@@ -352,6 +352,30 @@ Périmètre de fichiers : large, à définir après l'audit — au minimum `Entr
 - Une vérification faite sur dev ne vaut pas pour prod (bases distinctes) — le noter dans `A_VERIFIER.md`.
 
 Périmètre de fichiers : `A_VERIFIER.md` principalement ; aucun changement de `src/` attendu (tout bug trouvé devient un chantier à part, à proposer à Jules plutôt qu'à corriger en passant).
+
+#### 142 — Document collaboratif : on récupère les sources d'un autre en tapant son nom, sans code — **Opus demandé par Jules**
+
+**Origine** : repéré pendant le chantier 140 (2026-09-28), laissé hors périmètre. **Consigne de Jules** : « tu peux écrire cela en tant qu'un nouveau chantier 142 […] Je la lancerai en Opus aussi. »
+
+**Constat (lecture de la définition en base dev, non reproduit à l'écran)** : la porte `#collab/<join_code>` (`CollabDocScreen`) identifie l'auteur des sources par un pseudo libre, via `register_collab_pseudo(p_session_id, p_pseudo)` (`src/lib/sessions.ts`, ~l. 254) :
+```sql
+INSERT INTO collab_session_users (session_id, pseudo, user_id) VALUES (…, p_pseudo, auth.uid())
+ON CONFLICT (session_id, pseudo) DO UPDATE SET user_id = EXCLUDED.user_id;
+UPDATE session_sources SET user_id = auth.uid() WHERE session_id = p_session_id AND pseudo = p_pseudo;
+```
+Même famille de faille que celle corrigée au 140 dans `join_table` : **taper le nom de quelqu'un suffit à devenir propriétaire de toutes ses sources** (et, selon les policies de `session_sources`, à pouvoir les modifier ou les supprimer). Aucun code demandé, comparaison sensible à la casse (contrairement aux membres depuis le 140b).
+
+**À faire, dans l'ordre** :
+1. **Diagnostic d'abord** : lire `CollabDocScreen`, les policies RLS de `session_sources` et de `collab_session_users`, `list_session_sources`, et les autres RPC d'écriture des sources (`pg_get_functiondef` sur dev **et** prod). Établir ce qu'un usurpateur peut réellement faire (lire ? modifier ? supprimer ?), et si un visiteur non inscrit à la séance peut ouvrir le document.
+2. **Décider avec Jules** avant de coder, en proposant plutôt l'option simple : rattacher l'identité du document collaboratif à `session_members` (le pseudo de l'appareil déjà inscrit, et sinon nom + code de rappel via `confirm_attendance`, comme toutes les portes depuis le 140), plutôt qu'une identité parallèle sans preuve. Question ouverte : que faire d'un visiteur qui n'est pas membre de la séance (lecture seule ? inscription ?).
+3. Appliquer les règles du 140 : ligne « J'ai déjà un code de rappel » (`ReclaimCodeAccordion`), ouverte d'elle-même sur un nom pris ; jamais d'accès aux sources d'un autre sans code ; comparaison des noms via `pseudo_key()` (140b).
+4. Ne pas casser l'existant : les sources déjà écrites (colonne `session_sources.pseudo`) doivent rester attribuées ; `rename_session_member` propage déjà le pseudo vers `session_sources`.
+
+**Garde-fous** : vérifier dans `docs/reference-fonctions-sql.md` ce qui existe déjà (`resolve_table_entry_pseudo`, `pseudo_key`, `confirm_attendance`) ; comparer à `pg_get_functiondef` avant toute réécriture ; migration sur dev d'abord, prod au merge vers `main` ; canal Realtime `collab:<session_id>` ouvert à tout authentifié (`CLAUDE.md` § Canaux Realtime privés) — le prendre en compte dans le diagnostic.
+
+**Types de séance** : le document collaboratif existe-t-il en `debate` et `poll` ? À vérifier en démarrant.
+
+Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx`, `lib/sessions.ts`, RPC `register_collab_pseudo` et celles d'écriture des sources, policies de `session_sources`/`collab_session_users`, nouvelle migration.
 
 ---
 

@@ -3083,4 +3083,4 @@ Vérifié le 2026-09-28 :
 Reste à vérifier :
 - [ ] `add_offline_participant` (modérateur qui ajoute quelqu'un sans téléphone) : refuse désormais un nom déjà assis à la table — non rejoué au clic.
 - [ ] **Sur prod, après merge** : contrôler le renommage du doublon de la séance du 03/06 et rejouer une inscription avec une autre casse.
-- [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). À trancher avec Jules.
+- [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). **Devenu le chantier 142** (`docs/chantiers-a-faire.md`, décision de Jules du 2026-09-28).
