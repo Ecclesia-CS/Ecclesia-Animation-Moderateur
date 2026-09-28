@@ -108,6 +108,20 @@ export async function setOrganizationPassword(password: string, orgId: string, o
   if (error) throw new Error(extractErr(error))
 }
 
+/**
+ * Chantier 135 — nommage IA des camps : 5 par jour et par association.
+ * À appeler juste avant l'appel Gemini (chaque appel autorisé consomme une
+ * unité). Superadmin : toujours autorisé, `remaining = null`.
+ */
+export async function orgConsumeNamingQuota(
+  password: string, sessionId: string,
+): Promise<{ allowed: boolean; remaining: number | null; max?: number }> {
+  const { data, error } = await supabase.rpc('org_consume_naming_quota', { p_password: password, p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  const r = data as { allowed?: boolean; remaining?: number | null; max?: number } | null
+  return { allowed: r?.allowed === true, remaining: r?.remaining ?? null, max: r?.max }
+}
+
 // ── Participant ─────────────────────────────────────────────────────────────
 
 /** Nom de l'association organisatrice, `null` pour une séance Ecclesia. */

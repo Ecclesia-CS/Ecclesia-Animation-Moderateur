@@ -59,6 +59,7 @@ import QrCodeModal from '../components/QrCodeModal'
 import {
   orgLogin, orgWhoami, orgLogout, orgChangePassword,
   listOrganizationsAdmin, createOrganization, updateOrganization, setOrganizationPassword,
+  orgConsumeNamingQuota,
 } from '../lib/organizations'
 import type { OrgInfo, OrganizationAdminRow } from '../lib/organizations'
 
@@ -2468,6 +2469,9 @@ function SessionDetail({
   // Ré-enfiler est sans coût : le court-circuit d'empreinte ci-dessous rend une
   // demande redondante gratuite (aucun appel Gemini).
   const namingChainRef = useRef<Promise<void>>(Promise.resolve())
+  // Chantier 135 — association : nommages IA restants aujourd'hui (5/jour),
+  // connu après le premier nommage de la session d'écran.
+  const [namingQuota, setNamingQuota] = useState<{ remaining: number; max: number } | null>(null)
 
   const doNaming = useCallback(async (namingGroups: NamingGroup[]) => {
     if (namingGroups.length === 0) return
@@ -2489,6 +2493,15 @@ function SessionDetail({
     }
 
     try {
+      // Chantier 135 — une association consomme une unité de son quota
+      // journalier juste avant l'appel Gemini (un nommage redondant est déjà
+      // sorti plus haut sans rien consommer).
+      if (adminMode === 'org') {
+        const q = await orgConsumeNamingQuota(pwd, currentSession.id)
+        if (q.remaining !== null) setNamingQuota({ remaining: q.remaining, max: q.max ?? 5 })
+        if (!q.allowed) return
+      }
+
       const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
       const approved = allAssertions.filter(a => a.status === 'approved')
       const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
@@ -2530,7 +2543,10 @@ function SessionDetail({
   // d'où l'inclusion de `closed`, seule voie de réparation d'une séance déjà
   // terminée (l'écran de résultats participant en dépend).
   useEffect(() => {
-    if (isOrg) return  // chantier 135 — nommage IA des camps réservé à Ecclesia
+    // Chantier 135 — pas de rattrapage automatique pour une association : il
+    // re-nommerait à chaque ouverture depuis un autre appareil (empreinte en
+    // localStorage) et userait son quota de 5 nommages par jour.
+    if (isOrg) return
     const p = currentSession.phase
     if (p !== 'allocating' && p !== 'debating' && p !== 'post_voting' && p !== 'closed') return
     let cancelled = false
@@ -2551,10 +2567,9 @@ function SessionDetail({
   // Retourne la promesse : `AnalysisPanel.handleAnalyze` l'attend pour garder le
   // bouton verrouillé pendant les appels Gemini (chantier 28).
   const handleAnalysisNaming = useCallback((analysis: LoadedAnalysis): Promise<void> => {
-    if (isOrg) return Promise.resolve()  // chantier 135 — camps non nommés par IA
     if (!['voting', 'pre_voting'].includes(currentSession.phase)) return Promise.resolve()
     return runNaming(namingGroupsFromAnalysis(analysis.members))
-  }, [currentSession.phase, runNaming, isOrg])
+  }, [currentSession.phase, runNaming])
 
   async function handleAssignGroup(tableNumber: number, tableId: string | null) {
     const password = getPwd()!
@@ -3176,6 +3191,14 @@ function SessionDetail({
                   <PanelErrorBoundary label="Modération IA">
                     <LLMModerationPanel session={currentSession} password={getPwd()!} />
                   </PanelErrorBoundary>
+                )}
+
+                {isOrg && showVotingSections && (
+                  <p className="text-xs text-gray-500 px-1">
+                    {namingQuota && namingQuota.remaining === 0
+                      ? `Nommage automatique des camps : limite de ${namingQuota.max} par jour atteinte — les camps restent « Groupe 1, 2… » jusqu'à demain.`
+                      : `Les camps sont nommés automatiquement après chaque analyse (${namingQuota ? `${namingQuota.remaining}/${namingQuota.max} restant${namingQuota.remaining > 1 ? 's' : ''} aujourd'hui` : '5 par jour'}).`}
+                  </p>
                 )}
 
                 {showVotingSections && (

@@ -29,7 +29,7 @@ Vous pouvez changer ce mot de passe à tout moment (lien « Mot de passe » en h
    - **Ouverte** : elles sont publiées immédiatement.
 2. Onglet **En direct** → « + Ajouter des assertions » : saisissez vos affirmations (une par ligne, ou import CSV).
 3. **« Passer en Vote → »**, puis partagez le lien ou le QR code (onglet Préparation). Chacun vote à son rythme, à distance.
-4. Pendant le vote, l'onglet **En direct** montre la participation, les votes par affirmation, et le bouton **« Analyser les camps »** (il faut au moins quelques votants). Les participants voient eux aussi les résultats et les camps en direct.
+4. Pendant le vote, l'onglet **En direct** montre la participation, les votes par affirmation, et le bouton **« Analyser les camps »** (il faut au moins quelques votants). Après chaque analyse, les camps reçoivent automatiquement un nom (5 nommages par jour ; au-delà, ils restent « Groupe 1, 2… » jusqu'au lendemain). Les participants voient eux aussi les résultats et les camps en direct.
 5. **« Passer en Clôturée → »** met fin au vote. Les participants gardent l'accès à leurs résultats ; rien n'est rendu public.
 
 ## Bon à savoir
