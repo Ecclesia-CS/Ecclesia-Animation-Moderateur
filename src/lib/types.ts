@@ -177,6 +177,8 @@ export interface CollabSource {
   id: string
   session_id: string
   user_id: string
+  /** Chantier 142 — membre propriétaire ; NULL si le membre a été supprimé (ON DELETE SET NULL). */
+  member_id: string | null
   pseudo: string
   title: string
   url: string | null

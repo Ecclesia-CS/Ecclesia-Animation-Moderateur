@@ -411,7 +411,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
         {/* Chantier 122 — mêmes liens documentaires que sur les écrans de vote,
             désormais visibles aussi en phase allocation. */}
-        <DocNudge session={currentSession} memberPseudo={member.pseudo} />
+        <DocNudge session={currentSession} />
 
         {/* Chantier 108 (C2) — rouverte depuis le chantier 107 : la déclaration
             pendant l'allocation ne fait plus que poser le drapeau modérateur,

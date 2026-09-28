@@ -7,7 +7,6 @@ import type { Session } from '../../lib/types'
 
 interface DocNudgeProps {
   session: Session
-  memberPseudo: string
 }
 
 const iconPath = (
@@ -18,7 +17,7 @@ const iconPath = (
   </svg>
 )
 
-export default function DocNudge({ session, memberPseudo }: DocNudgeProps) {
+export default function DocNudge({ session }: DocNudgeProps) {
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
   const collabUrl  = session.doc_collab_url
@@ -26,7 +25,6 @@ export default function DocNudge({ session, memberPseudo }: DocNudgeProps) {
   function handleCollabClick() {
     sessionStorage.setItem('ecclesia_collab_return', `#vote/${session.join_code}`)
     if (session.join_code) {
-      sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
       window.location.hash = `#collab/${session.join_code}`
     } else if (collabUrl) {
       window.open(collabUrl, '_blank', 'noopener,noreferrer')

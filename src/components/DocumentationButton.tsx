@@ -12,13 +12,12 @@ interface Props {
   session: SessionDocs | null
   className?: string
   dropdownClass?: string
-  userPseudo?: string
   currentTableJoinCode?: string
   /** Chantier 135 — séance de rattachement : pas de document collaboratif si elle appartient à une association. */
   sessionId?: string | null
 }
 
-export default function DocumentationButton({ session, className, dropdownClass, userPseudo, currentTableJoinCode, sessionId }: Props) {
+export default function DocumentationButton({ session, className, dropdownClass, currentTableJoinCode, sessionId }: Props) {
   const [open, setOpen] = useState(false)
   const orgName = useSessionOrganizationName(sessionId)
 
@@ -33,9 +32,6 @@ export default function DocumentationButton({ session, className, dropdownClass,
   function handleCollabClick() {
     setOpen(false)
     if (session_join_code) {
-      if (userPseudo) {
-        sessionStorage.setItem(`ecclesia_collab_pseudo_${session_join_code}`, userPseudo)
-      }
       if (currentTableJoinCode) {
         sessionStorage.setItem(`ecclesia_collab_table_${session_join_code}`, currentTableJoinCode)
       }

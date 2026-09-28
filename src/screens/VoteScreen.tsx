@@ -1028,7 +1028,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
             {/* Nudge documentaire */}
             <div className="px-4 mb-4">
-              <DocNudge session={session} memberPseudo={member.pseudo} />
+              <DocNudge session={session} />
             </div>
 
             {/* Résultats consensus / dissensus */}
@@ -1322,7 +1322,6 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         {showToolsPanel && (
           <VoteToolsPanel
             session={session}
-            memberPseudo={member.pseudo}
             onClose={() => setShowToolsPanel(false)}
             onOpenNotes={() => setShowNotesModal(true)}
             onOpenModeratorClaim={() => setShowModeratorClaimModal(true)}
@@ -1574,7 +1573,6 @@ function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
 
 interface VoteToolsPanelProps {
   session: Session
-  memberPseudo: string
   onClose: () => void
   onOpenNotes: () => void
   onOpenModeratorClaim: () => void
@@ -1582,7 +1580,7 @@ interface VoteToolsPanelProps {
   onOpenPairing: () => void
 }
 
-function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing }: VoteToolsPanelProps) {
+function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing }: VoteToolsPanelProps) {
 
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
@@ -1594,7 +1592,6 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
     onClose()
     sessionStorage.setItem('ecclesia_collab_return', `#vote/${session.join_code}`)
     if (session.join_code) {
-      sessionStorage.setItem(`ecclesia_collab_pseudo_${session.join_code}`, memberPseudo)
       window.location.hash = `#collab/${session.join_code}`
     } else if (collabUrl) {
       window.open(collabUrl, '_blank', 'noopener,noreferrer')

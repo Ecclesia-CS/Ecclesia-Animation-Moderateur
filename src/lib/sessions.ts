@@ -247,15 +247,53 @@ export async function getQuestionnaireResponses(
 
 // ── Collab sources ─────────────────────────────────────────────────
 
-export async function registerCollabPseudo(
+/**
+ * Chantier 142 — l'identité du document collaboratif est celle du membre de la
+ * séance (`session_members`). Plus de pseudo libre : écrire exige d'être
+ * inscrit sur cet appareil, ou de reprendre son identité par nom + code.
+ */
+export type CollabIdentity = { member_id: string; pseudo: string }
+
+function asCollabIdentity(data: unknown): CollabIdentity | null {
+  const d = data as Record<string, unknown> | null
+  return d && typeof d.member_id === 'string' && typeof d.pseudo === 'string'
+    ? { member_id: d.member_id, pseudo: d.pseudo }
+    : null
+}
+
+/** Identité de cet appareil dans la séance, ou null s'il n'y est pas inscrit. */
+export async function getCollabIdentity(sessionId: string): Promise<CollabIdentity | null> {
+  const { data, error } = await supabase.rpc('get_collab_identity', { p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  return asCollabIdentity(data)
+}
+
+export type ClaimCollabResult =
+  | { kind: 'ok'; identity: CollabIdentity }
+  | { kind: 'code_required'; pseudo: string }
+  | { kind: 'error'; message: string }
+
+/** Reprise d'identité par nom + code de rappel. Ne crée jamais d'inscription. */
+export async function claimCollabIdentity(
   sessionId: string,
   pseudo: string,
-): Promise<void> {
-  const { error } = await supabase.rpc('register_collab_pseudo', {
+  code: string | null,
+): Promise<ClaimCollabResult> {
+  const { data, error } = await supabase.rpc('claim_collab_identity', {
     p_session_id: sessionId,
     p_pseudo:     pseudo,
+    p_code:       code,
   })
   if (error) throw new Error(extractErr(error))
+  const d = (data ?? {}) as Record<string, unknown>
+  if (typeof d.error === 'string') return { kind: 'error', message: d.error }
+  if (d.code_required === true) {
+    return { kind: 'code_required', pseudo: typeof d.pseudo === 'string' ? d.pseudo : pseudo }
+  }
+  const identity = asCollabIdentity(d)
+  return identity
+    ? { kind: 'ok', identity }
+    : { kind: 'error', message: 'Réponse inattendue du serveur.' }
 }
 
 export async function addCollabSource(

@@ -9,7 +9,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 ## Chantiers en cours
 
 ### 142 — Document collaboratif : identité des sources sans code
-**Branche** : `claude/chantier-142-ceb037` · **Depuis** : 2026-09-28 · **Fichiers touchés** (prévus, à affiner après diagnostic) : `src/screens/CollabDocScreen.tsx`, `src/lib/sessions.ts`, nouvelle migration `supabase/migrations/20260928_chantier142_*.sql` (RPC `register_collab_pseudo` et écriture des sources, policies `session_sources`/`collab_session_users`). Phase actuelle : diagnostic, décision de Jules attendue avant de coder.
+**Branche** : `claude/chantier-142-ceb037` · **Depuis** : 2026-09-28 · **Fichiers touchés** : `CollabDocScreen.tsx`, `lib/sessions.ts`, `lib/types.ts`, `VoteScreen.tsx`, `DocNudge.tsx`, `ParticipantToolsButton.tsx`, `DocumentationButton.tsx`, `ModeratorView.tsx`, `AllocatingScreen.tsx`, migration `20260928_chantier142_collab_identite_membre.sql` (appliquée sur dev). **Fait et vérifié sur dev, pas encore mergé dans `dev`** — entrée à retirer au merge.
 
 > **Le 2026-09-28, le chantier 140 est mergé dans `dev`** (portes d'entrée : un nom déjà pris n'entre jamais sans code, ligne « J'ai déjà un code de rappel » partout ; 140b : noms comparés sans tenir compte des majuscules) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 140. Ses **deux** migrations (`20260928_chantier140_portes_entree_identite`, `20260928_chantier140b_pseudos_insensibles_casse`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (et dans cet ordre). La 140b renomme un doublon de nom sur prod (séance close du 03/06).
 
@@ -387,7 +387,7 @@ Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx
 - **Données prod** : **0 source** jamais écrite, 5 lignes `collab_session_users` (dont 1 sans membre correspondant). Une migration ne peut rien casser côté données.
 - Écart de droits sans conséquence : sur prod, `register_collab_pseudo` est aussi accordée à `PUBLIC`, pas sur dev.
 
-**En attente de Jules** : choix d'identité (rattacher à `session_members`, recommandé), sort du visiteur non membre, fermeture côté serveur pour les associations.
+**Décisions de Jules (même jour)** : lecture ouverte à tous, séances indépendantes ; identité = personne inscrite à la séance ; écriture protégée par les codes, comme toutes les portes ; associations laissées telles quelles. → **✅ Fait le 2026-09-28**, voir `docs/chantiers.md` (ligne 142) et `A_VERIFIER.md` § Chantier 142.
 
 ---
 

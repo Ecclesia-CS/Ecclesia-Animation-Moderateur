@@ -25,6 +25,19 @@
 
 Les deux corrections déverrouillent la vérification navigateur sur dev pour **tout** chantier, pas seulement le 131.
 
+## Chantier 142 — document collaboratif : écriture protégée par nom + code de rappel (2026-09-28)
+
+**Migration** `supabase/migrations/20260928_chantier142_collab_identite_membre.sql` — appliquée sur **dev** uniquement, **à appliquer sur prod au merge vers `main`, après 140/140b** (elle utilise `pseudo_key`). Réécrit `add_collab_source`, `update_collab_source`, `delete_collab_source`, `list_session_sources` (DROP + CREATE, type de retour changé) et `rename_session_member` — toutes comparées à `pg_get_functiondef` sur dev **et** prod avant écriture (identiques). **Supprime** `register_collab_pseudo` et la table `collab_session_users` (5 lignes sur prod, sans valeur). Ajoute `session_sources.member_id`. Avant prod : `SELECT count(*) FROM session_sources` (0 le 28/09 — si ce n'est plus le cas, vérifier que la reprise par `user_id`/nom a bien rempli `member_id`).
+
+**Vérifié en base dev** (transaction annulée, deux identités simulées) : nom sans code (autre casse) → `code_required` ; mauvais code → refus ; nom inconnu → refus ; modifier/supprimer/ajouter sans identité → refusé ; bon code → la source se réécrit ; renommage propagé ; l'ancien appareil perd la main ; `attending_in_person` inchangé ; `anon` lit.
+
+**Vérifié au navigateur sur dev** (serveur local, `.env.local` pointé vers dev, séance jetable `T142DOC` supprimée ensuite) : lecture seule sans identité, aucun bouton modifier sur la source d'autrui ; « alice test » → accordéon « J'ai déjà un code de rappel » ouvert tout seul + message ; code faux → « Code de rappel invalide. » ; bon code → nom en en-tête, « + Ajouter », source modifiable, modification et ajout OK ; identité conservée au rechargement ; stockage vidé (autre appareil) → retour en lecture seule ; nom non inscrit → message + lien « Rejoindre la séance ». Aucune erreur console.
+
+**Reste à vérifier** :
+1. Un participant **déjà inscrit sur l'appareil** arrive par « Sources collaboratives » depuis `#vote`, une table (Outils / Documentation) et une séance `debate` : il doit être reconnu directement, sans rien taper.
+2. Après le correctif du formulaire : modifier une source puis « + Ajouter » → le formulaire est vide (corrigé après le test navigateur, non revu à l'écran).
+3. **Sur prod**, après application : refaire le parcours ci-dessus (base différente).
+
 ## Chantier 137 — suppression d'un participant, poubelle du bannissement, vote qui ne se rouvre plus (2026-09-28)
 
 **Migration** `supabase/migrations/20260928_chantier137_delete_session_member_admin.sql` — appliquée sur la base **dev** uniquement, **à appliquer sur prod au merge vers `main`**. Elle crée `delete_session_member_admin` (aucune fonction existante réécrite) et change `assertions.member_id` : `NOT NULL` → nullable, FK `ON DELETE CASCADE` → `ON DELETE SET NULL`. Avant prod : `SELECT` de contrôle en lecture seule sur `assertions`/FK (règle `CLAUDE.md`).

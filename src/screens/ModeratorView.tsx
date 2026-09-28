@@ -487,7 +487,6 @@ export default function ModeratorView() {
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end">
             <DocumentationButton
               session={sessionDocs}
-              userPseudo={myParticipant?.pseudo}
               currentTableJoinCode={table.join_code}
               sessionId={table.session_id}
               className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300

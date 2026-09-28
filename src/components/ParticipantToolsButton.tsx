@@ -107,9 +107,6 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   function handleCollabClick() {
     setPanelOpen(false)
     if (session_join_code) {
-      if (userPseudo) {
-        sessionStorage.setItem(`ecclesia_collab_pseudo_${session_join_code}`, userPseudo)
-      }
       sessionStorage.setItem(`ecclesia_collab_table_${session_join_code}`, table.join_code)
       window.location.hash = `#collab/${session_join_code}`
     }
