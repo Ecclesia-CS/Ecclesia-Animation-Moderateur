@@ -3051,3 +3051,20 @@ Migrations **appliquées sur dev uniquement** (`mnjqrlrrzrycuconlfqb`), à appli
 - [x] ~~Camps non nommés pour une asso~~ — **ouvert le 2026-09-28 à la demande de Jules, plafonné à 5 nommages par jour et par asso** : migration `supabase/migrations/20260928_chantier135c_nommage_camps_asso.sql` (**appliquée sur dev**, à appliquer sur prod après les deux migrations 135 ci-dessus) — table `organization_naming_uses`, RPC `org_consume_naming_quota`, `update_group_names` ajoutée à la liste blanche. Vérifié en base (5 acceptés puis refus, compteur indépendant par asso, accès croisé refusé) et au navigateur sur dev (asso de test, 8 votants simulés : « Analyser les camps » → analyse enregistrée, 2 camps, noms enregistrés, compteur « 4/5 restants aujourd'hui »).
 - [ ] **Nommage Gemini réel** pour une asso : sur dev, l'Edge Function `gemini-proxy` **n'est pas déployée** (404) — l'app a donc utilisé ses noms de secours (« Plutôt pour : … »). Manque d'environnement dev, antérieur et sans lien avec ce chantier ; à vérifier sur prod après merge (ou déployer `gemini-proxy` sur dev avec sa clé).
 - [ ] Un nommage est décompté même si Gemini échoue ensuite (le décompte précède l'appel). Choix assumé : simple, et 5/jour laisse de la marge.
+
+## Chantier 139 — Désigner un modérateur sur une table déjà modérée (2026-09-28)
+
+Fichiers : `supabase/migrations/20260928_chantier139_designation_remplace_animateur.sql` (**appliquée sur dev uniquement** — à appliquer sur prod au merge vers `main`, après les migrations du 135, dont elle dépend via `check_session_admin`), `src/screens/SuperadminScreen.tsx`, `src/context/TableContext.tsx`.
+
+**Vérifié le 2026-09-28 sur dev (base + navigateur réel, données de test supprimées ensuite, mot de passe superadmin de dev revenu à l'identique — empreinte comparée à prod) :**
+- En base : sur une table déjà modérée, désigner P → P passe `is_table_moderator`, l'ancien animateur non (il garde son drapeau, reste assis) ; rejouer la même désignation est sans effet ; table tenue par un modérateur physique (`created_by`) → l'ancien perd son pouvoir, `created_by` rendu au superadmin, ancien devenu membre flagué ; table sans animateur → comportement inchangé.
+- Au navigateur : participante assise à une table modérée, désignée modératrice → **vue modérateur en moins de 6 s sans rechargement** ; table redonnée à l'ancien animateur → retour en vue participant sans rechargement ; cache local `isModerator:true` périmé + rechargement → vue participant (avec le correctif) ; **même test sans le correctif → vue modérateur à tort** (bug reproduit).
+
+**À vérifier par Jules (écran superadmin, mot de passe requis — non testable en session) :**
+1. Séance en `debating`, une table déjà modérée : l'encart de la carte de groupe affiche « 🔁 Remplacer le modérateur » (avant : absent).
+2. Glisser un participant de la table sur cet encart, ou saisir son nom → **fenêtre de confirmation** « Remplacer le modérateur de la table N°X ? » nommant les deux personnes. « Annuler » ne change rien.
+3. Après « Remplacer » : la carte montre le nouveau modérateur, l'ancien en « Modérateur en surplus » ; le nouveau voit l'écran modérateur en quelques secondes, l'ancien repasse en écran participant.
+4. Un « modérateur en surplus » sur une table modérée a maintenant « En faire le principal » (avec la même confirmation).
+5. Table sans animateur : rien ne change (pas de confirmation, désignation directe).
+6. Cas voisin non corrigé à connaître : une personne désignée pour une **autre** table que celle où elle est assise doit rejoindre cette table (fenêtre « Changement de table », chantier 95) — vérifier qu'elle devient bien modératrice une fois arrivée.
+7. Sur prod, après application de la migration : rejouer 1 à 3 sur une séance de test.

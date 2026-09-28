@@ -8,7 +8,8 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 ## Chantiers en cours
 
-_(aucun actuellement)_
+### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas (diagnostic d'abord)
+**Branche** : `claude/chantier-139-2e7941` · **Depuis** : 2026-09-28 · **Fichiers touchés** : `SuperadminScreen.tsx`, `TableContext.tsx`, `supabase/migrations/20260928_chantier139_designation_remplace_animateur.sql`. **Livré le 2026-09-28, en attente de merge dans `dev`** — **retirer cette entrée au merge**. Détail : `docs/chantiers.md`, recette : `A_VERIFIER.md` § Chantier 139.
 
 > **Le 2026-09-28, le chantier 138 est mergé dans `dev`** (vue « Tables (consultation) » du superadmin, lecture seule, toutes phases, remplace l'accordéon « Historique des tables » du 130) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 138. Vérifié au navigateur sur dev. Aucune migration. Le chantier 139 peut maintenant partir : il touche le même onglet Groupes.
 
@@ -301,7 +302,7 @@ Suite du chantier 130, qui avait livré un accordéon « Historique des tables �
 
 Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (onglet Tables/Groupes, composant `TableHistoryRow` du chantier 130 à retirer), éventuellement un composant partagé extrait de la vue Groupes pour ne pas dupliquer son rendu.
 
-#### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas — **diagnostic d'abord**
+#### 139 — Bug : désigner un modérateur pendant le débat ne fonctionne pas — **diagnostic d'abord** — ✅ fait le 2026-09-28, voir `docs/chantiers.md` (le texte ci-dessous est la consigne d'origine, conservée)
 
 **Consigne de Jules** : « Actuellement, durant la phase débat, le fait de sélectionner qui est modérateur, en les mettant en table modérateur par le superadmin, ne fonctionne pas DU TOUT. On peut être bloqué en participant, alors qu'on est modo, et inversement. Est-ce parce que les changements sont censés être faits en allocation ? » Reproduction donnée par Jules : **sur prod** ; « en appuyant sur "modérateur" dans la vue superadmin, dans la liste des participants, puis en tentant le glisser-déposer » ; **recharger la page ne change pas le problème** ; **la table était déjà modérée** (donc pas `leaderless`).
 
