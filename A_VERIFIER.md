@@ -3048,5 +3048,20 @@ Reste à vérifier :
 - [ ] **Règle 4, idempotence modo** : un modérateur déjà en place qui repasse par la porte modérateur de sa propre table — aucun déplacement, aucune erreur. Inchangé par ce chantier (déjà assuré par `table_moderator_is`/`claim_moderator_status`), non rejoué.
 - [ ] Changement de table en cours de débat (`TableChangeModal`, `ChangeTableModal`) et en allocation (`AllocatingScreen`, `switch_table`) : non-régression, appelant déjà membre — non rejoué au clic.
 - [ ] Lien `#table/<code>` sans séance en contexte : avec l'accordéon ouvert et un nom **libre** mal tapé, le code est ignoré et une inscription neuve est créée sous ce nom (la séance n'est connue qu'après l'appel). Cas marginal, assumé.
-- [ ] **Non traité** — noms comparés en respectant la casse : « jules dupont » peut s'inscrire à côté de « Jules Dupont » (un doublon de ce type existe déjà sur prod). À trancher avec Jules.
+- [x] ~~**Non traité** — noms comparés en respectant la casse~~ — **tranché par Jules le 2026-09-28 (« les majuscules doivent être considérées comme des minuscules »)**, traité par la migration 140b ci-dessous.
 - [ ] **Sur prod, après merge** : rejouer au moins la porte code de table avec un nom pris.
+
+### Chantier 140b — noms comparés sans tenir compte des majuscules (2026-09-28)
+
+Migration `supabase/migrations/20260928_chantier140b_pseudos_insensibles_casse.sql` — **appliquée sur dev** le 2026-09-28, **pas sur prod** (à appliquer après les migrations du 135 et `20260928_chantier140`). Clé `pseudo_key()` = minuscules, espaces de bord retirés, espaces internes multiples réduits ; index unique `(session_id, pseudo_key(pseudo))` ; recherches par nom, anti-force-brute (`reclaim_attempts`, vidée au passage) et `add_offline_participant` passés sur cette clé. Le nom **affiché** garde la casse saisie à l'inscription.
+
+⚠️ **Doublons existants renommés** par la migration (le plus ancien garde son nom, le suivant prend « (2) ») : 2 sur dev ; **1 sur prod, dans une séance close du 2026-06-03** — le second inscrit y apparaîtra avec « (2) » dans les résultats de cette séance.
+
+Vérifié le 2026-09-28 :
+- [x] **En base dev** (transaction annulée) : « jules DUPONT » refusé à côté de « Jules Dupont » ; `join_table` avec « JULES dupont » → code demandé ; 10 mauvais codes en alternant la casse → blocage (plus de contournement de l'anti-force-brute) ; bon code saisi avec une autre casse → reconnexion, nom affiché inchangé ; renommer la seule casse de son propre nom → permis ; prendre le nom d'un autre avec une autre casse → refusé. Plus aucun doublon sur dev, index présent.
+- [x] **Au navigateur sur dev** (vote présentiel, séance de test supprimée ensuite) : « ALICE  test140 » alors qu'« Alice Test140 » existe → message « nom déjà pris » + champ code ouvert ; code 4242 → « Bienvenue Alice Test140 ! Tes votes ont bien été récupérés ».
+
+Reste à vérifier :
+- [ ] `add_offline_participant` (modérateur qui ajoute quelqu'un sans téléphone) : refuse désormais un nom déjà assis à la table — non rejoué au clic.
+- [ ] **Sur prod, après merge** : contrôler le renommage du doublon de la séance du 03/06 et rejouer une inscription avec une autre casse.
+- [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). À trancher avec Jules.

@@ -8,8 +8,9 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 ## Chantiers en cours
 
-### 140 — Portes d'entrée : code de rappel toujours accessible, nom pris ⇒ accordéon, jamais d'accès sans code
-**Branche** : `claude/lancer-140-b126c2` · **Depuis** : 2026-09-28 · **Statut** : livré sur la branche, en attente de merge vers `dev` · **Fichiers touchés** : `lib/voting.ts`, `lib/supabase.ts`, `App.tsx`, `JoinTableForm.tsx`, `DebateEntryForm.tsx`, `SessionRouterScreen.tsx`, `ReclaimCodeAccordion.tsx` (nouveau), `TableChangeModal.tsx`, `voting/ChangeTableModal.tsx`, `AllocatingScreen.tsx` ; RPC `join_table`, `switch_table`, `claim_table_as_moderator`, `reclaim_moderator` ×2 + migration `20260928_chantier140_portes_entree_identite.sql` (dev seulement)
+_(aucun actuellement)_
+
+> **Le 2026-09-28, le chantier 140 est mergé dans `dev`** (portes d'entrée : un nom déjà pris n'entre jamais sans code, ligne « J'ai déjà un code de rappel » partout ; 140b : noms comparés sans tenir compte des majuscules) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 140. Ses **deux** migrations (`20260928_chantier140_portes_entree_identite`, `20260928_chantier140b_pseudos_insensibles_casse`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 135 (et dans cet ordre). La 140b renomme un doublon de nom sur prod (séance close du 03/06).
 
 > **Le 2026-09-28, le chantier 137 est mergé dans `dev`** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Sa migration (`20260928_chantier137_delete_session_member_admin`, qui change aussi la contrainte `assertions.member_id`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, après celles du 134 et du 135.
 
@@ -317,7 +318,7 @@ Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (lis
 
 #### 140 — Portes d'entrée : le code est toujours accessible, et un nom déjà pris ouvre l'accordéon — **Opus demandé par Jules**
 
-> ✅ **FAIT le 2026-09-28 sur la branche `claude/lancer-140-b126c2`, non mergé** — tableau des écarts et détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 140. Cause du symptôme 1 : `join_table` (et quatre RPC sœurs) réécrivait le siège `participants` du titulaire avant tout contrôle. Migration appliquée sur dev uniquement ; sur prod, après celles du 135. Point laissé ouvert : noms comparés en respectant la casse.
+> ✅ **FAIT et mergé dans `dev` le 2026-09-28** (branche `claude/lancer-140-b126c2`) — tableau des écarts et détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 140. Cause du symptôme 1 : `join_table` (et quatre RPC sœurs) réécrivait le siège `participants` du titulaire avant tout contrôle. Migration appliquée sur dev uniquement ; sur prod, après celles du 135. Casse : traitée dans la foulée (140b, décision de Jules).
 
 **Consigne de Jules** : « J'ai réussi à rentrer dans un débat, dans un nom qui n'était pas le mien, sans qu'on me demande le numéro. De plus, j'ai essayé à un moment de rentrer, on m'a dit que le nom était déjà pris, mais on ne m'a pas proposé de mettre le code secret... Est-ce qu'on peut faire un check sur ces fonctionnalités, et les mettre sur toutes les entrées de notre appli ? Discussion à faire en Opus. » Précisé en conversation : « pendant le débat je crois bien [que c'est arrivé]. J'aimerai qu'on rende toujours possible de rentrer avec le code (juste une ligne sur laquelle cliquer, comme quand on veut changer un mdp sur internet), et que lorsqu'on tente de rentrer, mais que le nom existe déjà, on ouvre cet accordéon automatiquement. Oui, c'est ça pour toutes les portes, y compris modo. Quand on rentre en modo, pas besoin de se déclarer modo, et si on se redéclare, c'est idempotent. C'est un fort travail à faire ce chantier, pt en opus. »
 
