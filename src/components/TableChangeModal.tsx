@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { getMyTableAssignment } from '../lib/voting'
+import { getMyTableAssignment, assertSeated } from '../lib/voting'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
-import type { TableResult } from '../lib/supabase'
 
 /**
  * Chantier 95 — le superadmin peut déplacer quelqu'un d'une table à l'autre
@@ -75,7 +74,7 @@ export default function TableChangeModal({
         p_pseudo: pseudo,
       })
       if (err) throw err
-      const r = data as TableResult
+      const r = assertSeated(data)
       tableStore.set({
         tableId: r.id,
         participantId: r.participant_id,

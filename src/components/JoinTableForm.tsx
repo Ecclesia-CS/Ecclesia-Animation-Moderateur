@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { claimTableAsModerator } from '../lib/voting'
+import { useRef, useState } from 'react'
+import { claimTableAsModerator, confirmAttendance, joinTable, PseudoTakenError, PSEUDO_TAKEN_MESSAGE } from '../lib/voting'
+import ReclaimCodeAccordion from './ReclaimCodeAccordion'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import type { TableResult } from '../lib/supabase'
@@ -32,6 +32,10 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   const [moderatorCode, setModeratorCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Chantier 140 — ligne « J'ai déjà un code de rappel », toujours présente.
+  const [reclaimOpen, setReclaimOpen] = useState(false)
+  const [reclaimCode, setReclaimCode] = useState('')
+  const reclaimInputRef = useRef<HTMLInputElement>(null)
   // Chantier 119 — présent uniquement si cet appel a créé la ligne
   // session_members (première inscription) : on montre le code avant de
   // continuer, comme VoteScreen le fait déjà pour l'inscription via le vote.
@@ -49,6 +53,11 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
     onJoined(r.id, r.participant_id, isModerator)
   }
 
+  function openReclaim() {
+    setReclaimOpen(true)
+    requestAnimationFrame(() => reclaimInputRef.current?.focus())
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -56,25 +65,37 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
     try {
       const code = joinCode.trim().toUpperCase()
       const name = pseudo.trim()
+      const reclaim = reclaimOpen ? reclaimCode.trim() : ''
+      // Chantier 68 — "Je suis modérateur de cette table" ne reprend plus
+      // la main sans condition (reclaim_moderator) : on passe par
+      // claim_table_as_moderator, qui refuse une table déjà modérée par
+      // quelqu'un d'autre.
+      const attempt = () => asModerator
+        ? claimTableAsModerator(code, moderatorCode, name, sessionId)
+        : joinTable(code, name)
+
+      // Chantier 140 — code saisi et séance connue : prouver l'identité
+      // d'abord, pour ne jamais créer d'inscription sous un nom mal tapé.
+      if (reclaim && sessionId) await confirmAttendance(sessionId, name, reclaim)
+
       let r: TableResult
-      if (asModerator) {
-        // Chantier 68 — "Je suis modérateur de cette table" ne reprend plus
-        // la main sans condition (reclaim_moderator) : on passe par
-        // claim_table_as_moderator, qui refuse une table déjà modérée par
-        // quelqu'un d'autre.
-        r = await claimTableAsModerator(code, moderatorCode, name, sessionId)
-      } else {
-        const { data, error: err } = await supabase.rpc('join_table', {
-          p_join_code: code,
-          p_pseudo: name,
-        })
-        if (err) throw err
-        r = data as TableResult
+      try {
+        r = await attempt()
+      } catch (err) {
+        // Chantier 140 — nom déjà pris par un autre membre : le serveur n'a
+        // rien écrit. Sans code, on ouvre l'accordéon ; avec un code (porte
+        // sans séance en contexte, lien #table/), on le vérifie sur la
+        // séance de la table puis on réessaie.
+        if (!(err instanceof PseudoTakenError)) throw err
+        if (!reclaim) { setError(PSEUDO_TAKEN_MESSAGE); openReclaim(); return }
+        await confirmAttendance(err.sessionId, name, reclaim)
+        r = await attempt()
       }
+      const effective = r.pseudo ?? name
       if (r.new_reclaim_code) {
-        setPendingReclaim({ r, pseudo: name, isModerator: asModerator })
+        setPendingReclaim({ r, pseudo: effective, isModerator: asModerator })
       } else {
-        finishJoin(r, name, asModerator)
+        finishJoin(r, effective, asModerator)
       }
     } catch (err) {
       setError(extractErr(err))
@@ -122,13 +143,20 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           type="text"
           required
           value={pseudo}
-          onChange={e => setPseudo(e.target.value)}
+          onChange={e => { setPseudo(e.target.value); setError(null) }}
           placeholder="Prénom Nom"
           className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
             placeholder:text-gray-300 transition-shadow"
         />
       </div>
+      <ReclaimCodeAccordion
+        ref={reclaimInputRef}
+        open={reclaimOpen}
+        onToggle={() => { setReclaimOpen(o => !o); setError(null) }}
+        code={reclaimCode}
+        onCodeChange={c => { setReclaimCode(c); setError(null) }}
+      />
       <label className="flex items-center gap-2 cursor-pointer select-none">
         <input
           type="checkbox"
@@ -155,7 +183,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
       )}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || (reclaimOpen && !reclaimCode.trim())}
         className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
           text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
           focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"

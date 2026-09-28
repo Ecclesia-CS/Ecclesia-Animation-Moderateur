@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { confirmAttendance, joinSimpleDebate } from '../lib/voting'
+import { useRef, useState } from 'react'
+import { confirmAttendance, joinSimpleDebate, PSEUDO_TAKEN_MESSAGE } from '../lib/voting'
 import { tableStore, lastNameStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
 import ReclaimCodeDisplay from './voting/ReclaimCodeDisplay'
@@ -36,6 +36,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
   const [creationCode, setCreationCode] = useState('')
   const [reclaimOpen, setReclaimOpen]   = useState(false)
   const [reclaimCode, setReclaimCode]   = useState('')
+  const reclaimInputRef                 = useRef<HTMLInputElement>(null)
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
   const [pending, setPending]           = useState<JoinResult | null>(null)
@@ -66,7 +67,16 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
       if (r.new_reclaim_code) setPending(r)
       else finish(r)
     } catch (err) {
-      setError(orgCodeError(extractErr(err), orgName))
+      const msg = extractErr(err)
+      // Chantier 140 — nom déjà pris : ouvrir l'accordéon du code plutôt que
+      // laisser l'utilisateur dans une impasse.
+      if (!reclaimOpen && msg.includes('déjà utilisé')) {
+        setError(PSEUDO_TAKEN_MESSAGE)
+        setReclaimOpen(true)
+        requestAnimationFrame(() => reclaimInputRef.current?.focus())
+        return
+      }
+      setError(orgCodeError(msg, orgName))
     } finally {
       setLoading(false)
     }
@@ -139,6 +149,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
             {reclaimOpen && (
               <div className="px-3 pb-3">
                 <input
+                  ref={reclaimInputRef}
                   type="text"
                   inputMode="numeric"
                   required

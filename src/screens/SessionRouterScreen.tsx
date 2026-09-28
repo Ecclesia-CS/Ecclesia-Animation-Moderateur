@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import type { TableResult } from '../lib/supabase'
+import ReclaimCodeAccordion from '../components/ReclaimCodeAccordion'
+import ReclaimCodeDisplay from '../components/voting/ReclaimCodeDisplay'
 import { getSessionByJoinCode } from '../lib/sessions'
 import type { Session } from '../lib/types'
 import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
 import JoinTableForm from '../components/JoinTableForm'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
-import { hasQuestionnaireResponse, assignLeastFilledTable, joinSimpleDebate } from '../lib/voting'
+import { hasQuestionnaireResponse, assignLeastFilledTable, joinSimpleDebate, confirmAttendance, PSEUDO_TAKEN_MESSAGE } from '../lib/voting'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import DebateEntryForm from '../components/DebateEntryForm'
 import { tableStore, lastNameStore } from '../lib/storage'
@@ -40,6 +43,13 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   const [assignPseudo, setAssignPseudo] = useState(() => lastNameStore.get())
   const [assignLoading, setAssignLoading] = useState(false)
   const [assignError,   setAssignError]   = useState<string | null>(null)
+  // Chantier 140 — code de rappel sur la porte « Assignez-moi une table »,
+  // et affichage du code tiré à la première inscription (jusque-là jamais
+  // montré sur cette porte : le retardataire ne pouvait plus se reconnecter).
+  const [assignReclaimOpen, setAssignReclaimOpen] = useState(false)
+  const [assignReclaimCode, setAssignReclaimCode] = useState('')
+  const assignReclaimRef = useRef<HTMLInputElement>(null)
+  const [assignPending, setAssignPending] = useState<{ r: TableResult; pseudo: string } | null>(null)
 
   useEffect(() => {
     async function route() {
@@ -198,24 +208,39 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   }, [sessionJoinCode])
 
   // ── Assignez-moi une table (chantier 111) ───────────────────────
+  function finishAssign(r: TableResult, pseudo: string) {
+    tableStore.set({
+      tableId:       r.id,
+      participantId: r.participant_id,
+      joinCode:      r.join_code,
+      isModerator:   false,
+      pseudo,
+    })
+    if (onTableJoined) onTableJoined(r.id, r.participant_id, false)
+  }
+
   async function handleAssignLeastFilled() {
     const pseudo = assignPseudo.trim()
     if (!pseudo || !sessionId) return
+    const reclaim = assignReclaimOpen ? assignReclaimCode.trim() : ''
     setAssignLoading(true)
     setAssignError(null)
     try {
+      // Chantier 140 — reconnexion d'abord (nom + code), puis placement.
+      if (reclaim) await confirmAttendance(sessionId, pseudo, reclaim)
       const r = await assignLeastFilledTable(sessionId, pseudo)
       lastNameStore.set(pseudo)
-      tableStore.set({
-        tableId:       r.id,
-        participantId: r.participant_id,
-        joinCode:      r.join_code,
-        isModerator:   false,
-        pseudo,
-      })
-      if (onTableJoined) onTableJoined(r.id, r.participant_id, false)
+      if (r.new_reclaim_code) setAssignPending({ r, pseudo })
+      else finishAssign(r, pseudo)
     } catch (err) {
-      setAssignError(extractErr(err))
+      const msg = extractErr(err)
+      if (!reclaim && msg.includes('déjà utilisé')) {
+        setAssignError(PSEUDO_TAKEN_MESSAGE)
+        setAssignReclaimOpen(true)
+        requestAnimationFrame(() => assignReclaimRef.current?.focus())
+      } else {
+        setAssignError(msg)
+      }
     } finally {
       setAssignLoading(false)
     }
@@ -269,6 +294,16 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   // Arrivé en retard, séance déjà en débat, jamais inscrit au vote (D14) —
   // formulaire de rattrapage : rejoindre directement la table avec le code affiché en salle.
   if (status === 'debating_no_member') {
+    if (assignPending && assignPending.r.new_reclaim_code) {
+      return (
+        <ReclaimCodeDisplay
+          pseudo={assignPending.pseudo}
+          code={assignPending.r.new_reclaim_code}
+          continueLabel="Rejoindre la table →"
+          onContinue={() => finishAssign(assignPending.r, assignPending.pseudo)}
+        />
+      )
+    }
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
@@ -292,9 +327,16 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                 placeholder:text-gray-300 transition-shadow"
             />
+            <ReclaimCodeAccordion
+              ref={assignReclaimRef}
+              open={assignReclaimOpen}
+              onToggle={() => { setAssignReclaimOpen(o => !o); setAssignError(null) }}
+              code={assignReclaimCode}
+              onCodeChange={c => { setAssignReclaimCode(c); setAssignError(null) }}
+            />
             <button
               onClick={handleAssignLeastFilled}
-              disabled={assignLoading || !assignPseudo.trim()}
+              disabled={assignLoading || !assignPseudo.trim() || (assignReclaimOpen && !assignReclaimCode.trim())}
               className="w-full py-3 px-4 bg-white border border-indigo-300 hover:bg-indigo-50
                 disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-xl transition-colors"
             >

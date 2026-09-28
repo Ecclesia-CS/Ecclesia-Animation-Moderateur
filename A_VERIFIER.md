@@ -3032,3 +3032,21 @@ Migrations **appliquées sur dev uniquement** (`mnjqrlrrzrycuconlfqb`), à appli
 - [x] ~~Camps non nommés pour une asso~~ — **ouvert le 2026-09-28 à la demande de Jules, plafonné à 5 nommages par jour et par asso** : migration `supabase/migrations/20260928_chantier135c_nommage_camps_asso.sql` (**appliquée sur dev**, à appliquer sur prod après les deux migrations 135 ci-dessus) — table `organization_naming_uses`, RPC `org_consume_naming_quota`, `update_group_names` ajoutée à la liste blanche. Vérifié en base (5 acceptés puis refus, compteur indépendant par asso, accès croisé refusé) et au navigateur sur dev (asso de test, 8 votants simulés : « Analyser les camps » → analyse enregistrée, 2 camps, noms enregistrés, compteur « 4/5 restants aujourd'hui »).
 - [ ] **Nommage Gemini réel** pour une asso : sur dev, l'Edge Function `gemini-proxy` **n'est pas déployée** (404) — l'app a donc utilisé ses noms de secours (« Plutôt pour : … »). Manque d'environnement dev, antérieur et sans lien avec ce chantier ; à vérifier sur prod après merge (ou déployer `gemini-proxy` sur dev avec sa clé).
 - [ ] Un nommage est décompté même si Gemini échoue ensuite (le décompte précède l'appel). Choix assumé : simple, et 5/jour laisse de la marge.
+
+---
+
+## Chantier 140 — Portes d'entrée : nom déjà pris ⇒ code de rappel obligatoire (2026-09-28)
+
+Branche `claude/lancer-140-b126c2`. Migration `supabase/migrations/20260928_chantier140_portes_entree_identite.sql` — **appliquée sur dev** (`mnjqrlrrzrycuconlfqb`) le 2026-09-28, **pas sur prod**. Elle ajoute le helper interne `resolve_table_entry_pseudo` et réécrit `join_table`, `switch_table`, `claim_table_as_moderator`, `reclaim_moderator(text,text)` et `reclaim_moderator(text,text,text)` (base : `pg_get_functiondef` sur dev ; seules différences dev/prod constatées = `check_moderator_code` du chantier 135 dans les deux dernières). **Sur prod : appliquer après les trois migrations du 135.**
+
+Vérifié le 2026-09-28 :
+- [x] **En base dev** (transactions annulées, deux comptes simulés) : B qui tape le nom d'A → `reconnect_required`, siège d'A intact, aucun membre créé pour B ; mauvais code → « Code de rappel invalide » et toujours refusé ; bon code → B récupère le siège d'origine (même `participant_id`) ; membre qui retape un autre nom → assis sous son propre nom ; table sans séance → refus « nom déjà pris à cette table » ; helper non exécutable par `anon`/`authenticated`.
+- [x] **Au navigateur sur dev** (séance de test créée puis supprimée) — porte **code de table** (`#session/<code>` en débat, `JoinTableForm`) : nom pris sans code → message + accordéon ouvert, pas d'entrée ; code faux → refus ; bon code → entrée sous ce nom, 1 seul siège en base. Porte **« Assignez-moi une table »** : nom pris → accordéon ouvert ; nouveau nom → **écran du code de rappel** (jamais affiché avant sur cette porte). Porte **débat simple** (`DebateEntryForm`) : nom pris → accordéon ouvert ; bon code → entrée.
+
+Reste à vérifier :
+- [ ] **Porte modérateur par code de table** (« Je suis modérateur de cette table » + Code Ecclesia) avec le nom d'un autre : doit ouvrir l'accordéon et ne rien écrire — testé seulement par lecture du code (même helper que `join_table`), pas au clic (Code Ecclesia non disponible en session).
+- [ ] **Règle 4, idempotence modo** : un modérateur déjà en place qui repasse par la porte modérateur de sa propre table — aucun déplacement, aucune erreur. Inchangé par ce chantier (déjà assuré par `table_moderator_is`/`claim_moderator_status`), non rejoué.
+- [ ] Changement de table en cours de débat (`TableChangeModal`, `ChangeTableModal`) et en allocation (`AllocatingScreen`, `switch_table`) : non-régression, appelant déjà membre — non rejoué au clic.
+- [ ] Lien `#table/<code>` sans séance en contexte : avec l'accordéon ouvert et un nom **libre** mal tapé, le code est ignoré et une inscription neuve est créée sous ce nom (la séance n'est connue qu'après l'appel). Cas marginal, assumé.
+- [ ] **Non traité** — noms comparés en respectant la casse : « jules dupont » peut s'inscrire à côté de « Jules Dupont » (un doublon de ce type existe déjà sur prod). À trancher avec Jules.
+- [ ] **Sur prod, après merge** : rejouer au moins la porte code de table avec un nom pris.

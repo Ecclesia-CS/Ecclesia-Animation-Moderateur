@@ -44,4 +44,12 @@ export type TableResult = {
    * (pseudo + code) avant de rappeler `join_table`. Absent/`null` sinon.
    */
   reconnect_required?: boolean
+  /**
+   * Chantier 140 — pseudo effectif sous lequel l'appelant a été assis. Si
+   * l'appareil est déjà inscrit à la séance, c'est le pseudo de ce membre,
+   * quel que soit le nom tapé (un nom tapé ne prouve rien). Avec
+   * `reconnect_required`, c'est le nom demandé, déjà pris par un autre.
+   * Absent des réponses antérieures à la migration du chantier 140.
+   */
+  pseudo?: string
 }
