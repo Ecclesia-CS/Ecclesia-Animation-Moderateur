@@ -1426,7 +1426,10 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
     { icon: '🗳️', label: '1. Vote',
       description: "Vote sur les assertions, et propose les tiennes. Tu peux voir les résultats et les camps d'opinion à tout moment." },
     { icon: '📊', label: '2. Résultats',
-      description: 'À la clôture, les résultats restent consultables par tous.' },
+      // Chantier 135 — un sondage d'association n'est jamais rendu public.
+      description: session.organization_id
+        ? 'À la clôture, tu gardes l\'accès à tes résultats.'
+        : 'À la clôture, les résultats restent consultables par tous.' },
   ] : [
     { icon: '🏠', label: '1. Distanciel',
       description: "Si le vote à distance est ouvert, tu peux voter depuis chez toi avant le jour J." },
@@ -1584,7 +1587,8 @@ function VoteToolsPanel({ session, memberPseudo, onClose, onOpenNotes, onOpenMod
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
   const collabUrl  = session.doc_collab_url
-  const hasCollab  = !!(session.join_code || collabUrl)
+  // Chantier 135 — pas de document collaboratif dans une séance d'association.
+  const hasCollab  = !session.organization_id && !!(session.join_code || collabUrl)
 
   function handleCollabClick() {
     onClose()

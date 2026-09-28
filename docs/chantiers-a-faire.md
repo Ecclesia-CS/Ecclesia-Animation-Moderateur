@@ -8,7 +8,13 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141).
 
 ## Chantiers en cours
 
-- **Chantier 138** — branche `claude/chantier-138-762719` — `src/screens/SuperadminScreen.tsx` (vue « Tables » en lecture seule, retrait de `TableHistoryRow`), docs — 2026-09-28. ⚠️ Croise 139 (même onglet Groupes).
+_(aucun actuellement)_
+
+> **Le 2026-09-28, le chantier 138 est mergé dans `dev`** (vue « Tables (consultation) » du superadmin, lecture seule, toutes phases, remplace l'accordéon « Historique des tables » du 130) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 138. Vérifié au navigateur sur dev. Aucune migration. Le chantier 139 peut maintenant partir : il touche le même onglet Groupes.
+
+> **Le 2026-09-28, le chantier 137 est mergé dans `dev`** (D suppression d'un participant, E poubelle du bannissement, F vote qui ne se rouvre plus au reload) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 137. Sa migration (`20260928_chantier137_delete_session_member_admin`, qui change aussi la contrainte `assertions.member_id`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, après celles du 134 et du 135.
+
+> **Le 2026-09-28, le chantier 135 est mergé dans `dev`** (comptes associations externes : débat simple + sondage, espace `#asso`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 135 ; entrée « en cours » retirée au merge. Ses **trois** migrations (`20260926_chantier135_comptes_associations`, `20260926_chantier135b_refus_asso_explicite`, `20260928_chantier135c_nommage_camps_asso`) sont appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 134.
 
 > **Le 2026-09-26, le chantier 132 est fait** — outil "proposer un vote" côté modérateur, totalement séparé du Bloc C. Voir `docs/chantiers.md` et `A_VERIFIER.md`. Migration appliquée sur dev uniquement, à réappliquer sur prod au merge vers `main`.
 
@@ -232,6 +238,8 @@ Périmètre de fichiers : large et à définir en démarrant — au minimum `ses
 
 #### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134
 
+> 🟡 **Livré le 2026-09-28, mergé dans `dev` le même jour, pas dans `main`** (branche `claude/chantier-135-external-users-592b48`, supprimée) — conception et arbitrages : [`docs/chantier-135-conception.md`](./chantier-135-conception.md) ; détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 135, mode d'emploi : [`docs/mode-emploi-associations.md`](./mode-emploi-associations.md). Arbitrage final de Jules : débat simple **et** sondage, sans questionnaire, une table par débat, 3 séances en cours, expiration facultative.
+
 **Consigne de Jules** : « Discussion à faire avec Opus : le but est de rendre possible des fonctionnalités pour des associations externes à Ecclesia. Notamment, dans un premier temps, deux fonctionnalités : le sondage (faire une séance de vote, mais ne pas faire de débat derrière) et la création d'une table de modérateur (un modérateur, avec des participants pour gérer la séance, et la possibilité d'avoir une table de participant tout court, mais sans tout ce qui est lié au vote). »
 
 Confirmé par Jules le 2026-09-25 : **134 d'abord**, 135 ensuite. Ce chantier reprend deux des trois modes du 134 (sondage, débat simple) mais change complètement d'échelle : ce n'est plus une option dans le menu du superadmin d'Ecclesia, c'est une ouverture à des **organisations tierces**, ce qui implique probablement :
@@ -258,6 +266,8 @@ Périmètre de fichiers : à définir entièrement une fois 134 tranché — cha
 
 #### 137 — Petits correctifs : suppression d'un participant, icône du bannissement, vote qui se réaffiche au reload
 
+> ✅ **FAIT le 2026-09-28** — détail dans `docs/chantiers.md` ; l'énoncé ci-dessous est conservé tel que dicté. Un écart au cahier : le lien `participants` ↔ membre se fait par `user_id` + tables de la séance (aucune FK), et `assertions.member_id` a dû devenir nullable pour conserver les assertions sans auteur.
+
 Trois sous-tâches indépendantes, sur des fichiers distincts.
 
 **D — Croix rouge de suppression dans l'accordéon participants (superadmin).** **Consigne de Jules** : « Vue superadmin : dans l'accordéon participant, le superadmin doit avoir une croix rouge pour pouvoir supprimer un participant de la base de donnée. » Précisé en conversation : « oui bonne proposition », « une confirmation à donner à n'importe quelle phase ».
@@ -276,6 +286,8 @@ Trois sous-tâches indépendantes, sur des fichiers distincts.
 Périmètre de fichiers : `SuperadminScreen.tsx` + nouvelle migration (D), `ParticipantsTable.tsx` (E), `ParticipantView.tsx`, éventuellement `TableVoteModal.tsx` (F).
 
 #### 138 — Historique des tables : même vue que l'onglet Groupes, accessible dès que les tables existent
+
+> ✅ **Fait et mergé dans `dev` le 2026-09-28** — voir `docs/chantiers.md`. Détail conservé ci-dessous pour mémoire.
 
 **Consigne de Jules** : « L'historique des tables dans la vue superadmin : j'aimerai que ce soit exactement la même chose que l'onglet groupe en fait : quelque chose qui permet de voir les tables, et toutes les informations pertinentes sur tout le monde. Actuellement, ce n'est qu'un test qui trace l'historique des tables. » Précisé en conversation : « tu peux enlever l'accordéon actuel et le remplacer par ce dont tu parles. Je veux que les tables soient accessibles dans toutes les phases une fois qu'elles ont été créées. »
 

@@ -57,7 +57,7 @@ Contrainte : `UNIQUE(session_id, member_id)`.
 **Chantier 19 (G3)** : onboarding réduit de 6 à 3 questions. `moderator_pref`, `group_size_pref` et `openness_to_diff` sont **supprimées** ; `ecclesia_experience` est passée de `text` (`never`|`once_twice`|`several_times`) à `boolean` (« As-tu déjà fait un débat Ecclesia ? »). Chaque colonne restante alimente une règle de l'allocation — ne pas en ajouter sans usage algorithmique.
 
 ### `assertions` — Bloc C
-`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
+`id`, `session_id` (CASCADE), `member_id?` (**nullable, SET NULL→session_members** depuis le chantier 137-D : une assertion survit à la suppression de son auteur par le superadmin, auteur détaché), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
 
 ### `assertion_votes` — Bloc C
 `id`, `assertion_id` (CASCADE), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `vote` (`agree`|`disagree`|`pass`), `created_at`

@@ -139,6 +139,47 @@ export async function regenerateReclaimCodeAdmin(
   return data as { pseudo: string; new_reclaim_code: string }
 }
 
+/** Chantier 137-D — compte rendu de la suppression d'un membre. */
+export interface DeleteMemberResult {
+  pseudo: string
+  was_moderator: boolean
+  tables_now_leaderless: number
+  votes_deleted: number
+  assertions_detached: number
+  pairings_dissolved: number
+  analysis_rows_removed: number
+  seats_removed: number
+}
+
+/**
+ * Chantier 137-D — le superadmin supprime un participant de la séance, à toute
+ * phase. Ses assertions sont conservées (auteur détaché), le reste disparaît ;
+ * une table qu'il animait repasse sans animateur (`delete_session_member_admin`).
+ */
+export async function deleteSessionMemberAdmin(
+  password: string,
+  sessionId: string,
+  memberId: string
+): Promise<DeleteMemberResult> {
+  const { data, error } = await supabase.rpc('delete_session_member_admin', {
+    p_password:   password,
+    p_session_id: sessionId,
+    p_member_id:  memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+  const d = (data ?? {}) as Partial<DeleteMemberResult>
+  return {
+    pseudo:                d.pseudo ?? '',
+    was_moderator:         d.was_moderator === true,
+    tables_now_leaderless: d.tables_now_leaderless ?? 0,
+    votes_deleted:         d.votes_deleted ?? 0,
+    assertions_detached:   d.assertions_detached ?? 0,
+    pairings_dissolved:    d.pairings_dissolved ?? 0,
+    analysis_rows_removed: d.analysis_rows_removed ?? 0,
+    seats_removed:         d.seats_removed ?? 0,
+  }
+}
+
 /**
  * Chantier 116 — self-service : le participant fait réapparaître SON code.
  * Le code étant haché (bcrypt, `reclaim_code_hash`, depuis le chantier 93),
