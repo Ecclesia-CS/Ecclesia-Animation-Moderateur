@@ -91,6 +91,8 @@ Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rap
 
 **Limite connue, assumée** : les camps d'un sondage ne se recalculent que quand le superadmin relance l'analyse (le calcul tourne dans son navigateur et exige son mot de passe). Le décompte des votes, lui, est à jour à chaque ouverture de l'écran de résultats. Une actualisation automatique serait un chantier à part.
 
+🤖 **Complément 141f (2026-09-29, `lot-f.md`, Code Ecclesia saisi par Jules)** : point 4 ✅ — débat simple, « Je suis le modérateur » + Code Ecclesia → `ModeratorView` directe, `is_moderator = true`, `table_has_moderator = true`. Point 5 non rejoué sur une séance de type `debate` (même RPC que le chantier 110, vérifiée ci-dessus). Vaut pour dev, pas pour prod.
+
 ## Chantier 131 — bouton "sujet suivant" + tag de sujet à la prise de parole (2026-09-26)
 
 **Vérifié en base**, sur dev, par transaction jetable (`BEGIN…ROLLBACK`, `auth.uid()` simulé via `set_config('request.jwt.claims', …)`, aucune ligne laissée) :
@@ -396,6 +398,8 @@ Dicté par Jules en chat, pas dans la file d'attente. Constat de départ : le ra
 - Recalcul d'allocation après une déclaration en `allocating` : vérifier que le modérateur fraîchement déclaré est bien pris en compte par `get_allocation_inputs`/`runAllocation` au clic sur "Recalculer" (neutralité tranchée par Jules — pas de filtrage ajouté côté algorithme côté SQL, mais jamais rejoué de bout en bout avec une vraie séance à plusieurs membres).
 - Les échecs d'animation RLS décrits dans l'audit (actions du modérateur qui échouaient silencieusement sur la table où il était réellement assis) : conséquence logique du fix, mais pas rejouée action par action (`grant_floor`, `end_turn`…) sur la table 2 du scénario 1 ci-dessus.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `docs/rapports-tests-141/lot-f.md`, Code Ecclesia saisi par Jules) : « Me déclarer modérateur de la séance » depuis une table déjà animée (Bloc C) → « Tu es marqué·e modérateur pour cette séance », `is_moderator` passe à `true`, `table_assignments`, `created_by` et `active_moderator_member_id` de la table inchangés. Vaut pour dev, pas pour prod.
+
 ## Chantier 111 (2026-09-21) — Bouton « Assignez-moi une table » (écart C5 de l'audit 87/101) — ✅ vérifié en base et au navigateur réel
 
 **Constat préalable, avant d'écrire du code** : transaction jetable en base (`BEGIN`, `join_table` appelé avec un faux `auth.uid()` simulé sur une table réelle rattachée à une séance `debating`, `ROLLBACK`) — l'écart C5 décrit par l'audit du 2026-09-20 (« un retardataire qui rejoint uniquement une table n'a pas de ligne `session_members` ») était **déjà refermé** par les chantiers 66/67 (2026-09-02/03) : `join_table` → `sync_table_assignment` inscrit automatiquement `session_members` + `table_assignments`. Seul manquait réellement le bouton qui évite de demander un code à un voisin (arbitrage 3 de Jules).
@@ -486,6 +490,8 @@ Nouvelle RPC `reclaim_table_as_moderator(table_id, creation_code)` : Code Eccles
 **Non vérifié à l'écran** (pas de vrai Code Ecclesia pour cette session) : le succès effectif du formulaire (transfert réel de `created_by`/`active_moderator_member_id` déclenché depuis l'UI, pas seulement via SQL direct) — couvert indirectement par la vérification SQL directe ci-dessus, qui exerce exactement le même code SQL que la RPC appelée par le formulaire. Également non rejoués : le toast de notification côté ancien titulaire (`TableContext.tsx`, nécessite deux navigateurs simultanés sur la même table) ; la reprise sur une table rattachée à une séance (`active_moderator_member_id` transféré vers le `session_members` du repreneur, pas seulement `NULL` comme dans le test navigateur ci-dessus, qui portait sur une table autonome) — ce cas-là est cependant couvert par la vérification SQL directe (scénario 2, table autonome) et par le mécanisme déjà vérifié séparément au chantier 106 (lecture de `active_moderator_member_id` par `TableContext`).
 
 `tsc --noEmit` et `npm run build` passent sans erreur avec ces changements.
+
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `lot-f.md`, Code Ecclesia saisi par Jules) : « Reprendre l'animation de cette table » depuis un participant assis → arrivée directe sur `ModeratorView` sans rechargement ; `created_by` et `active_moderator_member_id` passent à l'appelant, l'ancien modérateur (Bloc C) garde `is_moderator = true`. Vaut pour dev, pas pour prod.
 
 ## Chantier 105 (2026-09-20) — restriction de colonne `assertions` (chantier 51) — ✅ vérifié en base, cause non tranchée mais sans conséquence
 
@@ -1269,6 +1275,8 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
 
 - [ ] **Table `leaderless` ciblée volontairement — devient modérée** — même écran ou `JoinTableScreen`
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (141d, `lot-d.md`) : bascule `leaderless=false` ✅. ⚠️ A1 : la vue modérateur ne s'affiche pour le preneur qu'après rechargement. Cas nominal, refus « déjà modérée » (modérateur physique) et refus « autre séance » du chantier 68 ✅ également (mêmes conditions). Vaut pour dev, pas pour prod.
+
   1. Table créée « sans admin » (`leaderless = true`, jamais réclamée par personne).
   2. Prise en charge par ce chemin (case cochée, code de cette table, nom, Code Ecclesia).
   3. Attendu : succès — la table bascule `leaderless = false` en base, comme une désignation Bloc C (chantier 64). Un participant resté sur `ParticipantView` pour cette table doit basculer sur la vue modérateur pour le preneur, et perdre la proposition d'auto-gestion par file (plus de tentative silencieuse de `claimFloor()`) pour les autres.
@@ -1307,12 +1315,15 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
 
 - [ ] **2026-09-01 — Bouton "Résultats publics" par séance (superadmin)** — `src/screens/SuperadminScreen.tsx` (`SessionCard`)
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Bascule privé → public ✅ (`results_public=true` en base). Vaut pour dev, pas pour prod.
+
   Sur chaque séance `closed` de la liste superadmin (écran de liste, avant d'ouvrir le détail) : pastille bascule "Résultats privés" (gris) / "Résultats publics" (vert) à côté de la description. Appelle `set_session_results_public` (mot de passe déjà en session), mise à jour optimiste de la liste avec rollback si l'appel échoue (message d'erreur affiché sous la pastille). Nommage tranché sans consulter Jules davantage : "Résultats publics" plutôt que sa proposition "Visible post débat" — le libellé décrit l'effet (qui peut voir quoi) plutôt que le moment (déjà capturé par le badge de phase "Clôturée" juste au-dessus), cohérent avec le style des autres badges d'état de la carte.
 
   **Non testable en session headless** : aucun mot de passe superadmin disponible. Uniquement vérifié : `tsc -b`, `npm test` (94 passants), `npm run build`, chargement de l'écran d'accueil sans erreur console. Le comportement d'échec pré-migration (colonne absente) a été vérifié indirectement via la modale "Anciennes séances" ci-dessus, qui tape la même colonne.
 
   **Test minimal (mot de passe superadmin requis, migration appliquée au préalable)** : ouvrir une séance close depuis la liste, cliquer la pastille → passe à "Résultats publics" sans reload ; recharger la page → l'état persiste (relu depuis `sessions.results_public`) ; cliquer à nouveau → repasse à "Résultats privés". Vérifier qu'aucune pastille n'apparaît sur les séances non closes.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `lot-f.md`, côté visiteur) : modale « Anciennes séances » liste une séance `closed` avec `results_public=true`, pas une `closed` non publique ni une `post_voting` publique. Vaut pour dev, pas pour prod.
 
 ## Colonnes annexes de sessions (chantier 58)
 
@@ -1344,12 +1355,16 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
 
 - [ ] **Chantier 54 — non-régression : le superadmin peut toujours supprimer une table** *(migration SQL requise, voir section « Migration SQL en attente d'application »)*
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Suppression d'une table vide par le superadmin avec confirmation ✅, autres tables intactes. Vaut pour dev, pas pour prod.
+
   **Pourquoi ce test** : ce chantier a retiré au modérateur le droit RLS de supprimer une table (`tables_delete_moderator`). Le superadmin passe par un chemin entièrement différent (RPC `SECURITY DEFINER` `delete_table_admin`, indépendante de RLS) qui ne doit pas être affecté — ce test le confirme.
 
   1. Onglet 🪑 Tables (ou l'écran équivalent listant les tables d'une séance), créer une table de test (bouton "+ Sans admin" ou via "Créer une table") puis la supprimer via le bouton "Supprimer" → confirmer dans la modale ("Supprimer définitivement la table ... ? Tous les participants, tours et files seront supprimés.") → la table disparaît de la liste, sans erreur.
   2. Vérifier que les tables restantes de la séance ne sont pas affectées (composition, badges de seuil inchangés).
 
 - [ ] **2026-09-02 — Chantier 50 — onglet 🪑 Tables sous les policies self-only** — `src/screens/SuperadminScreen.tsx` (`loadGroups`, `loadTableAssignmentRows`), `src/lib/sessions.ts` (`listTableAssignmentsAdmin`) *(migration SQL requise, voir plus haut)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Compositions/pseudos complets, aucun `?`, aucun message de repli en console, polling 10 s (mise à jour + horodatage) ✅. Vaut pour dev, pas pour prod.
 
   **Ce qui change** : la vue Groupes lisait `table_assignments` en direct avec une **jointure imbriquée PostgREST** (`session_members!member_id(pseudo, is_moderator)`), qui traversait les deux tables permissives d'un coup. Sous les policies self-only, PostgREST **ne renvoie pas d'erreur** dans ce cas : l'objet imbriqué devient `null` et les listes de membres se videraient en silence. La lecture passe désormais par la RPC `list_table_assignments_admin`. Le superadmin n'étant membre d'aucune séance, il perd aussi tous les événements Realtime sur `table_assignments` : un polling de secours de 10 s prend le relais (l'abonnement Realtime est conservé — il resservira si le superadmin est un jour membre, et il ne coûte rien).
 
@@ -1381,6 +1396,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
 
 - [ ] **2026-09-01 — Chantier 38 (2ème passe) — scroll qui remonte en haut sur la fiche séance** — `src/screens/SuperadminScreen.tsx` (`SessionDetail`)
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : `scrollY` stable ~45 s sur l'onglet Tables avec polling actif ✅ (données factices, pas de données réelles). Vaut pour dev, pas pour prod.
+
   **Retour de Jules** : « toutes les 10 secondes ou moins » l'écran superadmin « nous remmène en haut de la page » — constaté sans aucune session Claude Code active, sur tous les onglets superadmin (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse), sans clignotement visible. Ce retour infirme l'hypothèse Vite HMR retenue par la 1ère passe (voir "Historique / notes de session" plus bas) — diagnostic repris de zéro.
 
   **Cause trouvée** : `SessionDetail` a un seul état `loading` (posé par `load()`, la fonction qui charge "Tables rattachées"/"Tables disponibles" — polling 15 s depuis le chantier 35, + rappelée par le channel Realtime `tables` sur tout événement, + par tout changement de filtre de date). Ce `loading` gate **tout le contenu de la fiche séance** (ligne ~2064 : `{loading ? <Chargement…/> : <>…tous les onglets…</>}`), pas seulement la section des tables. À chaque déclenchement — donc au minimum toutes les 15 s, parfois plus souvent via Realtime — la totalité du contenu affiché (quel que soit l'onglet actif) est remplacée par un petit spinner le temps de l'appel réseau, ce qui effondre la hauteur du document ; le navigateur clampe alors `scrollY` à la nouvelle hauteur (beaucoup plus faible), et **ne restaure jamais** la position de scroll quand le contenu revient. D'où : ça touche tous les onglets (le gate est en dehors du switch d'onglet), ça n'a besoin d'aucune session Claude Code (bug 100 % applicatif, indépendant du HMR), et ça ne "clignote" pas franchement (le spinner est bref, ce qui se voit surtout c'est le saut de scroll).
@@ -1394,6 +1411,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   **Reste à vérifier par Jules en conditions réelles** : ouvrir une séance avec du contenu réel (plusieurs tables, participants, assertions), scroller loin dans la page, laisser tourner ≥ 30-40 s sans toucher au clavier/souris → la page ne doit plus jamais remonter toute seule, sur aucun des 4 onglets. Si le symptôme persiste malgré ce correctif, il reste un canal Realtime supplémentaire à investiguer (le channel `session-tables:<id>` ci-dessus a pu masquer une deuxième cause si Realtime déclenchait `load()` bien plus souvent que 15 s en usage réel — à confirmer avec le compteur d'appels réseau du vrai navigateur, impossible à observer sans données réelles).
 
 - [ ] **2026-08-01 — Chantier 33 — gestion des modérateurs par table** — `SuperadminScreen.tsx`, `AddModeratorControl`, onglet 🪑 Tables *(migration SQL requise, voir ci-dessus)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Désignation par nom (autocomplete), nom inexistant refusé, « Retirer » ✅ ; glisser-déposer réel non joué. Vaut pour dev, pas pour prod.
 
   **Livré (4 points)** :
   1. Accordéon "Allocation des tables" déplacé de l'onglet 🟢 En direct vers l'onglet 🪑 Tables.
@@ -1413,16 +1432,22 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   **Hypothèse non tranchée avec Jules** : quand plusieurs tables attendent un modérateur, l'auto-attachement choisit toujours la première dans l'ordre des numéros — comportement arbitraire assumé, à confirmer si un autre ordre était attendu.
 
 - [ ] **Chantier 37 — Point 1 : bouton "Répartir en tables" retiré (phase voting)**
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Bouton « Répartir en tables » absent en `voting` ✅ ; fusion IA auto non jouée (Gemini absent de dev). Vaut pour dev, pas pour prod.
   Mergé sur `main` (`cf7083d`), aucune migration.
 
   **Test minimal** : séance en phase `voting`, superadmin → vérifier l'absence du bouton "Répartir en tables". Avec le toggle "Fusionner auto en fin de vote" (`ai_auto_merge_<id>`) activé, faire passer la séance en `allocating` → vérifier que la fusion IA s'est bien déclenchée (log `LLMModerationPanel`), puisque c'est désormais ce passage de phase qui la déclenche (au lieu du bouton supprimé).
 
 - [ ] **Chantier 37 — Point 2 : bug de réassignation modérateur (onglet Membres)**
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Cocher « modérateur » sur un membre de la table déjà pourvue le déplace sur la table sans modérateur ✅. Vaut pour dev, pas pour prod.
   Mergé sur `main` (`cf7083d`). Migration `supabase/migrations/20260803_chantier37_set_member_moderator_seat.sql` **déjà appliquée et vérifiée par Jules côté Supabase** (`set_member_moderator` confirmée contenir la logique de placement) — seul le test manuel ci-dessous reste à faire.
 
   **Test minimal** : séance avec ≥ 2 tables animées, une avec modérateur déjà assis, une sans. Onglet Membres → cocher "modérateur" sur quelqu'un assis à la table déjà pourvue → vérifier dans l'onglet Tables qu'il apparaît maintenant assis (déplacé) sur la table sans modérateur.
 
 - [ ] **Chantier 36 — Point 1 : modérateur affiché en double (onglet 🪑 Tables)**
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Modérateur affiché une seule fois (badge, pas en puce) ✅. Vaut pour dev, pas pour prod.
   Mergé sur `main` (`0c98775`), aucune migration.
 
   **Test minimal** (mot de passe superadmin requis) : séance `allocating`/`debating` avec une table animée dont le modérateur est déjà assis → vérifier l'absence de doublon (badge "🎙️ Modérateur : X" seul, plus jamais aussi en puce glissable ordinaire dans la liste des membres en dessous). Cas modérateur en surplus (assis ailleurs comme participant ordinaire, chantier 25b) → vérifier qu'il n'apparaît que dans son propre badge, jamais en puce.
@@ -1433,6 +1458,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   Voir la section dédiée **"Synchronisation temps réel (chantier 35)"** plus bas — nécessite deux onglets/navigateurs en parallèle, regroupée à part pour ne pas la faire deux fois.
 
 - [ ] **2026-09-01 — Chantier 39 — renommage "Phase 0" + suppression de la phase `questionnaire`** — `SuperadminScreen.tsx` (`PHASE_LABEL`, `PHASE_SEQUENCE_LABELS`, `PhaseBar`, `handlePhaseChange`) *(migration SQL requise, voir ci-dessus — mais le comportement décrit ici ne dépend pas de son application, seule la définition de `sessions_phase_check`/`set_session_phase` en base en dépend)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Numérotation/`PhaseBar` déjà vérifiés par 141b (`lot-b.md`). Vaut pour dev, pas pour prod.
 
   **Livré (3 points)** :
   1. Le badge de phase et le `PhaseBar` de la fiche séance affichent **"Phase 0"** au lieu de "Brouillon" pour la phase `draft`.
@@ -1477,6 +1504,10 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   4. Vérifier qu'aucune des deux limites ne s'est déclenchée par erreur pendant le test 1 (usage nominal) une fois les tests 2 et 3 terminés — c'est-à-dire que la fenêtre de 60 s du test 2 n'a pas laissé le compteur de l'utilisateur de test dans un état qui bloquerait un usage normal ensuite (attendre 60 s après le test 2 avant de relancer un usage nominal si besoin).
 
 - [ ] **2026-09-02 — Chantier 65 — non-régression superadmin sur une séance en brouillon** — `src/screens/SuperadminScreen.tsx` *(migration SQL requise, voir "Migration SQL en attente" ci-dessus)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Superadmin : création avec titre/description/URL doc, passage `draft → pre_voting` ✅ ; rattacher/détacher une table non joué. Vaut pour dev, pas pour prod.
+
+  🤖 **Complément 141f (2026-09-29, `lot-f.md`)** : « rattacher/détacher une table » est **obsolète** — le chantier 95 a supprimé ces deux actions de l'interface (RPC restées en base, sans appelant). Une séance `draft` n'apparaît pas dans « Séances en cours » sur l'accueil ; sa fiche superadmin s'ouvre normalement. Vaut pour dev.
 
   **Pourquoi ce test** : ce chantier ferme l'accès à une séance `draft` pour tout le monde côté inscription (`register_session_member`, `confirm_attendance`) — le superadmin, lui, doit continuer à pouvoir préparer sa séance normalement, puisque tout son travail passe par des RPC à mot de passe séparées, jamais par ces deux fonctions.
 
@@ -1962,6 +1993,7 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
      🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : table de test avec `created_by` = l'uid de l'appelant (donne `ModeratorView` sans passer par le Code Ecclesia, mécanisme légitime — c'est le chemin « créateur physique » documenté dans `CLAUDE.md`) ; couleur de texte lue par `getComputedStyle` pendant la frappe : `rgb(17, 24, 39)` (gris foncé) sur fond blanc. Confirme le correctif. Vaut pour dev, pas pour prod.
   3. **session_members (point 2, nécessite la migration appliquée)** : sur une séance de test en phase `debating`, ajouter une personne sans téléphone depuis `ModeratorView` → vérifier en base qu'une ligne `session_members` est créée pour elle (`joined_phase = 'debating'`, `attending_in_person = true`, `user_id` distinct du modérateur), en plus de sa ligne `participants`. Vérifier aussi qu'ajouter quelqu'un portant le même pseudo qu'un membre déjà réellement inscrit à la séance ne modifie **pas** la ligne existante de ce membre. Sur une table standalone (sans séance), vérifier qu'aucune ligne `session_members` n'apparaît.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `docs/rapports-tests-141/lot-f.md`) : point 3 — ajout d'une personne sans téléphone : ligne `session_members` créée (`joined_phase='debating'`, `attending_in_person=true`, `user_id` distinct du modérateur, code haché) ; même pseudo qu'un membre réel : sa ligne reste inchangée et aucun code n'est émis ; table sans séance : aucune ligne `session_members`. Vaut pour dev, pas pour prod.
 
 ## Validé
 
@@ -2932,6 +2964,8 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 
 `tsc --noEmit` propre, `npm run build` réussi, suite de tests (`vitest run`) : 119 passés / 4 skip pré-existants, aucune régression.
 
+🤖 **Complément 141f (2026-09-29, `lot-f.md`)** : le chemin C3 (`claim_table_as_moderator`, formulaire de secours) est couvert par équivalence — refus « table déjà modérée » (Bloc C) et « code d'une autre séance » vérifiés à l'écran sur `#session/<code>` et `#table/<code>`. Les succès de C1 (reclaim pré-vote) et C2 (réouverture en `allocating`) restent à vérifier. Vaut pour dev.
+
 ## Chantier 113 — Fusionner les deux boutons « modérateur » du panneau Outils (2026-09-21)
 
 **Front pur, aucune RPC touchée.** `claim_moderator_status` et `reclaim_table_as_moderator` restent inchangées ; seule la couche UI fusionne les deux entrées « Me déclarer modérateur » (chantier 73) et « Je suis le modérateur de cette table » (chantier 110) du panneau Outils en une seule entrée « Modérateur », dont la modale (`ModeratorActionModal.tsx`, nouveau) explique les deux actions avant de choisir. `ReclaimTableModeratorModal.tsx` supprimé (plus utilisé nulle part). `ModeratorClaimModal.tsx` **conservé** : `VoteScreen.tsx` (`VoteToolsPanel`, phase de vote, avant qu'aucune table de débat n'existe) l'utilise indépendamment — pas de doublon à ce stade, donc hors périmètre de ce chantier.
@@ -2944,6 +2978,8 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 **Non testé — RPC jamais soumises, volontairement** : la table de test utilisée (`C94A01`) est une séance partagée entre sessions Claude Code (visible dans `EntryScreen`), déjà animée par quelqu'un — je n'ai pas voulu risquer de déloger un modérateur réel ou de fausser ses données en soumettant `claim_moderator_status`/`reclaim_table_as_moderator` avec le vrai Code Ecclesia. **Reste à vérifier humainement, sur une séance jetable** :
 - Soumettre réellement les deux actions (avec le vrai Code Ecclesia) et confirmer les écrans de succès affichés (`✅ Tu es marqué·e modérateur…` / `🎙️ Tu animes maintenant cette table.`).
 - Le cas où le bouton « Modérateur » ne doit proposer **que** l'option "reprendre l'animation" (table sans `session_id`, table autonome) et le cas où il doit disparaître entièrement (déjà modérateur ET table sans séance) — ces deux conditions reprennent celles des anciens boutons séparés, non retestées isolément faute de table autonome disponible sur l'environnement partagé.
+
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `lot-f.md`) : sur une table autonome (sans séance), participant simple : un seul bouton « Modérateur », la modale ne propose que « Reprendre l'animation de cette table ». Le cas « bouton masqué » reste non joué (inatteignable côté `ParticipantToolsButton` pour un modérateur physique). Vaut pour dev, pas pour prod.
 
 ## Chantier 114 — Onboarding : clarifier que « passif » n'est pas un engagement définitif (2026-09-21)
 
@@ -3163,6 +3199,8 @@ Vérifié le 2026-09-28 :
 
 Reste à vérifier :
 - [ ] `add_offline_participant` (modérateur qui ajoute quelqu'un sans téléphone) : refuse désormais un nom déjà assis à la table — non rejoué au clic.
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (141d, `lot-d.md`) : nom d'une *autre* personne assise (autre casse) ✅ refusé. ⚠️ A2 : le nom **du modérateur lui-même** (autre casse) est accepté et crée un second participant (`user_id IS DISTINCT FROM auth.uid()` dans la garde). Vaut pour dev.
 - [ ] **Sur prod, après merge** : contrôler le renommage du doublon de la séance du 03/06 et rejouer une inscription avec une autre casse.
 - [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). **Devenu le chantier 142** (`docs/chantiers-a-faire.md`, décision de Jules du 2026-09-28).
 
@@ -3184,6 +3222,8 @@ Reste à vérifier :
 - Données de test purgées en base dev (1 membre, 1 participant, 1 affectation).
 - [x] Cas modérateur, joué avec le vrai Code Ecclesia saisi par Jules (nom neuf `Test143 Modo`, code de table `C6EABF`, case cochée) : code accepté, puis refus explicite « Cette table a déjà un modérateur — choisis-en une autre ou contacte le superadmin » (la seule table de `F1223D` avait déjà un modérateur) ; rien n écrit en base.
 - [ ] **Non rejoué** : la prise effective de modération d une table libre (séance de test avec une table sans modérateur nécessaire) ; l entrée par code de table sans modérateur ; un mobile réel (Messenger in-app).
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, Code Ecclesia saisi par Jules) : prise effective de modération d'une table `leaderless` ✅ (`leaderless=false`, modérateur assis). ⚠️ anomalie A1 : le preneur arrive d'abord sur la vue participant, la vue modérateur n'apparaît qu'après rechargement. Vaut pour dev, pas pour prod.
 
   🤖 **Partiellement vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : « entrée par code de table sans modérateur » ✅ — table `leaderless` de test, `#session/<code>` → un seul champ « Prénom Nom » → code de table saisi sans cocher la case modérateur → accepté, écran du code de rappel affiché. **Reste non rejoué** (Code Ecclesia requis) : la prise effective de modération d'une table libre, et le mobile réel. Vaut pour dev, pas pour prod.
 - [ ] **Sur prod, après merge** : contrôle visuel de l'écran « Débat en cours » d'un retardataire.

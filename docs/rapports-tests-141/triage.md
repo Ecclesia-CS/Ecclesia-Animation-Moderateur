@@ -52,6 +52,7 @@ Les items qui passent reçoivent dans `A_VERIFIER.md` « vérifié automatiqueme
 | **141b** — superadmin, phases et séances | `PhaseBar` et phases (l. 1007-1012), chantiers 128, 130/138, 134 (points 1-3), 137-D (points d et g), 135. | Superadmin, saisi par Jules |
 | **141c** — superadmin, modérateurs et groupes | Désignation de modérateur et onglet Groupes (139, 106, 109, 117, 118), allocation. | Superadmin |
 | **141d** — anciens chantiers + portes Code Ecclesia | Anciens jalons 33-39, 50, 54, 65 (côté superadmin), 72, 74 ; scénarios du 68 (l. 1224-1269) ; portes modérateur (107, 110, 140, l. 3095-3098) ; 134 point 4. | Superadmin **et** Code Ecclesia |
+| **141f** — reprise du « non joué » faisable du 141d | Voir `docs/chantiers-a-faire.md` § 141f : 74 pt 3, 113, 46 visiteur, anomalie A1 ; 65 (rattacher/détacher), 108, 134 pt 4 ; refus Bloc C, `#table/`, `EntryScreen`, 107/110, idempotence modo. | Sans, superadmin, puis Code Ecclesia |
 | **141e** — consolidation | Fusionner les rapports `lot-*.md` en un rapport unique trié par gravité pour l'autre conversation ; nettoyer `A_VERIFIER.md` ; lister ce qui reste à faire par un humain (glisser-déposer, Gemini réel, expiration, points « Sur prod après merge ») ; retirer l'entrée de `docs/chantiers-a-faire.md` et consigner dans `docs/chantiers.md`. | Aucun |
 
 Ordre conseillé : 141a → 141b → 141c → 141d → 141e (141a n'a besoin de personne ; 141e vient en dernier). 141b, c et d peuvent tourner dans n'importe quel ordre entre elles.

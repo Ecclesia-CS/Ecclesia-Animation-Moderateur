@@ -8,7 +8,6 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
-- **141 — Passe de vérification automatisée de `A_VERIFIER.md`** · branche `claude/chantier-141-automated-tests-a071a2` · démarré le 2026-09-28 · fichiers touchés : `A_VERIFIER.md` (mentions « vérifié automatiquement sur dev »), nouveau dossier `docs/rapports-tests-141/` ; **aucun changement de `src/`**. Plan en 5 conversations (1 sans mot de passe, 3 superadmin, 1 consolidation). Fait par lots : ne retirer cette entrée qu’à la fin de la conversation 5. **2026-09-29 : 141a, b, c faits ; 141e a produit un rapport consolidé partiel (`docs/rapports-tests-141/rapport-consolide.md`) ; reste 141d (superadmin + Code Ecclesia, saisis par Jules), puis compléter le rapport et retirer cette entrée.**
 
 > **Le 2026-09-28, le chantier 142 est mergé dans `dev`** (document collaboratif : écrire ses sources exige d'être inscrit sur l'appareil ou de donner nom + code de rappel ; identité = `session_members`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 142. Vérifié au navigateur sur dev (vote, table, débat simple, modérateur). Sa migration (`20260928_chantier142_collab_identite_membre`, qui **supprime** `register_collab_pseudo` et la table `collab_session_users`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 140/140b (elle utilise `pseudo_key`).
 
@@ -358,6 +357,30 @@ Périmètre de fichiers : large, à définir après l'audit — au minimum `Entr
 - Une vérification faite sur dev ne vaut pas pour prod (bases distinctes) — le noter dans `A_VERIFIER.md`.
 
 Périmètre de fichiers : `A_VERIFIER.md` principalement ; aucun changement de `src/` attendu (tout bug trouvé devient un chantier à part, à proposer à Jules plutôt qu'à corriger en passant).
+
+##### 141f — Reprise des vérifications faisables laissées de côté par le 141d (ajouté le 2026-09-29)
+
+**Origine** : à la clôture du 141d (`docs/rapports-tests-141/lot-d.md`), une partie du « non joué » n'était pas bloquée techniquement : la session a simplement arrêté trop tôt. Ce sous-chantier les reprend. **Tout se passe sur dev** (`mnjqrlrrzrycuconlfqb`), séances préfixées `QA141F-`, purgées à la fin (0 ligne restante). Aucun changement de `src/`. Méthode identique au 141d : `.env.local` temporaire pointé sur dev (jamais commité), `preview_start ecclesia-dev` puis **naviguer sur le port réellement écouté** (voir `preview_logs`, le port annoncé peut être injoignable), `resize_window desktop`. Les mots de passe (superadmin, Code Ecclesia) sont **saisis par Jules** dans le Browser pane.
+
+**Sans mot de passe**
+- Chantier 74 point 3 : après « Ajouter une personne sans téléphone », relire `session_members` (ligne créée avec `joined_phase='debating'`, `attending_in_person=true`, `user_id` distinct du modérateur ; le même pseudo qu'un membre réel ne modifie pas sa ligne ; table sans séance : aucune ligne). Passer par une table dont `created_by` = l'uid de test (méthode du 141a, `lot-1.md`).
+- Chantier 113 (fusion des deux boutons « modérateur » du panneau Outils) : UI modérateur seule, même méthode `created_by`.
+- Chantier 46, côté visiteur : accueil, modale « Anciennes séances » listant une séance `closed` avec `results_public = true` et pas les autres.
+- Anomalie A1 du 141d à reproduire ou infirmer : après la prise d'une table `leaderless` par la porte modérateur, le preneur voit-il la vue participant jusqu'au rechargement ? (observé une seule fois ; à rejouer plusieurs fois, et avec un rechargement à chaque tentative pour isoler.)
+
+**Avec le mot de passe superadmin**
+- Chantier 65 : rattacher puis détacher une table à une séance en brouillon.
+- Chantier 108 (déclaration modérateur unifiée) et chantier 134 point 4 : lire d'abord leurs entrées dans `A_VERIFIER.md`.
+- Chantier 33 : le glisser-déposer reste hors automatisation (voir `triage.md`), le noter « humain ».
+
+**Avec le Code Ecclesia**
+- Refus « table déjà modérée via Bloc C » (`set_member_moderator` puis prise par code) ; mêmes scénarios sur `JoinTableScreen` (`#table/<code>`) et `EntryScreen` (onglet « Rejoindre »).
+- Chantiers 107 et 110 par code ; idempotence du modérateur qui repasse par sa propre table (règle 4 du 140).
+- Piège connu : après un conflit de nom, l'accordéon « code de rappel » reste ouvert et grise « Rejoindre » (A3 du 141d) — le refermer avant de recliquer.
+
+**Hors périmètre, à ne pas retenter** : chantiers 35 et 132 (deux identités simultanées impossibles dans le Browser pane), chantier 57 et fusion IA automatique (Gemini / `gemini-proxy` absents de dev), glisser-déposer réel, points « Sur prod, après merge ».
+
+Sortie : ajouter une section « Volet 141f » à `docs/rapports-tests-141/lot-d.md` (ou un `lot-f.md`), annoter `A_VERIFIER.md` (« vérifié automatiquement sur dev le … », sans passer en « Validé »), commit sans push.
 
 #### 142 — Document collaboratif : on récupère les sources d'un autre en tapant son nom, sans code — **Opus demandé par Jules**
 
