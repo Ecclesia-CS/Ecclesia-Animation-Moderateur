@@ -145,3 +145,4 @@ Non vérifié au navigateur. À jouer sur dev :
 4. Modérateur inscrit à la séance : « ajouter une personne sans téléphone » avec **son propre nom** (autre casse) → refus « déjà assise ». Deux personnes sans téléphone de noms différents → toujours acceptées.
 5. Table créée via « Créer une table » (Code Ecclesia) + un modérateur en attente : `assign_pending_moderators` ne place plus personne sur cette table.
 Migrations appliquées sur **dev** (`20260929_chantier144_*`, `20260929_chantier144b_*`), pas sur prod.
+6. Sondage : onglet Analyse sans « Comparaison avant/après », « Thèmes », « Réponses au questionnaire », « Recrutement modérateurs » ; séance complète et débat simple : ces sections restent visibles.

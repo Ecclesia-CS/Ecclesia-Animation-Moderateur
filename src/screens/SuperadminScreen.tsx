@@ -4076,8 +4076,9 @@ function SessionDetail({
             {/* ── Onglet Analyse ───────────────────────────── */}
             {activeTab === 'analysis' && (
               <div className="space-y-6">
-                {/* Comparaison avant / après débat — chantier 79 */}
-                {showVotingSections && (
+                {/* Comparaison avant / après débat — chantier 79. Chantier 144 : sans objet
+                    dans un sondage (aucun débat). */}
+                {showVotingSections && sessionType !== 'poll' && (
                   <PanelErrorBoundary label="Comparaison avant / après débat">
                     <AnalysisComparisonPanel
                       sessionId={session.id}
@@ -4117,6 +4118,10 @@ function SessionDetail({
                   </section>
                 )}
 
+                {/* Chantier 144 — thèmes, réponses au questionnaire et recrutement
+                    viennent du questionnaire de fin de débat : rien à afficher pour un sondage. */}
+                {sessionType !== 'poll' && (
+                <>
                 {/* Thèmes */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <button
@@ -4222,6 +4227,8 @@ function SessionDetail({
                     </div>
                   )}
                 </section>
+                </>
+                )}
 
                 {/* Sources collaboratives */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">

@@ -421,7 +421,7 @@ Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx
 
 #### 144 — Correctifs relevés par la passe de vérification automatisée (chantier 141)
 
-> ✅ **Points 1 à 5 faits le 2026-09-29** (voir `docs/chantiers.md`). **Reste le point 6 : trois arbitrages à demander à Jules avant de coder.**
+> ✅ **Points 1 à 5 faits le 2026-09-29** (voir `docs/chantiers.md`). Point 6 arbitré et traité le même jour (voir `docs/chantiers.md`) : chantier entièrement fait.
 
 **Origine** : rapport `docs/rapports-tests-141/rapport-consolide.md`. Front pour l'essentiel, une garde SQL. Décisions de Jules du 2026-09-29 : le badge « N actifs » qui compte le modérateur en exercice est **voulu, on n'y touche pas** ; le point A1 (vue participant après prise d'une table `leaderless`) est un test à rejouer dans `A_VERIFIER.md`, pas un chantier.
 
