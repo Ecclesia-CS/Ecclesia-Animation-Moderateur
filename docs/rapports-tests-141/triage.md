@@ -55,3 +55,30 @@ Les items qui passent reçoivent dans `A_VERIFIER.md` « vérifié automatiqueme
 | **141e** — consolidation | Fusionner les rapports `lot-*.md` en un rapport unique trié par gravité pour l'autre conversation ; nettoyer `A_VERIFIER.md` ; lister ce qui reste à faire par un humain (glisser-déposer, Gemini réel, expiration, points « Sur prod après merge ») ; retirer l'entrée de `docs/chantiers-a-faire.md` et consigner dans `docs/chantiers.md`. | Aucun |
 
 Ordre conseillé : 141a → 141b → 141c → 141d → 141e (141a n'a besoin de personne ; 141e vient en dernier). 141b, c et d peuvent tourner dans n'importe quel ordre entre elles.
+
+---
+
+## Clôture 141a (2026-09-29)
+
+**Fait, en plus du lot initial** : chantier 65 (3 tests), chantier 74 (points 1 et 3), chantier 114, chantier 143 (item « code de table sans modérateur »). Détail et preuves dans `lot-1.md`.
+
+**Méthode découverte, réutilisable par 141d** : `ModeratorView` est accessible sans Code Ecclesia en posant `tables.created_by` = l'uid de la session anonyme de test (chemin légitime « créateur physique », pas un contournement — voir `lot-1.md`). Utile pour tout test qui ne porte que sur l'UI modérateur, sans avoir besoin de valider un vrai Code Ecclesia.
+
+**Classification finale des sections non encore testées** (lignes 1900-3163 d'`A_VERIFIER.md`, hors « Validé » 1948-2871 qui ne demande aucune action) :
+
+| Section | Sort |
+|---|---|
+| Chantiers 87+101 (audit), C4/D1 | Restant (D1 approximable sans mot de passe, non fait — coût/bénéfice jugé faible face au budget restant) → 141a si repris, sinon 141d |
+| Chantier 108 (déclaration modérateur unifiée) | Code Ecclesia → 141d |
+| Chantier 113 (fusion boutons modérateur) | UI modérateur seule, probablement testable par la méthode `created_by` ci-dessus → 141a si repris, sinon 141d |
+| Chantier 117 (modérateur physique invisible superadmin) | Superadmin → 141b/c |
+| Chantier 120 (bug confirmé, décision Jules à trancher) | Pas une tâche de test — aucune action pour 141 |
+| Chantier 132 (proposer un vote) | SQL déjà vérifié (voir `A_VERIFIER.md`) ; parcours UI live abandonné (deux identités simultanées hors de portée du Browser pane) → 141d ou Jules |
+| Chantier 138, 135, 139 (sauf point 108/3108 dnd) | Superadmin/Code Ecclesia → 141b/c/d |
+| Chantier 140 (restes : porte modérateur par code, idempotence) | Code Ecclesia → 141d |
+| Chantier 142 (`add_offline_participant` collision) | Code Ecclesia (modérateur) → 141d — mais accessible via la méthode `created_by` si 141d veut l'essayer sans vrai Code Ecclesia |
+| Chantier 143 (restes : prise de modération table libre, mobile réel) | Code Ecclesia / matériel réel → 141d / humain |
+| Tous les « Sur prod, après merge » | Hors périmètre 141 (post-merge dev→main) |
+| Nettoyage tables `589D79`/`6ABDC9`/`6296A9` (l. 1749-1757) | **Accord explicite de Jules requis avant suppression** — non fait, à proposer en 141e |
+
+**141a est fini** au sens où tout ce qui ne demandait aucun mot de passe et avait un bon rapport coût/bénéfice a été joué. Les items marqués « probablement testable par la méthode created_by » (108→non, Code Ecclesia nécessaire pour la déclaration elle-même ; 113) peuvent être repris par une conversation dédiée si Jules veut aller plus loin sans mot de passe, sinon ils passent à 141d avec les autres.

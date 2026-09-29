@@ -3162,4 +3162,6 @@ Reste à vérifier :
 - Données de test purgées en base dev (1 membre, 1 participant, 1 affectation).
 - [x] Cas modérateur, joué avec le vrai Code Ecclesia saisi par Jules (nom neuf `Test143 Modo`, code de table `C6EABF`, case cochée) : code accepté, puis refus explicite « Cette table a déjà un modérateur — choisis-en une autre ou contacte le superadmin » (la seule table de `F1223D` avait déjà un modérateur) ; rien n écrit en base.
 - [ ] **Non rejoué** : la prise effective de modération d une table libre (séance de test avec une table sans modérateur nécessaire) ; l entrée par code de table sans modérateur ; un mobile réel (Messenger in-app).
+
+  🤖 **Partiellement vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : « entrée par code de table sans modérateur » ✅ — table `leaderless` de test, `#session/<code>` → un seul champ « Prénom Nom » → code de table saisi sans cocher la case modérateur → accepté, écran du code de rappel affiché. **Reste non rejoué** (Code Ecclesia requis) : la prise effective de modération d'une table libre, et le mobile réel. Vaut pour dev, pas pour prod.
 - [ ] **Sur prod, après merge** : contrôle visuel de l'écran « Débat en cours » d'un retardataire.

@@ -28,6 +28,19 @@ Environnement : serveur local sur la base **dev** (`mnjqrlrrzrycuconlfqb`) via `
 
 Séance de test purgée après coup (0 ligne restante).
 
+## Suite (2026-09-29) — chantiers 74, 114, 143, 65 (test 3) et une limite d'outillage
+
+| Item | Résultat |
+|---|---|
+| Chantier 74, point 1 (modale PhaseIndicator) | ✅ passe (via une table dont `created_by` n'est pas l'appelant — pas de mot de passe). Piège rencontré : une modale de bienvenue plein écran (`debate_welcome_<table.id>`) intercepte le clic sur la pastille tant qu'elle n'est pas fermée — normal en usage réel, source de confusion pour un test automatisé seulement. |
+| Chantier 74, point 3 (texte invisible) | ✅ passe (`ModeratorView` via une table dont `created_by` = l'appelant, cf. note méthode ci-dessous) — couleur lue par `getComputedStyle` : `rgb(17,24,39)` sur fond blanc. |
+| Chantier 114 (onboarding, « pas définitif ») | ✅ passe — parcours réel d'inscription, texte et sous-libellés conformes. |
+| Chantier 143, item « entrée par code de table sans modérateur » | ✅ passe — table `leaderless` de test, un seul champ « Prénom Nom », entrée acceptée sans cocher la case modérateur. |
+
+**Méthode ajoutée pour ce lot — accès `ModeratorView` sans Code Ecclesia** : `TableContext.isModerator` inclut `physicalModerator = (table.created_by === userId)`. En créant une table de test avec `created_by` posé sur l'uid de la session anonyme courante (lu dans `localStorage`, clé `*auth-token*`), on obtient `ModeratorView` sans jamais toucher au Code Ecclesia — c'est le chemin légitime « créateur physique », pas un contournement de sécurité (la vraie création de table, elle, exige le Code Ecclesia ; ici on simule l'état qui en résulterait). **Attention** : l'identité change si `localStorage` est vidé entre deux étapes (nouveau `signInAnonymously`) — vérifier l'uid courant avant de raccrocher `created_by`/`participants.user_id`, sinon l'app retombe silencieusement sur l'accueil (`App.tsx.init()`, comparaison `pRow.user_id === userId`).
+
+**Piste abandonnée (coût/bénéfice)** : tester la fenêtre de vote du chantier 132 en conditions live (modérateur + participant simultanés) demanderait deux identités actives en parallèle. Le Browser pane ne permet qu'une identité par navigateur (`127.0.0.1` injoignable, cf. lot-1 O2 ; changer d'identité sur `localhost` sacrifie la précédente puisque les jetons d'auth anonyme ne sont pas récupérables). Le test SQL déjà en place dans `A_VERIFIER.md` (transaction jetable) reste la seule couverture ; le parcours UI live reste à faire par 141d ou par Jules.
+
 ## Classification des lignes 1300-1900 d'`A_VERIFIER.md`
 
 Fait (lecture des titres de section + contenu 1472-1698). Presque tout ce bloc exige le **Code Ecclesia** (chantiers 67, 47, 60, 54, 43/44, 35, section « Parcours Modérateur », « Questionnaire post-débat » points 1-2) ou le mot de passe **superadmin** (section « Parcours Superadmin », 1325-1471, chantiers 33, 38, 50, 54) → **hors 141a**, réparti dans `triage.md` sous 141b/c/d.
