@@ -1297,6 +1297,8 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
 
 - [ ] **2026-09-01 — Bouton "Résultats publics" par séance (superadmin)** — `src/screens/SuperadminScreen.tsx` (`SessionCard`)
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Bascule privé → public ✅ (`results_public=true` en base). Vaut pour dev, pas pour prod.
+
   Sur chaque séance `closed` de la liste superadmin (écran de liste, avant d'ouvrir le détail) : pastille bascule "Résultats privés" (gris) / "Résultats publics" (vert) à côté de la description. Appelle `set_session_results_public` (mot de passe déjà en session), mise à jour optimiste de la liste avec rollback si l'appel échoue (message d'erreur affiché sous la pastille). Nommage tranché sans consulter Jules davantage : "Résultats publics" plutôt que sa proposition "Visible post débat" — le libellé décrit l'effet (qui peut voir quoi) plutôt que le moment (déjà capturé par le badge de phase "Clôturée" juste au-dessus), cohérent avec le style des autres badges d'état de la carte.
 
   **Non testable en session headless** : aucun mot de passe superadmin disponible. Uniquement vérifié : `tsc -b`, `npm test` (94 passants), `npm run build`, chargement de l'écran d'accueil sans erreur console. Le comportement d'échec pré-migration (colonne absente) a été vérifié indirectement via la modale "Anciennes séances" ci-dessus, qui tape la même colonne.
@@ -1334,12 +1336,16 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
 
 - [ ] **Chantier 54 — non-régression : le superadmin peut toujours supprimer une table** *(migration SQL requise, voir section « Migration SQL en attente d'application »)*
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Suppression d'une table vide par le superadmin avec confirmation ✅, autres tables intactes. Vaut pour dev, pas pour prod.
+
   **Pourquoi ce test** : ce chantier a retiré au modérateur le droit RLS de supprimer une table (`tables_delete_moderator`). Le superadmin passe par un chemin entièrement différent (RPC `SECURITY DEFINER` `delete_table_admin`, indépendante de RLS) qui ne doit pas être affecté — ce test le confirme.
 
   1. Onglet 🪑 Tables (ou l'écran équivalent listant les tables d'une séance), créer une table de test (bouton "+ Sans admin" ou via "Créer une table") puis la supprimer via le bouton "Supprimer" → confirmer dans la modale ("Supprimer définitivement la table ... ? Tous les participants, tours et files seront supprimés.") → la table disparaît de la liste, sans erreur.
   2. Vérifier que les tables restantes de la séance ne sont pas affectées (composition, badges de seuil inchangés).
 
 - [ ] **2026-09-02 — Chantier 50 — onglet 🪑 Tables sous les policies self-only** — `src/screens/SuperadminScreen.tsx` (`loadGroups`, `loadTableAssignmentRows`), `src/lib/sessions.ts` (`listTableAssignmentsAdmin`) *(migration SQL requise, voir plus haut)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Compositions/pseudos complets, aucun `?`, aucun message de repli en console, polling 10 s (mise à jour + horodatage) ✅. Vaut pour dev, pas pour prod.
 
   **Ce qui change** : la vue Groupes lisait `table_assignments` en direct avec une **jointure imbriquée PostgREST** (`session_members!member_id(pseudo, is_moderator)`), qui traversait les deux tables permissives d'un coup. Sous les policies self-only, PostgREST **ne renvoie pas d'erreur** dans ce cas : l'objet imbriqué devient `null` et les listes de membres se videraient en silence. La lecture passe désormais par la RPC `list_table_assignments_admin`. Le superadmin n'étant membre d'aucune séance, il perd aussi tous les événements Realtime sur `table_assignments` : un polling de secours de 10 s prend le relais (l'abonnement Realtime est conservé — il resservira si le superadmin est un jour membre, et il ne coûte rien).
 
@@ -1371,6 +1377,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
 
 - [ ] **2026-09-01 — Chantier 38 (2ème passe) — scroll qui remonte en haut sur la fiche séance** — `src/screens/SuperadminScreen.tsx` (`SessionDetail`)
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : `scrollY` stable ~45 s sur l'onglet Tables avec polling actif ✅ (données factices, pas de données réelles). Vaut pour dev, pas pour prod.
+
   **Retour de Jules** : « toutes les 10 secondes ou moins » l'écran superadmin « nous remmène en haut de la page » — constaté sans aucune session Claude Code active, sur tous les onglets superadmin (🟢 En direct / 🪑 Tables / ⚙️ Préparation / 📊 Analyse), sans clignotement visible. Ce retour infirme l'hypothèse Vite HMR retenue par la 1ère passe (voir "Historique / notes de session" plus bas) — diagnostic repris de zéro.
 
   **Cause trouvée** : `SessionDetail` a un seul état `loading` (posé par `load()`, la fonction qui charge "Tables rattachées"/"Tables disponibles" — polling 15 s depuis le chantier 35, + rappelée par le channel Realtime `tables` sur tout événement, + par tout changement de filtre de date). Ce `loading` gate **tout le contenu de la fiche séance** (ligne ~2064 : `{loading ? <Chargement…/> : <>…tous les onglets…</>}`), pas seulement la section des tables. À chaque déclenchement — donc au minimum toutes les 15 s, parfois plus souvent via Realtime — la totalité du contenu affiché (quel que soit l'onglet actif) est remplacée par un petit spinner le temps de l'appel réseau, ce qui effondre la hauteur du document ; le navigateur clampe alors `scrollY` à la nouvelle hauteur (beaucoup plus faible), et **ne restaure jamais** la position de scroll quand le contenu revient. D'où : ça touche tous les onglets (le gate est en dehors du switch d'onglet), ça n'a besoin d'aucune session Claude Code (bug 100 % applicatif, indépendant du HMR), et ça ne "clignote" pas franchement (le spinner est bref, ce qui se voit surtout c'est le saut de scroll).
@@ -1384,6 +1392,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   **Reste à vérifier par Jules en conditions réelles** : ouvrir une séance avec du contenu réel (plusieurs tables, participants, assertions), scroller loin dans la page, laisser tourner ≥ 30-40 s sans toucher au clavier/souris → la page ne doit plus jamais remonter toute seule, sur aucun des 4 onglets. Si le symptôme persiste malgré ce correctif, il reste un canal Realtime supplémentaire à investiguer (le channel `session-tables:<id>` ci-dessus a pu masquer une deuxième cause si Realtime déclenchait `load()` bien plus souvent que 15 s en usage réel — à confirmer avec le compteur d'appels réseau du vrai navigateur, impossible à observer sans données réelles).
 
 - [ ] **2026-08-01 — Chantier 33 — gestion des modérateurs par table** — `SuperadminScreen.tsx`, `AddModeratorControl`, onglet 🪑 Tables *(migration SQL requise, voir ci-dessus)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Désignation par nom (autocomplete), nom inexistant refusé, « Retirer » ✅ ; glisser-déposer réel non joué. Vaut pour dev, pas pour prod.
 
   **Livré (4 points)** :
   1. Accordéon "Allocation des tables" déplacé de l'onglet 🟢 En direct vers l'onglet 🪑 Tables.
@@ -1403,16 +1413,22 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   **Hypothèse non tranchée avec Jules** : quand plusieurs tables attendent un modérateur, l'auto-attachement choisit toujours la première dans l'ordre des numéros — comportement arbitraire assumé, à confirmer si un autre ordre était attendu.
 
 - [ ] **Chantier 37 — Point 1 : bouton "Répartir en tables" retiré (phase voting)**
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Bouton « Répartir en tables » absent en `voting` ✅ ; fusion IA auto non jouée (Gemini absent de dev). Vaut pour dev, pas pour prod.
   Mergé sur `main` (`cf7083d`), aucune migration.
 
   **Test minimal** : séance en phase `voting`, superadmin → vérifier l'absence du bouton "Répartir en tables". Avec le toggle "Fusionner auto en fin de vote" (`ai_auto_merge_<id>`) activé, faire passer la séance en `allocating` → vérifier que la fusion IA s'est bien déclenchée (log `LLMModerationPanel`), puisque c'est désormais ce passage de phase qui la déclenche (au lieu du bouton supprimé).
 
 - [ ] **Chantier 37 — Point 2 : bug de réassignation modérateur (onglet Membres)**
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Cocher « modérateur » sur un membre de la table déjà pourvue le déplace sur la table sans modérateur ✅. Vaut pour dev, pas pour prod.
   Mergé sur `main` (`cf7083d`). Migration `supabase/migrations/20260803_chantier37_set_member_moderator_seat.sql` **déjà appliquée et vérifiée par Jules côté Supabase** (`set_member_moderator` confirmée contenir la logique de placement) — seul le test manuel ci-dessous reste à faire.
 
   **Test minimal** : séance avec ≥ 2 tables animées, une avec modérateur déjà assis, une sans. Onglet Membres → cocher "modérateur" sur quelqu'un assis à la table déjà pourvue → vérifier dans l'onglet Tables qu'il apparaît maintenant assis (déplacé) sur la table sans modérateur.
 
 - [ ] **Chantier 36 — Point 1 : modérateur affiché en double (onglet 🪑 Tables)**
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Modérateur affiché une seule fois (badge, pas en puce) ✅. Vaut pour dev, pas pour prod.
   Mergé sur `main` (`0c98775`), aucune migration.
 
   **Test minimal** (mot de passe superadmin requis) : séance `allocating`/`debating` avec une table animée dont le modérateur est déjà assis → vérifier l'absence de doublon (badge "🎙️ Modérateur : X" seul, plus jamais aussi en puce glissable ordinaire dans la liste des membres en dessous). Cas modérateur en surplus (assis ailleurs comme participant ordinaire, chantier 25b) → vérifier qu'il n'apparaît que dans son propre badge, jamais en puce.
@@ -1423,6 +1439,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   Voir la section dédiée **"Synchronisation temps réel (chantier 35)"** plus bas — nécessite deux onglets/navigateurs en parallèle, regroupée à part pour ne pas la faire deux fois.
 
 - [ ] **2026-09-01 — Chantier 39 — renommage "Phase 0" + suppression de la phase `questionnaire`** — `SuperadminScreen.tsx` (`PHASE_LABEL`, `PHASE_SEQUENCE_LABELS`, `PhaseBar`, `handlePhaseChange`) *(migration SQL requise, voir ci-dessus — mais le comportement décrit ici ne dépend pas de son application, seule la définition de `sessions_phase_check`/`set_session_phase` en base en dépend)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Numérotation/`PhaseBar` déjà vérifiés par 141b (`lot-b.md`). Vaut pour dev, pas pour prod.
 
   **Livré (3 points)** :
   1. Le badge de phase et le `PhaseBar` de la fiche séance affichent **"Phase 0"** au lieu de "Brouillon" pour la phase `draft`.
@@ -1467,6 +1485,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
   4. Vérifier qu'aucune des deux limites ne s'est déclenchée par erreur pendant le test 1 (usage nominal) une fois les tests 2 et 3 terminés — c'est-à-dire que la fenêtre de 60 s du test 2 n'a pas laissé le compteur de l'utilisateur de test dans un état qui bloquerait un usage normal ensuite (attendre 60 s après le test 2 avant de relancer un usage nominal si besoin).
 
 - [ ] **2026-09-02 — Chantier 65 — non-régression superadmin sur une séance en brouillon** — `src/screens/SuperadminScreen.tsx` *(migration SQL requise, voir "Migration SQL en attente" ci-dessus)*
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Superadmin : création avec titre/description/URL doc, passage `draft → pre_voting` ✅ ; rattacher/détacher une table non joué. Vaut pour dev, pas pour prod.
 
   **Pourquoi ce test** : ce chantier ferme l'accès à une séance `draft` pour tout le monde côté inscription (`register_session_member`, `confirm_attendance`) — le superadmin, lui, doit continuer à pouvoir préparer sa séance normalement, puisque tout son travail passe par des RPC à mot de passe séparées, jamais par ces deux fonctions.
 

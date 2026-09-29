@@ -49,5 +49,5 @@ Chantier 35 (Realtime multi-onglets, deux identités), chantier 57 (quota `gemin
 
 - Refus « table déjà modérée via Bloc C » (`set_member_moderator`), et `JoinTableScreen` (`#table/<code>`) / `EntryScreen` : même RPC `claim_table_as_moderator`, non rejoués à l'écran.
 - Idempotence du modérateur repassant par sa propre table (règle 4, 140), chantiers 107/110 par code, 134 point 4.
-- Anciens jalons 33-39, 50, 54, 65 (côté superadmin), 72, 74 : demandent le mot de passe **superadmin**.
+- Anciens jalons 72 et 74 (le reste du superadmin est fait, voir ci-dessus).
 - Chantier 132 (proposer un vote, deux identités simultanées) : hors de portée du Browser pane.
