@@ -20,3 +20,14 @@ Méthode « créateur physique » du 141a : uid anonyme lu dans `localStorage` (
 - **113, cas « bouton masqué »** (déjà modérateur ET table sans séance) : inatteignable par cette voie — un modérateur physique voit `ModeratorView` (`ModeratorToolsButton`), pas `ParticipantToolsButton`. Reste un cas théorique (modérateur désigné dans `ParticipantView` sur table sans séance).
 - **A1 du 141d** : la prise d'une table `leaderless` par la porte modérateur exige le Code Ecclesia (contrairement à ce que laissait entendre le classement « sans mot de passe ») → à rejouer avec Jules.
 - **Volet superadmin** (65 rattachement/détachement, 108, 134 pt 4, 33 « humain ») et **volet Code Ecclesia** (refus Bloc C, JoinTableScreen/EntryScreen, 107/110 par code, idempotence 140 règle 4, A3) : en attente des mots de passe saisis par Jules.
+
+## Volet superadmin (mot de passe saisi par Jules dans le Browser pane) — 2026-09-29
+
+Séance `QA141F-draft` (brouillon) et table libre `QA1FT4` créées en SQL sur dev, purgées ensuite (0 ligne restante).
+
+| Item | Résultat | Détail |
+|---|---|---|
+| Chantier 65 — rattacher / détacher une table à une séance en brouillon | ⚠️ **obsolète** | Le chantier 95 a supprimé `attachTableToSession` / `detachTableFromSession` de `src/lib/sessions.ts` : aucun écran ne permet plus de le faire (la fiche d'un brouillon n'a que En direct / Tables / Préparation / Analyse, sans rattachement). Les RPC restent en base, sans appelant. À reformuler dans `A_VERIFIER.md` plutôt qu'à revérifier. |
+| Chantier 65 — le brouillon n'est listé sur aucune liste publique | ✅ | Accueil : « Séances en cours » ne montre pas `QA141F-draft`. Fiche superadmin ouverte normalement (Phase 0, barre de phases, onglets). |
+| Chantiers 108, 134 point 4 | reportés | Ils demandent le **Code Ecclesia**, pas le mot de passe superadmin → volet Code Ecclesia. |
+| Chantier 33 (glisser-déposer) | humain | Hors automatisation (voir `triage.md`). |

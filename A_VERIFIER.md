@@ -1501,6 +1501,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
 
   🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, mot de passe superadmin saisi par Jules) : Superadmin : création avec titre/description/URL doc, passage `draft → pre_voting` ✅ ; rattacher/détacher une table non joué. Vaut pour dev, pas pour prod.
 
+  🤖 **Complément 141f (2026-09-29, `lot-f.md`)** : « rattacher/détacher une table » est **obsolète** — le chantier 95 a supprimé ces deux actions de l'interface (RPC restées en base, sans appelant). Une séance `draft` n'apparaît pas dans « Séances en cours » sur l'accueil ; sa fiche superadmin s'ouvre normalement. Vaut pour dev.
+
   **Pourquoi ce test** : ce chantier ferme l'accès à une séance `draft` pour tout le monde côté inscription (`register_session_member`, `confirm_attendance`) — le superadmin, lui, doit continuer à pouvoir préparer sa séance normalement, puisque tout son travail passe par des RPC à mot de passe séparées, jamais par ces deux fonctions.
 
   **Test** :
