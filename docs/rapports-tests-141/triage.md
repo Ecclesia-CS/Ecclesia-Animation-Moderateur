@@ -98,3 +98,11 @@ Ordre conseillé : 141a → 141b → 141c → 141d → 141e (141a n'a besoin de 
 - Observation mineure (O1, `lot-1.md`) : deux 400 silencieux sur `join_table` quand `localStorage` garde une table périmée — à vérifier si un vrai participant peut se retrouver dans ce cas sans explication à l'écran.
 
 **Pour un futur chantier « infra de test »**, si Jules en juge le besoin : le Browser pane ne sachant pas ouvrir `127.0.0.1`, un vrai test à deux identités simultanées suppose soit un second profil de navigateur, soit Claude in Chrome en plus du Browser pane intégré — à évaluer séparément, hors périmètre du 141.
+
+---
+
+## Clôture 141c (2026-09-29)
+
+**Fait** : chantiers 106, 109, 117, 118 (onglet Groupes, modale « Ouvrir le débat », « Retirer » / « Libérer la modération »), allocation (91 recette 1-3, 92 étapes 3-4 côté affichage, 121-3) — tout passe, deux observations mineures (O1 badge « N actifs » qui compte le modérateur, O2 `assign_pending_moderators` et modérateur physique). Détail dans `lot-c.md`. Le 139 avait déjà été rejoué le 2026-09-28, non refait.
+
+**Reste pour 141d** : anciens jalons, scénarios du 68, portes Code Ecclesia (107, 110, 140), 134 point 4. **Toujours humain** : glisser-déposer (139, 92-4, 91-4), second appareil (écran du modérateur remplacé), points « Sur prod, après merge ».

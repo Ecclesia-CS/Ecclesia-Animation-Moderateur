@@ -279,6 +279,8 @@ Deux sous-tâches indépendantes demandées par Jules (`docs/chantiers-a-faire.m
 
 ## Chantier 121 (2026-09-22) — Œil mot de passe, nudge assertion, actifs par table — ⚠️ tsc + navigateur partiel, deux points non rejoués à l'écran
 
+> **141c — point 3 (badge « N actifs » sur chaque carte de table) vu à l'écran après allocation. Observation O1 : le badge compte le modérateur de la table s'il a répondu « actif ».** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
+
 Trois sous-tâches indépendantes demandées par Jules (`docs/chantiers-a-faire.md` § 121).
 
 **1. Œil pour afficher/masquer le mot de passe.** Composant partagé créé (`src/components/PasswordInput.tsx`), calqué sur le `Field` déjà présent dans `SuperadminScreen.tsx` (seul endroit qui avait déjà ce toggle). Appliqué aux 7 autres champs `type="password"` recensés : `JoinTableForm.tsx`, `TestScreen.tsx` (3 champs via son `Field` local), `ModeratorActionModal.tsx`, `ModeratorClaimModal.tsx`, `ModeratorDeclareField.tsx`, `TableAssignmentCard.tsx` (2 occurrences identiques). `Field` de `SuperadminScreen.tsx` délègue maintenant à `PasswordInput` pour `type="password"` (les `Eye`/`EyeOff` dupliqués dans ce fichier ont été supprimés). **Vérifié au navigateur réel** (`ecclesia-dev`, sans compte réel) : toggle testé et fonctionnel sur le mot de passe superadmin (`SuperadminScreen`) et sur le Code Ecclesia de `JoinTableForm` (checkbox "Je suis modérateur"). **Non rejoué à l'écran** : `TestScreen.tsx` (route non montée dans `App.tsx`, probablement un écran de debug non routé), `ModeratorActionModal`, `ModeratorClaimModal`, `ModeratorDeclareField`, `TableAssignmentCard` — mêmes patterns, `tsc --noEmit` propre, mais aucun n'a été cliqué en vrai.
@@ -310,6 +312,8 @@ Demandé par Jules après avoir constaté à l'écran qu'un débatteur rejoignan
 ---
 
 ## Chantier 118 (2026-09-21) — Modérateur « physique » retiré devient un session_member flagué — ✅ vérifié en base par transactions jetables, ⚠️ non rejoué au navigateur
+
+> **141c — « Retirer » (modérateur physique) et « Libérer la modération de cette table » rejoués au clic : plus d'erreur « membre introuvable », le drapeau est conservé, la table redevient « En attente de modérateur ».** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
 
 **Origine** : retour de Jules après avoir testé le chantier 117 — « quand je tente de cliquer sur "enlever" ou "libérer la modération de cette table" ce n'est pas possible, il y a marqué "membre introuvable pour cette séance" [...] le but, c'est que quand ils ne tiennent plus la modération d'une table, ils soient comme des participants normaux, avec des codes, des votes, etc, mais juste flagué modérateur ». Diagnostic du message d'erreur : comportement front attendu (`handleRemoveTableModerator` n'est jamais câblée sur un modérateur physique) — le vrai problème est que `release_table_moderation` (chantier 72) ne posait ni ne garantissait aucun flag `is_moderator` à la libération.
 
@@ -411,6 +415,8 @@ Dicté par Jules en chat, pas dans la file d'attente. Constat de départ : le ra
 
 ## Chantier 109 (2026-09-21) — Placement des modérateurs en attente au passage en `debating` — ✅ vérifié en base, ⚠️ récapitulatif superadmin non cliqué à l'écran (pas de mot de passe superadmin pour cette session)
 
+> **141c — récapitulatif de la modale « Ouvrir le débat » rendu à l'écran (placements + « resteront sans table ») ; « Ouvrir le débat » applique bien les placements en base. Observation O2 (table tenue par un modérateur physique traitée comme libre) : voir le rapport.** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
+
 Nouvelle RPC `assign_pending_moderators(password, session_id, apply=false)` : place chaque `session_members.is_moderator=true` qui n'est en exercice sur aucune table (`tables.active_moderator_member_id`, chantier 106) sur la première table animée (`leaderless=false`) sans modérateur en exercice, par `table_number` croissant, les modérateurs eux-mêmes pris par ordre d'inscription (`created_at`). `apply=false` (dry-run, aucune écriture) sert de récapitulatif de confirmation ; `apply=true` rejoue le même calcul et écrit `table_assignments` + `active_moderator_member_id`. Câblée dans `SuperadminScreen.tsx` sur le bouton « Ouvrir le débat » (`openDebateConfirm` calcule le dry-run à l'ouverture de la modale, `confirmOpenDebate` applique puis appelle `handlePhaseChange('debating')`). `ConfirmModal.body` élargi de `string` à `ReactNode` pour afficher la liste des placements/non-placés/tables sans modérateur.
 
 **Vérification SQL directe le 2026-09-21** (rôle service de l'outil Supabase MCP, tout dans une transaction explicite `BEGIN … ROLLBACK`, la fonction redéfinie sans la garde `check_superadmin_password` **à l'intérieur de la même transaction** pour pouvoir l'appeler sans le vrai mot de passe superadmin — donc invisible de l'extérieur, et confirmé restauré après coup) :
@@ -427,6 +433,8 @@ Nouvelle RPC `assign_pending_moderators(password, session_id, apply=false)` : pl
 `tsc --noEmit` et `npx vitest run` (119 tests) passent sans erreur avec ces changements.
 
 ## Chantier 106 (2026-09-21) — « déclaré » ≠ « en exercice » : un seul écran modérateur par table — ✅ vérifié au navigateur, ⚠️ onglet Groupes superadmin non vérifié à l'écran (pas de mot de passe superadmin pour cette session)
+
+> **141c — badge « Modérateur en surplus » (ambre) vu à l'écran dans l'onglet Groupes, à côté du badge « Modérateur » actif.** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
 
 Nouvelle colonne `tables.active_moderator_member_id` (nullable, FK `session_members`), exigée en plus des conditions actuelles par `is_table_moderator` (branche b — modérateur désigné de la séance). Posée (COALESCE, ne déloge jamais qui est déjà en exercice) par les 5 chemins qui attribuent l'animation : `apply_allocation`, `claim_moderator_status`, `set_member_moderator`, `assign_moderator_to_table`, `claim_table_as_moderator`. Vidée par `set_member_moderator` au retrait du drapeau, si c'était bien ce membre qui était en exercice. `list_table_assignments_admin` renvoie désormais ce champ par ligne, pour que l'onglet Groupes distingue visuellement « en exercice » (badge indigo, comme avant) de « en surplus » (nouveau badge ambre « Modérateur en surplus »).
 
@@ -897,6 +905,8 @@ Non testé à l'écran (hors périmètre du chantier, comportement de `PhaseBar`
 
 ## Chantier 92 (2026-09-16) — appairage entre participants — ✅ migration appliquée · ✅ parcours participant vérifié au navigateur · ⚠️ étapes superadmin (3, 4) non jouées · mergé sur `main` après accord de Jules
 
+> **141c — étapes 3 (grappe « 1/1 réunie ») et 4 (badges 🔗 dans Groupes) rejouées à l'écran ; le glisser-déposer qui déplace le binôme avec la personne reste à faire par un humain.** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
+
 Migration : [`supabase/migrations/20260916_chantier92_appairages.sql`](./supabase/migrations/20260916_chantier92_appairages.sql). **Appliquée par cette session.** Elle ne crée que des objets neufs et **ne réécrit aucune fonction existante**. `get_allocation_inputs` n'est pas touchée : les liens passent par une RPC admin séparée.
 - Table `member_pairings` : RLS en lecture self-only, aucune écriture directe.
 - `set_my_pairings(session_id, pseudos[])` : remplace les choix (2 au plus), n'est autorisée qu'en phase `voting`, `allocating` ou `debating`. Elle rattache un retardataire sans table à la table d'une personne citée réciproquement.
@@ -943,6 +953,8 @@ Recette complète d'origine (2 à 3 identités) :
 6. En débat, à la table, vérifier que Outils → « Mes binômes » est présent.
 
 ## Chantier 91 (2026-09-16) — allocation : les passifs deviennent du public — ✅ tableau avant/après **validé par Jules et mergé sur `main` le 2026-09-16** — recette navigateur restant à jouer
+
+> **141c — recette 1, 2 et 3 rejouées (36 inscrits : 7+7+6 actifs, public 5+4+4, ≤14 actifs et ≤30 personnes par table, recalcul identique). Non jouées : 4 (glisser-déposer) et 5 (< 5 actifs).** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
 
 Branche `claude/chantier-91-allocation-passifs`. Aucune migration. `npm test`, `tsc --noEmit` et `npm run build` propres. **Aucune vérification navigateur** : le jeton de serveur de dev n'a pas été pris — prêt pour vérification navigateur.
 
@@ -2969,6 +2981,8 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : parcours réel d'inscription (`register_session_member`, sans mot de passe) jusqu'à la question 3/4 — la phrase d'intro (« Ce n'est pas définitif : tu pourras toujours prendre la parole en cours de débat, même si tu choisis « Plutôt écouter ». ») et les deux sous-libellés (« Je ne prévois pas de parler » / « Je compte prendre la parole ») sont bien affichés. Non vérifié : rendu mobile (desktop uniquement dans le Browser pane). Vaut pour dev, pas pour prod.
 
 ## Chantier 117 — Vue Groupes : afficher un modérateur « physique » invisible du superadmin (2026-09-21)
+
+> **141c — modérateur physique visible dans l'onglet Groupes ; « Retirer » fonctionne (table reprenable, membre flagué créé avec code).** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141c — voir `docs/rapports-tests-141/lot-c.md` ; pas encore « Validé » par Jules, sur dev seulement — à rejouer sur prod après merge.)*
 
 **Origine** : Jules a rapporté, sur la vraie séance « Réunion apprentissage modération 21/09 » (`fb9a2c6b-42a7-40c6-bd88-d8f1db3505d4`), qu'un modérateur (visible et fonctionnel côté `ModeratorView`) n'apparaissait jamais dans l'onglet Groupes du superadmin, reload ou pas. Diagnostic posé par lecture directe en base (MCP Supabase) : ce modérateur (« Jules Bec Ordi ») a rejoint la table par Code Ecclesia (`claim_table_as_moderator`) sans jamais s'inscrire à la séance — aucune ligne `session_members`. `list_table_assignments_admin` (chantier 50/106) ne lit que `table_assignments` × `session_members`, donc ne peut structurellement pas le voir. C'est le « défaut A » déjà documenté dans `20260906_chantier72_1_reprise_moderation.sql`, jamais corrigé côté affichage.
 
