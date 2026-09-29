@@ -17,8 +17,27 @@ Environnement : serveur local sur la base **dev** (`mnjqrlrrzrycuconlfqb`) via `
 - **O2 — environnement** : `127.0.0.1:5173` n'est pas joignable dans le Browser pane (Vite n'écoute que `localhost`). Donc **une seule identité anonyme par session de test** ; pour simuler une seconde personne il faut vider `localStorage` (perd la première identité). À lever avant les tests à deux rôles, par exemple en lançant Vite avec `--host 127.0.0.1` en plus.
 - **O3 — hors périmètre de ce test** : le questionnaire forcé ne s'est pas déclenché parce que la bascule de phase a été faite en SQL direct, pas par le bouton `PhaseBar` (qui appelle `force_session_questionnaire`). Ce n'est pas une anomalie ; à tester en lot superadmin.
 
-## Non joué dans ce lot
+## Suite (2026-09-29) — chantier 65, séance `draft`
 
-- Portes d'entrée du 140 (l. 3095-3098) et idempotence modérateur (l. 3096) : demandent le Code Ecclesia → lot 3.
-- `add_offline_participant` avec nom déjà assis (l. 3113), résultats publics et accueil (l. 1268-1301), écart C4 (overlay modérateur) et piège D1 (l. 2868, 2870), scénarios du chantier 68 (Code Ecclesia, remaniés par 107/108/110/140).
-- Tri des lignes 1300 à 1900 d'`A_VERIFIER.md` (chantiers 33 à 74, anciens jalons) : toujours à faire.
+| Item (l. 1474) | Résultat |
+|---|---|
+| Test 1 — `#session/<code>` sur une séance `draft` | ✅ passe : « 🔒 Séance pas encore ouverte », pas de redirection vers l'inscription. |
+| Test 2 — `#vote/<code>` directement | ✅ passe : même écran de blocage. |
+| Test 2, appel RPC direct (`register_session_member`) | ✅ passe : `400`, `La séance n'est pas en phase d'inscription (phase: draft)` — confirme le blocage **serveur**, pas seulement frontend, sur **dev**. |
+| Test 3 — onglet « Créer » de l'accueil | ⚠️ **obsolète** : cet onglet n'existe plus sous cette forme depuis la refonte 73/74/140/143 — l'accueil ne montre plus qu'une liste « Séances en cours » (+ lien externe « Voir tous les débats »). Ma séance `QA141-draft` n'y figure pas (substance du test confirmée), mais le test tel qu'écrit ne peut plus être rejoué littéralement. À reformuler dans une prochaine passe de rédaction d'`A_VERIFIER.md` plutôt qu'à revérifier. |
+
+Séance de test purgée après coup (0 ligne restante).
+
+## Classification des lignes 1300-1900 d'`A_VERIFIER.md`
+
+Fait (lecture des titres de section + contenu 1472-1698). Presque tout ce bloc exige le **Code Ecclesia** (chantiers 67, 47, 60, 54, 43/44, 35, section « Parcours Modérateur », « Questionnaire post-débat » points 1-2) ou le mot de passe **superadmin** (section « Parcours Superadmin », 1325-1471, chantiers 33, 38, 50, 54) → **hors 141a**, réparti dans `triage.md` sous 141b/c/d.
+Seul le chantier 65 (ci-dessus) était jouable sans mot de passe ; fait.
+
+## Non joué dans ce lot (transmis à 141a si repris, sinon aux sous-chantiers concernés)
+
+- Portes d'entrée du 140 (l. 3095-3098) et idempotence modérateur (l. 3096) : demandent le Code Ecclesia → 141d.
+- `add_offline_participant` avec nom déjà assis (l. 3113) : Code Ecclesia → 141d.
+- Résultats publics et accueil (l. 1268-1301) : mélange de public et de superadmin (item « liste des séances, tous les champs d'édition » l. 1321 nécessite le mot de passe) → à répartir 141a (partie visiteur) / 141b (partie superadmin) en reprenant.
+- Écart C4 (overlay modérateur) et piège D1 (l. 2868, 2870) : C4 demande une table animée avec modérateur (Code Ecclesia) → 141d ; D1 est une approximation faisable sans mot de passe (vidage de session) → 141a si repris.
+- Scénarios du chantier 68 (l. 1224-1269, Code Ecclesia) → 141d.
+- Lignes 1900-3100 (onboarding 71, entrée modérateur 73, phases hors ligne 74, synchro Realtime 35, nettoyage données de test, chantiers 87/101/108/113/114/117/120/132/138/139/135/140) : **non classées**, à faire en premier à la reprise de 141a ou en tri initial de 141b-d.

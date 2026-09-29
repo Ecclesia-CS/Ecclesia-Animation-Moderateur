@@ -1489,6 +1489,8 @@ Session headless — aucun de ces scénarios n'a été joué à l'écran. Seuls 
 
   **Une fois les 3 tests validés** : faire passer la séance de test en `pre_voting` côté superadmin, recharger les mêmes deux liens (`#session/` et `#vote/`) → le formulaire d'inscription normal doit apparaître, comme avant ce chantier.
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : tests 1 et 2 ✅ (écran de blocage, pas de redirection) ; test 2 renforcé par un appel RPC direct `register_session_member` → refus serveur `400` (« La séance n'est pas en phase d'inscription ») ; test 3 **obsolète** — l'onglet « Créer » décrit n'existe plus depuis la refonte 73/74/140/143, l'accueil ne liste plus que les séances en cours (la séance `draft` de test n'y apparaissait pas, substance confirmée autrement). Reste à passer en « Validé »/à reformuler par Jules. Vaut pour dev, pas pour prod.
+
 
 - [ ] **2026-09-02 — Chantier 67 (point 2) — code de rappel pour un modérateur qui se déclare en pré-vote** — `src/screens/EntryScreen.tsx`, `src/components/voting/ReclaimCodeDisplay.tsx` *(migration `20260902_chantier67_claim_moderator_prevoting.sql` requise — voir « Migration SQL en attente » plus haut)*
 
