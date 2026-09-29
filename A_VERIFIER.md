@@ -1257,6 +1257,8 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
 
 - [ ] **Table `leaderless` ciblée volontairement — devient modérée** — même écran ou `JoinTableScreen`
 
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (141d, `lot-d.md`) : bascule `leaderless=false` ✅. ⚠️ A1 : la vue modérateur ne s'affiche pour le preneur qu'après rechargement. Cas nominal, refus « déjà modérée » (modérateur physique) et refus « autre séance » du chantier 68 ✅ également (mêmes conditions). Vaut pour dev, pas pour prod.
+
   1. Table créée « sans admin » (`leaderless = true`, jamais réclamée par personne).
   2. Prise en charge par ce chemin (case cochée, code de cette table, nom, Code Ecclesia).
   3. Attendu : succès — la table bascule `leaderless = false` en base, comme une désignation Bloc C (chantier 64). Un participant resté sur `ParticipantView` pour cette table doit basculer sur la vue modérateur pour le preneur, et perdre la proposition d'auto-gestion par file (plus de tentative silencieuse de `claimFloor()`) pour les autres.
@@ -3149,6 +3151,8 @@ Vérifié le 2026-09-28 :
 
 Reste à vérifier :
 - [ ] `add_offline_participant` (modérateur qui ajoute quelqu'un sans téléphone) : refuse désormais un nom déjà assis à la table — non rejoué au clic.
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (141d, `lot-d.md`) : nom d'une *autre* personne assise (autre casse) ✅ refusé. ⚠️ A2 : le nom **du modérateur lui-même** (autre casse) est accepté et crée un second participant (`user_id IS DISTINCT FROM auth.uid()` dans la garde). Vaut pour dev.
 - [ ] **Sur prod, après merge** : contrôler le renommage du doublon de la séance du 03/06 et rejouer une inscription avec une autre casse.
 - [ ] **Hors périmètre, signalé** : `register_collab_pseudo` (document collaboratif `#collab/`) rattache les sources à qui tape un pseudo, sans aucun code — même famille de problème que ce chantier, mais sur une identité distincte (`collab_session_users`). **Devenu le chantier 142** (`docs/chantiers-a-faire.md`, décision de Jules du 2026-09-28).
 
@@ -3170,6 +3174,8 @@ Reste à vérifier :
 - Données de test purgées en base dev (1 membre, 1 participant, 1 affectation).
 - [x] Cas modérateur, joué avec le vrai Code Ecclesia saisi par Jules (nom neuf `Test143 Modo`, code de table `C6EABF`, case cochée) : code accepté, puis refus explicite « Cette table a déjà un modérateur — choisis-en une autre ou contacte le superadmin » (la seule table de `F1223D` avait déjà un modérateur) ; rien n écrit en base.
 - [ ] **Non rejoué** : la prise effective de modération d une table libre (séance de test avec une table sans modérateur nécessaire) ; l entrée par code de table sans modérateur ; un mobile réel (Messenger in-app).
+
+  🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141d, `docs/rapports-tests-141/lot-d.md`, Code Ecclesia saisi par Jules) : prise effective de modération d'une table `leaderless` ✅ (`leaderless=false`, modérateur assis). ⚠️ anomalie A1 : le preneur arrive d'abord sur la vue participant, la vue modérateur n'apparaît qu'après rechargement. Vaut pour dev, pas pour prod.
 
   🤖 **Partiellement vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : « entrée par code de table sans modérateur » ✅ — table `leaderless` de test, `#session/<code>` → un seul champ « Prénom Nom » → code de table saisi sans cocher la case modérateur → accepté, écran du code de rappel affiché. **Reste non rejoué** (Code Ecclesia requis) : la prise effective de modération d'une table libre, et le mobile réel. Vaut pour dev, pas pour prod.
 - [ ] **Sur prod, après merge** : contrôle visuel de l'écran « Débat en cours » d'un retardataire.
