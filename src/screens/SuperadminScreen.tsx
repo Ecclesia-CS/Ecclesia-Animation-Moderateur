@@ -2907,6 +2907,8 @@ function SessionDetail({
     setDeleteTableConfirm(null)
     try {
       await deleteTableAdmin(password, target.id)
+      // Chantier 144 — la bannière « Table créée ! » ne doit pas survivre à sa table.
+      setNewTableCode(code => (code === target.join_code ? null : code))
       setAttachedTables(prev => prev.filter(t => t.id !== target.id))
       await loadGroups()
     } catch (e) {
@@ -3650,6 +3652,8 @@ function SessionDetail({
                                       par le formulaire de rattrapage) n'a aucun flag
                                       is_moderator, n'apparaît donc pas ci-dessus, et rend
                                       pourtant la table non reprenable. */}
+                                  {/* Chantier 144 — les deux liens partageaient une ligne sans séparateur. */}
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                                   {g.table_id && (
                                     <button
                                       onClick={() => handleReleaseTableModeration(g.table_id!)}
@@ -3679,6 +3683,7 @@ function SessionDetail({
                                       Refaire une table sans animateur
                                     </button>
                                   )}
+                                  </div>
                                 </div>
                               )
                             })()}

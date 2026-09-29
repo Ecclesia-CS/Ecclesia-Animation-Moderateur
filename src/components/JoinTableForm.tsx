@@ -46,6 +46,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   const [error, setError] = useState<string | null>(null)
   // Chantier 140 — ligne « J'ai déjà un code de rappel », toujours présente.
   const [reclaimOpen, setReclaimOpen] = useState(false)
+  const reclaimAutoOpened = useRef(false)
   const [reclaimCode, setReclaimCode] = useState('')
   const reclaimInputRef = useRef<HTMLInputElement>(null)
   // Chantier 119 — présent uniquement si cet appel a créé la ligne
@@ -66,6 +67,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   }
 
   function openReclaim() {
+    reclaimAutoOpened.current = true
     setReclaimOpen(true)
     requestAnimationFrame(() => reclaimInputRef.current?.focus())
   }
@@ -189,7 +191,11 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           type="text"
           required
           value={pseudo}
-          onChange={e => { setPseudo(e.target.value); setError(null) }}
+          onChange={e => { setPseudo(e.target.value); setError(null)
+            // Chantier 144 — l'accordéon ouvert par un conflit de nom se referme
+            // quand le nom change ; celui ouvert à la main par la personne reste.
+            if (reclaimAutoOpened.current) { reclaimAutoOpened.current = false; setReclaimOpen(false); setReclaimCode('') }
+          }}
           placeholder="Prénom Nom"
           className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
@@ -199,7 +205,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
       <ReclaimCodeAccordion
         ref={reclaimInputRef}
         open={reclaimOpen}
-        onToggle={() => { setReclaimOpen(o => !o); setError(null) }}
+        onToggle={() => { reclaimAutoOpened.current = false; setReclaimOpen(o => !o); setError(null) }}
         code={reclaimCode}
         onCodeChange={c => { setReclaimCode(c); setError(null) }}
       />
