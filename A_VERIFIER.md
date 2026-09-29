@@ -46,6 +46,8 @@ Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rap
 
 ## Chantier 137 — suppression d'un participant, poubelle du bannissement, vote qui ne se rouvre plus (2026-09-28)
 
+> **141b — points D (d, côté superadmin) et D (g) rejoués au navigateur : compte rendu exact, table « sans animateur », mention « Retiré·e de l'analyse déjà calculée ». Reste non vu : l'écran du modérateur supprimé (second appareil).** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — voir `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
+
 **Migration** `supabase/migrations/20260928_chantier137_delete_session_member_admin.sql` — appliquée sur la base **dev** uniquement, **à appliquer sur prod au merge vers `main`**. Elle crée `delete_session_member_admin` (aucune fonction existante réécrite) et change `assertions.member_id` : `NOT NULL` → nullable, FK `ON DELETE CASCADE` → `ON DELETE SET NULL`. Avant prod : `SELECT` de contrôle en lecture seule sur `assertions`/FK (règle `CLAUDE.md`).
 
 **Vérifié** (2026-09-28) : RPC en base dev, jeu de données jetable dans une transaction annulée. **Vérifié au navigateur sur dev le même jour (E et F)** : serveur local pointé sur la base dev via un `.env.local` temporaire (le `.env` du worktree pointe sur **prod**, supprimé depuis), table de test rattachée à la séance de test dev, données nettoyées ensuite.
@@ -60,6 +62,8 @@ Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rap
 **Points ouverts** : (i) un binôme dissous laisse le partenaire sans binôme (rien à corriger côté données, à confirmer voulu) ; (ii) `leaderless_by_design` n'est pas touché à la suppression d'un animateur — la table est `leaderless = true` mais reste reconvertible comme le prévoit `docs/reference-tables-leaderless.md`.
 
 ## Chantier 134 — trois types de séance : séance complète / débat simple / sondage (2026-09-26)
+
+> **141b — points 1, 2 et 3 (modale à trois types, fiche débat simple, fiche sondage avec « Analyser les camps » puis camps visibles chez un participant) rejoués au navigateur. Points 4 et 5 (Code Ecclesia) : lot 141d.** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — voir `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
 
 **Migrations** (appliquées sur la base **dev** `mnjqrlrrzrycuconlfqb` uniquement — **à appliquer sur prod au merge vers `main`, dans l'ordre**) :
 - `supabase/migrations/20260926_chantier134a_modes_de_seance.sql` : colonne `sessions.session_type` (`full`/`debate`/`poll`, défaut `full`) ; `session_type_allows_phase` ; `create_session` (+ `p_session_type`, **DROP puis CREATE** car un argument s'ajoute, regrant `anon, authenticated`) ; garde de mode dans `set_session_phase` ; nouvelle RPC `join_simple_debate` ; `list_public_closed_sessions` exclut les débats simples.
@@ -106,6 +110,8 @@ Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rap
 **Migration** : `supabase/migrations/20260926_chantier131_sujet_suivant_et_tag.sql`, appliquée sur **dev uniquement**. À réappliquer sur **prod** au moment du merge vers `main` (règle de circulation dev→main, `CLAUDE.md`).
 
 ## Chantier 128 — modérateur affiché en double sur une même table, vue superadmin (2026-09-25)
+
+> **141b — une seule carte modérateur par table constatée à l'écran (onglet Groupes) sur un cas reproduit à la main.** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — voir `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
 
 **Diagnostic confirmé en base (pas une hypothèse)** : dans une séance, un modérateur déjà « en exercice » Bloc C (ligne `session_members`, `tables.active_moderator_member_id` posé sur cette ligne) réclame ensuite la MÊME table par Code Ecclesia (`claim_table_as_moderator`) sous une **nouvelle identité anonyme** (`auth.uid()` renouvelé — nouvel appareil, ou `localStorage` vidé), en retapant le même pseudo. `active_moderator_member_id = COALESCE(…)` (chantier 106/118) ne bascule jamais sur cette nouvelle identité. `list_table_assignments_admin` (branche `UNION ALL` du chantier 117) l'affiche alors comme un SECOND modérateur, car son `NOT EXISTS` ne testait que `user_id`, pas le pseudo.
 
@@ -1023,9 +1029,9 @@ Nouvelle phase insérée entre `debating` et `closed` (demande de Jules : le rev
 
 Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable, purgée après test) — voir historique de ce fichier pour la recette complète : Realtime `debating → post_voting → closed`, questionnaire forcé, revote fonctionnel (vote changé en base), bouton « ↻ Revoter » qui disparaît bien en `closed`, zéro erreur console. Les transitions ont été faites par `UPDATE sessions.phase` en SQL direct (pas de mot de passe superadmin transmis à la session) — **rien côté superadmin n'est donc encore vérifié à l'écran** :
 
-- [ ] **Bouton `PhaseBar` réel** — cliquer "Passer en Post-vote →" depuis l'onglet Live d'une séance en `debating`, et vérifier que `handlePhaseChange` appelle bien `force_session_questionnaire` (participants encore sur une table forcés au questionnaire) avant même que `sessions.phase` ne change côté DB.
-- [ ] **Bouton "Passer en Clôturée →"** depuis `post_voting` — vérifier que le bouton `PhaseBar` propose bien cet intitulé (généré depuis `PHASE_LABEL`/`PHASE_SEQUENCE_LABELS`, jamais testé à l'écran) et que le clic déclenche la purge de `reclaim_code` pour les membres qui en ont un (un membre inscrit en `pre_voting`, pas juste `voting` comme le membre de test précédent).
-- [ ] **`PhaseBar` — étapes cliquables directement** (cercles 0-6, `onPhaseSelect`) — vérifier qu'un saut direct `debating → closed` (en sautant `post_voting`) reste possible depuis l'UI et ne casse rien (les boutons non-linéaires existaient déjà avant ce chantier, mais jamais testés avec la phase `post_voting` insérée entre les deux).
+- [ ] **Bouton `PhaseBar` réel** — cliquer "Passer en Post-vote →" depuis l'onglet Live d'une séance en `debating`, et vérifier que `handlePhaseChange` appelle bien `force_session_questionnaire` (participants encore sur une table forcés au questionnaire) avant même que `sessions.phase` ne change côté DB. *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
+- [ ] **Bouton "Passer en Clôturée →"** depuis `post_voting` — vérifier que le bouton `PhaseBar` propose bien cet intitulé (généré depuis `PHASE_LABEL`/`PHASE_SEQUENCE_LABELS`, jamais testé à l'écran) et que le clic déclenche la purge de `reclaim_code` pour les membres qui en ont un (un membre inscrit en `pre_voting`, pas juste `voting` comme le membre de test précédent). *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
+- [ ] **`PhaseBar` — étapes cliquables directement** (cercles 0-6, `onPhaseSelect`) — vérifier qu'un saut direct `debating → closed` (en sautant `post_voting`) reste possible depuis l'UI et ne casse rien (les boutons non-linéaires existaient déjà avant ce chantier, mais jamais testés avec la phase `post_voting` insérée entre les deux). *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
 - [ ] **Onglet "Live"** — `defaultTab` inclut désormais `post_voting` dans la liste qui garde l'onglet Live actif par défaut ; vérifier à l'écran que l'onglet superadmin reste bien sur "Live" (pas basculé sur "Analyse") juste après le passage en `post_voting`.
 - [ ] **Badge de phase** — `PHASE_LABEL`/`PHASE_CLASS` : le badge "Post-vote" (fond teal, jamais utilisé ailleurs dans l'app) s'affiche correctement sur la carte de séance dans la liste superadmin et en haut du détail de séance.
 - [ ] **Rattrapage de nommage des camps** — la condition élargie (`allocating`/`debating`/`post_voting`/`closed`) qui relance `loadLatestAnalysis` pour combler un `group_names` manquant/corrompu (chantier 28) n'a jamais été exercée en `post_voting` spécifiquement.
@@ -3054,6 +3060,8 @@ Fichier : `src/screens/SuperadminScreen.tsx` (composant `TableOverviewCard`, rem
 
 
 ## Chantier 135 — Comptes associations externes (2026-09-28)
+
+> **141b — « Analyser les camps » au clic et changement de mot de passe par l'asso rejoués au navigateur. Expiration réelle, Gemini réel et points « sur prod » restent humains.** *(vérifié automatiquement sur dev le 2026-09-29, chantier 141b — voir `docs/rapports-tests-141/lot-b.md` ; pas encore « Validé »)*
 
 Migrations **appliquées sur dev uniquement** (`mnjqrlrrzrycuconlfqb`), à appliquer sur **prod** au merge `dev → main`, dans cet ordre :
 1. `supabase/migrations/20260926_chantier135_comptes_associations.sql` — tables `organizations`/`organization_tokens`, colonne `sessions.organization_id`, helpers (`check_session_admin` & co., `check_moderator_code`), trigger de quota `sessions_org_rules`, RPC de connexion (`org_login`…) et de gestion (`create_organization`…), réécriture de 7 RPC à la main et de 35 autres par remplacement du seul bloc de contrôle (fait depuis `pg_get_functiondef` : rejouable sur prod sans écraser un corps plus récent — la migration échoue proprement si un bloc n'est pas trouvé exactement une fois).
