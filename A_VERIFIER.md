@@ -1317,6 +1317,7 @@ Vérifié au navigateur côté **participant** le 2026-09-07 (séance QA jetable
 
   **Test minimal (mot de passe superadmin requis, migration appliquée au préalable)** : ouvrir une séance close depuis la liste, cliquer la pastille → passe à "Résultats publics" sans reload ; recharger la page → l'état persiste (relu depuis `sessions.results_public`) ; cliquer à nouveau → repasse à "Résultats privés". Vérifier qu'aucune pastille n'apparaît sur les séances non closes.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `lot-f.md`, côté visiteur) : modale « Anciennes séances » liste une séance `closed` avec `results_public=true`, pas une `closed` non publique ni une `post_voting` publique. Vaut pour dev, pas pour prod.
 
 ## Colonnes annexes de sessions (chantier 58)
 
@@ -1984,6 +1985,7 @@ Notes de contexte conservées pour mémoire (règle append-only) mais qui ne dem
      🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : table de test avec `created_by` = l'uid de l'appelant (donne `ModeratorView` sans passer par le Code Ecclesia, mécanisme légitime — c'est le chemin « créateur physique » documenté dans `CLAUDE.md`) ; couleur de texte lue par `getComputedStyle` pendant la frappe : `rgb(17, 24, 39)` (gris foncé) sur fond blanc. Confirme le correctif. Vaut pour dev, pas pour prod.
   3. **session_members (point 2, nécessite la migration appliquée)** : sur une séance de test en phase `debating`, ajouter une personne sans téléphone depuis `ModeratorView` → vérifier en base qu'une ligne `session_members` est créée pour elle (`joined_phase = 'debating'`, `attending_in_person = true`, `user_id` distinct du modérateur), en plus de sa ligne `participants`. Vérifier aussi qu'ajouter quelqu'un portant le même pseudo qu'un membre déjà réellement inscrit à la séance ne modifie **pas** la ligne existante de ce membre. Sur une table standalone (sans séance), vérifier qu'aucune ligne `session_members` n'apparaît.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `docs/rapports-tests-141/lot-f.md`) : point 3 — ajout d'une personne sans téléphone : ligne `session_members` créée (`joined_phase='debating'`, `attending_in_person=true`, `user_id` distinct du modérateur, code haché) ; même pseudo qu'un membre réel : sa ligne reste inchangée et aucun code n'est émis ; table sans séance : aucune ligne `session_members`. Vaut pour dev, pas pour prod.
 
 ## Validé
 
@@ -2966,6 +2968,8 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 **Non testé — RPC jamais soumises, volontairement** : la table de test utilisée (`C94A01`) est une séance partagée entre sessions Claude Code (visible dans `EntryScreen`), déjà animée par quelqu'un — je n'ai pas voulu risquer de déloger un modérateur réel ou de fausser ses données en soumettant `claim_moderator_status`/`reclaim_table_as_moderator` avec le vrai Code Ecclesia. **Reste à vérifier humainement, sur une séance jetable** :
 - Soumettre réellement les deux actions (avec le vrai Code Ecclesia) et confirmer les écrans de succès affichés (`✅ Tu es marqué·e modérateur…` / `🎙️ Tu animes maintenant cette table.`).
 - Le cas où le bouton « Modérateur » ne doit proposer **que** l'option "reprendre l'animation" (table sans `session_id`, table autonome) et le cas où il doit disparaître entièrement (déjà modérateur ET table sans séance) — ces deux conditions reprennent celles des anciens boutons séparés, non retestées isolément faute de table autonome disponible sur l'environnement partagé.
+
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `lot-f.md`) : sur une table autonome (sans séance), participant simple : un seul bouton « Modérateur », la modale ne propose que « Reprendre l'animation de cette table ». Le cas « bouton masqué » reste non joué (inatteignable côté `ParticipantToolsButton` pour un modérateur physique). Vaut pour dev, pas pour prod.
 
 ## Chantier 114 — Onboarding : clarifier que « passif » n'est pas un engagement définitif (2026-09-21)
 
