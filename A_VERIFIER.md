@@ -91,6 +91,8 @@ Seules erreurs console : WebSocket HMR de Vite (`ws://localhost:5173`), sans rap
 
 **Limite connue, assumée** : les camps d'un sondage ne se recalculent que quand le superadmin relance l'analyse (le calcul tourne dans son navigateur et exige son mot de passe). Le décompte des votes, lui, est à jour à chaque ouverture de l'écran de résultats. Une actualisation automatique serait un chantier à part.
 
+🤖 **Complément 141f (2026-09-29, `lot-f.md`, Code Ecclesia saisi par Jules)** : point 4 ✅ — débat simple, « Je suis le modérateur » + Code Ecclesia → `ModeratorView` directe, `is_moderator = true`, `table_has_moderator = true`. Point 5 non rejoué sur une séance de type `debate` (même RPC que le chantier 110, vérifiée ci-dessus). Vaut pour dev, pas pour prod.
+
 ## Chantier 131 — bouton "sujet suivant" + tag de sujet à la prise de parole (2026-09-26)
 
 **Vérifié en base**, sur dev, par transaction jetable (`BEGIN…ROLLBACK`, `auth.uid()` simulé via `set_config('request.jwt.claims', …)`, aucune ligne laissée) :
@@ -396,6 +398,8 @@ Dicté par Jules en chat, pas dans la file d'attente. Constat de départ : le ra
 - Recalcul d'allocation après une déclaration en `allocating` : vérifier que le modérateur fraîchement déclaré est bien pris en compte par `get_allocation_inputs`/`runAllocation` au clic sur "Recalculer" (neutralité tranchée par Jules — pas de filtrage ajouté côté algorithme côté SQL, mais jamais rejoué de bout en bout avec une vraie séance à plusieurs membres).
 - Les échecs d'animation RLS décrits dans l'audit (actions du modérateur qui échouaient silencieusement sur la table où il était réellement assis) : conséquence logique du fix, mais pas rejouée action par action (`grant_floor`, `end_turn`…) sur la table 2 du scénario 1 ci-dessus.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `docs/rapports-tests-141/lot-f.md`, Code Ecclesia saisi par Jules) : « Me déclarer modérateur de la séance » depuis une table déjà animée (Bloc C) → « Tu es marqué·e modérateur pour cette séance », `is_moderator` passe à `true`, `table_assignments`, `created_by` et `active_moderator_member_id` de la table inchangés. Vaut pour dev, pas pour prod.
+
 ## Chantier 111 (2026-09-21) — Bouton « Assignez-moi une table » (écart C5 de l'audit 87/101) — ✅ vérifié en base et au navigateur réel
 
 **Constat préalable, avant d'écrire du code** : transaction jetable en base (`BEGIN`, `join_table` appelé avec un faux `auth.uid()` simulé sur une table réelle rattachée à une séance `debating`, `ROLLBACK`) — l'écart C5 décrit par l'audit du 2026-09-20 (« un retardataire qui rejoint uniquement une table n'a pas de ligne `session_members` ») était **déjà refermé** par les chantiers 66/67 (2026-09-02/03) : `join_table` → `sync_table_assignment` inscrit automatiquement `session_members` + `table_assignments`. Seul manquait réellement le bouton qui évite de demander un code à un voisin (arbitrage 3 de Jules).
@@ -486,6 +490,8 @@ Nouvelle RPC `reclaim_table_as_moderator(table_id, creation_code)` : Code Eccles
 **Non vérifié à l'écran** (pas de vrai Code Ecclesia pour cette session) : le succès effectif du formulaire (transfert réel de `created_by`/`active_moderator_member_id` déclenché depuis l'UI, pas seulement via SQL direct) — couvert indirectement par la vérification SQL directe ci-dessus, qui exerce exactement le même code SQL que la RPC appelée par le formulaire. Également non rejoués : le toast de notification côté ancien titulaire (`TableContext.tsx`, nécessite deux navigateurs simultanés sur la même table) ; la reprise sur une table rattachée à une séance (`active_moderator_member_id` transféré vers le `session_members` du repreneur, pas seulement `NULL` comme dans le test navigateur ci-dessus, qui portait sur une table autonome) — ce cas-là est cependant couvert par la vérification SQL directe (scénario 2, table autonome) et par le mécanisme déjà vérifié séparément au chantier 106 (lecture de `active_moderator_member_id` par `TableContext`).
 
 `tsc --noEmit` et `npm run build` passent sans erreur avec ces changements.
+
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141f, `lot-f.md`, Code Ecclesia saisi par Jules) : « Reprendre l'animation de cette table » depuis un participant assis → arrivée directe sur `ModeratorView` sans rechargement ; `created_by` et `active_moderator_member_id` passent à l'appelant, l'ancien modérateur (Bloc C) garde `is_moderator = true`. Vaut pour dev, pas pour prod.
 
 ## Chantier 105 (2026-09-20) — restriction de colonne `assertions` (chantier 51) — ✅ vérifié en base, cause non tranchée mais sans conséquence
 
@@ -2957,6 +2963,8 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 - Sur les trois écrans (C1 reclaim, C2 allocating, C3 secours debating), refaire le parcours avec le vrai Code Ecclesia et vérifier que `session_members.is_moderator` passe bien à `true` (C1, C2) ou que la table change bien de modérateur (C3), sans effet de bord sur `table_assignments` pendant `allocating` (garantie du chantier 107).
 
 `tsc --noEmit` propre, `npm run build` réussi, suite de tests (`vitest run`) : 119 passés / 4 skip pré-existants, aucune régression.
+
+🤖 **Complément 141f (2026-09-29, `lot-f.md`)** : le chemin C3 (`claim_table_as_moderator`, formulaire de secours) est couvert par équivalence — refus « table déjà modérée » (Bloc C) et « code d'une autre séance » vérifiés à l'écran sur `#session/<code>` et `#table/<code>`. Les succès de C1 (reclaim pré-vote) et C2 (réouverture en `allocating`) restent à vérifier. Vaut pour dev.
 
 ## Chantier 113 — Fusionner les deux boutons « modérateur » du panneau Outils (2026-09-21)
 
