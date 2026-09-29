@@ -29,13 +29,9 @@ Priorité aux items non déjà validés à l'écran :
 6. `add_offline_participant` avec un nom déjà assis (l. 3113).
 7. Ménage des données de test (l. 1729-1733), **avec l'accord de Jules avant toute suppression**.
 
-## Conversations 2 à 4 — superadmin (mot de passe saisi par Jules)
+> **Note** : les listes ci-dessus (« conversation 1 », « conversations 2 à 4 ») sont le premier brouillon du découpage. Le découpage **retenu et à suivre** est celui de la section « Sous-chantiers 141a à 141e » plus bas — 141b/c/d reprennent le contenu de ce qui était appelé ici « Lot 1/2/3 ».
 
-- **Lot 1** : `PhaseBar` et phases (l. 1007-1012), 128, 130/138, 134 points 1-3, 137-D (les points d et g restent ouverts), 135.
-- **Lot 2** : désignation de modérateur et onglet Groupes (139, 106, 109, 117, 118), allocation.
-- **Lot 3** : anciens chantiers 33-39, 50, 54, 65 côté superadmin, 72, 74 ; portes modérateur par Code Ecclesia (107, 110, 140, 134 point 4).
-
-## Format de rapport (un fichier par lot : `lot-N.md`)
+## Format de rapport (un fichier par sous-chantier : `lot-<lettre>.md`)
 
 Par anomalie : identifiant · chantier d'origine · environnement · étapes · attendu · observé · preuve · gravité proposée (bloquant / grave / mineur / cosmétique) · type de correctif (front / SQL / environnement).
 Les items qui passent reçoivent dans `A_VERIFIER.md` « vérifié automatiquement sur dev le … », **sans passer en « Validé »** (décision de Jules).
