@@ -2938,6 +2938,8 @@ Trois écarts (C1, C2, C3) de l'audit 87/101, tous fermés **après** le chantie
 **Reste à vérifier humainement** :
 - Confirmer à l'écran que le texte s'affiche correctement (pas de débordement sur mobile) et que le sens voulu par Jules passe bien.
 
+🤖 **Vérifié automatiquement sur dev le 2026-09-29** (chantier 141a, `docs/rapports-tests-141/lot-1.md`) : parcours réel d'inscription (`register_session_member`, sans mot de passe) jusqu'à la question 3/4 — la phrase d'intro (« Ce n'est pas définitif : tu pourras toujours prendre la parole en cours de débat, même si tu choisis « Plutôt écouter ». ») et les deux sous-libellés (« Je ne prévois pas de parler » / « Je compte prendre la parole ») sont bien affichés. Non vérifié : rendu mobile (desktop uniquement dans le Browser pane). Vaut pour dev, pas pour prod.
+
 ## Chantier 117 — Vue Groupes : afficher un modérateur « physique » invisible du superadmin (2026-09-21)
 
 **Origine** : Jules a rapporté, sur la vraie séance « Réunion apprentissage modération 21/09 » (`fb9a2c6b-42a7-40c6-bd88-d8f1db3505d4`), qu'un modérateur (visible et fonctionnel côté `ModeratorView`) n'apparaissait jamais dans l'onglet Groupes du superadmin, reload ou pas. Diagnostic posé par lecture directe en base (MCP Supabase) : ce modérateur (« Jules Bec Ordi ») a rejoint la table par Code Ecclesia (`claim_table_as_moderator`) sans jamais s'inscrire à la séance — aucune ligne `session_members`. `list_table_assignments_admin` (chantier 50/106) ne lit que `table_assignments` × `session_members`, donc ne peut structurellement pas le voir. C'est le « défaut A » déjà documenté dans `20260906_chantier72_1_reprise_moderation.sql`, jamais corrigé côté affichage.
