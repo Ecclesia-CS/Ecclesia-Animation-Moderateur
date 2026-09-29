@@ -419,6 +419,20 @@ Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx
 
 ---
 
+#### 144 — Correctifs relevés par la passe de vérification automatisée (chantier 141)
+
+**Origine** : rapport `docs/rapports-tests-141/rapport-consolide.md`. Front pour l'essentiel, une garde SQL. Décisions de Jules du 2026-09-29 : le badge « N actifs » qui compte le modérateur en exercice est **voulu, on n'y touche pas** ; le point A1 (vue participant après prise d'une table `leaderless`) est un test à rejouer dans `A_VERIFIER.md`, pas un chantier.
+
+À faire :
+1. **Cosmétique — boutons collés** : sur les cartes de table de l'onglet Groupes, « Libérer la modération de cette table » et « Refaire une table sans animateur » s'affichent sans séparateur (`SuperadminScreen.tsx`). Les espacer.
+2. **Cosmétique — bannière périmée** : « Table créée ! Code : … » reste affichée après la suppression de cette même table (`SuperadminScreen.tsx`). La masquer à la suppression.
+3. **Cosmétique — accordéon « code de rappel »** (`src/components/JoinTableForm.tsx` ~l. 244, `disabled={loading || (reclaimOpen && !reclaimCode.trim())}`) : après un conflit de nom, l'accordéon reste ouvert et vide même quand le nom est corrigé, et « Rejoindre » reste grisé sans explication. Refermer l'accordéon quand le nom change, ou afficher pourquoi le bouton est grisé.
+4. **SQL — `add_offline_participant`** : la garde de doublon porte `AND user_id IS DISTINCT FROM auth.uid()` ; le modérateur étant lui-même assis sous son `auth.uid()`, ajouter une personne sans téléphone qui porte **son propre nom** (autre casse) crée un second participant au lieu d'un refus (même nom à la casse exacte : reprise silencieuse via `ON CONFLICT`, non testée). **Diagnostic d'abord** : lire la définition courante en base (`pg_get_functiondef`, dev et prod), puis décider du comportement voulu.
+5. **Diagnostic — `assign_pending_moderators`** (chantier 109) : sur une table tenue par un modérateur « physique » (`created_by` = un participant assis, `active_moderator_member_id` NULL), la fonction voit une table « sans modérateur » et y place un second modérateur. Établir si ce cas peut encore se produire depuis le chantier 119 (`claim_table_as_moderator` pose `active_moderator_member_id`) — en particulier pour une table créée via « Créer une table » avec le Code Ecclesia. Si oui, corriger ; sinon, le documenter.
+6. **À arbitrer avec Jules avant de coder** : (a) `#asso` ouvert dans un onglet où le superadmin est déjà connecté affiche l'habillage « Espace association » mais liste toutes les séances (vérifié : côté serveur `list_sessions_admin` filtre par organisation avec un vrai jeton d'asso — pas de fuite entre associations ; c'est un mélange de modes dans un même onglet) ; (b) deux `join_table` en 400 silencieux quand `localStorage` garde une table périmée ; (c) l'onglet Analyse d'un sondage propose des sections sans objet (comparaison avant/après débat, réponses au questionnaire, recrutement modérateurs).
+
+Périmètre de fichiers : `src/screens/SuperadminScreen.tsx`, `src/components/JoinTableForm.tsx`, migration SQL éventuelle pour `add_offline_participant`.
+
 ### 119 — Angles morts du code de rappel (inscriptions sans code) — ✅ fait, voir `docs/chantiers.md`
 
 **Fait le 2026-09-21** (numéroté 117 puis 118 au fil de deux rebases, faute de synchronisation avec deux autres sessions ayant pris ces numéros le même jour — définitivement 119). Détail complet (constat, fix, vérifications en base et au navigateur, angle hors périmètre découvert en cours de route) : entrée « 119 » de [`docs/chantiers.md`](./chantiers.md) et section « Chantier 119 » de [`../A_VERIFIER.md`](../A_VERIFIER.md). ⚠️ **Recoupe le chantier 118 ci-dessous** — voir l'amendement en tête de son entrée.
