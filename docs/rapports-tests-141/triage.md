@@ -82,3 +82,18 @@ Ordre conseillé : 141a → 141b → 141c → 141d → 141e (141a n'a besoin de 
 | Nettoyage tables `589D79`/`6ABDC9`/`6296A9` (l. 1749-1757) | **Accord explicite de Jules requis avant suppression** — non fait, à proposer en 141e |
 
 **141a est fini** au sens où tout ce qui ne demandait aucun mot de passe et avait un bon rapport coût/bénéfice a été joué. Les items marqués « probablement testable par la méthode created_by » (108→non, Code Ecclesia nécessaire pour la déclaration elle-même ; 113) peuvent être repris par une conversation dédiée si Jules veut aller plus loin sans mot de passe, sinon ils passent à 141d avec les autres.
+
+---
+
+## Conseils transmis pour les chantiers non en cours (141a, 2026-09-29)
+
+**Pour 141c/141d (superadmin, Code Ecclesia)** :
+- **Le chemin `created_by` = uid de test donne `ModeratorView` sans Code Ecclesia** (voir `lot-1.md`). Utile pour isoler un bug purement frontend (rendu, boutons, UI) d'un bug d'autorisation — si le bug apparaît aussi par ce chemin, il n'est pas lié au Code Ecclesia ; s'il n'apparaît que via le vrai Code Ecclesia, chercher côté RPC/SECURITY DEFINER.
+- **Piège d'identité à connaître avant de préparer des données de test** : la session anonyme du Browser pane change d'uid dès que `localStorage` est vidé (nouveau `signInAnonymously`, ancien jeton irrécupérable). Toujours relire l'uid courant juste avant d'écrire `created_by`/`participants.user_id` en base — sinon `App.tsx.init()` refuse silencieusement de restaurer la table (comparaison `pRow.user_id === userId`) et retombe sur l'accueil sans message.
+- **Deux identités simultanées ne sont pas possibles dans le Browser pane actuel** (`127.0.0.1` injoignable, un seul `localStorage` par origine). Tout test qui a besoin de deux navigateurs en même temps (chantier 132 live, tests Realtime multi-onglets de la section « Synchronisation temps réel ») restera à faire par un humain, ou en acceptant une approximation séquentielle (agir côté A, couper, agir côté B, comparer l'état en base plutôt que voir la propagation en direct).
+
+**Pour 141e (consolidation)** :
+- Le chantier 120 (`session_members.user_id` désynchronisé au renouvellement du jeton anonyme) est un **bug confirmé, sans correctif codé**, en attente d'un arbitrage de sécurité de Jules — ce n'est pas une tâche de test, à ne pas classer dans le rapport de bugs mais à rappeler explicitement dans le compte rendu final comme décision en attente.
+- Observation mineure (O1, `lot-1.md`) : deux 400 silencieux sur `join_table` quand `localStorage` garde une table périmée — à vérifier si un vrai participant peut se retrouver dans ce cas sans explication à l'écran.
+
+**Pour un futur chantier « infra de test »**, si Jules en juge le besoin : le Browser pane ne sachant pas ouvrir `127.0.0.1`, un vrai test à deux identités simultanées suppose soit un second profil de navigateur, soit Claude in Chrome en plus du Browser pane intégré — à évaluer séparément, hors périmètre du 141.
