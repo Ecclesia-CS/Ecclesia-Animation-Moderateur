@@ -6,9 +6,10 @@ import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
 import JoinTableForm from '../components/JoinTableForm'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
-import { hasQuestionnaireResponse, assignLeastFilledTable } from '../lib/voting'
-import { tableStore, lastNameStore } from '../lib/storage'
-import { extractErr } from '../lib/utils'
+import { hasQuestionnaireResponse, joinSimpleDebate } from '../lib/voting'
+import { sessionTypeOf } from '../lib/phaseLabels'
+import DebateEntryForm from '../components/DebateEntryForm'
+import { tableStore } from '../lib/storage'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -21,6 +22,7 @@ type Status =
   | 'not_found'
   | 'not_open'
   | 'debating_no_member'
+  | 'debate_entry'
   | 'post_voting_no_member'
   | 'questionnaire'
   | 'closed'
@@ -33,11 +35,6 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   const [sessionId,    setSessionId]    = useState<string | null>(null)
   const [fullSession,  setFullSession]  = useState<Session | null>(null)
   const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
-  // Chantier 111 — « Assignez-moi une table » (retardataire jamais inscrit)
-  const [assignPseudo, setAssignPseudo] = useState(() => lastNameStore.get())
-  const [assignLoading, setAssignLoading] = useState(false)
-  const [assignError,   setAssignError]   = useState<string | null>(null)
-
   useEffect(() => {
     async function route() {
       // 1. Ensure anonymous auth
@@ -59,6 +56,8 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       const s = session
       setSessionTitle(s.title)
       setSessionId(s.id)
+      setFullSession(s)
+      const isSimpleDebate = sessionTypeOf(s) === 'debate'
 
       // 3. Branch per phase
       switch (s.phase) {
@@ -77,6 +76,38 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           return
 
         case 'debating': {
+          // Chantier 134 — débat simple : ni vote ni VoteScreen. Un membre
+          // déjà inscrit (même appareil) retourne directement à sa table ;
+          // sinon, formulaire d'entrée dédié (nom, modérateur, code de rappel).
+          if (isSimpleDebate) {
+            if (userId) {
+              const { data: member } = await supabase
+                .from('session_members')
+                .select('id')
+                .eq('session_id', s.id)
+                .eq('user_id', userId)
+                .maybeSingle()
+              if (member) {
+                try {
+                  const r = await joinSimpleDebate(s.id, '')
+                  tableStore.set({
+                    tableId:       r.id,
+                    participantId: r.participant_id,
+                    joinCode:      r.join_code,
+                    isModerator:   r.is_moderator,
+                    pseudo:        r.pseudo,
+                  })
+                  if (onTableJoined) onTableJoined(r.id, r.participant_id, r.is_moderator)
+                  setStatus('redirecting')
+                  return
+                } catch {
+                  // Retombe sur le formulaire, qui affichera l'erreur au besoin.
+                }
+              }
+            }
+            setStatus('debate_entry')
+            return
+          }
           if (!userId) {
             setStatus('debating_no_member')
             return
@@ -118,10 +149,29 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               // Chantier 39 — plus de phase 'questionnaire' dédiée : un membre
               // inscrit qui n'a pas encore répondu au questionnaire post-débat
               // le voit avant sa carte de résultats (scatter + point self).
+              // Chantier 134 — un sondage n'a pas de débat, donc pas de
+              // questionnaire post-débat : directement les résultats.
+              if (sessionTypeOf(s) === 'poll') {
+                setStatus('results_map')
+                return
+              }
+              // Chantier 135 — débat d'une association : pas de questionnaire
+              // de fin (consigne de Jules), directement l'écran de fin.
+              if (isSimpleDebate && s.organization_id) {
+                setStatus('closed')
+                return
+              }
               const answered = await hasQuestionnaireResponse(s.id)
-              setStatus(answered ? 'results_map' : 'questionnaire')
+              // Chantier 134 — un débat simple n'a pas de carte de résultats :
+              // questionnaire de fin (demandé par Jules), puis écran de fin.
+              const after = isSimpleDebate ? 'closed' : 'results_map'
+              setStatus(answered ? after : 'questionnaire')
               return
             }
+          }
+          if (isSimpleDebate) {
+            setStatus('closed')
+            return
           }
           if (s.phase === 'post_voting') {
             setStatus('post_voting_no_member')
@@ -141,36 +191,25 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     route()
   }, [sessionJoinCode])
 
-  // ── Assignez-moi une table (chantier 111) ───────────────────────
-  async function handleAssignLeastFilled() {
-    const pseudo = assignPseudo.trim()
-    if (!pseudo || !sessionId) return
-    setAssignLoading(true)
-    setAssignError(null)
-    try {
-      const r = await assignLeastFilledTable(sessionId, pseudo)
-      lastNameStore.set(pseudo)
-      tableStore.set({
-        tableId:       r.id,
-        participantId: r.participant_id,
-        joinCode:      r.join_code,
-        isModerator:   false,
-        pseudo,
-      })
-      if (onTableJoined) onTableJoined(r.id, r.participant_id, false)
-    } catch (err) {
-      setAssignError(extractErr(err))
-    } finally {
-      setAssignLoading(false)
-    }
-  }
-
   // ── Render ────────────────────────────────────────────────────
   if (status === 'questionnaire' && fullSession) {
     return (
       <SessionQuestionnaireForm
         sessionId={fullSession.id}
-        onDone={() => setStatus('results_map')}
+        sessionType={sessionTypeOf(fullSession)}
+        onDone={() => setStatus(sessionTypeOf(fullSession) === 'debate' ? 'closed' : 'results_map')}
+      />
+    )
+  }
+
+  if (status === 'debate_entry' && sessionId) {
+    return (
+      <DebateEntryForm
+        sessionId={sessionId}
+        sessionTitle={sessionTitle}
+        onJoined={(tableId, participantId, isModerator) => {
+          if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
+        }}
       />
     )
   }
@@ -211,33 +250,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
             </p>
           </div>
-          {/* Chantier 111 — pas de code sous la main : placement automatique
-              sur la table animée la moins remplie de la séance. */}
-          <div className="space-y-2 mb-4">
-            <input
-              type="text"
-              value={assignPseudo}
-              onChange={e => { setAssignPseudo(e.target.value); setAssignError(null) }}
-              placeholder="Prénom Nom"
-              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                placeholder:text-gray-300 transition-shadow"
-            />
-            <button
-              onClick={handleAssignLeastFilled}
-              disabled={assignLoading || !assignPseudo.trim()}
-              className="w-full py-3 px-4 bg-white border border-indigo-300 hover:bg-indigo-50
-                disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-xl transition-colors"
-            >
-              {assignLoading ? 'Placement…' : 'Assignez-moi une table'}
-            </button>
-            {assignError && (
-              <p className="text-xs text-red-600 text-center">{assignError}</p>
-            )}
-          </div>
-          <p className="text-xs text-gray-400 text-center mb-2">— ou, si tu as un code —</p>
+          {/* Chantier 143 — un seul champ « Prénom Nom » (et une seule ligne de
+              code de rappel) pour « Assignez-moi une table » (chantier 111 :
+              table animée la moins remplie) et pour l'entrée par code de table. */}
           <JoinTableForm
             sessionId={sessionId ?? undefined}
+            offerAutoAssign
             onJoined={(tableId, participantId, isModerator) => {
               if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
             }}
@@ -253,7 +271,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     )
   }
 
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'post_voting_no_member' | 'questionnaire'>, {
+  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'debate_entry' | 'post_voting_no_member' | 'questionnaire'>, {
     icon: string
     title: string
     subtitle: string
@@ -298,7 +316,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     )
   }
 
-  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'post_voting_no_member' | 'questionnaire'>]
+  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'debate_entry' | 'post_voting_no_member' | 'questionnaire'>]
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

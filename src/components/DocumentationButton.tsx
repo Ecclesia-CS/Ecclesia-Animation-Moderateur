@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSessionOrganizationName } from '../lib/organizations'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -11,27 +12,26 @@ interface Props {
   session: SessionDocs | null
   className?: string
   dropdownClass?: string
-  userPseudo?: string
   currentTableJoinCode?: string
+  /** Chantier 135 — séance de rattachement : pas de document collaboratif si elle appartient à une association. */
+  sessionId?: string | null
 }
 
-export default function DocumentationButton({ session, className, dropdownClass, userPseudo, currentTableJoinCode }: Props) {
+export default function DocumentationButton({ session, className, dropdownClass, currentTableJoinCode, sessionId }: Props) {
   const [open, setOpen] = useState(false)
+  const orgName = useSessionOrganizationName(sessionId)
 
   if (!session) return null
 
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session
 
-  const hasCollab = !!session_join_code || !!doc_collab_url
+  const hasCollab = !orgName && (!!session_join_code || !!doc_collab_url)
 
   const linkClass = `block px-4 py-2 text-sm hover:bg-gray-50 text-gray-700 whitespace-nowrap`
 
   function handleCollabClick() {
     setOpen(false)
     if (session_join_code) {
-      if (userPseudo) {
-        sessionStorage.setItem(`ecclesia_collab_pseudo_${session_join_code}`, userPseudo)
-      }
       if (currentTableJoinCode) {
         sessionStorage.setItem(`ecclesia_collab_table_${session_join_code}`, currentTableJoinCode)
       }

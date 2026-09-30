@@ -11,6 +11,8 @@ import type { Session, GroupNameResult, VoteResult } from '../lib/types'
 import type { AssignmentWithJoinCode } from '../lib/voting'
 import PhaseIndicator from '../components/PhaseIndicator'
 import PostVoteScreen from './PostVoteScreen'
+import VoteResultsSummary from '../components/voting/VoteResultsSummary'
+import { sessionTypeOf } from '../lib/phaseLabels'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED']
@@ -27,6 +29,8 @@ const H   = 220
 interface ResultsMapScreenProps {
   session:  Session
   memberId: string
+  /** Chantier 134 — ouvert depuis le vote d'un sondage : « Retour au vote » au lieu du menu. */
+  onBack?: () => void
 }
 
 // ── Scatter SVG ───────────────────────────────────────────────
@@ -189,7 +193,7 @@ function RepnessLegend() {
 }
 
 // ── Composant principal ───────────────────────────────────────
-export default function ResultsMapScreen({ session, memberId }: ResultsMapScreenProps) {
+export default function ResultsMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) {
   const [data,        setData]        = useState<ResultsMapData | null>(null)
   const [assignment,  setAssignment]  = useState<AssignmentWithJoinCode | null | undefined>(undefined)
   const [voteResults, setVoteResults] = useState<VoteResult[]>([])
@@ -197,6 +201,8 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
   const [error,       setError]       = useState<string | null>(null)
   // Chantier 69 — écran de revote, atteint depuis cette page uniquement.
   const [showPostVote, setShowPostVote] = useState(false)
+  // Chantier 134 — sondage : aucune table, le camp se montre sans affectation.
+  const isPoll = sessionTypeOf(session) === 'poll'
 
   useEffect(() => {
     async function load() {
@@ -282,14 +288,16 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
 
         <div>
-          <div className="mb-2"><PhaseIndicator phase={session.phase} /></div>
-          <h1 className="text-xl font-bold text-gray-900">Votre position dans le débat</h1>
+          <div className="mb-2"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
+          <h1 className="text-xl font-bold text-gray-900">
+            {sessionTypeOf(session) === 'poll' ? 'Votre position dans le sondage' : 'Votre position dans le débat'}
+          </h1>
           <p className="text-sm text-gray-500 mt-1">{session.title}</p>
           <button
-            onClick={() => { window.location.hash = '' }}
+            onClick={() => { if (onBack) onBack(); else window.location.hash = '' }}
             className="mt-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
-            ← Retour au menu
+            {onBack ? '← Retour au vote' : '← Retour au menu'}
           </button>
         </div>
 
@@ -334,7 +342,7 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
                 Un membre présent mais n'ayant pas voté a bien un table_assignments (assignment
                 != null, table physique de débat) mais aucun camp — ne pas afficher "pas encore
                 nommé" dans ce cas, réservé à un camp qui existe mais n'a pas encore de nom. */}
-            {assignment != null && selfGroupId !== null && (
+            {(assignment != null || isPoll) && selfGroupId !== null && (
               <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div
                   className="px-6 py-5 text-center"
@@ -378,11 +386,20 @@ export default function ResultsMapScreen({ session, memberId }: ResultsMapScreen
               </section>
             )}
 
+            {/* Chantier 134 — sondage : décompte des votes par assertion, à jour à
+                chaque ouverture, indépendant de l'analyse (qui, elle, n'avance que
+                quand l'organisateur la relance). */}
+            {isPoll && <VoteResultsSummary results={voteResults} loading={false} />}
+
             {/* ── Pas d'analyse PCA ────────────────────────────── */}
             {!error && !data && (
               <div className="bg-white rounded-2xl border border-gray-200 px-5 py-8 text-center">
                 <p className="text-sm text-gray-500">La carte des opinions n'est pas encore disponible.</p>
-                <p className="text-xs text-gray-400 mt-1">Revenez plus tard — l'organisateur publie les résultats après analyse.</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {isPoll
+                    ? "Les camps apparaissent dès que l'organisateur lance l'analyse des votes, et se mettent à jour à chaque nouvelle analyse."
+                    : "Revenez plus tard — l'organisateur publie les résultats après analyse."}
+                </p>
               </div>
             )}
 

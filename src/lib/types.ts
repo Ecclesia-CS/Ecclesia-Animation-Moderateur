@@ -21,6 +21,12 @@ export interface GroupNameResult {
   description: string
 }
 
+// Chantier 134 — mode de séance, fixé à la création (sessions.session_type,
+// NOT NULL DEFAULT 'full'). 'full' = parcours complet ; 'debate' = une table
+// modérée sans vote ; 'poll' = vote distanciel seul, sans table. Lire via
+// sessionTypeOf() (lib/phaseLabels.ts), qui retombe sur 'full' si absent.
+export type SessionType = 'full' | 'debate' | 'poll'
+
 export interface Session {
   id: string
   title: string
@@ -49,6 +55,12 @@ export interface Session {
   // pour cette séance (le superadmin, seul à pouvoir activer ce verrou, n'est
   // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
   assertions_locked: boolean
+  session_type: SessionType
+  // Chantier 135 — association externe propriétaire de la séance (null =
+  // séance Ecclesia). Toujours un débat simple ou un sondage. Colonne ajoutée
+  // par 20260926_chantier135_comptes_associations.sql : absente d'un blob
+  // relu d'avant, d'où l'optionnel.
+  organization_id?: string | null
 }
 
 export interface Table {
@@ -65,6 +77,56 @@ export interface Table {
   // d'animation SQL sur cette table (is_table_moderator). Nullable : aucun
   // modérateur de séance en exercice ici.
   active_moderator_member_id: string | null
+  // Chantier 132 — dernier vote "outil modérateur" créé pour cette table (Bloc C
+  // exclu, totalement séparé). Jamais remis à NULL à la clôture : pointe toujours
+  // le dernier vote, actif ou clôturé, tant qu'aucun nouveau n'a été créé.
+  active_vote_id: string | null
+}
+
+// Chantier 132 — outil "proposer un vote" côté modérateur (table-scoped, séparé
+// du Bloc C assertions/vote). Réponse oui/non indépendante par option, décomptes
+// agrégés uniquement — jamais de lecture nominative des réponses d'autrui.
+export interface TableVote {
+  id: string
+  table_id: string
+  question: string
+  status: 'active' | 'closed'
+  created_by: string
+  created_at: string
+  closed_at: string | null
+}
+
+export interface TableVoteOption {
+  id: string
+  vote_id: string
+  label: string
+  position: number
+}
+
+export interface TableVoteResult {
+  option_id: string
+  label: string
+  position: number
+  yes_count: number
+  no_count: number
+  total_count: number
+}
+
+export interface TableVoteHistoryOption {
+  option_id: string
+  label: string
+  position: number
+  yes_count: number
+  no_count: number
+}
+
+export interface TableVoteHistoryEntry {
+  id: string
+  question: string
+  status: 'active' | 'closed'
+  created_at: string
+  closed_at: string | null
+  options: TableVoteHistoryOption[]
 }
 
 export interface Participant {
@@ -73,6 +135,8 @@ export interface Participant {
   user_id: string
   pseudo: string
   created_at: string
+  // Chantier 131 — "d'accord pour passer au sujet suivant", toggle self-service
+  wants_next_topic: boolean
 }
 
 export interface QueueEntry {
@@ -82,6 +146,8 @@ export interface QueueEntry {
   queue_type: 'long' | 'interactive'
   position: number
   created_at: string
+  // Chantier 131 — tag de sujet optionnel, saisi à la prise de parole
+  topic_tag: string | null
 }
 
 export interface SpeakingTurn {
@@ -111,6 +177,8 @@ export interface CollabSource {
   id: string
   session_id: string
   user_id: string
+  /** Chantier 142 — membre propriétaire ; NULL si le membre a été supprimé (ON DELETE SET NULL). */
+  member_id: string | null
   pseudo: string
   title: string
   url: string | null
@@ -172,7 +240,8 @@ export interface EntryResponse {
 export interface Assertion {
   id: string
   session_id: string
-  member_id: string
+  /** NULL depuis le chantier 137-D : auteur supprimé, assertion conservée. */
+  member_id: string | null
   content: string
   status: 'pending' | 'approved' | 'rejected'
   created_at: string

@@ -39,7 +39,7 @@ interface TableCtxValue {
   endTurnAsSpeaker(): Promise<void>
   endTurnAndAdvance(): Promise<void>
   claimFloor(): Promise<void>
-  addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number): Promise<void>
+  addToQueue(participantId: string, queueType: 'long' | 'interactive', position?: number, topicTag?: string): Promise<void>
   removeFromQueue(entryId: string): Promise<void>
   changeQueueType(entryId: string, participantId: string, targetQueueType: 'long' | 'interactive', position?: number): Promise<void>
   moveQueueEntry(entryId: string, direction: 'up' | 'down'): Promise<void>
@@ -48,6 +48,10 @@ interface TableCtxValue {
   kickParticipant(participantId: string): Promise<void>
   forceQuestionnaire(): Promise<void>
   cancelForceQuestionnaire(): Promise<void>
+  setNextTopicVote(value: boolean): Promise<void>
+  resetNextTopicVotes(): Promise<void>
+  openTableVote(question: string, options: string[]): Promise<string>
+  closeActiveTableVote(voteId: string): Promise<void>
 }
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
@@ -169,6 +173,16 @@ export function TableProvider({
     if (!s.data) { showToast('Cette table n\'existe plus.', 'error'); handleEnd(); return }
     const tbl = s.data as Table
     setTable(tbl)
+    // Chantier 139 — `physicalModerator` démarre du cache `tableStore` (posé au
+    // join, jamais relu) et n'était recalculé que par le listener Realtime, sur
+    // un changement de `created_by`. Un modérateur physique délogé pendant qu'il
+    // était hors ligne, ou dont l'événement a été manqué, restait donc en écran
+    // modérateur à chaque rechargement alors que le serveur (`is_table_moderator`)
+    // lui refusait déjà toute action : « bloqué en modo alors qu'on est
+    // participant », et recharger ne changeait rien. On réconcilie ici, mais
+    // seulement À LA BAISSE : ne jamais promouvoir depuis `created_by === userId`
+    // (deux onglets d'un même userId, cf. CLAUDE.md § isModerator).
+    setPhysicalModerator(prev => prev && !tbl.leaderless && tbl.created_by === userId)
     setParticipants((p.data ?? []) as Participant[])
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
@@ -432,10 +446,10 @@ export function TableProvider({
   )
 
   const addToQueue = useCallback(
-    async (pId: string, qt: 'long' | 'interactive', position?: number) => {
-      const args = position !== undefined
-        ? { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt, p_position: position }
-        : { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt }
+    async (pId: string, qt: 'long' | 'interactive', position?: number, topicTag?: string) => {
+      const args: Record<string, unknown> = { p_table_id: tableId, p_participant_id: pId, p_queue_type: qt }
+      if (position !== undefined) args.p_position = position
+      if (topicTag !== undefined) args.p_topic_tag = topicTag
       await rpc('add_to_queue', args)
       // Refetch local immédiat (fire-and-forget) — n'attend pas le rebond du broadcast
       refetch(['queue_entries'])
@@ -577,6 +591,42 @@ export function TableProvider({
     broadcast(['tables'])
   }, [tableId, broadcast])
 
+  // Chantier 131 — "d'accord pour passer au sujet suivant". `participants` n'a
+  // aucune policy UPDATE : passe par une RPC self-service comme le reste.
+  const setNextTopicVote = useCallback(async (value: boolean) => {
+    await rpc('set_next_topic_vote', { p_participant_id: participantId, p_value: value })
+    setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, wants_next_topic: value } : p))
+    broadcast(['participants'])
+  }, [rpc, participantId, broadcast])
+
+  const resetNextTopicVotes = useCallback(async () => {
+    await rpc('reset_next_topic_votes', { p_table_id: tableId })
+    setParticipants(prev => prev.map(p => ({ ...p, wants_next_topic: false })))
+    broadcast(['participants'])
+  }, [rpc, tableId, broadcast])
+
+  // Chantier 132 — outil "proposer un vote". `tables.active_vote_id` piggyback
+  // sur le canal/broadcast/polling déjà en place sur `tables` (comme
+  // `questionnaire_forced_at`) : aucun nouveau topic Realtime nécessaire.
+  const openTableVote = useCallback(async (question: string, options: string[]) => {
+    const { data, error } = await supabase.rpc('create_table_vote', {
+      p_table_id: tableId,
+      p_question: question,
+      p_options: options,
+    })
+    if (error) throw error
+    const voteId = data as string
+    setTable(prev => prev ? { ...prev, active_vote_id: voteId } : prev)
+    broadcast(['tables'])
+    return voteId
+  }, [tableId, broadcast])
+
+  const closeActiveTableVote = useCallback(async (voteId: string) => {
+    const { error } = await supabase.rpc('close_table_vote', { p_vote_id: voteId })
+    if (error) throw error
+    broadcast(['tables'])
+  }, [broadcast])
+
   // ── Render ────────────────────────────────────────────────────
 
   const myParticipant = useMemo(
@@ -634,6 +684,10 @@ export function TableProvider({
         claimFloor,
         forceQuestionnaire,
         cancelForceQuestionnaire,
+        setNextTopicVote,
+        resetNextTopicVotes,
+        openTableVote,
+        closeActiveTableVote,
       }}
     >
       {children}

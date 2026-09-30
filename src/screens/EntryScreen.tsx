@@ -58,6 +58,9 @@ export default function EntryScreen() {
         .from('sessions')
         .select('id, title, phase, join_code')
         .in('phase', ['pre_voting', 'voting', 'allocating', 'debating'])
+        // Chantier 135 — une séance d'association ne se rejoint que par son
+        // QR code / lien, jamais depuis l'accueil d'Ecclesia.
+        .is('organization_id', null)
         .order('created_at', { ascending: false })
         .then(({ data }) => { if (data) setActiveSessions(data as ActiveSession[]) })
     }

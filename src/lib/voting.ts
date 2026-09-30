@@ -33,6 +33,10 @@ export const PSEUDO_TAKEN_MESSAGE =
 export const PSEUDO_PUBLIC_NOTICE =
   "Ce nom sera utilisé par le modérateur pour te donner la parole pendant le débat."
 
+/** Chantier 134 — un sondage n'a ni débat ni modérateur : le nom sert seulement à retrouver ses votes. */
+export const PSEUDO_POLL_NOTICE =
+  "Ce nom, avec ton code de rappel, te permet de retrouver tes votes sur un autre appareil."
+
 /**
  * Chantier 93 — les RPC d'identité ne lèvent PAS sur un refus d'identification
  * (mauvais code, blocage après 10 essais) : elles renvoient `{ error }`. Un
@@ -43,6 +47,42 @@ function unwrapIdentity<T>(data: unknown): T {
   const err = (data as { error?: string } | null)?.error
   if (err) throw new Error(err)
   return data as T
+}
+
+/**
+ * Chantier 140 — `join_table`, `switch_table` et `claim_table_as_moderator`
+ * répondent `{ reconnect_required, session_id, pseudo }` SANS RIEN ÉCRIRE
+ * quand le nom tapé appartient à un autre membre de la séance. Avant ce
+ * chantier, seul `App.tsx` lisait ce drapeau : `JoinTableForm` l'ignorait et
+ * faisait entrer l'utilisateur sous le nom d'un autre. Toute porte passe
+ * désormais par `assertSeated`, qui lève cette erreur typée — la porte ouvre
+ * alors l'accordéon « J'ai déjà un code de rappel ».
+ */
+export class PseudoTakenError extends Error {
+  constructor(public readonly sessionId: string, public readonly pseudo: string) {
+    super(PSEUDO_TAKEN_MESSAGE)
+    this.name = 'PseudoTakenError'
+  }
+}
+
+export function assertSeated(data: unknown): TableResult {
+  const r = data as TableResult | null
+  if (r?.reconnect_required) {
+    if (!r.session_id) throw new Error(PSEUDO_TAKEN_MESSAGE)
+    throw new PseudoTakenError(r.session_id, r.pseudo ?? '')
+  }
+  if (!r?.id || !r.participant_id) throw new Error('Réponse inattendue du serveur — réessaie.')
+  return r
+}
+
+/** Chantier 140 — `join_table` + `assertSeated` (voir `PseudoTakenError`). */
+export async function joinTable(joinCode: string, pseudo: string): Promise<TableResult> {
+  const { data, error } = await supabase.rpc('join_table', {
+    p_join_code: joinCode,
+    p_pseudo: pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return assertSeated(data)
 }
 
 export async function registerSessionMember(
@@ -133,6 +173,47 @@ export async function regenerateReclaimCodeAdmin(
   })
   if (error) throw new Error(extractErr(error))
   return data as { pseudo: string; new_reclaim_code: string }
+}
+
+/** Chantier 137-D — compte rendu de la suppression d'un membre. */
+export interface DeleteMemberResult {
+  pseudo: string
+  was_moderator: boolean
+  tables_now_leaderless: number
+  votes_deleted: number
+  assertions_detached: number
+  pairings_dissolved: number
+  analysis_rows_removed: number
+  seats_removed: number
+}
+
+/**
+ * Chantier 137-D — le superadmin supprime un participant de la séance, à toute
+ * phase. Ses assertions sont conservées (auteur détaché), le reste disparaît ;
+ * une table qu'il animait repasse sans animateur (`delete_session_member_admin`).
+ */
+export async function deleteSessionMemberAdmin(
+  password: string,
+  sessionId: string,
+  memberId: string
+): Promise<DeleteMemberResult> {
+  const { data, error } = await supabase.rpc('delete_session_member_admin', {
+    p_password:   password,
+    p_session_id: sessionId,
+    p_member_id:  memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+  const d = (data ?? {}) as Partial<DeleteMemberResult>
+  return {
+    pseudo:                d.pseudo ?? '',
+    was_moderator:         d.was_moderator === true,
+    tables_now_leaderless: d.tables_now_leaderless ?? 0,
+    votes_deleted:         d.votes_deleted ?? 0,
+    assertions_detached:   d.assertions_detached ?? 0,
+    pairings_dissolved:    d.pairings_dissolved ?? 0,
+    analysis_rows_removed: d.analysis_rows_removed ?? 0,
+    seats_removed:         d.seats_removed ?? 0,
+  }
 }
 
 /**
@@ -690,7 +771,7 @@ export async function claimTableAsModerator(
     p_session_id: sessionId ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as TableResult
+  return assertSeated(data)
 }
 
 /**
@@ -712,6 +793,34 @@ export async function assignLeastFilledTable(
   })
   if (error) throw new Error(extractErr(error))
   return data as TableResult & { new_reclaim_code: string | null }
+}
+
+/**
+ * Chantier 134 — entrée d'un participant dans un débat simple
+ * (`sessions.session_type = 'debate'`, phase `debating`). Inscription à la
+ * séance si besoin (code de rappel renvoyé une seule fois), place à table
+ * (celle où il est déjà assis, sinon la moins remplie) et, si le Code
+ * Ecclesia est fourni, prise de l'animation d'une table sans modérateur.
+ * Atomique côté serveur : une erreur n'inscrit personne à moitié.
+ */
+export async function joinSimpleDebate(
+  sessionId: string,
+  pseudo: string,
+  creationCode?: string,
+): Promise<TableResult & { new_reclaim_code: string | null; is_moderator: boolean; pseudo: string }> {
+  const { data, error } = await supabase.rpc('join_simple_debate', {
+    p_session_id:    sessionId,
+    p_pseudo:        pseudo,
+    p_creation_code: creationCode ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  const r = data as TableResult & { new_reclaim_code?: string | null; is_moderator?: boolean | null; pseudo?: string | null }
+  return {
+    ...r,
+    new_reclaim_code: r.new_reclaim_code ?? null,
+    is_moderator:     r.is_moderator === true,
+    pseudo:           r.pseudo ?? pseudo,
+  }
 }
 
 /**

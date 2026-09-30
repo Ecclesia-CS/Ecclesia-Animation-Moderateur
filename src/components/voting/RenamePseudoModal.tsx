@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { renameSessionMember, regenerateReclaimCodeSelf, PSEUDO_PUBLIC_NOTICE } from '../../lib/voting'
+import { renameSessionMember, regenerateReclaimCodeSelf, PSEUDO_PUBLIC_NOTICE, PSEUDO_POLL_NOTICE } from '../../lib/voting'
 
 interface RenamePseudoModalProps {
   sessionId: string
   currentPseudo: string
   onClose: () => void
   onRenamed?: (newPseudo: string) => void
+  /** Chantier 134 — adapte la mention d'usage du nom (sondage : pas de débat). */
+  isPoll?: boolean
 }
 
 /**
@@ -25,6 +27,7 @@ export default function RenamePseudoModal({
   currentPseudo,
   onClose,
   onRenamed,
+  isPoll = false,
 }: RenamePseudoModalProps) {
   const [value,   setValue]   = useState(currentPseudo)
   const [loading, setLoading] = useState(false)
@@ -98,7 +101,7 @@ export default function RenamePseudoModal({
                 autoFocus
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <p className="text-xs text-gray-400 mt-1.5">{PSEUDO_PUBLIC_NOTICE}</p>
+              <p className="text-xs text-gray-400 mt-1.5">{isPoll ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE}</p>
             </div>
 
             {error && (

@@ -5,7 +5,6 @@ import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimMo
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
-import type { TableResult } from '../lib/supabase'
 import type { Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import VoteResultsList from '../components/voting/VoteResultsList'
@@ -18,7 +17,7 @@ import type { PairingResult } from '../lib/voting'
 import DocNudge from '../components/voting/DocNudge'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
-import { hasQuestionnaireResponse } from '../lib/voting'
+import { hasQuestionnaireResponse, assertSeated } from '../lib/voting'
 
 interface AllocatingScreenProps {
   session: Session
@@ -208,7 +207,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         p_pseudo: member.pseudo,
       })
       if (error) throw error
-      const r = data as TableResult
+      const r = assertSeated(data)
       const isMod = currentMember.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
@@ -240,7 +239,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         p_pseudo:     member.pseudo,
       })
       if (error) throw error
-      const r = data as TableResult
+      const r = assertSeated(data)
       const isMod = currentMember.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
@@ -412,7 +411,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
         {/* Chantier 122 — mêmes liens documentaires que sur les écrans de vote,
             désormais visibles aussi en phase allocation. */}
-        <DocNudge session={currentSession} memberPseudo={member.pseudo} />
+        <DocNudge session={currentSession} />
 
         {/* Chantier 108 (C2) — rouverte depuis le chantier 107 : la déclaration
             pendant l'allocation ne fait plus que poser le drapeau modérateur,

@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import type { Session } from '../lib/types'
-import { PARTICIPANT_PHASE_STEPS, participantPhaseStep } from '../lib/phaseLabels'
+import type { Session, SessionType } from '../lib/types'
+import { participantPhaseStep, participantPhaseSteps } from '../lib/phaseLabels'
 
 interface Props {
   phase: Session['phase'] | null | undefined
   /** Pill flottante façon QuitLink (coin opposé), pour les écrans sans en-tête propre. */
   floating?: boolean
+  /** Chantier 134 — numérotation propre au mode de séance (défaut : séance complète). */
+  sessionType?: SessionType
 }
 
 /**
@@ -22,9 +24,9 @@ interface Props {
  * ne vit jamais dans un composant que sa propre fermeture pourrait démonter —
  * ici il n'y a qu'un seul composant, donc pas de risque de ce genre.
  */
-export default function PhaseIndicator({ phase, floating = false }: Props) {
+export default function PhaseIndicator({ phase, floating = false, sessionType = 'full' }: Props) {
   const [open, setOpen] = useState(false)
-  const step = participantPhaseStep(phase)
+  const step = participantPhaseStep(phase, sessionType)
   if (!step) return null
 
   const pill = (
@@ -59,7 +61,7 @@ export default function PhaseIndicator({ phase, floating = false }: Props) {
               <h2 className="text-lg font-bold text-white">Où en est la séance ?</h2>
             </div>
             <div className="px-6 py-5 space-y-2">
-              {PARTICIPANT_PHASE_STEPS.map(s => {
+              {participantPhaseSteps(sessionType).map(s => {
                 const isCurrent = s.number === step.number
                 const isPast    = s.number < step.number
                 return (

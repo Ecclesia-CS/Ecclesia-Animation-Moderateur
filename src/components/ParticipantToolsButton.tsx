@@ -9,6 +9,7 @@ import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
 import ModeratorActionModal from './voting/ModeratorActionModal'
+import { useSessionOrganizationName } from '../lib/organizations'
 import ChangeTableModal from './voting/ChangeTableModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
 
@@ -93,18 +94,19 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   }
 
   const done = checkDone && isComplete(savedResponse)
+  // Chantier 135 — séance d'association : ni questionnaire Ecclesia, ni
+  // document collaboratif, ni vote, et une seule table.
+  const orgName = useSessionOrganizationName(table.session_id)
 
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session ?? {}
   const infoUrl    = doc_info_url ?? null
   const summaryUrl = doc_summary_url ?? null
-  const hasCollab  = !!session_join_code || !!doc_collab_url
+  // Chantier 135 — pas de document collaboratif dans une séance d'association.
+  const hasCollab  = !orgName && (!!session_join_code || !!doc_collab_url)
 
   function handleCollabClick() {
     setPanelOpen(false)
     if (session_join_code) {
-      if (userPseudo) {
-        sessionStorage.setItem(`ecclesia_collab_pseudo_${session_join_code}`, userPseudo)
-      }
       sessionStorage.setItem(`ecclesia_collab_table_${session_join_code}`, table.join_code)
       window.location.hash = `#collab/${session_join_code}`
     }
@@ -249,7 +251,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </>
 
             {/* Résultats du vote */}
-            {!!table.session_id && (
+            {!!table.session_id && !orgName && (
               <button onClick={openVoteResults} className={linkClass}>
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={2}>
@@ -309,7 +311,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             )}
 
             {/* Changer de table — chantier 115 */}
-            {table.session_id && (
+            {table.session_id && !orgName && (
               <button
                 onClick={() => { setPanelOpen(false); setChangeTableOpen(true) }}
                 className={linkClass}
@@ -320,6 +322,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             )}
 
             {/* Questionnaire */}
+            {!orgName && (
             <button
               onClick={() => { if (!done) { setPanelOpen(false); setQuestionnaireOpen(true) } }}
               disabled={done}
@@ -335,6 +338,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               Questionnaire post-débat
               {done && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
             </button>
+            )}
 
             {/* Chantier 93 — le nom est celui que le modérateur lit à voix haute :
                 on doit pouvoir le corriger sans attendre la fin du débat.

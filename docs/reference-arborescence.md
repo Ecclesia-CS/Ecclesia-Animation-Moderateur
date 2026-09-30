@@ -63,6 +63,8 @@ src/
     ├── QuestionnaireModal.tsx    6 questions, 26 thèmes aléatoires, upsert RPC
     ├── QuestionnaireFab.tsx      Bouton header → QuestionnaireModal
     ├── ParticipantToolsButton.tsx Panneau Outils (débat) : documentation, résultats du vote (modal VoteResultsList, lazy-loaded, visible si table.session_id non-null), notes, questionnaire
+    ├── ModeratorVoteModal.tsx    **Chantier 132** — outil "proposer un vote" côté modérateur (table-scoped, séparé du Bloc C). Création (question + options dynamiques), suivi en direct (polling 4s tant qu'actif), clôture, historique. Ouvert depuis `ModeratorToolsButton` (section Table)
+    ├── TableVoteModal.tsx        **Chantier 132** — popup participant du vote ci-dessus, auto-déclenché dans `ParticipantView.tsx` sur changement de `table.active_vote_id`. Dismissible (contrairement au questionnaire forcé) ; formulaire oui/non par option tant qu'actif, résultats agrégés une fois clôturé
     ├── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL
     └── PhaseIndicator.tsx        **Chantier 39** — pill "Étape N · Libellé" (voir `lib/phaseLabels.ts`). Prop `floating` : pill fixe façon `QuitLink` (coin opposé) pour les écrans sans en-tête propre ; sinon rendu inline (à intégrer dans l'en-tête existant de l'écran appelant).
 ```
@@ -76,6 +78,8 @@ leaveTable
 grantFloor, endTurn, endTurnAsSpeaker, endTurnAndAdvance, claimFloor
 addToQueue, removeFromQueue, moveQueueEntry, reorderQueueEntry, changeQueueType
 correctTurn, kickParticipant
+forceQuestionnaire, cancelForceQuestionnaire, setNextTopicVote, resetNextTopicVotes
+openTableVote, closeActiveTableVote  // Chantier 132
 ```
 
 Realtime : 1 channel `table:<id>`, 4 `postgres_changes` + 1 broadcast `refresh` + monitoring WebSocket.
