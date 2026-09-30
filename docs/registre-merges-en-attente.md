@@ -9,6 +9,8 @@ Dernière mise à jour : **2026-09-16**.
 
 > **2026-09-16** — la file d'attente des chantiers a été reprise et renumérotée dans [`docs/chantiers-a-faire.md`](./chantiers-a-faire.md), qui fait foi pour le **reste à faire**. Ce registre-ci reste la référence pour ce qui est **retenu hors de `main`** et pour les arbitrages en attente. Six chantiers neufs (**90 à 95**) y ont été dictés par Jules, avec ses consignes citées mot pour mot ; le **75** y est absorbé par le **95** (voir §6 ci-dessous) et le **55** par le **93**.
 
+> **2026-09-30** — `dev` mergé dans `main` (chantiers 131 à 144, 83 commits) et **14 migrations appliquées sur prod**. Tag de retour arrière `pre-merge-dev-20260930` ; procédure et instantané de schéma dans [`docs/rollback-merge-dev-main-20260930.md`](./rollback-merge-dev-main-20260930.md). Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
+
 ---
 
 ## 1. Gel du parcours de vote — jusqu'au 2026-09-10 inclus
