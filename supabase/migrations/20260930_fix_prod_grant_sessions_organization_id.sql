@@ -1,0 +1,14 @@
+-- Correctif prod, 2026-09-30, découvert juste après le merge dev → main.
+--
+-- Symptôme : sur la page d'accueil, la liste des séances en cours était vide (aucune erreur
+-- affichée). Cause : depuis le chantier 135, EntryScreen filtre `.is('organization_id', null)`
+-- pour cacher les séances d'association. Or le chantier 58 a restreint le SELECT d'`anon` sur
+-- `sessions` à une liste de colonnes (id, title, phase, join_code, scheduled_at, created_at,
+-- onboarding_enabled) qui ne contient pas `organization_id` : PostgREST répond 42501
+-- (permission denied for column) et le front, qui ignore l'erreur, affiche une liste vide.
+-- Dev ne l'a jamais vu : ses droits sur `sessions` étaient larges (correctif fix_dev_grants).
+--
+-- `organization_id` n'est pas sensible (uuid ou NULL, même information que le filtre du front).
+-- Règle à retenir : toute colonne de `sessions` lue directement par le front doit figurer
+-- dans ce GRANT sur prod — le schéma dev, lui, ne le signalera pas.
+GRANT SELECT (organization_id) ON public.sessions TO anon, authenticated;
