@@ -735,8 +735,114 @@ describe('chantier 92 — grappes d’appairage', () => {
     expect(JSON.stringify(runAllocation(base).tables)).toBe(JSON.stringify(runAllocation({ ...base, pairs: [] }).tables))
   })
 
+  // ── Chantier 123 — le binôme d'un modérateur qui anime ──
+  //
+  // Avant ce chantier, un modérateur animant était placé par simple ordre
+  // d'index, hors du solveur : son binôme était systématiquement placé sans lui,
+  // et `brokenClusters` ne le voyait même pas (il lit `member_ids`, qui n'inclut
+  // pas les modérateurs).
+
+  it('un participant appairé à un modérateur qui anime est assis à SA table', () => {
+    const members = mix(45, 10)
+    const r = runAllocation({
+      members, moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['mo-1', 'x-2'], ['mo-2', 'x-7'], ['mo-3', 'x-19']] as [string, string][],
+    })
+    for (const [mod, participant] of [['mo-1', 'x-2'], ['mo-2', 'x-7'], ['mo-3', 'x-19']]) {
+      const modTable = r.tables.find(t => t.moderator_member_ids.includes(mod))
+      expect(modTable, `table de ${mod}`).toBeDefined()
+      expect(modTable!.member_ids, `${participant} avec ${mod}`).toContain(participant)
+    }
+  })
+
+  it('un passif appairé à un modérateur qui anime rejoint sa table', () => {
+    const members = mix(30, 10)
+    const r = runAllocation({
+      members, moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['mo-1', 'x-35']] as [string, string][],
+    })
+    const modTable = r.tables.find(t => t.moderator_member_ids.includes('mo-1'))
+    expect(modTable!.member_ids).toContain('x-35')
+  })
+
+  it('une grappe comprenant un modérateur animant reste déterministe', () => {
+    const input = {
+      members: mix(45, 10), moderatorIds: ['mo-1', 'mo-2', 'mo-3'], opinionsAvailable: true,
+      pairs: [['mo-2', 'x-7'], ['mo-3', 'x-12'], ['x-0', 'x-9']] as [string, string][],
+    }
+    expect(JSON.stringify(runAllocation(input).tables)).toBe(JSON.stringify(runAllocation(input).tables))
+  })
+
   it('countBrokenClusters compte une grappe répartie sur deux tables', () => {
     const tables = [{ member_ids: ['a', 'b'] }, { member_ids: ['c'] }]
     expect(countBrokenClusters(tables, [['a', 'b'], ['b', 'c']])).toBe(1)
+  })
+})
+
+// ── Chantier 98 — interdire les tables sans modérateur ───────
+
+describe('chantier 98 — option « interdire les tables sans modérateur »', () => {
+  it('désactivée par défaut : le comportement est inchangé', () => {
+    const base = { members: mix(30, 0), moderatorIds: ['mo-1'], moderatorProfiles: modProfiles(['mo-1']), opinionsAvailable: true }
+    expect(JSON.stringify(runAllocation(base).tables))
+      .toBe(JSON.stringify(runAllocation({ ...base, forbidUnmoderatedTables: false }).tables))
+  })
+
+  it('capacité suffisante : plus de tables sans modérateur, sans dégrader les contraintes dures', () => {
+    // 60 actifs / 5 tables (≤ 14 par table animée) exige au moins 5 modérateurs.
+    const ids = ['mo-1', 'mo-2', 'mo-3', 'mo-4', 'mo-5']
+    const base = { members: mix(60, 0), moderatorIds: ids, moderatorProfiles: modProfiles(ids), opinionsAvailable: true }
+    const r = runAllocation({ ...base, forbidUnmoderatedTables: true })
+    expect(r.tables.every(t => t.moderated)).toBe(true)
+    for (const d of r.diagnostics) {
+      expect(d.actives).toBeGreaterThanOrEqual(TABLE_MIN)
+      expect(d.actives).toBeLessThanOrEqual(TABLE_MAX_ACTIVE)
+    }
+    expect(totalSeats(r)).toBe(60 + r.seatedModeratorIds.length)
+  })
+
+  it('change effectivement le résultat par rapport au comportement par défaut', () => {
+    // 60 actifs / 4 modérateurs : par défaut l'algorithme dégrade en une table
+    // sans modérateur plutôt que de renoncer au découpage en petites tables.
+    const ids = ['mo-1', 'mo-2', 'mo-3', 'mo-4']
+    const base = { members: mix(60, 0), moderatorIds: ids, moderatorProfiles: modProfiles(ids), opinionsAvailable: true }
+    const withoutOption = runAllocation(base)
+    expect(withoutOption.tables.some(t => !t.moderated)).toBe(true)
+
+    const r = runAllocation({ ...base, forbidUnmoderatedTables: true })
+    expect(r.tables.every(t => t.moderated)).toBe(true)
+  })
+
+  it('capacité insuffisante pour animer toutes les tables → repli sur une table unique, pas d’exception', () => {
+    // 60 actifs, 1 seul modérateur : aucune forme n'a moderatedCount === tableCount
+    // dès que tableCount > 1 (capacité de modération = 1).
+    const r = runAllocation({
+      members: mix(60, 0), moderatorIds: ['mo-1'], moderatorProfiles: modProfiles(['mo-1']),
+      opinionsAvailable: true, forbidUnmoderatedTables: true,
+    })
+    expect(r.tables).toHaveLength(1)
+    expect(r.tables[0].moderated).toBe(true)
+    expect(r.tables[0].member_ids).toHaveLength(60)
+  })
+
+  it('aucun modérateur du tout → repli sur une table unique sans animateur, avec avertissement dédié', () => {
+    const r = runAllocation({
+      members: mix(30, 0), moderatorIds: [], opinionsAvailable: true, forbidUnmoderatedTables: true,
+    })
+    expect(r.tables).toHaveLength(1)
+    expect(r.tables[0].moderated).toBe(false)
+    expect(r.warnings.join(' ')).toContain('interdire les tables sans modérateur')
+  })
+
+  it('ne lève jamais d’exception, même sur un grand nombre d’actifs avec peu de modérateurs', () => {
+    for (const n of [11, 25, 60, 120]) {
+      for (const nMods of [0, 1, 2]) {
+        const ids = Array.from({ length: nMods }, (_, i) => `mo-${i}`)
+        expect(() => runAllocation({
+          members: mix(n, Math.floor(n / 5)), moderatorIds: ids, moderatorProfiles: modProfiles(ids),
+          opinionsAvailable: true, forbidUnmoderatedTables: true,
+        })).not.toThrow()
+      }
+    }
   })
 })

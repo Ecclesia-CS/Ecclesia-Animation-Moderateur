@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { tableStore } from './lib/storage'
 import type { TableResult } from './lib/supabase'
+import { getSessionById } from './lib/sessions'
 import { TableProvider } from './context/TableContext'
 import { useToast } from './context/ToastContext'
 import EntryScreen from './screens/EntryScreen'
@@ -13,11 +14,25 @@ import SessionRouterScreen from './screens/SessionRouterScreen'
 import JoinTableScreen from './screens/JoinTableScreen'
 import PublicResultsScreen from './screens/PublicResultsScreen'
 import NotFoundScreen from './screens/NotFoundScreen'
+import ReconnectPrompt from './components/ReconnectPrompt'
 
 type AppPhase =
   | { type: 'loading' }
   | { type: 'entry'; userId: string }
   | { type: 'table'; tableId: string; participantId: string; userId: string; isModerator: boolean }
+  /**
+   * Chantier 120 — jeton anonyme renouvelé sur un pseudo déjà inscrit à la
+   * séance : `sync_table_assignment` a répondu `reconnect_required` plutôt
+   * que de réassigner l'identité par simple pseudo. Il faut le code de
+   * rappel avant de pouvoir rappeler `join_table`.
+   */
+  | { type: 'reconnect'; sessionId: string; pseudo: string; joinCode: string; userId: string }
+
+// Chantier 129 — préfixes de hash qui expriment une intention de navigation
+// explicite (lien/QR code fraîchement scanné). Partagé entre `init()` (pour
+// ne pas la court-circuiter en restaurant une ancienne table) et le rendu
+// (détection de hash inconnu, chantier 88).
+const KNOWN_HASH_PREFIXES = ['#superadmin', '#asso', '#collab/', '#session/', '#vote/', '#results/', '#table/']
 
 export default function App() {
   const { showToast } = useToast()
@@ -29,6 +44,45 @@ export default function App() {
     window.addEventListener('hashchange', handler)
     return () => window.removeEventListener('hashchange', handler)
   }, [])
+
+  /**
+   * Chantier 120 — rejoint la table, et bascule vers l'écran de reconnexion
+   * (code de rappel) plutôt que de réassigner silencieusement l'identité de
+   * séance quand `join_table` répond `reconnect_required` (jeton anonyme
+   * renouvelé sur un pseudo déjà inscrit). Lève si la réponse est vide ou
+   * incohérente (`reconnect_required` sans `session_id`) — l'appelant décide
+   * alors du repli (écran d'entrée).
+   */
+  async function joinAndHandleReconnect(pseudo: string, joinCode: string, userId: string) {
+    const { data: rpcData } = await supabase.rpc('join_table', {
+      p_join_code: joinCode,
+      p_pseudo: pseudo,
+    })
+    if (!rpcData) throw new Error('join_table: réponse vide')
+    const r = rpcData as TableResult
+
+    if (r.reconnect_required) {
+      if (!r.session_id) throw new Error('reconnect_required sans session_id')
+      setPhase({ type: 'reconnect', sessionId: r.session_id, pseudo, joinCode, userId })
+      return
+    }
+
+    // Chantier 110 — `r.created_by === userId` était toujours faux ici :
+    // `created_by` vient de LA TABLE AVANT ce join_table (dont l'appelant
+    // renouvelé n'était par définition pas encore le créateur), et sur une
+    // table issue de l'allocation c'est de toute façon l'uid du superadmin
+    // (anti-pattern « Ne jamais faire » de CLAUDE.md). Un ex-modérateur
+    // dont le jeton a été renouvelé redémarre donc toujours en
+    // ParticipantView — TableContext.load() recalcule ensuite en direct le
+    // statut modérateur de séance (session_members), mais pas l'autorité
+    // physique (tables.created_by), qui n'a aucun chemin de reprise
+    // automatique après renouvellement : voir le bouton « Je suis le
+    // modérateur de cette table » (ParticipantToolsButton), seul filet.
+    // Chantier 140 — `r.pseudo` : pseudo du membre de séance (peut différer
+    // du pseudo mémorisé, ex. après un renommage — chantier 93).
+    tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo: r.pseudo ?? pseudo })
+    setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
+  }
 
   useEffect(() => {
     async function init() {
@@ -44,8 +98,22 @@ export default function App() {
       }
       const userId = session.user.id
 
+      // Chantier 129 — `tableStore` (localStorage `ecclesia_table`) est une
+      // clé globale, non scopée par séance : elle garde la dernière table
+      // rejointe, toutes séances confondues sur cet appareil. La restaurer
+      // sans condition ici court-circuitait un lien/QR code fraîchement
+      // scanné vers une NOUVELLE séance (#session/, #vote/, #table/…) —
+      // le participant retombait sur son ancienne table (et son éventuel
+      // questionnaire forcé resté ouvert) au lieu de l'écran d'identification
+      // de la nouvelle séance. Un hash de navigation explicite au chargement
+      // exprime une intention plus récente que l'état restauré : on ne
+      // restaure la table précédente que si aucun lien de ce type n'a amené
+      // l'utilisateur ici (rechargement en cours de débat, hash déjà vidé par
+      // `handleTableJoined`).
+      const cameFromExplicitLink = KNOWN_HASH_PREFIXES.some(p => window.location.hash.startsWith(p))
+
       // Try to restore a previous table from localStorage
-      const stored = tableStore.get()
+      const stored = cameFromExplicitLink ? null : tableStore.get()
       if (stored) {
         const { data: pRow } = await supabase
           .from('participants')
@@ -54,26 +122,49 @@ export default function App() {
           .maybeSingle()
 
         if (pRow && (pRow as { id: string; user_id: string }).user_id === userId) {
-          // Même auth.uid → restauration directe sans RPC
-          setPhase({ type: 'table', tableId: stored.tableId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
+          // Chantier 127 — un reset de séance vers une phase antérieure à
+          // `debating` (typiquement `allocating`, ex. le superadmin relance
+          // l'allocation) ne supprime ni la table ni la ligne `participants` :
+          // sans ce garde, la restauration directe depuis `tableStore` renvoyait
+          // le participant droit dans TableView, y compris après reload, alors
+          // que la séance n'y est plus. `table.session_id` peut être `null`
+          // (table hors Bloc C) — dans ce cas, aucune séance à revérifier.
+          const { data: tblRow } = await supabase
+            .from('tables')
+            .select('session_id')
+            .eq('id', stored.tableId)
+            .maybeSingle()
+          const sessionId = (tblRow as { session_id: string | null } | null)?.session_id ?? null
+          const sess = sessionId ? await getSessionById(sessionId).catch(() => null) : null
+
+          if (sessionId === null || sess?.phase === 'debating') {
+            // Même auth.uid → restauration directe sans RPC
+            setPhase({ type: 'table', tableId: stored.tableId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
+            return
+          }
+
+          tableStore.clear()
+          // `stored.joinCode` est le join_code de la TABLE (#table/<code>), pas
+          // celui de la SÉANCE qu'attend VoteScreen (#vote/<code>) — il faut
+          // celui de `sess`, pas celui du tableStore.
+          if (sess?.join_code) {
+            showToast("La séance est revenue au vote — rejoins-la depuis là.", 'info')
+            window.location.hash = '#vote/' + sess.join_code
+            setPhase({ type: 'entry', userId })
+            return
+          }
+          showToast("La table que tu avais rejointe n'est plus disponible.", 'info')
+          setPhase({ type: 'entry', userId })
           return
         }
         // Participant trouvé mais user_id différent (auth anonyme renouvelé), ou non trouvé →
-        // join_table relie l'auth.uid() courant via ON CONFLICT DO UPDATE
+        // joinAndHandleReconnect relie l'auth.uid() courant (ou bascule vers
+        // l'écran de reconnexion si un autre user_id porte déjà ce pseudo).
         if (stored.pseudo && stored.joinCode) {
           try {
-            const { data: rpcData } = await supabase.rpc('join_table', {
-              p_join_code: stored.joinCode,
-              p_pseudo: stored.pseudo,
-            })
-            if (rpcData) {
-              const r = rpcData as TableResult
-              const isMod = r.created_by === userId
-              tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: isMod, pseudo: stored.pseudo })
-              setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: isMod })
-              return
-            }
-          } catch { /* table supprimée ou réseau mort → écran d'entrée */ }
+            await joinAndHandleReconnect(stored.pseudo, stored.joinCode, userId)
+            return
+          } catch { /* table supprimée, réseau mort, ou réponse incohérente → écran d'entrée */ }
         }
 
         tableStore.clear()
@@ -84,12 +175,6 @@ export default function App() {
     }
     init()
   }, [])
-
-  function handleJoined(tableId: string, participantId: string, isModerator: boolean) {
-    if (phase.type === 'entry') {
-      setPhase({ type: 'table', tableId, participantId, userId: phase.userId, isModerator })
-    }
-  }
 
   function handleTableJoined(tableId: string, participantId: string, isModerator: boolean) {
     const userId = phase.type !== 'loading' ? (phase as { userId: string }).userId : ''
@@ -107,6 +192,11 @@ export default function App() {
   // Route /superadmin via hash — indépendant du flow principal
   if (hash === '#superadmin') {
     return <SuperadminScreen />
+  }
+  // Chantier 135 — espace des associations externes : même écran, en mode
+  // restreint (jeton d'association, liste blanche de RPC côté serveur).
+  if (hash === '#asso') {
+    return <SuperadminScreen mode="org" />
   }
 
   // Route #collab/<join_code> — document collaboratif de sources
@@ -146,7 +236,6 @@ export default function App() {
 
   // Hash non vide mais ne correspondant à aucune route connue — lien cassé ou
   // mal copié plutôt qu'un retour silencieux à l'accueil (chantier 88).
-  const KNOWN_HASH_PREFIXES = ['#superadmin', '#collab/', '#session/', '#vote/', '#results/', '#table/']
   if (hash.length > 1 && phase.type !== 'table' && !KNOWN_HASH_PREFIXES.some(p => hash === p || hash.startsWith(p))) {
     return <NotFoundScreen />
   }
@@ -160,7 +249,29 @@ export default function App() {
   }
 
   if (phase.type === 'entry') {
-    return <EntryScreen userId={phase.userId} onJoined={handleJoined} />
+    return <EntryScreen />
+  }
+
+  if (phase.type === 'reconnect') {
+    const { sessionId, pseudo, joinCode, userId } = phase
+    return (
+      <ReconnectPrompt
+        sessionId={sessionId}
+        pseudo={pseudo}
+        onConfirmed={() => {
+          setPhase({ type: 'loading' })
+          joinAndHandleReconnect(pseudo, joinCode, userId).catch(() => {
+            tableStore.clear()
+            showToast("La reconnexion a échoué. Réessaie depuis l'écran d'entrée.", 'info')
+            setPhase({ type: 'entry', userId })
+          })
+        }}
+        onGiveUp={() => {
+          tableStore.clear()
+          setPhase({ type: 'entry', userId })
+        }}
+      />
+    )
   }
 
   return (

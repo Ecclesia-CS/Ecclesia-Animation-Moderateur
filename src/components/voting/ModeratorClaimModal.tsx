@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { claimModeratorStatus } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
 import type { SessionMember } from '../../lib/types'
+import PasswordInput from '../PasswordInput'
 
 interface Props {
   sessionId: string
@@ -75,16 +76,11 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
           </p>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Code Ecclesia</label>
-            <input
-              type="password"
-              required
+            <PasswordInput
               autoFocus
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={setPassword}
               placeholder="••••••••"
-              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                placeholder:text-gray-300 transition-shadow"
             />
           </div>
           {error && (

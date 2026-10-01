@@ -12,23 +12,99 @@ import type {
   ModerationPolicy,
   TableOpinionSummary,
   TableCampSpeakingTimes,
+  TableMemberForModerator,
 } from './types'
 import type { AllocationMember, AllocationResult } from './allocation'
 
+/**
+ * Chantier 93 — message unique, demandé mot pour mot par Jules : le même texte
+ * doit apparaître quand on saisit un pseudo déjà pris et quand on échoue à se
+ * reconnecter. Il dit les deux issues possibles (c'est toi → ton code ; ce
+ * n'est pas toi → un autre nom).
+ */
+export const PSEUDO_TAKEN_MESSAGE =
+  "Ce nom est déjà utilisé dans cette séance. Si c'est bien toi, reconnecte-toi avec ton code de rappel à 4 chiffres. Sinon, choisis un autre nom."
+
+/**
+ * Chantier 93 — affiché sous le champ du nom, à l'inscription : le pseudo est
+ * lu à voix haute par le modérateur pendant le débat, il faut le savoir avant
+ * de le choisir.
+ */
+export const PSEUDO_PUBLIC_NOTICE =
+  "Ce nom sera utilisé par le modérateur pour te donner la parole pendant le débat."
+
+/** Chantier 134 — un sondage n'a ni débat ni modérateur : le nom sert seulement à retrouver ses votes. */
+export const PSEUDO_POLL_NOTICE =
+  "Ce nom, avec ton code de rappel, te permet de retrouver tes votes sur un autre appareil."
+
+/**
+ * Chantier 93 — les RPC d'identité ne lèvent PAS sur un refus d'identification
+ * (mauvais code, blocage après 10 essais) : elles renvoient `{ error }`. Un
+ * RAISE annulerait la transaction, donc le compteur de tentatives avec.
+ * Ce helper rétablit la sémantique attendue côté React.
+ */
+function unwrapIdentity<T>(data: unknown): T {
+  const err = (data as { error?: string } | null)?.error
+  if (err) throw new Error(err)
+  return data as T
+}
+
+/**
+ * Chantier 140 — `join_table`, `switch_table` et `claim_table_as_moderator`
+ * répondent `{ reconnect_required, session_id, pseudo }` SANS RIEN ÉCRIRE
+ * quand le nom tapé appartient à un autre membre de la séance. Avant ce
+ * chantier, seul `App.tsx` lisait ce drapeau : `JoinTableForm` l'ignorait et
+ * faisait entrer l'utilisateur sous le nom d'un autre. Toute porte passe
+ * désormais par `assertSeated`, qui lève cette erreur typée — la porte ouvre
+ * alors l'accordéon « J'ai déjà un code de rappel ».
+ */
+export class PseudoTakenError extends Error {
+  constructor(public readonly sessionId: string, public readonly pseudo: string) {
+    super(PSEUDO_TAKEN_MESSAGE)
+    this.name = 'PseudoTakenError'
+  }
+}
+
+export function assertSeated(data: unknown): TableResult {
+  const r = data as TableResult | null
+  if (r?.reconnect_required) {
+    if (!r.session_id) throw new Error(PSEUDO_TAKEN_MESSAGE)
+    throw new PseudoTakenError(r.session_id, r.pseudo ?? '')
+  }
+  if (!r?.id || !r.participant_id) throw new Error('Réponse inattendue du serveur — réessaie.')
+  return r
+}
+
+/** Chantier 140 — `join_table` + `assertSeated` (voir `PseudoTakenError`). */
+export async function joinTable(joinCode: string, pseudo: string): Promise<TableResult> {
+  const { data, error } = await supabase.rpc('join_table', {
+    p_join_code: joinCode,
+    p_pseudo: pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return assertSeated(data)
+}
+
 export async function registerSessionMember(
   sessionId: string,
-  pseudo: string,
-  reclaimCode?: string
+  pseudo: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('register_session_member', {
     p_session_id: sessionId,
     p_pseudo: pseudo,
-    p_reclaim_code: reclaimCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as SessionMember
+  return unwrapIdentity<SessionMember>(data)
 }
 
+/**
+ * Chantier 93 — reconnexion depuis un nouvel appareil : pseudo ET code, les
+ * deux ensemble, toujours. Le pseudo seul ne prouve plus rien (c'est le nom et
+ * prénom réels, connus de toute la séance). Refusée après la clôture, où plus
+ * personne n'a besoin de se reconnecter.
+ * Sur le même appareil (ligne déjà rattachée à `auth.uid()`), aucun code n'est
+ * demandé : appeler sans argument suffit à confirmer la présence.
+ */
 export async function confirmAttendance(
   sessionId: string,
   pseudo?: string,
@@ -40,14 +116,14 @@ export async function confirmAttendance(
     p_code:       code   ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as SessionMember
+  return unwrapIdentity<SessionMember>(data)
 }
 
 /**
- * Chantier B3 — reconquête d'un profil pré-vote déjà inscrit (pseudo pris),
- * par pseudo OU code de rappel. Contrairement à `confirmAttendance`, ne
- * touche jamais `attending_in_person` : le vote reste à distance. Phase-safe
- * côté serveur — n'agit que si la séance est encore en `pre_voting`.
+ * Chantier B3 — reconquête d'un profil pré-vote déjà inscrit, chantier 93 :
+ * pseudo ET code obligatoires. Contrairement à `confirmAttendance`, ne touche
+ * jamais `attending_in_person` : le vote reste à distance. Phase-safe côté
+ * serveur — n'agit que si la séance est encore en `pre_voting`.
  */
 export async function reclaimPrevotingMember(
   sessionId: string,
@@ -60,7 +136,118 @@ export async function reclaimPrevotingMember(
     p_code:       code   ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as SessionMember
+  return unwrapIdentity<SessionMember>(data)
+}
+
+/**
+ * Chantier 93 — renommage libre, propagé dans la même transaction aux deux
+ * copies du pseudo (`participants.pseudo`, `session_sources.pseudo`). Refusé
+ * si le nom est déjà pris dans la séance, ou si la personne a la parole /
+ * figure dans une file d'attente (le nom changerait sous les yeux du
+ * modérateur en plein tour).
+ */
+export async function renameSessionMember(
+  sessionId: string,
+  newPseudo: string
+): Promise<SessionMember> {
+  const { data, error } = await supabase.rpc('rename_session_member', {
+    p_session_id: sessionId,
+    p_new_pseudo: newPseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return unwrapIdentity<SessionMember>(data)
+}
+
+/**
+ * Chantier 93 — capture d'écran perdue. Le code étant haché, il est
+ * IMPOSSIBLE de le relire : on en tire un nouveau, à lire à la personne.
+ * L'ancien cesse alors de fonctionner.
+ */
+export async function regenerateReclaimCodeAdmin(
+  password: string,
+  memberId: string
+): Promise<{ pseudo: string; new_reclaim_code: string }> {
+  const { data, error } = await supabase.rpc('regenerate_reclaim_code_admin', {
+    p_password:  password,
+    p_member_id: memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { pseudo: string; new_reclaim_code: string }
+}
+
+/** Chantier 137-D — compte rendu de la suppression d'un membre. */
+export interface DeleteMemberResult {
+  pseudo: string
+  was_moderator: boolean
+  tables_now_leaderless: number
+  votes_deleted: number
+  assertions_detached: number
+  pairings_dissolved: number
+  analysis_rows_removed: number
+  seats_removed: number
+}
+
+/**
+ * Chantier 137-D — le superadmin supprime un participant de la séance, à toute
+ * phase. Ses assertions sont conservées (auteur détaché), le reste disparaît ;
+ * une table qu'il animait repasse sans animateur (`delete_session_member_admin`).
+ */
+export async function deleteSessionMemberAdmin(
+  password: string,
+  sessionId: string,
+  memberId: string
+): Promise<DeleteMemberResult> {
+  const { data, error } = await supabase.rpc('delete_session_member_admin', {
+    p_password:   password,
+    p_session_id: sessionId,
+    p_member_id:  memberId,
+  })
+  if (error) throw new Error(extractErr(error))
+  const d = (data ?? {}) as Partial<DeleteMemberResult>
+  return {
+    pseudo:                d.pseudo ?? '',
+    was_moderator:         d.was_moderator === true,
+    tables_now_leaderless: d.tables_now_leaderless ?? 0,
+    votes_deleted:         d.votes_deleted ?? 0,
+    assertions_detached:   d.assertions_detached ?? 0,
+    pairings_dissolved:    d.pairings_dissolved ?? 0,
+    analysis_rows_removed: d.analysis_rows_removed ?? 0,
+    seats_removed:         d.seats_removed ?? 0,
+  }
+}
+
+/**
+ * Chantier 116 — self-service : le participant fait réapparaître SON code.
+ * Le code étant haché (bcrypt, `reclaim_code_hash`, depuis le chantier 93),
+ * il est impossible de le relire : cette fonction en émet un nouveau, qui
+ * invalide l'ancien (même mécanique que les deux régénérations admin/
+ * modérateur ci-dessous, ciblée sur l'appelant via `auth.uid()`).
+ */
+export async function regenerateReclaimCodeSelf(
+  sessionId: string
+): Promise<{ pseudo: string; new_reclaim_code: string }> {
+  const { data, error } = await supabase.rpc('regenerate_reclaim_code_self', {
+    p_session_id: sessionId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { pseudo: string; new_reclaim_code: string }
+}
+
+/**
+ * Idem, par le modérateur — restreint aux participants assis à SA table, et
+ * ciblé par pseudo : `session_members` est en self-only (chantier 50), un
+ * modérateur n'a aucun `member_id` sous la main.
+ */
+export async function regenerateReclaimCodeModerator(
+  tableId: string,
+  pseudo: string
+): Promise<{ pseudo: string; new_reclaim_code: string }> {
+  const { data, error } = await supabase.rpc('regenerate_reclaim_code_moderator', {
+    p_table_id: tableId,
+    p_pseudo:   pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { pseudo: string; new_reclaim_code: string }
 }
 
 /**
@@ -187,6 +374,19 @@ export async function loadTableCampSpeakingTimes(tableId: string): Promise<Table
   })
   if (error) throw new Error(extractErr(error))
   return (data as TableCampSpeakingTimes) ?? null
+}
+
+// Chantier 97 — vue modérateur : roster complet de la table (`table_assignments`),
+// connectés ou non, avec actif/passif. Réservé au modérateur de la table
+// (RPC vérifie is_table_moderator côté serveur — table_assignments est
+// self-only depuis le chantier 50, une lecture directe ne verrait que la
+// ligne de l'appelant).
+export async function loadTableMembersForModerator(tableId: string): Promise<TableMemberForModerator[]> {
+  const { data, error } = await supabase.rpc('list_table_members_for_moderator', {
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return (data ?? []) as TableMemberForModerator[]
 }
 
 export async function getVoteCountsAdmin(password: string, sessionId: string): Promise<VoteResult[]> {
@@ -448,6 +648,42 @@ export async function assignModeratorToTable(
   if (error) throw new Error(extractErr(error))
 }
 
+export interface PendingModeratorPlacement {
+  member_id: string
+  pseudo: string
+  table_number: number
+  table_id: string
+}
+
+export interface AssignPendingModeratorsResult {
+  placements: PendingModeratorPlacement[]
+  unplaced_moderators: { member_id: string; pseudo: string }[]
+  tables_without_moderator: { table_number: number }[]
+}
+
+/**
+ * Chantier 109 — contrepartie du 107 : place chaque modérateur « en attente »
+ * (drapeau `is_moderator=true`, pas en exercice — `active_moderator_member_id`
+ * du chantier 106) sur une table animée sans modérateur en exercice, par
+ * numéro de table croissant. `apply = false` (défaut) calcule le placement
+ * SANS écrire — récapitulatif de confirmation avant le geste réel,
+ * `apply = true` rejoue le même calcul et l'applique. Les deux appels
+ * renvoient la même forme tant que rien n'a changé entre-temps.
+ */
+export async function assignPendingModerators(
+  password: string,
+  sessionId: string,
+  apply: boolean = false,
+): Promise<AssignPendingModeratorsResult> {
+  const { data, error } = await supabase.rpc('assign_pending_moderators', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_apply: apply,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as AssignPendingModeratorsResult
+}
+
 /** G4 — marque/démarque un membre comme modérateur de cette séance. */
 export async function setMemberModerator(
   password: string,
@@ -469,24 +705,22 @@ export async function setMemberModerator(
  * G4/H4 — auto-déclaration de statut modérateur via le mot de passe Ecclesia.
  * Si l'appareil n'a pas encore de profil pour cette séance (n'a jamais voté/
  * inscrit), `pseudo` sert à en créer un à la volée ; sinon le profil existant
- * est simplement marqué is_moderator=true et `pseudo`/`reclaimCode` sont
- * ignorés côté serveur.
- * Chantier 67 : `attending_in_person` suit désormais la même règle que
- * `register_session_member` (false uniquement en `pre_voting`), et
- * `reclaimCode` — généré côté client, jamais côté serveur — n'est stocké
- * que dans ce cas ; ignoré hors pré-vote.
+ * est simplement marqué is_moderator=true et `pseudo` est ignoré côté serveur.
+ * Chantier 67 : `attending_in_person` suit la même règle que
+ * `register_session_member` (false uniquement en `pre_voting`).
+ * Chantier 93 : le code de rappel est tiré EN BASE quand cette RPC crée le
+ * profil, et revient dans `new_reclaim_code` — plus rien n'est généré côté
+ * client.
  */
 export async function claimModeratorStatus(
   sessionId: string,
   creationCode: string,
-  pseudo?: string,
-  reclaimCode?: string
+  pseudo?: string
 ): Promise<SessionMember> {
   const { data, error } = await supabase.rpc('claim_moderator_status', {
     p_session_id: sessionId,
     p_creation_code: creationCode,
     p_pseudo: pseudo ?? null,
-    p_reclaim_code: reclaimCode ?? null,
   })
   if (error) throw new Error(extractErr(error))
   return data as SessionMember
@@ -537,7 +771,77 @@ export async function claimTableAsModerator(
     p_session_id: sessionId ?? null,
   })
   if (error) throw new Error(extractErr(error))
-  return data as TableResult
+  return assertSeated(data)
+}
+
+/**
+ * Chantier 111 — « Assignez-moi une table » : un retardataire en phase
+ * `debating`, jamais passé par le vote, n'a aucun code de table à taper.
+ * Inscrit l'appelant en `session_members` s'il ne l'est pas déjà (avec un
+ * vrai code de rappel, retourné une seule fois dans `new_reclaim_code`,
+ * comme `registerSessionMember`), puis le place sur la table ANIMÉE la
+ * moins remplie de la séance (déterministe — cf. `assign_least_filled_table`
+ * en base).
+ */
+export async function assignLeastFilledTable(
+  sessionId: string,
+  pseudo: string
+): Promise<TableResult & { new_reclaim_code: string | null }> {
+  const { data, error } = await supabase.rpc('assign_least_filled_table', {
+    p_session_id: sessionId,
+    p_pseudo: pseudo,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as TableResult & { new_reclaim_code: string | null }
+}
+
+/**
+ * Chantier 134 — entrée d'un participant dans un débat simple
+ * (`sessions.session_type = 'debate'`, phase `debating`). Inscription à la
+ * séance si besoin (code de rappel renvoyé une seule fois), place à table
+ * (celle où il est déjà assis, sinon la moins remplie) et, si le Code
+ * Ecclesia est fourni, prise de l'animation d'une table sans modérateur.
+ * Atomique côté serveur : une erreur n'inscrit personne à moitié.
+ */
+export async function joinSimpleDebate(
+  sessionId: string,
+  pseudo: string,
+  creationCode?: string,
+): Promise<TableResult & { new_reclaim_code: string | null; is_moderator: boolean; pseudo: string }> {
+  const { data, error } = await supabase.rpc('join_simple_debate', {
+    p_session_id:    sessionId,
+    p_pseudo:        pseudo,
+    p_creation_code: creationCode ?? null,
+  })
+  if (error) throw new Error(extractErr(error))
+  const r = data as TableResult & { new_reclaim_code?: string | null; is_moderator?: boolean | null; pseudo?: string | null }
+  return {
+    ...r,
+    new_reclaim_code: r.new_reclaim_code ?? null,
+    is_moderator:     r.is_moderator === true,
+    pseudo:           r.pseudo ?? pseudo,
+  }
+}
+
+/**
+ * Chantier 110 — depuis l'intérieur d'une table (bouton Outils « Je suis le
+ * modérateur de cette table »), reprend l'autorité d'animation, Code
+ * Ecclesia requis. Distinct de `claimTableAsModerator` : pas de join_code ni
+ * de pseudo à saisir (l'appelant est déjà assis à la table, seule preuve
+ * d'identité utile ici), et réussit MÊME si un modérateur est déjà en place
+ * — c'est un transfert volontaire assumé, pas une prise d'une table libre.
+ */
+export async function reclaimTableAsModerator(
+  tableId: string,
+  creationCode: string
+): Promise<{ activeModeratorMemberId: string | null }> {
+  const { data, error } = await supabase.rpc('reclaim_table_as_moderator', {
+    p_table_id: tableId,
+    p_creation_code: creationCode,
+  })
+  if (error) throw new Error(extractErr(error))
+  const result = data as { table_id: string; active_moderator_member_id: string | null }
+  return { activeModeratorMemberId: result.active_moderator_member_id }
 }
 
 // --- Admin wrappers (C2) ---
@@ -815,29 +1119,48 @@ export async function moveMembersToGroup(
 // Re-export types for convenience
 export type { SessionMember, EntryResponse, Assertion, AssertionVote, VoteResult, TableAssignment }
 
-/** Chantier 72 — compte rendu de `release_table_moderation`. */
+/**
+ * Chantier 72, revue au chantier 118 — compte rendu de
+ * `release_table_moderation`. Depuis le 118, la fonction ne retire plus
+ * `session_members.is_moderator` (un modérateur retiré reste flagué, cf.
+ * `released_active` ci-dessous) — `released_members` (nombre de démotions
+ * is_moderator=false) a donc disparu du retour.
+ */
 export interface ReleaseTableModerationResult {
   /** `tables.created_by` pointait sur un modérateur physique, il a été libéré. */
   released_physical: boolean
-  /** Nombre de membres `session_members.is_moderator` retirés de cette table. */
-  released_members: number
+  /** `tables.active_moderator_member_id` a été démis (le titulaire garde son drapeau, perd l'écran). */
+  released_active: boolean
+  /**
+   * Le modérateur physique évincé a désormais une ligne `session_members`
+   * flaguée `is_moderator = true` — soit déjà posée par
+   * `claim_table_as_moderator` (chantier 119/118), soit créée à la volée ici
+   * (rattrapage des lignes antérieures au chantier 119). `false` seulement
+   * en cas de collision de pseudo (nom déjà pris par un autre membre).
+   */
+  physical_member_ensured: boolean
+  /** Code de rappel émis si une ligne `session_members` a été créée à la volée. */
+  new_reclaim_code: string | null
   /** État de `table_has_moderator` APRÈS libération — doit valoir `false`. */
   has_moderator: boolean
 }
 
 /**
- * Chantier 72 — le superadmin libère la modération d'une TABLE.
+ * Chantier 72, revue au chantier 118 — le superadmin libère la modération
+ * d'une TABLE.
  *
  * `setMemberModerator(..., false)` part d'un membre et ne peut donc pas
  * atteindre un modérateur « physique » (table prise via
- * `designate_moderator` ou `claim_table_as_moderator`) : celui-ci n'a aucun
- * flag `session_members.is_moderator`, donc aucun `member_id` à viser, et
- * n'apparaît nulle part dans la carte de groupe. Tant que
- * `tables.created_by` pointe sur lui et qu'il reste assis, la table répond
- * « déjà un modérateur » à toute tentative de reprise.
+ * `designate_moderator` ou `claim_table_as_moderator`) : celui-ci n'apparaît
+ * nulle part dans la carte de groupe tant qu'il n'anime aucune table Bloc C.
+ * Tant que `tables.created_by` pointe sur lui et qu'il reste assis, la table
+ * répond « déjà un modérateur » à toute tentative de reprise.
  *
- * Cette RPC coupe les deux branches de `table_has_moderator` d'un coup.
- * Migration `20260906_chantier72_1_reprise_moderation.sql` (§2).
+ * Cette RPC coupe les deux branches de `table_has_moderator` d'un coup, et
+ * garde le modérateur retiré flagué `is_moderator = true` (chantier 118 :
+ * « modérateur en surplus » au sens du chantier 106, visible du superadmin)
+ * plutôt que de le faire disparaître. Migration
+ * `20260921_chantier118_physical_moderator_becomes_member.sql`.
  */
 export async function releaseTableModeration(
   password: string,
@@ -849,4 +1172,27 @@ export async function releaseTableModeration(
   })
   if (error) throw new Error(extractErr(error))
   return data as ReleaseTableModerationResult
+}
+
+/**
+ * Chantier 123 — refait d'une table modérée une table SANS ANIMATEUR
+ * (`tables.leaderless = true`), chemin symétrique des quatre chemins d'entrée
+ * décrits dans `docs/reference-tables-leaderless.md`.
+ *
+ * Ne touche PAS à `session_members.is_moderator` : ce drapeau est un titre de
+ * « modérateur potentiel » qui sert d'entrée à l'algorithme d'allocation. Le
+ * retirer est un geste distinct (bouton « Retirer »), pour que le superadmin
+ * voie ce qu'il change — sinon la capacité de modération baisse en silence et
+ * le recalcul suivant produit une table animée en moins.
+ */
+export async function setTableLeaderless(
+  password: string,
+  tableId: string,
+): Promise<{ table_id: string; leaderless: boolean; has_moderator: boolean }> {
+  const { data, error } = await supabase.rpc('set_table_leaderless', {
+    p_password: password,
+    p_table_id: tableId,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as { table_id: string; leaderless: boolean; has_moderator: boolean }
 }

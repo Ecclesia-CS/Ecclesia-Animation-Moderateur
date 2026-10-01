@@ -21,6 +21,12 @@ export interface GroupNameResult {
   description: string
 }
 
+// Chantier 134 — mode de séance, fixé à la création (sessions.session_type,
+// NOT NULL DEFAULT 'full'). 'full' = parcours complet ; 'debate' = une table
+// modérée sans vote ; 'poll' = vote distanciel seul, sans table. Lire via
+// sessionTypeOf() (lib/phaseLabels.ts), qui retombe sur 'full' si absent.
+export type SessionType = 'full' | 'debate' | 'poll'
+
 export interface Session {
   id: string
   title: string
@@ -44,6 +50,17 @@ export interface Session {
   // actuel préservé). false → la phase `voting` saute l'onboarding (entry_responses)
   // et va directement au vote, comme le fait déjà `pre_voting` de façon permanente.
   onboarding_enabled: boolean
+  // Chantier 124 — bascule superadmin par séance : false par défaut (comportement
+  // actuel préservé). true → submit_assertion refuse toute nouvelle proposition
+  // pour cette séance (le superadmin, seul à pouvoir activer ce verrou, n'est
+  // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
+  assertions_locked: boolean
+  session_type: SessionType
+  // Chantier 135 — association externe propriétaire de la séance (null =
+  // séance Ecclesia). Toujours un débat simple ou un sondage. Colonne ajoutée
+  // par 20260926_chantier135_comptes_associations.sql : absente d'un blob
+  // relu d'avant, d'où l'optionnel.
+  organization_id?: string | null
 }
 
 export interface Table {
@@ -56,6 +73,60 @@ export interface Table {
   session_id: string | null
   leaderless: boolean
   questionnaire_forced_at: string | null
+  // Chantier 106 — le session_members dont is_moderator donne l'autorité
+  // d'animation SQL sur cette table (is_table_moderator). Nullable : aucun
+  // modérateur de séance en exercice ici.
+  active_moderator_member_id: string | null
+  // Chantier 132 — dernier vote "outil modérateur" créé pour cette table (Bloc C
+  // exclu, totalement séparé). Jamais remis à NULL à la clôture : pointe toujours
+  // le dernier vote, actif ou clôturé, tant qu'aucun nouveau n'a été créé.
+  active_vote_id: string | null
+}
+
+// Chantier 132 — outil "proposer un vote" côté modérateur (table-scoped, séparé
+// du Bloc C assertions/vote). Réponse oui/non indépendante par option, décomptes
+// agrégés uniquement — jamais de lecture nominative des réponses d'autrui.
+export interface TableVote {
+  id: string
+  table_id: string
+  question: string
+  status: 'active' | 'closed'
+  created_by: string
+  created_at: string
+  closed_at: string | null
+}
+
+export interface TableVoteOption {
+  id: string
+  vote_id: string
+  label: string
+  position: number
+}
+
+export interface TableVoteResult {
+  option_id: string
+  label: string
+  position: number
+  yes_count: number
+  no_count: number
+  total_count: number
+}
+
+export interface TableVoteHistoryOption {
+  option_id: string
+  label: string
+  position: number
+  yes_count: number
+  no_count: number
+}
+
+export interface TableVoteHistoryEntry {
+  id: string
+  question: string
+  status: 'active' | 'closed'
+  created_at: string
+  closed_at: string | null
+  options: TableVoteHistoryOption[]
 }
 
 export interface Participant {
@@ -64,6 +135,8 @@ export interface Participant {
   user_id: string
   pseudo: string
   created_at: string
+  // Chantier 131 — "d'accord pour passer au sujet suivant", toggle self-service
+  wants_next_topic: boolean
 }
 
 export interface QueueEntry {
@@ -73,6 +146,8 @@ export interface QueueEntry {
   queue_type: 'long' | 'interactive'
   position: number
   created_at: string
+  // Chantier 131 — tag de sujet optionnel, saisi à la prise de parole
+  topic_tag: string | null
 }
 
 export interface SpeakingTurn {
@@ -102,6 +177,8 @@ export interface CollabSource {
   id: string
   session_id: string
   user_id: string
+  /** Chantier 142 — membre propriétaire ; NULL si le membre a été supprimé (ON DELETE SET NULL). */
+  member_id: string | null
   pseudo: string
   title: string
   url: string | null
@@ -137,11 +214,13 @@ export interface SessionMember {
    */
   is_moderator?: boolean
   /**
-   * Chantier 67 — code de rappel en clair (4 chiffres), posé uniquement pour
-   * une inscription en `pre_voting` (`register_session_member`,
-   * `claim_moderator_status`). `null`/`undefined` sinon.
+   * Chantier 93 — code de rappel tiré EN BASE et renvoyé en clair une seule
+   * fois, à la création de la ligne (`register_session_member`,
+   * `claim_moderator_status`, régénérations). Seul son bcrypt est stocké
+   * (`session_members.reclaim_code_hash`) : il est illisible ensuite, d'où la
+   * régénération plutôt que le rappel. Absent de toute lecture ultérieure.
    */
-  reclaim_code?: string | null
+  new_reclaim_code?: string | null
 }
 
 /** Chantier 19 (G3) — onboarding réduit à 3 questions. */
@@ -161,7 +240,8 @@ export interface EntryResponse {
 export interface Assertion {
   id: string
   session_id: string
-  member_id: string
+  /** NULL depuis le chantier 137-D : auteur supprimé, assertion conservée. */
+  member_id: string | null
   content: string
   status: 'pending' | 'approved' | 'rejected'
   created_at: string
@@ -235,6 +315,21 @@ export interface TableCampSpeakingTimes {
   table_number: number | null
   opinions_available: boolean
   camps: TableCampSpeakingTime[]
+}
+
+/**
+ * Chantier 97 — une ligne par membre AFFECTÉ à cette table (`table_assignments`),
+ * qu'il soit physiquement connecté ou non. `participation_style` est nullable :
+ * un membre affecté sans réponse d'onboarding (rare, cf. onboarding optionnel
+ * chantier 71) n'a pas de ligne `entry_responses` — ne pas afficher de badge
+ * dans ce cas plutôt que de deviner une valeur par défaut.
+ */
+export interface TableMemberForModerator {
+  member_id: string
+  pseudo: string
+  is_moderator: boolean
+  participation_style: 'listener' | 'active' | null
+  connected: boolean
 }
 
 /** Ligne retournée par get_questionnaire_responses (export superadmin) */

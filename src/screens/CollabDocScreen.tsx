@@ -1,16 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
 import { extractErr, isSafeUrl } from '../lib/utils'
 import {
-  registerCollabPseudo,
+  getCollabIdentity,
+  claimCollabIdentity,
   addCollabSource,
   updateCollabSource,
   deleteCollabSource,
   listSessionSources,
 } from '../lib/sessions'
 import type { CollabSource } from '../lib/types'
+import type { CollabIdentity } from '../lib/sessions'
 import ConfirmModal from '../components/ConfirmModal'
+import ReclaimCodeAccordion from '../components/ReclaimCodeAccordion'
 
 interface Props {
   sessionJoinCode: string
@@ -25,8 +28,8 @@ type SessionInfo = {
 export default function CollabDocScreen({ sessionJoinCode }: Props) {
   const [session,          setSession]          = useState<SessionInfo | null>(null)
   const [notFound,         setNotFound]         = useState(false)
-  const [myPseudo,         setMyPseudo]         = useState<string | null>(null)
-  const [myUserId,         setMyUserId]         = useState<string | null>(null)
+  // Chantier 142 — identité = membre de la séance (session_members), jamais un pseudo libre.
+  const [myIdentity,       setMyIdentity]       = useState<CollabIdentity | null>(null)
   const [myTableJoinCode,  setMyTableJoinCode]  = useState<string | null>(null)
   const [sources,          setSources]          = useState<CollabSource[]>([])
   const [loading,          setLoading]          = useState(true)
@@ -34,8 +37,11 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
 
   // ── Registration state ─────────────────────────────────────────
   const [registerPseudo,  setRegisterPseudo]  = useState('')
+  const [registerCode,    setRegisterCode]    = useState('')
+  const [codeOpen,        setCodeOpen]        = useState(false)
   const [registering,     setRegistering]     = useState(false)
   const [registerErr,     setRegisterErr]     = useState<string | null>(null)
+  const codeInputRef = useRef<HTMLInputElement>(null)
 
   // ── Add / Edit source state ────────────────────────────────────
   const [showAddForm,   setShowAddForm]   = useState(false)
@@ -64,7 +70,6 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         session = data.session
       }
       const uid = session?.user.id ?? null
-      setMyUserId(uid)
 
       // Fetch session by join_code
       const { data: sessData, error: sessErr } = await supabase
@@ -77,19 +82,11 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       if (!sessData) { setNotFound(true); setLoading(false); return }
       setSession(sessData as SessionInfo)
 
-      // Check registration
-      let alreadyRegistered = false
+      // Identité : l'appareil est-il inscrit à la séance ? (chantier 142)
       if (uid) {
-        const { data: regData } = await supabase
-          .from('collab_session_users')
-          .select('pseudo')
-          .eq('session_id', sessData.id)
-          .eq('user_id', uid)
-          .maybeSingle()
-        if (regData) {
-          setMyPseudo((regData as { pseudo: string }).pseudo)
-          alreadyRegistered = true
-        }
+        try {
+          setMyIdentity(await getCollabIdentity(sessData.id))
+        } catch { /* non-bloquant : lecture seule, l'identification reste possible */ }
       }
 
       // Destination de retour transmise par l'écran appelant
@@ -104,18 +101,6 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       if (storedTable) {
         sessionStorage.removeItem(`ecclesia_collab_table_${sessionJoinCode}`)
         setMyTableJoinCode(storedTable)
-      }
-
-      // Auto-enregistrement si pseudo transmis depuis la vue table (via sessionStorage)
-      if (!alreadyRegistered && uid) {
-        const storedPseudo = sessionStorage.getItem(`ecclesia_collab_pseudo_${sessionJoinCode}`)
-        if (storedPseudo) {
-          sessionStorage.removeItem(`ecclesia_collab_pseudo_${sessionJoinCode}`)
-          try {
-            await registerCollabPseudo(sessData.id, storedPseudo)
-            setMyPseudo(storedPseudo)
-          } catch { /* silencieux — l'utilisateur pourra s'enregistrer manuellement */ }
-        }
       }
 
       // Load sources
@@ -149,24 +134,33 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
     return () => { supabase.removeChannel(ch) }
   }, [session])
 
-  // ── Registration ───────────────────────────────────────────────
+  // ── Identification : nom + code de rappel (chantier 142) ───────
+  // Même règle que les portes d'entrée du chantier 140 : un nom inscrit ne
+  // donne jamais accès à ses sources sans son code.
   const handleRegister = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session) return
     setRegistering(true)
     setRegisterErr(null)
     try {
-      await registerCollabPseudo(session.id, registerPseudo.trim())
-      setMyPseudo(registerPseudo.trim())
-      // Re-fetch sources to update table_join_code after potential transfer
-      const rows = await listSessionSources(session.id)
-      setSources(rows)
+      const code = registerCode.trim() || null
+      const res = await claimCollabIdentity(session.id, registerPseudo.trim(), code)
+      if (res.kind === 'ok') {
+        setMyIdentity(res.identity)
+        setRegisterCode('')
+      } else if (res.kind === 'code_required') {
+        setCodeOpen(true)
+        setRegisterErr('Ce nom est inscrit à la séance : entre ton code de rappel pour le reprendre.')
+        setTimeout(() => codeInputRef.current?.focus(), 0)
+      } else {
+        setRegisterErr(res.message)
+      }
     } catch (e) {
       setRegisterErr(extractErr(e))
     } finally {
       setRegistering(false)
     }
-  }, [session, registerPseudo])
+  }, [session, registerPseudo, registerCode])
 
   // ── Open add form ──────────────────────────────────────────────
   // Les champs formTitle/formUrl/formContent sont intentionnellement préservés
@@ -204,6 +198,11 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       if (editingSource) {
         const updated = await updateCollabSource(editingSource.id, title, url, content)
         setSources(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s))
+        // Les champs viennent de la source éditée, pas d'un brouillon d'ajout :
+        // sans ce vidage, « + Ajouter » repartait pré-rempli avec elle.
+        setFormTitle('')
+        setFormUrl('')
+        setFormContent('')
       } else {
         const created = await addCollabSource(session.id, title, url, content, myTableJoinCode)
         setSources(prev => [...prev, { ...created, table_join_code: myTableJoinCode }])
@@ -286,18 +285,9 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
               <p className="text-xs text-gray-400 truncate">{session.title}</p>
             )}
           </div>
-          {myPseudo && (
+          {myIdentity && (
             <div className="shrink-0 flex items-center gap-2">
-              <span className="text-xs text-gray-400">
-                <span className="font-medium text-gray-600">{myPseudo}</span>
-                {' '}
-                <button
-                  onClick={() => setMyPseudo(null)}
-                  className="text-gray-400 hover:text-gray-600 underline"
-                >
-                  Changer
-                </button>
-              </span>
+              <span className="text-xs font-medium text-gray-600">{myIdentity.pseudo}</span>
               <button
                 onClick={openAdd}
                 className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white
@@ -320,51 +310,58 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         )}
 
         {/* ── Registration panel ────────────────────────────── */}
-        {!myPseudo && (
+        {!myIdentity && (
           <section className="bg-white rounded-2xl border border-indigo-200 px-5 py-5 space-y-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900 mb-1">
                 Ajouter vos sources
               </h2>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Choisissez un pseudo pour contribuer au document. Vous pourrez ensuite
-                ajouter, modifier et supprimer vos propres sources.
+                Pour contribuer, identifiez-vous avec le nom et le code de rappel de votre
+                inscription à cette séance. Vous pourrez ensuite ajouter, modifier et
+                supprimer vos propres sources.
               </p>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <p className="text-xs text-amber-700 leading-relaxed">
-                <strong>Important :</strong> retenez bien votre pseudo. Il vous permet de
-                retrouver vos sources depuis un autre appareil ou après fermeture du navigateur.
-                Quiconque connaît votre pseudo peut reprendre votre identité sur ce document.
-              </p>
-            </div>
-            <form onSubmit={handleRegister} className="flex gap-2">
-              <input
-                type="text"
-                required
-                value={registerPseudo}
-                onChange={e => setRegisterPseudo(e.target.value)}
-                placeholder="Votre pseudo"
-                className="flex-1 px-3 py-2.5 text-sm border border-gray-300 rounded-xl
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                  placeholder:text-gray-300 transition-shadow"
+            <form onSubmit={handleRegister} className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  value={registerPseudo}
+                  onChange={e => setRegisterPseudo(e.target.value)}
+                  placeholder="Nom prénom"
+                  className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                    placeholder:text-gray-300 transition-shadow"
+                />
+                <button
+                  type="submit"
+                  disabled={registering || !registerPseudo.trim()}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                    text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+                    focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 flex items-center gap-2 shrink-0"
+                >
+                  {registering && <SmallSpinner />}
+                  {registering ? 'Connexion…' : 'Me connecter'}
+                </button>
+              </div>
+              <ReclaimCodeAccordion
+                ref={codeInputRef}
+                open={codeOpen}
+                onToggle={() => setCodeOpen(o => !o)}
+                code={registerCode}
+                onCodeChange={setRegisterCode}
               />
-              <button
-                type="submit"
-                disabled={registering || !registerPseudo.trim()}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                  text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
-                  focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 flex items-center gap-2"
-              >
-                {registering && <SmallSpinner />}
-                {registering ? 'Connexion…' : 'Rejoindre'}
-              </button>
             </form>
             {registerErr && (
               <p className="text-xs text-red-600">{registerErr}</p>
             )}
             <p className="text-xs text-gray-400">
-              Vous pouvez parcourir les sources sans pseudo.
+              Vous pouvez parcourir les sources sans vous identifier.
+              {' '}Pas encore inscrit ?{' '}
+              <a href={`#session/${sessionJoinCode}`} className="text-indigo-600 hover:underline">
+                Rejoindre la séance
+              </a>
             </p>
           </section>
         )}
@@ -373,7 +370,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         {sources.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2">
             <p className="text-sm text-gray-400">Aucune source partagée pour l'instant.</p>
-            {myPseudo && (
+            {myIdentity && (
               <button
                 onClick={openAdd}
                 className="text-sm text-indigo-600 hover:underline"
@@ -403,7 +400,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                     <SourceCard
                       key={src.id}
                       source={src}
-                      isOwn={src.user_id === myUserId}
+                      isOwn={!!myIdentity && src.member_id === myIdentity.member_id}
                       deleting={deleting === src.id}
                       onEdit={() => openEdit(src)}
                       onDelete={() => setDeleteConfirm(src)}

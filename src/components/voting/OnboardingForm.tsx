@@ -89,10 +89,10 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center px-4 py-8">
         <div className="max-w-md mx-auto w-full space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">🔗 Tes binômes</h2>
+          <h2 className="text-xl font-bold text-gray-900">🔗 Être avec un ami (facultatif)</h2>
           <PairingResultsList results={pairingDone.results} />
           <ReciprocityNotice />
-          <p className="text-xs text-gray-400">Tu peux les modifier à tout moment dans « Outils » → « Mes binômes ».</p>
+          <p className="text-xs text-gray-400">Tu peux les modifier à tout moment dans « Outils » → « Être avec un ami ».</p>
           <button
             onClick={() => onSuccess(pairingDone.response)}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl"
@@ -143,7 +143,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess }: Onboard
         {currentQ === 3 && (
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Binômes (facultatif)</p>
+              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Être avec un ami (facultatif)</p>
               <h2 className="text-xl font-bold text-gray-900 leading-snug">
                 Avec qui aimerais-tu être à table ?
               </h2>
@@ -253,10 +253,13 @@ function QuestionStyle({
         <h2 className="text-xl font-bold text-gray-900 leading-snug">
           Comment comptes-tu participer ?
         </h2>
+        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+          Ce n'est pas définitif : tu pourras toujours prendre la parole en cours de débat, même si tu choisis « Plutôt écouter ».
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Plutôt écouter" />
-        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Participer activement" />
+        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Plutôt écouter" sub="Je ne prévois pas de parler" />
+        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Participer activement" sub="Je compte prendre la parole" />
       </div>
     </div>
   )

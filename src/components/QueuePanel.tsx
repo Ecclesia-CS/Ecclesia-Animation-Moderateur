@@ -176,6 +176,11 @@ function SortableRow({
       {/* Pseudo */}
       <td className={`px-4 py-2.5 font-medium ${dark ? 'text-slate-100' : 'text-gray-900'}`}>
         {pseudo}
+        {entry.topic_tag && (
+          <span className={`ml-2 text-xs font-normal italic ${dark ? 'text-slate-400' : 'text-gray-400'}`}>
+            — {entry.topic_tag}
+          </span>
+        )}
       </td>
 
       {/* Actions */}

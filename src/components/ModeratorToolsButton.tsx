@@ -10,6 +10,9 @@ import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import TableOpinionModal from './voting/TableOpinionModal'
+import ParticipantCodesModal from './ParticipantCodesModal'
+import { useSessionOrganizationName } from '../lib/organizations'
+import ModeratorVoteModal from './ModeratorVoteModal'
 
 interface Props {
   className?: string
@@ -50,10 +53,20 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [correctOpen,   setCorrectOpen]   = useState(false)
   const [notesOpen,     setNotesOpen]     = useState(false)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
+  const [codesOpen,     setCodesOpen]     = useState(false)
+  const [voteToolOpen,  setVoteToolOpen]  = useState(false)
+  // Chantier 135 — débat d'une association : ni camps, ni assertions, ni
+  // questionnaire Ecclesia.
+  const orgName = useSessionOrganizationName(table.session_id)
 
   const [addPersonName,    setAddPersonName]    = useState('')
   const [addPersonLoading, setAddPersonLoading] = useState(false)
   const [addPersonError,   setAddPersonError]   = useState<string | null>(null)
+  // Chantier 119 — code de rappel généré pour cette personne (pas de téléphone
+  // pour le lire elle-même) : à transmettre oralement/par écrit, pour qu'elle
+  // puisse plus tard réclamer son profil (questionnaire, résultats) via
+  // confirm_attendance (pseudo + code) depuis son propre appareil.
+  const [addPersonCode,    setAddPersonCode]    = useState<{ pseudo: string; code: string } | null>(null)
 
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
@@ -110,13 +123,18 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
     setAddPersonLoading(true)
     setAddPersonError(null)
     try {
-      const { error } = await supabase.rpc('add_offline_participant', {
+      const { data, error } = await supabase.rpc('add_offline_participant', {
         p_table_id: table.id,
         p_pseudo:   pseudo,
       })
       if (error) throw error
+      const newCode = (data as { new_reclaim_code?: string | null } | null)?.new_reclaim_code
       setAddPersonName('')
-      setAddPersonOpen(false)
+      if (newCode) {
+        setAddPersonCode({ pseudo, code: newCode })
+      } else {
+        setAddPersonOpen(false)
+      }
     } catch (e) {
       setAddPersonError(extractErr(e))
     } finally {
@@ -157,7 +175,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             </div>
 
             {/* ── Camps & assertions — vue d'ensemble de l'idéologie de la table, en premier ── */}
-            {table.session_id && (
+            {table.session_id && !orgName && (
               <>
                 <p className={sectionLabelClass}>Camps &amp; assertions</p>
 
@@ -207,6 +225,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Ajouter une personne sans téléphone
             </button>
 
+            {table.session_id && (
+              <button onClick={() => { setPanelOpen(false); setCodesOpen(true) }} className={linkClass}>
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                Code participant
+              </button>
+            )}
+
             <button onClick={() => { setPanelOpen(false); setCorrectOpen(true) }} className={linkClass}>
               <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
@@ -215,6 +242,12 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Historique
             </button>
 
+            <button onClick={() => { setPanelOpen(false); setVoteToolOpen(true) }} className={linkClass}>
+              <span className="w-4 text-center text-gray-400 shrink-0">🗳️</span>
+              {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
+            </button>
+
+            {!orgName && (
             <button
               onClick={() => {
                 setPanelOpen(false)
@@ -233,6 +266,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 ? 'Annuler forçage questionnaire'
                 : 'Forcer questionnaire'}
             </button>
+            )}
 
             <div className={dividerClass} />
 
@@ -247,6 +281,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Mes notes
             </button>
 
+            {!orgName && (
             <button
               onClick={() => { if (!questionnaireDone) { setPanelOpen(false); setQuestionnaireOpen(true) } }}
               disabled={questionnaireDone}
@@ -261,6 +296,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               Questionnaire post-débat
               {questionnaireDone && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
             </button>
+            )}
 
             <div className="pb-2" />
           </div>
@@ -278,13 +314,13 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       {addPersonOpen && (
         <div
           className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
-          onMouseDown={e => { if (e.target === e.currentTarget) setAddPersonOpen(false) }}
+          onMouseDown={e => { if (e.target === e.currentTarget) { setAddPersonOpen(false); setAddPersonCode(null) } }}
         >
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-sm font-semibold text-gray-900">Ajouter une personne sans téléphone</h2>
               <button
-                onClick={() => setAddPersonOpen(false)}
+                onClick={() => { setAddPersonOpen(false); setAddPersonCode(null) }}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
                   focus:outline-none focus:ring-2 focus:ring-gray-300"
                 aria-label="Fermer"
@@ -294,45 +330,71 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 </svg>
               </button>
             </div>
-            <form onSubmit={handleAddOfflinePerson} className="px-5 py-4 space-y-3">
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Elle apparaît dans la liste des présents à la table — tu pourras lui donner ou
-                retirer la parole comme n'importe quel participant.
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={addPersonName}
-                  onChange={e => setAddPersonName(e.target.value)}
-                  placeholder="Prénom Nom"
-                  className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-xl
-                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                    placeholder:text-gray-300 transition-shadow"
-                />
-              </div>
-              {addPersonError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                  {addPersonError}
+            {addPersonCode ? (
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  <strong>{addPersonCode.pseudo}</strong> n'a pas d'appareil pour lire ce code —
+                  note-le et transmets-le lui à l'oral ou par écrit. Il lui permettra plus tard
+                  de retrouver son profil (questionnaire, résultats) depuis son propre appareil,
+                  en saisissant son nom et ce code.
+                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                  <p className="text-xs font-medium text-amber-700 uppercase tracking-wide mb-1">Code de rappel</p>
+                  <p className="text-2xl font-mono font-bold tracking-widest text-amber-600">{addPersonCode.code}</p>
                 </div>
-              )}
-              <button
-                type="submit"
-                disabled={addPersonLoading}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                  text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
-                  focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                {addPersonLoading ? 'Ajout…' : 'Ajouter'}
-              </button>
-            </form>
+                <button
+                  onClick={() => { setAddPersonCode(null); setAddPersonOpen(false) }}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium
+                    rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  C'est noté
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleAddOfflinePerson} className="px-5 py-4 space-y-3">
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Elle apparaît dans la liste des présents à la table — tu pourras lui donner ou
+                  retirer la parole comme n'importe quel participant.
+                </p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={addPersonName}
+                    onChange={e => setAddPersonName(e.target.value)}
+                    placeholder="Prénom Nom"
+                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-xl
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                      placeholder:text-gray-300 transition-shadow"
+                  />
+                </div>
+                {addPersonError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                    {addPersonError}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={addPersonLoading}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                    text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+                    focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  {addPersonLoading ? 'Ajout…' : 'Ajouter'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
 
+      {voteToolOpen && <ModeratorVoteModal onClose={() => setVoteToolOpen(false)} />}
+
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
+
+      {codesOpen && <ParticipantCodesModal onClose={() => setCodesOpen(false)} />}
 
       {correctOpen && <CorrectTurnModal onClose={() => setCorrectOpen(false)} />}
 

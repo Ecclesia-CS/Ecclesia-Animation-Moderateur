@@ -23,8 +23,10 @@ import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import DocumentationButton from '../components/DocumentationButton'
+import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
+import NextTopicPanel from '../components/NextTopicPanel'
 
 export default function ModeratorView() {
   const {
@@ -106,6 +108,8 @@ export default function ModeratorView() {
 
   // H23 — panorama d'accueil modérateur, affiché une seule fois par table
   const [showModWelcome, setShowModWelcome] = useState(() => !localStorage.getItem('mod_welcome_' + table.id))
+  // Chantier 135 — débat d'une association : pas de camps, d'assertions ni de questionnaire.
+  const orgName = useSessionOrganizationName(table.session_id)
 
   // Session docs pour le bouton Documentation
   const [sessionDocs, setSessionDocs] = useState<{
@@ -347,6 +351,7 @@ export default function ModeratorView() {
         queue_type:     overQT,
         position:       0,
         created_at:     '',
+        topic_tag:      null,
       }
 
       // Insérer le ghost à la position survolée (haut = avant, bas = après)
@@ -449,24 +454,24 @@ export default function ModeratorView() {
     <div className="min-h-screen bg-slate-900 text-white">
 
       {/* ── Header ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-700 px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-700 px-3 py-2 sm:px-4 sm:py-3">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
 
           {/* Left: session title + join code + live mini-speaker */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {sessionDocs?.title && (
               <span className="hidden sm:block text-sm font-medium text-slate-400 truncate max-w-[180px]"
                 title={sessionDocs.title}>
                 {sessionDocs.title}
               </span>
             )}
-            <span className="font-mono text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
+            <span className="font-mono text-lg sm:text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
               {table.join_code}
             </span>
             {speaker && table.current_turn_started_at && (
               <>
-                <span className="text-slate-700 shrink-0">|</span>
-                <span className="flex items-center gap-2 text-sm min-w-0">
+                <span className="text-slate-700 shrink-0 hidden sm:inline">|</span>
+                <span className="flex items-center gap-2 text-sm min-w-0 basis-full sm:basis-auto order-1 sm:order-none">
                   <span className="text-slate-300 truncate">{speaker.pseudo}</span>
                   <SpeakerTimer
                     startedAt={table.current_turn_started_at}
@@ -479,19 +484,19 @@ export default function ModeratorView() {
           </div>
 
           {/* Right: moderator badge + actions */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end">
             <DocumentationButton
               session={sessionDocs}
-              userPseudo={myParticipant?.pseudo}
               currentTableJoinCode={table.join_code}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
-                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+              sessionId={table.session_id}
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
+                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 whitespace-nowrap"
             />
             <ModeratorToolsButton
               onError={setErr}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg text-slate-300
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
                 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-slate-500 flex items-center gap-1.5"
+                focus:ring-slate-500 flex items-center gap-1.5 whitespace-nowrap"
             />
             <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-300">
               <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
@@ -501,7 +506,7 @@ export default function ModeratorView() {
               </span>
             </div>
             <span
-              className="md:hidden text-slate-400"
+              className="md:hidden text-slate-400 shrink-0"
               title={`${myParticipant.pseudo} — Modérateur`}
               aria-label={`${myParticipant.pseudo} — Modérateur`}
             >
@@ -510,9 +515,9 @@ export default function ModeratorView() {
 
             <button
               onClick={leaveTable}
-              className="text-xs px-3 py-1.5 border border-slate-600 rounded-lg
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg
                 text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-slate-500"
+                focus:ring-2 focus:ring-slate-500 whitespace-nowrap shrink-0"
             >
               Quitter
             </button>
@@ -530,10 +535,10 @@ export default function ModeratorView() {
         onDragEnd={handleMasterDragEnd}
         onDragCancel={handleDragCancel}
       >
-      <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-start">
+      <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-start">
 
         {/* ── Colonne principale ─────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="w-full flex-1 min-w-0 space-y-4">
 
         {err && (
           <div className="p-3 rounded-xl bg-red-900/30 border border-red-700 text-sm text-red-300">
@@ -674,6 +679,9 @@ export default function ModeratorView() {
           />
         </div>
 
+        {/* ── Sujet suivant (chantier 131) ───────────────────── */}
+        <NextTopicPanel />
+
         {/* ── Temps de parole par camp idéologique (chantier 94) ── */}
         {table.session_id && (
           <CampSpeakingTimes tableId={table.id} isModerator={isModerator} />
@@ -690,6 +698,8 @@ export default function ModeratorView() {
           currentSpeakerId={table.current_speaker_id}
           queueLong={queueLong}
           queueInteractive={queueInteractive}
+          tableId={table.id}
+          isModerator={isModerator}
         />
 
       </main>
@@ -734,7 +744,9 @@ export default function ModeratorView() {
                 <span className="text-xl shrink-0">🔧</span>
                 <div>
                   <p className="font-semibold text-gray-900">Outils Modo</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.</p>
+                  <p className="text-gray-500 text-xs mt-0.5">{orgName
+                    ? "QR code de la table, ajout d'une personne sans téléphone, codes participants, historique et notes. Seule la documentation reste accessible depuis un bouton séparé du header."
+                    : 'Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.'}</p>
                 </div>
               </div>
             </div>
@@ -753,8 +765,11 @@ export default function ModeratorView() {
         </div>
       )}
 
-      {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini) */}
-      {(session?.phase === 'closed' || session?.phase === 'post_voting') && (
+      {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini).
+          Chantier 112 — masqué tant que le questionnaire forcé est actif, sinon il
+          recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir. */}
+      {(session?.phase === 'closed' || session?.phase === 'post_voting') &&
+        !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now()) && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">La séance a été clôturée par le superadmin.</p>

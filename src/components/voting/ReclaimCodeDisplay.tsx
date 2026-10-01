@@ -4,9 +4,11 @@ interface ReclaimCodeDisplayProps {
   pseudo: string
   code: string
   onContinue: () => void
+  /** Chantier 119 — texte du bouton, contextuel selon l'appelant (vote, table…). */
+  continueLabel?: string
 }
 
-export default function ReclaimCodeDisplay({ pseudo, code, onContinue }: ReclaimCodeDisplayProps) {
+export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueLabel = 'Continuer vers le vote →' }: ReclaimCodeDisplayProps) {
   const [copied, setCopied] = useState(false)
 
   function handleCopy() {
@@ -27,7 +29,8 @@ export default function ReclaimCodeDisplay({ pseudo, code, onContinue }: Reclaim
         <div>
           <h1 className="text-xl font-bold text-gray-900">Note ton code de rappel</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Si tu viens au débat et changes d'appareil, entre ton nom et prénom <strong>ou</strong> ce code pour retrouver tes votes.
+            Ce code évite qu'une autre personne prenne ton identité : il est demandé
+            <strong> avec ton nom</strong> à chaque reconnexion, sur un autre appareil ou un autre navigateur.
           </p>
         </div>
 
@@ -49,14 +52,15 @@ export default function ReclaimCodeDisplay({ pseudo, code, onContinue }: Reclaim
         </div>
 
         <p className="text-xs text-gray-400">
-          Il suffit de l'un ou de l'autre pour retrouver tes votes.
+          Il n'est affiché qu'une fois. Perdu ? L'organisateur, ou le modérateur de
+          ta table, peut t'en redonner un nouveau.
         </p>
 
         <button
           onClick={onContinue}
           className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
         >
-          Continuer vers le vote →
+          {continueLabel}
         </button>
       </div>
     </div>

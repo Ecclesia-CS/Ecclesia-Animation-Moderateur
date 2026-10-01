@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { TableAssignment } from '../../lib/types'
 import type { Session } from '../../lib/types'
+import PasswordInput from '../PasswordInput'
 
 export interface AssignmentWithTable extends TableAssignment {
   tables: { join_code: string } | null
@@ -26,6 +27,25 @@ interface TableAssignmentCardProps {
   onSwitch?: (joinCode: string) => Promise<void>
   switchLoading?: boolean
   switchError?: string | null
+  /**
+   * Chantier 95 — reprendre par son code une table précise **en tant que
+   * modérateur** (`claim_table_as_moderator`). Ce chemin existait dans
+   * l'onglet « Rejoindre ou reprendre une table » de l'accueil, supprimé par
+   * ce chantier : il restait ouvert aux visiteurs non inscrits (formulaire de
+   * rattrapage) mais plus à un membre déjà inscrit à la séance, qui ne pouvait
+   * plus que se déclarer modérateur de la séance et se laisser asseoir où
+   * l'app décide.
+   */
+  onSwitchAsModerator?: (joinCode: string, creationCode: string) => Promise<void>
+  /**
+   * Chantier 111 — « Assignez-moi une table » : place l'appelant sur la
+   * table animée la moins remplie de la séance, sans code à taper
+   * (`assign_least_filled_table`). Proposé à côté du formulaire de secours
+   * par code, pour le même profil (sans affectation, phase `debating`).
+   */
+  onAssignLeastFilled?: () => Promise<void>
+  assignLoading?: boolean
+  assignError?: string | null
 }
 
 /**
@@ -58,16 +78,27 @@ interface TableAssignmentCardProps {
  */
 export default function TableAssignmentCard({
   assignment, loading, phase, onJoin, joinLoading, joinError,
-  onSwitch, switchLoading, switchError,
+  onSwitch, switchLoading, switchError, onSwitchAsModerator,
+  onAssignLeastFilled, assignLoading, assignError,
 }: TableAssignmentCardProps) {
   const [showSwitchForm, setShowSwitchForm] = useState(false)
   const [switchCode, setSwitchCode] = useState('')
   const [localSwitchError, setLocalSwitchError] = useState<string | null>(null)
+  const [asModerator, setAsModerator] = useState(false)
+  const [creationCode, setCreationCode] = useState('')
 
   async function handleRescueSubmit() {
     const code = switchCode.trim().toUpperCase()
     if (!code) return
     setLocalSwitchError(null)
+    if (asModerator) {
+      if (!creationCode.trim()) {
+        setLocalSwitchError('Code Ecclesia requis pour reprendre une table.')
+        return
+      }
+      await onSwitchAsModerator?.(code, creationCode)
+      return
+    }
     await onSwitch?.(code)
   }
 
@@ -108,6 +139,24 @@ export default function TableAssignmentCard({
             Demande le code à 6 caractères d'une table à un ami déjà installé là-bas, ou à son
             modérateur, pour la rejoindre.
           </p>
+          {/* Chantier 111 — pas de code sous la main : placement automatique
+              sur la table animée la moins remplie de la séance. */}
+          {onAssignLeastFilled && (
+            <div className="pt-1">
+              <button
+                onClick={onAssignLeastFilled}
+                disabled={assignLoading}
+                className="w-full py-2.5 px-3 bg-white border border-indigo-300 hover:bg-indigo-50
+                  disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-lg transition-colors"
+              >
+                {assignLoading ? 'Placement…' : 'Assignez-moi une table'}
+              </button>
+              {assignError && (
+                <p className="text-xs text-red-600 text-center mt-1.5">{assignError}</p>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-gray-400 text-center pt-1">— ou —</p>
           <div className="pt-1 space-y-2">
             <input
               type="text"
@@ -119,6 +168,33 @@ export default function TableAssignmentCard({
                 tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
                 placeholder:text-gray-300"
             />
+            {/* Chantier 108 (C3) — un modérateur en retard, sans affectation,
+                doit pouvoir se déclarer ici : c'est exactement son profil. */}
+            {onSwitchAsModerator && (
+              <>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={asModerator}
+                    onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-xs font-medium text-gray-700">
+                    Je suis modérateur de cette table
+                  </span>
+                </label>
+                {asModerator && (
+                  <PasswordInput
+                    required={false}
+                    value={creationCode}
+                    onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
+                    placeholder="Code Ecclesia"
+                    className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+                  />
+                )}
+              </>
+            )}
             {(localSwitchError || switchError) && (
               <p className="text-xs text-red-600 text-center">{localSwitchError || switchError}</p>
             )}
@@ -128,7 +204,7 @@ export default function TableAssignmentCard({
               className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
                 text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              {switchLoading ? 'Connexion…' : 'Rejoindre cette table'}
+              {switchLoading ? 'Connexion…' : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
             </button>
           </div>
         </div>
@@ -160,11 +236,19 @@ export default function TableAssignmentCard({
   async function handleSwitchSubmit() {
     const code = switchCode.trim().toUpperCase()
     if (!code) return
-    if (joinCode && code === joinCode.toUpperCase()) {
+    if (joinCode && code === joinCode.toUpperCase() && !asModerator) {
       setLocalSwitchError('Tu es déjà à cette table.')
       return
     }
     setLocalSwitchError(null)
+    if (asModerator) {
+      if (!creationCode.trim()) {
+        setLocalSwitchError('Code Ecclesia requis pour reprendre une table.')
+        return
+      }
+      await onSwitchAsModerator?.(code, creationCode)
+      return
+    }
     await onSwitch?.(code)
   }
 
@@ -268,6 +352,32 @@ export default function TableAssignmentCard({
                     tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
                     placeholder:text-gray-300"
                 />
+                {/* Chantier 95 — reprise d'une table précise en modérateur. */}
+                {onSwitchAsModerator && (
+                  <>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={asModerator}
+                        onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
+                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span className="text-xs font-medium text-gray-700">
+                        Je suis modérateur de cette table
+                      </span>
+                    </label>
+                    {asModerator && (
+                      <PasswordInput
+                        required={false}
+                        value={creationCode}
+                        onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
+                        placeholder="Code Ecclesia"
+                        className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+                      />
+                    )}
+                  </>
+                )}
                 {(localSwitchError || switchError) && (
                   <p className="text-xs text-red-600">{localSwitchError || switchError}</p>
                 )}
@@ -278,7 +388,9 @@ export default function TableAssignmentCard({
                     className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
                       text-white text-xs font-semibold rounded-lg transition-colors"
                   >
-                    {switchLoading ? 'Connexion…' : 'Rejoindre cette table'}
+                    {switchLoading
+                      ? 'Connexion…'
+                      : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
                   </button>
                   <button
                     onClick={() => { setShowSwitchForm(false); setSwitchCode(''); setLocalSwitchError(null) }}

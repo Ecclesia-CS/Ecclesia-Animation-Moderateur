@@ -52,7 +52,23 @@ export default function SubmitAssertionModal({
           </button>
         </div>
 
-        {submitted ? (
+        {session.assertions_locked ? (
+          <div className="py-4 text-center space-y-3">
+            <div className="text-4xl">🔒</div>
+            <p className="text-sm font-semibold text-gray-900">
+              Propositions désactivées
+            </p>
+            <p className="text-sm text-gray-500">
+              Le superadmin a désactivé la proposition de nouvelles assertions pour cette séance.
+            </p>
+            <button
+              onClick={onClose}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        ) : submitted ? (
           <div className="py-4 text-center space-y-3">
             <div className="text-4xl">🎉</div>
             <p className="text-sm font-semibold text-gray-900">

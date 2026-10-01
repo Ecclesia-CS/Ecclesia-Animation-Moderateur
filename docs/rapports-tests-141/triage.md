@@ -1,0 +1,108 @@
+# Chantier 141 — tri des cases ouvertes d'`A_VERIFIER.md` (2026-09-28)
+
+**Règle de Jules** : ne pas rejouer ce qui a déjà été vérifié au navigateur, ni ce qui est obsolète ou modifié par un chantier ultérieur. Tout se passe sur **dev** (`mnjqrlrrzrycuconlfqb`), jamais sur prod sans décision explicite. Aucun changement de `src/` : tout bug devient une entrée de rapport, pas un correctif.
+
+État de ce tri : **partiel** (fait au début de la conversation 1, arrêté faute de marge). Les numéros de ligne sont ceux d'`A_VERIFIER.md` au commit `7f8b98e`.
+
+## Famille A — migrations « jamais appliquées » : PÉRIMÉES (fait)
+
+Constat par `list_migrations` sur prod (`plpjiehqsxxakbuykmkm`) : appliquées les migrations des chantiers 33, 39, 44, 46, 48, 50, 51, 52, 54, 58, 60, 61, 64, 64b, 64c, 65, 66, 67 (×2), 68, 72 (×4), 74.
+Entrées d'`A_VERIFIER.md` à annoter « appliquée sur prod, constaté le 2026-09-28 » (sans les supprimer) : lignes 1020, 1055, 1062, 1143, 1165, 1181, 1765, 1897.
+Non présentes sur prod, normal (dev seulement, à appliquer au merge `dev` → `main`) : 131, 132, 134a/b, 135/b/c, 137, 139, 140/140b, 142.
+
+## À ne pas rejouer (déjà vu au navigateur, ou hors automatisation)
+
+- Hors automatisation : ligne 997 (restauration de sauvegarde), 3080 (glisser-déposer à la souris réelle), 3052-3053 (nommage Gemini réel, `gemini-proxy` non déployé sur dev), 3049 (expiration réelle d'un compte d'association), et tous les points « Sur prod, après merge » (3050, 3081, 3100, 3114).
+- Doublons ou anciens jalons du même chantier (35, 36, 37, 50, 54, 60, 65…) répétés dans plusieurs sections : ne tester qu'une fois par comportement, sur le dernier code.
+
+## Conversation 1 — sans mot de passe (à faire ensuite)
+
+Créer les séances sur dev via MCP Supabase (préfixe `QA141-`), les purger à la fin. Serveur : `.env.local` temporaire pointé sur dev (le `.env` du worktree pointe sur prod), jamais commité.
+Deux identités : `localhost` et `127.0.0.1` ont des `localStorage` distincts.
+
+Priorité aux items non déjà validés à l'écran :
+1. Visiteur non inscrit pendant `post_voting` (l. 1013) — nécessite la seconde identité.
+2. Prise de table par code, tous les refus (l. 1205-1252, chantier 68) et ses écrans `JoinTableScreen`/`EntryScreen`.
+3. Résultats publics et accueil (l. 1268-1301, chantiers 46/58/65 côté visiteur).
+4. Écarts C4, C5 et piège D1 de l'audit 87/101 (l. 2868-2870).
+5. Portes d'entrée du 140 non rejouées (l. 3095-3098), idempotence modérateur (l. 3096).
+6. `add_offline_participant` avec un nom déjà assis (l. 3113).
+7. Ménage des données de test (l. 1729-1733), **avec l'accord de Jules avant toute suppression**.
+
+> **Note** : les listes ci-dessus (« conversation 1 », « conversations 2 à 4 ») sont le premier brouillon du découpage. Le découpage **retenu et à suivre** est celui de la section « Sous-chantiers 141a à 141e » plus bas — 141b/c/d reprennent le contenu de ce qui était appelé ici « Lot 1/2/3 ».
+
+## Format de rapport (un fichier par sous-chantier : `lot-<lettre>.md`)
+
+Par anomalie : identifiant · chantier d'origine · environnement · étapes · attendu · observé · preuve · gravité proposée (bloquant / grave / mineur / cosmétique) · type de correctif (front / SQL / environnement).
+Les items qui passent reçoivent dans `A_VERIFIER.md` « vérifié automatiquement sur dev le … », **sans passer en « Validé »** (décision de Jules).
+
+---
+
+# Sous-chantiers 141a à 141e — à lancer chacun dans sa conversation
+
+**Amorce à coller au début de chaque conversation** (remplacer la lettre) :
+
+> Chantier 141, sous-chantier 141X. Lis `docs/rapports-tests-141/triage.md` (section « Sous-chantiers ») et `docs/rapports-tests-141/lot-*.md` existants, puis exécute uniquement 141X. Branche `claude/chantier-141-automated-tests-a071a2` (ou la branche de chantier la plus récente de `dev`). Tout se passe sur **dev**. Ne corrige rien dans `src/`.
+
+**Préparation commune (chaque conversation)** : `git fetch` puis remettre la branche à jour sur `origin/dev` ; créer `.env.local` (ignoré par git) avec l'URL et la clé publique de dev (`get_publishable_keys` sur `mnjqrlrrzrycuconlfqb`) — **jamais** le `.env` de prod ; `preview_start ecclesia-dev` ; séances de test préfixées `QA141-`, purgées à la fin (vérifier 0 ligne restante) ; relire l'état en boucle bornée après tout changement de phase ; un rapport `docs/rapports-tests-141/lot-<lettre>.md` par sous-chantier, au format ci-dessus ; annotations « vérifié automatiquement sur dev le … » dans `A_VERIFIER.md`, sans jamais passer en « Validé ». Commit à la fin, sans pousser.
+
+| Sous-chantier | Contenu | Mot de passe |
+|---|---|---|
+| **141a** — participant et modérateur, sans mot de passe | **État au 2026-09-29** : chantier 65 (séance `draft`) fait, voir `lot-1.md`. Reste : classer les lignes **1900-3100** d'`A_VERIFIER.md` (onboarding 71, entrée modérateur 73, phases hors ligne 74, synchro Realtime 35, nettoyage données de test, chantiers 87/101/108/113/114/117/120/132/135/138/139/140 — non lues) ; résultats publics/accueil visiteur (l. 1268-1301, partie sans mot de passe seulement) ; D1 approximé sans mot de passe (l. 2870) ; ménage des tables de test partagées (l. 1729-1733, **accord de Jules avant toute suppression**). Ce qui s'est révélé exiger le Code Ecclesia ou le superadmin (C4, `add_offline_participant`, portes 140 par code, etc.) a été réaffecté à 141b/c/d — voir `lot-1.md` § « Non joué ». Lever d'abord la limite d'identité (Vite avec `--host 127.0.0.1`) si un test à deux rôles s'avère nécessaire. | Aucun |
+| **141b** — superadmin, phases et séances | `PhaseBar` et phases (l. 1007-1012), chantiers 128, 130/138, 134 (points 1-3), 137-D (points d et g), 135. | Superadmin, saisi par Jules |
+| **141c** — superadmin, modérateurs et groupes | Désignation de modérateur et onglet Groupes (139, 106, 109, 117, 118), allocation. | Superadmin |
+| **141d** — anciens chantiers + portes Code Ecclesia | Anciens jalons 33-39, 50, 54, 65 (côté superadmin), 72, 74 ; scénarios du 68 (l. 1224-1269) ; portes modérateur (107, 110, 140, l. 3095-3098) ; 134 point 4. | Superadmin **et** Code Ecclesia |
+| **141f** — reprise du « non joué » faisable du 141d | Voir `docs/chantiers-a-faire.md` § 141f : 74 pt 3, 113, 46 visiteur, anomalie A1 ; 65 (rattacher/détacher), 108, 134 pt 4 ; refus Bloc C, `#table/`, `EntryScreen`, 107/110, idempotence modo. | Sans, superadmin, puis Code Ecclesia |
+| **141e** — consolidation | Fusionner les rapports `lot-*.md` en un rapport unique trié par gravité pour l'autre conversation ; nettoyer `A_VERIFIER.md` ; lister ce qui reste à faire par un humain (glisser-déposer, Gemini réel, expiration, points « Sur prod après merge ») ; retirer l'entrée de `docs/chantiers-a-faire.md` et consigner dans `docs/chantiers.md`. | Aucun |
+
+Ordre conseillé : 141a → 141b → 141c → 141d → 141e (141a n'a besoin de personne ; 141e vient en dernier). 141b, c et d peuvent tourner dans n'importe quel ordre entre elles.
+
+---
+
+## Clôture 141a (2026-09-29)
+
+**Fait, en plus du lot initial** : chantier 65 (3 tests), chantier 74 (points 1 et 3), chantier 114, chantier 143 (item « code de table sans modérateur »). Détail et preuves dans `lot-1.md`.
+
+**Méthode découverte, réutilisable par 141d** : `ModeratorView` est accessible sans Code Ecclesia en posant `tables.created_by` = l'uid de la session anonyme de test (chemin légitime « créateur physique », pas un contournement — voir `lot-1.md`). Utile pour tout test qui ne porte que sur l'UI modérateur, sans avoir besoin de valider un vrai Code Ecclesia.
+
+**Classification finale des sections non encore testées** (lignes 1900-3163 d'`A_VERIFIER.md`, hors « Validé » 1948-2871 qui ne demande aucune action) :
+
+| Section | Sort |
+|---|---|
+| Chantiers 87+101 (audit), C4/D1 | Restant (D1 approximable sans mot de passe, non fait — coût/bénéfice jugé faible face au budget restant) → 141a si repris, sinon 141d |
+| Chantier 108 (déclaration modérateur unifiée) | Code Ecclesia → 141d |
+| Chantier 113 (fusion boutons modérateur) | UI modérateur seule, probablement testable par la méthode `created_by` ci-dessus → 141a si repris, sinon 141d |
+| Chantier 117 (modérateur physique invisible superadmin) | Superadmin → 141b/c |
+| Chantier 120 (bug confirmé, décision Jules à trancher) | Pas une tâche de test — aucune action pour 141 |
+| Chantier 132 (proposer un vote) | SQL déjà vérifié (voir `A_VERIFIER.md`) ; parcours UI live abandonné (deux identités simultanées hors de portée du Browser pane) → 141d ou Jules |
+| Chantier 138, 135, 139 (sauf point 108/3108 dnd) | Superadmin/Code Ecclesia → 141b/c/d |
+| Chantier 140 (restes : porte modérateur par code, idempotence) | Code Ecclesia → 141d |
+| Chantier 142 (`add_offline_participant` collision) | Code Ecclesia (modérateur) → 141d — mais accessible via la méthode `created_by` si 141d veut l'essayer sans vrai Code Ecclesia |
+| Chantier 143 (restes : prise de modération table libre, mobile réel) | Code Ecclesia / matériel réel → 141d / humain |
+| Tous les « Sur prod, après merge » | Hors périmètre 141 (post-merge dev→main) |
+| Nettoyage tables `589D79`/`6ABDC9`/`6296A9` (l. 1749-1757) | **Accord explicite de Jules requis avant suppression** — non fait, à proposer en 141e |
+
+**141a est fini** au sens où tout ce qui ne demandait aucun mot de passe et avait un bon rapport coût/bénéfice a été joué. Les items marqués « probablement testable par la méthode created_by » (108→non, Code Ecclesia nécessaire pour la déclaration elle-même ; 113) peuvent être repris par une conversation dédiée si Jules veut aller plus loin sans mot de passe, sinon ils passent à 141d avec les autres.
+
+---
+
+## Conseils transmis pour les chantiers non en cours (141a, 2026-09-29)
+
+**Pour 141c/141d (superadmin, Code Ecclesia)** :
+- **Le chemin `created_by` = uid de test donne `ModeratorView` sans Code Ecclesia** (voir `lot-1.md`). Utile pour isoler un bug purement frontend (rendu, boutons, UI) d'un bug d'autorisation — si le bug apparaît aussi par ce chemin, il n'est pas lié au Code Ecclesia ; s'il n'apparaît que via le vrai Code Ecclesia, chercher côté RPC/SECURITY DEFINER.
+- **Piège d'identité à connaître avant de préparer des données de test** : la session anonyme du Browser pane change d'uid dès que `localStorage` est vidé (nouveau `signInAnonymously`, ancien jeton irrécupérable). Toujours relire l'uid courant juste avant d'écrire `created_by`/`participants.user_id` en base — sinon `App.tsx.init()` refuse silencieusement de restaurer la table (comparaison `pRow.user_id === userId`) et retombe sur l'accueil sans message.
+- **Deux identités simultanées ne sont pas possibles dans le Browser pane actuel** (`127.0.0.1` injoignable, un seul `localStorage` par origine). Tout test qui a besoin de deux navigateurs en même temps (chantier 132 live, tests Realtime multi-onglets de la section « Synchronisation temps réel ») restera à faire par un humain, ou en acceptant une approximation séquentielle (agir côté A, couper, agir côté B, comparer l'état en base plutôt que voir la propagation en direct).
+
+**Pour 141e (consolidation)** :
+- Le chantier 120 (`session_members.user_id` désynchronisé au renouvellement du jeton anonyme) est un **bug confirmé, sans correctif codé**, en attente d'un arbitrage de sécurité de Jules — ce n'est pas une tâche de test, à ne pas classer dans le rapport de bugs mais à rappeler explicitement dans le compte rendu final comme décision en attente.
+- Observation mineure (O1, `lot-1.md`) : deux 400 silencieux sur `join_table` quand `localStorage` garde une table périmée — à vérifier si un vrai participant peut se retrouver dans ce cas sans explication à l'écran.
+
+**Pour un futur chantier « infra de test »**, si Jules en juge le besoin : le Browser pane ne sachant pas ouvrir `127.0.0.1`, un vrai test à deux identités simultanées suppose soit un second profil de navigateur, soit Claude in Chrome en plus du Browser pane intégré — à évaluer séparément, hors périmètre du 141.
+
+---
+
+## Clôture 141c (2026-09-29)
+
+**Fait** : chantiers 106, 109, 117, 118 (onglet Groupes, modale « Ouvrir le débat », « Retirer » / « Libérer la modération »), allocation (91 recette 1-3, 92 étapes 3-4 côté affichage, 121-3) — tout passe, deux observations mineures (O1 badge « N actifs » qui compte le modérateur, O2 `assign_pending_moderators` et modérateur physique). Détail dans `lot-c.md`. Le 139 avait déjà été rejoué le 2026-09-28, non refait.
+
+**Reste pour 141d** : anciens jalons, scénarios du 68, portes Code Ecclesia (107, 110, 140), 134 point 4. **Toujours humain** : glisser-déposer (139, 92-4, 91-4), second appareil (écran du modérateur remplacé), points « Sur prod, après merge ».

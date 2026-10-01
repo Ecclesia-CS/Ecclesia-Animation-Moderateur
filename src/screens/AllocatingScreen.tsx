@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { getVoteResults, getMyTableAssignment } from '../lib/voting'
+import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus, assignLeastFilledTable, getMyPairings } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
-import type { TableResult } from '../lib/supabase'
 import type { Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import VoteResultsList from '../components/voting/VoteResultsList'
 import TableAssignmentCard from '../components/voting/TableAssignmentCard'
 import type { AssignmentWithTable } from '../components/voting/TableAssignmentCard'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
+import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
+import { PairingResultsList } from '../components/voting/PairingModal'
+import type { PairingResult } from '../lib/voting'
+import DocNudge from '../components/voting/DocNudge'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
-import PairingModal from '../components/voting/PairingModal'
-import { hasQuestionnaireResponse } from '../lib/voting'
+import { hasQuestionnaireResponse, assertSeated } from '../lib/voting'
 
 interface AllocatingScreenProps {
   session: Session
@@ -34,9 +36,21 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
   const [joinError,         setJoinError]         = useState<string | null>(null)
   const [switchLoading,     setSwitchLoading]     = useState(false)
   const [switchError,       setSwitchError]       = useState<string | null>(null)
+  const [assignLoading,     setAssignLoading]     = useState(false)
+  const [assignError,       setAssignError]       = useState<string | null>(null)
   const [showQuestionnaire, setShowQuestionnaire] = useState(false)
   const [sessionClosed,     setSessionClosed]     = useState(false)
-  const [pairingOpen,       setPairingOpen]       = useState(false)
+  // Chantier 108 (C2) — déclaration modérateur rouverte pendant l'allocation,
+  // maintenant que le 107 la rend inoffensive (elle ne pose plus qu'un
+  // drapeau, ne déplace plus personne dans la répartition en cours).
+  const [currentMember,        setCurrentMember]        = useState<SessionMember>(member)
+  const [asModerator,          setAsModerator]          = useState(false)
+  const [moderatorPassword,    setModeratorPassword]    = useState('')
+  const [moderatorDeclareBusy, setModeratorDeclareBusy] = useState(false)
+  const [moderatorDeclareMsg,  setModeratorDeclareMsg]  = useState<{ ok: boolean; text: string } | null>(null)
+  // Chantier 122 — binôme visible en allocating, lecture seule (aucune
+  // possibilité de changer son choix depuis cet écran).
+  const [pairings, setPairings] = useState<PairingResult[]>([])
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
@@ -60,6 +74,10 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     }
 
     load()
+
+    getMyPairings(session.id)
+      .then(list => setPairings(list.map(p => ({ pseudo: p.pseudo, found: true, reciprocal: p.reciprocal }))))
+      .catch(() => { /* pas de binôme à afficher, écran non bloquant */ })
   }, [session.id])
 
   // ── Realtime ──────────────────────────────────────────────────────
@@ -189,8 +207,8 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         p_pseudo: member.pseudo,
       })
       if (error) throw error
-      const r = data as TableResult
-      const isMod = member.is_moderator ?? false
+      const r = assertSeated(data)
+      const isMod = currentMember.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,
@@ -221,8 +239,8 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         p_pseudo:     member.pseudo,
       })
       if (error) throw error
-      const r = data as TableResult
-      const isMod = member.is_moderator ?? false
+      const r = assertSeated(data)
+      const isMod = currentMember.is_moderator ?? false
       tableStore.set({
         tableId:       r.id,
         participantId: r.participant_id,
@@ -240,6 +258,82 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     } finally {
       setSwitchLoading(false)
     }
+  }
+
+  // ── Assignez-moi une table (chantier 111 — sans code, table la moins remplie) ──
+  async function handleAssignLeastFilled() {
+    setAssignLoading(true)
+    setAssignError(null)
+    try {
+      const r = await assignLeastFilledTable(session.id, member.pseudo)
+      const isMod = currentMember.is_moderator ?? false
+      tableStore.set({
+        tableId:       r.id,
+        participantId: r.participant_id,
+        joinCode:      r.join_code,
+        isModerator:   isMod,
+        pseudo:        member.pseudo,
+      })
+      if (onTableJoined) {
+        onTableJoined(r.id, r.participant_id, isMod)
+      } else {
+        window.location.href = window.location.pathname + window.location.search
+      }
+    } catch (err) {
+      setAssignError(extractErr(err))
+    } finally {
+      setAssignLoading(false)
+    }
+  }
+
+  /**
+   * Chantier 95 — reprendre par son code une table précise en tant que
+   * modérateur. `claim_table_as_moderator` refuse si le Code Ecclesia est
+   * invalide, si la table appartient à une autre séance, ou si elle a déjà un
+   * modérateur — d'où la distinction avec `switch_table` juste au-dessus.
+   */
+  async function handleSwitchAsModerator(targetJoinCode: string, creationCode: string) {
+    setSwitchLoading(true)
+    setSwitchError(null)
+    try {
+      const r = await claimTableAsModerator(targetJoinCode, creationCode, member.pseudo, session.id)
+      tableStore.set({
+        tableId:       r.id,
+        participantId: r.participant_id,
+        joinCode:      r.join_code,
+        isModerator:   true,
+        pseudo:        member.pseudo,
+      })
+      if (onTableJoined) {
+        onTableJoined(r.id, r.participant_id, true)
+      } else {
+        window.location.href = window.location.pathname + window.location.search
+      }
+    } catch (err) {
+      setSwitchError(extractErr(err))
+    } finally {
+      setSwitchLoading(false)
+    }
+  }
+
+  // ── Déclaration modérateur en cours d'allocation (chantier 108 / C2) ──
+  // Depuis le chantier 107, `claim_moderator_status` en phase `allocating`
+  // ne fait plus que poser le drapeau — elle ne déplace plus personne dans
+  // la répartition que l'organisateur est en train d'examiner.
+  async function handleDeclareModerator(e: React.FormEvent) {
+    e.preventDefault()
+    if (!moderatorPassword.trim()) return
+    setModeratorDeclareBusy(true)
+    setModeratorDeclareMsg(null)
+    const { member: updated, error } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), currentMember.pseudo)
+    if (updated) {
+      setCurrentMember(updated)
+      setModeratorPassword('')
+      setModeratorDeclareMsg({ ok: true, text: 'Déclaration enregistrée : tu seras placé·e à une table au démarrage du débat.' })
+    } else {
+      setModeratorDeclareMsg({ ok: false, text: error ?? 'Erreur inattendue' })
+    }
+    setModeratorDeclareBusy(false)
   }
 
   // ── Render ────────────────────────────────────────────────────────
@@ -297,29 +391,61 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             onSwitch={handleSwitchTable}
             switchLoading={switchLoading}
             switchError={switchError}
+            onSwitchAsModerator={handleSwitchAsModerator}
+            onAssignLeastFilled={handleAssignLeastFilled}
+            assignLoading={assignLoading}
+            assignError={assignError}
           />
         </div>
 
-        {/* Chantier 92 — binômes : un retardataire sans table est rattaché à
-            celle de la personne citée (réciproquement). */}
-        {!sessionClosed && (currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-          <button
-            onClick={() => setPairingOpen(true)}
-            className="w-full text-center text-xs text-indigo-600 hover:underline"
-          >
-            🔗 Mes binômes
-          </button>
+        {/* Chantier 122 — binôme visible en allocating, lecture seule (le
+            changement de choix reste indisponible à ce stade, inchangé). */}
+        {pairings.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ton binôme</p>
+            <div className="bg-white rounded-2xl border border-gray-200 p-4">
+              <PairingResultsList results={pairings} />
+            </div>
+          </div>
         )}
-        {pairingOpen && (
-          <PairingModal
-            sessionId={currentSession.id}
-            onClose={() => {
-              setPairingOpen(false)
-              getMyTableAssignment(currentSession.id)
-                .then(a => { if (a) setAssignment(a as AssignmentWithTable) })
-                .catch(() => {})
-            }}
-          />
+
+        {/* Chantier 122 — mêmes liens documentaires que sur les écrans de vote,
+            désormais visibles aussi en phase allocation. */}
+        <DocNudge session={currentSession} />
+
+        {/* Chantier 108 (C2) — rouverte depuis le chantier 107 : la déclaration
+            pendant l'allocation ne fait plus que poser le drapeau modérateur,
+            elle ne déplace plus personne dans la répartition en cours. */}
+        {currentSession.phase === 'allocating' && (
+          currentMember.is_moderator ? (
+            <p className="text-xs text-gray-400 text-center">
+              Tu es modérateur·rice. Tu seras placé·e à une table au démarrage du débat.
+            </p>
+          ) : (
+            <form onSubmit={handleDeclareModerator} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <ModeratorDeclareField
+                checked={asModerator}
+                onCheckedChange={setAsModerator}
+                password={moderatorPassword}
+                onPasswordChange={setModeratorPassword}
+              />
+              {moderatorDeclareMsg && (
+                <p className={`text-xs text-center ${moderatorDeclareMsg.ok ? 'text-green-700' : 'text-red-600'}`}>
+                  {moderatorDeclareMsg.text}
+                </p>
+              )}
+              {asModerator && (
+                <button
+                  type="submit"
+                  disabled={moderatorDeclareBusy || !moderatorPassword.trim()}
+                  className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
+                    text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  {moderatorDeclareBusy ? 'Déclaration…' : 'Me déclarer modérateur·rice'}
+                </button>
+              )}
+            </form>
+          )
         )}
 
         {/* Bannière clôture — affichée en-dessous de la carte */}

@@ -1,3 +1,5 @@
+import PasswordInput from '../PasswordInput'
+
 interface Props {
   checked: boolean
   onCheckedChange(v: boolean): void
@@ -31,13 +33,11 @@ export default function ModeratorDeclareField({
       {checked && (
         <div className="mt-2">
           <label className="block text-xs font-medium text-gray-700 mb-1">Code Ecclesia</label>
-          <input
-            type="password"
-            required
+          <PasswordInput
             value={password}
-            onChange={e => onPasswordChange(e.target.value)}
+            onChange={onPasswordChange}
             placeholder="••••••••"
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       )}

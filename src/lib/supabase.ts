@@ -28,4 +28,28 @@ export type TableResult = {
   session_id: string | null
   questionnaire_forced_at: string | null
   participant_id: string
+  /**
+   * Chantier 119 — présent uniquement quand cet appel a créé la ligne
+   * `session_members` (première inscription à la séance, quelle que soit la
+   * phase) : `join_table`/`switch_table`/`create_table`/`claim_table_as_moderator`
+   * le retournent via `sync_table_assignment`. Absent/`null` si le membre
+   * existait déjà (ex. changer de table en cours de séance).
+   */
+  new_reclaim_code?: string | null
+  /**
+   * Chantier 120 — présent (`true`) quand `sync_table_assignment` a trouvé un
+   * membre déjà inscrit sous ce pseudo, pour un `user_id` différent (jeton
+   * anonyme renouvelé). Rien n'a été créé ni modifié côté `session_members`/
+   * `table_assignments` : le client doit passer par `confirmAttendance`
+   * (pseudo + code) avant de rappeler `join_table`. Absent/`null` sinon.
+   */
+  reconnect_required?: boolean
+  /**
+   * Chantier 140 — pseudo effectif sous lequel l'appelant a été assis. Si
+   * l'appareil est déjà inscrit à la séance, c'est le pseudo de ce membre,
+   * quel que soit le nom tapé (un nom tapé ne prouve rien). Avec
+   * `reconnect_required`, c'est le nom demandé, déjà pris par un autre.
+   * Absent des réponses antérieures à la migration du chantier 140.
+   */
+  pseudo?: string
 }

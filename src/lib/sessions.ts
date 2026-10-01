@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { Session, Table, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
+import { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
 import { extractErr } from './utils'
 
 export type SessionTableRow = {
@@ -11,6 +11,8 @@ export type SessionTableRow = {
   is_active: boolean
   questionnaire_forced_at: string | null
   leaderless?: boolean
+  /** Chantier 95 — numéro de table au sein de la séance, NULL hors séance. */
+  table_number?: number | null
 }
 
 export type TableParticipantRow = {
@@ -75,6 +77,7 @@ export async function createSession(
   docSummaryUrl?: string,
   docCollabUrl?: string,
   onboardingEnabled?: boolean,
+  sessionType: SessionType = 'full',
 ): Promise<Session> {
   const { data, error } = await supabase.rpc('create_session', {
     p_password: password,
@@ -85,6 +88,8 @@ export async function createSession(
     p_doc_summary_url: docSummaryUrl ?? null,
     p_doc_collab_url: docCollabUrl ?? null,
     p_onboarding_enabled: onboardingEnabled ?? true,
+    // Chantier 134 — en mode 'debate', la table unique est créée par la même RPC.
+    p_session_type: sessionType,
   })
   if (error) throw new Error(extractErr(error))
   return data as Session
@@ -100,6 +105,21 @@ export async function setSessionOnboardingEnabled(
     p_password: password,
     p_session_id: sessionId,
     p_onboarding_enabled: onboardingEnabled,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
+// Chantier 124 — bascule superadmin par séance (même forme que setSessionOnboardingEnabled).
+export async function setSessionAssertionsLocked(
+  password: string,
+  sessionId: string,
+  assertionsLocked: boolean,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('set_session_assertions_locked', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_assertions_locked: assertionsLocked,
   })
   if (error) throw new Error(extractErr(error))
   return data as Session
@@ -123,32 +143,13 @@ export async function updateSessionDocs(
   return data as Session
 }
 
-export async function attachTableToSession(
-  password: string,
-  tableId: string,
-  sessionId: string,
-): Promise<Table> {
-  const { data, error } = await supabase.rpc('attach_table_to_session', {
-    p_password: password,
-    p_table_id: tableId,
-    p_session_id: sessionId,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as Table
-}
-
-export async function detachTableFromSession(
-  password: string,
-  tableId: string,
-): Promise<Table> {
-  const { data, error } = await supabase.rpc('detach_table_from_session', {
-    p_password: password,
-    p_table_id: tableId,
-  })
-  if (error) throw new Error(extractErr(error))
-  return data as Table
-}
-
+/**
+ * Chantier 95 — `attachTableToSession` / `detachTableFromSession` supprimées :
+ * plus rien ne crée de table hors séance depuis le retrait de l'onglet
+ * « Créer » de l'accueil, et les deux accordéons du superadmin qui servaient à
+ * les rattacher ont disparu. Les RPC `attach_table_to_session` et
+ * `detach_table_from_session` restent en base, sans appelant.
+ */
 export async function getTableParticipants(
   password: string,
   tableId: string,
@@ -221,19 +222,6 @@ export async function listSessionTables(
   return (data as SessionTableRow[]) ?? []
 }
 
-export async function listAvailableTables(
-  password: string,
-  since?: Date | null,
-): Promise<SessionTableRow[]> {
-  const params: Record<string, unknown> = { p_password: password }
-  if (since !== undefined) {
-    params.p_since = since === null ? null : since.toISOString()
-  }
-  const { data, error } = await supabase.rpc('list_available_tables', params)
-  if (error) throw new Error(extractErr(error))
-  return (data as SessionTableRow[]) ?? []
-}
-
 export async function deleteQuestionnaireResponse(
   password: string,
   responseId: string,
@@ -259,15 +247,53 @@ export async function getQuestionnaireResponses(
 
 // ── Collab sources ─────────────────────────────────────────────────
 
-export async function registerCollabPseudo(
+/**
+ * Chantier 142 — l'identité du document collaboratif est celle du membre de la
+ * séance (`session_members`). Plus de pseudo libre : écrire exige d'être
+ * inscrit sur cet appareil, ou de reprendre son identité par nom + code.
+ */
+export type CollabIdentity = { member_id: string; pseudo: string }
+
+function asCollabIdentity(data: unknown): CollabIdentity | null {
+  const d = data as Record<string, unknown> | null
+  return d && typeof d.member_id === 'string' && typeof d.pseudo === 'string'
+    ? { member_id: d.member_id, pseudo: d.pseudo }
+    : null
+}
+
+/** Identité de cet appareil dans la séance, ou null s'il n'y est pas inscrit. */
+export async function getCollabIdentity(sessionId: string): Promise<CollabIdentity | null> {
+  const { data, error } = await supabase.rpc('get_collab_identity', { p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  return asCollabIdentity(data)
+}
+
+export type ClaimCollabResult =
+  | { kind: 'ok'; identity: CollabIdentity }
+  | { kind: 'code_required'; pseudo: string }
+  | { kind: 'error'; message: string }
+
+/** Reprise d'identité par nom + code de rappel. Ne crée jamais d'inscription. */
+export async function claimCollabIdentity(
   sessionId: string,
   pseudo: string,
-): Promise<void> {
-  const { error } = await supabase.rpc('register_collab_pseudo', {
+  code: string | null,
+): Promise<ClaimCollabResult> {
+  const { data, error } = await supabase.rpc('claim_collab_identity', {
     p_session_id: sessionId,
     p_pseudo:     pseudo,
+    p_code:       code,
   })
   if (error) throw new Error(extractErr(error))
+  const d = (data ?? {}) as Record<string, unknown>
+  if (typeof d.error === 'string') return { kind: 'error', message: d.error }
+  if (d.code_required === true) {
+    return { kind: 'code_required', pseudo: typeof d.pseudo === 'string' ? d.pseudo : pseudo }
+  }
+  const identity = asCollabIdentity(d)
+  return identity
+    ? { kind: 'ok', identity }
+    : { kind: 'error', message: 'Réponse inattendue du serveur.' }
 }
 
 export async function addCollabSource(
@@ -386,18 +412,23 @@ export async function getTableSpeakingTurnsAdmin(
   return (data as TableSpeakingTurnRow[]) ?? []
 }
 
-export async function adminCreateTable(
+/**
+ * Chantier 95 — crée une table vide déjà rattachée à la séance ET déjà
+ * numérotée, pour qu'elle apparaisse comme un groupe en attente dans la vue
+ * Groupes avant que quiconque ne s'y assoie.
+ */
+export async function adminCreateSessionTable(
   password: string,
-  sessionId?: string,
+  sessionId: string,
   leaderless = false,
-): Promise<{ table_id: string; join_code: string }> {
-  const { data, error } = await supabase.rpc('admin_create_table', {
+): Promise<{ table_id: string; join_code: string; table_number: number }> {
+  const { data, error } = await supabase.rpc('admin_create_session_table', {
     p_password:   password,
-    p_session_id: sessionId ?? null,
+    p_session_id: sessionId,
     p_leaderless: leaderless,
   })
   if (error) throw new Error(extractErr(error))
-  return data as { table_id: string; join_code: string }
+  return data as { table_id: string; join_code: string; table_number: number }
 }
 
 export async function updateGroupNames(
@@ -423,10 +454,19 @@ export async function listSessionSources(sessionId: string): Promise<CollabSourc
 
 export type TableAssignmentAdminRow = {
   table_number: number
-  member_id: string
+  // Chantier 117 — NULL pour un modérateur « physique » (tables.created_by,
+  // claim_table_as_moderator/designate_moderator) qui n'a aucune ligne
+  // session_members à référencer. `active_moderator_member_id` vaut aussi
+  // NULL pour cette ligne : la comparaison ci-dessous les fait matcher.
+  member_id: string | null
   table_id: string | null
   pseudo: string
   is_moderator: boolean
+  // Chantier 106 — le session_members en exercice sur cette table
+  // (tables.active_moderator_member_id). Comparer à member_id pour
+  // distinguer, parmi les membres is_moderator=true assis à la même
+  // table, celui qui anime réellement des modérateurs en surplus.
+  active_moderator_member_id: string | null
 }
 
 // Chantier 50 — session_members et table_assignments ne sont plus lisibles

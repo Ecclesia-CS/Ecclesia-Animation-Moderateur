@@ -72,7 +72,7 @@ const JSON_HEADERS = {
   'Content-Type': 'application/json',
 }
 
-// ── Anti-abus (chantier 57) ─────────────────────────────────────
+// ── Anti-abus (chantier 57, compteur partagé depuis le chantier 83bis) ──
 //
 // La clé anon Supabase est publique dans le bundle JS du site : n'importe
 // quel porteur de cette clé peut appeler cette fonction, qui relaie vers
@@ -80,21 +80,15 @@ const JSON_HEADERS = {
 // l'écran superadmin (rien ici ne vérifie le mot de passe superadmin,
 // seulement un JWT Supabase valide, que possède tout participant anonyme).
 //
-// Où stocker le compteur — Postgres vs mémoire (à trancher par chantier) :
-// une table dédiée serait durable et partagée entre toutes les instances
-// de la fonction, mais ajoute une écriture par appel et une migration.
-// Choix retenu ici : compteur EN MÉMOIRE, par instance. Ce projet ne sert
-// que quelques séances ponctuelles pour ~3 personnes (voir CLAUDE.md) ;
-// en pratique, seul le superadmin appelle cette fonction (LLMModerationPanel
-// et AnalysisPanel, tous deux dans SuperadminScreen — aucun écran
-// participant n'importe lib/gemini.ts), depuis un onglet de navigateur
-// qui reste ouvert toute la séance. Un compteur qui repart à zéro à un
-// cold start Deno Deploy, ou qui n'est pas partagé si plusieurs instances
-// tournent en parallèle, reste largement suffisant pour bloquer en
-// pratique un script qui bombarderait la fonction en boucle depuis un
-// même onglet — sans migration SQL ni écriture DB supplémentaire à
-// chaque appel Gemini. À revoir si le projet grandit (plusieurs
-// organisations, trafic soutenu justifiant un compteur partagé fiable).
+// Où stocker le compteur — Postgres vs mémoire : le chantier 57 avait
+// choisi une Map en mémoire, par instance de la fonction, pour éviter une
+// écriture DB par appel. Le test navigateur du chantier 83 (20/09) a
+// montré que ce choix ne fonctionne pas en pratique : 122 requêtes
+// envoyées (dont 40 en parallèle) sur le même compte, 0 réponse 429 — la
+// Map ne survit pas d'un appel à l'autre entre instances Deno Deploy.
+// Remplacé par la RPC SECURITY DEFINER `check_gemini_rate_limit`
+// (migration `20260920_chantier83bis_gemini_rate_limit_partage.sql`),
+// une ligne en base par appel accepté, purgée au fil de l'eau.
 //
 // Calibrage de la limite — usage légitime maximal observé dans le code :
 //   - modération auto (LLMModerationPanel) : 1 appel Gemini / tick, tick
@@ -120,41 +114,31 @@ const JSON_HEADERS = {
 // (20 appels / 60 s, fenêtre glissante) laisse une marge confortable
 // au-dessus de ce pire cas tout en bornant fermement un script qui viserait
 // la fonction en boucle (des centaines d'appels/minute).
-const RATE_LIMIT_WINDOW_MS    = 60_000
-const RATE_LIMIT_MAX_REQUESTS = 20
+const RATE_LIMIT_WINDOW_SECONDS = 60
+const RATE_LIMIT_MAX_REQUESTS   = 20
 
-// Horodatages (ms) des appels récents, par user_id. Purgé au fil de l'eau
-// (fenêtre glissante) — pas de TTL global, la Map reste petite en pratique
-// (quelques utilisateurs distincts par instance à la fois).
-const callLog = new Map<string, number[]>()
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+  const { data, error } = await supabase.rpc('check_gemini_rate_limit', {
+    p_user_id: userId,
+    p_max_requests: RATE_LIMIT_MAX_REQUESTS,
+    p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+  })
 
-function checkRateLimit(userId: string): { allowed: boolean; retryAfterSeconds: number } {
-  const now         = Date.now()
-  const windowStart = now - RATE_LIMIT_WINDOW_MS
-  const timestamps  = (callLog.get(userId) ?? []).filter(t => t > windowStart)
-
-  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-    callLog.set(userId, timestamps)
-    const oldest = timestamps[0]
-    const retryAfterSeconds = Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MS - now) / 1000))
-    return { allowed: false, retryAfterSeconds }
+  if (error) {
+    // Le compteur partagé est indisponible (panne DB, etc.) : on ne bloque
+    // pas l'usage nominal pour un souci d'anti-abus, mais on le journalise
+    // pour que ce ne soit pas silencieux.
+    console.error('check_gemini_rate_limit a échoué, requête autorisée par défaut :', error)
+    return { allowed: true, retryAfterSeconds: 0 }
   }
 
-  timestamps.push(now)
-  callLog.set(userId, timestamps)
-
-  // Nettoyage opportuniste : évite une fuite mémoire sur la durée de vie de
-  // l'instance si beaucoup d'utilisateurs distincts finissent par apparaître
-  // dans la Map (usage légitime normal : une poignée tout au plus).
-  if (callLog.size > 500) {
-    for (const [id, ts] of callLog) {
-      const fresh = ts.filter(t => t > windowStart)
-      if (fresh.length === 0) callLog.delete(id)
-      else callLog.set(id, fresh)
-    }
+  return {
+    allowed: Boolean((data as { allowed: boolean }).allowed),
+    retryAfterSeconds: Number((data as { retry_after_seconds: number }).retry_after_seconds ?? 0),
   }
-
-  return { allowed: true, retryAfterSeconds: 0 }
 }
 
 // ── Plafond de charge utile (chantier 57) ────────────────────────
@@ -617,7 +601,7 @@ Deno.serve(async (req: Request) => {
     // Compte toute requête authentifiée, même rejetée ensuite pour taille
     // ou action inconnue — sinon un payload délibérément invalide
     // permettrait de contourner la limite.
-    const rateLimit = checkRateLimit(user.id)
+    const rateLimit = await checkRateLimit(supabase, user.id)
     if (!rateLimit.allowed) {
       return new Response(
         JSON.stringify({

@@ -10,7 +10,7 @@
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `session_type` (`full`|`debate`|`poll`, défaut `full`, NOT NULL, fixé à la création — chantier 134, voir `CLAUDE.md` § Types de séance), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
 
 Phase order : `draft → pre_voting → voting → allocating → debating → closed`
 - `pre_voting` : vote ouvert à distance, `attending_in_person = false` par défaut. Pas d'onboarding.
@@ -18,7 +18,16 @@ Phase order : `draft → pre_voting → voting → allocating → debating → c
 - **Chantier 39** : la phase `questionnaire` a été supprimée de l'énumération — voir « Nomenclature des phases côté participant » plus bas pour la correspondance à jour et le mécanisme de déclenchement automatique du questionnaire post-débat.
 
 ### `tables`
-`id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`), `leaderless_by_design` (boolean, défaut `false` — **chantier 64**, voir « Tables leaderless » plus bas : `leaderless` décrit l'état courant, `leaderless_by_design` décrit ce que la table est censée être — seule une création ou un (re)calcul d'allocation la pose, jamais une conversion/bascule organique)
+`id`, `join_code` (UNIQUE, 6 hex), `created_by` (auth.uid()), `current_speaker_id?` (FK→participants), `current_turn_started_at?`, `session_id?` (FK→sessions ON DELETE SET NULL), `leaderless` (boolean, défaut `false`), `leaderless_by_design` (boolean, défaut `false` — **chantier 64**, voir « Tables leaderless » plus bas : `leaderless` décrit l'état courant, `leaderless_by_design` décrit ce que la table est censée être — seule une création ou un (re)calcul d'allocation la pose, jamais une conversion/bascule organique), `active_vote_id?` (FK→table_votes ON DELETE SET NULL — **chantier 132**, voir plus bas : pointe le DERNIER vote "outil modérateur" créé pour cette table, jamais remis à `NULL` à la clôture)
+
+### `table_votes` / `table_vote_options` / `table_vote_responses` — chantier 132
+Outil "proposer un vote" côté modérateur, table-scoped, **totalement séparé** du système d'assertions/vote du Bloc C (`sessions`/`session_members`/`assertions`).
+
+- `table_votes` : `id`, `table_id` (CASCADE), `question` (1-300 car.), `status` (`'active'`|`'closed'`, défaut `'active'`), `created_by` (auth.uid()), `created_at`, `closed_at?`.
+- `table_vote_options` : `id`, `vote_id` (CASCADE), `label` (1-200 car.), `position`.
+- `table_vote_responses` : `id`, `option_id` (CASCADE), `vote_id` (CASCADE, dénormalisé pour éviter un JOIN), `user_id` (auth.uid()), `answer` (boolean), `created_at`, `updated_at`. Contrainte `UNIQUE(option_id, user_id)` — un participant répond au plus une fois par option, upsert sur changement d'avis.
+
+**RLS et anonymat** : `table_votes`/`table_vote_options` sont lisibles par tout participant ou modérateur de la table (`is_table_participant`/`is_table_moderator`). `table_vote_responses` n'a **qu'une seule policy**, `SELECT USING (user_id = auth.uid())` — un participant ne voit que ses propres réponses (état "déjà répondu"), et **personne, pas même le modérateur, n'a de policy pour lire les réponses d'autrui**. Le seul moyen de connaître un décompte est la RPC `get_table_vote_results` (agrégats uniquement). Écriture exclusivement via RPC SECURITY DEFINER (`create_table_vote`, `close_table_vote`, `submit_table_vote_response`) — aucune policy INSERT/UPDATE/DELETE sur les trois tables.
 
 ### `participants`
 `id`, `table_id` (CASCADE), `user_id`, `pseudo`, `created_at`
@@ -36,7 +45,7 @@ Index unique `(user_id, table_id) WHERE table_id IS NOT NULL`
 `id`, `table_id` (CASCADE), `participant_id` (CASCADE), `started_at` (NOT NULL, posé par serveur), `ended_at?` (NULL = en cours), `source` (`'long'`|`'interactive'`|`'manual'`)
 
 ### `session_members` — Bloc C
-`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code?` (text, plain — code 4 chiffres généré côté client lors de l'inscription en `pre_voting`. **Chantier 49** : purgé — `NULL` — dès que la séance passe en `closed`, voir « Rétention des données »), `is_moderator` (boolean, défaut `false` — chantier 19)
+`id`, `session_id` (CASCADE), `user_id`, `pseudo`, `created_at`, `joined_phase?` (text), `attending_in_person` (boolean, défaut `false`), `reclaim_code_hash?` (text, bcrypt — ⚠️ **colonne renommée et changée de nature au chantier 93** (20260918), remplace l'ancienne `reclaim_code` en clair du chantier B3/23-06 ; vérifié en base par un chantier 116 qui en avait besoin, ni ce fichier ni CLAUDE.md n'avaient été mis à jour à l'époque. Un code haché est irrécupérable : voir `regenerate_reclaim_code_admin`/`_moderator`/`_self` dans `docs/reference-fonctions-sql.md`. **Chantier 49** : purgé — `NULL` — dès que la séance passe en `closed`, voir « Rétention des données »), `is_moderator` (boolean, défaut `false` — chantier 19)
 Contraintes : `UNIQUE(session_id, user_id)`, `UNIQUE(session_id, pseudo)`.
 - `attending_in_person = false` → inscrit en pré-vote depuis chez soi. Exclu du clustering.
 - `attending_in_person = true` → a confirmé sa présence physique (`confirm_attendance`). Inclus dans le clustering.
@@ -48,7 +57,7 @@ Contrainte : `UNIQUE(session_id, member_id)`.
 **Chantier 19 (G3)** : onboarding réduit de 6 à 3 questions. `moderator_pref`, `group_size_pref` et `openness_to_diff` sont **supprimées** ; `ecclesia_experience` est passée de `text` (`never`|`once_twice`|`several_times`) à `boolean` (« As-tu déjà fait un débat Ecclesia ? »). Chaque colonne restante alimente une règle de l'allocation — ne pas en ajouter sans usage algorithmique.
 
 ### `assertions` — Bloc C
-`id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
+`id`, `session_id` (CASCADE), `member_id?` (**nullable, SET NULL→session_members** depuis le chantier 137-D : une assertion survit à la suppression de son auteur par le superadmin, auteur détaché), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
 
 ### `assertion_votes` — Bloc C
 `id`, `assertion_id` (CASCADE), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `vote` (`agree`|`disagree`|`pass`), `created_at`
@@ -79,9 +88,9 @@ Usage : notes privées par participant. En phase vote → keyed par `session_id`
 
 ### Rétention des données — codes de rappel (chantier 49)
 
-`session_members.reclaim_code` (PIN 4 chiffres, **en clair**) n'a d'utilité que pendant que la séance est encore ouverte au vote à distance ou présentiel (`confirm_attendance` et `reclaim_prevoting_member` sont les deux seuls lecteurs, tous deux sans usage possible sur une séance close — voir plus bas). Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma : elle permet de reprendre l'identité de quelqu'un.
+`session_members.reclaim_code_hash` (PIN 4 chiffres, **haché bcrypt depuis le chantier 93** — texte clair auparavant, sous le nom `reclaim_code`) n'a d'utilité que pendant que la séance est encore ouverte au vote à distance ou présentiel (`confirm_attendance` et `reclaim_prevoting_member` sont les deux seuls lecteurs, tous deux sans usage possible sur une séance close — voir plus bas). Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma : elle permet de reprendre l'identité de quelqu'un.
 
-**Politique** : `reclaim_code` est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase` (migration `20260902_chantier49_purge_reclaim_codes.sql`), pas de tâche périodique séparée. Une purge ponctuelle (même migration) a aussi nettoyé les séances déjà closes au moment du chantier.
+**Politique** : la colonne est effacée (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase` (migration `20260902_chantier49_purge_reclaim_codes.sql`, portée sur la colonne hachée depuis le chantier 93), pas de tâche périodique séparée. Une purge ponctuelle (même migration originale) a aussi nettoyé les séances déjà closes au moment du chantier.
 
 **Pourquoi aucune régression fonctionnelle** :
 - `confirm_attendance` (phase `voting`/`allocating` uniquement côté frontend — `VoteScreen.tsx`, chemin `#vote/`) n'est jamais atteignable sur une séance `closed` : le routeur redirige vers le questionnaire post-débat ou les résultats avant d'y arriver.

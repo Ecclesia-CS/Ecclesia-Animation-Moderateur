@@ -54,6 +54,8 @@ interface Props {
 interface PersistedState {
   extraModerators: number
   recorderCount: number | ''
+  /** Chantier 98 — interdire toute table sans modérateur (rang haut, avant les 4 règles). */
+  forbidUnmoderatedTables: boolean
   /**
    * Chantier 25c — modérateurs décochés, en attente d'application. Sélection
    * locale uniquement : leur `is_moderator` est encore `true` en base tant que
@@ -90,6 +92,7 @@ function readPersisted(sessionId: string): PersistedState | null {
     return {
       extraModerators: typeof p.extraModerators === 'number' ? p.extraModerators : 0,
       recorderCount:   typeof p.recorderCount === 'number' ? p.recorderCount : '',
+      forbidUnmoderatedTables: typeof p.forbidUnmoderatedTables === 'boolean' ? p.forbidUnmoderatedTables : false,
       excluded:        Array.isArray(p.excluded) ? p.excluded : [],
       preview:         isValidPreview(p.preview) ? p.preview : null,
       computedAt:      typeof p.computedAt === 'string' ? p.computedAt : null,
@@ -110,6 +113,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   // Saisies superadmin, toutes optionnelles (§3)
   const [extraModerators, setExtraModerators] = useState(restored?.extraModerators ?? 0)
   const [recorderCount,   setRecorderCount]   = useState<number | ''>(restored?.recorderCount ?? '')
+  /** Chantier 98 — désactivée par défaut (comportement inchangé). */
+  const [forbidUnmoderatedTables, setForbidUnmoderatedTables] =
+    useState(restored?.forbidUnmoderatedTables ?? false)
   /** H16 — modérateurs décochés, gardés visibles pour pouvoir les recocher. */
   const [excluded, setExcluded] = useState<string[]>(restored?.excluded ?? [])
 
@@ -139,10 +145,10 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey(sessionId), JSON.stringify({
-        extraModerators, recorderCount, excluded, preview, computedAt, signature,
+        extraModerators, recorderCount, forbidUnmoderatedTables, excluded, preview, computedAt, signature,
       } satisfies PersistedState))
     } catch { /* quota / mode privé : la persistance est un confort, pas un prérequis */ }
-  }, [sessionId, extraModerators, recorderCount, excluded, preview, computedAt, signature])
+  }, [sessionId, extraModerators, recorderCount, forbidUnmoderatedTables, excluded, preview, computedAt, signature])
 
   /**
    * Chantier 25c — la liste affiche les modérateurs **de la base**. Décocher ne
@@ -175,13 +181,14 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
     return JSON.stringify({
       extraModerators,
       recorderCount,
+      forbidUnmoderatedTables,
       excluded: [...excluded].sort(),
       moderators: [...inputs.moderatorIds].sort(),
       members: inputs.members.length,
       opinions: inputs.opinionsAvailable,
       pairs: inputs.pairs.length,
     })
-  }, [inputs, extraModerators, recorderCount, excluded])
+  }, [inputs, extraModerators, recorderCount, forbidUnmoderatedTables, excluded])
 
   const isStale = preview !== null && signature !== null && signature !== currentSignature
 
@@ -213,8 +220,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       recorderCount:     recorderCount === '' ? null : recorderCount,
       opinionsAvailable: inputs.opinionsAvailable,
       pairs:             inputs.pairs,
+      forbidUnmoderatedTables,
     }
-  }, [inputs, excluded, extraModerators, recorderCount])
+  }, [inputs, excluded, extraModerators, recorderCount, forbidUnmoderatedTables])
 
   function handleCompute() {
     const payload = buildInput()
@@ -435,6 +443,23 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               </span>
             </label>
           </div>
+
+          <label className="flex items-start gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={forbidUnmoderatedTables}
+              onChange={e => setForbidUnmoderatedTables(e.target.checked)}
+              className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
+            />
+            <span>
+              Interdire les tables sans modérateur
+              <span className="block text-xs text-gray-400 leading-snug">
+                Priorité maximale : si la capacité de modération est trop faible, les autres critères
+                (taille, hétérogénéité, anciens…) se dégradent en premier plutôt que de laisser une
+                table sans animateur.
+              </span>
+            </span>
+          </label>
 
           <button
             onClick={handleCompute}

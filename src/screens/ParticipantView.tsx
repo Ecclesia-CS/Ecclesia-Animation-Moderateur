@@ -3,7 +3,6 @@ import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
 import { extractErr } from '../lib/utils'
-import { tableStore } from '../lib/storage'
 import type { QuestionnaireResponse } from '../lib/types'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
@@ -12,6 +11,9 @@ import QuestionnaireModal from '../components/QuestionnaireModal'
 import DebateRulesModal from '../components/DebateRulesModal'
 import ConfirmModal from '../components/ConfirmModal'
 import PhaseIndicator from '../components/PhaseIndicator'
+import { sessionTypeOf } from '../lib/phaseLabels'
+import TableChangeModal from '../components/TableChangeModal'
+import TableVoteModal from '../components/TableVoteModal'
 
 export default function ParticipantView() {
   const {
@@ -26,16 +28,17 @@ export default function ParticipantView() {
     leaveTable,
     endTurnAndAdvance,
     claimFloor,
-    designateModerator,
+    setNextTopicVote,
   } = useTable()
 
   const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
   const [showWelcome,        setShowWelcome]        = useState(() => !localStorage.getItem('debate_welcome_' + table.id))
   const [err,                setErr]                = useState<string | null>(null)
-  const [showBecomeModConfirm, setShowBecomeModConfirm] = useState(false)
-  const [becomingMod,          setBecomingMod]          = useState(false)
+  const [showAskAdminModal,  setShowAskAdminModal]  = useState(false)
   const [pendingLong,        setPendingLong]        = useState(false)
   const [pendingInteractive, setPendingInteractive] = useState(false)
+  const [topicTag,           setTopicTag]           = useState('')
+  const [pendingNextTopic,   setPendingNextTopic]   = useState(false)
   const [sessionTitle,       setSessionTitle]       = useState<string | null>(null)
   const [sessionDocs,        setSessionDocs]        = useState<{
     doc_info_url: string | null
@@ -50,6 +53,26 @@ export default function ParticipantView() {
   const [forcedQResponse, setForcedQResponse] = useState<QuestionnaireResponse | null>(null)
   const lastForcedRef  = useRef<string | null>(null)
   const forcedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Chantier 132 — outil "proposer un vote" du modérateur. Contrairement au
+  // questionnaire forcé, ce popup est dismissible : on retient le dernier
+  // active_vote_id vu pour ne le rouvrir automatiquement que sur un NOUVEAU
+  // vote (un vote fermé/dismiss reste accessible via la bannière ci-dessous).
+  // Chantier 137-F : la référence est amorcée avec le vote déjà présent au
+  // montage — un reload (ou un changement d'écran participant/modérateur) ne
+  // rouvre donc jamais la fenêtre ; seule l'arrivée EN DIRECT d'un nouveau vote
+  // l'ouvre. `active_vote_id` n'est jamais remis à NULL à la clôture (132) :
+  // sa seule présence ne dit pas qu'un vote est ouvert. `table` est déjà chargé
+  // ici (TableContext ne rend ses enfants qu'une fois `ready`).
+  const [voteModalOpen, setVoteModalOpen] = useState(false)
+  const lastVoteIdRef = useRef<string | null>(table.active_vote_id)
+
+  useEffect(() => {
+    const voteId = table.active_vote_id
+    if (!voteId || voteId === lastVoteIdRef.current) return
+    lastVoteIdRef.current = voteId
+    setVoteModalOpen(true)
+  }, [table.active_vote_id])
 
   // Ouvrir le modal quand le forçage est activé
   useEffect(() => {
@@ -131,37 +154,34 @@ export default function ParticipantView() {
     handleClaimFloor()
   }, [table.leaderless, table.current_speaker_id, queueInteractive, queueLong, myParticipant.id, handleClaimFloor])
 
-  async function handleBecomeModerator() {
-    setShowBecomeModConfirm(false)
-    setBecomingMod(true)
-    setErr(null)
-    try {
-      await designateModerator()
-      tableStore.set({
-        tableId:       table.id,
-        participantId: myParticipant.id,
-        joinCode:      table.join_code,
-        isModerator:   true,
-        pseudo:        myParticipant.pseudo,
-      })
-    } catch (e) {
-      setErr(extractErr(e))
-    } finally {
-      setBecomingMod(false)
-    }
-  }
-
   async function toggle(type: 'long' | 'interactive', existing: typeof myLong) {
     setErr(null)
     if (type === 'long'        && !existing) setPendingLong(true)
     if (type === 'interactive' && !existing) setPendingInteractive(true)
     try {
-      if (existing) await removeFromQueue(existing.id)
-      else await addToQueue(myParticipant.id, type)
+      if (existing) {
+        await removeFromQueue(existing.id)
+        if (type === 'long') setTopicTag('')
+      } else {
+        await addToQueue(myParticipant.id, type, undefined, type === 'long' ? topicTag : undefined)
+      }
     } catch (e) {
       setErr(extractErr(e))
       if (type === 'long')        setPendingLong(false)
       else                        setPendingInteractive(false)
+    }
+  }
+
+  // Chantier 131 — "d'accord pour passer au sujet suivant"
+  async function handleToggleNextTopic() {
+    setErr(null)
+    setPendingNextTopic(true)
+    try {
+      await setNextTopicVote(!myParticipant.wants_next_topic)
+    } catch (e) {
+      setErr(extractErr(e))
+    } finally {
+      setPendingNextTopic(false)
     }
   }
 
@@ -178,18 +198,16 @@ export default function ParticipantView() {
             <span className="text-xs text-gray-400 truncate max-w-[140px]">{sessionTitle}</span>
           )}
           {session && (
-            <div className="mt-1"><PhaseIndicator phase={session.phase} /></div>
+            <div className="mt-1"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
           )}
         </div>
         <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
         <div className="flex items-center gap-2">
           {table.leaderless && (
             <button
-              onClick={() => setShowBecomeModConfirm(true)}
-              disabled={becomingMod}
+              onClick={() => setShowAskAdminModal(true)}
               className="text-xs px-3 py-1.5 border border-amber-300 text-amber-700 bg-amber-50 rounded-lg
-                hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300
-                disabled:opacity-50"
+                hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300"
             >
               🎙️ Devenir modérateur
             </button>
@@ -230,6 +248,18 @@ export default function ParticipantView() {
 
       <div className="flex-1 flex flex-col items-center gap-5 min-w-0">
 
+        {/* Chantier 132 — bannière de réouverture du vote en cours, après un dismiss */}
+        {table.active_vote_id && !voteModalOpen && (
+          <button
+            onClick={() => setVoteModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+              border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium
+              hover:bg-indigo-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          >
+            🗳️ Voir le vote en cours
+          </button>
+        )}
+
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">
           <QueueToggle
@@ -243,6 +273,21 @@ export default function ParticipantView() {
             disabled={iAmSpeaking}
             onClick={() => toggle('long', myLong)}
           />
+          {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
+          {!myLong && !pendingLong ? (
+            <input
+              type="text"
+              value={topicTag}
+              onChange={e => setTopicTag(e.target.value.slice(0, 60))}
+              placeholder="Sujet ou thème dont tu veux parler (optionnel)"
+              className="w-full text-sm px-3.5 py-2 rounded-xl border border-gray-200 text-gray-700
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+            />
+          ) : myLong?.topic_tag ? (
+            <p className="text-xs text-gray-500 px-1">
+              Sujet indiqué : <span className="font-medium text-gray-700">{myLong.topic_tag}</span>
+            </p>
+          ) : null}
           <QueueToggle
             label="Coupe file"
             sub="Pour répondre à ce qui est dit actuellement uniquement"
@@ -254,6 +299,28 @@ export default function ParticipantView() {
             disabled={iAmSpeaking}
             onClick={() => toggle('interactive', myInteractive)}
           />
+
+          {/* Chantier 131 — "d'accord pour passer au sujet suivant" */}
+          <button
+            onClick={handleToggleNextTopic}
+            disabled={pendingNextTopic}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2
+              text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 ${
+              myParticipant.wants_next_topic
+                ? 'bg-emerald-600 border-emerald-600 text-white'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50/50'
+            }`}
+          >
+            {pendingNextTopic ? (
+              <span className="w-4 h-4 rounded-full border-2 border-current/60 border-t-transparent animate-spin" />
+            ) : (
+              <span>👍</span>
+            )}
+            {myParticipant.wants_next_topic
+              ? "D'accord pour le sujet suivant (appuyer pour annuler)"
+              : 'Je suis d’accord pour passer au sujet suivant'}
+          </button>
         </div>
 
         {err && (
@@ -309,13 +376,13 @@ export default function ParticipantView() {
         />
       )}
 
-      {showBecomeModConfirm && (
+      {showAskAdminModal && (
         <ConfirmModal
-          title="Devenir modérateur de cette table ?"
-          body="En devenant animateur de cette table, tu n'auras plus le statut de participant au débat. Tu modéreras, mais tu ne participeras pas : tu seras responsable de donner la parole aux participants, et cette table n'aura plus besoin de l'auto-gestion par file."
-          confirmLabel="Devenir modérateur"
-          onConfirm={handleBecomeModerator}
-          onCancel={() => setShowBecomeModConfirm(false)}
+          title="Va voir le superadmin"
+          body="Pour éviter qu'une table sans animateur puisse être détournée, ce n'est plus un participant qui se désigne lui-même modérateur : va voir la personne qui gère la séance (le superadmin), elle pourra t'accorder ce rôle depuis son écran."
+          confirmLabel="Compris"
+          onConfirm={() => setShowAskAdminModal(false)}
+          onCancel={() => setShowAskAdminModal(false)}
         />
       )}
 
@@ -355,7 +422,7 @@ export default function ParticipantView() {
                   <span className="text-xl shrink-0">🤝</span>
                   <div>
                     <p className="font-semibold text-gray-900">Groupe auto-géré</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. L'un de vous peut aussi devenir modérateur ("🎙️ Devenir modérateur" en haut) — mais renoncera alors à participer au débat.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
                   </div>
                 </div>
               ) : (
@@ -383,11 +450,29 @@ export default function ParticipantView() {
         </div>
       )}
 
+      {/* Chantier 95 — déplacement décidé par le superadmin pendant le débat.
+          Masqué tant qu'un autre overlay z-50 est ouvert (règles, accueil,
+          questionnaire forcé), sinon ils se superposent. */}
+      {session?.phase === 'debating' && table.session_id && !showRules && !showWelcome && !forcedQOpen && (
+        <TableChangeModal
+          sessionId={table.session_id}
+          currentTableId={table.id}
+          pseudo={myParticipant.pseudo}
+        />
+      )}
+
       {forcedQOpen && (
         <QuestionnaireModal
           savedResponse={forcedQResponse}
           forced={!forcedExpired}
           onClose={() => setForcedQOpen(false)}
+        />
+      )}
+
+      {voteModalOpen && table.active_vote_id && (
+        <TableVoteModal
+          voteId={table.active_vote_id}
+          onClose={() => setVoteModalOpen(false)}
         />
       )}
 
@@ -398,7 +483,7 @@ export default function ParticipantView() {
           résultats (avec revote possible) ; 'closed' n'en est que la suite définitive. */}
       {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
-          <PhaseIndicator phase={session.phase} />
+          <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} />
           <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
           <p className="text-gray-500">Merci pour votre participation.</p>
           {session.join_code && (

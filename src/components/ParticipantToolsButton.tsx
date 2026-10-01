@@ -8,8 +8,10 @@ import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
 import QrCodeModal from './QrCodeModal'
-import ModeratorClaimModal from './voting/ModeratorClaimModal'
-import PairingModal from './voting/PairingModal'
+import ModeratorActionModal from './voting/ModeratorActionModal'
+import { useSessionOrganizationName } from '../lib/organizations'
+import ChangeTableModal from './voting/ChangeTableModal'
+import RenamePseudoModal from './voting/RenamePseudoModal'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -36,18 +38,22 @@ function isComplete(r: QuestionnaireResponse | null): boolean {
 }
 
 export default function ParticipantToolsButton({ session, userPseudo, className = '' }: Props) {
-  const { table } = useTable()
+  const { table, isModerator } = useTable()
   const [panelOpen,          setPanelOpen]          = useState(false)
   const [notesOpen,          setNotesOpen]          = useState(false)
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
   const [voteResultsOpen,    setVoteResultsOpen]    = useState(false)
   const [qrOpen,             setQrOpen]             = useState(false)
-  // Chantier 73 — déclaration modérateur, disponible aussi en débat (table
-  // rattachée à une séance uniquement — sans session_id, il n'y a pas de
-  // statut modérateur Bloc C à déclarer).
-  const [moderatorClaimOpen, setModeratorClaimOpen] = useState(false)
-  // Chantier 92 — déclarer / changer ses binômes.
-  const [pairingOpen,        setPairingOpen]        = useState(false)
+  // Chantier 113 — fusionne "Me déclarer modérateur" (chantier 73) et "Je
+  // suis le modérateur de cette table" (chantier 110) en une seule entrée,
+  // dont la modale explique les deux actions avant de choisir.
+  const [moderatorActionOpen, setModeratorActionOpen] = useState(false)
+  // Chantier 115 — changer de table en débat (remplace le rattachement par
+  // binôme du chantier 92, qui ne déplaçait de toute façon qu'un retardataire
+  // sans table, jamais un participant déjà assis).
+  const [changeTableOpen,    setChangeTableOpen]    = useState(false)
+  // Chantier 93 — changer son nom en cours de séance.
+  const [renameOpen,         setRenameOpen]         = useState(false)
   const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
@@ -88,19 +94,19 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   }
 
   const done = checkDone && isComplete(savedResponse)
+  // Chantier 135 — séance d'association : ni questionnaire Ecclesia, ni
+  // document collaboratif, ni vote, et une seule table.
+  const orgName = useSessionOrganizationName(table.session_id)
 
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session ?? {}
   const infoUrl    = doc_info_url ?? null
   const summaryUrl = doc_summary_url ?? null
-  const hasCollab  = !!session_join_code || !!doc_collab_url
-  const hasDocs    = !!(infoUrl || summaryUrl || hasCollab)
+  // Chantier 135 — pas de document collaboratif dans une séance d'association.
+  const hasCollab  = !orgName && (!!session_join_code || !!doc_collab_url)
 
   function handleCollabClick() {
     setPanelOpen(false)
     if (session_join_code) {
-      if (userPseudo) {
-        sessionStorage.setItem(`ecclesia_collab_pseudo_${session_join_code}`, userPseudo)
-      }
       sessionStorage.setItem(`ecclesia_collab_table_${session_join_code}`, table.join_code)
       window.location.hash = `#collab/${session_join_code}`
     }
@@ -137,9 +143,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               </button>
             </div>
 
-            {/* Documentation (si disponible) */}
-            {hasDocs && (
-              <>
+            {/* Documentation */}
+            <>
                 <div className="pt-3 pb-1 px-5">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
                 </div>
@@ -210,12 +215,43 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                     </a>
                   )
                 )}
+                <a
+                  href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={subLinkClass}
+                  onClick={() => setPanelOpen(false)}
+                >
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+                  </svg>
+                  Biais cognitifs
+                </a>
+                <a
+                  href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={subLinkClass}
+                  onClick={() => setPanelOpen(false)}
+                >
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+                  </svg>
+                  Arguments fallacieux
+                </a>
                 <div className="mt-2 border-t border-gray-100" />
               </>
-            )}
 
             {/* Résultats du vote */}
-            {!!table.session_id && (
+            {!!table.session_id && !orgName && (
               <button onClick={openVoteResults} className={linkClass}>
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={2}>
@@ -257,11 +293,12 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               Mes notes
             </button>
 
-            {/* Déclaration modérateur — chantier 73, uniquement si la table est
-                rattachée à une séance (statut Bloc C, `session_members.is_moderator`) */}
-            {table.session_id && (
+            {/* Chantier 113 — entrée unique "Modérateur", visible dès qu'au moins
+                une des deux actions (déclaration de séance / reprise de table)
+                a un sens ; la modale explique et propose les deux. */}
+            {(table.session_id || !isModerator) && (
               <button
-                onClick={() => { setPanelOpen(false); setModeratorClaimOpen(true) }}
+                onClick={() => { setPanelOpen(false); setModeratorActionOpen(true) }}
                 className={linkClass}
               >
                 <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
@@ -269,22 +306,23 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
                 </svg>
-                Me déclarer modérateur
+                Modérateur
               </button>
             )}
 
-            {/* Binômes — chantier 92 */}
-            {table.session_id && (
+            {/* Changer de table — chantier 115 */}
+            {table.session_id && !orgName && (
               <button
-                onClick={() => { setPanelOpen(false); setPairingOpen(true) }}
+                onClick={() => { setPanelOpen(false); setChangeTableOpen(true) }}
                 className={linkClass}
               >
-                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
-                Mes binômes
+                <span className="w-4 text-center text-gray-400 shrink-0">🔀</span>
+                Changer de table
               </button>
             )}
 
             {/* Questionnaire */}
+            {!orgName && (
             <button
               onClick={() => { if (!done) { setPanelOpen(false); setQuestionnaireOpen(true) } }}
               disabled={done}
@@ -300,14 +338,34 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               Questionnaire post-débat
               {done && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
             </button>
+            )}
+
+            {/* Chantier 93 — le nom est celui que le modérateur lit à voix haute :
+                on doit pouvoir le corriger sans attendre la fin du débat.
+                Chantier 116 — même modale, pour aussi faire réapparaître son
+                code de rappel (régénéré, pas relu — il est haché en base). */}
+            {table.session_id && (
+              <button onClick={() => { setPanelOpen(false); setRenameOpen(true) }} className={linkClass}>
+                <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
+                Changer mon nom / code
+              </button>
+            )}
 
             <div className="pb-2" />
           </div>
         </div>
       )}
 
-      {pairingOpen && table.session_id && (
-        <PairingModal sessionId={table.session_id} onClose={() => setPairingOpen(false)} />
+      {renameOpen && table.session_id && (
+        <RenamePseudoModal
+          sessionId={table.session_id}
+          currentPseudo={userPseudo}
+          onClose={() => setRenameOpen(false)}
+        />
+      )}
+
+      {changeTableOpen && (
+        <ChangeTableModal pseudo={userPseudo} onClose={() => setChangeTableOpen(false)} />
       )}
 
       {qrOpen && (
@@ -326,12 +384,13 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
         />
       )}
 
-      {moderatorClaimOpen && table.session_id && (
-        <ModeratorClaimModal
-          sessionId={table.session_id}
+      {moderatorActionOpen && (
+        <ModeratorActionModal
+          tableId={table.id}
+          sessionId={table.session_id ?? null}
           pseudo={userPseudo}
-          onClose={() => setModeratorClaimOpen(false)}
-          onClaimed={() => {}}
+          isModerator={isModerator}
+          onClose={() => setModeratorActionOpen(false)}
         />
       )}
 

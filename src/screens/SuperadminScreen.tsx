@@ -7,26 +7,28 @@ import {
   useSensors,
   useDroppable,
   useDraggable,
+  pointerWithin,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
-import { extractErr, fromDateTimeLocal, formatDuration, generateQuestionnaireCSV, generateTableCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import PasswordInput from '../components/PasswordInput'
+import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
-  setSessionOnboardingEnabled,
-  attachTableToSession, detachTableFromSession,
-  listSessionTables, listAvailableTables, updateSessionDocs,
+  setSessionOnboardingEnabled, setSessionAssertionsLocked,
+  listSessionTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
   cancelSessionQuestionnaire,
   listSessionSources, deleteCollabSourceAdmin,
-  getSessionTableCounts, getSessionMemberCounts, moveParticipant, getTableSpeakingTurnsAdmin,
-  adminCreateTable, updateGroupNames, listTableAssignmentsAdmin, listSessionsAdmin,
+  getSessionTableCounts, getSessionMemberCounts, getTableSpeakingTurnsAdmin,
+  adminCreateSessionTable, updateGroupNames, listTableAssignmentsAdmin, listSessionsAdmin,
   updateSessionMeta,
 } from '../lib/sessions'
-import type { SessionTableRow, TableParticipantRow, TableSpeakingTurnRow, TableAssignmentAdminRow } from '../lib/sessions'
-import type { Session, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
+import type { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import { SESSION_TYPE_LABEL, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
@@ -34,12 +36,16 @@ import {
   listSessionMembersAdmin, adminSubmitAssertion, moveMembersToGroup,
   loadAllocationInputs, setMemberModerator, assignModeratorToTable,
   releaseTableModeration,
+  setTableLeaderless,
+  regenerateReclaimCodeAdmin,
+  deleteSessionMemberAdmin,
+  assignPendingModerators,
 } from '../lib/voting'
-import type { AssertionAdmin, SessionVotingStats, SessionMemberAdmin, AllocationInputs } from '../lib/voting'
+import type { DeleteMemberResult, AssertionAdmin,SessionVotingStats, SessionMemberAdmin, AllocationInputs, AssignPendingModeratorsResult } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
 import AllocationPanel from '../components/voting/AllocationPanel'
 import TableDiagnosticsList, { CampCompositionBar, campColor } from '../components/voting/TableDiagnosticsList'
-import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember } from '../lib/allocation'
+import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember, type TableDiagnostics } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
@@ -51,12 +57,33 @@ import type { LoadedAnalysis } from '../lib/analysis'
 import { generateGroupNames, groupsFingerprint, namingGroupsFromAnalysis } from '../lib/groupNaming'
 import type { NamingGroup } from '../lib/groupNaming'
 import QrCodeModal from '../components/QrCodeModal'
+import {
+  orgLogin, orgWhoami, orgLogout, orgChangePassword,
+  listOrganizationsAdmin, createOrganization, updateOrganization, setOrganizationPassword,
+  orgConsumeNamingQuota,
+} from '../lib/organizations'
+import type { OrgInfo, OrganizationAdminRow } from '../lib/organizations'
 
-const PWD_KEY = 'ecclesia_superadmin_pwd'
+// Chantier 135 — le même écran sert au superadmin (#superadmin) et aux
+// associations externes (#asso). En mode association, ce qui est stocké ici
+// est un JETON d'association (org_login), pas un mot de passe : il est passé
+// tel quel dans `p_password` et le serveur n'accepte que la liste blanche du
+// débat simple et du sondage (check_session_admin). Clés distinctes par mode,
+// pour qu'une connexion superadmin ne soit jamais relue comme un jeton.
+// Variable de module et non contexte React : getPwd() est appelé dans des
+// dizaines de gestionnaires hors rendu, et une seule route est montée à la fois.
+type AdminMode = 'superadmin' | 'org'
+let adminMode: AdminMode = 'superadmin'
+const pwdKey     = () => adminMode === 'org' ? 'ecclesia_asso_token' : 'ecclesia_superadmin_pwd'
+const sessionKey = () => adminMode === 'org' ? 'ecclesia_asso_session' : 'ecclesia_superadmin_session'
 
-const getPwd = () => sessionStorage.getItem(PWD_KEY)
-const setPwd = (p: string) => sessionStorage.setItem(PWD_KEY, p)
-const clearPwd = () => sessionStorage.removeItem(PWD_KEY)
+const getPwd = () => sessionStorage.getItem(pwdKey())
+const setPwd = (p: string) => sessionStorage.setItem(pwdKey(), p)
+const clearPwd = () => sessionStorage.removeItem(pwdKey())
+
+/** Association connectée (mode #asso), `null` pour le superadmin. */
+const OrgContext = React.createContext<OrgInfo | null>(null)
+const useOrg = () => React.useContext(OrgContext)
 
 type SessionRow = Session & { tableCount: number; memberCount: number }
 
@@ -72,6 +99,13 @@ const PHASE_LABEL: Record<string, string> = {
   debating:      'Débat',
   post_voting:   'Post-vote',
   closed:        'Clôturée',
+}
+
+// Chantier 134 — dans un sondage, `pre_voting` est l'unique phase de vote
+// (rien ne suit, pas de présentiel) : « Pré-vote » y serait trompeur.
+function phaseLabel(phase: Session['phase'], type: SessionType = 'full'): string {
+  if (type === 'poll' && phase === 'pre_voting') return 'Vote'
+  return PHASE_LABEL[phase] ?? phase
 }
 
 const PHASE_CLASS: Record<string, string> = {
@@ -101,9 +135,17 @@ function sortSessions(list: SessionRow[]): SessionRow[] {
 
 // ── Main screen ───────────────────────────────────────────────────
 
-export default function SuperadminScreen() {
+export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: AdminMode }) {
+  adminMode = mode
+  const isOrgMode = mode === 'org'
   const [authed, setAuthed]         = useState(false)
   const [pwd, setPwdState]          = useState('')
+  // Chantier 135 — mode association : nom du compte + association connectée.
+  const [orgName, setOrgName]       = useState('')
+  const [org, setOrg]               = useState<OrgInfo | null>(null)
+  const [showPwdChange, setShowPwdChange] = useState(false)
+  // Superadmin : nom de l'association propriétaire, pour le badge des séances.
+  const [orgNames, setOrgNames]     = useState<Record<string, string>>({})
   const [authLoading, setAuthLoad]  = useState(false)
   const [authErr, setAuthErr]       = useState<string | null>(null)
 
@@ -127,6 +169,14 @@ export default function SuperadminScreen() {
     setListErr(null)
     try {
       const pwd = getPwd()!
+      if (adminMode === 'org') {
+        // Rafraîchit le compteur « N/M séances en cours » de l'en-tête.
+        orgWhoami(pwd).then(setOrg).catch(() => {})
+      } else {
+        listOrganizationsAdmin(pwd)
+          .then(rows => setOrgNames(Object.fromEntries(rows.map(o => [o.id, o.name]))))
+          .catch(() => {})
+      }
       const [sessData, countRows, memberRows] =
         await Promise.all([
           listSessionsAdmin(pwd),
@@ -148,12 +198,14 @@ export default function SuperadminScreen() {
       )
       setSessions(sorted)
 
-      const storedSessionId = sessionStorage.getItem('ecclesia_superadmin_session')
+      const storedSessionId = sessionStorage.getItem(sessionKey())
       if (storedSessionId) {
         const found = sorted.find(s => s.id === storedSessionId)
         if (found) setView({ type: 'detail', session: found })
       }
 
+      // Questionnaire post-débat : propre à Ecclesia, absent des séances d'association.
+      if (adminMode === 'org') return
       setAllVotesLoading(true)
       setAllVotesErr(null)
       getThemeStatsAll(pwd)
@@ -172,7 +224,10 @@ export default function SuperadminScreen() {
     const stored = getPwd()
     if (!stored) return
     setAuthLoad(true)
-    verifyPassword(stored)
+    const check = adminMode === 'org'
+      ? orgWhoami(stored).then(info => { setOrg(info) })
+      : verifyPassword(stored)
+    check
       .then(() => { setAuthed(true); loadSessions() })
       .catch(() => { clearPwd(); setAuthErr(null) })
       .finally(() => setAuthLoad(false))
@@ -184,8 +239,15 @@ export default function SuperadminScreen() {
     setAuthErr(null)
     setAuthLoad(true)
     try {
-      await verifyPassword(pwd)
-      setPwd(pwd)
+      if (adminMode === 'org') {
+        const { token, organization } = await orgLogin(orgName, pwd)
+        setPwd(token)
+        setOrg(organization)
+        setPwdState('')
+      } else {
+        await verifyPassword(pwd)
+        setPwd(pwd)
+      }
       setAuthed(true)
       loadSessions()
     } catch (e) {
@@ -206,6 +268,7 @@ export default function SuperadminScreen() {
       setSessions(prev =>
         sortSessions(prev.map(s => s.id === target.id ? { ...s, phase: 'closed' as const } : s))
       )
+      if (adminMode === 'org') loadSessions()  // chantier 135 — libère une place du quota
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -224,6 +287,7 @@ export default function SuperadminScreen() {
     try {
       await deleteSession(password, target.id)
       setSessions(prev => prev.filter(s => s.id !== target.id))
+      if (adminMode === 'org') loadSessions()  // chantier 135 — libère une place du quota
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -282,14 +346,51 @@ export default function SuperadminScreen() {
     }
   }
 
+  // ── Bascule verrouillage des propositions d'assertions (chantier 124) ──
+  const [assertionsLockedErr, setAssertionsLockedErr] = useState<Record<string, string>>({})
+
+  async function handleToggleAssertionsLocked(target: SessionRow, next: boolean) {
+    const password = getPwd()!
+    setAssertionsLockedErr(prev => {
+      const { [target.id]: _omit, ...rest } = prev
+      return rest
+    })
+    // Optimiste, même schéma que handleToggleResultsPublic/handleToggleOnboardingEnabled.
+    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, assertions_locked: next } : s))
+    try {
+      await setSessionAssertionsLocked(password, target.id, next)
+    } catch (e) {
+      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, assertions_locked: !next } : s))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+        return
+      }
+      setAssertionsLockedErr(prev => ({ ...prev, [target.id]: msg }))
+    }
+  }
+
   // ── Session created ────────────────────────────────────────────
   function handleCreated(s: Session) {
     setSessions(prev => sortSessions([{ ...s, tableCount: 0, memberCount: 0 }, ...prev]))
     setShowCreate(false)
+    // Recharge : compteur de tables (débat simple = 1 table créée d'office)
+    // et, pour une association, le compteur « N/M séances en cours ».
+    loadSessions()
   }
 
   // ── Auth error (called from child) ────────────────────────────
   function handleAuthError() { clearPwd(); setAuthed(false) }
+
+  async function handleOrgLogout() {
+    const token = getPwd()
+    if (token) await orgLogout(token).catch(() => {})
+    clearPwd()
+    sessionStorage.removeItem(sessionKey())
+    setOrg(null)
+    setAuthed(false)
+    setView({ type: 'list' })
+  }
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -298,13 +399,15 @@ export default function SuperadminScreen() {
     // plus bas. Celle-ci rattrape le reste de l'écran (barre de phase, vues
     // Groupes et Tables) pour qu'une exception n'emporte plus tout le superadmin.
     return (
+      <OrgContext.Provider value={isOrgMode ? org : null}>
       <PanelErrorBoundary label="Détail de la séance">
         <SessionDetail
           session={view.session}
-          onBack={() => { sessionStorage.removeItem('ecclesia_superadmin_session'); setView({ type: 'list' }); loadSessions() }}
+          onBack={() => { sessionStorage.removeItem(sessionKey()); setView({ type: 'list' }); loadSessions() }}
           onAuthError={handleAuthError}
         />
       </PanelErrorBoundary>
+      </OrgContext.Provider>
     )
   }
 
@@ -332,14 +435,26 @@ export default function SuperadminScreen() {
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900 leading-tight">Ecclesia · Superadmin</h1>
-              <p className="text-xs text-gray-400 leading-tight">Accès restreint</p>
+              <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+                {isOrgMode ? 'Ecclesia · Espace association' : 'Ecclesia · Superadmin'}
+              </h1>
+              <p className="text-xs text-gray-400 leading-tight">
+                {isOrgMode ? 'Débats et sondages de votre association' : 'Accès restreint'}
+              </p>
             </div>
           </div>
 
           <form onSubmit={handleAuth} className="p-6 space-y-4">
+            {isOrgMode && (
+              <Field
+                label="Nom de l'association"
+                value={orgName}
+                onChange={setOrgName}
+                placeholder="Tel que communiqué par Ecclesia"
+              />
+            )}
             <Field
-              label="Mot de passe superadmin"
+              label={isOrgMode ? 'Mot de passe' : 'Mot de passe superadmin'}
               value={pwd}
               onChange={setPwdState}
               type="password"
@@ -359,6 +474,7 @@ export default function SuperadminScreen() {
   }
 
   return (
+    <OrgContext.Provider value={isOrgMode ? org : null}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-4">
@@ -384,10 +500,27 @@ export default function SuperadminScreen() {
               </svg>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-gray-900 leading-tight truncate">Ecclesia · Superadmin</h1>
-              <p className="text-xs text-gray-400 leading-tight">Gestion des séances</p>
+              <h1 className="text-sm font-semibold text-gray-900 leading-tight truncate">
+                {isOrgMode ? (org?.name ?? 'Espace association') : 'Ecclesia · Superadmin'}
+              </h1>
+              <p className="text-xs text-gray-400 leading-tight">
+                {isOrgMode && org
+                  ? `${org.open_sessions ?? '…'}/${org.max_open_sessions} séance${org.max_open_sessions > 1 ? 's' : ''} en cours`
+                    + (org.expires_at ? ` · compte valable jusqu'au ${new Date(org.expires_at).toLocaleDateString('fr-FR')}` : '')
+                  : 'Gestion des séances'}
+              </p>
             </div>
           </div>
+          {isOrgMode && (
+            <div className="shrink-0 flex flex-col items-end gap-0.5">
+              <button onClick={() => setShowPwdChange(true)} className="text-xs text-gray-500 hover:text-indigo-600">
+                Mot de passe
+              </button>
+              <button onClick={handleOrgLogout} className="text-xs text-gray-500 hover:text-red-600">
+                Déconnexion
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setShowCreate(true)}
             className="shrink-0 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white
@@ -408,7 +541,11 @@ export default function SuperadminScreen() {
           </div>
         )}
 
+        {/* Chantier 135 — comptes des associations externes (superadmin seul). */}
+        {!isOrgMode && <OrganizationsPanel onChanged={loadSessions} />}
+
         {/* ── Votes toutes séances ───────────────────────────── */}
+        {!isOrgMode && (
         <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <button
             onClick={() => setAllVotesOpen(o => !o)}
@@ -460,6 +597,7 @@ export default function SuperadminScreen() {
             </div>
           )}
         </div>
+        )}
 
         {listLoading ? (
           <div className="flex items-center justify-center py-20 text-sm text-gray-400">
@@ -472,7 +610,7 @@ export default function SuperadminScreen() {
               onClick={() => setShowCreate(true)}
               className="text-sm text-indigo-600 hover:underline"
             >
-              Créer la première séance
+              {isOrgMode ? 'Créer votre premier débat ou sondage' : 'Créer la première séance'}
             </button>
           </div>
         ) : (
@@ -483,11 +621,14 @@ export default function SuperadminScreen() {
                 session={s}
                 onClose={() => setToClose(s)}
                 onDelete={() => setToDelete(s)}
-                onClick={() => { sessionStorage.setItem('ecclesia_superadmin_session', s.id); setView({ type: 'detail', session: s }) }}
+                orgName={!isOrgMode && s.organization_id ? (orgNames[s.organization_id] ?? 'Association') : null}
+                onClick={() => { sessionStorage.setItem(sessionKey(), s.id); setView({ type: 'detail', session: s }) }}
                 onResultsPublicChange={next => handleToggleResultsPublic(s, next)}
                 resultsPublicError={resultsPublicErr[s.id]}
                 onOnboardingChange={next => handleToggleOnboardingEnabled(s, next)}
                 onboardingError={onboardingErr[s.id]}
+                onAssertionsLockedChange={next => handleToggleAssertionsLocked(s, next)}
+                assertionsLockedError={assertionsLockedErr[s.id]}
               />
             ))}
           </div>
@@ -522,17 +663,24 @@ export default function SuperadminScreen() {
           onCancel={() => setToDelete(null)}
         />
       )}
+
+      {showPwdChange && (
+        <OrgPasswordModal onClose={() => setShowPwdChange(false)} onAuthError={handleAuthError} />
+      )}
     </div>
+    </OrgContext.Provider>
   )
 }
 
 // ── SessionCard ───────────────────────────────────────────────────
 
 function SessionCard({
-  session, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
-  onOnboardingChange, onboardingError,
+  session, orgName, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
+  onOnboardingChange, onboardingError, onAssertionsLockedChange, assertionsLockedError,
 }: {
   session: SessionRow
+  /** Chantier 135 — nom de l'association propriétaire (vue superadmin), null sinon. */
+  orgName?: string | null
   onClose(): void
   onDelete(): void
   onClick(): void
@@ -540,8 +688,11 @@ function SessionCard({
   resultsPublicError?: string
   onOnboardingChange(next: boolean): void
   onboardingError?: string
+  onAssertionsLockedChange(next: boolean): void
+  assertionsLockedError?: string
 }) {
   const isClosed = session.phase === 'closed'
+  const isOrgMode = useOrg() !== null
   const [expanded, setExpanded]   = useState(false)
   const [tables, setTables]       = useState<SessionTableRow[] | null>(null)
   const [tablesErr, setTablesErr] = useState<string | null>(null)
@@ -591,8 +742,18 @@ function SessionCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[session.phase] ?? session.phase}
+              {phaseLabel(session.phase, sessionTypeOf(session))}
             </span>
+            {sessionTypeOf(session) !== 'full' && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
+                {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
+              </span>
+            )}
+            {orgName && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700">
+                Asso : {orgName}
+              </span>
+            )}
           </div>
 
           {/* Meta row */}
@@ -615,7 +776,7 @@ function SessionCard({
           )}
 
           {/* Résultats publics (chantier 46) — uniquement pertinent une fois close */}
-          {isClosed && (
+          {isClosed && !isOrgMode && (
             <div onClick={e => e.stopPropagation()} className="pt-0.5">
               <button
                 onClick={() => onResultsPublicChange(!session.results_public)}
@@ -649,7 +810,9 @@ function SessionCard({
             </div>
           )}
 
-          {/* Onboarding (chantier 71) */}
+          {/* Onboarding (chantier 71) — questions propres à Ecclesia, pas
+              d'onboarding dans une séance d'association (chantier 135). */}
+          {!isOrgMode && (
           <div onClick={e => e.stopPropagation()} className="pt-0.5">
             <button
               onClick={() => onOnboardingChange(!session.onboarding_enabled)}
@@ -681,6 +844,43 @@ function SessionCard({
               <p className="text-xs text-red-600 mt-1">{onboardingError}</p>
             )}
           </div>
+          )}
+
+          {/* Verrou propositions d'assertions (chantier 124) — sans objet dans
+              un débat simple (aucune assertion). */}
+          {sessionTypeOf(session) !== 'debate' && (
+          <div onClick={e => e.stopPropagation()} className="pt-0.5">
+            <button
+              onClick={() => onAssertionsLockedChange(!session.assertions_locked)}
+              title={
+                session.assertions_locked
+                  ? 'Seul le superadmin peut débloquer : plus personne d\'autre ne peut proposer de nouvelle assertion sur cette séance'
+                  : 'Interdire à tout le monde sauf le superadmin de proposer de nouvelles assertions sur cette séance'
+              }
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                session.assertions_locked
+                  ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span
+                className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
+                  session.assertions_locked ? 'bg-red-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                    session.assertions_locked ? 'translate-x-3' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+              {session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
+            </button>
+            {assertionsLockedError && (
+              <p className="text-xs text-red-600 mt-1">{assertionsLockedError}</p>
+            )}
+          </div>
+          )}
         </div>
 
         {/* Action buttons */}
@@ -694,6 +894,7 @@ function SessionCard({
               Fermer
             </button>
           )}
+          {(!isOrgMode || session.phase === 'draft') && (
           <button
             onClick={onDelete}
             title="Supprimer la séance"
@@ -708,6 +909,7 @@ function SessionCard({
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
             </svg>
           </button>
+          )}
         </div>
       </div>
 
@@ -760,6 +962,300 @@ function SessionCard({
   )
 }
 
+// ── Chantier 135 — comptes des associations (superadmin) ─────────
+
+/** `datetime-local` ↔ ISO, jour entier : une expiration se règle à la date près. */
+function dateInputValue(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : ''
+}
+function endOfDayIso(date: string): string | null {
+  return date ? new Date(`${date}T23:59:59`).toISOString() : null
+}
+
+function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
+  const [open, setOpen]       = useState(false)
+  const [rows, setRows]       = useState<OrganizationAdminRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [err, setErr]         = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<OrganizationAdminRow | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErr(null)
+    try {
+      setRows(await listOrganizationsAdmin(getPwd()!))
+    } catch (e) {
+      setErr(extractErr(e))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { if (open) load() }, [open, load])
+
+  function done() {
+    setCreating(false)
+    setEditing(null)
+    load()
+    onChanged()
+  }
+
+  return (
+    <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          Associations
+          {rows.length > 0 && (
+            <span className="ml-2 font-normal normal-case text-gray-400">({rows.length})</span>
+          )}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`}
+          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+          <p className="text-xs text-gray-500">
+            Comptes des associations externes : elles se connectent sur{' '}
+            <span className="font-mono">#asso</span> avec leur nom et leur mot de passe, et n'ont accès
+            qu'au débat simple et au sondage, sur leurs propres séances.
+          </p>
+          {err && <p className="text-xs text-red-600">{err}</p>}
+          {loading && rows.length === 0 ? (
+            <p className="text-sm text-gray-400">Chargement…</p>
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-gray-400">Aucune association pour l'instant.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {rows.map(o => {
+                const expired = o.expires_at !== null && new Date(o.expires_at) <= new Date()
+                return (
+                  <div key={o.id} className="py-2 flex items-center gap-3 text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900 truncate">{o.name}</span>
+                        {!o.active && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Désactivée</span>
+                        )}
+                        {expired && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Expirée</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {o.open_sessions}/{o.max_open_sessions} en cours · {o.total_sessions} au total
+                        {o.expires_at && ` · expire le ${new Date(o.expires_at).toLocaleDateString('fr-FR')}`}
+                        {o.note && ` · ${o.note}`}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setEditing(o)}
+                      className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:border-indigo-200 hover:text-indigo-600"
+                    >
+                      Modifier
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <button
+            onClick={() => setCreating(true)}
+            className="text-sm text-indigo-600 hover:underline"
+          >
+            + Nouvelle association
+          </button>
+        </div>
+      )}
+      {(creating || editing) && (
+        <OrganizationModal
+          org={editing}
+          onClose={() => { setCreating(false); setEditing(null) }}
+          onDone={done}
+        />
+      )}
+    </div>
+  )
+}
+
+function OrganizationModal({
+  org, onClose, onDone,
+}: {
+  org: OrganizationAdminRow | null
+  onClose(): void
+  onDone(): void
+}) {
+  const [name, setName]         = useState(org?.name ?? '')
+  const [password, setPassword] = useState('')
+  const [expires, setExpires]   = useState(dateInputValue(org?.expires_at ?? null))
+  const [maxOpen, setMaxOpen]   = useState(String(org?.max_open_sessions ?? 3))
+  const [note, setNote]         = useState(org?.note ?? '')
+  const [active, setActive]     = useState(org?.active ?? true)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    const max = Number.parseInt(maxOpen, 10)
+    if (!Number.isFinite(max) || max < 0) { setError('Nombre de séances invalide'); return }
+    setLoading(true)
+    const pwd = getPwd()!
+    try {
+      if (org) {
+        await updateOrganization(pwd, {
+          id: org.id, name, active, expires_at: endOfDayIso(expires), max_open_sessions: max, note: note || null,
+        })
+        // Mot de passe laissé vide = inchangé.
+        if (password) await setOrganizationPassword(pwd, org.id, password)
+      } else {
+        await createOrganization(pwd, {
+          name, orgPassword: password, expiresAt: endOfDayIso(expires), maxOpenSessions: max, note: note || null,
+        })
+      }
+      onDone()
+    } catch (e) {
+      setError(extractErr(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <h2 className="text-base font-semibold text-gray-900">
+            {org ? `Modifier « ${org.name} »` : 'Nouvelle association'}
+          </h2>
+          <Field label="Nom de l'association (sert d'identifiant de connexion)" value={name} onChange={setName} placeholder="Les Amis du Débat" />
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              {org ? 'Nouveau mot de passe' : 'Mot de passe'}
+              <span className="text-gray-400 font-normal">
+                {org ? ' (laisser vide pour ne pas le changer)' : ' (8 caractères minimum)'}
+              </span>
+            </label>
+            {/* En modification, vide = mot de passe inchangé : champ facultatif. */}
+            <PasswordInput value={password} onChange={setPassword} placeholder="••••••••" required={!org} />
+            {org && password && (
+              <p className="mt-1 text-[11px] text-amber-600">Les connexions ouvertes de l'association seront fermées.</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Séances en cours max.</label>
+              <input
+                type="number" min={0} value={maxOpen} onChange={e => setMaxOpen(e.target.value)}
+                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Expire le <span className="text-gray-400 font-normal">(facultatif)</span></label>
+              <input
+                type="date" value={expires} onChange={e => setExpires(e.target.value)}
+                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Note interne <span className="text-gray-400 font-normal">(facultatif)</span></label>
+            <input
+              value={note} onChange={e => setNote(e.target.value)} placeholder="Contact, contexte…"
+              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+            />
+          </div>
+          {org && (
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              Compte actif (décocher coupe l'accès immédiatement, sans rien supprimer)
+            </label>
+          )}
+          {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
+              Annuler
+            </button>
+            <SubmitBtn loading={loading} label={org ? 'Enregistrer' : 'Créer le compte'} className="flex-1" />
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+/** Chantier 135 — l'association change elle-même son mot de passe. */
+function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthError(): void }) {
+  const [oldPwd, setOldPwd]   = useState('')
+  const [newPwd, setNewPwd]   = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [done, setDone]       = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (newPwd !== confirm) { setError('Les deux nouveaux mots de passe ne correspondent pas'); return }
+    setLoading(true)
+    try {
+      await orgChangePassword(getPwd()!, oldPwd, newPwd)
+      setDone(true)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('session expirée')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        {done ? (
+          <div className="p-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-900">Mot de passe changé</h2>
+            <p className="text-sm text-gray-600">
+              Pensez à le communiquer à vos modérateurs : c'est aussi avec lui qu'ils prennent l'animation d'une table.
+            </p>
+            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">
+              OK
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-900">Changer le mot de passe</h2>
+            <Field label="Mot de passe actuel" value={oldPwd} onChange={setOldPwd} type="password" />
+            <Field label="Nouveau mot de passe (8 caractères minimum)" value={newPwd} onChange={setNewPwd} type="password" />
+            <Field label="Confirmer le nouveau mot de passe" value={confirm} onChange={setConfirm} type="password" />
+            <p className="text-xs text-gray-500">
+              Le mot de passe sert aussi à vos modérateurs pour prendre l'animation d'une table.
+            </p>
+            {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose}
+                className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
+                Annuler
+              </button>
+              <SubmitBtn loading={loading} label="Changer" className="flex-1" />
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── CreateModal ───────────────────────────────────────────────────
 
 function CreateModal({
@@ -778,6 +1274,10 @@ function CreateModal({
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [onboardingEnabled, setOnboardingEnabled] = useState(true)
+  // Chantier 135 — une association n'a que le débat simple et le sondage.
+  const isOrgMode = useOrg() !== null
+  // Chantier 134 — mode de séance, choisi une fois pour toutes à la création.
+  const [sessionType, setSessionType]   = useState<SessionType>(isOrgMode ? 'debate' : 'full')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -796,9 +1296,10 @@ function CreateModal({
         docSummaryUrl || undefined,
         undefined,
         onboardingEnabled,
+        sessionType,
       )
       // Apply moderation policy if not the default
-      if (moderationPolicy !== 'closed') {
+      if (sessionType !== 'debate' && moderationPolicy !== 'closed') {
         await updateSessionConfig(password, session.id, moderationPolicy)
       }
       onCreated(session)
@@ -837,6 +1338,37 @@ function CreateModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+          {/* Chantier 134 — trois modes. Non modifiable après création : la
+              séquence de phases en dépend (garde de set_session_phase). */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Type de séance</label>
+            <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {([
+                { id: 'full',   icon: '🏛️', hint: 'Vote, allocation, débat, résultats' },
+                { id: 'debate', icon: '🗣️', hint: 'Une table modérée, sans vote' },
+                { id: 'poll',   icon: '📊', hint: 'Vote à distance et camps, sans débat' },
+              ] as { id: SessionType; icon: string; hint: string }[]).filter(opt => !isOrgMode || opt.id !== 'full').map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSessionType(opt.id)}
+                  className={`py-2 px-2 rounded-xl border-2 text-left transition-all ${
+                    sessionType === opt.id
+                      ? 'border-indigo-600 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-200'
+                  }`}
+                >
+                  <span className="block text-base leading-none mb-1">{opt.icon}</span>
+                  <span className={`block text-xs font-semibold ${sessionType === opt.id ? 'text-indigo-700' : 'text-gray-700'}`}>
+                    {SESSION_TYPE_LABEL[opt.id]}
+                  </span>
+                  <span className="block text-[10px] text-gray-400 leading-tight mt-0.5">{opt.hint}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] text-gray-400">Le type ne pourra plus être changé après la création.</p>
+          </div>
+
           <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale — mai 2026" />
 
           <div>
@@ -872,20 +1404,23 @@ function CreateModal({
               <DocFileField label="Fiche information" placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
               <DocFileField label="Résumé" placeholder="https://…" value={docSummaryUrl} onChange={setDocSummaryUrl} />
             </div>
+            {!isOrgMode && (
             <p className="mt-3 text-xs text-gray-400">
               Le document de sources collaboratives est disponible automatiquement pour chaque séance
               avec un code de rejoindre.
             </p>
+            )}
           </div>
 
+          {sessionType !== 'debate' && (
           <div className="pt-1 border-t border-gray-100">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               Configuration du vote <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['closed', 'open', 'ai'] as const).map(val => (
+              <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {(isOrgMode ? (['closed', 'open'] as const) : (['closed', 'open', 'ai'] as const)).map(val => (
                   <button
                     key={val}
                     type="button"
@@ -902,6 +1437,9 @@ function CreateModal({
               </div>
             </div>
 
+            {/* Un sondage ne passe que par le vote à distance (pre_voting),
+                qui saute toujours l'onboarding : la case n'aurait aucun effet. */}
+            {sessionType === 'full' && (
             <label className="mt-3 flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
               <input
                 type="checkbox"
@@ -911,7 +1449,17 @@ function CreateModal({
               />
               Onboarding (questionnaire d'entrée avant le vote)
             </label>
+            )}
           </div>
+          )}
+
+          {sessionType === 'debate' && (
+            <p className="pt-3 border-t border-gray-100 text-xs text-gray-500">
+              {isOrgMode
+                ? "Une table est créée automatiquement. Le modérateur la prend en rejoignant avec le mot de passe de votre association, ou vous le désignez depuis l'onglet Tables."
+                : "Une table est créée automatiquement. Le modérateur la prend avec le Code Ecclesia en rejoignant, ou tu le désignes depuis l'onglet Tables ; tu peux aussi y ajouter d'autres tables."}
+            </p>
+          )}
 
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -948,36 +1496,25 @@ function Field({
   type?: string
   placeholder?: string
 }) {
-  const [showPwd, setShowPwd] = useState(false)
   const isPassword = type === 'password'
-  const inputType  = isPassword ? (showPwd ? 'text' : 'password') : type
 
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
-      <div className="relative">
+      {isPassword ? (
+        <PasswordInput value={value} onChange={onChange} placeholder={placeholder} />
+      ) : (
         <input
-          type={inputType}
+          type={type}
           required
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+          className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-            placeholder:text-gray-300 transition-shadow
-            ${isPassword ? 'pr-10' : ''}`}
+            placeholder:text-gray-300 transition-shadow"
         />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPwd(v => !v)}
-            tabIndex={-1}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            {showPwd ? <EyeOff /> : <Eye />}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }
@@ -996,25 +1533,6 @@ function SubmitBtn({ loading, label, className = 'w-full' }: { loading: boolean;
   )
 }
 
-function Eye() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-    </svg>
-  )
-}
-
-function EyeOff() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    </svg>
-  )
-}
-
 function Spinner() {
   return (
     <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -1030,18 +1548,57 @@ function Spinner() {
 
 interface GroupRow {
   table_number: number
-  /** Chantier 26 (H21) — `is_moderator` vient de `session_members`, posé au chargement. */
-  members: { pseudo: string; member_id: string; is_moderator: boolean }[]
+  /**
+   * Chantier 26 (H21) — `is_moderator` vient de `session_members`, posé au
+   * chargement. Chantier 106 — `active` distingue, parmi les membres
+   * `is_moderator`, celui qui anime réellement cette table
+   * (`tables.active_moderator_member_id`) des éventuels modérateurs en
+   * surplus assis là sans y animer (chantier 25b). Chantier 117 —
+   * `member_id` est `null` pour un modérateur « physique » sans aucune
+   * ligne `session_members` (rejoint par Code Ecclesia) : pas de flag à
+   * retirer via `set_member_moderator`, seul `handleReleaseTableModeration`
+   * (au niveau table) peut agir dessus.
+   */
+  members: { pseudo: string; member_id: string | null; is_moderator: boolean; active: boolean }[]
   table_id: string | null
   join_code: string | null
   /** Chantier 19 — dérivé de `tables.leaderless` (false quand aucune table rattachée). */
   moderated: boolean
+  /**
+   * Chantier 138 — uniquement pour une table sans affectation (vue « Tables »
+   * en consultation) : nombre de personnes assises (`participants`), qui ne
+   * passent pas par `table_assignments`.
+   */
+  seated?: number
 }
 
 type AdminTab = 'live' | 'tables' | 'prep' | 'analysis'
 
-function defaultTab(phase: Session['phase']): AdminTab {
+// Chantier 134 — onglets utiles selon le mode : pas de vote dans un débat
+// simple (En direct n'y montre que des statistiques de vote), pas de table
+// dans un sondage.
+const TABS_BY_TYPE: Record<SessionType, AdminTab[]> = {
+  full:   ['live', 'tables', 'prep', 'analysis'],
+  debate: ['tables', 'prep', 'analysis'],
+  poll:   ['live', 'prep', 'analysis'],
+}
+
+// Chantier 135 — association : l'onglet Analyse (questionnaire Ecclesia,
+// exports, comparaison avant/après débat) n'a pas d'objet ; l'analyse des
+// camps d'un sondage vit déjà dans « En direct ».
+const ORG_TABS_BY_TYPE: Record<SessionType, AdminTab[]> = {
+  full:   [],
+  debate: ['tables', 'prep'],
+  poll:   ['live', 'prep'],
+}
+
+function allowedTabs(type: SessionType, isOrg: boolean): AdminTab[] {
+  return (isOrg ? ORG_TABS_BY_TYPE : TABS_BY_TYPE)[type]
+}
+
+function defaultTab(phase: Session['phase'], type: SessionType = 'full'): AdminTab {
   if (phase === 'draft') return 'prep'
+  if (type === 'debate') return phase === 'closed' ? 'analysis' : 'tables'
   if (phase === 'pre_voting' || phase === 'voting' || phase === 'allocating' || phase === 'debating' || phase === 'post_voting') return 'live'
   return 'analysis'
 }
@@ -1093,6 +1650,10 @@ async function loadTableAssignmentRows(sessionId: string): Promise<TableAssignme
       table_id:     (r.table_id ?? null) as string | null,
       pseudo:       (r.session_members?.pseudo ?? '?') as string,
       is_moderator: r.session_members?.is_moderator === true,
+      // Chantier 106 — repli pré-migration uniquement (tables reste
+      // inaccessible au superadmin en lecture directe, is_table_participant
+      // échoue toujours pour lui) : dégradé sans distinction en/hors exercice.
+      active_moderator_member_id: null,
     }))
   }
 }
@@ -1106,34 +1667,44 @@ function SessionDetail({
   onBack(): void
   onAuthError(): void
 }) {
+  // Chantier 95 — les tables de la séance alimentent encore les exports CSV et
+  // l'état du questionnaire forcé. Les deux accordéons qui les affichaient
+  // (« Tables rattachées », « Tables disponibles à rattacher ») ont été
+  // supprimés : la création de table vit désormais dans la vue Groupes, et
+  // plus rien ne produit de table hors séance à rattacher.
   const [attachedTables,  setAttachedTables]  = useState<SessionTableRow[]>([])
-  const [availableTables, setAvailableTables] = useState<SessionTableRow[]>([])
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
-  const [detachConfirm,   setDetachConfirm]   = useState<SessionTableRow | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
   const [exportingType,      setExportingType]      = useState<null | 'questionnaire' | 'speaking' | 'history'>(null)
   const [isQForced,    setIsQForced]    = useState(false)
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
 
-  const [rattacheesOpen,  setRattacheesOpen]  = useState(true)
-  const [disponiblesOpen, setDisponiblesOpen] = useState(false)
+  // Chantier 130 — historique des tables après clôture (participants +
+  // tours de parole par table). Chargement à la demande, par table
+  // repliée/dépliée, pour ne pas imposer N appels RPC dès l'ouverture de
+  // l'onglet sur une grosse séance.
+  const [historyOpen,        setHistoryOpen]        = useState(false)
+  const [expandedHistoryId,  setExpandedHistoryId]  = useState<string | null>(null)
+  const [historyByTable,     setHistoryByTable]     = useState<Record<string, { parts: TableParticipantRow[]; turns: TableSpeakingTurnRow[] }>>({})
+  const [historyLoadingId,   setHistoryLoadingId]   = useState<string | null>(null)
+  const [historyErr,         setHistoryErr]         = useState<string | null>(null)
+
   const [docsOpen,        setDocsOpen]        = useState(false)
 
+  // Chantier 135 — association connectée (#asso), null pour le superadmin.
+  const isOrg = useOrg() !== null
   const adminTabKey = `ecclesia_admin_tab_${session.id}`
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const stored = sessionStorage.getItem(`ecclesia_admin_tab_${session.id}`)
-    if (stored === 'live' || stored === 'tables' || stored === 'prep' || stored === 'analysis') return stored
-    return defaultTab(session.phase)
+    const allowed = allowedTabs(sessionTypeOf(session), isOrg)
+    if (stored && (allowed as string[]).includes(stored)) return stored as AdminTab
+    const def = defaultTab(session.phase, sessionTypeOf(session))
+    return allowed.includes(def) ? def : allowed[0]
   })
   const [postSessionOpen, setPostSessionOpen] = useState(false)
   const [synthOpen,       setSynthOpen]       = useState(false)
-
-  // ── Filtre "Tables disponibles" ────────────────────────────
-  type TableFilter = '48h' | 'all' | 'custom'
-  const [tableFilter,  setTableFilter]  = useState<TableFilter>('48h')
-  const [customSince,  setCustomSince]  = useState('')
 
   // ── Questionnaire data ─────────────────────────────────────────
   const [responses,          setResponses]          = useState<QuestionnaireExportRow[]>([])
@@ -1161,7 +1732,9 @@ function SessionDetail({
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
 
   // ── Phase transitions ──────────────────────────────────────
-  const PHASE_SEQUENCE: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
+  // Chantier 134 — la séquence dépend du mode de séance (miroir de la garde SQL).
+  const sessionType = sessionTypeOf(currentSession)
+  const PHASE_SEQUENCE = phaseSequenceFor(sessionType)
   const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
   const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
   const prevPhase = phaseIdx > 0 ? PHASE_SEQUENCE[phaseIdx - 1] : null
@@ -1225,7 +1798,9 @@ function SessionDetail({
       // (choix du superadmin dans DebateExitModal) doit forcer le
       // questionnaire tout autant, sans quoi le raccourci le ferait
       // silencieusement sauter.
-      if (currentSession.phase === 'debating' && (targetPhase === 'post_voting' || targetPhase === 'closed')) {
+      // Chantier 135 — pas de questionnaire de fin dans une séance d'association
+      // (consigne de Jules : partage de technologie, rien de propre à Ecclesia).
+      if (!isOrg && currentSession.phase === 'debating' && (targetPhase === 'post_voting' || targetPhase === 'closed')) {
         await forceSessionQuestionnaire(password, currentSession.id)
         setIsQForced(true)
       }
@@ -1238,9 +1813,54 @@ function SessionDetail({
     }
   }
 
+  /**
+   * Chantier 109 — ouvre le récapitulatif de confirmation avant « Ouvrir le
+   * débat » : calcule en dry-run (`apply=false`) le placement des
+   * modérateurs restés « en attente » depuis le chantier 107, sans rien
+   * écrire. Le superadmin voit qui sera placé où, qui ne le sera pas (plus
+   * de modérateurs en attente que de tables libres), et quelles tables
+   * animées resteront sans modérateur (pas assez de modérateurs en attente).
+   */
+  async function openDebateConfirm() {
+    setShowDebateConfirm(true)
+    setDebatePreviewErr(null)
+    setDebatePreviewLoading(true)
+    try {
+      const password = getPwd()!
+      const preview = await assignPendingModerators(password, currentSession.id, false)
+      setDebatePreview(preview)
+    } catch (e) {
+      setDebatePreviewErr(extractErr(e))
+    } finally {
+      setDebatePreviewLoading(false)
+    }
+  }
+
+  /**
+   * Rejoue le même calcul en écriture (`apply=true`) puis fait passer la
+   * séance en `debating`. Les deux appels renvoient la même forme tant que
+   * rien n'a changé entre l'ouverture du récapitulatif et sa confirmation.
+   */
+  async function confirmOpenDebate() {
+    const password = getPwd()!
+    setPhaseActing(true)
+    try {
+      await assignPendingModerators(password, currentSession.id, true)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+      setPhaseActing(false)
+      return
+    }
+    setShowDebateConfirm(false)
+    setDebatePreview(null)
+    await handlePhaseChange('debating')
+  }
+
   // ── Assertions (C2) ────────────────────────────────────────
   const VOTE_PHASES: Session['phase'][] = ['draft', 'pre_voting', 'voting', 'allocating', 'debating', 'post_voting', 'closed']
-  const showVotingSections = VOTE_PHASES.includes(currentSession.phase)
+  const showVotingSections = VOTE_PHASES.includes(currentSession.phase) && sessionType !== 'debate'
 
   const [assertions,        setAssertions]        = useState<AssertionAdmin[]>([])
   const [assertionsLoading, setAssertionsLoading] = useState(false)
@@ -1365,11 +1985,17 @@ function SessionDetail({
   const [assignError,     setAssignError]     = useState<string | null>(null)
   const [selectedTableId, setSelectedTableId] = useState<Record<number, string>>({})
   const [showDebateConfirm, setShowDebateConfirm] = useState(false)
+  // Chantier 109 — récapitulatif obligatoire du placement des modérateurs en
+  // attente, calculé en dry-run (`apply=false`) au moment d'ouvrir la
+  // confirmation, appliqué (`apply=true`) seulement si le superadmin confirme.
+  const [debatePreview,        setDebatePreview]        = useState<AssignPendingModeratorsResult | null>(null)
+  const [debatePreviewLoading, setDebatePreviewLoading] = useState(false)
+  const [debatePreviewErr,     setDebatePreviewErr]     = useState<string | null>(null)
   // Chantier 30 (J8) — vue récapitulative en lecture seule, prête à capturer.
   const [rosterOpen, setRosterOpen] = useState(false)
 
   // ── DnD déplacement membres entre groupes ─────────────────
-  const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string } | null>(null)
+  const [draggingMember, setDraggingMember] = useState<{ pseudo: string; member_id: string | null } | null>(null)
   const [movingMember,   setMovingMember]   = useState(false)
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -1447,6 +2073,23 @@ function SessionDetail({
    * lire avant l'allocation. Le flow complet (onglet « Modérateur » de
    * l'accueil + mot de passe Ecclesia) est le chantier 21.
    */
+  // ── Chantier 93 — régénérer le code de rappel d'un membre ──────────────
+  // Le code est haché : il est IMPOSSIBLE de relire celui qu'on a donné. On en
+  // tire un nouveau, à lire à la personne — l'ancien cesse de fonctionner.
+  const [regeneratedCode, setRegeneratedCode] = useState<{ pseudo: string; code: string } | null>(null)
+
+  const handleRegenerateCode = useCallback(async (memberId: string) => {
+    const password = getPwd()!
+    try {
+      const res = await regenerateReclaimCodeAdmin(password, memberId)
+      setRegeneratedCode({ pseudo: res.pseudo, code: res.new_reclaim_code })
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    }
+  }, [onAuthError])
+
   const handleToggleModerator = useCallback(async (memberId: string, next: boolean) => {
     const password = getPwd()!
     // Mise à jour optimiste : la liste est rechargée toutes les 15 s de toute façon.
@@ -1461,28 +2104,55 @@ function SessionDetail({
     }
   }, [session.id, onAuthError])
 
+  // ── Chantier 137-D — suppression d'un participant de la base ───────────
+  // Confirmation obligatoire à toute phase (y compris `closed`) : l'action est
+  // irréversible et emporte les votes de la personne. Ses assertions restent.
+  const [memberToDelete,  setMemberToDelete]  = useState<{ id: string; pseudo: string } | null>(null)
+  const [deletingMember,  setDeletingMember]  = useState(false)
+  const [deleteMemberReport, setDeleteMemberReport] = useState<DeleteMemberResult | null>(null)
+
+  async function handleDeleteMember() {
+    if (!memberToDelete) return
+    const password = getPwd()!
+    setDeletingMember(true)
+    try {
+      const res = await deleteSessionMemberAdmin(password, session.id, memberToDelete.id)
+      setMembers(prev => prev.filter(m => m.id !== memberToDelete.id))
+      setMemberToDelete(null)
+      setDeleteMemberReport(res)
+      // Les tables, les stats de vote et les assertions ont pu bouger.
+      loadMembers()
+      loadGroups(true)
+      loadStats()
+      loadAssertions()
+    } catch (e) {
+      setMemberToDelete(null)
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
+      setError(msg)
+    } finally {
+      setDeletingMember(false)
+    }
+  }
+
   // ── Création de table admin ────────────────────────────────
   const [creatingTable, setCreatingTable] = useState(false)
   const [newTableCode,  setNewTableCode]  = useState<string | null>(null)
 
-  async function handleCreateTable(leaderless = false) {
+  /**
+   * Chantier 95 — crée une table vide, rattachée et déjà numérotée : elle
+   * apparaît aussitôt comme un groupe en attente dans la vue Groupes, où on
+   * peut lui glisser des membres, et son code permet à des retardataires de
+   * s'y asseoir directement.
+   */
+  async function handleCreateGroupTable(leaderless = false) {
     const password = getPwd()!
     setCreatingTable(true)
     setError(null)
     try {
-      const result = await adminCreateTable(password, session.id, leaderless)
+      const result = await adminCreateSessionTable(password, session.id, leaderless)
       setNewTableCode(result.join_code)
-      const newRow: SessionTableRow = {
-        id: result.table_id,
-        join_code: result.join_code,
-        created_at: new Date().toISOString(),
-        moderator_pseudo: null,
-        participant_count: 0,
-        is_active: false,
-        questionnaire_forced_at: null,
-        leaderless,
-      }
-      setAttachedTables(prev => [...prev, newRow])
+      await loadGroups()
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) { onAuthError(); return }
@@ -1530,12 +2200,11 @@ function SessionDetail({
   const loadGroups = useCallback(async (silent = false) => {
     if (!silent) setGroupsLoading(true)
     try {
-      const [rows, sessionTbls, availTbls] = await Promise.all([
+      const [rows, sessionTbls] = await Promise.all([
         // Chantier 50 — table_assignments/session_members ne sont plus
         // lisibles directement (policies self-only) : RPC dédiée.
         loadTableAssignmentRows(session.id),
         listSessionTables(getPwd()!, session.id).catch(() => [] as Awaited<ReturnType<typeof listSessionTables>>),
-        listAvailableTables(getPwd()!).catch(() => [] as Awaited<ReturnType<typeof listAvailableTables>>),
       ])
 
       const joinCodeMap = new Map<string, string>(sessionTbls.map(t => [t.id, t.join_code]))
@@ -1559,23 +2228,39 @@ function SessionDetail({
           pseudo: r.pseudo ?? '?',
           member_id: r.member_id,
           is_moderator: r.is_moderator === true,
+          active: r.is_moderator === true && r.active_moderator_member_id === r.member_id,
         })
       }
+
+      // Chantier 95 — une table créée par le superadmin après l'allocation n'a
+      // encore aucune affectation : sans ceci elle serait invisible ici, donc
+      // impossible à peupler par glisser-déposer. Elle porte son numéro
+      // (`tables.table_number`) depuis sa création.
+      for (const t of sessionTbls) {
+        if (t.table_number == null || map.has(t.table_number)) continue
+        map.set(t.table_number, {
+          table_number: t.table_number,
+          members: [],
+          table_id: t.id,
+          join_code: t.join_code,
+          moderated: t.leaderless === false,
+        })
+      }
+
       setGroups([...map.values()].sort((a, b) => a.table_number - b.table_number))
 
-      const sessionPhys = sessionTbls
-      const avail       = availTbls
-      const linkedIds   = new Set([...map.values()].map(g => g.table_id).filter((id): id is string => id !== null))
-      setDropdownTables([
-        ...sessionPhys.filter(t => !linkedIds.has(t.id)),
-        ...avail,
-      ])
+      // Chantier 95 — plus de tables hors séance à proposer : toute table de la
+      // séance est désormais un groupe. Ne restent ici que celles qu'aucun
+      // groupe ne porte (table sans numéro, héritée d'avant ce chantier).
+      const linkedIds = new Set([...map.values()].map(g => g.table_id).filter((id): id is string => id !== null))
+      setDropdownTables(sessionTbls.filter(t => !linkedIds.has(t.id)))
 
       // Chantier 19 — attributs des membres pour le recalcul des seuils.
       // Non bloquant : si la migration n'est pas appliquée, le tableau de
       // bord des seuils est simplement masqué.
+      // Chantier 135 — pas d'allocation pour une association (RPC hors liste blanche).
       try {
-        setAllocInputs(await loadAllocationInputs(getPwd()!, session.id))
+        setAllocInputs(adminMode === 'org' ? null : await loadAllocationInputs(getPwd()!, session.id))
       } catch {
         setAllocInputs(null)
       }
@@ -1603,13 +2288,14 @@ function SessionDetail({
    * entrées : `assign_moderator_to_table` pose `is_moderator` et (dé)place
    * la ligne `table_assignments` en une seule transaction.
    */
-  const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+  const doAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
     const password = getPwd()!
     setMovingMember(true)
     try {
       await assignModeratorToTable(password, currentSession.id, tableNumber, memberId)
       await loadGroups()
       await loadMembers()
+      setAssignError(null)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1620,6 +2306,35 @@ function SessionDetail({
       setMovingMember(false)
     }
   }, [currentSession.id, onAuthError, loadGroups, loadMembers])
+
+  /**
+   * Chantier 139 — la désignation est explicite : désigner X modérateur de la
+   * table N fait de X l'animateur de N, y compris sur une table DÉJÀ modérée
+   * (jusque-là la zone de dépôt n'existait que sur les tables sans animateur, et
+   * le RPC laissait le titulaire en place : X devenait « en surplus » sans écran
+   * modérateur). Le titulaire perd l'écran pendant le débat, donc on confirme.
+   */
+  const [pendingReplacement, setPendingReplacement] = useState<{
+    tableNumber: number
+    memberId: string
+    newPseudo: string
+    currentPseudos: string[]
+  } | null>(null)
+
+  const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+    const g = groups.find(x => x.table_number === tableNumber)
+    const holders = (g?.members ?? []).filter(m => m.is_moderator && m.active && m.member_id !== memberId)
+    if (holders.length === 0) {
+      await doAssignTableModerator(tableNumber, memberId)
+      return
+    }
+    const newPseudo = members.find(m => m.id === memberId)?.pseudo
+      ?? g?.members.find(m => m.member_id === memberId)?.pseudo
+      ?? 'ce participant'
+    setPendingReplacement({
+      tableNumber, memberId, newPseudo, currentPseudos: holders.map(h => h.pseudo),
+    })
+  }, [groups, members, doAssignTableModerator])
 
   /**
    * Chantier 33 (point 2) — « retirer » un modérateur d'une table : il
@@ -1633,6 +2348,10 @@ function SessionDetail({
       await setMemberModerator(password, currentSession.id, memberId, false)
       await loadGroups()
       await loadMembers()
+      // Chantier 117 (retour de Jules) — un succès doit lever un message
+      // d'échec laissé par une tentative précédente, sinon le bandeau reste
+      // affiché et fait croire à un échec de CETTE action-ci.
+      setAssignError(null)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1666,6 +2385,33 @@ function SessionDetail({
       await releaseTableModeration(password, tableId)
       await loadGroups()
       await loadMembers()
+      // Chantier 117 (retour de Jules) — voir handleRemoveTableModerator.
+      setAssignError(null)
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError(); return
+      }
+      setAssignError(msg)
+    } finally {
+      setMovingMember(false)
+    }
+  }, [onAuthError, loadGroups, loadMembers])
+
+  /**
+   * Chantier 123 — refait d'une table modérée une table sans animateur
+   * (`set_table_leaderless`). Symétrique des chemins d'entrée décrits dans
+   * `docs/reference-tables-leaderless.md` : c'était le seul sens qui manquait.
+   * Le drapeau `is_moderator` de l'ancien animateur est conservé (cf. wrapper).
+   */
+  const handleMakeTableLeaderless = useCallback(async (tableId: string) => {
+    const password = getPwd()!
+    setMovingMember(true)
+    try {
+      await setTableLeaderless(password, tableId)
+      await loadGroups()
+      await loadMembers()
+      setAssignError(null)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1679,7 +2425,9 @@ function SessionDetail({
 
   useEffect(() => {
     const p = currentSession.phase
-    if (p === 'allocating' || p === 'debating') loadGroups()
+    // Chantier 138 — la vue « Tables » en lecture seule est consultable dès
+    // que les tables existent, donc aussi après le débat (post_voting, closed).
+    if (p === 'allocating' || p === 'debating' || p === 'post_voting' || p === 'closed') loadGroups()
   }, [currentSession.phase, loadGroups])
 
   // Chantier 20 (G6) → Chantier 59 — abonnement Realtime `table_assignments`
@@ -1723,18 +2471,43 @@ function SessionDetail({
 
   // Chantier 19 (§7) — diagnostics recalculés à chaque changement de `groups`,
   // donc mis à jour en direct après un glisser-déposer.
+  //
+  // Chantier 117 — un modérateur « physique » (member_id null, jamais passé
+  // par le vote/l'allocation) est filtré ici : il n'existe dans aucun des
+  // tableaux d'entrée de l'algorithme (`allocInputs`), le compter grossirait
+  // artificiellement la taille de sa table pour les seuils.
   const groupDiagnostics = React.useMemo(() => {
     if (!allocInputs || groups.length === 0) return []
     return diagnoseAllocation(
       groups.map(g => ({
         table_number: g.table_number,
         moderated:    g.moderated,
-        member_ids:   g.members.map(m => m.member_id),
+        member_ids:   g.members.map(m => m.member_id).filter((id): id is string => id !== null),
       })),
       allocInputs.members,
       allocInputs.opinionsAvailable,
     )
   }, [groups, allocInputs])
+
+  // Chantier 138 — la vue « Tables » ne doit rien perdre de ce qu'affichait
+  // l'ancien historique : une table de la séance sans numéro ni affectation
+  // (héritée, ou table de débat simple) n'est pas un « groupe » de
+  // `loadGroups`, mais reste consultable ici (numéro 0 = sans numéro).
+  const overviewGroups = React.useMemo<GroupRow[]>(() => {
+    if (!['allocating', 'debating', 'post_voting', 'closed'].includes(currentSession.phase)) return groups
+    const known = new Set(groups.map(g => g.table_id).filter((id): id is string => id !== null))
+    const extra = attachedTables
+      .filter(t => !known.has(t.id))
+      .map<GroupRow>(t => ({
+        table_number: t.table_number ?? 0,
+        members: [],
+        table_id: t.id,
+        join_code: t.join_code,
+        moderated: t.leaderless === false,
+        seated: t.participant_count,
+      }))
+    return [...groups, ...extra]
+  }, [groups, attachedTables, currentSession.phase])
 
   // Chantier 92 — grappes d'appairage (liens réciproques, 3 personnes max).
   const clusters = React.useMemo(() => {
@@ -1750,7 +2523,10 @@ function SessionDetail({
     return map
   }, [clusters])
   const brokenGroupClusters = React.useMemo(
-    () => countBrokenClusters(groups.map(g => ({ member_ids: g.members.map(m => m.member_id) })), clusters),
+    () => countBrokenClusters(
+      groups.map(g => ({ member_ids: g.members.map(m => m.member_id).filter((id): id is string => id !== null) })),
+      clusters,
+    ),
     [groups, clusters],
   )
 
@@ -1783,6 +2559,9 @@ function SessionDetail({
   // Ré-enfiler est sans coût : le court-circuit d'empreinte ci-dessous rend une
   // demande redondante gratuite (aucun appel Gemini).
   const namingChainRef = useRef<Promise<void>>(Promise.resolve())
+  // Chantier 135 — association : nommages IA restants aujourd'hui (5/jour),
+  // connu après le premier nommage de la session d'écran.
+  const [namingQuota, setNamingQuota] = useState<{ remaining: number; max: number } | null>(null)
 
   const doNaming = useCallback(async (namingGroups: NamingGroup[]) => {
     if (namingGroups.length === 0) return
@@ -1804,6 +2583,15 @@ function SessionDetail({
     }
 
     try {
+      // Chantier 135 — une association consomme une unité de son quota
+      // journalier juste avant l'appel Gemini (un nommage redondant est déjà
+      // sorti plus haut sans rien consommer).
+      if (adminMode === 'org') {
+        const q = await orgConsumeNamingQuota(pwd, currentSession.id)
+        if (q.remaining !== null) setNamingQuota({ remaining: q.remaining, max: q.max ?? 5 })
+        if (!q.allowed) return
+      }
+
       const allAssertions = await listAssertionsAdmin(pwd, currentSession.id)
       const approved = allAssertions.filter(a => a.status === 'approved')
       const votes = await loadVotesForAnalysis(supabase, pwd, currentSession.id)
@@ -1845,6 +2633,10 @@ function SessionDetail({
   // d'où l'inclusion de `closed`, seule voie de réparation d'une séance déjà
   // terminée (l'écran de résultats participant en dépend).
   useEffect(() => {
+    // Chantier 135 — pas de rattrapage automatique pour une association : il
+    // re-nommerait à chaque ouverture depuis un autre appareil (empreinte en
+    // localStorage) et userait son quota de 5 nommages par jour.
+    if (isOrg) return
     const p = currentSession.phase
     if (p !== 'allocating' && p !== 'debating' && p !== 'post_voting' && p !== 'closed') return
     let cancelled = false
@@ -1858,7 +2650,7 @@ function SessionDetail({
       } catch { /* silencieux — les camps restent sans nom */ }
     })()
     return () => { cancelled = true }
-  }, [currentSession.phase, currentSession.id, runNaming])
+  }, [currentSession.phase, currentSession.id, runNaming, isOrg])
 
   // E3 — Nommage systématique après une analyse en phase vote/pré-vote.
   // Déclenché par AnalysisPanel après un calcul manuel.
@@ -1991,23 +2783,14 @@ function SessionDetail({
   // symptôme rapporté par Jules ("l'écran remonte en haut toutes les 10s").
   const hasLoadedTablesRef = useRef(false)
 
-  const load = useCallback(async (filter: TableFilter = tableFilter, sinceDateStr: string = customSince) => {
+  const load = useCallback(async () => {
     const password = getPwd()!
     if (!hasLoadedTablesRef.current) setLoading(true)
     setError(null)
     try {
-      let since: Date | null | undefined
-      if (filter === 'all') since = null
-      else if (filter === 'custom' && sinceDateStr) since = new Date(sinceDateStr)
-      else since = undefined // défaut 48h
-
-      const [attached, available] = await Promise.all([
-        listSessionTables(password, session.id),
-        listAvailableTables(password, since),
-      ])
+      const attached = await listSessionTables(password, session.id)
       setAttachedTables(attached)
       setIsQForced(attached.some(t => t.questionnaire_forced_at != null))
-      setAvailableTables(available)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -2019,7 +2802,7 @@ function SessionDetail({
       hasLoadedTablesRef.current = true
       setLoading(false)
     }
-  }, [session.id, onAuthError, tableFilter, customSince])
+  }, [session.id, onAuthError])
 
   useEffect(() => { load() }, [load])
 
@@ -2046,6 +2829,7 @@ function SessionDetail({
   // vue à jour, et qui la tenait déjà. Rien à compenser.
 
   const loadResponses = useCallback(async () => {
+    if (isOrg) return  // chantier 135 — pas de questionnaire côté association
     const password = getPwd()!
     setResponsesLoading(true)
     try {
@@ -2056,11 +2840,12 @@ function SessionDetail({
     } finally {
       setResponsesLoading(false)
     }
-  }, [session.id])
+  }, [session.id, isOrg])
 
   useEffect(() => { loadResponses() }, [loadResponses])
 
   const loadSources = useCallback(async () => {
+    if (isOrg) return  // chantier 135 — pas de document collaboratif côté association
     setSourcesLoading(true)
     try {
       const rows = await listSessionSources(session.id)
@@ -2070,7 +2855,7 @@ function SessionDetail({
     } finally {
       setSourcesLoading(false)
     }
-  }, [session.id])
+  }, [session.id, isOrg])
 
   useEffect(() => { loadSources() }, [loadSources])
 
@@ -2115,47 +2900,6 @@ function SessionDetail({
     }
   }
 
-  async function handleAttach(tableId: string) {
-    const password = getPwd()!
-    try {
-      await attachTableToSession(password, tableId, session.id)
-      const table = availableTables.find(t => t.id === tableId)
-      if (table) {
-        setAvailableTables(prev => prev.filter(t => t.id !== tableId))
-        setAttachedTables(prev => [...prev, table])
-        setIsQForced(prev => prev || table.questionnaire_forced_at != null)
-      }
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError()
-        return
-      }
-      setError(msg)
-    }
-  }
-
-  async function handleDetach() {
-    if (!detachConfirm) return
-    const password = getPwd()!
-    const target = detachConfirm
-    setDetachConfirm(null)
-    try {
-      await detachTableFromSession(password, target.id)
-      const nextAttached = attachedTables.filter(t => t.id !== target.id)
-      setAttachedTables(nextAttached)
-      setIsQForced(nextAttached.some(t => t.questionnaire_forced_at != null))
-      setAvailableTables(prev => [...prev, target])
-    } catch (e) {
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        onAuthError()
-        return
-      }
-      setError(msg)
-    }
-  }
-
   async function handleDeleteTable() {
     if (!deleteTableConfirm) return
     const password = getPwd()!
@@ -2163,8 +2907,10 @@ function SessionDetail({
     setDeleteTableConfirm(null)
     try {
       await deleteTableAdmin(password, target.id)
+      // Chantier 144 — la bannière « Table créée ! » ne doit pas survivre à sa table.
+      setNewTableCode(code => (code === target.join_code ? null : code))
       setAttachedTables(prev => prev.filter(t => t.id !== target.id))
-      setAvailableTables(prev => prev.filter(t => t.id !== target.id))
+      await loadGroups()
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -2316,6 +3062,38 @@ function SessionDetail({
     }
   }
 
+  // Chantier 130 — déplie/charge l'historique d'une table (participants +
+  // tours de parole). Réutilise get_table_participants/get_table_speaking_
+  // turns_admin (déjà utilisées par handleExportHistory ci-dessus, aucune
+  // restriction de phase côté SQL) plutôt que d'écrire une RPC redondante.
+  async function handleToggleTableHistory(tableId: string) {
+    if (expandedHistoryId === tableId) {
+      setExpandedHistoryId(null)
+      return
+    }
+    setExpandedHistoryId(tableId)
+    if (historyByTable[tableId]) return
+    const password = getPwd()!
+    setHistoryLoadingId(tableId)
+    setHistoryErr(null)
+    try {
+      const [turns, parts] = await Promise.all([
+        getTableSpeakingTurnsAdmin(password, tableId),
+        getTableParticipants(password, tableId),
+      ])
+      setHistoryByTable(prev => ({ ...prev, [tableId]: { parts, turns } }))
+    } catch (e) {
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setHistoryErr(msg)
+    } finally {
+      setHistoryLoadingId(null)
+    }
+  }
+
   async function handleToggleQuestionnaire() {
     const password = getPwd()!
     setQActing(true)
@@ -2360,7 +3138,7 @@ function SessionDetail({
                 l'onglet Préparation, sans repasser par la liste des séances. */}
             <span className="text-sm font-semibold text-gray-900 truncate">{currentSession.title}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[currentSession.phase] ?? 'bg-gray-100 text-gray-600'}`}>
-              {PHASE_LABEL[currentSession.phase] ?? currentSession.phase}
+              {phaseLabel(currentSession.phase, sessionType)}
             </span>
             {session.join_code && (
               <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
@@ -2387,19 +3165,22 @@ function SessionDetail({
 
         {/* ── Phase bar ───────────────────────────────────── */}
         <PhaseBar
+          sequence={PHASE_SEQUENCE}
+          sessionType={sessionType}
           currentPhase={currentSession.phase}
           nextPhase={nextPhase}
           prevPhase={prevPhase}
           acting={phaseActing}
           onNext={() => {
             if (!nextPhase) return
-            if (currentSession.phase === 'debating') { setDebateExitChoice(true); return }
-            setPhaseConfirm({ phase: nextPhase, label: PHASE_LABEL[nextPhase] ?? nextPhase, isBack: false })
+            // Débat simple : pas de post-vote, la sortie du débat est la clôture.
+            if (currentSession.phase === 'debating' && sessionType === 'full') { setDebateExitChoice(true); return }
+            setPhaseConfirm({ phase: nextPhase, label: phaseLabel(nextPhase, sessionType), isBack: false })
           }}
-          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: PHASE_LABEL[prevPhase] ?? prevPhase, isBack: true })}
+          onPrev={() => prevPhase && setPhaseConfirm({ phase: prevPhase, label: phaseLabel(prevPhase, sessionType), isBack: true })}
           onPhaseSelect={(phase) => {
             const isBack = PHASE_SEQUENCE.indexOf(phase) < phaseIdx
-            setPhaseConfirm({ phase, label: PHASE_LABEL[phase] ?? phase, isBack })
+            setPhaseConfirm({ phase, label: phaseLabel(phase, sessionType), isBack })
           }}
         />
 
@@ -2410,7 +3191,7 @@ function SessionDetail({
             { id: 'tables',   label: '🪑 Tables' },
             { id: 'prep',     label: '⚙️ Préparation' },
             { id: 'analysis', label: '📊 Analyse' },
-          ] as { id: AdminTab; label: string }[]).map(tab => (
+          ] as { id: AdminTab; label: string }[]).filter(tab => allowedTabs(sessionType, isOrg).includes(tab.id)).map(tab => (
             <button
               key={tab.id}
               onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
@@ -2452,6 +3233,7 @@ function SessionDetail({
                 )}
 
                 <ModerationPolicyEditor
+                  allowAi={!isOrg}
                   currentPolicy={currentSession.moderation_policy}
                   onSave={async (policy) => {
                     const pwd = getPwd()!
@@ -2497,10 +3279,18 @@ function SessionDetail({
                   </SectionAccordion>
                 )}
 
-                {showVotingSections && (
+                {showVotingSections && !isOrg && (
                   <PanelErrorBoundary label="Modération IA">
                     <LLMModerationPanel session={currentSession} password={getPwd()!} />
                   </PanelErrorBoundary>
+                )}
+
+                {isOrg && showVotingSections && (
+                  <p className="text-xs text-gray-500 px-1">
+                    {namingQuota && namingQuota.remaining === 0
+                      ? `Nommage automatique des camps : limite de ${namingQuota.max} par jour atteinte — les camps restent « Groupe 1, 2… » jusqu'à demain.`
+                      : `Les camps sont nommés automatiquement après chaque analyse (${namingQuota ? `${namingQuota.remaining}/${namingQuota.max} restant${namingQuota.remaining > 1 ? 's' : ''} aujourd'hui` : '5 par jour'}).`}
+                  </p>
                 )}
 
                 {showVotingSections && (
@@ -2570,6 +3360,8 @@ function SessionDetail({
                       members={members}
                       loading={membersLoading}
                       onToggleModerator={handleToggleModerator}
+                      onRegenerateCode={handleRegenerateCode}
+                      onDeleteMember={(id, pseudo) => setMemberToDelete({ id, pseudo })}
                     />
                   </SectionAccordion>
                 )}
@@ -2601,6 +3393,31 @@ function SessionDetail({
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
                       <div className="flex items-center gap-2">
+                        {/* Chantier 95 — création d'une table de rattrapage, pendant
+                            l'allocation comme pendant le débat. Chantier 135 — une
+                            association n'a qu'une table (consigne de Jules). */}
+                        {!isOrg && (<>
+                        <button
+                          onClick={() => handleCreateGroupTable(false)}
+                          disabled={creatingTable}
+                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+                            text-indigo-600 hover:bg-indigo-50 transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Crée une table animée, vide, déjà numérotée — à peupler par glisser-déposer ou par son code"
+                        >
+                          {creatingTable ? '…' : '+ Table animée'}
+                        </button>
+                        <button
+                          onClick={() => handleCreateGroupTable(true)}
+                          disabled={creatingTable}
+                          className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
+                            text-gray-600 hover:bg-gray-50 transition-colors
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Crée une table sans modérateur, vide, déjà numérotée"
+                        >
+                          {creatingTable ? '…' : '+ Sans modérateur'}
+                        </button>
+                        </>)}
                         {groups.length > 0 && (
                           <button
                             onClick={() => setRosterOpen(true)}
@@ -2635,6 +3452,30 @@ function SessionDetail({
                     ) : (
                       <DndContext
                         sensors={dndSensors}
+                        /* Chantier 123 — SANS `collisionDetection`, dnd-kit applique
+                           `rectIntersection`, qui classe les cibles par AIRE
+                           d'intersection. `add-moderator-<n>` (la petite boîte ambre
+                           « glisse un participant ici ») est imbriquée dans
+                           `group-<n>` (toute la carte de table) : le parent gagnait
+                           donc systématiquement, et la zone « désigner un
+                           modérateur » était **inatteignable au glisser-déposer**.
+                           Le drop partait en `move_member_to_group`, qui ne promeut
+                           personne — d'où le symptôme rapporté par Jules le 22/09
+                           (« je le mets en modérateur par DnD et il arrive en
+                           modérateur en surplus ») : sur quelqu'un déjà flagué
+                           `is_moderator`, un simple déplacement vers une table sans
+                           animateur donne exactement cet affichage.
+                           `pointerWithin` ne retient que les cibles qui contiennent
+                           réellement le pointeur, classées par distance au centre —
+                           l'imbriquée gagne. Même stratégie que le DnD de
+                           `ModeratorView` (cf. CLAUDE.md § DnD). On force en plus
+                           `add-moderator-*` en tête quand il est dans la liste, pour
+                           que l'intention ne dépende pas d'un calcul de distance. */
+                        collisionDetection={args => {
+                          const hits = pointerWithin(args)
+                          const mod = hits.find(h => String(h.id).startsWith('add-moderator-'))
+                          return mod ? [mod] : hits
+                        }}
                         onDragStart={(e: DragStartEvent) => {
                           const member = groups.flatMap(g => g.members).find(m => m.member_id === e.active.id)
                           if (member) setDraggingMember(member)
@@ -2648,6 +3489,17 @@ function SessionDetail({
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
                               <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              {/* Chantier 121 — nombre d'actifs, ce qui guide les choix du superadmin (seuils du chantier 91) */}
+                              {(() => {
+                                const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
+                                if (withProfile.length === 0) return null
+                                const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
+                                return (
+                                  <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
+                                    {activeCount} actif{activeCount !== 1 ? 's' : ''}
+                                  </span>
+                                )
+                              })()}
                               {/* Chantier 19 — statut des seuils, recalculé en direct */}
                               {(() => {
                                 const d = groupDiagnostics.find(x => x.table_number === g.table_number)
@@ -2699,19 +3551,71 @@ function SessionDetail({
                                 dans la liste de puces ci-dessous (cf. filtre sur `g.members`). */}
                             {(() => {
                               const mods = g.members.filter(m => m.is_moderator)
+                              // Chantier 106 — un membre is_moderator peut être assis ici
+                              // sans y animer (surplus, chantier 25b) : seul `active` tient
+                              // l'écran ModeratorView (is_table_moderator, branche b).
+                              const activeMods = mods.filter(m => m.active)
+                              const surplusMods = mods.filter(m => !m.active)
                               return (
                                 <div className="mb-2 space-y-1.5">
-                                  {mods.length > 0 && (
+                                  {activeMods.length > 0 && (
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      {mods.map(mod => (
-                                        <span key={mod.member_id}
+                                      {activeMods.map(mod => (
+                                        <span key={mod.member_id ?? `physical-${g.table_id}`}
                                           className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
                                           🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                          {/* Chantier 117 — modérateur « physique » (rejoint par
+                                              Code Ecclesia, aucune ligne session_members) : pas de
+                                              flag à retirer, seule la libération de la table a un
+                                              effet (elle redevient reprenable). */}
                                           <button
-                                            onClick={() => handleRemoveTableModerator(mod.member_id)}
+                                            onClick={() => mod.member_id
+                                              ? handleRemoveTableModerator(mod.member_id)
+                                              : g.table_id && handleReleaseTableModeration(g.table_id)}
                                             disabled={movingMember}
                                             className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
-                                            title="Redevient un participant ordinaire de cette table"
+                                            title={mod.member_id
+                                              ? "Redevient un participant ordinaire de cette table"
+                                              : "Rejoint par Code Ecclesia, non inscrit à la séance — remet la table à disposition"}
+                                          >
+                                            Retirer
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {surplusMods.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {/* Chantier 117 — un modérateur « physique » (member_id
+                                          null) est toujours `active` (cf. SQL), donc jamais dans
+                                          `surplusMods` : le `!` ci-dessous est sûr. */}
+                                      {surplusMods.map(mod => (
+                                        <span key={mod.member_id}
+                                          className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-100 inline-flex items-center gap-1"
+                                          title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
+                                          🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
+                                          {/* Chantier 123 — Jules : « il faut juste qu'il
+                                              puisse passer en principal ». `assign_moderator_to_table`
+                                              (corrigée par ce chantier) écrase désormais un
+                                              `active_moderator_member_id` périmé et fait sortir la
+                                              table de `leaderless`. Chantier 139 : plus masqué quand la
+                                              table a déjà un animateur — le bouton le remplace, avec
+                                              confirmation (cf. handleAssignTableModerator). */}
+                                          <button
+                                            onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
+                                            disabled={movingMember}
+                                            className="text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
+                                            title={activeMods.length === 0
+                                              ? "En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
+                                              : "En fait le modérateur principal de cette table, à la place de l'animateur actuel (confirmation demandée)."}
+                                          >
+                                            En faire le principal
+                                          </button>
+                                          <button
+                                            onClick={() => handleRemoveTableModerator(mod.member_id!)}
+                                            disabled={movingMember}
+                                            className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                            title="Retire le drapeau modérateur"
                                           >
                                             Retirer
                                           </button>
@@ -2729,21 +3633,27 @@ function SessionDetail({
                                       `assign_moderator_to_table` convertit déjà la table
                                       (`leaderless = false`) depuis le chantier 64 ; seul le
                                       chemin d'accès manquait. */}
-                                  {mods.length === 0 && (
-                                    <AddModeratorControl
-                                      tableNumber={g.table_number}
-                                      candidates={members}
-                                      onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
-                                      disabled={movingMember}
-                                      leaderless={!g.moderated}
-                                    />
-                                  )}
+                                  {/* Chantier 139 — désormais aussi sur une table déjà
+                                      modérée : c'était le geste naturel (glisser quelqu'un
+                                      sur la table) et il n'existait pas, le dépôt tombait
+                                      sur la carte et ne faisait que déplacer la personne. */}
+                                  <AddModeratorControl
+                                    tableNumber={g.table_number}
+                                    candidates={members}
+                                    onAssign={memberId => handleAssignTableModerator(g.table_number, memberId)}
+                                    disabled={movingMember}
+                                    leaderless={!g.moderated}
+                                    replacing={activeMods.length > 0}
+                                  />
+
                                   {/* Chantier 72 (défaut A du bug 1) — filet quand la table
                                       reste bloquée : un modérateur « physique »
                                       (tables.created_by, posé par « Devenir modérateur » ou
                                       par le formulaire de rattrapage) n'a aucun flag
                                       is_moderator, n'apparaît donc pas ci-dessus, et rend
                                       pourtant la table non reprenable. */}
+                                  {/* Chantier 144 — les deux liens partageaient une ligne sans séparateur. */}
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                                   {g.table_id && (
                                     <button
                                       onClick={() => handleReleaseTableModeration(g.table_id!)}
@@ -2756,6 +3666,24 @@ function SessionDetail({
                                       Libérer la modération de cette table
                                     </button>
                                   )}
+                                  {/* Chantier 123 — chemin symétrique, demandé par Jules :
+                                      « si on peut proposer un bouton pour la refaire devenir
+                                      leaderless c'est l'idéal ». Les quatre chemins d'entrée
+                                      existaient, aucun chemin de sortie. Inutile sur une table
+                                      déjà sans animateur. */}
+                                  {g.table_id && g.moderated && (
+                                    <button
+                                      onClick={() => handleMakeTableLeaderless(g.table_id!)}
+                                      disabled={movingMember}
+                                      className="text-xs text-gray-400 hover:text-amber-700 underline disabled:opacity-50"
+                                      title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
+                                        + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
+                                        + "disponible pour une autre table) — utilise « Retirer » pour le lui enlever aussi."}
+                                    >
+                                      Refaire une table sans animateur
+                                    </button>
+                                  )}
+                                  </div>
                                 </div>
                               )
                             })()}
@@ -2774,13 +3702,22 @@ function SessionDetail({
                                 volontairement plusieurs camps, ce nom était donc faux. La barre de
                                 composition ci-dessus donne l'information exacte. */}
                             <div className="flex flex-wrap gap-1.5 mb-3">
+                              {/* Chantier 95 — table créée à la main, encore vide. */}
+                              {g.members.length === 0 && (
+                                <span className="text-xs text-gray-400 italic">
+                                  En attente de participants — glisse quelqu'un ici, ou communique le code ci-dessous.
+                                </span>
+                              )}
+                              {/* Chantier 117 — seul un membre `is_moderator` peut avoir
+                                  `member_id` null (modérateur physique) : ce filtre exclut
+                                  donc déjà toute ligne synthétique, le `!` ci-dessous est sûr. */}
                               {g.members.filter(m => !m.is_moderator).map(m => (
                                 <DraggableMemberChip
                                   key={m.member_id}
-                                  memberId={m.member_id}
+                                  memberId={m.member_id!}
                                   pseudo={m.pseudo}
-                                  profile={memberProfiles.get(m.member_id)}
-                                  linkedWith={clusterOf.get(m.member_id)
+                                  profile={memberProfiles.get(m.member_id!)}
+                                  linkedWith={clusterOf.get(m.member_id!)
                                     ?.filter(id => id !== m.member_id)
                                     .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
                                 />
@@ -2796,6 +3733,22 @@ function SessionDetail({
                                     </span>
                                     <span className="text-xs text-gray-400">rattachée</span>
                                   </div>
+                                  {/* Chantier 95 — seule porte de suppression restante
+                                      depuis le retrait des accordéons, volontairement
+                                      limitée aux tables vides. */}
+                                  {!isOrg && g.members.length === 0 && g.table_id && (
+                                    <button
+                                      onClick={() => {
+                                        const row = attachedTables.find(t => t.id === g.table_id)
+                                        if (row) setDeleteTableConfirm(row)
+                                      }}
+                                      className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-400
+                                        hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                      Supprimer
+                                    </button>
+                                  )}
+                                  {!isOrg && (
                                   <button
                                     onClick={() => handleAssignGroup(g.table_number, null)}
                                     disabled={assigningGroup === g.table_number}
@@ -2805,8 +3758,9 @@ function SessionDetail({
                                   >
                                     {assigningGroup === g.table_number ? '…' : 'Détacher'}
                                   </button>
+                                  )}
                                 </div>
-                              ) : (
+                              ) : isOrg ? null : (
                                 <div className="flex items-center gap-2">
                                   <select
                                     value={selectedTableId[g.table_number] ?? ''}
@@ -2880,7 +3834,7 @@ function SessionDetail({
                           </p>
                         )}
                         <button
-                          onClick={() => setShowDebateConfirm(true)}
+                          onClick={openDebateConfirm}
                           className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
                             text-sm font-semibold rounded-xl transition-colors"
                         >
@@ -2899,155 +3853,47 @@ function SessionDetail({
                   </div>
                 )}
 
-                {/* Tables rattachées (sous-accordion) */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => setRattacheesOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+                {/* Chantier 130 — historique des tables, séance clôturée
+                    uniquement (consigne de Jules : accès superadmin à
+                    l'historique après clôture, sans rouvrir l'accès public —
+                    get_public_results reste seul gated sur phase='closed').
+                    Réutilise attachedTables (déjà chargé par load() plus
+                    haut) + les RPC déjà en place pour l'export CSV. */}
+                {/* Chantier 138 — vue « Tables » en lecture seule, même contenu
+                    que l'onglet Groupes (sans glisser-déposer), disponible à
+                    toutes les phases dès que des tables existent. Remplace
+                    l'accordéon « Historique des tables » du chantier 130 ;
+                    tours et temps de parole restent dépliables par table. */}
+                {overviewGroups.length > 0 && (
+                  <SectionAccordion
+                    title="Tables (consultation)"
+                    open={historyOpen}
+                    onToggle={() => setHistoryOpen(o => !o)}
+                    badge={`${overviewGroups.length}`}
+                    onRefresh={() => { void loadGroups(true) }}
                   >
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      Tables rattachées
-                      {attachedTables.length > 0 && (
-                        <span className="ml-2 font-normal normal-case">({attachedTables.length})</span>
+                    <div className="space-y-2">
+                      {historyErr && (
+                        <p className="text-sm text-red-600">{historyErr}</p>
                       )}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={e => { e.stopPropagation(); handleCreateTable(false) }}
-                        disabled={creatingTable}
-                        className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
-                          text-indigo-600 hover:bg-indigo-50 transition-colors
-                          disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {creatingTable ? '…' : '+ Créer une table'}
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleCreateTable(true) }}
-                        disabled={creatingTable}
-                        className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
-                          text-gray-600 hover:bg-gray-50 transition-colors
-                          disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {creatingTable ? '…' : '+ Sans admin'}
-                      </button>
-                      <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${rattacheesOpen ? 'rotate-180' : ''}`}
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
+                      <MemberBadgeLegend />
+                      {overviewGroups.map(g => (
+                        <TableOverviewCard
+                          key={g.table_id ?? `n${g.table_number}`}
+                          group={g}
+                          diagnostic={groupDiagnostics.find(x => x.table_number === g.table_number)}
+                          memberProfiles={memberProfiles}
+                          clusterOf={clusterOf}
+                          expanded={g.table_id != null && expandedHistoryId === g.table_id}
+                          loading={g.table_id != null && historyLoadingId === g.table_id}
+                          history={g.table_id ? historyByTable[g.table_id] : undefined}
+                          onToggle={() => { if (g.table_id) void handleToggleTableHistory(g.table_id) }}
+                        />
+                      ))}
                     </div>
-                  </button>
-                  {rattacheesOpen && (
-                    <div className="border-t border-gray-50 px-5 py-3">
-                      {attachedTables.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-4 text-center">Aucune table rattachée</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {attachedTables.map(t => (
-                            <ExpandableTableRow
-                              key={t.id}
-                              table={t}
-                              onDelete={() => setDeleteTableConfirm(t)}
-                              otherTables={attachedTables.filter(ot => ot.id !== t.id)}
-                              onParticipantMoved={load}
-                              action={
-                                <button
-                                  onClick={() => setDetachConfirm(t)}
-                                  className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
-                                    text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  Détacher
-                                </button>
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </section>
+                  </SectionAccordion>
+                )}
 
-                {/* Tables disponibles à rattacher (sous-accordion) */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => setDisponiblesOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      Tables disponibles à rattacher
-                      {availableTables.length > 0 && (
-                        <span className="ml-2 font-normal normal-case">({availableTables.length})</span>
-                      )}
-                    </span>
-                    <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${disponiblesOpen ? 'rotate-180' : ''}`}
-                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    >
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                  </button>
-                  {disponiblesOpen && (
-                    <div className="border-t border-gray-50 px-5 py-3">
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {(['48h', 'all', 'custom'] as const).map(f => (
-                          <button
-                            key={f}
-                            onClick={() => {
-                              setTableFilter(f)
-                              load(f, customSince)
-                            }}
-                            className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
-                              tableFilter === f
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'text-gray-500 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
-                            }`}
-                          >
-                            {f === '48h' ? 'Dernières 48h' : f === 'all' ? 'Tout afficher' : 'Depuis…'}
-                          </button>
-                        ))}
-                        {tableFilter === 'custom' && (
-                          <input
-                            type="datetime-local"
-                            value={customSince}
-                            onChange={e => {
-                              setCustomSince(e.target.value)
-                              if (e.target.value) load('custom', e.target.value)
-                            }}
-                            className="px-2 py-1 text-xs border border-gray-300 rounded-lg
-                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          />
-                        )}
-                      </div>
-                      {availableTables.length === 0 ? (
-                        <p className="text-sm text-gray-400 py-4 text-center">Aucune table disponible</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {availableTables.map(t => (
-                            <ExpandableTableRow
-                              key={t.id}
-                              table={t}
-                              onDelete={() => setDeleteTableConfirm(t)}
-                              otherTables={[]}
-                              onParticipantMoved={() => {}}
-                              action={
-                                <button
-                                  onClick={() => handleAttach(t.id)}
-                                  className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
-                                    text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                >
-                                  Rattacher
-                                </button>
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </section>
               </div>
             )}
 
@@ -3208,7 +4054,7 @@ function SessionDetail({
                           {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
                             <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
                           )}
-                          {session.join_code && (
+                          {session.join_code && !isOrg && (
                             <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
                               <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
                               <a
@@ -3230,8 +4076,9 @@ function SessionDetail({
             {/* ── Onglet Analyse ───────────────────────────── */}
             {activeTab === 'analysis' && (
               <div className="space-y-6">
-                {/* Comparaison avant / après débat — chantier 79 */}
-                {showVotingSections && (
+                {/* Comparaison avant / après débat — chantier 79. Chantier 144 : sans objet
+                    dans un sondage (aucun débat). */}
+                {showVotingSections && sessionType !== 'poll' && (
                   <PanelErrorBoundary label="Comparaison avant / après débat">
                     <AnalysisComparisonPanel
                       sessionId={session.id}
@@ -3271,6 +4118,10 @@ function SessionDetail({
                   </section>
                 )}
 
+                {/* Chantier 144 — thèmes, réponses au questionnaire et recrutement
+                    viennent du questionnaire de fin de débat : rien à afficher pour un sondage. */}
+                {sessionType !== 'poll' && (
+                <>
                 {/* Thèmes */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <button
@@ -3376,6 +4227,8 @@ function SessionDetail({
                     </div>
                   )}
                 </section>
+                </>
+                )}
 
                 {/* Sources collaboratives */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -3494,16 +4347,6 @@ function SessionDetail({
         />
       )}
 
-      {detachConfirm && (
-        <ConfirmModal
-          title="Détacher la table"
-          body={`Détacher la table ${detachConfirm.join_code} de cette séance ?`}
-          confirmLabel="Détacher"
-          onConfirm={handleDetach}
-          onCancel={() => setDetachConfirm(null)}
-        />
-      )}
-
       {deleteTableConfirm && (
         <ConfirmModal
           title="Supprimer la table"
@@ -3539,15 +4382,170 @@ function SessionDetail({
       {showDebateConfirm && (
         <ConfirmModal
           title="Ouvrir le débat"
-          body="Passer la séance en phase « Débat » ? Les participants verront le code de leur table et pourront rejoindre immédiatement."
+          body={
+            <div className="space-y-2 text-left">
+              <p>Passer la séance en phase « Débat » ? Les participants verront le code de leur table et pourront rejoindre immédiatement.</p>
+              {debatePreviewLoading && (
+                <p className="text-xs text-gray-400">Calcul du placement des modérateurs en attente…</p>
+              )}
+              {debatePreviewErr && (
+                <p className="text-xs text-red-600">{debatePreviewErr}</p>
+              )}
+              {debatePreview && (
+                <div className="text-xs bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5">
+                  {debatePreview.placements.length > 0 ? (
+                    <p>
+                      <strong>{debatePreview.placements.length}</strong> modérateur(s) en attente
+                      {' '}vont être placés : {debatePreview.placements
+                        .map(p => `${p.pseudo} → table ${p.table_number}`)
+                        .join(', ')}.
+                    </p>
+                  ) : (
+                    <p>Aucun modérateur en attente à placer.</p>
+                  )}
+                  {debatePreview.unplaced_moderators.length > 0 && (
+                    <p className="text-amber-700">
+                      ⚠️ Resteront sans table (plus de modérateurs en attente que de tables libres) :
+                      {' '}{debatePreview.unplaced_moderators.map(m => m.pseudo).join(', ')}.
+                    </p>
+                  )}
+                  {debatePreview.tables_without_moderator.length > 0 && (
+                    <p className="text-amber-700">
+                      ⚠️ Resteront sans modérateur :
+                      {' '}table(s) {debatePreview.tables_without_moderator.map(t => t.table_number).join(', ')}.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          }
           confirmLabel="Ouvrir le débat →"
-          onConfirm={() => { setShowDebateConfirm(false); handlePhaseChange('debating') }}
-          onCancel={() => setShowDebateConfirm(false)}
+          onConfirm={confirmOpenDebate}
+          onCancel={() => { setShowDebateConfirm(false); setDebatePreview(null); setDebatePreviewErr(null) }}
         />
       )}
 
       {rosterOpen && (
         <TableRosterModal groups={groups} onClose={() => setRosterOpen(false)} />
+      )}
+
+      {pendingReplacement && (
+        <ConfirmModal
+          title={`Remplacer le modérateur de la table N°${pendingReplacement.tableNumber} ?`}
+          body={
+            <div className="space-y-2 text-left">
+              <p>
+                <strong>{pendingReplacement.newPseudo}</strong> devient le modérateur de cette
+                table, tout de suite.
+              </p>
+              <p>
+                <strong>{pendingReplacement.currentPseudos.join(', ')}</strong> perd l'écran
+                modérateur et reste assis·e à la table (drapeau modérateur conservé :
+                « modérateur en surplus »).
+              </p>
+              <p className="text-xs text-amber-700">
+                Pendant le débat, la personne concernée voit son écran changer dans les
+                secondes qui suivent.
+              </p>
+            </div>
+          }
+          confirmLabel="Remplacer"
+          onConfirm={() => {
+            const p = pendingReplacement
+            setPendingReplacement(null)
+            void doAssignTableModerator(p.tableNumber, p.memberId)
+          }}
+          onCancel={() => setPendingReplacement(null)}
+        />
+      )}
+
+      {memberToDelete && (
+        <ConfirmModal
+          title={`Supprimer ${memberToDelete.pseudo} de la base ?`}
+          body={
+            <div className="space-y-2 text-left">
+              <p>
+                Suppression <strong>définitive</strong>, à n'importe quelle phase : son
+                inscription, ses votes, ses réponses (onboarding, questionnaire), son
+                siège de table et son affectation disparaissent.
+              </p>
+              <p>
+                Les assertions qu'elle a proposées sont <strong>conservées</strong> (auteur
+                détaché) pour ne pas fausser les votes des autres. Si elle animait une
+                table, celle-ci repasse sans animateur.
+              </p>
+              <p className="text-xs text-amber-700">
+                Une analyse déjà calculée n'est pas recalculée : les camps peuvent bouger
+                au prochain calcul.
+              </p>
+              {deletingMember && <p className="text-xs text-gray-400">Suppression en cours…</p>}
+            </div>
+          }
+          confirmLabel="Supprimer définitivement"
+          onConfirm={handleDeleteMember}
+          onCancel={() => { if (!deletingMember) setMemberToDelete(null) }}
+        />
+      )}
+
+      {deleteMemberReport && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          onMouseDown={e => { if (e.target === e.currentTarget) setDeleteMemberReport(null) }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-900">
+              {deleteMemberReport.pseudo} a été supprimé·e
+            </h2>
+            <ul className="text-sm text-gray-600 list-disc pl-5 space-y-0.5">
+              <li>{deleteMemberReport.votes_deleted} vote(s) supprimé(s)</li>
+              <li>{deleteMemberReport.assertions_detached} assertion(s) conservée(s), auteur détaché</li>
+              {deleteMemberReport.seats_removed > 0 && (
+                <li>{deleteMemberReport.seats_removed} siège(s) de table retiré(s)</li>
+              )}
+              {deleteMemberReport.pairings_dissolved > 0 && (
+                <li>{deleteMemberReport.pairings_dissolved} binôme(s) dissous — le partenaire reste sans binôme</li>
+              )}
+              {deleteMemberReport.tables_now_leaderless > 0 && (
+                <li>{deleteMemberReport.tables_now_leaderless} table(s) repassée(s) sans animateur</li>
+              )}
+              {deleteMemberReport.analysis_rows_removed > 0 && (
+                <li>Retiré·e de l'analyse déjà calculée — les camps peuvent bouger au recalcul</li>
+              )}
+            </ul>
+            <button
+              onClick={() => setDeleteMemberReport(null)}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Chantier 93 — nouveau code de rappel, à lire à la personne. Affiché une
+          seule fois : seul son bcrypt est stocké. */}
+      {regeneratedCode && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          onMouseDown={e => { if (e.target === e.currentTarget) setRegeneratedCode(null) }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4 text-center">
+            <h2 className="text-sm font-semibold text-gray-900">Nouveau code de rappel</h2>
+            <p className="text-sm text-gray-600">
+              À lire à <strong>{regeneratedCode.pseudo}</strong>. L'ancien code ne
+              fonctionne plus, et celui-ci ne sera plus affiché.
+            </p>
+            <p className="text-4xl font-mono font-bold tracking-widest text-amber-600">
+              {regeneratedCode.code}
+            </p>
+            <button
+              onClick={() => setRegeneratedCode(null)}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
       )}
 
       {debateExitChoice && (
@@ -3578,7 +4576,10 @@ function SessionDetail({
 function ModerationPolicyEditor({
   currentPolicy,
   onSave,
+  allowAi = true,
 }: {
+  /** Chantier 135 — false pour une association (modération IA réservée à Ecclesia). */
+  allowAi?: boolean
   currentPolicy: ModerationPolicy
   onSave(policy: ModerationPolicy): Promise<void>
 }) {
@@ -3605,8 +4606,8 @@ function ModerationPolicyEditor({
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
         Politique de modération
       </p>
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {(['closed', 'open', 'ai'] as const).map(val => (
+      <div className={`grid gap-2 mb-3 ${allowAi ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {(allowAi ? (['closed', 'open', 'ai'] as const) : (['closed', 'open'] as const)).map(val => (
           <button
             key={val}
             type="button"
@@ -3716,6 +4717,8 @@ const PHASE_SEQUENCE_LABELS: { phase: Session['phase']; short: string }[] = [
 ]
 
 function PhaseBar({
+  sequence,
+  sessionType,
   currentPhase,
   nextPhase,
   prevPhase,
@@ -3724,6 +4727,8 @@ function PhaseBar({
   onPrev,
   onPhaseSelect,
 }: {
+  sequence: Session['phase'][]
+  sessionType: SessionType
   currentPhase: Session['phase']
   nextPhase: Session['phase'] | null
   prevPhase: Session['phase'] | null
@@ -3732,13 +4737,19 @@ function PhaseBar({
   onPrev(): void
   onPhaseSelect(phase: Session['phase']): void
 }) {
-  const currentIdx = PHASE_SEQUENCE_LABELS.findIndex(p => p.phase === currentPhase)
+  // Chantier 134 — seules les phases du mode de la séance. Pour une séance
+  // complète, rien ne change ; pour un mode partiel, les cercles sont
+  // renumérotés 0..n (la numérotation suit l'index, pas la phase).
+  const steps = PHASE_SEQUENCE_LABELS
+    .filter(p => sequence.includes(p.phase))
+    .map(p => sessionType === 'poll' && p.phase === 'pre_voting' ? { ...p, short: 'Vote' } : p)
+  const currentIdx = steps.findIndex(p => p.phase === currentPhase)
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 space-y-4">
       {/* Step indicators */}
       <div className="flex items-center gap-0">
-        {PHASE_SEQUENCE_LABELS.map((p, i) => {
+        {steps.map((p, i) => {
           const isPast    = i < currentIdx
           const isCurrent = i === currentIdx
           const isFuture  = i > currentIdx
@@ -3769,7 +4780,7 @@ function PhaseBar({
                   {p.short}
                 </span>
               </div>
-              {i < PHASE_SEQUENCE_LABELS.length - 1 && (
+              {i < steps.length - 1 && (
                 <div className={`flex-1 h-0.5 mx-1 ${i < currentIdx ? 'bg-indigo-300' : 'bg-gray-200'}`} />
               )}
             </div>
@@ -3785,7 +4796,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs text-gray-400 hover:text-gray-600 py-1.5 px-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
           >
-            ← {PHASE_LABEL[prevPhase]}
+            ← {phaseLabel(prevPhase, sessionType)}
           </button>
         )}
         <div className="flex-1" />
@@ -3795,7 +4806,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50"
           >
-            {acting ? '…' : `Passer en ${PHASE_LABEL[nextPhase]} →`}
+            {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)} →`}
           </button>
         )}
         {!nextPhase && currentPhase !== 'closed' && (
@@ -3850,6 +4861,209 @@ function SectionAccordion({
       </div>
       {open && <div className="mt-3">{children}</div>}
     </section>
+  )
+}
+
+// ── TableHistoryRow ───────────────────────────────────────────────
+// Chantier 130 — une ligne dépliable par table dans l'historique post-
+// clôture : en-tête (numéro, code, modérateur, effectif), et une fois
+// dépliée, les participants (temps de parole total) puis le déroulé
+// chronologique des tours de parole.
+
+const HISTORY_SOURCE_LABEL: Record<string, string> = {
+  long: 'File longue',
+  interactive: 'Coupe file',
+  manual: 'Manuel',
+}
+
+function formatDurationShort(ms: number): string {
+  const totalSec = Math.round(ms / 1000)
+  const min = Math.floor(totalSec / 60)
+  const sec = totalSec % 60
+  return min > 0 ? `${min}min ${sec}s` : `${sec}s`
+}
+
+function TableOverviewCard({
+  group: g,
+  diagnostic: d,
+  memberProfiles,
+  clusterOf,
+  expanded,
+  loading,
+  history,
+  onToggle,
+}: {
+  group: GroupRow
+  diagnostic?: TableDiagnostics
+  memberProfiles: Map<string, AllocationMember>
+  clusterOf: Map<string, string[]>
+  expanded: boolean
+  loading: boolean
+  history?: { parts: TableParticipantRow[]; turns: TableSpeakingTurnRow[] }
+  onToggle(): void
+}) {
+  const sortedTurns = history
+    ? [...history.turns].sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
+    : []
+  const sortedParts = history
+    ? [...history.parts].sort((a, b) => b.total_ms - a.total_ms)
+    : []
+  const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
+  const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
+  const activeMods = g.members.filter(m => m.is_moderator && m.active)
+  const surplusMods = g.members.filter(m => m.is_moderator && !m.active)
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="px-3 py-2 space-y-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-bold text-indigo-700">
+            {g.table_number > 0 ? `Table N°${g.table_number}` : 'Table sans numéro'}
+          </span>
+          <span className="text-xs text-gray-400">
+            {g.seated != null && g.members.length === 0
+              ? `(${g.seated} personne${g.seated !== 1 ? 's' : ''} à table)`
+              : `(${g.members.length} membre${g.members.length !== 1 ? 's' : ''})`}
+          </span>
+          {withProfile.length > 0 && (
+            <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
+              {activeCount} actif{activeCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          {d && (
+            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+              d.audience_ok && !d.over_capacity && d.veterans_ok ? 'bg-green-50 text-green-700' : 'bg-amber-100 text-amber-700'
+            }`}>
+              {d.audience_ok && !d.over_capacity && d.veterans_ok ? '✓ seuils OK' : '⚠️ seuils non atteints'}
+            </span>
+          )}
+          {d && (
+            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {d.recordable ? '🎙️ enregistrable' : 'non enregistrable'}
+            </span>
+          )}
+          {g.join_code && (
+            <span className="text-xs font-mono tracking-widest text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
+              {g.join_code}
+            </span>
+          )}
+        </div>
+        {(activeMods.length > 0 || surplusMods.length > 0 || !g.moderated) && (
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            {activeMods.map(m => (
+              <span key={m.member_id ?? `physical-${g.table_id}`} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-100">
+                🎙️ Modérateur : <strong>{m.pseudo}</strong>
+              </span>
+            ))}
+            {surplusMods.map(m => (
+              <span key={m.member_id} className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-100">
+                🎙️ En surplus : <strong>{m.pseudo}</strong>
+              </span>
+            ))}
+            {activeMods.length === 0 && (
+              <span className="text-gray-400 italic">Table sans animateur</span>
+            )}
+          </div>
+        )}
+        {d && <CampCompositionBar d={d} />}
+        <div className="flex flex-wrap gap-1.5">
+          {g.members.filter(m => !m.is_moderator).map(m => {
+            const profile = m.member_id ? memberProfiles.get(m.member_id) : undefined
+            const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
+            const linkedWith = m.member_id
+              ? clusterOf.get(m.member_id)?.filter(id => id !== m.member_id).map(id => memberProfiles.get(id)?.pseudo ?? '?')
+              : undefined
+            return (
+              <span
+                key={m.member_id ?? m.pseudo}
+                title={[
+                  profile ? memberProfileTitle(profile) : null,
+                  linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')}` : null,
+                ].filter(Boolean).join(' · ') || undefined}
+                style={color ? { borderColor: color, background: `${color}1a` } : undefined}
+                className={`px-2 py-0.5 rounded-md text-xs font-medium border inline-flex items-center gap-1 ${
+                  color ? 'text-gray-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                }`}
+              >
+                <span>{m.pseudo}</span>
+                {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
+                {profile && (
+                  <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
+                    <span className={profile.is_active ? '' : 'line-through'}>a</span>
+                    <span className={profile.consents ? '' : 'line-through'}>e</span>
+                    <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
+                  </span>
+                )}
+              </span>
+            )
+          })}
+          {g.members.length === 0 && (g.seated ?? 0) === 0 && (
+            <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>
+          )}
+        </div>
+      </div>
+      {g.table_id && (
+        <button
+          onClick={onToggle}
+          className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs text-gray-500 border-t border-gray-100 hover:bg-gray-50 transition-colors"
+        >
+          <span>Temps et tours de parole</span>
+          <svg
+            className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          ><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      )}
+      {expanded && (
+        <div className="border-t border-gray-100 px-3 py-3 space-y-3 bg-gray-50">
+          {loading ? (
+            <p className="text-xs text-gray-400 py-2">Chargement…</p>
+          ) : !history ? null : (
+            <>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Participants</h4>
+                {sortedParts.length === 0 ? (
+                  <p className="text-xs text-gray-400">Personne n'a rejoint cette table</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {sortedParts.map(p => (
+                      <li key={p.participant_id} className="flex items-center justify-between text-xs text-gray-600">
+                        <span>{p.pseudo}</span>
+                        <span className="text-gray-400">{p.turn_count} tour{p.turn_count !== 1 ? 's' : ''} · {formatDurationShort(p.total_ms)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Déroulé des tours de parole</h4>
+                {sortedTurns.length === 0 ? (
+                  <p className="text-xs text-gray-400">Aucun tour de parole enregistré</p>
+                ) : (
+                  <ol className="space-y-1">
+                    {sortedTurns.map((turn, i) => {
+                      const pseudo = history.parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '—'
+                      const durMs = turn.ended_at
+                        ? new Date(turn.ended_at).getTime() - new Date(turn.started_at).getTime()
+                        : null
+                      return (
+                        <li key={turn.id} className="flex items-center justify-between text-xs text-gray-600">
+                          <span>{i + 1}. {pseudo} <span className="text-gray-400">({HISTORY_SOURCE_LABEL[turn.source] ?? turn.source})</span></span>
+                          <span className="text-gray-400">
+                            {new Date(turn.started_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            {durMs != null ? ` · ${formatDurationShort(durMs)}` : ' · en cours'}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -4000,7 +5214,7 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
  * UNIQUE(session_id, pseudo), donc un pseudo désigne au plus un membre.
  */
 function AddModeratorControl({
-  tableNumber, candidates, onAssign, disabled, leaderless,
+  tableNumber, candidates, onAssign, disabled, leaderless, replacing,
 }: {
   tableNumber: number
   candidates: SessionMemberAdmin[]
@@ -4012,6 +5226,12 @@ function AddModeratorControl({
    * du « en attente » qui laisserait croire à un oubli d'allocation.
    */
   leaderless?: boolean
+  /**
+   * Chantier 139 — la table a déjà un animateur effectif : désigner quelqu'un
+   * ici le REMPLACE (l'ancien reste assis, en surplus). Le libellé le dit ; la
+   * confirmation est demandée par l'appelant.
+   */
+  replacing?: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `add-moderator-${tableNumber}` })
   const [name,  setName]  = useState('')
@@ -4040,7 +5260,9 @@ function AddModeratorControl({
     >
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className="text-xs text-amber-800 inline-flex items-center gap-1">
-          {leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
+          {replacing
+            ? '🔁 Remplacer le modérateur'
+            : leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
         </span>
         <span className="text-xs text-gray-400">glisse un participant ici, ou :</span>
       </div>
@@ -4107,7 +5329,9 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
             </thead>
             <tbody>
               {sorted.map(g => {
-                const mod = g.members.find(m => m.is_moderator)
+                // Chantier 106 — un modérateur en surplus (is_moderator mais
+                // pas en exercice ici) ne doit pas se substituer à « en attente ».
+                const mod = g.members.find(m => m.active)
                 return (
                   <tr key={g.table_number} className="border-b border-gray-100 last:border-0">
                     <td className="py-2.5 pr-3 font-semibold text-gray-900">N°{g.table_number}</td>
@@ -4640,11 +5864,17 @@ function MembersPanel({
   members,
   loading,
   onToggleModerator,
+  onRegenerateCode,
+  onDeleteMember,
 }: {
   members: SessionMemberAdmin[]
   loading: boolean
+  /** Chantier 137-D — croix rouge : supprimer le participant de la base (avec confirmation). */
+  onDeleteMember?: (memberId: string, pseudo: string) => void
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
+  /** Chantier 93 — capture d'écran perdue : nouveau code, à lire à la personne. */
+  onRegenerateCode?: (memberId: string) => Promise<void>
 }) {
   // H10 — tri par colonne, alphabétique ou ordre d'arrivée, croissant/décroissant.
   const [sort, setSort] = useState<{ key: MembersSortKey; direction: 'asc' | 'desc' }>(
@@ -4697,6 +5927,9 @@ function MembersPanel({
               sort={sort} onSort={handleSort}
               className="text-center py-2"
             />
+            {/* Chantier 93 — régénération du code de rappel. */}
+            {onRegenerateCode && <th className="text-center py-2 pl-3 font-medium">Code</th>}
+            {onDeleteMember && <th className="py-2 pl-3 w-8" aria-label="Supprimer" />}
           </tr>
         </thead>
         <tbody>
@@ -4746,6 +5979,29 @@ function MembersPanel({
                   <span className="text-gray-300">—</span>
                 )}
               </td>
+              {onRegenerateCode && (
+                <td className="py-2 pl-3 text-center">
+                  <button
+                    onClick={() => onRegenerateCode(m.id)}
+                    title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner — le code stocké est haché, il ne peut pas être relu)"
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium border bg-white border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-600 transition-colors"
+                  >
+                    🔑 nouveau
+                  </button>
+                </td>
+              )}
+              {onDeleteMember && (
+                <td className="py-2 pl-3 text-center">
+                  <button
+                    onClick={() => onDeleteMember(m.id, m.pseudo)}
+                    title="Supprimer ce participant de la base (confirmation demandée)"
+                    aria-label={`Supprimer ${m.pseudo}`}
+                    className="w-5 h-5 leading-none rounded text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -5211,252 +6467,3 @@ function ResponseRow({
   )
 }
 
-function ExpandableTableRow({
-  table, action, onDelete, otherTables, onParticipantMoved,
-}: {
-  table: SessionTableRow
-  action: React.ReactNode
-  onDelete(): void
-  otherTables: SessionTableRow[]
-  onParticipantMoved(): void
-}) {
-  const [expanded, setExpanded]           = useState(false)
-  const [participants, setParticipants]   = useState<TableParticipantRow[] | null>(null)
-  const [partLoading, setPartLoading]     = useState(false)
-  const [partErr, setPartErr]             = useState<string | null>(null)
-  const [movingId, setMovingId]           = useState<string | null>(null)
-  const [moveMenuId, setMoveMenuId]       = useState<string | null>(null)
-  const [csvLoading, setCsvLoading]       = useState(false)
-  const moveMenuRef                       = useRef<HTMLDivElement>(null)
-
-  async function toggleExpand(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!expanded && participants === null) {
-      setPartLoading(true)
-      setPartErr(null)
-      try {
-        const rows = await getTableParticipants(getPwd()!, table.id)
-        setParticipants(rows)
-      } catch (err) {
-        setPartErr(extractErr(err))
-      } finally {
-        setPartLoading(false)
-      }
-    }
-    setExpanded(v => !v)
-  }
-
-  async function handleMove(participantId: string, targetTableId: string) {
-    const pwd = getPwd()!
-    setMovingId(participantId)
-    setMoveMenuId(null)
-    try {
-      await moveParticipant(pwd, participantId, targetTableId)
-      setParticipants(prev => prev ? prev.filter(p => p.participant_id !== participantId) : prev)
-      onParticipantMoved()
-    } catch (err) {
-      setPartErr(extractErr(err))
-    } finally {
-      setMovingId(null)
-    }
-  }
-
-  async function handleExportCsv() {
-    const pwd = getPwd()!
-    setCsvLoading(true)
-    try {
-      const [turns, parts] = await Promise.all([
-        getTableSpeakingTurnsAdmin(pwd, table.id),
-        participants ?? getTableParticipants(pwd, table.id),
-      ])
-      const fakeTable = {
-        id: table.id,
-        join_code: table.join_code,
-        created_at: table.created_at,
-        created_by: '',
-        current_speaker_id: null,
-        current_turn_started_at: null,
-        session_id: null,
-      } as import('../lib/types').Table
-      const fakeParticipants = parts.map(p => ({
-        id: p.participant_id,
-        table_id: table.id,
-        user_id: '',
-        pseudo: p.pseudo,
-        created_at: '',
-      } as import('../lib/types').Participant))
-      const fakeTurns = turns.map(t => ({
-        id: t.id,
-        table_id: table.id,
-        participant_id: t.participant_id,
-        started_at: t.started_at,
-        ended_at: t.ended_at ?? null,
-        source: t.source as import('../lib/types').SpeakingTurn['source'],
-      }))
-      const csv  = generateTableCSV(fakeTable, fakeParticipants, fakeTurns)
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href     = url
-      a.download = `ecclesia_table_${table.join_code}_${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      setPartErr(extractErr(err))
-    } finally {
-      setCsvLoading(false)
-    }
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      {/* ── Header ── */}
-      <div className="px-4 py-3 flex items-center gap-3">
-        {/* Chevron expand */}
-        <button
-          onClick={toggleExpand}
-          title={expanded ? 'Réduire' : 'Voir les participants'}
-          className="shrink-0 text-gray-400 hover:text-indigo-600 transition-colors"
-        >
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
-          >
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
-
-        {/* Table info */}
-        <div className="flex-1 min-w-0 flex items-center gap-4 flex-wrap text-sm">
-          <span className="font-mono font-bold text-indigo-600 tracking-widest">{table.join_code}</span>
-          {table.leaderless && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
-              Sans modérateur
-            </span>
-          )}
-          {table.moderator_pseudo && (
-            <span className="text-gray-600 truncate">{table.moderator_pseudo}</span>
-          )}
-          <span className="text-gray-400 text-xs">
-            {table.participant_count} participant{table.participant_count !== 1 ? 's' : ''}
-          </span>
-          {table.is_active && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-              En cours
-            </span>
-          )}
-        </div>
-
-        {/* CSV + Trash + action */}
-        <div className="shrink-0 flex items-center gap-1.5">
-          <button
-            onClick={e => { e.stopPropagation(); handleExportCsv() }}
-            disabled={csvLoading}
-            title="Télécharger les temps de parole et l'historique (CSV)"
-            className="p-1.5 rounded-lg border border-transparent text-gray-300
-              hover:border-teal-200 hover:text-teal-600 hover:bg-teal-50 transition-colors
-              disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {csvLoading ? (
-              <Spinner />
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete() }}
-            title="Supprimer la table"
-            className="p-1.5 rounded-lg border border-transparent text-gray-300
-              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-          </button>
-          {action}
-        </div>
-      </div>
-
-      {/* ── Expanded participants ── */}
-      {expanded && (
-        <div className="border-t border-gray-100 px-4 py-3 bg-gray-50/60">
-          {partLoading && <p className="text-xs text-gray-400">Chargement…</p>}
-          {partErr && <p className="text-xs text-red-500">{partErr}</p>}
-          {!partLoading && !partErr && participants !== null && (
-            participants.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-1">Aucun participant</p>
-            ) : (
-              <div className="space-y-1">
-                {participants.map(p => (
-                  <div key={p.pseudo} className="relative">
-                    <div className={`flex items-center gap-3 text-xs ${p.is_current_speaker ? 'text-amber-700 font-medium' : 'text-gray-600'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.is_current_speaker ? 'bg-amber-400' : 'bg-gray-300'}`} />
-                      <span className="truncate flex-1">{p.pseudo}</span>
-                      <span className={p.is_current_speaker ? 'text-amber-600' : 'text-gray-400'}>
-                        {formatDuration(p.total_ms)}
-                      </span>
-                      <span className="text-gray-300 shrink-0">
-                        {p.turn_count} tour{Number(p.turn_count) !== 1 ? 's' : ''}
-                      </span>
-                      {otherTables.length > 0 && (
-                        <div className="relative shrink-0" ref={moveMenuId === p.participant_id ? moveMenuRef : undefined}>
-                          <button
-                            onClick={() => setMoveMenuId(prev => prev === p.participant_id ? null : p.participant_id)}
-                            disabled={movingId === p.participant_id}
-                            title="Déplacer vers une autre table"
-                            className="p-0.5 rounded text-gray-300 hover:text-indigo-500 hover:bg-indigo-50
-                              transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {movingId === p.participant_id ? (
-                              <Spinner />
-                            ) : (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="9 18 15 12 9 6"/>
-                              </svg>
-                            )}
-                          </button>
-                          {moveMenuId === p.participant_id && (
-                            <div className="absolute right-0 top-5 z-20 bg-white border border-gray-200
-                              rounded-xl shadow-lg py-1 min-w-[120px]">
-                              <p className="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                                Déplacer vers
-                              </p>
-                              {otherTables.map(ot => (
-                                <button
-                                  key={ot.id}
-                                  onClick={() => handleMove(p.participant_id, ot.id)}
-                                  className="w-full text-left px-3 py-1.5 text-xs text-gray-700
-                                    hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-                                >
-                                  <span className="font-mono tracking-widest text-indigo-600 mr-2">{ot.join_code}</span>
-                                  {ot.moderator_pseudo && (
-                                    <span className="text-gray-400">{ot.moderator_pseudo}</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </div>
-  )
-}

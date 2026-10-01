@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, type TableResult } from '../lib/supabase'
+import PasswordInput from './PasswordInput'
 
 type Mode = 'create' | 'join' | 'reclaim'
 
@@ -182,17 +183,28 @@ function Field({
   placeholder?: string
   className?: string
 }) {
+  const inputClassName = `w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${className}`
+
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type={type}
-        required
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${className}`}
-      />
+      {type === 'password' ? (
+        <PasswordInput
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`${inputClassName} pr-10`}
+        />
+      ) : (
+        <input
+          type={type}
+          required
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={inputClassName}
+        />
+      )}
     </div>
   )
 }

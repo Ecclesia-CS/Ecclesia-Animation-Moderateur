@@ -330,7 +330,11 @@ export default function AnalysisPanel({
 
   // ── Assertions clivantes (top 3 par groupe) ────────────────
   function topClivantes(groupId: number): { aid: string; score: number; content: string }[] {
-    if (!displayAnalysis) return []
+    // `repness` et `group_consensus` sont nullables en base au même titre que
+    // silhouette_score/pca_variance_explained : l'analyse du 2026-09-16 a les
+    // quatre à NULL. Object.entries(null) lève — le filet PanelErrorBoundary
+    // l'attrape, mais autant afficher une liste vide.
+    if (!displayAnalysis?.repness) return []
     return Object.entries(displayAnalysis.repness)
       .map(([aid, scores]) => ({
         aid,
@@ -344,7 +348,7 @@ export default function AnalysisPanel({
 
   // ── Assertions consensuelles ──────────────────────────────
   function consensuelles(): { aid: string; score: number; content: string }[] {
-    if (!displayAnalysis) return []
+    if (!displayAnalysis?.group_consensus) return []
     return Object.entries(displayAnalysis.group_consensus)
       .filter(([, score]) => score > CONSENSUS_THRESHOLD)
       .sort(([, a], [, b]) => b - a)

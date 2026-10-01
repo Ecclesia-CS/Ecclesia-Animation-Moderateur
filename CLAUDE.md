@@ -10,7 +10,12 @@
 
 Voir [`docs/chantiers.md`](./docs/chantiers.md) pour l'état courant des chantiers — **seul fichier de suivi de l'avancement**, à tenir à jour au fil des chantiers, il sert de point de synchronisation entre contributeurs. (`PROJECT_STATUS.md` a été supprimé au chantier 78 : deux fichiers de suivi en parallèle avaient produit un doublon périmé de quinze chantiers, en contradiction avec `git log`. Son contenu unique — les tâches lettrées des chantiers 1 à 25 et le reste-à-faire — est passé en annexes A et B de `docs/chantiers.md`.)
 
-> ⚠️ **Avant de merger une branche sur `main`, lire [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md).** Certaines branches sont **volontairement** retenues hors de `main` (une migration qui casserait l'existant tant que le code n'est pas déployé, un workflow qui attend des secrets GitHub), et des périodes de gel s'appliquent au parcours de vote avant chaque utilisation en production réelle. Une branche non mergée n'est pas forcément un oubli. Ce fichier liste aussi les chantiers en cours et leur découpage par fichier, à respecter quand plusieurs sessions travaillent en parallèle.
+> ⚠️ **Avant de merger une branche sur `main`, lire [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md).** Certaines branches sont **volontairement** retenues hors de `main` (une migration qui casserait l'existant tant que le code n'est pas déployé, un workflow qui attend des secrets GitHub), et des périodes de gel s'appliquent au parcours de vote avant chaque utilisation en production réelle. Une branche non mergée n'est pas forcément un oubli.
+
+> ⚠️ **Chantier en cours — déclaration obligatoire, dans les deux sens.** [`docs/chantiers-a-faire.md`](./docs/chantiers-a-faire.md) a une section **« Chantiers en cours »** en tête de fichier : c'est ce qui permet à une session démarrant en parallèle de savoir quelles branches sont vivantes et quels fichiers ne pas toucher sans risque de conflit.
+> - **Au lancement d'un chantier** : y ajouter une entrée (numéro, branche, fichiers touchés, date) **avant** de commencer à coder.
+> - **Au merge/push sur `main`** : retirer cette entrée dans le **même** commit ou juste après — un chantier resté marqué « en cours » après son merge est une fausse alerte aussi trompeuse qu'un chantier en cours non déclaré.
+> Format et détail complet dans le fichier lui-même.
 
 Ce dépôt contient **deux projets** :
 1. **L'app web de modération** (racine `src/`) — le présent CLAUDE.md.
@@ -57,6 +62,50 @@ Documenter dans `A_VERIFIER.md` le chemin du fichier, ce qu'il change, et le fai
 
 ---
 
+## Environnements — dev / prod (Vercel + Supabase, chantier du 2026-09-25)
+
+Deux environnements complets, déployés automatiquement à chaque push :
+
+| | Branche | Déploiement | Base Supabase |
+|---|---|---|---|
+| **Prod** | `main` | GitHub Pages (workflow existant) **et** Vercel — `ecclesia-animation-moderateur.vercel.app` | `Ecclesia-Animation-Moderateur` (`plpjiehqsxxakbuykmkm`) |
+| **Dev** | `dev` | Vercel uniquement — `ecclesia-animation-moderateur-git-dev-ecclesia5.vercel.app` (lien stable, à partager pour tester) | `Ecclesia-Animation-Moderateur-dev` (`mnjqrlrrzrycuconlfqb`) |
+
+Le projet Vercel a un build command dédié (`npm run build -- --base=/`, qui écrase pour ce déploiement seulement le `base` GitHub Pages de `vite.config.ts` — le fichier source n'est pas modifié) et la protection SSO désactivée (liens ouvrables sans compte Vercel). Les variables `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` sont scopées par environnement Vercel (Production → base prod, Preview → base dev) — ne jamais les fusionner en un seul scope, ni recopier la valeur prod dans le scope Preview.
+
+**Les données de dev et de prod sont indépendantes — c'est normal, pas un bug.** L'accueil de la version Vercel « dev » liste les séances de la base dev (séances de test « QA Vérifs — … », « Débat test asso », quelques copies de séances réelles dont la phase peut différer de prod) ; l'accueil de prod liste celles de la base prod. Une séance vue d'un côté et pas de l'autre n'indique pas une fuite entre environnements. En revanche, **un écart de comportement entre dev et prod à données équivalentes est un vrai signal** — le plus probable : des droits (`GRANT` sur colonnes/fonctions) qui diffèrent. Cas réel du 30/09 : l'accueil de prod était vide parce qu'`organization_id` n'était pas dans le `GRANT SELECT` restreint d'`anon` sur `sessions` (chantier 58), alors que dev avait des droits larges. Comparer `information_schema.column_privileges` / les ACL des fonctions entre les deux bases avant de conclure à un bug de code.
+
+**Schéma dev** : cloné le 2026-09-25 par introspection de l'état *courant* de prod (pas un rejeu de l'historique des migrations, qui contient des étapes obsolètes comme l'ancien renommage `sessions → tables`) — tables, contraintes, index, policies RLS, fonctions et droits d'exécution (GRANT/REVOKE issus des chantiers 102/103) reproduits à l'identique. `app_config` contient les mêmes hash bcrypt que prod (mêmes codes de test) ; aucune donnée participant copiée.
+
+### Règle de circulation : dev d'abord, main ensuite — dans les deux sens
+
+- **Nouveau chantier → partir de `dev`**, jamais de `main` directement (le réglage GitHub "branche par défaut" reste `main` : c'est une discipline manuelle, pas un automatisme d'outil).
+- **Toute migration SQL doit être appliquée deux fois, dans l'ordre** : d'abord sur la base dev (pour tester), puis sur la base prod au moment du merge vers `main`. Le code se propage tout seul par le merge git ; **le schéma de base ne se synchronise jamais automatiquement** — c'est un geste manuel à ne pas oublier à chaque merge.
+- **Toute migration appliquée doit avoir son fichier `.sql` commité dans le même geste, sans exception.** Une migration appliquée en direct sans fichier casse la seule méthode fiable de savoir « qu'est-ce qui manque à prod » (comparer les fichiers de migration de `dev` à `list_migrations` sur prod). Cas réel : le chantier 128 a été appliqué sur prod le 25/09 sans fichier commité pendant plusieurs heures — repéré seulement en clonant le schéma pour dev, par chance avant qu'une autre session ne le recommence en double. **Deuxième cas réel, le 26/09** : les chantiers 130 (annulée, `DROP FUNCTION` derrière elle — sans conséquence) et 134b (`get_results_map`/`create_session` modifiées pour le mode sondage) ont été appliqués sur dev sans qu'aucun fichier n'existe nulle part dans le dépôt, sur aucune branche — repéré par une session de synchronisation dev/prod qui comparait `list_migrations` (dev) aux fichiers du repo. Le chantier 134a, lui, avait bien un fichier (`20260926_chantier134a_modes_de_seance.sql`), mais seulement sur la branche de chantier `claude/chantier-134-80bd0f`, jamais mergée dans `dev` — alors que sa migration, elle, était déjà appliquée sur la base dev **et** que le chantier n'était pas déclaré dans la section « Chantiers en cours » de `docs/chantiers-a-faire.md`. Une migration appliquée en base et un fichier commité sur une branche non mergée ne sont pas équivalents : tant que la branche n'est pas dans `dev`, le repo ne peut pas reconstruire ce qui tourne réellement sur la base dev à partir des fichiers seuls.
+- **Avant d'appliquer une migration qui modifie une colonne ou une contrainte existante, vérifier par un `SELECT` en lecture seule sur **prod** que les données n'ont pas dérivé depuis le dernier clonage du schéma dev** (2026-09-25 à ce jour — voir date ci-dessus, à mettre à jour si le schéma est re-cloné). Le clonage initial suppose que prod n'a pas bougé pendant que dev prenait de l'avance ; c'est vrai tant que rien n'est mergé vers `main`, mais ça ne va pas de soi indéfiniment — une migration corrective appliquée directement sur prod (hors du cycle dev → main normal, par exemple un hotfix urgent) romprait cette hypothèse sans que dev le sache. Ça ne coûte qu'une requête en plus de la vérification `pg_get_functiondef` déjà en vigueur (§ Règle SQL ci-dessus) — décision de Jules, principe validé le 26/09.
+
+### Nettoyage au merge — worktree et branche
+
+Au merge d'un chantier vers `dev` (ou vers `main`) :
+- **Supprimer la branche GitHub distante** (`git push origin --delete <branche>`) dans la foulée — un dépôt qui accumule des dizaines de branches de chantiers mergés (constaté au chantier 126) rend `git branch -a` inutilisable.
+- **Tenter `ExitWorktree`** si la session a elle-même ouvert son worktree via `EnterWorktree`. La plupart des sessions reçoivent leur worktree déjà provisionné par le harnais au démarrage plutôt que de l'ouvrir elles-mêmes — dans ce cas `ExitWorktree` est un no-op silencieux (l'outil n'agit que sur un worktree qu'il a lui-même créé dans la session courante). Ne pas bloquer dessus : le signaler en une ligne (« worktree à nettoyer manuellement ») plutôt que d'insister.
+- **Filet de sécurité, au merge `dev` → `main`** : une passe croise `git worktree list` avec les chantiers marqués faits dans `docs/chantiers.md` (et l'absence dans `docs/registre-merges-en-attente.md`) pour purger les worktrees/branches orphelins de chantiers terminés que le nettoyage immédiat aurait manqués.
+
+### Recette : merge `dev` → `main`
+
+Dans l'ordre, chaque étape suppose la précédente faite :
+
+1. **Lire [`docs/registre-merges-en-attente.md`](./docs/registre-merges-en-attente.md)** — une partie de ce qui est sur `dev` peut y être volontairement retenue (gel avant utilisation réelle, migration qui casserait l'existant tant que le code n'est pas déployé).
+2. **Comparer les migrations** : `list_migrations` sur le projet prod (`plpjiehqsxxakbuykmkm`) vs. les fichiers de `supabase/migrations/` présents sur `dev` — tout fichier de `dev` absent des noms retournés par prod est à appliquer à l'étape 5. Vérifier aussi qu'aucune migration n'a été appliquée sur dev sans fichier commité (`list_migrations` dev vs. fichiers du repo) — sinon la combler d'abord (reconstruire le fichier depuis `pg_get_functiondef`/introspection, le committer sur `dev`) avant de continuer.
+3. **Vérification en lecture seule sur prod** (règle ci-dessus) pour toute migration à appliquer qui modifie une colonne/contrainte existante : `SELECT` de contrôle avant d'écrire quoi que ce soit.
+4. **Merger `dev` dans `main`** (`git checkout main && git merge dev` ou via PR GitHub) et pousser.
+5. **Appliquer sur la base prod**, dans l'ordre chronologique des fichiers identifiés à l'étape 2, chaque migration encore manquante — une par une via `apply_migration`, pas un rejeu brut de fichiers concaténés (les migrations de test/nettoyage ponctuelles, si dev en a accumulé, ne doivent pas être rejouées sur prod).
+6. **Vérifier après coup** : `list_migrations` sur prod inclut maintenant tous les fichiers de `dev` ; `get_advisors` (sécurité + performance) sur prod ne régresse pas.
+7. **Nettoyage** (section ci-dessus) : branches distantes mergées supprimées, worktrees orphelins purgés, entrées « Chantiers en cours » retirées.
+8. **Documenter** : `docs/chantiers.md` à jour pour chaque chantier livré, `A_VERIFIER.md` pour ce qui reste à confirmer au navigateur sur prod (une vérification faite sur dev ne vaut pas pour prod — bases de données différentes, même si le code est identique).
+
+---
+
 ## Test navigateur automatisé
 
 **Solution retenue : le Browser pane intégré au harnais Claude Code** (outils `mcp__Claude_Browser__*` — `preview_start`, `navigate`, `read_page`, `find`, `computer`, `get_page_text`...), piloté via `.claude/launch.json` (commité, racine du repo).
@@ -94,6 +143,29 @@ Après tout test navigateur, ou toute implémentation dont le comportement reste
 
 ---
 
+## Types de séance — toute évolution se questionne pour les trois (chantier 134)
+
+Depuis le chantier 134, une séance a un **type**, fixé à la création (`sessions.session_type`) :
+
+| Type | Phases | Contenu |
+|---|---|---|
+| `full` — séance complète | `draft → pre_voting → voting → allocating → debating → post_voting → closed` | le parcours historique |
+| `debate` — débat simple | `draft → debating → closed` | une table modérée (d'autres ajoutables), questionnaire de fin, aucun vote |
+| `poll` — sondage | `draft → pre_voting → closed` | vote distanciel seul, résultats et camps visibles pendant le vote, publics à la clôture |
+
+La séquence vit à deux endroits qui doivent rester identiques : `session_type_allows_phase` (SQL, garde de `set_session_phase`) et `phaseSequenceFor` (`src/lib/phaseLabels.ts`). Lire le type via `sessionTypeOf(session)`, jamais `session.session_type` brut.
+
+> ⚠️ **Règle demandée par Jules (2026-09-26) — à appliquer par chaque session, sans attendre qu'on le lui rappelle** : la plupart des modifications apportées aux séances complètes doivent **se transférer aux séances partielles** (débat simple, sondage). Toute session qui touche un écran, une RPC ou une règle du parcours doit **se poser explicitement la question** : « ce changement concerne-t-il aussi `debate` et/ou `poll` ? » — et soit l'y appliquer, soit dire dans son compte rendu (et dans `docs/chantiers.md`) pourquoi il ne s'y applique pas. Un changement qui teste `phase === '…'` sans penser au type est le cas typique où l'oubli passe inaperçu : un débat simple n'a jamais de `voting`, un sondage jamais de `debating`.
+
+### Séances d'association (chantier 135)
+
+Une séance peut appartenir à une **association externe** (`sessions.organization_id` non NULL — toujours `debate` ou `poll`). L'association administre ses séances depuis `#asso` (même `SuperadminScreen`, mode restreint : `useOrg()` / `adminMode === 'org'`) avec un **jeton** `org_…` qui circule dans le `p_password` des RPC.
+
+> ⚠️ **Règle, dans la continuité de celle des types** : toute évolution du débat simple ou du sondage doit **aussi** se demander « est-ce ouvert aux associations ? » — **non par défaut** (fail-closed).
+> - **Nouvelle RPC d'administration** : elle appelle `check_superadmin_password` et reste donc fermée aux associations. Pour l'ouvrir, utiliser `check_session_admin(p_password, <session>)` (ou `check_table_admin`/`check_assertion_admin`/`check_member_admin`) — jamais relâcher `check_superadmin_password` lui-même.
+> - **Nouveau bouton dans `SuperadminScreen`** : s'il appelle une RPC hors liste blanche, le masquer quand `isOrg`/`isOrgMode` (sinon l'asso voit « Action réservée à Ecclesia »).
+> - **Côté participant**, ce qui est propre à Ecclesia (questionnaire, document collaboratif, camps nommés par IA, accueil public) est masqué via `session.organization_id` ou `useSessionOrganizationName()` (`lib/organizations.ts`).
+
 ## Modèle de données
 
 > 📎 **Détail colonne par colonne : [`docs/reference-modele-donnees.md`](./docs/reference-modele-donnees.md)** — toutes les tables (`sessions`, `tables`, `participants`, `queue_entries`, `session_members`, `entry_responses`, `assertions`, `assertion_votes`, `assertion_merges`, `table_assignments`, `speaking_turns`, `questionnaire_responses`, `private_notes`, `app_config`) et la politique de rétention des codes de rappel.
@@ -117,6 +189,7 @@ Ce qu'il faut connaître sans aller voir :
 | **Code Ecclesia** | `app_config.creation_code_hash` (bcrypt) | Créer une table + reprendre la modération |
 | **join_code** | `tables.join_code` (clair) | Rejoindre une table |
 | **Mot de passe superadmin** | `app_config.superadmin_code_hash` (bcrypt) | Gérer les séances |
+| **Mot de passe d'association** (chantier 135) | `organizations.password_hash` (bcrypt) | Connexion `#asso` (→ jeton `org_…` haché dans `organization_tokens`) + prise de modération sur les séances de cette asso uniquement |
 
 **Aucun hash ne quitte jamais la base.** RLS + SECURITY DEFINER uniquement. Auth anonyme (`signInAnonymously`).
 
@@ -134,7 +207,9 @@ Les deux tables avaient une policy `SELECT USING (true)`. Comme il n'y a pas de 
 
 ### Rétention des données — codes de rappel (chantier 49)
 
-`session_members.reclaim_code` (PIN 4 chiffres, **en clair**) est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase`, pas de tâche périodique. Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma. Le reste de `session_members` n'est **pas** purgé (c'est l'historique du débat, réutilisé par les écrans de résultats sans limite de durée).
+`session_members.reclaim_code` (PIN 4 chiffres, **en clair** à l'origine) est effacé (`NULL`) dès qu'une séance passe en phase `closed` — purge intégrée à `set_session_phase`, pas de tâche périodique. Combiné au `pseudo` (nom + prénom réels), c'est la donnée la plus sensible du schéma. Le reste de `session_members` n'est **pas** purgé (c'est l'historique du débat, réutilisé par les écrans de résultats sans limite de durée).
+
+> ⚠️ **Colonne renommée et changée de nature au chantier 93** (`20260918_chantier93_identite_participant.sql`, découvert au chantier 116 en comparant à `information_schema.columns`) : `reclaim_code` (texte clair) a été remplacé par `reclaim_code_hash` (bcrypt, comme `session_members.reclaim_code_hash` d'avant le 23/06). Un code haché est irrécupérable par construction — d'où l'existence de `regenerate_reclaim_code_admin`/`_moderator`/`_self` (émettre un nouveau code plutôt que relire l'ancien). Le reste de ce paragraphe (purge à la clôture, sensibilité de la donnée) reste vrai à l'identique, seule la représentation en base a changé.
 
 > 📎 Justification détaillée, preuve d'absence de régression et recommandation d'anonymisation non implémentée : [`docs/reference-modele-donnees.md`](./docs/reference-modele-donnees.md).
 
@@ -222,6 +297,7 @@ Les 4 couches sont **inchangées par le chantier 59** — elles sont ce qui rend
 `grantFloor`/`endTurn`/`endTurnAndAdvance` → `tables, queue_entries, speaking_turns`
 `addToQueue`/`removeFromQueue`/`moveQueueEntry`/`reorderQueueEntry`/`changeQueueType` → `queue_entries`
 `kickParticipant` → `tables, participants, queue_entries, speaking_turns`
+`openTableVote`/`closeActiveTableVote` (chantier 132) → `tables` (`active_vote_id`/statut piggyback sur `tables`, jamais de broadcast des réponses individuelles — anonymat)
 
 ### DnD (ModeratorView)
 - Stratégie `pointerWithin` **sans** fallback `closestCenter` — drop hors panel ignoré, sinon insertion en dernière position
