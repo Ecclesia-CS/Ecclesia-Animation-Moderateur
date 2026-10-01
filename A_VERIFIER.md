@@ -201,3 +201,11 @@ Session autonome de nuit (branche `transcription/ameliorations-attribution`, non
 5. **Prénoms** : pour ce run, 12 prénoms privés absents de `name_map.json` ont été masqués via `--redact-names` (liste et entrées JSON prêtes à copier dans `transcripts/Multiculturalisme/71B505/prenoms_a_ajouter_name_map.md`, non versionné). Les ajouter à `name_map.json` pour les prochains runs ; relire `correction.noms_propres_a_verifier` du rapport (un mot ambigu : « Val » à 1:33:47, probablement « de base »).
 6. **Mesure** : corriger `reference/extrait_{1,2,3}.txt` à l'écoute (≈ 45 min), puis `python "code python/evaluate.py" score reference/extrait_1.txt 71B505_2026-06-24_corrected.json 71B505_2026-09-19_corrected.json` → WER/WDER avant/après.
 7. **`viz/`** (tableau de bord du 02/07) repose sur l'ancienne attribution (temps de parole faux) : à régénérer avec `analyze_debate.py` sur le nouveau `_corrected.json` si on s'en sert.
+
+---
+
+## Transcription — diarisation pyannote toujours sur GPU (2026-10-01) — ⚠️ à confirmer sur un débat complet
+
+Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`import torch` en tête, `require_gpu_for_diarization`). Cause du plantage `cudnnGetLibConfig` : `faster_whisper` importé avant `torch` (reproduit dans les deux ordres). Vérifié sur un extrait de 3 min (`cuda`, 45 segments) et Whisper GPU sur 1 min ; **pas rejoué sur un débat de 2 h**.
+
+- [ ] Lancer `run_transcription.ps1` sur un débat : la console doit afficher `Diarisation pyannote (cuda)...` et `nvidia-smi` montrer le GPU occupé (~7 min attendues pour 2 h, mesure du 19/09).
