@@ -569,3 +569,46 @@ def test_redact_variant_rules_avoid_false_positives():
     assert _red("Justice pour tous.") == "Justice pour tous."          # début de phrase : pas un indice de nom
     assert _red("la chaîne et la justice") == "la chaîne et la justice"  # minuscules
     assert _red("un Mini ici") == "un Mini ici"                          # prénom court : pas de variante
+
+
+# ---- Diarisation : GPU obligatoire, jamais de repli CPU silencieux ----
+
+import sys, types
+import pytest
+import transcribe_offline as _to
+
+
+def _fake_torch(monkeypatch, cuda, version="2.5.1+cpu"):
+    t = types.SimpleNamespace(
+        __version__=version, version=types.SimpleNamespace(cuda=None),
+        cuda=types.SimpleNamespace(is_available=lambda: cuda),
+    )
+    monkeypatch.setitem(sys.modules, "torch", t)
+
+
+def test_gpu_required_when_torch_is_cpu_only(monkeypatch):
+    monkeypatch.undo()  # retire le faux require_gpu du conftest
+    monkeypatch.delenv("PYANNOTE_DEVICE", raising=False)
+    _fake_torch(monkeypatch, cuda=False)
+    with pytest.raises(_to.GpuUnavailable) as e:
+        _to.require_gpu_for_diarization()
+    assert "cu124" in str(e.value)  # la commande de réparation est fournie
+
+
+def test_cpu_only_when_explicitly_requested(monkeypatch):
+    monkeypatch.undo()
+    monkeypatch.setenv("PYANNOTE_DEVICE", "cpu")
+    assert _to.require_gpu_for_diarization() == "cpu"
+
+
+def test_main_aborts_before_whisper_without_gpu(monkeypatch, tmp_path):
+    def no_gpu():
+        raise _to.GpuUnavailable("pas de GPU")
+    monkeypatch.setattr(_to, "require_gpu_for_diarization", no_gpu)
+    monkeypatch.setattr(_to, "WhisperModel", object)  # absent du Python système
+    monkeypatch.setattr(_to, "run_whisper", lambda *a, **k: pytest.fail("Whisper lancé sans GPU diarisation"))
+    monkeypatch.setenv("HF_TOKEN", "x")
+    monkeypatch.setattr(sys, "argv", ["t", "a.mp3", _write_log(tmp_path), "--output-dir", str(tmp_path)])
+    with pytest.raises(SystemExit) as e:
+        _to.main()
+    assert e.value.code == 2

@@ -1,5 +1,6 @@
 # backend/tests/test_analyze_debate.py
 import json
+import re
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -356,6 +357,38 @@ def test_viz_template_single_page():
     assert "stroke-dasharray" in html    # voix sans preuve = cercle pointillé
 
 
+def test_viz_template_publishable_on_a_website():
+    template = Path(__file__).parent.parent / "code python" / "viz_template" / "index.html"
+    html = template.read_text(encoding="utf-8")
+    # aucune ressource tierce : d3, logo et police sont servis à côté de la page
+    assert re.search(r'<(script|link)[^>]+(src|href)="https?://', html) is None
+    assert "url('http" not in html
+    assert '<script src="d3.v7.min.js">' in html
+    for asset in ("d3.v7.min.js", "logo_ecclesia.png", "playfair-display.woff2",
+                  "playfair-display-italic.woff2", "OFL-playfair-display.txt"):
+        assert (template.parent / asset).exists(), asset
+    # ?debat=<CODE> → <CODE>.json, identifiant restreint ; data.js en repli (file://)
+    assert "get('debat')" in html and "[A-Za-z0-9_-]{1,64}" in html
+    assert "loadScript('data.js')" in html
+    # charte Ecclesia : crème par défaut, ?theme=dark force le sombre, ?theme=auto suit le système
+    assert "#F4EFE6" in html and "#184795" in html and "Playfair Display" in html
+    assert ':root[data-theme="dark"]' in html and ':root[data-theme="auto"]' in html
+    # pas de liste des prises de position d'une personne au clic
+    assert "voice-detail" not in html and "showVoiceDetail" not in html
+    # hauteur annoncée au site hôte quand la page est dans une iframe
+    assert "ecclesia-viz:height" in html
+
+
+@pytest.mark.parametrize("code,expected", [
+    ("71B505", "71B505.json"),
+    ("", "data.json"),
+    ("../x", "data.json"),
+])
+def test_data_json_name(code, expected):
+    from analyze_debate import data_json_name
+    assert data_json_name({"meta": {"code": code}}) == expected
+
+
 def test_analyze_end_to_end_writes_viz(tmp_path):
     from analyze_debate import analyze
     debate_dir = tmp_path / "Retraites" / "0F6A9E"
@@ -373,8 +406,14 @@ def test_analyze_end_to_end_writes_viz(tmp_path):
     assert ok is True
     viz = debate_dir / "viz"
     assert (viz / "data.js").exists() and (viz / "index.html").exists()
+    assert (viz / "d3.v7.min.js").exists() and (viz / "logo_ecclesia.png").exists()
+    assert (viz / "playfair-display.woff2").exists() and (viz / "OFL-playfair-display.txt").exists()
     content = (viz / "data.js").read_text(encoding="utf-8")
     assert "window.DEBATE_DATA" in content
+    # même données en JSON pur, pour index.html?debat=0F6A9E
+    as_json = json.loads((viz / "0F6A9E.json").read_text(encoding="utf-8"))
+    assert as_json["meta"]["code"] == "0F6A9E"
+    assert as_json["personas"]
     assert '"anchors"' in content        # passe 1 enrichie
     assert '"points"' in content and '"speech"' in content
     assert '"stance"' in content

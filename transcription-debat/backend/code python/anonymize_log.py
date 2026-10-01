@@ -5,31 +5,72 @@ import sys
 from pathlib import Path
 
 
-def parse_ecclesia_csv(path: str) -> list[dict]:
-    """Extrait les tours de HISTORIQUE DES TOURS du CSV Ecclesia multi-sections."""
-    with open(path, encoding="utf-8") as f:
+def parse_ecclesia_csv(path: str, table_code: str | None = None) -> list[dict]:
+    """Extrait les tours de parole d'un export CSV Ecclesia.
+
+    Deux formats produits par l'app :
+    - export par table (`generateTableCSV`, bouton table) : multi-sections,
+      marqueur "HISTORIQUE DES TOURS" puis colonnes Tour, Participant, File,
+      Démarré à, Terminé à, Durée (s).
+    - export "Historique" de séance (`handleExportHistory`, superadmin) : à
+      plat, en-tête Table, Code, Tour, Participant, File, Démarré à,
+      Terminé à, Durée (s) — peut contenir **plusieurs tables** (une par
+      table de la séance) ; `table_code` sélectionne celle à extraire.
+    """
+    with open(path, encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         rows = list(reader)
 
-    # Trouver la ligne "HISTORIQUE DES TOURS"
-    try:
-        history_idx = next(
-            i for i, row in enumerate(rows)
-            if row and row[0].strip() == "HISTORIQUE DES TOURS"
+    # Format 1 : section "HISTORIQUE DES TOURS"
+    history_idx = next(
+        (i for i, row in enumerate(rows) if row and row[0].strip() == "HISTORIQUE DES TOURS"),
+        None,
+    )
+    if history_idx is not None:
+        # La ligne suivante est l'en-tête des colonnes, on commence après
+        data_rows = rows[history_idx + 2:]
+        code_col, participant_col, debut_col, fin_col, min_len = None, 1, 3, 4, 6
+    else:
+        # Format 2 : en-tête à plat "Table,Code,Tour,Participant,..."
+        header_idx = next(
+            (i for i, row in enumerate(rows)
+             if len(row) >= 2 and row[0].strip() == "Table" and row[1].strip() == "Code"),
+            None,
         )
-    except StopIteration:
-        raise ValueError("Section 'HISTORIQUE DES TOURS' non trouvée dans le CSV") from None
-    # La ligne suivante est l'en-tête des colonnes, on commence après
-    data_rows = rows[history_idx + 2:]
+        if header_idx is None:
+            raise ValueError(
+                "Format de CSV non reconnu : ni section 'HISTORIQUE DES TOURS' "
+                "(export par table) ni en-tête 'Table,Code,Tour,...' (export "
+                "'Historique' de séance) trouvés"
+            )
+        data_rows = rows[header_idx + 1:]
+        code_col, participant_col, debut_col, fin_col, min_len = 1, 3, 5, 6, 8
+
+        codes = sorted({row[code_col].strip() for row in data_rows if len(row) >= min_len})
+        if len(codes) > 1:
+            if table_code is None:
+                raise ValueError(
+                    "Ce CSV contient plusieurs tables (" + ", ".join(codes) + ") : "
+                    "préciser --table-code <CODE> pour choisir celle à extraire"
+                )
+            if table_code not in codes:
+                raise ValueError(
+                    f"Table '{table_code}' absente du CSV (tables présentes : {', '.join(codes)})"
+                )
+            data_rows = [r for r in data_rows if len(r) >= min_len and r[code_col].strip() == table_code]
+        elif codes and table_code is not None and codes[0] != table_code:
+            raise ValueError(
+                f"Table '{table_code}' absente du CSV (table présente : {codes[0]})"
+            )
 
     tours = []
     for row in data_rows:
-        if len(row) < 6:
+        if len(row) < min_len:
             continue
         tours.append({
-            "participant": row[1].strip(),
-            "debut_iso": row[3].strip(),
-            "fin_iso": row[4].strip(),
+            "participant": row[participant_col].strip(),
+            "debut_iso": row[debut_col].strip(),
+            "fin_iso": row[fin_col].strip(),
         })
     return tours
 
@@ -85,10 +126,12 @@ def main() -> None:
     parser.add_argument("--refuse", action="append", default=[], metavar="NOM",
                         help="Nom exact d'un participant ayant refusé l'enregistrement (répétable)")
     parser.add_argument("--output", default=None, help="Chemin de sortie (défaut: log_anon.csv à côté du CSV)")
+    parser.add_argument("--table-code", default=None, metavar="CODE",
+                        help="Code de la table à extraire (requis si le CSV 'Historique' de séance contient plusieurs tables)")
     args = parser.parse_args()
 
     try:
-        tours = parse_ecclesia_csv(args.csv)
+        tours = parse_ecclesia_csv(args.csv, table_code=args.table_code)
     except FileNotFoundError:
         print(f"Erreur : fichier '{args.csv}' introuvable.", file=sys.stderr)
         sys.exit(1)

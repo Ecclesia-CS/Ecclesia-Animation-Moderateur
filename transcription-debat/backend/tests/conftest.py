@@ -21,3 +21,4 @@ def no_real_diarization(monkeypatch):
     doivent jamais lancer pyannote (GPU, modèles) — ils passent par --diarization-cache."""
     import transcribe_offline
     monkeypatch.setattr(transcribe_offline, "run_diarization", lambda *a, **k: None)
+    monkeypatch.setattr(transcribe_offline, "require_gpu_for_diarization", lambda: "cuda")

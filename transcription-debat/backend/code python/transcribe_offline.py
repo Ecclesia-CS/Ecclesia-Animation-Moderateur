@@ -1,11 +1,21 @@
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 import datetime
 import unicodedata
 from pathlib import Path
+
+# torch DOIT être importé AVANT faster_whisper/ctranslate2 (Windows) : sinon la DLL cuDNN
+# de ctranslate2 est déjà chargée et torch plante au premier appel cuDNN
+# (`Could not load symbol cudnnGetLibConfig`) — la diarisation pyannote ne peut alors
+# plus tourner sur GPU. Ne jamais déplacer cet import ni le faire passer sous les autres.
+try:
+    import torch  # noqa: F401  # type: ignore
+except ImportError:  # pragma: no cover — absent du Python système des tests
+    pass
 
 from dotenv import load_dotenv
 
@@ -511,19 +521,61 @@ def sanitize_cache_words(words: list[dict], labeled: list[dict], name_map: dict[
 DIARIZATION_PIPELINE = "pyannote/speaker-diarization-3.1"
 
 
-def run_diarization(audio_path: str) -> list[dict] | None:
+class GpuUnavailable(RuntimeError):
+    """La diarisation exige le GPU et il n'est pas utilisable."""
+
+
+_GPU_FIX = (
+    'Réinstaller le torch CUDA du venv : .venv\\Scripts\\python -m pip install --force-reinstall --no-deps '
+    '--index-url https://download.pytorch.org/whl/cu124 torch==2.5.1+cu124 torchaudio==2.5.1+cu124'
+)
+
+
+def require_gpu_for_diarization() -> str:
+    """Retourne le device de la diarisation : TOUJOURS le GPU, sans repli silencieux sur CPU.
+
+    Un `pip install` de pyannote/speechbrain peut remplacer le torch CUDA du venv par le
+    torch CPU de PyPI : l'ancien code basculait alors sur CPU sans rien dire (≈ 10× plus
+    lent). On échoue ici, avant les 20 min de Whisper, avec la commande qui répare.
+    Un test de convolution déclenche cuDNN (crash `cudnnGetLibConfig` constaté en juin).
+    PYANNOTE_DEVICE=cpu reste possible, mais doit être demandé explicitement.
+    """
+    import os
+    forced = os.getenv("PYANNOTE_DEVICE")
+    if forced:
+        return forced
+    try:
+        import torch  # type: ignore
+    except ImportError as exc:
+        raise GpuUnavailable(f"torch introuvable ({exc}). Lancer avec .venv\\Scripts\\python. {_GPU_FIX}") from exc
+    if not torch.cuda.is_available():
+        raise GpuUnavailable(
+            f"torch {torch.__version__} ne voit pas le GPU (CUDA {torch.version.cuda}). "
+            f"Cause habituelle : torch CPU réinstallé par pip. {_GPU_FIX}"
+        )
+    try:
+        x = torch.zeros(1, 1, 64, device="cuda")
+        torch.nn.functional.conv1d(x, torch.zeros(1, 1, 3, device="cuda"))
+        torch.cuda.synchronize()
+    except Exception as exc:
+        raise GpuUnavailable(f"GPU présent mais inutilisable par torch/cuDNN ({exc}). {_GPU_FIX}") from exc
+    return "cuda"
+
+
+def run_diarization(audio_path: str, device: str | None = None) -> list[dict] | None:
     """Diarisation pyannote 3.1 (best-effort). Retourne [{start, end, speaker}] ou None.
 
     Chargé paresseusement : nécessite pyannote.audio + HF_TOKEN. L'audio est décodé
     par faster-whisper (16 kHz mono, comme Whisper) pour accepter tous les formats.
-    GPU si disponible (≈ 7 min pour 2 h d'audio sur RTX 3070), sinon CPU ;
-    PYANNOTE_DEVICE=cpu|cuda force le choix. Toute erreur dégrade vers None.
+    GPU obligatoire (≈ 7 min pour 2 h d'audio sur RTX 3070) : `GpuUnavailable` n'est
+    jamais avalée. PYANNOTE_DEVICE=cpu force le CPU. Les autres erreurs dégradent vers None.
     """
     import os
     token = os.getenv("HF_TOKEN")
     if not token:
         print("HF_TOKEN absent — identification des voix ignorée.", file=sys.stderr)
         return None
+    device = device or require_gpu_for_diarization()
     try:
         import torch  # type: ignore
         from faster_whisper.audio import decode_audio
@@ -532,7 +584,6 @@ def run_diarization(audio_path: str) -> list[dict] | None:
         if pipeline is None:
             print("Pipeline pyannote introuvable (accès au modèle gated ?) — on continue sans.", file=sys.stderr)
             return None
-        device = os.getenv("PYANNOTE_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
         pipeline.to(torch.device(device))
         print(f"Diarisation pyannote ({device})...")
         waveform = torch.from_numpy(decode_audio(audio_path, sampling_rate=16000)).unsqueeze(0)
@@ -647,6 +698,15 @@ def main() -> None:
 
     participants = [p.strip() for p in args.participants.split(",")] if args.participants else None
 
+    # 0. GPU de la diarisation vérifié AVANT Whisper : pas de repli CPU silencieux
+    diar_device = None
+    if not args.no_diarize and not args.diarization_cache and os.getenv("HF_TOKEN"):
+        try:
+            diar_device = require_gpu_for_diarization()
+        except GpuUnavailable as exc:
+            print(f"Erreur : {exc}", file=sys.stderr)
+            sys.exit(2)
+
     # 1. Charger le log
     turns = load_anon_log(args.log)
 
@@ -693,7 +753,7 @@ def main() -> None:
         diar = load_diarization(args.diarization_cache)
         print(f"Diarisation réutilisée : {args.diarization_cache}")
     elif not args.no_diarize:
-        diar = run_diarization(args.audio)
+        diar = run_diarization(args.audio, diar_device)
         if diar:
             diar_path = output_dir / f"{args.group}_diarization.json"
             save_diarization(diar_path, diar, pipeline=DIARIZATION_PIPELINE)

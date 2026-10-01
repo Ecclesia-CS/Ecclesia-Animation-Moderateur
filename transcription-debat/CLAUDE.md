@@ -53,8 +53,8 @@ transcription-debat/
     │   ├── deduplicate.py          supprime répétitions / hallucinations Whisper (3 passes)
     │   ├── quality.py              indicateurs qualité sans référence + WER/WDER
     │   ├── evaluate.py             CLI : metrics · kit (extraits de référence à corriger à l'écoute) · score
-    │   ├── analyze_debate.py        génère viz/ (data.js + index.html) par analyse Gemini étagée
-    │   └── viz_template/index.html  template page unique piloté par data.js (sections conditionnelles)
+    │   ├── analyze_debate.py        génère viz/ (index.html + d3 + data.js + <CODE>.json) par analyse Gemini étagée
+    │   └── viz_template/            index.html (page unique pilotée par ?debat=<CODE> → <CODE>.json, sinon data.js ; sections conditionnelles) + d3.v7.min.js, logo_ecclesia.png, polices Playfair Display (+ licence OFL) : tout servi localement, pas de CDN ; charte graphique Ecclesia
     ├── tests/                      204 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
@@ -170,7 +170,35 @@ Ou seule, sur un transcript déjà corrigé :
 .venv\Scripts\python "code python\analyze_debate.py" "transcripts\<Thème>\<CODE>\<CODE>_<DATE>_corrected.json"
 # modèle ponctuel : $env:GEMINI_ANALYSIS_MODEL = "gemini-flash"
 ```
-Produit `transcripts\<Thème>\<CODE>\viz\{index.html, data.js}`. Ré-exécutable seul si une passe a échoué (quota).
+Produit `transcripts\<Thème>\<CODE>\viz\{index.html, d3.v7.min.js, data.js, <CODE>.json}`. Ré-exécutable seul si une passe a échoué (quota). `index.html` s'ouvre tel quel par double-clic (il lit `data.js`).
+
+### Visualisation par analyse manuelle (alternative à Gemini)
+Quand l'analyse Gemini n'est pas fiable (déplacements aberrants sur la carte), l'interprétation est faite à la lecture du transcript (par Claude ou un humain) dans `transcripts\<Thème>\<CODE>\<CODE>_analyse_manuelle.json` (axes + ancres, position **fixe** par voix sauf changement d'avis explicite déclaré dans `shifts` — `{t, x, y, desc}` ancré sur la prise de parole où il est exprimé, déplace durablement le point —, reformulations horodatées, événements, courbe de tension, textes de méthode), puis :
+```powershell
+.venv\Scripts\python "code python\build_manual_viz.py" "transcripts\<Thème>\<CODE>\<CODE>_<DATE>_corrected.json" "transcripts\<Thème>\<CODE>\<CODE>_analyse_manuelle.json" --name-map "Débats\<Thème>\<CODE>\name_map.json"
+```
+Temps de parole, entrée, refus, durée et polarisation restent **mesurés** sur le transcript. Refus si une voix manque, si une reformulation ne tombe pas sur un segment de sa voix (±3 s), contient des guillemets ou un prénom de `name_map.json`. Un axe sur lequel une voix ne s'est pas prononcée se déclare `"uncertain": {"y": "raison"}` : ligne pointillée sur la carte, voix exclue de la polarisation de cet axe. La dynamique passe par `"interactions"` (`{t, from, to, type: accord|desaccord|concession, desc}`, `from` ancré sur un de ses segments) : flèche de `from` vers `to` pendant 3 min de débat, cumul optionnel ; seule une `concession` déplace un point (20 % vers `to`, aller-retour) — **ne jamais faire bouger une position de fond sans changement d'avis observable**. Un bloc `"synthesis"` optionnel ajoute en haut de page : résumé, arguments par groupe d'opinion (une voix par groupe au plus), dérive thématique (`timeline` = découpage continu de 0 à la fin en `[début, fin, thème|null]`, thèmes `coeur`/`connexe`/`annexe` par rapport au sujet de départ ; les minutes sont calculées, jamais saisies) et affirmations de consensus/dissensus (chaque `pour`/`contre`/`nuance` ancré sur un segment de la voix, comme les reformulations). Premier cas : AA0D29 (Énergie, 28/09) ; la version Gemini est gardée dans `viz_gemini/`.
+
+### Publier la visualisation sur un site
+Un seul dossier sur l'hébergeur (GitHub Pages ou autre) pour **tous** les débats : `index.html`, `d3.v7.min.js`, `logo_ecclesia.png`, `playfair-display.woff2`, `playfair-display-italic.woff2` et `OFL-playfair-display.txt` (identiques pour chaque débat) + un `<CODE>.json` par débat. `data.js` est inutile en ligne. **Relire le JSON avant de le publier** (aucun prénom réel).
+
+Paramètres d'URL : `?debat=<CODE>` (charge `<CODE>.json`, obligatoire en ligne, lettres/chiffres/`-`/`_` seulement) · `?theme=dark` (sombre) ou `?theme=auto` (suit le système du visiteur) ; par défaut, fond crème de la charte Ecclesia.
+
+Dans la page du site :
+```html
+<iframe src="https://<site>/viz/index.html?debat=71B505&theme=light"
+        title="Cartographie du débat" style="width:100%;border:0;height:900px" loading="lazy"></iframe>
+<!-- une seule fois par page : ajuste chaque iframe de visualisation à la hauteur de son contenu -->
+<script>
+window.addEventListener('message', function (e) {
+  if (!e.data || e.data.type !== 'ecclesia-viz:height') return;
+  document.querySelectorAll('iframe').forEach(function (f) {
+    if (f.contentWindow === e.source) f.style.height = e.data.height + 'px';
+  });
+});
+</script>
+```
+Sans le script, l'iframe garde sa hauteur fixe (`height:900px`) et défile à l'intérieur : ça reste utilisable.
 
 ---
 
@@ -264,7 +292,7 @@ python -m pytest tests/ -v
 - **Aucun prénom entendu dans un débat dans un fichier versionné** (tests, docs, messages de commit, `A_VERIFIER.md`) : exemples avec prénoms fictifs, constats décrits par label (`Interlocuteur N`) ou par « prénom privé ». Les prénoms réels ne vivent que dans `Débats/`, `transcripts/` et `name_map.json` (non versionnés).
 - **Toute évolution de l'attribution se mesure** : rejouer avec `--whisper-cache` + `--diarization-cache` et comparer `evaluate.py metrics` (et `score` quand des références existent) avant/après.
 - **Pas de mode live.** `main.py`/`transcriber.py`/`diarizer.py`/`speaker_tracker.py` et le frontend ont été supprimés : tout est offline.
-- **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/`speech`/durée, les trajectoires (`kf`, lissage EWMA des scores par bloc) ET la polarisation (Esteban-Ray) sont calculés depuis le JSON, jamais demandés au LLM. Les `stance`/ancres sont des REFORMULATIONS — `validate_scores` rejette les guillemets ; ne jamais lever ce garde-fou ni l'anti-invention de prénoms. `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` est une page unique pilotée par `data.js` (sections conditionnelles, durée via `meta.totalDurationMinutes` — jamais en dur).
+- **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/`speech`/durée, les trajectoires (`kf`, lissage EWMA des scores par bloc) ET la polarisation (Esteban-Ray) sont calculés depuis le JSON, jamais demandés au LLM. Les `stance`/ancres sont des REFORMULATIONS — `validate_scores` rejette les guillemets ; ne jamais lever ce garde-fou ni l'anti-invention de prénoms. `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` est une page unique pilotée par `<CODE>.json` (`?debat=`) ou, à défaut, `data.js` (sections conditionnelles, durée via `meta.totalDurationMinutes` — jamais en dur). Aucun script depuis un CDN : il doit rester publiable tel quel sur un site (voir « Publier la visualisation sur un site »), d3, logo et polices sont copiés à côté par `write_viz` (`_ASSETS`). Couleurs et polices de la charte Ecclesia en variables CSS (`--brand`, `--serif`…). Pas de liste des prises de position d'une personne au clic (retirée volontairement). Tout texte du JSON passe par `innerHTML` : ne jamais élargir le motif de `?debat=` au-delà de `[A-Za-z0-9_-]`.
 - **Fondations scientifiques de l'analyse** (voir `Visualisation prises de positions/recherche_classification_opinions_2026-07.md`) — ne pas défaire sans lire le doc : appels Gemini d'analyse en `GEN_CONFIG` (temperature 0 + seed, §5.2) ; scoring sur échelle **ordinale** -2..+2 (`ORD_MIN/ORD_MAX`), remappée `×ORD_SCALE` à l'ingestion (§8.3.1) ; ancres des pôles injectées dans le prompt de scoring (`_anchor_lines`, §5.3) ; salience bornée par `SALIENCE_FLOOR=0.3` (§8.3.4) ; keyframes de maintien `TRAJ_HOLD_GAP=3 min`/`TRAJ_TRANSITION=1 min` — une voix silencieuse ne glisse pas sur la carte (§8.3.3) ; audit de symétrie `run_symmetry_audit` (inversion d'axes, ≥ 8 blocs, → `meta.reliability`, §8.4.3) désactivable via `analyze(..., audit=False)`.
 
 ---
@@ -277,7 +305,8 @@ python -m pytest tests/ -v
 | `Unable to allocate … MiB` (numpy) | Manque de RAM (extraction des features). Fermer des applis, relancer — échec immédiat, pas coûteux. |
 | Gemini `503` / `429` | Surcharge / quota. Le pipeline garde le **brut** et finit. Relancer la correction plus tard, ou `-GeminiModel`/`$env:GEMINI_MODEL`. |
 | `HF_TOKEN absent — identification des voix ignorée` | Renseigner `HF_TOKEN` dans `backend/.env` (accès aux modèles pyannote). Sans lui, attribution par le log seul. |
-| Diarisation : crash `cudnnGetLibConfig` | cuDNN GPU incompatible (constaté en juin ; le GPU fonctionne depuis, 394 s pour 2 h le 19/09). Forcer le CPU : `$env:PYANNOTE_DEVICE = "cpu"` (bien plus lent). |
+| Diarisation : crash `cudnnGetLibConfig` (`Could not load symbol cudnnGetLibConfig. Error code 127`) | **Ordre d'import** (corrigé le 01/10) : si `faster_whisper`/`ctranslate2` est importé avant `torch`, leur DLL cuDNN est chargée en premier et torch plante au 1er appel cuDNN. `import torch` est donc la toute première importation de `transcribe_offline.py` — ne jamais la déplacer. Tout nouveau script qui mélange torch et faster-whisper doit importer torch d'abord. |
+| `Erreur : torch … ne voit pas le GPU` (exit 2, avant Whisper) | La diarisation exige le GPU, sans repli CPU silencieux. Cause habituelle : un `pip install` a remplacé le torch CUDA du venv par le torch CPU de PyPI. Le message donne la commande de réparation (`pip install --force-reinstall --no-deps --index-url https://download.pytorch.org/whl/cu124 torch==2.5.1+cu124 torchaudio==2.5.1+cu124`). CPU volontaire : `$env:PYANNOTE_DEVICE = "cpu"` (bien plus lent). |
 | Accord voix/log < 85 % dans le rapport | Diarisation peu fiable (salle bruyante, voix proches) ou décalage d'horloge faux : vérifier `voix.rattachement` dans `<CODE>_<DATE>_rapport.json`, sinon `-NoDiarize`. |
 | pyannote : import `speechbrain k2_fsa` échoue | `.venv\Scripts\python -m pip install "speechbrain==1.0.0"`. |
 | `> 15 % non attribué [?]` | Le log ne couvre pas tout l'audio (ouverture/fin hors log) — souvent normal. Vérifier l'offset. |

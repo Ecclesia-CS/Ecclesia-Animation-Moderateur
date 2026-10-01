@@ -632,13 +632,36 @@ def write_data_js(data: dict, path: Path) -> None:
 
 # Task 10: Orchestration + CLI
 
-_TEMPLATE = Path(__file__).parent / "viz_template" / "index.html"
+_TEMPLATE_DIR = Path(__file__).parent / "viz_template"
+_TEMPLATE = _TEMPLATE_DIR / "index.html"
+_D3 = _TEMPLATE_DIR / "d3.v7.min.js"
+# Fichiers servis à côté de la page (aucun CDN) : d3, logo et police de la charte Ecclesia + sa licence
+_ASSETS = [_D3, _TEMPLATE_DIR / "logo_ecclesia.png", _TEMPLATE_DIR / "playfair-display.woff2",
+           _TEMPLATE_DIR / "playfair-display-italic.woff2", _TEMPLATE_DIR / "OFL-playfair-display.txt"]
+# Même motif que le template (loadData) : un identifiant hors de ce motif y est refusé.
+_DATA_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def data_json_name(data: dict) -> str:
+    """Nom du JSON chargé par `index.html?debat=<CODE>` — `data.json` si le code est inutilisable."""
+    code = str((data.get("meta") or {}).get("code") or "")
+    return f"{code}.json" if _DATA_ID_RE.match(code) else "data.json"
 
 
 def write_viz(data: dict, viz_dir: Path) -> None:
+    """Écrit un dossier publiable tel quel.
+
+    `data.js` sert l'ouverture locale par double-clic (fetch bloqué en file://) ;
+    `<CODE>.json` sert le site, où un seul `index.html` + `d3.v7.min.js` affichent
+    tous les débats via `?debat=<CODE>`.
+    """
     viz_dir.mkdir(parents=True, exist_ok=True)
     write_data_js(data, viz_dir / "data.js")
+    (viz_dir / data_json_name(data)).write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     shutil.copyfile(_TEMPLATE, viz_dir / "index.html")
+    for asset in _ASSETS:
+        shutil.copyfile(asset, viz_dir / asset.name)
 
 
 def analyze(json_path: Path, topic: str, code: str, date: str,
