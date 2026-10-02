@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { claimModeratorStatus, reclaimTableAsModerator } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
+import { tableStore } from '../../lib/storage'
 import PasswordInput from '../PasswordInput'
 import { useSessionOrganizationName, orgCodeError } from '../../lib/organizations'
 
@@ -53,7 +54,16 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
       if (action === 'session' && sessionId) {
         await claimModeratorStatus(sessionId, password, pseudo)
       } else if (action === 'table') {
-        await reclaimTableAsModerator(tableId, password)
+        const { activeModeratorMemberId } = await reclaimTableAsModerator(tableId, password)
+        // Chantier 148 — table hors séance (aucun membre titulaire) : l'autorité
+        // repose sur `created_by`, que `TableContext` ne promeut qu'à partir du
+        // cache `tableStore`. Sans cette écriture, recharger la page repassait
+        // le nouveau modérateur en participant. En séance, c'est
+        // `active_moderator_member_id` + `is_moderator`, relus à chaque `load()`.
+        const stored = tableStore.get()
+        if (!activeModeratorMemberId && stored?.tableId === tableId) {
+          tableStore.set({ ...stored, isModerator: true })
+        }
       }
       setStep('done')
     } catch (err) {
