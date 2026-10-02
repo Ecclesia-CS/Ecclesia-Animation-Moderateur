@@ -215,6 +215,3 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 
 - [ ] Lancer `run_transcription.ps1` sur un débat : la console doit afficher `Diarisation pyannote (cuda)...` et `nvidia-smi` montrer le GPU occupé (~7 min attendues pour 2 h, mesure du 19/09).
 
-## Chantier 145 — sortie de la vue débat (2026-10-02)
-- Fait au navigateur sur dev : participant d'un débat simple d'association, entrée par `#session/<code>`, « Quitter » → accueil, sans réinscription.
-- Reste à rejouer (non couvert) : (1) vue **modérateur** + « Quitter » ; (2) séance passée en `post_voting`/`closed` puis « Voir les résultats » ; (3) rechargement sur une table dont la séance est finie → résultats. Ces cas demandent de changer la phase d'une séance de test (accès superadmin).
