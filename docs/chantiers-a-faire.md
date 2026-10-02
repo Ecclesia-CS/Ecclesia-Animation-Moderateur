@@ -8,6 +8,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
+
 > **Le 2026-10-02, le chantier 147 est mergé dans `dev`** (débat simple/d'association : `tables.created_by` n'est plus l'uid de l'admin — sentinelle `0000…` via `table_owner_uid`) — voir `docs/chantiers.md`. Migration `20261002_chantier147_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 148 peut démarrer.** Entrée « en cours » retirée au merge.
 
 
@@ -130,7 +131,7 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 **Précisions (réponse de Jules)** : « celui qui prend la modération tout court, avec un flag modérateur en tant que modo de la table, a l'écran noir ». Donc : **un seul écran modérateur par table**, pour le modérateur désigné de cette table (flag + modérateur de la table) ; un modérateur en surplus n'en a pas ; lui retirer le rôle lui retire la vue aussitôt ; la prise par code Ecclesia doit apparaître dans l'onglet Groupes et **survivre au rechargement**. ⚠️ **Contredit l'« exception confirmée » du 2026-09-02 dans `CLAUDE.md`** (membre `is_moderator` en surplus assis sur une table `leaderless` qui garde l'autorité d'animation) — **décision de Jules attendue sur son retrait** avant de coder ; la mettre à jour dans `CLAUDE.md` une fois tranchée. Ne pas toucher à `is_table_moderator` sans relire la section « Ne jamais faire ».
 
-#### 149 — Design : voir qui est lié à qui (liens entre noms)
+#### 149 — Design : voir qui est lié à qui (liens entre noms) — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Pour les liens, ça fonctionne très bien, mais l'idéal ce serait qu'on voit qui est connecté avec qui, par exemple, les rectangles de noms liés sont eux mêmes dans carrés un peu plus gros ? Je ne sais pas s'il y a une solution de design efficace pour cela. »
 
 **Précisions** : proposition retenue avec Jules — un cadre commun englobant les noms liés, une couleur par groupe lié. **Une capture d'écran doit être soumise à Jules avant de valider le chantier.** Partir de `docs/chantiers.md` (chantier des liens) pour retrouver l'écran concerné.
