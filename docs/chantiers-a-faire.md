@@ -9,6 +9,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 ## Chantiers en cours
 
 
+
 > **Le 2026-09-28, le chantier 142 est mergé dans `dev`** (document collaboratif : écrire ses sources exige d'être inscrit sur l'appareil ou de donner nom + code de rappel ; identité = `session_members`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 142. Vérifié au navigateur sur dev (vote, table, débat simple, modérateur). Sa migration (`20260928_chantier142_collab_identite_membre`, qui **supprime** `register_collab_pseudo` et la table `collab_session_users`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 140/140b (elle utilise `pseudo_key`).
 
 > **Le 2026-09-28, le chantier 143 est mergé dans `dev`** (un seul champ « Prénom Nom » sur l'écran « Débat en cours » du retardataire : « Assignez-moi une table » et l'entrée par code partagent le même nom et la même ligne de code de rappel) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 143 ; entrée « en cours » retirée au merge. Front seul, **aucune migration**. `CollabDocScreen` non touché (chantier 142).
@@ -107,7 +108,7 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 >
 > **Ordre / conflits** : 147 et 148 touchent la même logique de modérateur → **147 puis 148, séquentiels** (148 en Opus). 150 et 151 touchent tous deux l'onboarding → 150 d'abord. 152 et 153 touchent `VoteScreen`/`PostVoteScreen`. Le reste est indépendant. La demande « code personnel plutôt que code de table » (point 2 de la liste) a été **retirée par Jules**.
 
-#### 145 — Sortir de la vue débat/modérateur quand c'est fini ou qu'on quitte
+#### 145 — Sortir de la vue débat/modérateur quand c'est fini ou qu'on quitte — ✅ fait sur la branche `claude/chantier-145-2af869` (non mergé), voir `docs/chantiers.md`
 > **Consigne de Jules** : « Problème : le post vote devrait sortir de la vue débat pour le modo : Même quand c'est fini, la vue modo n'est pas quittée. Peu importe si on passe par postvote ou pas. C'est un problème. » Et, sur les débats d'association : « Quand je tente de quitter, on ne me renvoie pas au menu principal, et je reste bloqué dans la vue modérateur ! Même chose en tant que participant. »
 
 **Précisions (réponse de Jules)** : à la fin du débat (passage en `post_voting` ou `closed`, ou départ volontaire), renvoyer vers **les résultats de la séance** (pas le menu principal) quand la séance en a ; sinon menu principal. Vaut pour le modérateur **et** le participant, séances internes **et** d'association (`debate`/`poll`). Vérifier le cas « quitter » sur une table d'association.

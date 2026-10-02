@@ -211,3 +211,7 @@ Session autonome de nuit (branche `transcription/ameliorations-attribution`, non
 Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`import torch` en tête, `require_gpu_for_diarization`). Cause du plantage `cudnnGetLibConfig` : `faster_whisper` importé avant `torch` (reproduit dans les deux ordres). Vérifié sur un extrait de 3 min (`cuda`, 45 segments) et Whisper GPU sur 1 min ; **pas rejoué sur un débat de 2 h**.
 
 - [ ] Lancer `run_transcription.ps1` sur un débat : la console doit afficher `Diarisation pyannote (cuda)...` et `nvidia-smi` montrer le GPU occupé (~7 min attendues pour 2 h, mesure du 19/09).
+
+## Chantier 145 — sortie de la vue débat/modérateur (2026-10-02) — à vérifier au navigateur sur dev
+- `src/App.tsx` : état `hash` resynchronisé au join et au départ de table. Non rejoué au navigateur (pas de `.env` dans le worktree, pas d'accès superadmin).
+- Recette : (1) débat simple d'association, rejoindre via `#session/<code>`, cliquer « Quitter » (participant puis modérateur) → l'accueil s'affiche, sans réinscription automatique ; (2) passer la séance en `post_voting`/`closed` → « Voir les résultats » mène aux résultats ; (3) recharger sur une table dont la séance est finie → résultats, pas « revenue au vote ».
