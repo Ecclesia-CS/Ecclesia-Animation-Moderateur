@@ -218,3 +218,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 ## Chantier 145 — sortie de la vue débat (2026-10-02)
 - Fait au navigateur sur dev : participant d'un débat simple d'association, entrée par `#session/<code>`, « Quitter » → accueil, sans réinscription.
 - Reste à rejouer (non couvert) : (1) vue **modérateur** + « Quitter » ; (2) séance passée en `post_voting`/`closed` puis « Voir les résultats » ; (3) rechargement sur une table dont la séance est finie → résultats. Ces cas demandent de changer la phase d'une séance de test (accès superadmin).
+
+## Chantier 149 — cadres autour des noms liés (2026-10-02)
+
+- [ ] **Capture soumise à Jules avant validation** (exigence du chantier) : `docs/chantier-149-capture.jpg`. Les cadres colorés (une couleur par grappe d'appairage) te conviennent-ils, ou préfères-tu un autre rendu (ex. étiquette, fond plein) ? Rendu vérifié sur harnais jetable ; **non vu** dans l'écran superadmin réel (mot de passe non saisi par la session) : onglet Groupes (puces glissables) et vue « Tables (consultation) ».

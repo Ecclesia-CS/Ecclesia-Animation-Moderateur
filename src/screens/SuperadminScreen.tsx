@@ -48,6 +48,7 @@ import TableDiagnosticsList, { CampCompositionBar, campColor } from '../componen
 import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember, type TableDiagnostics } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
+import { LinkedMemberFrames } from '../components/voting/LinkedMemberFrames'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
@@ -3711,17 +3712,25 @@ function SessionDetail({
                               {/* Chantier 117 — seul un membre `is_moderator` peut avoir
                                   `member_id` null (modérateur physique) : ce filtre exclut
                                   donc déjà toute ligne synthétique, le `!` ci-dessous est sûr. */}
-                              {g.members.filter(m => !m.is_moderator).map(m => (
-                                <DraggableMemberChip
-                                  key={m.member_id}
-                                  memberId={m.member_id!}
-                                  pseudo={m.pseudo}
-                                  profile={memberProfiles.get(m.member_id!)}
-                                  linkedWith={clusterOf.get(m.member_id!)
-                                    ?.filter(id => id !== m.member_id)
-                                    .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
-                                />
-                              ))}
+                              {/* Chantier 149 — les noms liés (grappe d'appairage) sont
+                                  regroupés dans un cadre commun, une couleur par grappe. */}
+                              <LinkedMemberFrames
+                                items={g.members.filter(m => !m.is_moderator)}
+                                idOf={m => m.member_id}
+                                pseudoOf={m => m.pseudo}
+                                clusterOf={clusterOf}
+                                renderItem={m => (
+                                  <DraggableMemberChip
+                                    key={m.member_id}
+                                    memberId={m.member_id!}
+                                    pseudo={m.pseudo}
+                                    profile={memberProfiles.get(m.member_id!)}
+                                    linkedWith={clusterOf.get(m.member_id!)
+                                      ?.filter(id => id !== m.member_id)
+                                      .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
+                                  />
+                                )}
+                              />
                             </div>
                             <div className="border-t border-gray-100 pt-3">
                               {g.join_code ? (
@@ -4967,7 +4976,13 @@ function TableOverviewCard({
         )}
         {d && <CampCompositionBar d={d} />}
         <div className="flex flex-wrap gap-1.5">
-          {g.members.filter(m => !m.is_moderator).map(m => {
+          {/* Chantier 149 — cadre commun autour des noms liés (une couleur par grappe). */}
+          <LinkedMemberFrames
+            items={g.members.filter(m => !m.is_moderator)}
+            idOf={m => m.member_id}
+            pseudoOf={m => m.pseudo}
+            clusterOf={clusterOf}
+            renderItem={m => {
             const profile = m.member_id ? memberProfiles.get(m.member_id) : undefined
             const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
             const linkedWith = m.member_id
@@ -4996,7 +5011,8 @@ function TableOverviewCard({
                 )}
               </span>
             )
-          })}
+            }}
+          />
           {g.members.length === 0 && (g.seated ?? 0) === 0 && (
             <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>
           )}
