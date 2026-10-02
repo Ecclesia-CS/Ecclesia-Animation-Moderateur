@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { submitEntryResponse, setMyPairings } from '../../lib/voting'
 import { PairingFields, PairingResultsList, ReciprocityNotice, PAIRING_EXPLANATION } from './PairingModal'
 import type { PairingResult } from '../../lib/voting'
-import type { EntryResponse, SessionMember } from '../../lib/types'
+import type { EntryResponse, ParticipationStyle, SessionMember } from '../../lib/types'
 
 interface OnboardingFormProps {
   sessionId: string
@@ -27,8 +27,8 @@ interface Answers {
   consentTranscript: boolean | null
   /** Règles 4 et 5 — ancien / nouveau. */
   ecclesiaExperience: boolean | null
-  /** Chantier 91 — actif : forme les tables ; passif : placé en public. */
-  participationStyle: 'listener' | 'active' | null
+  /** Chantier 91/151 — actif et intermédiaire : forment les tables ; passif : placé en public. */
+  participationStyle: ParticipationStyle | null
   /** Chantier 92 — règle 1 de l'allocation : binômes (facultatif). */
   pairings: [string, string]
 }
@@ -271,8 +271,8 @@ function QuestionStyle({
   value,
   onChange,
 }: {
-  value: 'listener' | 'active' | null
-  onChange: (v: 'listener' | 'active') => void
+  value: ParticipationStyle | null
+  onChange: (v: ParticipationStyle) => void
 }) {
   return (
     <div className="space-y-6">
@@ -282,12 +282,13 @@ function QuestionStyle({
           Comment comptes-tu participer ?
         </h2>
         <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-          Ce n'est pas définitif : tu pourras toujours prendre la parole en cours de débat, même si tu choisis « Plutôt écouter ».
+          Ce n'est pas définitif : tu pourras toujours prendre la parole en cours de débat, même si tu choisis « Passif ».
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Plutôt écouter" sub="Je ne prévois pas de parler" />
-        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Participer activement" sub="Je compte prendre la parole" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <ChoiceButton selected={value === 'listener'} onClick={() => onChange('listener')} emoji="👂" label="Passif" sub="Je ne compte pas parler du tout" />
+        <ChoiceButton selected={value === 'intermediate'} onClick={() => onChange('intermediate')} emoji="🤔" label="Intermédiaire" sub="Je compte éventuellement prendre la parole" />
+        <ChoiceButton selected={value === 'active'} onClick={() => onChange('active')} emoji="✋" label="Actif" sub="Je compte prendre la parole" />
       </div>
     </div>
   )

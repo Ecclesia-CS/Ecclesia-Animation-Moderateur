@@ -125,6 +125,25 @@ export async function setSessionAssertionsLocked(
   return data as Session
 }
 
+// Chantier 153 — règles de proposition (voter d'abord / plafond par personne).
+// Les deux valeurs partent toujours ensemble : l'écran renvoie ce qu'il affiche.
+// `max` null = illimité.
+export async function setSessionAssertionRules(
+  password: string,
+  sessionId: string,
+  voteFirst: boolean,
+  max: number | null,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('set_session_assertion_rules', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_vote_first: voteFirst,
+    p_max: max,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
 export async function updateSessionDocs(
   password: string,
   sessionId: string,

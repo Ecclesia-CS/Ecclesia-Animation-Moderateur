@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Participant, QueueEntry, TableMemberForModerator } from '../lib/types'
+import type { Participant, ParticipationStyle, QueueEntry, TableMemberForModerator } from '../lib/types'
 import { loadTableMembersForModerator } from '../lib/voting'
 
 const ROSTER_POLL_MS = 10_000
@@ -22,8 +22,9 @@ interface Props {
   isModerator?: boolean
 }
 
-const STYLE_LABEL: Record<'listener' | 'active', string> = {
-  active:   'Actif',
+const STYLE_LABEL: Record<ParticipationStyle, string> = {
+  active:       'Actif',
+  intermediate: 'Intermédiaire',
   listener: 'Passif',
 }
 
@@ -86,19 +87,22 @@ export default function ParticipantsSidebar({
     .filter(r => !r.connected && !connectedPseudos.has(r.pseudo))
     .sort((a, b) => a.pseudo.localeCompare(b.pseudo))
 
-  function StyleBadge({ style }: { style: 'listener' | 'active' | null }) {
+  function StyleBadge({ style }: { style: ParticipationStyle | null }) {
     if (!style) return null
-    const isActive = style === 'active'
+    const tone = {
+      active:       'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      intermediate: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+      listener:     'bg-slate-600/40 text-slate-300 border-slate-500/40',
+    }[style]
+    const hint = {
+      active:       'Actif — censé prendre la parole',
+      intermediate: 'Intermédiaire — pourrait prendre la parole',
+      listener:     'Passif — ne doit pas prendre la parole spontanément, mais peut la recevoir',
+    }[style]
     return (
       <span
-        className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap ${
-          isActive
-            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-            : 'bg-slate-600/40 text-slate-300 border-slate-500/40'
-        }`}
-        title={isActive
-          ? 'Actif — censé prendre la parole'
-          : 'Passif — ne doit pas prendre la parole spontanément, mais peut la recevoir'}
+        className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap ${tone}`}
+        title={hint}
       >
         {STYLE_LABEL[style]}
       </span>

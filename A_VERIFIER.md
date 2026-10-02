@@ -59,7 +59,10 @@ Sur une séance de test, avec la souris.
 
 > ⏳ **Puis, juste après** : `20261002_chantier148b_tables_seance_sans_proprietaire_admin` (appliquée sur dev le 2026-10-02) — toute table de séance a `created_by` = sentinelle ; réécrit `table_owner_uid` (créée par la 147), `admin_create_table`, `create_tables_batch`, `apply_allocation`, `set_table_leaderless`, `delete_session_member_admin` (md5 dev = prod le 2026-10-02). Réparation : 4 tables sur prod, toutes en séance close (contrôle en lecture seule fait le 2026-10-02).
 
+> ⏳ **Puis, avec le 153** : `20261002_chantier153_regles_propositions` (appliquée sur dev le 2026-10-02). Ajoute `sessions.assertions_vote_first` / `max_assertions_per_member`, la RPC `set_session_assertion_rules` (via `check_session_admin`, donc ouverte aux associations) et réécrit `submit_assertion` (définition vivante comparée avant réécriture : identique au chantier 124 + deux refus). Contient aussi `GRANT SELECT (assertions_locked, assertions_vote_first, max_assertions_per_member) ON sessions TO anon, authenticated` : sur **prod**, `assertions_locked` n'avait **pas** de SELECT colonne pour `anon`/`authenticated` (droits colonne par colonne depuis le chantier 58) — le chargement initial passe par `get_session_by_join_code` (SECURITY DEFINER) et n'en souffre pas, mais les mises à jour Realtime de `sessions` pouvaient ne pas porter le verrou ; le GRANT est sans effet sur dev (droit table entière).
+
 Puis, sur une séance de test **de prod** :
+- [ ] **153** — sur une séance de test de prod, régler « voter d'abord » et un plafond depuis le superadmin, vérifier que le bouton « Proposer » suit en direct côté participant (comme vérifié sur dev).
 - [ ] **147** — créer un débat simple depuis le navigateur d'administration, ouvrir **le même lien dans ce même navigateur** : on doit arriver en **participant** (écran noir modérateur absent), et un second appareil qui entre avec « Je suis le modérateur » + code doit être accepté (pas de « Toutes les tables ont déjà un modérateur ») et apparaître comme modérateur dans l'onglet Groupes. (Vérifié en base dev uniquement — le navigateur intégré a refusé `localhost` le 2026-10-02.)
 - [ ] **148** — à une table de séance, un participant fait Outils → « Reprendre l'animation de cette table » avec le **vrai** code : écran noir chez lui, l'ancien animateur repasse participant, il apparaît modérateur dans l'onglet Groupes, et **recharger la page le laisse modérateur**. Puis le retirer (onglet Groupes) : retour immédiat en participant. (Vérifié sur dev en base, RPC appelées avec le contrôle de code neutralisé dans une transaction annulée, et au navigateur en posant l'état résultant en base — le mot de passe réel n'était pas disponible à la session.)
 - [ ] **135** — création d'un compte association, connexion `#asso`, prise de modération avec le mot de passe d'asso.
@@ -154,14 +157,16 @@ rollback;
 
 
 ## Chantier 144 — correctifs de la passe 141 (2026-09-29)
-Non vérifié au navigateur. À jouer sur dev :
-1. Onglet Groupes : les liens « Libérer la modération de cette table » et « Refaire une table sans animateur » sont espacés.
-2. Créer une table (bannière « Table créée ! Code … »), puis la supprimer : la bannière disparaît.
-3. `JoinTableForm` : entrer un nom déjà pris → accordéon code ouvert ; corriger le nom → accordéon refermé, « Rejoindre » actif. Ouvrir l'accordéon à la main puis changer le nom → il reste ouvert.
-4. Modérateur inscrit à la séance : « ajouter une personne sans téléphone » avec **son propre nom** (autre casse) → refus « déjà assise ». Deux personnes sans téléphone de noms différents → toujours acceptées.
-5. Table créée via « Créer une table » (Code Ecclesia) + un modérateur en attente : `assign_pending_moderators` ne place plus personne sur cette table.
-Migrations appliquées sur **dev** (`20260929_chantier144_*`, `20260929_chantier144b_*`), pas sur prod.
-6. Sondage : onglet Analyse sans « Comparaison avant/après », « Thèmes », « Réponses au questionnaire », « Recrutement modérateurs » ; séance complète et débat simple : ces sections restent visibles.
+Vérifié au navigateur le 2026-10-02 sur le déploiement Vercel dev (séances « QA Vérifs — Débat/Sondage/Complète »), sauf le point 5. Décision de Jules : pas de revérification sur prod, le comportement doit être identique.
+- [x] 1. Onglet Groupes : les liens « Libérer la modération de cette table » et « Refaire une table sans animateur » sont espacés.
+- [x] 2. Créer une table (bannière « Table créée ! Code … »), puis la supprimer : la bannière disparaît.
+- [x] 3. `JoinTableForm` : entrer un nom déjà pris → accordéon code ouvert ; corriger le nom → accordéon refermé, « Rejoindre » actif. Ouvrir l'accordéon à la main puis changer le nom → il reste ouvert.
+- [x] 4. Modérateur inscrit à la séance : « ajouter une personne sans téléphone » avec **son propre nom** (autre casse) → refus « déjà assise ». Deux personnes sans téléphone de noms différents → toujours acceptées.
+- [x] 5. Table créée via « Créer une table » (Code Ecclesia) + un modérateur en attente : `assign_pending_moderators` ne place plus personne sur cette table. *(Vérifié en SQL sur dev le 2026-10-02, pas au navigateur : transaction annulée par rollback — table 1 avec créateur assis comme modérateur physique, table 2 libre, un modérateur en attente → placé sur la table 2, `tables_without_moderator` vide. Rollback contrôlé : aucune séance/table de test restante, `check_superadmin_password` intacte.)*
+Migrations appliquées sur **dev** (`20260929_chantier144_*`, `20260929_chantier144b_*`) ; appliquées sur prod le 2026-09-30 (voir section 5).
+- [x] 6. Sondage : onglet Analyse sans « Comparaison avant/après », « Thèmes », « Réponses au questionnaire », « Recrutement modérateurs » ; séance complète et débat simple : ces sections restent visibles.
+
+*Observation du 2026-10-02 (pas un bug avéré)* : sur un débat simple, « Me déclarer modérateur de la séance » (Outils) marque le membre modérateur mais le laisse en vue participant, même après rechargement ; il faut « Reprendre l'animation de cette table » pour obtenir `ModeratorView`. Probablement normal (pas de placement de table sans allocation) — à confirmer avec Jules.
 
 ---
 
@@ -229,3 +234,22 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils, pré-remplissage, enregistrement, bandeaux « Facultatif » en première ligne, refus de la modification en `allocating`, première saisie toujours permise). Aucune vérification manuelle demandée à Jules.
 
 - [ ] **Au merge `dev` → `main`** : appliquer `supabase/migrations/20261002_chantier150_modifier_questionnaire_entree.sql` sur la base **prod** (comparer d'abord `pg_get_functiondef(submit_entry_response)` prod à celle de dev). Une vérification faite sur dev ne vaut pas pour prod.
+
+## Chantier 151 — activité à trois niveaux (2026-10-02)
+
+- **Migration** `supabase/migrations/20261002_chantier151_activite_trois_niveaux.sql` : appliquée sur **dev uniquement** (élargit le `CHECK` de `entry_responses.participation_style` à `listener|intermediate|active` et fait compter `intermediate` comme actif dans `get_allocation_inputs`). **À appliquer sur prod au merge vers `main`, après `20260906_chantier72_2_*`** (la fonction diffère entre dev et prod tant que 72_2 n'y est pas).
+- ✅ **Vérifié au navigateur par la session (dev, séance de test supprimée)** : les trois boutons s'affichent, « Intermédiaire » s'enregistre (`intermediate` en base), la réouverture via Outils → « Modifier questionnaire d'entrée » est pré-remplie sur Intermédiaire, le passage à « Actif » s'enregistre.
+- ✅ **Allocation vérifiée côté superadmin au navigateur (dev, 2026-10-02, avec Jules)** : séance de test à 9 présentiels (3 passifs, 3 intermédiaires, 3 actifs) → le panneau d'allocation annonce « 6 actifs · 3 en public » : les intermédiaires comptent comme actifs, les passifs restent en public. Calcul seul (aucun « Appliquer »).
+- ⏳ Visuel du badge **Intermédiaire** (ambre) dans la barre latérale du modérateur : non vérifié à l'écran (il faut une table en débat avec un participant « Intermédiaire »).
+
+## Chantier 153 (2026-10-02) — Propositions : « voter d'abord » et plafond par personne
+
+**Vérifié au navigateur sur dev** (séance de test, supprimée ensuite) : participant côté `#vote/<code>`, réglages posés en base. « Voter d'abord » → bouton « Proposer » absent (en-tête) et ligne « Proposer une assertion » absente de la modale d'intro tant qu'il reste une assertion non votée ; tout voté → les deux boutons reviennent ; proposition soumise normalement ; plafond 3 avec 3 propositions et tout voté → aucun bouton, aucune mention ; plafond relevé à 4 → le bouton revient en ~4 s sans recharger. Refus serveur vérifié pour les deux règles (`submit_assertion` appelée avec l'identité du participant). Mauvais mot de passe refusé sur `set_session_assertion_rules`.
+
+**Écran superadmin — vérifié ensuite au navigateur sur dev (Jules a saisi le mot de passe lui-même)** : la case « Voter sur toutes les options avant de proposer » et le champ « Max. de propositions par personne » s'affichent sous « Propositions ouvertes » sur toutes les séances sauf le débat simple ; cocher la case enregistre (vérifié en base) ; saisir 2 + Entrée enregistre 2 sans toucher à la case ; saisir 0 est refusé et le champ revient à 2 ; vider le champ remet NULL (illimité) ; après rechargement de la page, case cochée et plafond 3 conservés.
+
+**Reste à vérifier**
+- [ ] Même contrôle côté **association** (`#asso`, sondage) : les commandes y sont visibles et la RPC passe (`check_session_admin`) — non joué, pas de compte d'association de test sous la main.
+- [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer » (la partie « ne voit plus » est vérifiée ; la conservation des assertions est garantie par le code, qui ne supprime rien).
+
+**Point de comportement à connaître** : en « voter d'abord », les assertions du participant lui-même comptent parmi celles qu'il doit voter (l'app ne les exclut nulle part de sa file) ; avec la modération `open`, il doit donc voter sa propre proposition avant d'en faire une deuxième.

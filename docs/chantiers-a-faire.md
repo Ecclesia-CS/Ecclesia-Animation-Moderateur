@@ -8,6 +8,10 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
+> **Le 2026-10-02, le chantier 151 est fait** (activité à trois niveaux passif / intermédiaire / actif à l'onboarding ; l'intermédiaire compte comme actif dans l'allocation) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 151. Migration `20261002_chantier151_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** 72_2. Entrée « en cours » retirée.
+
+> **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Écran superadmin vérifié au navigateur ; seul le côté association (`#asso`) reste à rejouer. Entrée « en cours » retirée.
+
 > **Le 2026-10-02, le chantier 150 est fait** (modifier son questionnaire d'entrée pendant `voting`, garde serveur, « facultatif » en première ligne des partenaires) — voir `docs/chantiers.md`. Migration `20261002_chantier150_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 151 peut démarrer.** Entrée « en cours » retirée.
 
 > **Le 2026-10-02, le chantier 148 est mergé dans `dev`** (un seul écran modérateur par table ; 148b : aucune table de séance n'appartient à l'administrateur) — voir `docs/chantiers.md`. Migrations `20261002_chantier148_*` et `20261002_chantier148b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 147, dans cet ordre**. Entrée « en cours » retirée au merge.
@@ -144,14 +148,14 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 **Précisions (réponse de Jules)** : modification possible **uniquement en phase `voting`** (en `pre_voting` l'onboarding n'a pas encore eu lieu) ; **interdite en `allocating`** (et après), pour ne pas fausser l'algorithme. Bouton dans « Outils ». Le mot « facultatif » en première ligne de l'écran des partenaires, avec la mention qu'on peut les remplir plus tard.
 
-#### 151 — Activité à trois niveaux (passif / intermédiaire / actif)
+#### 151 — Activité à trois niveaux (passif / intermédiaire / actif) — ✅ fait le 2026-10-02, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Sur l'onboarding, sur l'activité, donner un troisième bouton. Un bouton : passif, je ne compte pas parler du tout. Un bouton intermédiaire, je compte éventuellement prendre la parole. Un bouton actif, je compte prendre la parole. Dans l'algorithme d'allocation, les passifs restent les passifs, comme on les traitait auparavant. Les intermédiaires sont considérés comme des actifs également. »
 
 **Précisions (réponse de Jules : « ok bonne idée »)** : stocker les **trois niveaux en base** (migration, conversion des anciennes valeurs, anciennes séances inchangées), `allocation.ts` traite intermédiaire = actif. Comparer à `pg_get_functiondef` et à la colonne existante avant la migration. **Le 150 est fait : le 151 peut démarrer.**
 
 #### 152 — Retirer le bouton « Proposer » quand c'est désactivé + renommer « Demander la parole » — ✅ fait le 2026-10-02, voir `docs/chantiers.md`
 
-#### 153 — Propositions : voter d'abord, et plafond par personne
+#### 153 — Propositions : voter d'abord, et plafond par personne — ✅ fait, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Sur les propositions : ajouter une possibilité, pour les propositions, de ne pouvoir ajouter de propositions qu'après avoir voté sur toutes les options. Et pouvoir définir, en séance, le nombre de propositions que chaque personne peut proposer (par défaut, infini, mais on peut les baisser). Si on cap en séance, et que des personnes ont déjà dépassé la limite, on part du principe qu'elles n'ont plus de propositions à faire. »
 
 **Précisions (réponse de Jules)** : deux **réglages par séance, activables en séance** : « voter sur toutes les options avant de proposer » et un **plafond de propositions par personne** (infini par défaut). Réglés par le **superadmin** pour les séances internes et par **l'association** pour les séances externes (nouvelles RPC via `check_session_admin`). Les personnes qui dépassent déjà le plafond gardent leurs propositions et n'en peuvent plus ajouter. Valable pour tous les types de séance (sans effet en `debate`). S'appuyer sur `assertions_locked` (chantier 124) comme modèle.
