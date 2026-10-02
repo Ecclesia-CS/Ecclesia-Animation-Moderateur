@@ -49,7 +49,8 @@
 | `confirm_attendance(session_id, pseudo?, code?)` | Confirme présence présentielle. Cas 1 : caller déjà membre → marking attending. Cas 2 : code fourni → reclaim par comparaison bcrypt à `reclaim_code_hash`. Cas 3 : pseudo fourni → reclaim ou création. L'un ou l'autre suffit. |
 | `reclaim_prevoting_member(session_id, pseudo?, code?)` | **Chantier B3** — reconquête d'un profil `pre_voting` déjà inscrit (pseudo pris suite à une perte d'identité locale — User ID instable selon navigateur). Par pseudo ou code de rappel, l'un ou l'autre suffit. Phase-safe : exception si la séance n'est plus en `pre_voting`. **Ne touche jamais `attending_in_person`** (contrairement à `confirm_attendance`, à ne pas réutiliser ici — reconquête à distance, pas une confirmation de présence physique) — transfère uniquement `user_id`. |
 | `submit_entry_response(session_id, ...)` | Upsert entry_responses |
-| `submit_assertion(session_id, content)` | Insère assertion (status auto selon moderation_policy) |
+| `submit_assertion(session_id, content)` | Insère assertion (status auto selon moderation_policy). Refuse si `assertions_locked` (124), si le plafond `max_assertions_per_member` est atteint, ou si `assertions_vote_first` et qu'il reste une assertion approuvée non votée (153) |
+| `set_session_assertion_rules(password, session_id, vote_first, max)` | Chantier 153 — règle les deux réglages de proposition (`check_session_admin`, ouverte aux associations). `max` NULL = illimité, sinon ≥ 1 |
 | `cast_vote(assertion_id, vote)` | Upsert assertion_votes |
 | `get_vote_results(session_id)` | Retourne assertions approved avec consensus_score |
 | `approve_assertion(password, assertion_id)` | status → 'approved' |

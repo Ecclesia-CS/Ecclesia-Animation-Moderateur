@@ -55,6 +55,13 @@ export interface Session {
   // pour cette séance (le superadmin, seul à pouvoir activer ce verrou, n'est
   // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
   assertions_locked: boolean
+  // Chantier 153 — règles de proposition réglables en séance (superadmin ou
+  // association). vote_first : false par défaut ; true → on ne peut proposer
+  // qu'après avoir voté sur toutes les assertions approuvées. max_… : null =
+  // illimité (défaut) ; sinon plafond de propositions par personne — qui ne
+  // retire rien à qui l'a déjà dépassé, mais l'empêche d'en ajouter.
+  assertions_vote_first: boolean
+  max_assertions_per_member: number | null
   session_type: SessionType
   // Chantier 135 — association externe propriétaire de la séance (null =
   // séance Ecclesia). Toujours un débat simple ou un sondage. Colonne ajoutée

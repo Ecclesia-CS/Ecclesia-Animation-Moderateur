@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { castVote, getMyAssertionIds } from '../lib/voting'
+import { castVote, getMyAssertionIds, canProposeAssertion } from '../lib/voting'
 import { extractErr } from '../lib/utils'
 import type { Assertion, AssertionVote, Session } from '../lib/types'
 import AssertionCard from '../components/voting/AssertionCard'
@@ -142,6 +142,11 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
   // Un vote fait sortir l'assertion de cette liste (myVotes.has devient vrai) —
   // la suivante glisse automatiquement en position 0, pas besoin d'index à avancer.
   const currentUnvoted = unvotedAssertions[0] ?? null
+  // Chantier 153 — verrou, « voter d'abord » et plafond par personne (lib/voting.ts).
+  const canPropose = canProposeAssertion(session, {
+    unvotedCount: unvotedAssertions.length,
+    proposedCount: myAssertionIds.length,
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -205,7 +210,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
             </section>
 
             {/* ── 2. Proposer une nouvelle assertion ─────────────── */}
-            {!session.assertions_locked && (
+            {canPropose && (
             <section className="bg-white rounded-2xl border border-gray-200 px-5 py-5">
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                 2 · Proposer une nouvelle assertion
@@ -233,7 +238,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
             <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 pt-5 pb-1">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  {session.assertions_locked ? '2' : '3'} · Assertions non vues
+                  {canPropose ? '3' : '2'} · Assertions non vues
                 </h2>
                 <p className="text-xs text-gray-400">
                   D'autres participants ont peut-être proposé de nouvelles idées depuis ton dernier vote.
