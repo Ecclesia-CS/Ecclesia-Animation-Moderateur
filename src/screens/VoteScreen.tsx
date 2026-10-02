@@ -1433,7 +1433,9 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   // annonçait encore 4, la 5e (pré-vote) n'apparaissait nulle part.
   const introSteps: Array<{ icon: string; label: string; description: string }> = sessionTypeOf(session) === 'poll' ? [
     { icon: '🗳️', label: '1. Vote',
-      description: "Vote sur les assertions, et propose les tiennes. Tu peux voir les résultats et les camps d'opinion à tout moment." },
+      // Chantier 152 — la mention « propose les tiennes » disparaît quand les propositions sont verrouillées.
+      description: (session.assertions_locked ? "Vote sur les assertions. " : "Vote sur les assertions, et propose les tiennes. ")
+        + "Tu peux voir les résultats et les camps d'opinion à tout moment." },
     { icon: '📊', label: '2. Résultats',
       // Chantier 135 — un sondage d'association n'est jamais rendu public.
       description: session.organization_id
