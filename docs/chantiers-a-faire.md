@@ -109,7 +109,7 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 >
 > **Ordre / conflits** : 147 et 148 touchent la même logique de modérateur → **147 puis 148, séquentiels** (148 en Opus). 150 et 151 touchent tous deux l'onboarding → 150 d'abord. 152 et 153 touchent `VoteScreen`/`PostVoteScreen`. Le reste est indépendant. La demande « code personnel plutôt que code de table » (point 2 de la liste) a été **retirée par Jules**.
 
-#### 145 — Sortir de la vue débat/modérateur quand c'est fini ou qu'on quitte — ✅ fait sur la branche `claude/chantier-145-2af869` (non mergé), voir `docs/chantiers.md`
+#### 145 — Sortir de la vue débat/modérateur quand c'est fini ou qu'on quitte — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Problème : le post vote devrait sortir de la vue débat pour le modo : Même quand c'est fini, la vue modo n'est pas quittée. Peu importe si on passe par postvote ou pas. C'est un problème. » Et, sur les débats d'association : « Quand je tente de quitter, on ne me renvoie pas au menu principal, et je reste bloqué dans la vue modérateur ! Même chose en tant que participant. »
 
 **Précisions (réponse de Jules)** : à la fin du débat (passage en `post_voting` ou `closed`, ou départ volontaire), renvoyer vers **les résultats de la séance** (pas le menu principal) quand la séance en a ; sinon menu principal. Vaut pour le modérateur **et** le participant, séances internes **et** d'association (`debate`/`poll`). Vérifier le cas « quitter » sur une table d'association.
