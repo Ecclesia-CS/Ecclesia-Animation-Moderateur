@@ -968,12 +968,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               </h1>
               <p className="text-xs text-gray-500">{member.pseudo}</p>
             </div>
-            <button
-              onClick={() => setShowSubmitModal(true)}
-              className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
-            >
-              ✏️ Proposer
-            </button>
+            {/* Chantier 152 — propositions désactivées : le bouton disparaît (pas grisé) */}
+            {!session.assertions_locked && (
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+              >
+                ✏️ Proposer
+              </button>
+            )}
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -1044,12 +1047,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   ✏️ Tu as proposé {proposedCount} assertion{proposedCount > 1 ? 's' : ''}
                 </p>
               )}
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-              >
-                ✏️ Proposer une assertion
-              </button>
+              {!session.assertions_locked && (
+                <button
+                  onClick={() => setShowSubmitModal(true)}
+                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  ✏️ Proposer une assertion
+                </button>
+              )}
             </div>
 
             {/* Nudge documentaire */}
@@ -1111,7 +1116,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             </div>
           </div>
         ) : assertions.length === 0 ? (
-          <EmptyAssertions onPropose={() => setShowSubmitModal(true)} />
+          <EmptyAssertions
+            canPropose={!session.assertions_locked}
+            onPropose={() => setShowSubmitModal(true)}
+          />
         ) : currentAssertion ? (
           <AssertionCard
             key={currentAssertion.id}
@@ -1195,13 +1203,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                     <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">✏️</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Proposer une assertion</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
+                {!session.assertions_locked && (
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl shrink-0">✏️</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Proposer une assertion</p>
+                      <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex items-start gap-3">
                   <span className="text-xl shrink-0">🔄</span>
                   <div>
@@ -1479,7 +1489,9 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   // annonçait encore 4, la 5e (pré-vote) n'apparaissait nulle part.
   const introSteps: Array<{ icon: string; label: string; description: string }> = sessionTypeOf(session) === 'poll' ? [
     { icon: '🗳️', label: '1. Vote',
-      description: "Vote sur les assertions, et propose les tiennes. Tu peux voir les résultats et les camps d'opinion à tout moment." },
+      // Chantier 152 — la mention « propose les tiennes » disparaît quand les propositions sont verrouillées.
+      description: (session.assertions_locked ? "Vote sur les assertions. " : "Vote sur les assertions, et propose les tiennes. ")
+        + "Tu peux voir les résultats et les camps d'opinion à tout moment." },
     { icon: '📊', label: '2. Résultats',
       // Chantier 135 — un sondage d'association n'est jamais rendu public.
       description: session.organization_id
@@ -1607,20 +1619,22 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
   )
 }
 
-function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
+function EmptyAssertions({ canPropose, onPropose }: { canPropose: boolean; onPropose: () => void }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
       <div className="text-5xl">💭</div>
       <h2 className="text-lg font-bold text-gray-900">Aucune assertion pour l'instant</h2>
       <p className="text-sm text-gray-500">
-        Les assertions apparaîtront ici dès qu'elles seront approuvées. Tu peux en proposer une !
+        Les assertions apparaîtront ici dès qu'elles seront approuvées.{canPropose ? ' Tu peux en proposer une !' : ''}
       </p>
-      <button
-        onClick={onPropose}
-        className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-      >
-        ✏️ Proposer une assertion
-      </button>
+      {canPropose && (
+        <button
+          onClick={onPropose}
+          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          ✏️ Proposer une assertion
+        </button>
+      )}
     </div>
   )
 }

@@ -205,6 +205,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
             </section>
 
             {/* ── 2. Proposer une nouvelle assertion ─────────────── */}
+            {!session.assertions_locked && (
             <section className="bg-white rounded-2xl border border-gray-200 px-5 py-5">
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                 2 · Proposer une nouvelle assertion
@@ -226,12 +227,13 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
                 </p>
               )}
             </section>
+            )}
 
             {/* ── 3. Voter sur les assertions non vues ───────────── */}
             <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 pt-5 pb-1">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  3 · Assertions non vues
+                  {session.assertions_locked ? '2' : '3'} · Assertions non vues
                 </h2>
                 <p className="text-xs text-gray-400">
                   D'autres participants ont peut-être proposé de nouvelles idées depuis ton dernier vote.
