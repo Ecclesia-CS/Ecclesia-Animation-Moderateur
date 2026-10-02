@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
+> **🚧 Chantier 148 — en cours depuis le 2026-10-02** (un seul écran modérateur par table). Branche `claude/chantier-148-c22617`. Fichiers : `src/context/TableContext.tsx`, `src/components/voting/ModeratorActionModal.tsx`, migration `supabase/migrations/20261002_chantier148_*.sql` (réécrit `is_table_moderator`, `table_has_moderator`, `reclaim_table_as_moderator`, `claim_table_as_moderator`, `join_simple_debate`, `claim_moderator_status`, `set_member_moderator`), `CLAUDE.md` (exception du 02/09), docs de suivi. Ne pas toucher ces fonctions SQL en parallèle.
+
 > **Le 2026-10-02, le chantier 147 est mergé dans `dev`** (débat simple/d'association : `tables.created_by` n'est plus l'uid de l'admin — sentinelle `0000…` via `table_owner_uid`) — voir `docs/chantiers.md`. Migration `20261002_chantier147_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 148 peut démarrer.** Entrée « en cours » retirée au merge.
 
 
