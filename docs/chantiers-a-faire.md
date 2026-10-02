@@ -113,7 +113,7 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 **Précisions (réponse de Jules)** : à la fin du débat (passage en `post_voting` ou `closed`, ou départ volontaire), renvoyer vers **les résultats de la séance** (pas le menu principal) quand la séance en a ; sinon menu principal. Vaut pour le modérateur **et** le participant, séances internes **et** d'association (`debate`/`poll`). Vérifier le cas « quitter » sur une table d'association.
 Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `ParticipantView.tsx`, `SessionRouterScreen.tsx`.
 
-#### 146 — Lien « Asso » sous « Administration »
+#### 146 — Lien « Asso » sous « Administration » — **FAIT le 2026-10-02**
 > **Consigne de Jules** : « Ajouter le lien asso de même manière que admin, avec un petit cliquable « asso » vers « Administration ». »
 
 **Précisions** : le petit lien « Asso » se place **en dessous** du lien « Administration » (même style), et mène à l'écran asso `#asso` (celui qu'on améliore actuellement). Fichier probable : `EntryScreen.tsx`.
