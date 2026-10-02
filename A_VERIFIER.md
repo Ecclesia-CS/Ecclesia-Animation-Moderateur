@@ -229,3 +229,10 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils, pré-remplissage, enregistrement, bandeaux « Facultatif » en première ligne, refus de la modification en `allocating`, première saisie toujours permise). Aucune vérification manuelle demandée à Jules.
 
 - [ ] **Au merge `dev` → `main`** : appliquer `supabase/migrations/20261002_chantier150_modifier_questionnaire_entree.sql` sur la base **prod** (comparer d'abord `pg_get_functiondef(submit_entry_response)` prod à celle de dev). Une vérification faite sur dev ne vaut pas pour prod.
+
+## Chantier 151 — activité à trois niveaux (2026-10-02)
+
+- **Migration** `supabase/migrations/20261002_chantier151_activite_trois_niveaux.sql` : appliquée sur **dev uniquement** (élargit le `CHECK` de `entry_responses.participation_style` à `listener|intermediate|active` et fait compter `intermediate` comme actif dans `get_allocation_inputs`). **À appliquer sur prod au merge vers `main`, après `20260906_chantier72_2_*`** (la fonction diffère entre dev et prod tant que 72_2 n'y est pas).
+- ✅ **Vérifié au navigateur par la session (dev, séance de test supprimée)** : les trois boutons s'affichent, « Intermédiaire » s'enregistre (`intermediate` en base), la réouverture via Outils → « Modifier questionnaire d'entrée » est pré-remplie sur Intermédiaire, le passage à « Actif » s'enregistre.
+- ✅ **Allocation vérifiée côté superadmin au navigateur (dev, 2026-10-02, avec Jules)** : séance de test à 9 présentiels (3 passifs, 3 intermédiaires, 3 actifs) → le panneau d'allocation annonce « 6 actifs · 3 en public » : les intermédiaires comptent comme actifs, les passifs restent en public. Calcul seul (aucun « Appliquer »).
+- ⏳ Visuel du badge **Intermédiaire** (ambre) dans la barre latérale du modérateur : non vérifié à l'écran (il faut une table en débat avec un participant « Intermédiaire »).

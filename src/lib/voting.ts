@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type { TableResult } from './supabase'
 import { extractErr } from './utils'
 import type {
+  ParticipationStyle,
   Session,
   SessionMember,
   EntryResponse,
@@ -258,7 +259,7 @@ export async function regenerateReclaimCodeModerator(
 export async function submitEntryResponse(
   sessionId: string,
   consentTranscript: boolean,
-  participationStyle: 'listener' | 'active',
+  participationStyle: ParticipationStyle,
   ecclesiaExperience: boolean
 ): Promise<EntryResponse> {
   const { data, error } = await supabase.rpc('submit_entry_response', {
