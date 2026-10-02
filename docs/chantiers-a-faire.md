@@ -8,7 +8,9 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
-> **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **pas encore mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Écran superadmin vérifié au navigateur ; seul le côté association (`#asso`) reste à rejouer. Entrée « en cours » retirée.
+> **Le 2026-10-02, le chantier 151 est fait** (activité à trois niveaux passif / intermédiaire / actif à l'onboarding ; l'intermédiaire compte comme actif dans l'allocation) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 151. Migration `20261002_chantier151_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** 72_2. Entrée « en cours » retirée.
+
+> **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Écran superadmin vérifié au navigateur ; seul le côté association (`#asso`) reste à rejouer. Entrée « en cours » retirée.
 
 > **Le 2026-10-02, le chantier 150 est fait** (modifier son questionnaire d'entrée pendant `voting`, garde serveur, « facultatif » en première ligne des partenaires) — voir `docs/chantiers.md`. Migration `20261002_chantier150_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 151 peut démarrer.** Entrée « en cours » retirée.
 
@@ -146,7 +148,7 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 **Précisions (réponse de Jules)** : modification possible **uniquement en phase `voting`** (en `pre_voting` l'onboarding n'a pas encore eu lieu) ; **interdite en `allocating`** (et après), pour ne pas fausser l'algorithme. Bouton dans « Outils ». Le mot « facultatif » en première ligne de l'écran des partenaires, avec la mention qu'on peut les remplir plus tard.
 
-#### 151 — Activité à trois niveaux (passif / intermédiaire / actif)
+#### 151 — Activité à trois niveaux (passif / intermédiaire / actif) — ✅ fait le 2026-10-02, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Sur l'onboarding, sur l'activité, donner un troisième bouton. Un bouton : passif, je ne compte pas parler du tout. Un bouton intermédiaire, je compte éventuellement prendre la parole. Un bouton actif, je compte prendre la parole. Dans l'algorithme d'allocation, les passifs restent les passifs, comme on les traitait auparavant. Les intermédiaires sont considérés comme des actifs également. »
 
 **Précisions (réponse de Jules : « ok bonne idée »)** : stocker les **trois niveaux en base** (migration, conversion des anciennes valeurs, anciennes séances inchangées), `allocation.ts` traite intermédiaire = actif. Comparer à `pg_get_functiondef` et à la colonne existante avant la migration. **Le 150 est fait : le 151 peut démarrer.**

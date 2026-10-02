@@ -168,7 +168,8 @@ export interface AllocationMember {
   member_id: string
   pseudo: string
   /**
-   * `participation_style === 'active'`. Sans onboarding → false (conservateur,
+   * `participation_style` ∈ {`active`, `intermediate`} (chantier 151 : l'intermédiaire
+   * compte comme actif ; la conversion est faite par `get_allocation_inputs`). Sans onboarding → false (conservateur,
    * §6). Chantier 91 : un passif est placé **en public**, hors des règles.
    */
   is_active: boolean

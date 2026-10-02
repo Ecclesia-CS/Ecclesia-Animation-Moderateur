@@ -230,6 +230,14 @@ export interface SessionMember {
   new_reclaim_code?: string | null
 }
 
+/**
+ * Chantier 151 — niveau d'activité annoncé à l'onboarding. Trois niveaux en base ;
+ * l'allocation ne distingue que passif / non-passif : `intermediate` compte comme
+ * `active` (`get_allocation_inputs`). Les valeurs historiques `listener` et
+ * `active` sont inchangées (anciennes séances intactes).
+ */
+export type ParticipationStyle = 'listener' | 'intermediate' | 'active'
+
 /** Chantier 19 (G3) — onboarding réduit à 3 questions. */
 export interface EntryResponse {
   id: string
@@ -237,8 +245,8 @@ export interface EntryResponse {
   member_id: string
   /** Règle 1 — table enregistrable. */
   consent_transcript: boolean
-  /** Chantier 91 — actif : forme les tables ; passif : placé en public. */
-  participation_style: 'listener' | 'active'
+  /** Chantier 91/151 — actif et intermédiaire : forment les tables ; passif : placé en public. */
+  participation_style: ParticipationStyle
   /** Règles 4 et 5 — « As-tu déjà fait un débat Ecclesia ? » (binaire). */
   ecclesia_experience: boolean | null
   created_at: string
@@ -335,7 +343,7 @@ export interface TableMemberForModerator {
   member_id: string
   pseudo: string
   is_moderator: boolean
-  participation_style: 'listener' | 'active' | null
+  participation_style: ParticipationStyle | null
   connected: boolean
 }
 

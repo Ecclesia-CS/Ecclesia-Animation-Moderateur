@@ -5231,7 +5231,7 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
 /** H20 — tooltip récapitulant les attributs d'un membre derrière ses lettres. */
 function memberProfileTitle(p: AllocationMember): string {
   const parts = [
-    p.is_active ? 'Actif' : 'Plutôt passif',
+    p.is_active ? 'Actif (ou intermédiaire)' : 'Passif',
     p.consents  ? 'Consentant à l\'enregistrement' : 'Non consentant à l\'enregistrement',
     p.is_veteran ? 'A déjà fait un débat Ecclesia' : 'Nouveau',
     p.group_id !== null ? `Camp ${p.group_id + 1}` : 'N\'a pas voté (camp inconnu)',
