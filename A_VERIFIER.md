@@ -144,14 +144,16 @@ rollback;
 
 
 ## Chantier 144 — correctifs de la passe 141 (2026-09-29)
-Non vérifié au navigateur. À jouer sur dev :
-1. Onglet Groupes : les liens « Libérer la modération de cette table » et « Refaire une table sans animateur » sont espacés.
-2. Créer une table (bannière « Table créée ! Code … »), puis la supprimer : la bannière disparaît.
-3. `JoinTableForm` : entrer un nom déjà pris → accordéon code ouvert ; corriger le nom → accordéon refermé, « Rejoindre » actif. Ouvrir l'accordéon à la main puis changer le nom → il reste ouvert.
-4. Modérateur inscrit à la séance : « ajouter une personne sans téléphone » avec **son propre nom** (autre casse) → refus « déjà assise ». Deux personnes sans téléphone de noms différents → toujours acceptées.
-5. Table créée via « Créer une table » (Code Ecclesia) + un modérateur en attente : `assign_pending_moderators` ne place plus personne sur cette table.
-Migrations appliquées sur **dev** (`20260929_chantier144_*`, `20260929_chantier144b_*`), pas sur prod.
-6. Sondage : onglet Analyse sans « Comparaison avant/après », « Thèmes », « Réponses au questionnaire », « Recrutement modérateurs » ; séance complète et débat simple : ces sections restent visibles.
+Vérifié au navigateur le 2026-10-02 sur le déploiement Vercel dev (séances « QA Vérifs — Débat/Sondage/Complète »), sauf le point 5. Décision de Jules : pas de revérification sur prod, le comportement doit être identique.
+- [x] 1. Onglet Groupes : les liens « Libérer la modération de cette table » et « Refaire une table sans animateur » sont espacés.
+- [x] 2. Créer une table (bannière « Table créée ! Code … »), puis la supprimer : la bannière disparaît.
+- [x] 3. `JoinTableForm` : entrer un nom déjà pris → accordéon code ouvert ; corriger le nom → accordéon refermé, « Rejoindre » actif. Ouvrir l'accordéon à la main puis changer le nom → il reste ouvert.
+- [x] 4. Modérateur inscrit à la séance : « ajouter une personne sans téléphone » avec **son propre nom** (autre casse) → refus « déjà assise ». Deux personnes sans téléphone de noms différents → toujours acceptées.
+- [x] 5. Table créée via « Créer une table » (Code Ecclesia) + un modérateur en attente : `assign_pending_moderators` ne place plus personne sur cette table. *(Vérifié en SQL sur dev le 2026-10-02, pas au navigateur : transaction annulée par rollback — table 1 avec créateur assis comme modérateur physique, table 2 libre, un modérateur en attente → placé sur la table 2, `tables_without_moderator` vide. Rollback contrôlé : aucune séance/table de test restante, `check_superadmin_password` intacte.)*
+Migrations appliquées sur **dev** (`20260929_chantier144_*`, `20260929_chantier144b_*`) ; appliquées sur prod le 2026-09-30 (voir section 5).
+- [x] 6. Sondage : onglet Analyse sans « Comparaison avant/après », « Thèmes », « Réponses au questionnaire », « Recrutement modérateurs » ; séance complète et débat simple : ces sections restent visibles.
+
+*Observation du 2026-10-02 (pas un bug avéré)* : sur un débat simple, « Me déclarer modérateur de la séance » (Outils) marque le membre modérateur mais le laisse en vue participant, même après rechargement ; il faut « Reprendre l'animation de cette table » pour obtenir `ModeratorView`. Probablement normal (pas de placement de table sans allocation) — à confirmer avec Jules.
 
 ---
 
