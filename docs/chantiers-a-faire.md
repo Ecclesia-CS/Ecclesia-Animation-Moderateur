@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
-> **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **pas encore mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Commandes de l'écran superadmin non rejouées au navigateur (mot de passe de dev indisponible). Entrée « en cours » retirée.
+> **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **pas encore mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Écran superadmin vérifié au navigateur ; seul le côté association (`#asso`) reste à rejouer. Entrée « en cours » retirée.
 
 > **Le 2026-10-02, le chantier 150 est fait** (modifier son questionnaire d'entrée pendant `voting`, garde serveur, « facultatif » en première ligne des partenaires) — voir `docs/chantiers.md`. Migration `20261002_chantier150_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 151 peut démarrer.** Entrée « en cours » retirée.
 

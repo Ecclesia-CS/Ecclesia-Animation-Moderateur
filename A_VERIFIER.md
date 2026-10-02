@@ -237,9 +237,10 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 
 **Vérifié au navigateur sur dev** (séance de test, supprimée ensuite) : participant côté `#vote/<code>`, réglages posés en base. « Voter d'abord » → bouton « Proposer » absent (en-tête) et ligne « Proposer une assertion » absente de la modale d'intro tant qu'il reste une assertion non votée ; tout voté → les deux boutons reviennent ; proposition soumise normalement ; plafond 3 avec 3 propositions et tout voté → aucun bouton, aucune mention ; plafond relevé à 4 → le bouton revient en ~4 s sans recharger. Refus serveur vérifié pour les deux règles (`submit_assertion` appelée avec l'identité du participant). Mauvais mot de passe refusé sur `set_session_assertion_rules`.
 
-**Reste à vérifier — non rejoué faute du mot de passe superadmin de dev** (à faire par la prochaine session qui l'a, ou par Jules) :
-- [ ] Écran superadmin (liste des séances, séance `full` ou `poll`, **pas** `debate`) : sous le bouton « Propositions ouvertes/verrouillées », la case « Voter sur toutes les options avant de proposer » et le champ « Max. de propositions par personne » s'affichent ; cocher la case / saisir 2 puis sortir du champ enregistre (recharger la page : valeurs conservées) ; vider le champ = illimité ; saisir 0 ou une valeur non numérique revient à la valeur précédente.
-- [ ] Même contrôle côté **association** (`#asso`, sondage) : les commandes y sont visibles et la RPC passe (`check_session_admin`).
-- [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer ».
+**Écran superadmin — vérifié ensuite au navigateur sur dev (Jules a saisi le mot de passe lui-même)** : la case « Voter sur toutes les options avant de proposer » et le champ « Max. de propositions par personne » s'affichent sous « Propositions ouvertes » sur toutes les séances sauf le débat simple ; cocher la case enregistre (vérifié en base) ; saisir 2 + Entrée enregistre 2 sans toucher à la case ; saisir 0 est refusé et le champ revient à 2 ; vider le champ remet NULL (illimité) ; après rechargement de la page, case cochée et plafond 3 conservés.
+
+**Reste à vérifier**
+- [ ] Même contrôle côté **association** (`#asso`, sondage) : les commandes y sont visibles et la RPC passe (`check_session_admin`) — non joué, pas de compte d'association de test sous la main.
+- [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer » (la partie « ne voit plus » est vérifiée ; la conservation des assertions est garantie par le code, qui ne supprime rien).
 
 **Point de comportement à connaître** : en « voter d'abord », les assertions du participant lui-même comptent parmi celles qu'il doit voter (l'app ne les exclut nulle part de sa file) ; avec la modération `open`, il doit donc voter sa propre proposition avant d'en faire une deuxième.
