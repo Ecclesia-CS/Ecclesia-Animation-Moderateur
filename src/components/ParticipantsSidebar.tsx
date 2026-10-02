@@ -158,7 +158,7 @@ export default function ParticipantsSidebar({
               <StyleBadge style={style} />
 
               {inInteractive && !isSpeaking && (
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" title="Coupe file" />
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" title="Demander la parole sur le sujet actuel" />
               )}
               {inLong && !isSpeaking && (
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" title="File d'attente" />

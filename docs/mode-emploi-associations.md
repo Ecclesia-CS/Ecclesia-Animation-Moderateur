@@ -2,7 +2,7 @@
 
 Ecclesia met à votre disposition deux outils :
 
-- **Débat simple** : une table de débat, avec un modérateur qui distribue la parole (file d'attente, coupe-file, temps de parole de chacun).
+- **Débat simple** : une table de débat, avec un modérateur qui distribue la parole (file d'attente, demander la parole sur le sujet actuel, temps de parole de chacun).
 - **Sondage** : des affirmations sur lesquelles chacun vote « d'accord / pas d'accord / passe », à distance, avec les résultats et les camps d'opinion visibles en direct.
 
 Vous pouvez avoir **3 séances en cours à la fois** (débats et sondages confondus). Une séance clôturée libère une place.

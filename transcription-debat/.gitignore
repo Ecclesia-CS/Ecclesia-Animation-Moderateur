@@ -1,8 +1,0 @@
-# Python
-backend/__pycache__/
-backend/*.pyc
-backend/.venv/
-backend/transcripts/
-
-# Git imbriqué (sauvegarde locale uniquement)
-.git_backup/

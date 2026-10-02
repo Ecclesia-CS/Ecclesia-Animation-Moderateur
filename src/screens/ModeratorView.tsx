@@ -190,8 +190,8 @@ export default function ModeratorView() {
     : null
 
   const sourceLabel: Record<string, string> = {
-    long:        "File d'attente",
-    interactive: 'Coupe file',
+    long:        'Prendre la parole sur un autre sujet',
+    interactive: 'Demander la parole sur le sujet actuel',
     manual:      'Manuel',
   }
   const sourceBadge: Record<string, string> = {
@@ -657,7 +657,7 @@ export default function ModeratorView() {
         {/* ── Files côte-à-côte ──────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QueuePanel
-            title="File d'attente : proposer un futur sujet"
+            title="File d'attente : prendre la parole sur un autre sujet"
             entries={localLong}
             queueType="long"
             participants={participants}
@@ -667,7 +667,7 @@ export default function ModeratorView() {
             ghostId={GHOST_ID}
           />
           <QueuePanel
-            title="Coupe file"
+            title="Demander la parole sur le sujet actuel"
             subtitle="Pour répondre à ce qui est dit actuellement uniquement"
             entries={localInteractive}
             queueType="interactive"
@@ -737,7 +737,7 @@ export default function ModeratorView() {
                 <span className="text-xl shrink-0">▶️</span>
                 <div>
                   <p className="font-semibold text-gray-900">Donner/retirer la parole</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Les files "File normale" et "Coupe-file" gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Les files "Prendre la parole sur un autre sujet" et "Demander la parole sur le sujet actuel" gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

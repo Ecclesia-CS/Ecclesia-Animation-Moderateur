@@ -6,7 +6,7 @@
 
 ### Tables leaderless (`table.leaderless = true`)
 Tout le monde voit `ParticipantView`, tant qu'aucun modérateur n'a été désigné. Pas de modérateur par défaut. Flux de parole :
-1. Participant appuie "Demander la parole" → entre en file
+1. Participant appuie "Demander la parole sur le sujet actuel" → entre en file
 2. `useEffect` dans `ParticipantView` détecte : leaderless + personne ne parle + je suis premier → appelle `claimFloor()` (RPC atomique, silencieux si race condition)
 3. Quand on a la parole, bouton "J'ai fini de parler" visible → appelle `endTurnAndAdvance` → donne la parole au suivant
 4. Création via EntryScreen (checkbox "Table sans animateur", pas de code Ecclesia requis) ou bouton "+ Sans admin" dans le superadmin

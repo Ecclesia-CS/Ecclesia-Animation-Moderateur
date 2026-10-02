@@ -41,8 +41,8 @@ export function generateTableCSV(
   speakingTurns: SpeakingTurn[],
 ): string {
   const sourceLabel: Record<string, string> = {
-    long: 'File longue',
-    interactive: 'Coupe file',
+    long: 'Prendre la parole sur un autre sujet',
+    interactive: 'Demander la parole sur le sujet actuel',
     manual: 'Manuel',
   }
 

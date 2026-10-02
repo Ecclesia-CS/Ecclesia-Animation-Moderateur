@@ -263,7 +263,7 @@ export default function ParticipantView() {
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">
           <QueueToggle
-            label="Proposer un futur sujet"
+            label="Prendre la parole sur un autre sujet"
             sub="Introduire un nouveau point ou des informations complémentaires"
             color="indigo"
             active={pendingLong || !!myLong}
@@ -289,7 +289,7 @@ export default function ParticipantView() {
             </p>
           ) : null}
           <QueueToggle
-            label="Coupe file"
+            label="Demander la parole sur le sujet actuel"
             sub="Pour répondre à ce qui est dit actuellement uniquement"
             color="teal"
             active={pendingInteractive || !!myInteractive}
@@ -333,13 +333,13 @@ export default function ParticipantView() {
         {/* ── Files en lecture seule ────────────────────────────── */}
         <div className="w-full space-y-3">
           <ReadOnlyQueuePanel
-            title="File d'attente : proposer un futur sujet"
+            title="File d'attente : prendre la parole sur un autre sujet"
             entries={queueLong}
             participants={participants}
             accent="indigo"
           />
           <ReadOnlyQueuePanel
-            title="Coupe file"
+            title="Demander la parole sur le sujet actuel"
             subtitle="Pour répondre à ce qui est dit actuellement uniquement"
             entries={queueInteractive}
             participants={participants}
@@ -399,14 +399,14 @@ export default function ParticipantView() {
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">🙋</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Proposer un futur sujet</p>
+                  <p className="font-semibold text-gray-900">Prendre la parole sur un autre sujet</p>
                   <p className="text-gray-500 text-xs mt-0.5">Pour introduire un nouveau point ou des informations complémentaires.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">⚡</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Coupe file</p>
+                  <p className="font-semibold text-gray-900">Demander la parole sur le sujet actuel</p>
                   <p className="text-gray-500 text-xs mt-0.5">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
                 </div>
               </div>

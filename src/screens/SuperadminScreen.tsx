@@ -3006,8 +3006,8 @@ function SessionDetail({
     setError(null)
     try {
       const sourceLabel: Record<string, string> = {
-        long: 'File longue',
-        interactive: 'Coupe file',
+        long: 'Prendre la parole sur un autre sujet',
+        interactive: 'Demander la parole sur le sujet actuel',
         manual: 'Manuel',
       }
       const results = await Promise.all(
@@ -4880,8 +4880,8 @@ function SectionAccordion({
 // chronologique des tours de parole.
 
 const HISTORY_SOURCE_LABEL: Record<string, string> = {
-  long: 'File longue',
-  interactive: 'Coupe file',
+  long: 'Prendre la parole sur un autre sujet',
+  interactive: 'Demander la parole sur le sujet actuel',
   manual: 'Manuel',
 }
 
