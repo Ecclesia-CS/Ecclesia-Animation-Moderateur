@@ -4,8 +4,9 @@ import { privateChannel } from '../lib/realtime'
 import {
   castVote, getVoteResults, confirmAttendance, registerSessionMember,
   hasQuestionnaireResponse, getMyAssertionIds, tryClaimModeratorStatus,
-  PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE,
+  PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE, getMyEntryResponse,
 } from '../lib/voting'
+import { extractErr } from '../lib/utils'
 import { getSessionById, getSessionByJoinCode } from '../lib/sessions'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
@@ -106,6 +107,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   const [showRenameModal, setShowRenameModal] = useState(false)
   // Chantier 92 — binômes (état dans le parent, même piège que NotesModal).
   const [showPairingModal, setShowPairingModal] = useState(false)
+  // Chantier 150 — modifier son questionnaire d'entrée (phase voting uniquement).
+  // `loaded` distingue « lecture en cours » de « aucune réponse enregistrée ».
+  const [editEntry, setEditEntry] = useState<{ loaded: boolean; initial: EntryResponse | null; error: string | null } | null>(null)
 
   // Message d'intro affiché une fois par séance : explique les phases de l'app
   const [showAppIntro, setShowAppIntro] = useState(false)
@@ -662,6 +666,28 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       setStep('allocating')
     } else {
       loadVoteData(current, member)
+    }
+  }
+
+  // Chantier 150 — le serveur refuse de toute façon la modification hors `voting`
+  // (submit_entry_response) ; on relit la phase pour ne pas ouvrir un formulaire
+  // voué à l'échec si elle a changé depuis l'ouverture des Outils.
+  async function openEditEntry() {
+    if (!session || !member) return
+    setEditEntry({ loaded: false, initial: null, error: null })
+    try {
+      const [current, initial] = await Promise.all([
+        getSessionById(session.id).catch(() => null),
+        getMyEntryResponse(session.id, member.id),
+      ])
+      if (current) setSession(current)
+      if ((current ?? session).phase !== 'voting') {
+        setEditEntry({ loaded: true, initial: null, error: "Le questionnaire d'entrée n'est plus modifiable : il ne l'est que pendant le vote en présentiel." })
+        return
+      }
+      setEditEntry({ loaded: true, initial, error: null })
+    } catch (e) {
+      setEditEntry({ loaded: true, initial: null, error: extractErr(e) })
     }
   }
 
@@ -1327,7 +1353,37 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             onOpenModeratorClaim={() => setShowModeratorClaimModal(true)}
             onOpenRename={() => setShowRenameModal(true)}
             onOpenPairing={() => setShowPairingModal(true)}
+            onOpenEditEntry={openEditEntry}
           />
+        )}
+
+        {/* Modifier le questionnaire d'entrée (ouvert depuis VoteToolsPanel — chantier 150) */}
+        {editEntry && member && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-50">
+            {!editEntry.loaded ? (
+              <div className="min-h-screen flex items-center justify-center">
+                <p className="text-sm text-gray-500">Chargement…</p>
+              </div>
+            ) : editEntry.error ? (
+              <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4">
+                <p className="text-sm text-red-700 text-center">{editEntry.error}</p>
+                <button
+                  onClick={() => setEditEntry(null)}
+                  className="px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            ) : (
+              <OnboardingForm
+                sessionId={session.id}
+                member={member}
+                initial={editEntry.initial}
+                onCancel={() => setEditEntry(null)}
+                onSuccess={() => setEditEntry(null)}
+              />
+            )}
+          </div>
         )}
 
         {/* Binômes (ouvert depuis VoteToolsPanel — chantier 92) */}
@@ -1578,9 +1634,10 @@ interface VoteToolsPanelProps {
   onOpenModeratorClaim: () => void
   onOpenRename: () => void
   onOpenPairing: () => void
+  onOpenEditEntry: () => void
 }
 
-function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing }: VoteToolsPanelProps) {
+function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing, onOpenEditEntry }: VoteToolsPanelProps) {
 
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
@@ -1723,6 +1780,21 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
             >
               <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
               Être avec un ami (facultatif)
+            </button>
+          )}
+
+          {/* Chantier 150 — corriger ses réponses d'onboarding (enregistrable,
+              ancienneté, actif/passif). Phase voting uniquement : ces réponses
+              nourrissent l'allocation, qui les fige en `allocating`. Séance
+              complète seulement — débat simple et sondage n'ont pas ce
+              questionnaire, et une séance sans onboarding n'a rien à modifier. */}
+          {session.phase === 'voting' && sessionTypeOf(session) === 'full' && session.onboarding_enabled && (
+            <button
+              onClick={() => { onClose(); onOpenEditEntry() }}
+              className={linkClass}
+            >
+              <span className="w-4 text-center text-gray-400 shrink-0">📝</span>
+              Modifier questionnaire d'entrée
             </button>
           )}
 

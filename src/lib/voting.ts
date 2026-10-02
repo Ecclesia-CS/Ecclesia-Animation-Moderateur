@@ -271,6 +271,25 @@ export async function submitEntryResponse(
   return data as EntryResponse
 }
 
+/**
+ * Chantier 150 — relit ses propres réponses d'onboarding pour pré-remplir le
+ * formulaire de modification (RLS owner-only : on ne voit que les siennes).
+ * `null` si le participant n'a jamais répondu.
+ */
+export async function getMyEntryResponse(
+  sessionId: string,
+  memberId: string
+): Promise<EntryResponse | null> {
+  const { data, error } = await supabase
+    .from('entry_responses')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('member_id', memberId)
+    .maybeSingle()
+  if (error) throw new Error(extractErr(error))
+  return (data as EntryResponse | null) ?? null
+}
+
 export async function submitAssertion(
   sessionId: string,
   content: string

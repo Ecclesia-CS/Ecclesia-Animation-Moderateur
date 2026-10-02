@@ -115,7 +115,11 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
         <div>
-          <h2 className="text-lg font-bold text-gray-900">🔗 Être avec un ami (facultatif)</h2>
+          {/* Chantier 150 — « facultatif » en première ligne, comme à l'onboarding. */}
+          <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mb-2 leading-snug">
+            Facultatif — tu peux le remplir ou le modifier à tout moment pendant le vote.
+          </p>
+          <h2 className="text-lg font-bold text-gray-900">🔗 Être avec un ami</h2>
           <p className="text-sm text-gray-600 mt-1">Avec qui aimerais-tu être à table ? (2 personnes au plus)</p>
           <p className="text-xs text-gray-400 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
         </div>

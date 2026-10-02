@@ -223,3 +223,9 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 ## Chantier 149 — cadres autour des noms liés (2026-10-02)
 
 - [ ] **Capture validée par Jules le 2026-10-02.** Reste à voir sur l'écran superadmin réel (rendu vérifié sur harnais jetable, mot de passe superadmin non saisi par la session) : onglet Groupes (puces glissables) et vue « Tables (consultation) ».
+
+## Chantier 150 — modifier son questionnaire d'entrée (2026-10-02)
+
+Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils, pré-remplissage, enregistrement, bandeaux « Facultatif » en première ligne, refus de la modification en `allocating`, première saisie toujours permise). Aucune vérification manuelle demandée à Jules.
+
+- [ ] **Au merge `dev` → `main`** : appliquer `supabase/migrations/20261002_chantier150_modifier_questionnaire_entree.sql` sur la base **prod** (comparer d'abord `pg_get_functiondef(submit_entry_response)` prod à celle de dev). Une vérification faite sur dev ne vaut pas pour prod.
