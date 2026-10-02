@@ -16,7 +16,7 @@ import PasswordInput from '../components/PasswordInput'
 import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
-  setSessionOnboardingEnabled, setSessionAssertionsLocked,
+  setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules,
   listSessionTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
@@ -48,6 +48,7 @@ import TableDiagnosticsList, { CampCompositionBar, campColor } from '../componen
 import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember, type TableDiagnostics } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
+import { LinkedMemberFrames } from '../components/voting/LinkedMemberFrames'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
@@ -349,6 +350,32 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
   // ── Bascule verrouillage des propositions d'assertions (chantier 124) ──
   const [assertionsLockedErr, setAssertionsLockedErr] = useState<Record<string, string>>({})
 
+  // ── Règles de proposition : voter d'abord / plafond par personne (chantier 153) ──
+  const [assertionRulesErr, setAssertionRulesErr] = useState<Record<string, string>>({})
+
+  async function handleSetAssertionRules(target: SessionRow, voteFirst: boolean, max: number | null) {
+    const password = getPwd()!
+    const before = { v: target.assertions_vote_first, m: target.max_assertions_per_member }
+    setAssertionRulesErr(prev => {
+      const { [target.id]: _omit, ...rest } = prev
+      return rest
+    })
+    setSessions(prev => prev.map(s => s.id === target.id
+      ? { ...s, assertions_vote_first: voteFirst, max_assertions_per_member: max } : s))
+    try {
+      await setSessionAssertionRules(password, target.id, voteFirst, max)
+    } catch (e) {
+      setSessions(prev => prev.map(s => s.id === target.id
+        ? { ...s, assertions_vote_first: before.v, max_assertions_per_member: before.m } : s))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+        return
+      }
+      setAssertionRulesErr(prev => ({ ...prev, [target.id]: msg }))
+    }
+  }
+
   async function handleToggleAssertionsLocked(target: SessionRow, next: boolean) {
     const password = getPwd()!
     setAssertionsLockedErr(prev => {
@@ -629,6 +656,8 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
                 onboardingError={onboardingErr[s.id]}
                 onAssertionsLockedChange={next => handleToggleAssertionsLocked(s, next)}
                 assertionsLockedError={assertionsLockedErr[s.id]}
+                onAssertionRulesChange={(voteFirst, max) => handleSetAssertionRules(s, voteFirst, max)}
+                assertionRulesError={assertionRulesErr[s.id]}
               />
             ))}
           </div>
@@ -672,11 +701,74 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
   )
 }
 
+// ── Règles de proposition (chantier 153) ──────────────────────────
+
+/**
+ * « Voter sur toutes les options avant de proposer » + plafond de propositions
+ * par personne (vide = illimité). Les deux valeurs partent toujours ensemble.
+ * Abaisser le plafond en cours de séance ne retire rien à personne : qui l'a
+ * déjà dépassé garde ses propositions et n'en peut plus ajouter.
+ */
+function AssertionRulesControl({ voteFirst, max, onChange, error }: {
+  voteFirst: boolean
+  max: number | null
+  onChange(voteFirst: boolean, max: number | null): void
+  error?: string
+}) {
+  const [draft, setDraft] = useState(max === null ? '' : String(max))
+  useEffect(() => { setDraft(max === null ? '' : String(max)) }, [max])
+
+  function commitMax() {
+    const trimmed = draft.trim()
+    const parsed = trimmed === '' ? null : Math.floor(Number(trimmed))
+    if (parsed !== null && (!Number.isFinite(parsed) || parsed < 1)) {
+      setDraft(max === null ? '' : String(max))   // saisie invalide : on revient à la valeur en vigueur
+      return
+    }
+    if (parsed !== max) onChange(voteFirst, parsed)
+  }
+
+  return (
+    <div className="mt-1.5 space-y-1.5 text-xs text-gray-600">
+      <label
+        className="flex items-center gap-1.5 cursor-pointer"
+        title="Les participants ne peuvent proposer une assertion qu'une fois qu'ils ont voté sur toutes celles de la séance"
+      >
+        <input
+          type="checkbox"
+          checked={voteFirst}
+          onChange={e => onChange(e.target.checked, max)}
+        />
+        Voter sur toutes les options avant de proposer
+      </label>
+      <label
+        className="flex items-center gap-1.5"
+        title="Nombre maximal de propositions par personne. Vide = illimité. Une personne qui a déjà atteint ou dépassé le plafond garde ses propositions mais n'en peut plus ajouter."
+      >
+        Max. de propositions par personne
+        <input
+          type="number"
+          min={1}
+          inputMode="numeric"
+          value={draft}
+          placeholder="illimité"
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commitMax}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+          className="w-20 px-2 py-0.5 rounded border border-gray-300 text-xs"
+        />
+      </label>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  )
+}
+
 // ── SessionCard ───────────────────────────────────────────────────
 
 function SessionCard({
   session, orgName, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
   onOnboardingChange, onboardingError, onAssertionsLockedChange, assertionsLockedError,
+  onAssertionRulesChange, assertionRulesError,
 }: {
   session: SessionRow
   /** Chantier 135 — nom de l'association propriétaire (vue superadmin), null sinon. */
@@ -690,6 +782,8 @@ function SessionCard({
   onboardingError?: string
   onAssertionsLockedChange(next: boolean): void
   assertionsLockedError?: string
+  onAssertionRulesChange(voteFirst: boolean, max: number | null): void
+  assertionRulesError?: string
 }) {
   const isClosed = session.phase === 'closed'
   const isOrgMode = useOrg() !== null
@@ -879,6 +973,12 @@ function SessionCard({
             {assertionsLockedError && (
               <p className="text-xs text-red-600 mt-1">{assertionsLockedError}</p>
             )}
+            <AssertionRulesControl
+              voteFirst={session.assertions_vote_first ?? false}
+              max={session.max_assertions_per_member ?? null}
+              onChange={onAssertionRulesChange}
+              error={assertionRulesError}
+            />
           </div>
           )}
         </div>
@@ -3711,17 +3811,25 @@ function SessionDetail({
                               {/* Chantier 117 — seul un membre `is_moderator` peut avoir
                                   `member_id` null (modérateur physique) : ce filtre exclut
                                   donc déjà toute ligne synthétique, le `!` ci-dessous est sûr. */}
-                              {g.members.filter(m => !m.is_moderator).map(m => (
-                                <DraggableMemberChip
-                                  key={m.member_id}
-                                  memberId={m.member_id!}
-                                  pseudo={m.pseudo}
-                                  profile={memberProfiles.get(m.member_id!)}
-                                  linkedWith={clusterOf.get(m.member_id!)
-                                    ?.filter(id => id !== m.member_id)
-                                    .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
-                                />
-                              ))}
+                              {/* Chantier 149 — les noms liés (grappe d'appairage) sont
+                                  regroupés dans un cadre commun, une couleur par grappe. */}
+                              <LinkedMemberFrames
+                                items={g.members.filter(m => !m.is_moderator)}
+                                idOf={m => m.member_id}
+                                pseudoOf={m => m.pseudo}
+                                clusterOf={clusterOf}
+                                renderItem={m => (
+                                  <DraggableMemberChip
+                                    key={m.member_id}
+                                    memberId={m.member_id!}
+                                    pseudo={m.pseudo}
+                                    profile={memberProfiles.get(m.member_id!)}
+                                    linkedWith={clusterOf.get(m.member_id!)
+                                      ?.filter(id => id !== m.member_id)
+                                      .map(id => memberProfiles.get(id)?.pseudo ?? '?')}
+                                  />
+                                )}
+                              />
                             </div>
                             <div className="border-t border-gray-100 pt-3">
                               {g.join_code ? (
@@ -4967,7 +5075,13 @@ function TableOverviewCard({
         )}
         {d && <CampCompositionBar d={d} />}
         <div className="flex flex-wrap gap-1.5">
-          {g.members.filter(m => !m.is_moderator).map(m => {
+          {/* Chantier 149 — cadre commun autour des noms liés (une couleur par grappe). */}
+          <LinkedMemberFrames
+            items={g.members.filter(m => !m.is_moderator)}
+            idOf={m => m.member_id}
+            pseudoOf={m => m.pseudo}
+            clusterOf={clusterOf}
+            renderItem={m => {
             const profile = m.member_id ? memberProfiles.get(m.member_id) : undefined
             const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null
             const linkedWith = m.member_id
@@ -4996,7 +5110,8 @@ function TableOverviewCard({
                 )}
               </span>
             )
-          })}
+            }}
+          />
           {g.members.length === 0 && (g.seated ?? 0) === 0 && (
             <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>
           )}
@@ -5116,7 +5231,7 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
 /** H20 — tooltip récapitulant les attributs d'un membre derrière ses lettres. */
 function memberProfileTitle(p: AllocationMember): string {
   const parts = [
-    p.is_active ? 'Actif' : 'Plutôt passif',
+    p.is_active ? 'Actif (ou intermédiaire)' : 'Passif',
     p.consents  ? 'Consentant à l\'enregistrement' : 'Non consentant à l\'enregistrement',
     p.is_veteran ? 'A déjà fait un débat Ecclesia' : 'Nouveau',
     p.group_id !== null ? `Camp ${p.group_id + 1}` : 'N\'a pas voté (camp inconnu)',

@@ -4,8 +4,10 @@ import { privateChannel } from '../lib/realtime'
 import {
   castVote, getVoteResults, confirmAttendance, registerSessionMember,
   hasQuestionnaireResponse, getMyAssertionIds, tryClaimModeratorStatus,
-  PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE,
+  canProposeAssertion, proposalsMentionable,
+  PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE, getMyEntryResponse,
 } from '../lib/voting'
+import { extractErr } from '../lib/utils'
 import { getSessionById, getSessionByJoinCode } from '../lib/sessions'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
@@ -106,6 +108,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   const [showRenameModal, setShowRenameModal] = useState(false)
   // Chantier 92 — binômes (état dans le parent, même piège que NotesModal).
   const [showPairingModal, setShowPairingModal] = useState(false)
+  // Chantier 150 — modifier son questionnaire d'entrée (phase voting uniquement).
+  // `loaded` distingue « lecture en cours » de « aucune réponse enregistrée ».
+  const [editEntry, setEditEntry] = useState<{ loaded: boolean; initial: EntryResponse | null; error: string | null } | null>(null)
 
   // Message d'intro affiché une fois par séance : explique les phases de l'app
   const [showAppIntro, setShowAppIntro] = useState(false)
@@ -501,6 +506,22 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     const interval = setInterval(async () => {
       const s = await getSessionById(sessionId).catch(() => null)
       if (!s) return
+      // Chantier 153 — réglages de proposition modifiés en cours de séance : le
+      // Realtime peut être coupé (Messenger), on les rattrape ici sans toucher au reste.
+      setSession(prev => (
+        prev && (
+          prev.assertions_locked !== s.assertions_locked ||
+          prev.assertions_vote_first !== s.assertions_vote_first ||
+          prev.max_assertions_per_member !== s.max_assertions_per_member
+        )
+          ? {
+              ...prev,
+              assertions_locked: s.assertions_locked,
+              assertions_vote_first: s.assertions_vote_first,
+              max_assertions_per_member: s.max_assertions_per_member,
+            }
+          : prev
+      ))
       if (s.phase === knownPhase) return
 
       setSession(s)
@@ -534,19 +555,29 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return () => clearInterval(interval)
   }, [step, session?.id, session?.phase, member?.id])
 
+  // Chantier 153 — verrou, « voter d'abord » et plafond par personne, en un
+  // seul prédicat (voir lib/voting.ts). Sert aux boutons et au nudge ci-dessous.
+  const canProposeNow = session
+    ? canProposeAssertion(session, {
+        unvotedCount: assertions.filter(a => !myVotes.has(a.id)).length,
+        proposedCount,
+      })
+    : false
+
   // ── Nudge "Proposer" toutes les 10 assertions votées ─────────────────────
   useEffect(() => {
     if (step !== 'vote') return
     // Chantier 133 — pas de nudge à proposer une assertion si la séance a
-    // désactivé les propositions.
-    if (session?.assertions_locked) return
+    // désactivé les propositions. Chantier 153 — ni si le plafond est atteint,
+    // ni en « voter d'abord » (le nudge ne tombe que tant qu'il reste à voter).
+    if (!canProposeNow) return
     const votedCount = myVotes.size
     const allVoted = assertions.length > 0 && votedCount === assertions.length
     if (votedCount > 0 && votedCount >= nextNudgeAt && !allVoted) {
       setShowProposalNudge(true)
       setNextNudgeAt(n => n + 10)
     }
-  }, [myVotes.size, nextNudgeAt, assertions.length, step, session?.assertions_locked])
+  }, [myVotes.size, nextNudgeAt, assertions.length, step, canProposeNow])
 
   // ── Chantier 134 — sondage : pas de débat, donc pas de questionnaire
   // post-débat. Les quatre chemins qui mènent à 'questionnaire' (init,
@@ -662,6 +693,28 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       setStep('allocating')
     } else {
       loadVoteData(current, member)
+    }
+  }
+
+  // Chantier 150 — le serveur refuse de toute façon la modification hors `voting`
+  // (submit_entry_response) ; on relit la phase pour ne pas ouvrir un formulaire
+  // voué à l'échec si elle a changé depuis l'ouverture des Outils.
+  async function openEditEntry() {
+    if (!session || !member) return
+    setEditEntry({ loaded: false, initial: null, error: null })
+    try {
+      const [current, initial] = await Promise.all([
+        getSessionById(session.id).catch(() => null),
+        getMyEntryResponse(session.id, member.id),
+      ])
+      if (current) setSession(current)
+      if ((current ?? session).phase !== 'voting') {
+        setEditEntry({ loaded: true, initial: null, error: "Le questionnaire d'entrée n'est plus modifiable : il ne l'est que pendant le vote en présentiel." })
+        return
+      }
+      setEditEntry({ loaded: true, initial, error: null })
+    } catch (e) {
+      setEditEntry({ loaded: true, initial: null, error: extractErr(e) })
     }
   }
 
@@ -942,12 +995,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               </h1>
               <p className="text-xs text-gray-500">{member.pseudo}</p>
             </div>
-            <button
-              onClick={() => setShowSubmitModal(true)}
-              className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
-            >
-              ✏️ Proposer
-            </button>
+            {/* Chantier 152 — propositions désactivées : le bouton disparaît (pas grisé).
+                Chantier 153 — idem tant qu'il reste à voter (« voter d'abord ») ou une
+                fois le plafond atteint. */}
+            {canProposeNow && (
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+              >
+                ✏️ Proposer
+              </button>
+            )}
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -1018,12 +1076,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   ✏️ Tu as proposé {proposedCount} assertion{proposedCount > 1 ? 's' : ''}
                 </p>
               )}
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-              >
-                ✏️ Proposer une assertion
-              </button>
+              {canProposeNow && (
+                <button
+                  onClick={() => setShowSubmitModal(true)}
+                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  ✏️ Proposer une assertion
+                </button>
+              )}
             </div>
 
             {/* Nudge documentaire */}
@@ -1085,7 +1145,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             </div>
           </div>
         ) : assertions.length === 0 ? (
-          <EmptyAssertions onPropose={() => setShowSubmitModal(true)} />
+          <EmptyAssertions
+            canPropose={canProposeNow}
+            onPropose={() => setShowSubmitModal(true)}
+          />
         ) : currentAssertion ? (
           <AssertionCard
             key={currentAssertion.id}
@@ -1169,13 +1232,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                     <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">✏️</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Proposer une assertion</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
+                {proposalsMentionable(session) && (
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl shrink-0">✏️</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Proposer une assertion</p>
+                      <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex items-start gap-3">
                   <span className="text-xl shrink-0">🔄</span>
                   <div>
@@ -1327,7 +1392,37 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             onOpenModeratorClaim={() => setShowModeratorClaimModal(true)}
             onOpenRename={() => setShowRenameModal(true)}
             onOpenPairing={() => setShowPairingModal(true)}
+            onOpenEditEntry={openEditEntry}
           />
+        )}
+
+        {/* Modifier le questionnaire d'entrée (ouvert depuis VoteToolsPanel — chantier 150) */}
+        {editEntry && member && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-50">
+            {!editEntry.loaded ? (
+              <div className="min-h-screen flex items-center justify-center">
+                <p className="text-sm text-gray-500">Chargement…</p>
+              </div>
+            ) : editEntry.error ? (
+              <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4">
+                <p className="text-sm text-red-700 text-center">{editEntry.error}</p>
+                <button
+                  onClick={() => setEditEntry(null)}
+                  className="px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            ) : (
+              <OnboardingForm
+                sessionId={session.id}
+                member={member}
+                initial={editEntry.initial}
+                onCancel={() => setEditEntry(null)}
+                onSuccess={() => setEditEntry(null)}
+              />
+            )}
+          </div>
         )}
 
         {/* Binômes (ouvert depuis VoteToolsPanel — chantier 92) */}
@@ -1363,7 +1458,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Nudge proposition toutes les 10 assertions — masqué si le verrou
             s'active pendant que le popup est déjà ouvert (chantier 133) */}
-        {showProposalNudge && !session.assertions_locked && (
+        {showProposalNudge && canProposeNow && (
           <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowProposalNudge(false)}>
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
@@ -1423,7 +1518,9 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   // annonçait encore 4, la 5e (pré-vote) n'apparaissait nulle part.
   const introSteps: Array<{ icon: string; label: string; description: string }> = sessionTypeOf(session) === 'poll' ? [
     { icon: '🗳️', label: '1. Vote',
-      description: "Vote sur les assertions, et propose les tiennes. Tu peux voir les résultats et les camps d'opinion à tout moment." },
+      // Chantier 152 — la mention « propose les tiennes » disparaît quand les propositions sont verrouillées.
+      description: (proposalsMentionable(session) ? "Vote sur les assertions, et propose les tiennes. " : "Vote sur les assertions. ")
+        + "Tu peux voir les résultats et les camps d'opinion à tout moment." },
     { icon: '📊', label: '2. Résultats',
       // Chantier 135 — un sondage d'association n'est jamais rendu public.
       description: session.organization_id
@@ -1551,20 +1648,22 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
   )
 }
 
-function EmptyAssertions({ onPropose }: { onPropose: () => void }) {
+function EmptyAssertions({ canPropose, onPropose }: { canPropose: boolean; onPropose: () => void }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
       <div className="text-5xl">💭</div>
       <h2 className="text-lg font-bold text-gray-900">Aucune assertion pour l'instant</h2>
       <p className="text-sm text-gray-500">
-        Les assertions apparaîtront ici dès qu'elles seront approuvées. Tu peux en proposer une !
+        Les assertions apparaîtront ici dès qu'elles seront approuvées.{canPropose ? ' Tu peux en proposer une !' : ''}
       </p>
-      <button
-        onClick={onPropose}
-        className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-      >
-        ✏️ Proposer une assertion
-      </button>
+      {canPropose && (
+        <button
+          onClick={onPropose}
+          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          ✏️ Proposer une assertion
+        </button>
+      )}
     </div>
   )
 }
@@ -1578,9 +1677,10 @@ interface VoteToolsPanelProps {
   onOpenModeratorClaim: () => void
   onOpenRename: () => void
   onOpenPairing: () => void
+  onOpenEditEntry: () => void
 }
 
-function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing }: VoteToolsPanelProps) {
+function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, onOpenRename, onOpenPairing, onOpenEditEntry }: VoteToolsPanelProps) {
 
   const infoUrl    = session.doc_info_url
   const summaryUrl = session.doc_summary_url
@@ -1723,6 +1823,21 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
             >
               <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
               Être avec un ami (facultatif)
+            </button>
+          )}
+
+          {/* Chantier 150 — corriger ses réponses d'onboarding (enregistrable,
+              ancienneté, actif/passif). Phase voting uniquement : ces réponses
+              nourrissent l'allocation, qui les fige en `allocating`. Séance
+              complète seulement — débat simple et sondage n'ont pas ce
+              questionnaire, et une séance sans onboarding n'a rien à modifier. */}
+          {session.phase === 'voting' && sessionTypeOf(session) === 'full' && session.onboarding_enabled && (
+            <button
+              onClick={() => { onClose(); onOpenEditEntry() }}
+              className={linkClass}
+            >
+              <span className="w-4 text-center text-gray-400 shrink-0">📝</span>
+              Modifier questionnaire d'entrée
             </button>
           )}
 

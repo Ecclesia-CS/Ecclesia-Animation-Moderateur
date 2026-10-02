@@ -55,6 +55,13 @@ export interface Session {
   // pour cette séance (le superadmin, seul à pouvoir activer ce verrou, n'est
   // membre d'aucune séance et n'a de toute façon aucun chemin pour proposer).
   assertions_locked: boolean
+  // Chantier 153 — règles de proposition réglables en séance (superadmin ou
+  // association). vote_first : false par défaut ; true → on ne peut proposer
+  // qu'après avoir voté sur toutes les assertions approuvées. max_… : null =
+  // illimité (défaut) ; sinon plafond de propositions par personne — qui ne
+  // retire rien à qui l'a déjà dépassé, mais l'empêche d'en ajouter.
+  assertions_vote_first: boolean
+  max_assertions_per_member: number | null
   session_type: SessionType
   // Chantier 135 — association externe propriétaire de la séance (null =
   // séance Ecclesia). Toujours un débat simple ou un sondage. Colonne ajoutée
@@ -223,6 +230,14 @@ export interface SessionMember {
   new_reclaim_code?: string | null
 }
 
+/**
+ * Chantier 151 — niveau d'activité annoncé à l'onboarding. Trois niveaux en base ;
+ * l'allocation ne distingue que passif / non-passif : `intermediate` compte comme
+ * `active` (`get_allocation_inputs`). Les valeurs historiques `listener` et
+ * `active` sont inchangées (anciennes séances intactes).
+ */
+export type ParticipationStyle = 'listener' | 'intermediate' | 'active'
+
 /** Chantier 19 (G3) — onboarding réduit à 3 questions. */
 export interface EntryResponse {
   id: string
@@ -230,8 +245,8 @@ export interface EntryResponse {
   member_id: string
   /** Règle 1 — table enregistrable. */
   consent_transcript: boolean
-  /** Chantier 91 — actif : forme les tables ; passif : placé en public. */
-  participation_style: 'listener' | 'active'
+  /** Chantier 91/151 — actif et intermédiaire : forment les tables ; passif : placé en public. */
+  participation_style: ParticipationStyle
   /** Règles 4 et 5 — « As-tu déjà fait un débat Ecclesia ? » (binaire). */
   ecclesia_experience: boolean | null
   created_at: string
@@ -328,7 +343,7 @@ export interface TableMemberForModerator {
   member_id: string
   pseudo: string
   is_moderator: boolean
-  participation_style: 'listener' | 'active' | null
+  participation_style: ParticipationStyle | null
   connected: boolean
 }
 

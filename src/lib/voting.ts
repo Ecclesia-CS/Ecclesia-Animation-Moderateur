@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type { TableResult } from './supabase'
 import { extractErr } from './utils'
 import type {
+  ParticipationStyle,
   Session,
   SessionMember,
   EntryResponse,
@@ -258,7 +259,7 @@ export async function regenerateReclaimCodeModerator(
 export async function submitEntryResponse(
   sessionId: string,
   consentTranscript: boolean,
-  participationStyle: 'listener' | 'active',
+  participationStyle: ParticipationStyle,
   ecclesiaExperience: boolean
 ): Promise<EntryResponse> {
   const { data, error } = await supabase.rpc('submit_entry_response', {
@@ -269,6 +270,25 @@ export async function submitEntryResponse(
   })
   if (error) throw new Error(extractErr(error))
   return data as EntryResponse
+}
+
+/**
+ * Chantier 150 — relit ses propres réponses d'onboarding pour pré-remplir le
+ * formulaire de modification (RLS owner-only : on ne voit que les siennes).
+ * `null` si le participant n'a jamais répondu.
+ */
+export async function getMyEntryResponse(
+  sessionId: string,
+  memberId: string
+): Promise<EntryResponse | null> {
+  const { data, error } = await supabase
+    .from('entry_responses')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('member_id', memberId)
+    .maybeSingle()
+  if (error) throw new Error(extractErr(error))
+  return (data as EntryResponse | null) ?? null
 }
 
 export async function submitAssertion(
@@ -296,6 +316,37 @@ export async function getMyAssertionIds(sessionId: string): Promise<string[]> {
   })
   if (error) throw new Error(extractErr(error))
   return (data as string[]) ?? []
+}
+
+/**
+ * Chantier 153 — règles de proposition, un seul endroit côté client (la garde
+ * qui fait foi est `submit_assertion`, en base). Les champs sont lus avec une
+ * valeur par défaut : une séance lue avant la migration n'a ni l'un ni l'autre.
+ *
+ * Deux niveaux, parce que le chantier 152 interdit de mentionner à un
+ * participant ce qu'il ne peut pas faire :
+ *  - `proposalsMentionable` : réglages de séance seuls, pour les textes d'aide
+ *    et d'intro. « Voter d'abord » n'y est pas mentionné — l'option apparaît
+ *    d'elle-même quand tout est voté.
+ *  - `canProposeAssertion` : dépend aussi de l'état du participant, pour les
+ *    boutons (ils disparaissent, ils ne sont pas grisés).
+ */
+type ProposalRules = Pick<Session, 'assertions_locked'> &
+  Partial<Pick<Session, 'assertions_vote_first' | 'max_assertions_per_member'>>
+
+export function proposalsMentionable(s: ProposalRules): boolean {
+  // Un plafond ≥ 1 ne change rien ici : chacun peut encore proposer au début.
+  return !s.assertions_locked && !s.assertions_vote_first
+}
+
+export function canProposeAssertion(
+  s: ProposalRules,
+  state: { unvotedCount: number; proposedCount: number },
+): boolean {
+  if (s.assertions_locked) return false
+  if (s.max_assertions_per_member != null && state.proposedCount >= s.max_assertions_per_member) return false
+  if (s.assertions_vote_first && state.unvotedCount > 0) return false
+  return true
 }
 
 export async function mergeAssertionVotes(

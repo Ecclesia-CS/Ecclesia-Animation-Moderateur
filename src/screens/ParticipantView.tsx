@@ -263,7 +263,7 @@ export default function ParticipantView() {
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">
           <QueueToggle
-            label="Demander la parole"
+            label="Proposer un futur sujet"
             sub="Introduire un nouveau point ou des informations complémentaires"
             color="indigo"
             active={pendingLong || !!myLong}
@@ -333,7 +333,7 @@ export default function ParticipantView() {
         {/* ── Files en lecture seule ────────────────────────────── */}
         <div className="w-full space-y-3">
           <ReadOnlyQueuePanel
-            title="File d'attente : demander la parole"
+            title="File d'attente : proposer un futur sujet"
             entries={queueLong}
             participants={participants}
             accent="indigo"
@@ -399,7 +399,7 @@ export default function ParticipantView() {
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">🙋</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Demander la parole</p>
+                  <p className="font-semibold text-gray-900">Proposer un futur sujet</p>
                   <p className="text-gray-500 text-xs mt-0.5">Pour introduire un nouveau point ou des informations complémentaires.</p>
                 </div>
               </div>

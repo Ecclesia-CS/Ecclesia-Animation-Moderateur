@@ -8,6 +8,16 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
+> **Le 2026-10-02, le chantier 151 est fait** (activité à trois niveaux passif / intermédiaire / actif à l'onboarding ; l'intermédiaire compte comme actif dans l'allocation) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 151. Migration `20261002_chantier151_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** 72_2. Entrée « en cours » retirée.
+
+> **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Écran superadmin vérifié au navigateur ; seul le côté association (`#asso`) reste à rejouer. Entrée « en cours » retirée.
+
+> **Le 2026-10-02, le chantier 150 est fait** (modifier son questionnaire d'entrée pendant `voting`, garde serveur, « facultatif » en première ligne des partenaires) — voir `docs/chantiers.md`. Migration `20261002_chantier150_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 151 peut démarrer.** Entrée « en cours » retirée.
+
+> **Le 2026-10-02, le chantier 148 est mergé dans `dev`** (un seul écran modérateur par table ; 148b : aucune table de séance n'appartient à l'administrateur) — voir `docs/chantiers.md`. Migrations `20261002_chantier148_*` et `20261002_chantier148b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 147, dans cet ordre**. Entrée « en cours » retirée au merge.
+
+> **Le 2026-10-02, le chantier 147 est mergé dans `dev`** (débat simple/d'association : `tables.created_by` n'est plus l'uid de l'admin — sentinelle `0000…` via `table_owner_uid`) — voir `docs/chantiers.md`. Migration `20261002_chantier147_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 148 peut démarrer.** Entrée « en cours » retirée au merge.
+
 
 > **Le 2026-09-28, le chantier 142 est mergé dans `dev`** (document collaboratif : écrire ses sources exige d'être inscrit sur l'appareil ou de donner nom + code de rappel ; identité = `session_members`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 142. Vérifié au navigateur sur dev (vote, table, débat simple, modérateur). Sa migration (`20260928_chantier142_collab_identite_membre`, qui **supprime** `register_collab_pseudo` et la table `collab_session_users`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 140/140b (elle utilise `pseudo_key`).
 
@@ -98,6 +108,57 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 ---
 
 ## À faire, dans l'ordre
+
+### 145 à 153 — Liste de tâches 2 (dictée par Jules le 2026-10-02), en 9 chantiers
+
+> **Règle de départ (Jules)** : « A faire en premier : se poser la question si des modifications similaires que celles demandées sont à généraliser à d'autres endroits. Si la réponse est positive, la proposer à l'utilisateur Jules. » → inscrite dans `CLAUDE.md`. Chaque chantier ci-dessous doit donc commencer par cette question, et aussi par celles des types de séance (`debate`/`poll`) et des associations.
+>
+> **Règle de vérification (Jules, 2026-10-02)** : « Désormais, toutes choses vérifiées par un navigateur ne doivent plus être vérifiées par Jules. » → inscrite dans `CLAUDE.md` et `A_VERIFIER.md`. La session vérifie elle-même au navigateur (Browser pane) tout ce qui s'y vérifie ; seul le non-automatisable va dans `A_VERIFIER.md`. Seule exception demandée : le 149 exige une capture d'écran soumise à Jules avant validation.
+>
+> **Ordre / conflits** : 147 et 148 touchent la même logique de modérateur → **147 puis 148, séquentiels** (148 en Opus). 150 et 151 touchent tous deux l'onboarding → 150 d'abord. 152 et 153 touchent `VoteScreen`/`PostVoteScreen`. Le reste est indépendant. La demande « code personnel plutôt que code de table » (point 2 de la liste) a été **retirée par Jules**.
+
+#### 145 — Sortir de la vue débat/modérateur quand c'est fini ou qu'on quitte — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
+> **Consigne de Jules** : « Problème : le post vote devrait sortir de la vue débat pour le modo : Même quand c'est fini, la vue modo n'est pas quittée. Peu importe si on passe par postvote ou pas. C'est un problème. » Et, sur les débats d'association : « Quand je tente de quitter, on ne me renvoie pas au menu principal, et je reste bloqué dans la vue modérateur ! Même chose en tant que participant. »
+
+**Précisions (réponse de Jules)** : à la fin du débat (passage en `post_voting` ou `closed`, ou départ volontaire), renvoyer vers **les résultats de la séance** (pas le menu principal) quand la séance en a ; sinon menu principal. Vaut pour le modérateur **et** le participant, séances internes **et** d'association (`debate`/`poll`). Vérifier le cas « quitter » sur une table d'association.
+Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `ParticipantView.tsx`, `SessionRouterScreen.tsx`.
+
+#### 146 — Lien « Asso » sous « Administration » — **FAIT le 2026-10-02**
+> **Consigne de Jules** : « Ajouter le lien asso de même manière que admin, avec un petit cliquable « asso » vers « Administration ». »
+
+**Précisions** : le petit lien « Asso » se place **en dessous** du lien « Administration » (même style), et mène à l'écran asso `#asso` (celui qu'on améliore actuellement). Fichier probable : `EntryScreen.tsx`.
+
+#### 147 — Débat d'association : modérateur par défaut, sortie, vue Groupes — ✅ fait, voir `docs/chantiers.md`
+> **Consigne de Jules** : « Actuellement, quand j'arrive dans le débat créé par une asso, par défaut, comme premier arrivant, je deviens le modérateur. […] De plus, celui qui est rentré en tant que modérateur, sur la vue admin de l'asso, n'est pas modérateur de la table : la modération de la table dans la vue groupe est toujours vide... »
+
+À faire : diagnostiquer pourquoi le premier arrivant devient modérateur sans passer par la désignation, pourquoi la vue Groupes de l'asso reste vide pour lui (cohérence `session_members.is_moderator` / `tables.active_moderator_member_id` / `table_assignments`), et corriger. La sortie de vue est traitée par le 145. **À faire avant le 148.**
+
+#### 148 — Un seul écran modérateur (noir) par table — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
+> **Consigne de Jules** : « Vrai problème : sur la modération. Il peut y avoir plusieurs participants qui ont un écran modérateur (noir) et c'est un problème. Les « modérateurs en surplus » ne doivent pas avoir de vue modérateur (vue noire). Et quand on lui enlève la place de modérateur en surplus, il garde sa vue modérateur (peut être lié au taf modérateur...). L'idéal, ce serait qu'uniquement la personne qui est en tant que modérateur de la table ait l'écran modérateur, pour que plusieurs personnes ne se marchent pas sur les pieds dans la modération. Autre problème : quand un participant se déclare modérateur en prenant la modération de sa table avec le code ecclesia, il obtient l'écran modérateur. Mais, sur la vue superadmin, dans l'onglet groupe, il n'apparait pas en tant que modo. De plus, quand on recharge la page du nouveau modo, il redevient participant ! »
+
+**Précisions (réponse de Jules)** : « celui qui prend la modération tout court, avec un flag modérateur en tant que modo de la table, a l'écran noir ». Donc : **un seul écran modérateur par table**, pour le modérateur désigné de cette table (flag + modérateur de la table) ; un modérateur en surplus n'en a pas ; lui retirer le rôle lui retire la vue aussitôt ; la prise par code Ecclesia doit apparaître dans l'onglet Groupes et **survivre au rechargement**. ⚠️ **Contredit l'« exception confirmée » du 2026-09-02 dans `CLAUDE.md`** (membre `is_moderator` en surplus assis sur une table `leaderless` qui garde l'autorité d'animation) — **décision de Jules attendue sur son retrait** avant de coder ; la mettre à jour dans `CLAUDE.md` une fois tranchée. Ne pas toucher à `is_table_moderator` sans relire la section « Ne jamais faire ».
+
+#### 149 — Design : voir qui est lié à qui (liens entre noms) — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
+> **Consigne de Jules** : « Pour les liens, ça fonctionne très bien, mais l'idéal ce serait qu'on voit qui est connecté avec qui, par exemple, les rectangles de noms liés sont eux mêmes dans carrés un peu plus gros ? Je ne sais pas s'il y a une solution de design efficace pour cela. »
+
+**Précisions** : proposition retenue avec Jules — un cadre commun englobant les noms liés, une couleur par groupe lié. **Une capture d'écran doit être soumise à Jules avant de valider le chantier.** Partir de `docs/chantiers.md` (chantier des liens) pour retrouver l'écran concerné.
+
+#### 150 — Modifier son questionnaire d'entrée pendant le vote + précision partenaires — ✅ fait, voir `docs/chantiers.md`
+> **Consignes de Jules** : « Les participants, durant vote, doivent pouvoir changer leur onboarding, au moins sur la question de l'activité (actif passif etc), l'enregistrable, l'ancienneté, etc. Peut-être mettre cette possibilité dans « outils ». Avec un bouton « Modifier Questionnaire d'entrée » par ex. » — « Préciser sur la question des partenaires en onboarding, préciser qu'on peut les remplir plus tard dans la séance. Le facultatif doit être à la première ligne de l'écran. »
+
+**Précisions (réponse de Jules)** : modification possible **uniquement en phase `voting`** (en `pre_voting` l'onboarding n'a pas encore eu lieu) ; **interdite en `allocating`** (et après), pour ne pas fausser l'algorithme. Bouton dans « Outils ». Le mot « facultatif » en première ligne de l'écran des partenaires, avec la mention qu'on peut les remplir plus tard.
+
+#### 151 — Activité à trois niveaux (passif / intermédiaire / actif) — ✅ fait le 2026-10-02, voir `docs/chantiers.md`
+> **Consigne de Jules** : « Sur l'onboarding, sur l'activité, donner un troisième bouton. Un bouton : passif, je ne compte pas parler du tout. Un bouton intermédiaire, je compte éventuellement prendre la parole. Un bouton actif, je compte prendre la parole. Dans l'algorithme d'allocation, les passifs restent les passifs, comme on les traitait auparavant. Les intermédiaires sont considérés comme des actifs également. »
+
+**Précisions (réponse de Jules : « ok bonne idée »)** : stocker les **trois niveaux en base** (migration, conversion des anciennes valeurs, anciennes séances inchangées), `allocation.ts` traite intermédiaire = actif. Comparer à `pg_get_functiondef` et à la colonne existante avant la migration. **Le 150 est fait : le 151 peut démarrer.**
+
+#### 152 — Retirer le bouton « Proposer » quand c'est désactivé + renommer « Demander la parole » — ✅ fait le 2026-10-02, voir `docs/chantiers.md`
+
+#### 153 — Propositions : voter d'abord, et plafond par personne — ✅ fait, voir `docs/chantiers.md`
+> **Consigne de Jules** : « Sur les propositions : ajouter une possibilité, pour les propositions, de ne pouvoir ajouter de propositions qu'après avoir voté sur toutes les options. Et pouvoir définir, en séance, le nombre de propositions que chaque personne peut proposer (par défaut, infini, mais on peut les baisser). Si on cap en séance, et que des personnes ont déjà dépassé la limite, on part du principe qu'elles n'ont plus de propositions à faire. »
+
+**Précisions (réponse de Jules)** : deux **réglages par séance, activables en séance** : « voter sur toutes les options avant de proposer » et un **plafond de propositions par personne** (infini par défaut). Réglés par le **superadmin** pour les séances internes et par **l'association** pour les séances externes (nouvelles RPC via `check_session_admin`). Les personnes qui dépassent déjà le plafond gardent leurs propositions et n'en peuvent plus ajouter. Valable pour tous les types de séance (sans effet en `debate`). S'appuyer sur `assertions_locked` (chantier 124) comme modèle.
 
 ### 121, 122, 123 — Retours de Jules du 2026-09-22 (7 points), en 3 chantiers
 

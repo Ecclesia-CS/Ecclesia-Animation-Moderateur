@@ -2,6 +2,8 @@
 
 > **Nettoyé le 2026-09-29 (fin du chantier 141).** Tout ce qui a été vérifié au navigateur (à la main par Jules ou automatiquement sur dev par le chantier 141) a été retiré, sur décision de Jules : plus de consigne de vérification humaine pour ces points. **Ne restent ici que les points que le navigateur ne sait pas jouer**, ou qui ne valent que sur prod. L'ancien contenu (recettes, historique, annotations 141) est dans l'historique git : `git show 8656608:A_VERIFIER.md`. Les rapports détaillés de la passe 141 sont dans [`docs/rapports-tests-141/`](./docs/rapports-tests-141/) (`rapport-consolide.md` d'abord).
 >
+> **Règle de Jules (2026-10-02)** : « Désormais, toutes choses vérifiées par un navigateur ne doivent plus être vérifiées par Jules. » Une session ne consigne donc ici que ce que le navigateur ne peut pas jouer ; le reste est vérifié par elle-même et noté dans `docs/chantiers.md`.
+>
 > Règle inchangée : ne jamais supprimer une entrée sans l'accord de Jules — la cocher ou la déplacer en fin de fichier une fois vérifiée. Une vérification faite sur dev ne vaut pas pour prod.
 
 ---
@@ -51,7 +53,18 @@ Sur une séance de test, avec la souris.
 > Les cases ci-dessous (recette sur séance de test **de prod**) restent à cocher : rien n'a été testé à l'écran sur prod.
 > 🐛 **Bug trouvé par Jules juste après le merge (2026-09-30) et corrigé** : la liste des séances de l'accueil était vide sur GitHub Pages. `EntryScreen` filtre sur `organization_id` (chantier 135), colonne absente du `GRANT SELECT` d'`anon` sur `sessions` de prod (chantier 58) → erreur 42501 ignorée par le front. Dev ne le montrait pas (droits larges). Correctif : `20260930_fix_prod_grant_sessions_organization_id.sql`, appliqué sur prod, requête de l'accueil rejouée en rôle `anon` : la séance « Réunion apprentissage modération 21/09 » ressort. **Règle** : toute colonne de `sessions` lue directement par le front doit figurer dans ce GRANT sur prod. À refaire une fois : recharger l'accueil GitHub Pages **et** Vercel et confirmer que la séance y apparaît.
 
+> ⏳ **À appliquer sur prod au prochain merge `dev` → `main`** : `20261002_chantier147_debat_table_sans_proprietaire_admin` (appliquée sur dev le 2026-10-02). Ajoute `table_owner_uid` et réécrit `create_session_table_internal`, `release_table_moderation`, `set_member_moderator` — définitions prod = dev (md5 identiques le 2026-10-02) ; **re-comparer au moment d'appliquer**. Aucune donnée prod concernée (aucun débat simple sur prod).
+
+> ⏳ **À appliquer sur prod au prochain merge `dev` → `main`, après la 147** : `20261002_chantier148_un_seul_moderateur_par_table` (appliquée sur dev le 2026-10-02). Ajoute `clear_seated_physical_moderator` et réécrit `is_table_moderator`, `table_has_moderator`, `reclaim_table_as_moderator`, `claim_table_as_moderator`, `join_simple_debate`, `claim_moderator_status`, `set_member_moderator` (définitions de départ : `pg_get_functiondef` dev, post-147) — **re-comparer à prod au moment d'appliquer**. Contient une **réparation de données** (tables de séance à modérateur physique assis) : sur dev, 3 tables corrigées dont une à deux titulaires en `debating` ; faire un `SELECT` de contrôle sur prod avant.
+
+> ⏳ **Puis, juste après** : `20261002_chantier148b_tables_seance_sans_proprietaire_admin` (appliquée sur dev le 2026-10-02) — toute table de séance a `created_by` = sentinelle ; réécrit `table_owner_uid` (créée par la 147), `admin_create_table`, `create_tables_batch`, `apply_allocation`, `set_table_leaderless`, `delete_session_member_admin` (md5 dev = prod le 2026-10-02). Réparation : 4 tables sur prod, toutes en séance close (contrôle en lecture seule fait le 2026-10-02).
+
+> ⏳ **Puis, avec le 153** : `20261002_chantier153_regles_propositions` (appliquée sur dev le 2026-10-02). Ajoute `sessions.assertions_vote_first` / `max_assertions_per_member`, la RPC `set_session_assertion_rules` (via `check_session_admin`, donc ouverte aux associations) et réécrit `submit_assertion` (définition vivante comparée avant réécriture : identique au chantier 124 + deux refus). Contient aussi `GRANT SELECT (assertions_locked, assertions_vote_first, max_assertions_per_member) ON sessions TO anon, authenticated` : sur **prod**, `assertions_locked` n'avait **pas** de SELECT colonne pour `anon`/`authenticated` (droits colonne par colonne depuis le chantier 58) — le chargement initial passe par `get_session_by_join_code` (SECURITY DEFINER) et n'en souffre pas, mais les mises à jour Realtime de `sessions` pouvaient ne pas porter le verrou ; le GRANT est sans effet sur dev (droit table entière).
+
 Puis, sur une séance de test **de prod** :
+- [ ] **153** — sur une séance de test de prod, régler « voter d'abord » et un plafond depuis le superadmin, vérifier que le bouton « Proposer » suit en direct côté participant (comme vérifié sur dev).
+- [ ] **147** — créer un débat simple depuis le navigateur d'administration, ouvrir **le même lien dans ce même navigateur** : on doit arriver en **participant** (écran noir modérateur absent), et un second appareil qui entre avec « Je suis le modérateur » + code doit être accepté (pas de « Toutes les tables ont déjà un modérateur ») et apparaître comme modérateur dans l'onglet Groupes. (Vérifié en base dev uniquement — le navigateur intégré a refusé `localhost` le 2026-10-02.)
+- [ ] **148** — à une table de séance, un participant fait Outils → « Reprendre l'animation de cette table » avec le **vrai** code : écran noir chez lui, l'ancien animateur repasse participant, il apparaît modérateur dans l'onglet Groupes, et **recharger la page le laisse modérateur**. Puis le retirer (onglet Groupes) : retour immédiat en participant. (Vérifié sur dev en base, RPC appelées avec le contrôle de code neutralisé dans une transaction annulée, et au navigateur en posant l'état résultant en base — le mot de passe réel n'était pas disponible à la session.)
 - [ ] **135** — création d'un compte association, connexion `#asso`, prise de modération avec le mot de passe d'asso.
 - [ ] **139** — rejouer l'encart « Remplacer le modérateur », la confirmation et le remplacement (points 1 à 3), et l'ancien animateur qui repasse en écran participant.
 - [ ] **140** — porte code de table avec un nom déjà pris (message + accordéon ouvert, pas d'entrée).
@@ -211,3 +224,32 @@ Session autonome de nuit (branche `transcription/ameliorations-attribution`, non
 Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`import torch` en tête, `require_gpu_for_diarization`). Cause du plantage `cudnnGetLibConfig` : `faster_whisper` importé avant `torch` (reproduit dans les deux ordres). Vérifié sur un extrait de 3 min (`cuda`, 45 segments) et Whisper GPU sur 1 min ; **pas rejoué sur un débat de 2 h**.
 
 - [ ] Lancer `run_transcription.ps1` sur un débat : la console doit afficher `Diarisation pyannote (cuda)...` et `nvidia-smi` montrer le GPU occupé (~7 min attendues pour 2 h, mesure du 19/09).
+
+## Chantier 149 — cadres autour des noms liés (2026-10-02)
+
+- [ ] **Capture validée par Jules le 2026-10-02.** Reste à voir sur l'écran superadmin réel (rendu vérifié sur harnais jetable, mot de passe superadmin non saisi par la session) : onglet Groupes (puces glissables) et vue « Tables (consultation) ».
+
+## Chantier 150 — modifier son questionnaire d'entrée (2026-10-02)
+
+Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils, pré-remplissage, enregistrement, bandeaux « Facultatif » en première ligne, refus de la modification en `allocating`, première saisie toujours permise). Aucune vérification manuelle demandée à Jules.
+
+- [ ] **Au merge `dev` → `main`** : appliquer `supabase/migrations/20261002_chantier150_modifier_questionnaire_entree.sql` sur la base **prod** (comparer d'abord `pg_get_functiondef(submit_entry_response)` prod à celle de dev). Une vérification faite sur dev ne vaut pas pour prod.
+
+## Chantier 151 — activité à trois niveaux (2026-10-02)
+
+- **Migration** `supabase/migrations/20261002_chantier151_activite_trois_niveaux.sql` : appliquée sur **dev uniquement** (élargit le `CHECK` de `entry_responses.participation_style` à `listener|intermediate|active` et fait compter `intermediate` comme actif dans `get_allocation_inputs`). **À appliquer sur prod au merge vers `main`, après `20260906_chantier72_2_*`** (la fonction diffère entre dev et prod tant que 72_2 n'y est pas).
+- ✅ **Vérifié au navigateur par la session (dev, séance de test supprimée)** : les trois boutons s'affichent, « Intermédiaire » s'enregistre (`intermediate` en base), la réouverture via Outils → « Modifier questionnaire d'entrée » est pré-remplie sur Intermédiaire, le passage à « Actif » s'enregistre.
+- ✅ **Allocation vérifiée côté superadmin au navigateur (dev, 2026-10-02, avec Jules)** : séance de test à 9 présentiels (3 passifs, 3 intermédiaires, 3 actifs) → le panneau d'allocation annonce « 6 actifs · 3 en public » : les intermédiaires comptent comme actifs, les passifs restent en public. Calcul seul (aucun « Appliquer »).
+- ⏳ Visuel du badge **Intermédiaire** (ambre) dans la barre latérale du modérateur : non vérifié à l'écran (il faut une table en débat avec un participant « Intermédiaire »).
+
+## Chantier 153 (2026-10-02) — Propositions : « voter d'abord » et plafond par personne
+
+**Vérifié au navigateur sur dev** (séance de test, supprimée ensuite) : participant côté `#vote/<code>`, réglages posés en base. « Voter d'abord » → bouton « Proposer » absent (en-tête) et ligne « Proposer une assertion » absente de la modale d'intro tant qu'il reste une assertion non votée ; tout voté → les deux boutons reviennent ; proposition soumise normalement ; plafond 3 avec 3 propositions et tout voté → aucun bouton, aucune mention ; plafond relevé à 4 → le bouton revient en ~4 s sans recharger. Refus serveur vérifié pour les deux règles (`submit_assertion` appelée avec l'identité du participant). Mauvais mot de passe refusé sur `set_session_assertion_rules`.
+
+**Écran superadmin — vérifié ensuite au navigateur sur dev (Jules a saisi le mot de passe lui-même)** : la case « Voter sur toutes les options avant de proposer » et le champ « Max. de propositions par personne » s'affichent sous « Propositions ouvertes » sur toutes les séances sauf le débat simple ; cocher la case enregistre (vérifié en base) ; saisir 2 + Entrée enregistre 2 sans toucher à la case ; saisir 0 est refusé et le champ revient à 2 ; vider le champ remet NULL (illimité) ; après rechargement de la page, case cochée et plafond 3 conservés.
+
+**Reste à vérifier**
+- [ ] Même contrôle côté **association** (`#asso`, sondage) : les commandes y sont visibles et la RPC passe (`check_session_admin`) — non joué, pas de compte d'association de test sous la main.
+- [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer » (la partie « ne voit plus » est vérifiée ; la conservation des assertions est garantie par le code, qui ne supprime rien).
+
+**Point de comportement à connaître** : en « voter d'abord », les assertions du participant lui-même comptent parmi celles qu'il doit voter (l'app ne les exclut nulle part de sa file) ; avec la modération `open`, il doit donc voter sa propre proposition avant d'en faire une deuxième.
