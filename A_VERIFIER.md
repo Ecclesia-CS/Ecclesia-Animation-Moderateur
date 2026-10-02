@@ -221,4 +221,4 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 
 ## Chantier 149 — cadres autour des noms liés (2026-10-02)
 
-- [ ] **Capture soumise à Jules avant validation** (exigence du chantier) : `docs/chantier-149-capture.jpg`. Les cadres colorés (une couleur par grappe d'appairage) te conviennent-ils, ou préfères-tu un autre rendu (ex. étiquette, fond plein) ? Rendu vérifié sur harnais jetable ; **non vu** dans l'écran superadmin réel (mot de passe non saisi par la session) : onglet Groupes (puces glissables) et vue « Tables (consultation) ».
+- [ ] **Capture validée par Jules le 2026-10-02.** Reste à voir sur l'écran superadmin réel (rendu vérifié sur harnais jetable, mot de passe superadmin non saisi par la session) : onglet Groupes (puces glissables) et vue « Tables (consultation) ».
