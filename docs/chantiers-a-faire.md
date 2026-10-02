@@ -143,10 +143,7 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 **Précisions (réponse de Jules : « ok bonne idée »)** : stocker les **trois niveaux en base** (migration, conversion des anciennes valeurs, anciennes séances inchangées), `allocation.ts` traite intermédiaire = actif. Comparer à `pg_get_functiondef` et à la colonne existante avant la migration. **Après le 150.**
 
-#### 152 — Retirer le bouton « Proposer » quand c'est désactivé + renommer « Demander la parole »
-> **Consignes de Jules** : « Pour le fait d'enlever la capacité de proposer des participants, j'aimerais qu'on ne voie plus du tout la touche proposer, notamment le bouton proposer svp. » — « Le bouton « Demander la parole » devient : Proposer un futur sujet. »
-
-**Précisions (réponse de Jules)** : quand la séance désactive la proposition (réglage de la vue des séances superadmin), **masquer entièrement** le bouton « Proposer » (pas grisé) **dans tous les écrans participants** ; **ne rien changer au comportement quand c'est activé**. Le renommage « Demander la parole » → « Proposer un futur sujet » est un **simple changement de libellé**, pour tous les types de séance. Recenser toutes les occurrences (`ModeratorToolsButton`, `ModeratorVoteModal`, `VoteScreen`, `PostVoteScreen`, `SubmitAssertionModal`, `ParticipantView`, `debateRules.ts`).
+#### 152 — Retirer le bouton « Proposer » quand c'est désactivé + renommer « Demander la parole » — ✅ fait le 2026-10-02, voir `docs/chantiers.md`
 
 #### 153 — Propositions : voter d'abord, et plafond par personne
 > **Consigne de Jules** : « Sur les propositions : ajouter une possibilité, pour les propositions, de ne pouvoir ajouter de propositions qu'après avoir voté sur toutes les options. Et pouvoir définir, en séance, le nombre de propositions que chaque personne peut proposer (par défaut, infini, mais on peut les baisser). Si on cap en séance, et que des personnes ont déjà dépassé la limite, on part du principe qu'elles n'ont plus de propositions à faire. »

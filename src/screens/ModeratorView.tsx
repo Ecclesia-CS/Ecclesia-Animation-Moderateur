@@ -657,7 +657,7 @@ export default function ModeratorView() {
         {/* ── Files côte-à-côte ──────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QueuePanel
-            title="File d'attente : demander la parole"
+            title="File d'attente : proposer un futur sujet"
             entries={localLong}
             queueType="long"
             participants={participants}
