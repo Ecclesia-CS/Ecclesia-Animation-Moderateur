@@ -149,6 +149,12 @@ export default function EntryScreen() {
           >
             Administration
           </a>
+          <a
+            href="#asso"
+            className="block mt-1 text-xs text-gray-300 hover:text-gray-400 transition-colors"
+          >
+            Asso
+          </a>
         </div>
       </div>
 

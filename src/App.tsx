@@ -147,6 +147,13 @@ export default function App() {
           // `stored.joinCode` est le join_code de la TABLE (#table/<code>), pas
           // celui de la SÉANCE qu'attend VoteScreen (#vote/<code>) — il faut
           // celui de `sess`, pas celui du tableStore.
+          // Chantier 145 — débat fini (post_voting/closed) : on renvoie vers les
+          // résultats de la séance (routeur #session/), pas vers le vote.
+          if (sess?.join_code && (sess.phase === 'post_voting' || sess.phase === 'closed')) {
+            window.location.hash = '#session/' + sess.join_code
+            setPhase({ type: 'entry', userId })
+            return
+          }
           if (sess?.join_code) {
             showToast("La séance est revenue au vote — rejoins-la depuis là.", 'info')
             window.location.hash = '#vote/' + sess.join_code
@@ -181,10 +188,18 @@ export default function App() {
     setPhase({ type: 'table', tableId, participantId, userId, isModerator })
     // Nettoyer le hash sans déclencher hashchange (history.replaceState n'émet pas d'événement)
     history.replaceState(null, '', window.location.pathname + window.location.search)
+    // Chantier 145 — `replaceState` n'émet pas `hashchange` : sans cette ligne
+    // l'état `hash` garde l'ancien `#session/…`/`#vote/…`, et au départ de la
+    // table le routeur le relit et réinscrit aussitôt le membre (débat simple).
+    setHash('')
   }
 
   function handleTableEnd() {
     tableStore.clear()
+    // Chantier 145 — resynchronise l'état avec l'URL réelle : jamais de hash
+    // périmé au départ, mais un hash de destination posé par l'appelant
+    // (« Voir les résultats » → #session/…) est conservé.
+    setHash(window.location.hash)
     const userId = phase.type === 'table' ? phase.userId : ''
     setPhase({ type: 'entry', userId })
   }

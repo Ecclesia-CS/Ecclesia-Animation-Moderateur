@@ -142,7 +142,13 @@ export function TableProvider({
     sessionMemberIsModerator &&
     sessionMemberId !== null &&
     table?.active_moderator_member_id === sessionMemberId
-  const isModerator = physicalModerator || isActiveSessionModerator
+  // Chantier 148 — un seul écran modérateur par table. Sur une table de séance
+  // qui a un titulaire membre (`active_moderator_member_id`), le modérateur
+  // physique (`created_by`) ne compte plus : c'était le second écran noir.
+  // Même règle que la branche a de `is_table_moderator` côté SQL.
+  const physicalCounts =
+    physicalModerator && !(table?.session_id && table.active_moderator_member_id)
+  const isModerator = physicalCounts || isActiveSessionModerator
 
   // Guard against double-calling onTableEnd
   const endedRef = useRef(false)
