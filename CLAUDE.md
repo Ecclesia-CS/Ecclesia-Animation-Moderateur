@@ -133,6 +133,10 @@ Ne **jamais** enchaîner une action (clic, RPC déclenchant un changement de pha
 
 **Historique** : la quasi-totalité des chantiers antérieurs à cette date, y compris mergés et déployés, n'ont eu qu'une vérification `tsc`/tests/build, jamais un parcours réel à l'écran — c'était la conséquence de cette règle de jeton, désormais levée. « Mergé » ne veut pas dire « vérifié » pour ces chantiers-là — `A_VERIFIER.md` reste la seule trace fiable de ce qui a été confirmé humainement.
 
+> **Règle de Jules (2026-10-02)** : « Désormais, toutes choses vérifiées par un navigateur ne doivent plus être vérifiées par Jules. » Toute session vérifie donc elle-même au navigateur (Browser pane) ce qui s'y vérifie, et le consigne dans son compte rendu (`docs/chantiers.md`). Seul ce que le navigateur ne sait pas jouer (glisser-déposer à la souris, deux appareils, Messenger, Gemini réel, prod après merge…) va dans `A_VERIFIER.md`.
+
+> **Règle de Jules (2026-10-02) — à appliquer en premier, à chaque demande** : « A faire en premier : se poser la question si des modifications similaires que celles demandées sont à généraliser à d'autres endroits. Si la réponse est positive, la proposer à l'utilisateur Jules. » Proposer, ne pas appliquer d'office. Complète les questions « types de séance » et « associations » ci-dessus.
+
 ### Points à vérifier humainement — `A_VERIFIER.md`
 
 > 📋 **Deux fichiers compagnons, à lire avant de conclure quoi que ce soit sur l'état du projet** : [docs/chantiers.md](./docs/chantiers.md) (la liste de tous les chantiers depuis le 34, avec ce qui a été fait et son statut) et [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md) (ce qui est retenu hors de `main`, et la passation).
