@@ -137,6 +137,8 @@ Ne **jamais** enchaîner une action (clic, RPC déclenchant un changement de pha
 
 > **Règle de Jules (2026-10-02) — à appliquer en premier, à chaque demande** : « A faire en premier : se poser la question si des modifications similaires que celles demandées sont à généraliser à d'autres endroits. Si la réponse est positive, la proposer à l'utilisateur Jules. » Proposer, ne pas appliquer d'office. Complète les questions « types de séance » et « associations » ci-dessus.
 
+> **Règle de Jules (2026-10-02, chantier 152)** : « Globalement, sur la séance, pour l'utilisateur, il ne faut pas mentionner quelque chose qu'il ne peut pas faire. » Une action désactivée (ex. `sessions.assertions_locked`) n'a ni bouton grisé ni phrase qui l'évoque côté participant — texte d'aide, intro et encadrés compris. Quand on désactive une action, balayer aussi les libellés, pas seulement les boutons.
+
 ### Points à vérifier humainement — `A_VERIFIER.md`
 
 > 📋 **Deux fichiers compagnons, à lire avant de conclure quoi que ce soit sur l'état du projet** : [docs/chantiers.md](./docs/chantiers.md) (la liste de tous les chantiers depuis le 34, avec ce qui a été fait et son statut) et [docs/registre-merges-en-attente.md](./docs/registre-merges-en-attente.md) (ce qui est retenu hors de `main`, et la passation).
