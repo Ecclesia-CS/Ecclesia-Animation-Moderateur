@@ -308,7 +308,9 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
           <section className="bg-indigo-600 rounded-2xl px-5 py-5 text-center space-y-2">
             <p className="text-white text-sm font-semibold">Le débat a peut-être changé ton avis.</p>
             <p className="text-indigo-100 text-xs">
-              Revote sur tes propres assertions, propose-en une nouvelle, ou découvre celles que tu n'as pas encore vues.
+              {session.assertions_locked
+                ? "Revote sur tes propres assertions, ou découvre celles que tu n'as pas encore vues."
+                : "Revote sur tes propres assertions, propose-en une nouvelle, ou découvre celles que tu n'as pas encore vues."}
             </p>
             <button
               onClick={() => setShowPostVote(true)}
