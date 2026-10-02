@@ -8,6 +8,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
+> **Le 2026-10-02, le chantier 147 est mergé dans `dev`** (débat simple/d'association : `tables.created_by` n'est plus l'uid de l'admin — sentinelle `0000…` via `table_owner_uid`) — voir `docs/chantiers.md`. Migration `20261002_chantier147_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 148 peut démarrer.** Entrée « en cours » retirée au merge.
 
 > **Le 2026-09-28, le chantier 142 est mergé dans `dev`** (document collaboratif : écrire ses sources exige d'être inscrit sur l'appareil ou de donner nom + code de rappel ; identité = `session_members`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 142. Vérifié au navigateur sur dev (vote, table, débat simple, modérateur). Sa migration (`20260928_chantier142_collab_identite_membre`, qui **supprime** `register_collab_pseudo` et la table `collab_session_users`) est appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** celles du 140/140b (elle utilise `pseudo_key`).
 
@@ -118,7 +119,7 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 **Précisions** : le petit lien « Asso » se place **en dessous** du lien « Administration » (même style), et mène à l'écran asso `#asso` (celui qu'on améliore actuellement). Fichier probable : `EntryScreen.tsx`.
 
-#### 147 — Débat d'association : modérateur par défaut, sortie, vue Groupes
+#### 147 — Débat d'association : modérateur par défaut, sortie, vue Groupes — ✅ fait, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Actuellement, quand j'arrive dans le débat créé par une asso, par défaut, comme premier arrivant, je deviens le modérateur. […] De plus, celui qui est rentré en tant que modérateur, sur la vue admin de l'asso, n'est pas modérateur de la table : la modération de la table dans la vue groupe est toujours vide... »
 
 À faire : diagnostiquer pourquoi le premier arrivant devient modérateur sans passer par la désignation, pourquoi la vue Groupes de l'asso reste vide pour lui (cohérence `session_members.is_moderator` / `tables.active_moderator_member_id` / `table_assignments`), et corriger. La sortie de vue est traitée par le 145. **À faire avant le 148.**
