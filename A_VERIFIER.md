@@ -2,6 +2,8 @@
 
 > **Nettoyé le 2026-09-29 (fin du chantier 141).** Tout ce qui a été vérifié au navigateur (à la main par Jules ou automatiquement sur dev par le chantier 141) a été retiré, sur décision de Jules : plus de consigne de vérification humaine pour ces points. **Ne restent ici que les points que le navigateur ne sait pas jouer**, ou qui ne valent que sur prod. L'ancien contenu (recettes, historique, annotations 141) est dans l'historique git : `git show 8656608:A_VERIFIER.md`. Les rapports détaillés de la passe 141 sont dans [`docs/rapports-tests-141/`](./docs/rapports-tests-141/) (`rapport-consolide.md` d'abord).
 >
+> **Règle de Jules (2026-10-02)** : « Désormais, toutes choses vérifiées par un navigateur ne doivent plus être vérifiées par Jules. » Une session ne consigne donc ici que ce que le navigateur ne peut pas jouer ; le reste est vérifié par elle-même et noté dans `docs/chantiers.md`.
+>
 > Règle inchangée : ne jamais supprimer une entrée sans l'accord de Jules — la cocher ou la déplacer en fin de fichier une fois vérifiée. Une vérification faite sur dev ne vaut pas pour prod.
 
 ---
