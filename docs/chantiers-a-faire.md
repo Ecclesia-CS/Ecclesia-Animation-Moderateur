@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-09-28** (ajout des chantiers 137 à 141, puis du
 
 ## Chantiers en cours
 
-> **🚧 Chantier 148 — en cours depuis le 2026-10-02** (un seul écran modérateur par table). Branche `claude/chantier-148-c22617`. Fichiers : `src/context/TableContext.tsx`, `src/components/voting/ModeratorActionModal.tsx`, migration `supabase/migrations/20261002_chantier148_*.sql` (réécrit `is_table_moderator`, `table_has_moderator`, `reclaim_table_as_moderator`, `claim_table_as_moderator`, `join_simple_debate`, `claim_moderator_status`, `set_member_moderator`), `CLAUDE.md` (exception du 02/09), docs de suivi. Ne pas toucher ces fonctions SQL en parallèle.
+> **Le 2026-10-02, le chantier 148 est mergé dans `dev`** (un seul écran modérateur par table ; 148b : aucune table de séance n'appartient à l'administrateur) — voir `docs/chantiers.md`. Migrations `20261002_chantier148_*` et `20261002_chantier148b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 147, dans cet ordre**. Entrée « en cours » retirée au merge.
 
 > **Le 2026-10-02, le chantier 147 est mergé dans `dev`** (débat simple/d'association : `tables.created_by` n'est plus l'uid de l'admin — sentinelle `0000…` via `table_owner_uid`) — voir `docs/chantiers.md`. Migration `20261002_chantier147_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. **Le 148 peut démarrer.** Entrée « en cours » retirée au merge.
 
@@ -127,12 +127,12 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 À faire : diagnostiquer pourquoi le premier arrivant devient modérateur sans passer par la désignation, pourquoi la vue Groupes de l'asso reste vide pour lui (cohérence `session_members.is_moderator` / `tables.active_moderator_member_id` / `table_assignments`), et corriger. La sortie de vue est traitée par le 145. **À faire avant le 148.**
 
-#### 148 — Un seul écran modérateur (noir) par table — ✅ fait le 2026-10-02 (branche `claude/chantier-148-c22617`), voir `docs/chantiers.md`
+#### 148 — Un seul écran modérateur (noir) par table — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Vrai problème : sur la modération. Il peut y avoir plusieurs participants qui ont un écran modérateur (noir) et c'est un problème. Les « modérateurs en surplus » ne doivent pas avoir de vue modérateur (vue noire). Et quand on lui enlève la place de modérateur en surplus, il garde sa vue modérateur (peut être lié au taf modérateur...). L'idéal, ce serait qu'uniquement la personne qui est en tant que modérateur de la table ait l'écran modérateur, pour que plusieurs personnes ne se marchent pas sur les pieds dans la modération. Autre problème : quand un participant se déclare modérateur en prenant la modération de sa table avec le code ecclesia, il obtient l'écran modérateur. Mais, sur la vue superadmin, dans l'onglet groupe, il n'apparait pas en tant que modo. De plus, quand on recharge la page du nouveau modo, il redevient participant ! »
 
 **Précisions (réponse de Jules)** : « celui qui prend la modération tout court, avec un flag modérateur en tant que modo de la table, a l'écran noir ». Donc : **un seul écran modérateur par table**, pour le modérateur désigné de cette table (flag + modérateur de la table) ; un modérateur en surplus n'en a pas ; lui retirer le rôle lui retire la vue aussitôt ; la prise par code Ecclesia doit apparaître dans l'onglet Groupes et **survivre au rechargement**. ⚠️ **Contredit l'« exception confirmée » du 2026-09-02 dans `CLAUDE.md`** (membre `is_moderator` en surplus assis sur une table `leaderless` qui garde l'autorité d'animation) — **décision de Jules attendue sur son retrait** avant de coder ; la mettre à jour dans `CLAUDE.md` une fois tranchée. Ne pas toucher à `is_table_moderator` sans relire la section « Ne jamais faire ».
 
-#### 149 — Design : voir qui est lié à qui (liens entre noms)
+#### 149 — Design : voir qui est lié à qui (liens entre noms) — ✅ mergé dans `dev` le 2026-10-02, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Pour les liens, ça fonctionne très bien, mais l'idéal ce serait qu'on voit qui est connecté avec qui, par exemple, les rectangles de noms liés sont eux mêmes dans carrés un peu plus gros ? Je ne sais pas s'il y a une solution de design efficace pour cela. »
 
 **Précisions** : proposition retenue avec Jules — un cadre commun englobant les noms liés, une couleur par groupe lié. **Une capture d'écran doit être soumise à Jules avant de valider le chantier.** Partir de `docs/chantiers.md` (chantier des liens) pour retrouver l'écran concerné.
