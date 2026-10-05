@@ -4,7 +4,7 @@
 >
 > **Règle de Jules (2026-10-02)** : « Désormais, toutes choses vérifiées par un navigateur ne doivent plus être vérifiées par Jules. » Une session ne consigne donc ici que ce que le navigateur ne peut pas jouer ; le reste est vérifié par elle-même et noté dans `docs/chantiers.md`.
 >
-> Règle inchangée : ne jamais supprimer une entrée sans l'accord de Jules — la cocher ou la déplacer en fin de fichier une fois vérifiée. Une vérification faite sur dev ne vaut pas pour prod.
+> **Règle de Jules (2026-10-05)** : ce qu'une session a vérifié elle-même au navigateur (ou en SQL sur dev) **est retiré de ce fichier**, pas coché : Jules n'a pas à le revérifier. Le détail de ce qui a été joué va dans `docs/chantiers.md`. Une vérification faite sur dev ne vaut pas pour prod, sauf décision contraire de Jules (chantier 144 : « pas nécessaire sur prod »).
 
 ---
 
@@ -12,11 +12,6 @@
 
 Sur une séance de test, avec la souris.
 
-- [ ] **Chantier 139** — glisser un participant d'une table déjà modérée sur l'encart « 🔁 Remplacer le modérateur » : la fenêtre « Remplacer le modérateur de la table N°X ? » doit s'ouvrir (nommant les deux personnes), « Annuler » ne change rien, « Remplacer » fait du participant l'animateur (l'ancien devient « Modérateur en surplus » et repasse en écran participant).
-- [ ] **Chantier 33** — glisser un participant sur une table sans modérateur dans l'onglet 🪑 Tables/Groupes : il devient le modérateur.
-- [ ] **Chantier 92, étape 4** — badges 🔗 sur un binôme ; glisser A vers une autre table doit déplacer A **et** B, le compteur de grappes reste à jour.
-- [ ] **Chantier 91, étape 4** — glisser un passif vers une table sans modérateur : l'alerte « en public sans modérateur » apparaît et « Santé des tables » baisse.
-- [ ] **Chantier 53** — glisser-déposer une entrée dans la file côté modérateur : la vue participant reflète le nouvel ordre en moins de 2 s.
 
 ## 2. Deux identités ou deux appareils en même temps (le navigateur intégré n'en gère qu'une)
 
@@ -27,9 +22,7 @@ Sur une séance de test, avec la souris.
   4. phase vote : badge « Vous êtes modérateur » disparaît sans rechargement quand le superadmin décoche ;
   5. régression : un modérateur classique sans ligne `session_members` garde son `ModeratorView`.
 - [ ] **Chantier 50 — Realtime ne livre que ses propres lignes** : deux navigateurs (participants A et B) ; le superadmin modifie A → **B ne reçoit aucun événement** (onglet Réseau, frames WebSocket) ; il modifie B → B réagit toujours (badge, bascule de vue, numéro de table).
-- [ ] **Chantier 53 — plafonnement du refetch** : enchaîner vite « donner la parole à A → fin de tour → auto-avance → donner à C » : aucun écran ne se fige côté participant, orateur cohérent des deux côtés (≤ ~1 s de retard) ; exclure un participant → il disparaît côté participant ; couper puis rétablir le réseau d'un client → resynchronisation.
-- [ ] **Chantier 132 — « proposer un vote », en direct** (modérateur + participant) : (1) Outils Modo → « Proposer un vote » → question + 2 options → « Lancer » ; (2) le popup s'ouvre côté participant sans rechargement, pour/contre indépendants ; (3) le décompte du modérateur se met à jour en direct sans révéler qui a voté quoi ; (4) « Clôturer » → le popup bascule sur les résultats en ~4 s ; (5) un second vote remplace le premier ; (6) « Voir l'historique des votes » les liste avec leurs décomptes ; (7) fermer la croix sans répondre puis rouvrir via « 🗳️ Voir le vote en cours » ; un nouveau vote rouvre le popup. *(La partie SQL a été vérifiée en transaction jetable sur dev.)*
-- [ ] **Écran du modérateur supprimé ou remplacé** — vu côté superadmin seulement, pas côté modérateur : (137-D d) supprimer un modérateur en `debating` → son écran bascule en participant ; (118, 109, 139) « Retirer », « Libérer la modération » ou le placement à l'ouverture du débat → le modérateur placé voit son écran, l'ancien animateur repasse en participant.
+- [ ] **Écran du modérateur supprimé ou remplacé** — vu côté superadmin seulement, pas côté modérateur : (137-D d) supprimer un modérateur en `debating` → son écran bascule en participant ; (118, 109, 139) « Libérer la modération » ou le placement à l'ouverture du débat → le modérateur placé voit son écran, l'ancien animateur repasse en participant. (« Retirer » a été joué le 2026-10-05 : l'écran modérateur bascule en participant en moins de 3 s, sans rechargement.)
 - [ ] **Chantier 139, cas 6** — une personne désignée pour une **autre** table que la sienne doit rejoindre cette table (fenêtre « Changement de table ») ; vérifier qu'elle devient bien modératrice à l'arrivée.
 
 ## 3. Gemini réel (`gemini-proxy` n'est pas déployé sur dev)
@@ -61,10 +54,19 @@ Sur une séance de test, avec la souris.
 
 > ⏳ **Puis, avec le 153** : `20261002_chantier153_regles_propositions` (appliquée sur dev le 2026-10-02). Ajoute `sessions.assertions_vote_first` / `max_assertions_per_member`, la RPC `set_session_assertion_rules` (via `check_session_admin`, donc ouverte aux associations) et réécrit `submit_assertion` (définition vivante comparée avant réécriture : identique au chantier 124 + deux refus). Contient aussi `GRANT SELECT (assertions_locked, assertions_vote_first, max_assertions_per_member) ON sessions TO anon, authenticated` : sur **prod**, `assertions_locked` n'avait **pas** de SELECT colonne pour `anon`/`authenticated` (droits colonne par colonne depuis le chantier 58) — le chargement initial passe par `get_session_by_join_code` (SECURITY DEFINER) et n'en souffre pas, mais les mises à jour Realtime de `sessions` pouvaient ne pas porter le verrou ; le GRANT est sans effet sur dev (droit table entière).
 
+> ✅ **Fait le 2026-10-05** (merge `dev` → `main`, fast-forward de 60 commits, chantiers 147 à 157) : **7 migrations appliquées sur prod, dans cet ordre** — `147`, `148`, `148b`, `150`, `151`, `153`, `154` (noms prod : `chantier147_…`, `chantier148_…`, etc.). Appliquées **avant** le push de `main`, pour que le `GRANT SELECT(visible_on_home)` du 154 soit en place quand le code qui lit cette colonne arrive (même piège que `organization_id` le 30/09) ; l'ancien code reste compatible avec le nouveau schéma (colonnes ajoutées, contrainte élargie).
+> Vérifié avant d'appliquer, en lecture seule sur prod : contrainte `participation_style` identique à celle supposée par le 151 (valeurs en base : 23 `active`, 9 `listener`, toutes encore valides) ; `submit_assertion` et `get_allocation_inputs` identiques à l'état de départ attendu par les 153 et 151 ; aucun débat simple sur prod. **Rattrapages de données** de 147/148/148b : 1 + 3 + 4 tables touchées, **toutes de séances closes** (« Retraite », « Faut-il réformer l'héritage en France ? », « Énergie… », « Réunion apprentissage modération 21/09 », « Multiculturalisme ») ; la seule séance vivante (sondage « Thèmes pour le débat ImpactxEcclesia », `pre_voting`) n'est pas concernée.
+> Après coup : `entry_responses_participation_style_check` à trois valeurs ; `anon`/`authenticated` ont `SELECT` sur `visible_on_home`, `assertions_vote_first`, `max_assertions_per_member`, `assertions_locked`, `organization_id` ; `table_owner_uid` et `clear_seated_physical_moderator` non exécutables par `anon` ; plus aucune table de séance avec un `created_by` non assis ; `get_advisors` sécurité : mêmes familles d'alertes qu'avant (fonctions `SECURITY DEFINER` appelables, `search_path` mutable sur des fonctions anciennes), aucune nouvelle.
+> Neuf fonctions différaient entre prod et dev sans migration associée (`admin_submit_assertion`, `assign_table_to_group`, `check_gemini_rate_limit`, `create_session`, `enforce_org_session_rules`, `merge_assertion_votes`, `move_participant`, `org_consume_naming_quota`, `get_table_opinion_summary`) : relues, **uniquement des commentaires** (le clonage de dev les avait retirés), logique identique.
+> **Retour arrière** : tag `pre-merge-dev-20261005` pour le code. **Pas d'instantané de schéma cette fois** (contrairement au 30/09) : pour défaire les migrations, rejouer les anciennes définitions de fonctions (celles de la 09-30) et le bloc `ROLLBACK` en pied des fichiers 153 et 154 ; la contrainte du 151 se rétablit en retirant `'intermediate'` **après** avoir vérifié qu'aucune ligne n'a cette valeur.
+> **Suppression de `transcription-debat/`** (commit `d6d8a35` de dev, confirmée par Jules le 2026-10-05) : le sous-projet disparaît de `main`, récupérable dans l'historique git (tag `pre-merge-dev-20261005`).
+
+> ✅ **Recette partielle sur prod, 2026-10-05** (session « merge dev to main », navigateur intégré, séances « QA recette » créées puis supprimées, vrai sondage intact) : **154** (masquer une séance : base `visible_on_home = false`, absente de l'accueil, vrai sondage toujours listé), **147**, **148**, **153**, **150** (réécriture du questionnaire refusée hors phase `voting`) et **151** (`intermediate` accepté et stocké) vérifiés — détail dans les cases ci-dessous. **Non jouable dans le navigateur intégré** : les WebSockets y échouent partout (dev, prod, serveur d'écho) ; seule la couche d'interrogation de secours a été exercée. **151 et 150 ensuite rejoués par l'écran** (séance complète de test, supprimée) : onboarding à 4 questions avec les trois boutons Passif / Intermédiaire / Actif, `intermediate` stocké ; Outils → « Modifier questionnaire d'entrée » pendant `voting` : `intermediate` → `active` enregistré. **Non couvert** : l'effet des intermédiaires dans l'allocation (`get_allocation_inputs`, qui demande le mot de passe et un vrai effectif), 135/139/140/140b/143, 106/109/117/118, 91/92, et les cas à deux identités.
+
 Puis, sur une séance de test **de prod** :
-- [ ] **153** — sur une séance de test de prod, régler « voter d'abord » et un plafond depuis le superadmin, vérifier que le bouton « Proposer » suit en direct côté participant (comme vérifié sur dev).
-- [ ] **147** — créer un débat simple depuis le navigateur d'administration, ouvrir **le même lien dans ce même navigateur** : on doit arriver en **participant** (écran noir modérateur absent), et un second appareil qui entre avec « Je suis le modérateur » + code doit être accepté (pas de « Toutes les tables ont déjà un modérateur ») et apparaître comme modérateur dans l'onglet Groupes. (Vérifié en base dev uniquement — le navigateur intégré a refusé `localhost` le 2026-10-02.)
-- [ ] **148** — à une table de séance, un participant fait Outils → « Reprendre l'animation de cette table » avec le **vrai** code : écran noir chez lui, l'ancien animateur repasse participant, il apparaît modérateur dans l'onglet Groupes, et **recharger la page le laisse modérateur**. Puis le retirer (onglet Groupes) : retour immédiat en participant. (Vérifié sur dev en base, RPC appelées avec le contrôle de code neutralisé dans une transaction annulée, et au navigateur en posant l'état résultant en base — le mot de passe réel n'était pas disponible à la session.)
+- [x] **153** — sur une séance de test de prod, régler « voter d'abord » et un plafond depuis le superadmin, vérifier que le bouton « Proposer » suit en direct côté participant (comme vérifié sur dev). ✅ **Vérifié sur prod le 2026-10-05** (séance de test supprimée) : plafond à 1 → 2e proposition refusée côté serveur (« nombre maximal »), « voter d'abord » → refusée tant qu'une assertion approuvée n'est pas votée, acceptée après le vote ; réglages enregistrés depuis Préparation. Reste : le côté association (`#asso`) et le suivi en direct du bouton « Proposer » (Realtime coupé dans le navigateur intégré).
+- [x] **147** — créer un débat simple depuis le navigateur d'administration, ouvrir **le même lien dans ce même navigateur** : on doit arriver en **participant** (écran noir modérateur absent), et un second appareil qui entre avec « Je suis le modérateur » + code doit être accepté (pas de « Toutes les tables ont déjà un modérateur ») et apparaître comme modérateur dans l'onglet Groupes. (Vérifié en base dev uniquement — le navigateur intégré a refusé `localhost` le 2026-10-02.) ✅ **Vérifié sur prod le 2026-10-05** : débat simple créé depuis le navigateur d'administration, lien ouvert dans ce même navigateur → vue participant, `session_members.is_moderator = false`, `created_by` = identifiant neutre. Reste : le second appareil qui entre avec « Je suis le modérateur » + code.
+- [x] **148** — à une table de séance, un participant fait Outils → « Reprendre l'animation de cette table » avec le **vrai** code : écran noir chez lui, l'ancien animateur repasse participant, il apparaît modérateur dans l'onglet Groupes, et **recharger la page le laisse modérateur**. Puis le retirer (onglet Groupes) : retour immédiat en participant. (Vérifié sur dev le 2026-10-05 avec le **vrai** Code Ecclesia saisi par Jules : prise par Outils → « Reprendre l'animation » → écran modérateur, conservé après rechargement même avec le cache local à `isModerator:false`, visible avec « Retirer » dans Groupes, retrait → retour participant. Reste ici la recette sur prod.) ✅ **Vérifié sur prod le 2026-10-05** (une seule identité) : Outils → Modérateur → « Reprendre l'animation de cette table » avec le vrai code → modérateur de séance + titulaire unique de la table, `created_by` neutre, vue modérateur conservée après rechargement. Reste : l'ancien animateur qui repasse participant (demande deux identités).
 - [ ] **135** — création d'un compte association, connexion `#asso`, prise de modération avec le mot de passe d'asso.
 - [ ] **139** — rejouer l'encart « Remplacer le modérateur », la confirmation et le remplacement (points 1 à 3), et l'ancien animateur qui repasse en écran participant.
 - [ ] **140** — porte code de table avec un nom déjà pris (message + accordéon ouvert, pas d'entrée).
@@ -78,9 +80,7 @@ Puis, sur une séance de test **de prod** :
 Pas impossibles à automatiser : ils ont été laissés de côté faute de marge dans les conversations, ou parce que le même code est déjà couvert par un cas joué. À rejouer avec les mots de passe de Jules si l'on veut fermer ces points.
 
 - [ ] **108 — déclaration modérateur unifiée** : C1 (reprise d'un code de rappel en pré-vote) et C2 (réouverture en `allocating`) demandent des parcours sur plusieurs phases ; C3 (secours en `debating`) est couvert par équivalence (même RPC `claim_table_as_moderator`).
-- [ ] **134 point 5** — prise de modération par Outils sur un débat simple (même RPC `reclaim_table_as_moderator` que le 110, joué ailleurs).
-- [ ] **91, étape 5** — cas limite : moins de 5 actifs dans la séance → une seule table, avertissement, pas d'erreur.
-- [ ] **Chantier 140** — changement de table en cours de débat (`TableChangeModal`, `ChangeTableModal`) et en allocation (`AllocatingScreen`, `switch_table`) ; lien `#table/<code>` sans séance avec accordéon ouvert et nom libre ; porte du secours de `VoteScreen` (même composant `JoinTableForm`).
+- [ ] **Chantier 140** — changement de table en allocation (`AllocatingScreen`, `switch_table`) et `TableChangeModal` ; porte du secours de `VoteScreen` (même composant `JoinTableForm`). (Joués le 2026-10-05 : `ChangeTableModal` en débat, lien `#table/<code>` sans séance.)
 - [ ] **A1 (à tester)** — après la prise d'une table `leaderless` par la porte modérateur (Code Ecclesia), le preneur peut-il arriver sur la vue **participant** au lieu de `ModeratorView` (rechargement nécessaire) ? Vu 1 fois sur 3 ; non reproduit en 2 essais au 141f. Rejouer plusieurs fois, sans rechargement.
 - [ ] **Ménage des tables de test partagées** — `589D79`, `6ABDC9` (séance « Test manuel — Vote & bascule modérateur ») et `6296A9` (séance TEST33A, participant « Test Notes QA ») : à purger, **accord explicite de Jules requis** avant suppression.
 
@@ -89,6 +89,10 @@ Pas impossibles à automatiser : ils ont été laissés de côté faute de marge
 - **Chantier 120** — `session_members.user_id` se désynchronise au renouvellement du jeton anonyme. **Bug confirmé, sans correctif codé**, en attente d'un arbitrage de sécurité de Jules. Détail complet ci-dessous.
 - **Chantier 139, cas voisins non corrigés** : (a) déplacer l'animateur d'une table par glisser-déposer la laisse sans animateur ni « sans animateur » ; (b) le bouton « modérateur » de la liste des participants peut réaffecter silencieusement la personne à une autre table en plein débat ; (c) la fenêtre « Changement de table » reste masquée tant que les fenêtres d'accueil et de règles sont ouvertes.
 - **Chantier 141 — bugs relevés**, voir le chantier de correctifs dans `docs/chantiers-a-faire.md`.
+- **Observations du 2026-10-05, à trancher** (aucune n'est un bug avéré) :
+  - **`ChangeTableModal` (Outils → « Changer de table »), 1 échec sur 3** : après la saisie du code, la base est correcte (participant déplacé, `table_assignments` à jour) mais l'écran retombe sur l'accueil et `ecclesia_table` est vide. Non reproduit en deux essais suivants. Hypothèse : course entre `tableStore.set` + `window.location.reload()` et l'ancienne table qui détecte la disparition du participant puis appelle `onTableEnd` → `tableStore.clear()` avant le rechargement. Conséquence : le participant doit se reconnecter avec son code de rappel.
+  - **Table sans séance, nom déjà pris** : message « Ce nom est déjà pris à cette table. Choisis-en un autre. » mais l'accordéon « J'ai déjà un code de rappel » reste fermé (il n'y a pas de code de rappel hors séance). À confirmer : est-ce voulu (chantier 140 parlait d'accordéon ouvert) ?
+  - **« Me déclarer modérateur de la séance » en débat simple** : le membre est marqué modérateur mais reste en vue participant, même après rechargement ; il faut « Reprendre l'animation de cette table » pour obtenir `ModeratorView`. Probablement normal (pas de placement de table sans allocation).
 
 ---
 
@@ -156,17 +160,9 @@ rollback;
 
 
 
-## Chantier 144 — correctifs de la passe 141 (2026-09-29)
-Vérifié au navigateur le 2026-10-02 sur le déploiement Vercel dev (séances « QA Vérifs — Débat/Sondage/Complète »), sauf le point 5. Décision de Jules : pas de revérification sur prod, le comportement doit être identique.
-- [x] 1. Onglet Groupes : les liens « Libérer la modération de cette table » et « Refaire une table sans animateur » sont espacés.
-- [x] 2. Créer une table (bannière « Table créée ! Code … »), puis la supprimer : la bannière disparaît.
-- [x] 3. `JoinTableForm` : entrer un nom déjà pris → accordéon code ouvert ; corriger le nom → accordéon refermé, « Rejoindre » actif. Ouvrir l'accordéon à la main puis changer le nom → il reste ouvert.
-- [x] 4. Modérateur inscrit à la séance : « ajouter une personne sans téléphone » avec **son propre nom** (autre casse) → refus « déjà assise ». Deux personnes sans téléphone de noms différents → toujours acceptées.
-- [x] 5. Table créée via « Créer une table » (Code Ecclesia) + un modérateur en attente : `assign_pending_moderators` ne place plus personne sur cette table. *(Vérifié en SQL sur dev le 2026-10-02, pas au navigateur : transaction annulée par rollback — table 1 avec créateur assis comme modérateur physique, table 2 libre, un modérateur en attente → placé sur la table 2, `tables_without_moderator` vide. Rollback contrôlé : aucune séance/table de test restante, `check_superadmin_password` intacte.)*
-Migrations appliquées sur **dev** (`20260929_chantier144_*`, `20260929_chantier144b_*`) ; appliquées sur prod le 2026-09-30 (voir section 5).
-- [x] 6. Sondage : onglet Analyse sans « Comparaison avant/après », « Thèmes », « Réponses au questionnaire », « Recrutement modérateurs » ; séance complète et débat simple : ces sections restent visibles.
+## Chantier 155 — liens de documentation (2026-10-05)
 
-*Observation du 2026-10-02 (pas un bug avéré)* : sur un débat simple, « Me déclarer modérateur de la séance » (Outils) marque le membre modérateur mais le laisse en vue participant, même après rechargement ; il faut « Reprendre l'animation de cette table » pour obtenir `ModeratorView`. Probablement normal (pas de placement de table sans allocation) — à confirmer avec Jules.
+- [ ] Côté **`#asso`** : le champ « Fiche info et résumé » de l'écran Documentation (non joué : pas de compte d'association de test).
 
 ---
 
@@ -225,31 +221,31 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 
 - [ ] Lancer `run_transcription.ps1` sur un débat : la console doit afficher `Diarisation pyannote (cuda)...` et `nvidia-smi` montrer le GPU occupé (~7 min attendues pour 2 h, mesure du 19/09).
 
-## Chantier 149 — cadres autour des noms liés (2026-10-02)
-
-- [ ] **Capture validée par Jules le 2026-10-02.** Reste à voir sur l'écran superadmin réel (rendu vérifié sur harnais jetable, mot de passe superadmin non saisi par la session) : onglet Groupes (puces glissables) et vue « Tables (consultation) ».
-
 ## Chantier 150 — modifier son questionnaire d'entrée (2026-10-02)
-
-Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils, pré-remplissage, enregistrement, bandeaux « Facultatif » en première ligne, refus de la modification en `allocating`, première saisie toujours permise). Aucune vérification manuelle demandée à Jules.
 
 - [ ] **Au merge `dev` → `main`** : appliquer `supabase/migrations/20261002_chantier150_modifier_questionnaire_entree.sql` sur la base **prod** (comparer d'abord `pg_get_functiondef(submit_entry_response)` prod à celle de dev). Une vérification faite sur dev ne vaut pas pour prod.
 
 ## Chantier 151 — activité à trois niveaux (2026-10-02)
 
 - **Migration** `supabase/migrations/20261002_chantier151_activite_trois_niveaux.sql` : appliquée sur **dev uniquement** (élargit le `CHECK` de `entry_responses.participation_style` à `listener|intermediate|active` et fait compter `intermediate` comme actif dans `get_allocation_inputs`). **À appliquer sur prod au merge vers `main`, après `20260906_chantier72_2_*`** (la fonction diffère entre dev et prod tant que 72_2 n'y est pas).
-- ✅ **Vérifié au navigateur par la session (dev, séance de test supprimée)** : les trois boutons s'affichent, « Intermédiaire » s'enregistre (`intermediate` en base), la réouverture via Outils → « Modifier questionnaire d'entrée » est pré-remplie sur Intermédiaire, le passage à « Actif » s'enregistre.
-- ✅ **Allocation vérifiée côté superadmin au navigateur (dev, 2026-10-02, avec Jules)** : séance de test à 9 présentiels (3 passifs, 3 intermédiaires, 3 actifs) → le panneau d'allocation annonce « 6 actifs · 3 en public » : les intermédiaires comptent comme actifs, les passifs restent en public. Calcul seul (aucun « Appliquer »).
-- ⏳ Visuel du badge **Intermédiaire** (ambre) dans la barre latérale du modérateur : non vérifié à l'écran (il faut une table en débat avec un participant « Intermédiaire »).
 
 ## Chantier 153 (2026-10-02) — Propositions : « voter d'abord » et plafond par personne
 
-**Vérifié au navigateur sur dev** (séance de test, supprimée ensuite) : participant côté `#vote/<code>`, réglages posés en base. « Voter d'abord » → bouton « Proposer » absent (en-tête) et ligne « Proposer une assertion » absente de la modale d'intro tant qu'il reste une assertion non votée ; tout voté → les deux boutons reviennent ; proposition soumise normalement ; plafond 3 avec 3 propositions et tout voté → aucun bouton, aucune mention ; plafond relevé à 4 → le bouton revient en ~4 s sans recharger. Refus serveur vérifié pour les deux règles (`submit_assertion` appelée avec l'identité du participant). Mauvais mot de passe refusé sur `set_session_assertion_rules`.
-
-**Écran superadmin — vérifié ensuite au navigateur sur dev (Jules a saisi le mot de passe lui-même)** : la case « Voter sur toutes les options avant de proposer » et le champ « Max. de propositions par personne » s'affichent sous « Propositions ouvertes » sur toutes les séances sauf le débat simple ; cocher la case enregistre (vérifié en base) ; saisir 2 + Entrée enregistre 2 sans toucher à la case ; saisir 0 est refusé et le champ revient à 2 ; vider le champ remet NULL (illimité) ; après rechargement de la page, case cochée et plafond 3 conservés.
-
 **Reste à vérifier**
 - [ ] Même contrôle côté **association** (`#asso`, sondage) : les commandes y sont visibles et la RPC passe (`check_session_admin`) — non joué, pas de compte d'association de test sous la main.
-- [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer » (la partie « ne voit plus » est vérifiée ; la conservation des assertions est garantie par le code, qui ne supprime rien).
 
 **Point de comportement à connaître** : en « voter d'abord », les assertions du participant lui-même comptent parmi celles qu'il doit voter (l'app ne les exclut nulle part de sa file) ; avec la modération `open`, il doit donc voter sa propre proposition avant d'en faire une deuxième.
+
+## Chantier 154 (2026-10-05) — Visibilité des séances sur l'accueil
+
+**Reste à vérifier**
+- [ ] **Prod, après merge** : appliquer `20261005_chantier154_visibilite_accueil.sql` AVANT de déployer le code (sinon l'accueil de prod devient vide : colonne inconnue) et vérifier que l'accueil liste toujours les séances.
+
+## Chantier 156 (2026-10-05) — Réglages de séance rangés dans Préparation / En direct
+
+**Vérifié au navigateur sur dev** (superadmin, copies de test remises dans leur état, chaque écriture relue en base) : verrou des propositions depuis Préparation et depuis En direct ; plafond de propositions saisi depuis En direct ; « Visible sur l'accueil » depuis Préparation ; « Résultats publics » (séance close, absent de la liste et de « Visible sur l'accueil » comme prévu) ; onboarding.
+
+**Reste à vérifier**
+- [x] **Côté association (`#asso`) — vérifié au navigateur sur dev le 2026-10-05** (association de test « QA Asso 156 » créée depuis le menu superadmin, connexion `#asso`, puis association et séances supprimées) : sondage d'association → section « Réglages » réduite au verrou et à ses deux règles (ni « Visible sur l'accueil », ni onboarding, ni résultats publics) ; verrou, « voter d'abord » et plafond écrits en base avec le jeton `org_…` ; les mêmes contrôles sont dans « En direct » ; carte de la liste sans pastille. Débat simple d'association → plus aucune section « Réglages ». Au passage, les textes parlaient de « superadmin » (visible par l'association) : remplacé par « l'administration de la séance ».
+- [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).
+

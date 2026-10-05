@@ -11,6 +11,8 @@ Dernière mise à jour : **2026-09-16**.
 
 > **2026-09-30** — `dev` mergé dans `main` (chantiers 131 à 144, 83 commits) et **14 migrations appliquées sur prod**. Tag de retour arrière `pre-merge-dev-20260930` ; procédure et instantané de schéma dans [`docs/rollback-merge-dev-main-20260930.md`](./rollback-merge-dev-main-20260930.md). Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
 
+> **2026-10-05** — `dev` mergé dans `main` (chantiers 147 à 157, 60 commits, fast-forward) et **7 migrations appliquées sur prod** (147, 148, 148b, 150, 151, 153, 154), avant le push. Tag de retour arrière `pre-merge-dev-20261005` (code seulement : pas d'instantané de schéma cette fois). Le sous-projet `transcription-debat/` est supprimé de `main` à cette occasion, sur confirmation de Jules. Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
+
 ---
 
 ## 1. Gel du parcours de vote — jusqu'au 2026-09-10 inclus

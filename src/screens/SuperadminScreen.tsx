@@ -16,7 +16,7 @@ import PasswordInput from '../components/PasswordInput'
 import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
-  setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules,
+  setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules, setSessionVisibleOnHome,
   listSessionTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
@@ -29,6 +29,7 @@ import {
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import { SESSION_TYPE_LABEL, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
+import { DOC_INFO_LABEL } from '../lib/docLinks'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
@@ -298,102 +299,26 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
     }
   }
 
-  // ── Bascule visibilité publique des résultats (chantier 46) ────
-  const [resultsPublicErr, setResultsPublicErr] = useState<Record<string, string>>({})
+  // ── Visibilité sur l'accueil (chantier 154) ──
+  const [visibleOnHomeErr, setVisibleOnHomeErr] = useState<Record<string, string>>({})
 
-  async function handleToggleResultsPublic(target: SessionRow, next: boolean) {
+  async function handleToggleVisibleOnHome(target: SessionRow, next: boolean) {
     const password = getPwd()!
-    setResultsPublicErr(prev => {
+    setVisibleOnHomeErr(prev => {
       const { [target.id]: _omit, ...rest } = prev
       return rest
     })
-    // Optimiste — la bascule est un simple toggle, peu de raisons d'échouer
-    // une fois authentifié ; on revient en arrière si l'appel échoue.
-    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, results_public: next } : s))
+    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, visible_on_home: next } : s))
     try {
-      await setSessionResultsPublic(password, target.id, next)
+      await setSessionVisibleOnHome(password, target.id, next)
     } catch (e) {
-      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, results_public: !next } : s))
+      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, visible_on_home: !next } : s))
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
         clearPwd(); setAuthed(false)
         return
       }
-      setResultsPublicErr(prev => ({ ...prev, [target.id]: msg }))
-    }
-  }
-
-  // ── Bascule onboarding (chantier 71) ────────────────────────────
-  const [onboardingErr, setOnboardingErr] = useState<Record<string, string>>({})
-
-  async function handleToggleOnboardingEnabled(target: SessionRow, next: boolean) {
-    const password = getPwd()!
-    setOnboardingErr(prev => {
-      const { [target.id]: _omit, ...rest } = prev
-      return rest
-    })
-    // Optimiste, même schéma que handleToggleResultsPublic.
-    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, onboarding_enabled: next } : s))
-    try {
-      await setSessionOnboardingEnabled(password, target.id, next)
-    } catch (e) {
-      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, onboarding_enabled: !next } : s))
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        clearPwd(); setAuthed(false)
-        return
-      }
-      setOnboardingErr(prev => ({ ...prev, [target.id]: msg }))
-    }
-  }
-
-  // ── Bascule verrouillage des propositions d'assertions (chantier 124) ──
-  const [assertionsLockedErr, setAssertionsLockedErr] = useState<Record<string, string>>({})
-
-  // ── Règles de proposition : voter d'abord / plafond par personne (chantier 153) ──
-  const [assertionRulesErr, setAssertionRulesErr] = useState<Record<string, string>>({})
-
-  async function handleSetAssertionRules(target: SessionRow, voteFirst: boolean, max: number | null) {
-    const password = getPwd()!
-    const before = { v: target.assertions_vote_first, m: target.max_assertions_per_member }
-    setAssertionRulesErr(prev => {
-      const { [target.id]: _omit, ...rest } = prev
-      return rest
-    })
-    setSessions(prev => prev.map(s => s.id === target.id
-      ? { ...s, assertions_vote_first: voteFirst, max_assertions_per_member: max } : s))
-    try {
-      await setSessionAssertionRules(password, target.id, voteFirst, max)
-    } catch (e) {
-      setSessions(prev => prev.map(s => s.id === target.id
-        ? { ...s, assertions_vote_first: before.v, max_assertions_per_member: before.m } : s))
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        clearPwd(); setAuthed(false)
-        return
-      }
-      setAssertionRulesErr(prev => ({ ...prev, [target.id]: msg }))
-    }
-  }
-
-  async function handleToggleAssertionsLocked(target: SessionRow, next: boolean) {
-    const password = getPwd()!
-    setAssertionsLockedErr(prev => {
-      const { [target.id]: _omit, ...rest } = prev
-      return rest
-    })
-    // Optimiste, même schéma que handleToggleResultsPublic/handleToggleOnboardingEnabled.
-    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, assertions_locked: next } : s))
-    try {
-      await setSessionAssertionsLocked(password, target.id, next)
-    } catch (e) {
-      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, assertions_locked: !next } : s))
-      const msg = extractErr(e)
-      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
-        clearPwd(); setAuthed(false)
-        return
-      }
-      setAssertionsLockedErr(prev => ({ ...prev, [target.id]: msg }))
+      setVisibleOnHomeErr(prev => ({ ...prev, [target.id]: msg }))
     }
   }
 
@@ -650,14 +575,8 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
                 onDelete={() => setToDelete(s)}
                 orgName={!isOrgMode && s.organization_id ? (orgNames[s.organization_id] ?? 'Association') : null}
                 onClick={() => { sessionStorage.setItem(sessionKey(), s.id); setView({ type: 'detail', session: s }) }}
-                onResultsPublicChange={next => handleToggleResultsPublic(s, next)}
-                resultsPublicError={resultsPublicErr[s.id]}
-                onOnboardingChange={next => handleToggleOnboardingEnabled(s, next)}
-                onboardingError={onboardingErr[s.id]}
-                onAssertionsLockedChange={next => handleToggleAssertionsLocked(s, next)}
-                assertionsLockedError={assertionsLockedErr[s.id]}
-                onAssertionRulesChange={(voteFirst, max) => handleSetAssertionRules(s, voteFirst, max)}
-                assertionRulesError={assertionRulesErr[s.id]}
+                onVisibleOnHomeChange={next => handleToggleVisibleOnHome(s, next)}
+                visibleOnHomeError={visibleOnHomeErr[s.id]}
               />
             ))}
           </div>
@@ -763,12 +682,255 @@ function AssertionRulesControl({ voteFirst, max, onChange, error }: {
   )
 }
 
+// ── PillToggle ────────────────────────────────────────────────────
+
+type PillTone = 'emerald' | 'amber' | 'red'
+// Classes écrites en toutes lettres : Tailwind ne détecte pas les noms construits.
+const PILL_TONE: Record<PillTone, { chip: string; track: string }> = {
+  emerald: { chip: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100', track: 'bg-emerald-500' },
+  amber:   { chip: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',         track: 'bg-amber-500' },
+  red:     { chip: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',                 track: 'bg-red-500' },
+}
+
+/**
+ * Interrupteur en pastille des réglages de séance. `on` règle la position du
+ * curseur, `highlighted` l'allume dans la couleur de `tone` : les deux diffèrent
+ * quand l'état « inhabituel » est l'état éteint (onboarding désactivé, séance
+ * masquée de l'accueil).
+ */
+function PillToggle({ on, highlighted, tone, label, title, onClick }: {
+  on: boolean
+  highlighted: boolean
+  tone: PillTone
+  label: string
+  title: string
+  onClick(): void
+}) {
+  const t = PILL_TONE[tone]
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+        highlighted ? t.chip : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+      }`}
+    >
+      <span className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${highlighted ? t.track : 'bg-gray-300'}`}>
+        <span
+          className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+            on ? 'translate-x-3' : 'translate-x-0.5'
+          }`}
+        />
+      </span>
+      {label}
+    </button>
+  )
+}
+
+// ── Réglages de la séance (onglet Préparation) ────────────────────
+
+type SettingKey = 'results' | 'onboarding' | 'locked' | 'rules' | 'home'
+
+/**
+ * Écriture d'un réglage de séance, avec mise à jour optimiste : on applique
+ * `patch`, on le défait si l'appel échoue. Un seul hook par écran de détail,
+ * pour que les réglages affichés à deux endroits (visibilité sur l'accueil,
+ * verrou des propositions) partagent leurs erreurs.
+ */
+function useSessionSettings(
+  session: SessionRow,
+  onPatch: (patch: Partial<SessionRow>) => void,
+  onAuthError: () => void,
+) {
+  const [errors, setErrors] = useState<Partial<Record<SettingKey, string>>>({})
+
+  async function change(
+    key: SettingKey,
+    patch: Partial<SessionRow>,
+    call: (password: string) => Promise<unknown>,
+  ) {
+    const before: Partial<SessionRow> = {}
+    for (const k of Object.keys(patch) as (keyof SessionRow)[]) {
+      (before as Record<string, unknown>)[k] = session[k]
+    }
+    setErrors(prev => ({ ...prev, [key]: undefined }))
+    onPatch(patch)
+    try {
+      await call(getPwd()!)
+    } catch (e) {
+      onPatch(before)
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setErrors(prev => ({ ...prev, [key]: msg }))
+    }
+  }
+
+  return { errors, change }
+}
+
+type SessionSettings = ReturnType<typeof useSessionSettings>
+
+/** Visibilité sur l'accueil (chantier 154) — une séance d'association n'y figure
+ *  jamais (filtre d'EntryScreen), une séance close non plus. */
+function VisibleOnHomeToggle({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  const isOrg = useOrg() !== null
+  if (isOrg || session.phase === 'closed' || session.organization_id) return null
+  const visible = session.visible_on_home ?? true
+  return (
+    <div className="space-y-1">
+      <PillToggle
+        on={visible}
+        highlighted={!visible}
+        tone="amber"
+        label={visible ? "Visible sur l'accueil" : "Masquée de l'accueil"}
+        title={
+          visible
+            ? "La séance figure sur la liste « Séances en cours » de l'accueil"
+            : "La séance est masquée de l'accueil ; elle reste accessible par son lien et son QR code"
+        }
+        onClick={() => settings.change('home', { visible_on_home: !visible },
+          pwd => setSessionVisibleOnHome(pwd, session.id, !visible))}
+      />
+      {settings.errors.home && <p className="text-xs text-red-600">{settings.errors.home}</p>}
+    </div>
+  )
+}
+
+/** Verrou des propositions d'assertions (chantier 124) — sans objet dans un
+ *  débat simple (aucune assertion). */
+function AssertionsLockToggle({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  if (sessionTypeOf(session) === 'debate') return null
+  return (
+    <div className="space-y-1">
+      <PillToggle
+        on={session.assertions_locked}
+        highlighted={session.assertions_locked}
+        tone="red"
+        label={session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
+        title={
+          session.assertions_locked
+            ? "Seule l'administration de la séance peut débloquer : plus personne d'autre ne peut proposer de nouvelle assertion"
+            : "Interdire à tout le monde sauf l'administration de la séance de proposer de nouvelles assertions"
+        }
+        onClick={() => settings.change('locked', { assertions_locked: !session.assertions_locked },
+          pwd => setSessionAssertionsLocked(pwd, session.id, !session.assertions_locked))}
+      />
+      {settings.errors.locked && <p className="text-xs text-red-600">{settings.errors.locked}</p>}
+    </div>
+  )
+}
+
+/** Règles de proposition (chantier 153) : « voter d'abord » + plafond par personne.
+ *  Affichées à côté du verrou, dans Préparation comme dans En direct. */
+function AssertionRules({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  if (sessionTypeOf(session) === 'debate') return null
+  return (
+    <AssertionRulesControl
+      voteFirst={session.assertions_vote_first ?? false}
+      max={session.max_assertions_per_member ?? null}
+      onChange={(voteFirst, max) => settings.change('rules',
+        { assertions_vote_first: voteFirst, max_assertions_per_member: max },
+        pwd => setSessionAssertionRules(pwd, session.id, voteFirst, max))}
+      error={settings.errors.rules}
+    />
+  )
+}
+
+/**
+ * Les réglages de la séance qui vivaient sur la carte de la liste (résultats
+ * publics — chantier 46, onboarding — 71, verrou des propositions — 124,
+ * règles de proposition — 153). Ne reste sur la carte que la visibilité sur
+ * l'accueil (154), qui s'y règle d'un coup d'œil ; elle et le verrou des
+ * propositions sont aussi ici, et le verrou dans « En direct ».
+ */
+function SessionSettingsSection({ session, settings }: {
+  session: SessionRow
+  settings: SessionSettings
+}) {
+  const isOrg = useOrg() !== null
+  const type = sessionTypeOf(session)
+  const { errors, change } = settings
+
+  const showResults    = session.phase === 'closed' && !isOrg
+  const showOnboarding = !isOrg
+  const showAssertions = type !== 'debate'
+  const showHome       = !isOrg && session.phase !== 'closed' && !session.organization_id
+  if (!showHome && !showResults && !showOnboarding && !showAssertions) return null
+
+  return (
+    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Réglages</span>
+      </div>
+      <div className="border-t border-gray-100 px-5 py-4 space-y-4">
+        {showHome && (
+          <div className="space-y-1">
+            <VisibleOnHomeToggle session={session} settings={settings} />
+            <p className="text-xs text-gray-400">Fait figurer la séance dans « Séances en cours » sur l'accueil. Masquée, elle reste joignable par son lien et son QR code.</p>
+          </div>
+        )}
+
+        {showResults && (
+          <div className="space-y-1">
+            <PillToggle
+              on={session.results_public}
+              highlighted={session.results_public}
+              tone="emerald"
+              label={session.results_public ? 'Résultats publics' : 'Résultats privés'}
+              title={
+                session.results_public
+                  ? 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
+                  : 'Rendre les résultats de cette séance consultables par les visiteurs non connectés'
+              }
+              onClick={() => change('results', { results_public: !session.results_public },
+                pwd => setSessionResultsPublic(pwd, session.id, !session.results_public))}
+            />
+            <p className="text-xs text-gray-400">Ouvre les résultats de la séance aux visiteurs non connectés.</p>
+            {errors.results && <p className="text-xs text-red-600">{errors.results}</p>}
+          </div>
+        )}
+
+        {/* Onboarding (chantier 71) — questions propres à Ecclesia, pas
+            d'onboarding dans une séance d'association (chantier 135). */}
+        {showOnboarding && (
+          <div className="space-y-1">
+            <PillToggle
+              on={session.onboarding_enabled}
+              highlighted={!session.onboarding_enabled}
+              tone="amber"
+              label={session.onboarding_enabled ? 'Onboarding activé' : 'Onboarding désactivé'}
+              title={
+                session.onboarding_enabled
+                  ? "Les participants répondent au questionnaire d'entrée (3 questions) avant de voter"
+                  : "Les participants passent directement au vote, sans questionnaire d'entrée"
+              }
+              onClick={() => change('onboarding', { onboarding_enabled: !session.onboarding_enabled },
+                pwd => setSessionOnboardingEnabled(pwd, session.id, !session.onboarding_enabled))}
+            />
+            <p className="text-xs text-gray-400">Questionnaire d'entrée (3 questions) posé aux participants avant le vote.</p>
+            {errors.onboarding && <p className="text-xs text-red-600">{errors.onboarding}</p>}
+          </div>
+        )}
+
+        {showAssertions && (
+          <div className="space-y-1">
+            <AssertionsLockToggle session={session} settings={settings} />
+            <p className="text-xs text-gray-400">Verrouillées, seule l'administration de la séance peut ajouter des assertions.</p>
+            <AssertionRules session={session} settings={settings} />
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 // ── SessionCard ───────────────────────────────────────────────────
 
 function SessionCard({
-  session, orgName, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
-  onOnboardingChange, onboardingError, onAssertionsLockedChange, assertionsLockedError,
-  onAssertionRulesChange, assertionRulesError,
+  session, orgName, onClose, onDelete, onClick, onVisibleOnHomeChange, visibleOnHomeError,
 }: {
   session: SessionRow
   /** Chantier 135 — nom de l'association propriétaire (vue superadmin), null sinon. */
@@ -776,14 +938,8 @@ function SessionCard({
   onClose(): void
   onDelete(): void
   onClick(): void
-  onResultsPublicChange(next: boolean): void
-  resultsPublicError?: string
-  onOnboardingChange(next: boolean): void
-  onboardingError?: string
-  onAssertionsLockedChange(next: boolean): void
-  assertionsLockedError?: string
-  onAssertionRulesChange(voteFirst: boolean, max: number | null): void
-  assertionRulesError?: string
+  onVisibleOnHomeChange(next: boolean): void
+  visibleOnHomeError?: string
 }) {
   const isClosed = session.phase === 'closed'
   const isOrgMode = useOrg() !== null
@@ -869,116 +1025,25 @@ function SessionCard({
             <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{session.description}</p>
           )}
 
-          {/* Résultats publics (chantier 46) — uniquement pertinent une fois close */}
-          {isClosed && !isOrgMode && (
-            <div onClick={e => e.stopPropagation()} className="pt-0.5">
-              <button
-                onClick={() => onResultsPublicChange(!session.results_public)}
-                title={
-                  session.results_public
-                    ? 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
-                    : 'Rendre les résultats de cette séance consultables par les visiteurs non connectés'
-                }
-                className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
-                  session.results_public
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <span
-                  className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
-                    session.results_public ? 'bg-emerald-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
-                      session.results_public ? 'translate-x-3' : 'translate-x-0.5'
-                    }`}
-                  />
-                </span>
-                {session.results_public ? 'Résultats publics' : 'Résultats privés'}
-              </button>
-              {resultsPublicError && (
-                <p className="text-xs text-red-600 mt-1">{resultsPublicError}</p>
-              )}
-            </div>
-          )}
-
-          {/* Onboarding (chantier 71) — questions propres à Ecclesia, pas
-              d'onboarding dans une séance d'association (chantier 135). */}
-          {!isOrgMode && (
+          {/* Visibilité sur l'accueil (chantier 154) — une séance d'association
+              n'y figure jamais (filtre d'EntryScreen), une séance close non plus. */}
+          {!isOrgMode && !isClosed && !session.organization_id && (
           <div onClick={e => e.stopPropagation()} className="pt-0.5">
-            <button
-              onClick={() => onOnboardingChange(!session.onboarding_enabled)}
+            <PillToggle
+              on={session.visible_on_home ?? true}
+              highlighted={!(session.visible_on_home ?? true)}
+              tone="amber"
+              label={(session.visible_on_home ?? true) ? "Visible sur l'accueil" : "Masquée de l'accueil"}
               title={
-                session.onboarding_enabled
-                  ? 'Les participants répondent au questionnaire d\'entrée (3 questions) avant de voter'
-                  : 'Les participants passent directement au vote, sans questionnaire d\'entrée'
+                (session.visible_on_home ?? true)
+                  ? "La séance figure sur la liste « Séances en cours » de l'accueil"
+                  : "La séance est masquée de l'accueil ; elle reste accessible par son lien et son QR code"
               }
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
-                session.onboarding_enabled
-                  ? 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-              }`}
-            >
-              <span
-                className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
-                  session.onboarding_enabled ? 'bg-gray-300' : 'bg-amber-500'
-                }`}
-              >
-                <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
-                    session.onboarding_enabled ? 'translate-x-3' : 'translate-x-0.5'
-                  }`}
-                />
-              </span>
-              {session.onboarding_enabled ? 'Onboarding activé' : 'Onboarding désactivé'}
-            </button>
-            {onboardingError && (
-              <p className="text-xs text-red-600 mt-1">{onboardingError}</p>
-            )}
-          </div>
-          )}
-
-          {/* Verrou propositions d'assertions (chantier 124) — sans objet dans
-              un débat simple (aucune assertion). */}
-          {sessionTypeOf(session) !== 'debate' && (
-          <div onClick={e => e.stopPropagation()} className="pt-0.5">
-            <button
-              onClick={() => onAssertionsLockedChange(!session.assertions_locked)}
-              title={
-                session.assertions_locked
-                  ? 'Seul le superadmin peut débloquer : plus personne d\'autre ne peut proposer de nouvelle assertion sur cette séance'
-                  : 'Interdire à tout le monde sauf le superadmin de proposer de nouvelles assertions sur cette séance'
-              }
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
-                session.assertions_locked
-                  ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <span
-                className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
-                  session.assertions_locked ? 'bg-red-500' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
-                    session.assertions_locked ? 'translate-x-3' : 'translate-x-0.5'
-                  }`}
-                />
-              </span>
-              {session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
-            </button>
-            {assertionsLockedError && (
-              <p className="text-xs text-red-600 mt-1">{assertionsLockedError}</p>
-            )}
-            <AssertionRulesControl
-              voteFirst={session.assertions_vote_first ?? false}
-              max={session.max_assertions_per_member ?? null}
-              onChange={onAssertionRulesChange}
-              error={assertionRulesError}
+              onClick={() => onVisibleOnHomeChange(!(session.visible_on_home ?? true))}
             />
+            {visibleOnHomeError && (
+              <p className="text-xs text-red-600 mt-1">{visibleOnHomeError}</p>
+            )}
           </div>
           )}
         </div>
@@ -1371,9 +1436,10 @@ function CreateModal({
   const [description, setDescription]   = useState('')
   const [scheduledAt, setScheduledAt]   = useState('')
   const [docInfoUrl, setDocInfoUrl]     = useState('')
-  const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [onboardingEnabled, setOnboardingEnabled] = useState(true)
+  // Chantier 154 — visibilité sur l'accueil à la création (visible par défaut).
+  const [visibleOnHome, setVisibleOnHome] = useState(true)
   // Chantier 135 — une association n'a que le débat simple et le sondage.
   const isOrgMode = useOrg() !== null
   // Chantier 134 — mode de séance, choisi une fois pour toutes à la création.
@@ -1393,7 +1459,7 @@ function CreateModal({
         description || undefined,
         scheduledAt ? fromDateTimeLocal(scheduledAt) : undefined,
         docInfoUrl || undefined,
-        docSummaryUrl || undefined,
+        undefined, // chantier 155 : plus de résumé séparé à la création
         undefined,
         onboardingEnabled,
         sessionType,
@@ -1402,7 +1468,11 @@ function CreateModal({
       if (sessionType !== 'debate' && moderationPolicy !== 'closed') {
         await updateSessionConfig(password, session.id, moderationPolicy)
       }
-      onCreated(session)
+      let created = session
+      if (!isOrgMode && !visibleOnHome) {
+        created = await setSessionVisibleOnHome(password, session.id, false)
+      }
+      onCreated(created)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1501,8 +1571,7 @@ function CreateModal({
               Documentation <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
             <div className="space-y-3">
-              <DocFileField label="Fiche information" placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
-              <DocFileField label="Résumé" placeholder="https://…" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+              <DocFileField label={DOC_INFO_LABEL} placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
             </div>
             {!isOrgMode && (
             <p className="mt-3 text-xs text-gray-400">
@@ -1551,6 +1620,18 @@ function CreateModal({
             </label>
             )}
           </div>
+          )}
+
+          {!isOrgMode && (
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={visibleOnHome}
+                onChange={e => setVisibleOnHome(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Visible sur l'accueil de l'application
+            </label>
           )}
 
           {sessionType === 'debate' && (
@@ -1830,6 +1911,11 @@ function SessionDetail({
 
   // ── Current session state (mutable for phase changes) ──────
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
+  const sessionSettings = useSessionSettings(
+    currentSession,
+    patch => setCurrentSession(prev => ({ ...prev, ...patch })),
+    onAuthError,
+  )
 
   // ── Phase transitions ──────────────────────────────────────
   // Chantier 134 — la séquence dépend du mode de séance (miroir de la garde SQL).
@@ -2177,9 +2263,12 @@ function SessionDetail({
   // Le code est haché : il est IMPOSSIBLE de relire celui qu'on a donné. On en
   // tire un nouveau, à lire à la personne — l'ancien cesse de fonctionner.
   const [regeneratedCode, setRegeneratedCode] = useState<{ pseudo: string; code: string } | null>(null)
+  // Confirmation avant de couper l'ancien code : l'action est irréversible.
+  const [regenTarget, setRegenTarget] = useState<{ id: string; pseudo: string } | null>(null)
 
   const handleRegenerateCode = useCallback(async (memberId: string) => {
     const password = getPwd()!
+    setRegenTarget(null)
     try {
       const res = await regenerateReclaimCodeAdmin(password, memberId)
       setRegeneratedCode({ pseudo: res.pseudo, code: res.new_reclaim_code })
@@ -3350,6 +3439,13 @@ function SessionDetail({
                 />
 
                 {showVotingSections && (
+                  <div className="space-y-1">
+                    <AssertionsLockToggle session={currentSession} settings={sessionSettings} />
+                    <AssertionRules session={currentSession} settings={sessionSettings} />
+                  </div>
+                )}
+
+                {showVotingSections && (
                   <SectionAccordion
                     title="Assertions"
                     open={assertionsOpen}
@@ -3460,7 +3556,7 @@ function SessionDetail({
                       members={members}
                       loading={membersLoading}
                       onToggleModerator={handleToggleModerator}
-                      onRegenerateCode={handleRegenerateCode}
+                      onRegenerateCode={(id, pseudo) => setRegenTarget({ id, pseudo })}
                       onDeleteMember={(id, pseudo) => setMemberToDelete({ id, pseudo })}
                     />
                   </SectionAccordion>
@@ -4096,6 +4192,8 @@ function SessionDetail({
                   </div>
                 </section>
 
+                <SessionSettingsSection session={currentSession} settings={sessionSettings} />
+
                 {/* Documentation (accordion) */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <button
@@ -4132,8 +4230,12 @@ function SessionDetail({
                       </div>
                       {editingDocs ? (
                         <form onSubmit={handleSaveDocs} className="space-y-3">
-                          <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
-                          <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                          <DocFileField label={DOC_INFO_LABEL} placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
+                          {/* Chantier 155 — le résumé séparé n'est plus proposé aux nouvelles séances ;
+                              on ne l'affiche en édition que s'il est déjà renseigné (anciennes séances). */}
+                          {!!sessionDocs.doc_summary_url && (
+                            <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                          )}
                           {docsErr && (
                             <p className="text-xs text-red-600">{docsErr}</p>
                           )}
@@ -4157,8 +4259,10 @@ function SessionDetail({
                         </form>
                       ) : (
                         <div className="space-y-2 text-sm">
-                          <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
-                          <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                          <DocLink label={DOC_INFO_LABEL} url={sessionDocs.doc_info_url} />
+                          {!!sessionDocs.doc_summary_url && (
+                            <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                          )}
                           {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
                             <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
                           )}
@@ -4628,6 +4732,16 @@ function SessionDetail({
             </button>
           </div>
         </div>
+      )}
+
+      {regenTarget && (
+        <ConfirmModal
+          title={`Réinitialiser le code de ${regenTarget.pseudo} ?`}
+          body="Attention : cela réinitialise le code de rappel de cette personne. Son ancien code sera supprimé et ne fonctionnera plus ; elle ne pourra se reconnecter qu'avec le nouveau code, que vous devrez lui communiquer."
+          confirmLabel="Réinitialiser le code"
+          onConfirm={() => handleRegenerateCode(regenTarget.id)}
+          onCancel={() => setRegenTarget(null)}
+        />
       )}
 
       {/* Chantier 93 — nouveau code de rappel, à lire à la personne. Affiché une
@@ -5989,7 +6103,7 @@ function MembersPanel({
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
   /** Chantier 93 — capture d'écran perdue : nouveau code, à lire à la personne. */
-  onRegenerateCode?: (memberId: string) => Promise<void>
+  onRegenerateCode?: (memberId: string, pseudo: string) => void
 }) {
   // H10 — tri par colonne, alphabétique ou ordre d'arrivée, croissant/décroissant.
   const [sort, setSort] = useState<{ key: MembersSortKey; direction: 'asc' | 'desc' }>(
@@ -6097,7 +6211,7 @@ function MembersPanel({
               {onRegenerateCode && (
                 <td className="py-2 pl-3 text-center">
                   <button
-                    onClick={() => onRegenerateCode(m.id)}
+                    onClick={() => onRegenerateCode(m.id, m.pseudo)}
                     title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner — le code stocké est haché, il ne peut pas être relu)"
                     className="px-1.5 py-0.5 rounded text-[10px] font-medium border bg-white border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-600 transition-colors"
                   >

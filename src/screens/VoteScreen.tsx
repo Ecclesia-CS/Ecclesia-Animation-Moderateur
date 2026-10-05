@@ -27,6 +27,7 @@ import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
 import { sessionTypeOf } from '../lib/phaseLabels'
+import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 import ResultsMapScreen from './ResultsMapScreen'
 import RenamePseudoModal from '../components/voting/RenamePseudoModal'
 import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
@@ -1736,13 +1737,13 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
           {infoUrl && (
             <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
               <ExternalIcon />
-              Fiche information
+              {DOC_INFO_LABEL}
             </a>
           )}
           {summaryUrl && (
             <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
               <ExternalIcon />
-              Résumé fiche information
+              {DOC_SUMMARY_LABEL}
             </a>
           )}
           {hasCollab && (
@@ -1751,26 +1752,19 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
               Sources collaboratives
             </button>
           )}
-          <a
-            href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={subLinkClass}
-            onClick={onClose}
-          >
-            <ExternalIcon />
-            Biais cognitifs
-          </a>
-          <a
-            href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={subLinkClass}
-            onClick={onClose}
-          >
-            <ExternalIcon />
-            Arguments fallacieux
-          </a>
+          {/* Chantier 155 — sans objet dans un sondage (aucun débat). */}
+          {showPedagogyDocs(sessionTypeOf(session)) && (
+            <>
+              <a href={DOC_BIAIS_URL} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+                <ExternalIcon />
+                Biais cognitifs
+              </a>
+              <a href={DOC_FALLACIES_URL} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
+                <ExternalIcon />
+                Arguments fallacieux
+              </a>
+            </>
+          )}
 
           <div className="mt-2 border-t border-gray-100" />
 
