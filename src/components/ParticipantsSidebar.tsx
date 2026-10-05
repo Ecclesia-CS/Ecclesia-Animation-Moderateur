@@ -101,7 +101,7 @@ export default function ParticipantsSidebar({
     }[style]
     return (
       <span
-        className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 whitespace-nowrap ${tone}`}
+        className={`text-[10px] font-medium px-1.5 py-0.5 border shrink-0 whitespace-nowrap ${tone}`}
         title={hint}
       >
         {STYLE_LABEL[style]}
@@ -110,20 +110,20 @@ export default function ParticipantsSidebar({
   }
 
   return (
-    <aside className={`w-full lg:w-52 shrink-0 border rounded-2xl p-3 flex flex-col gap-2 self-start lg:sticky lg:top-20 ${
+    <aside className={`w-full lg:w-52 shrink-0 border p-3 flex flex-col gap-2 self-start lg:sticky lg:top-20 ${
       dark
-        ? 'bg-slate-800/50 border-slate-700'
-        : 'bg-white border-gray-200 shadow-sm'
+        ? 'bg-slate-800/60 border-white/10'
+        : 'bg-white border-bleu-fonce/10 shadow-sm'
     }`}>
 
       <div className="flex items-center justify-between px-1">
-        <span className={`text-xs font-semibold uppercase tracking-wider ${
-          dark ? 'text-slate-400' : 'text-gray-500'
+        <span className={`text-[11px] font-bold uppercase tracking-[0.16em] ${
+          dark ? 'text-bleu-clair' : 'text-bleu-fonce/70'
         }`}>
           Présents
         </span>
-        <span className={`text-xs font-mono px-1.5 py-0.5 rounded-full ${
-          dark ? 'text-slate-500 bg-slate-700' : 'text-gray-400 bg-gray-100'
+        <span className={`text-xs font-mono tabular-nums px-1.5 py-0.5 ${
+          dark ? 'text-slate-200 bg-white/10' : 'text-gray-600 bg-gray-100'
         }`}>
           {roster ? roster.length : participants.length}
         </span>
@@ -139,22 +139,22 @@ export default function ParticipantsSidebar({
           return (
             <li
               key={p.id}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-colors ${
+              className={`flex items-center gap-2 px-2 py-1.5 border transition-colors ${
                 isSpeaking
-                  ? 'bg-amber-500/15 border border-amber-500/30'
-                  : dark ? 'hover:bg-slate-700/40' : 'hover:bg-gray-50'
+                  ? 'bg-amber-500/15 border-amber-500/30'
+                  : dark ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-50'
               }`}
             >
               {isSpeaking ? (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
               ) : (
-                <span className={`w-2 h-2 rounded-full shrink-0 ${dark ? 'bg-slate-600' : 'bg-gray-300'}`} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${dark ? 'bg-slate-500' : 'bg-gray-300'}`} />
               )}
 
               <span className={`text-sm truncate flex-1 ${
                 isSpeaking
-                  ? 'text-amber-200 font-semibold'
-                  : dark ? 'text-slate-300' : 'text-gray-700'
+                  ? dark ? 'text-amber-200 font-semibold' : 'text-amber-800 font-semibold'
+                  : dark ? 'text-slate-200' : 'text-gray-700'
               }`}>
                 {p.pseudo}
               </span>
@@ -175,13 +175,13 @@ export default function ParticipantsSidebar({
         {notYetConnected.map(r => (
           <li
             key={r.member_id}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-xl opacity-60"
+            className="flex items-center gap-2 px-2 py-1.5 border border-transparent opacity-70"
           >
             <span className={`w-2 h-2 rounded-full shrink-0 border ${
-              dark ? 'border-slate-600' : 'border-gray-300'
+              dark ? 'border-slate-500' : 'border-gray-400'
             }`} />
             <span className={`text-sm truncate flex-1 italic ${
-              dark ? 'text-slate-500' : 'text-gray-400'
+              dark ? 'text-slate-400' : 'text-gray-500'
             }`}>
               {r.pseudo}
             </span>
@@ -191,7 +191,7 @@ export default function ParticipantsSidebar({
       </ul>
 
       {participants.length === 0 && notYetConnected.length === 0 && (
-        <p className={`text-xs text-center py-2 ${dark ? 'text-slate-600' : 'text-gray-400'}`}>
+        <p className={`text-xs text-center py-2 italic ${dark ? 'text-slate-400' : 'text-gray-500'}`}>
           Aucun participant
         </p>
       )}

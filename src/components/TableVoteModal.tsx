@@ -79,24 +79,24 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col"
+        className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col animate-entree"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">🗳️ Vote du modérateur</h2>
+            <h2 className="font-serif text-xl font-semibold text-bleu-fonce">🗳️ Vote du modérateur</h2>
             <p className="text-sm text-gray-500 mt-0.5">
               {isClosed ? 'Vote clôturé — résultats' : 'Dis si tu es pour ou contre chaque option.'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-lg p-1"
+            className="ml-4 flex-shrink-0 text-gray-400 hover:text-bleu-fonce transition-colors
+              focus:outline-none focus:ring-2 focus:ring-bleu-clair p-1"
             aria-label="Fermer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
@@ -109,15 +109,15 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           {loading && !vote ? (
-            <p className="text-sm text-gray-400 text-center py-6">Chargement…</p>
+            <p className="text-sm text-gray-500 text-center py-6">Chargement…</p>
           ) : !vote ? (
-            <p className="text-sm text-gray-400 text-center py-6">Ce vote n'existe plus.</p>
+            <p className="text-sm text-gray-500 text-center py-6">Ce vote n'existe plus.</p>
           ) : (
             <>
-              <p className="text-base font-semibold text-gray-900 leading-snug">{vote.question}</p>
+              <p className="font-serif text-lg font-semibold text-anthracite leading-snug">{vote.question}</p>
 
               {err && (
-                <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+                <p className="text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">
                   {err}
                 </p>
               )}
@@ -129,13 +129,13 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                   .map(opt => {
                     const result = results?.find(r => r.option_id === opt.id)
                     return (
-                      <div key={opt.id} className="rounded-xl border border-gray-200 px-4 py-3">
-                        <p className="text-sm font-medium text-gray-800 mb-2">{opt.label}</p>
+                      <div key={opt.id} className="border border-bleu-fonce/15 px-4 py-3">
+                        <p className="text-sm font-medium text-anthracite mb-2">{opt.label}</p>
                         {isClosed ? (
-                          <p className="text-xs text-gray-500">
-                            <span className="text-emerald-600 font-semibold">{result?.yes_count ?? 0} pour</span>
+                          <p className="text-xs text-gray-500 tabular-nums">
+                            <span className="text-emerald-700 font-semibold">{result?.yes_count ?? 0} pour</span>
                             {' · '}
-                            <span className="text-red-500 font-semibold">{result?.no_count ?? 0} contre</span>
+                            <span className="text-red-600 font-semibold">{result?.no_count ?? 0} contre</span>
                             {' · '}
                             {result?.total_count ?? 0} réponse{(result?.total_count ?? 0) !== 1 ? 's' : ''}
                           </p>
@@ -144,11 +144,11 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                             <button
                               onClick={() => handleAnswer(opt.id, true)}
                               disabled={pendingId === opt.id}
-                              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors
+                              className={`flex-1 py-2.5 border text-sm font-semibold transition-colors
                                 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
                                 myAnswers[opt.id] === true
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-emerald-100 hover:text-emerald-700'
+                                  ? 'bg-emerald-600 border-emerald-600 text-white'
+                                  : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800'
                               }`}
                             >
                               👍 Pour
@@ -156,11 +156,11 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                             <button
                               onClick={() => handleAnswer(opt.id, false)}
                               disabled={pendingId === opt.id}
-                              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors
+                              className={`flex-1 py-2.5 border text-sm font-semibold transition-colors
                                 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-400 ${
                                 myAnswers[opt.id] === false
-                                  ? 'bg-red-500 text-white'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-700'
+                                  ? 'bg-red-600 border-red-600 text-white'
+                                  : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800'
                               }`}
                             >
                               👎 Contre

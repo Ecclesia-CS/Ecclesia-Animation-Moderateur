@@ -143,22 +143,22 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] animate-entree">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-gray-900">Mes notes</h2>
-            {saving && <span className="text-xs text-gray-400">Enregistrement…</span>}
-            {saveErr && <span className="text-xs text-red-500">Erreur : {saveErr}</span>}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">
+          <div className="flex items-baseline gap-3">
+            <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Mes notes</h2>
+            {saving && <span className="text-xs text-gray-500">Enregistrement…</span>}
+            {saveErr && <span className="text-xs text-red-600">Erreur : {saveErr}</span>}
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none
-              focus:ring-2 focus:ring-gray-300 rounded-lg p-1"
+            className="text-gray-400 hover:text-bleu-fonce transition-colors focus:outline-none
+              focus:ring-2 focus:ring-bleu-clair p-1"
             aria-label="Fermer"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -168,38 +168,38 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-100 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-bleu-fonce/10 bg-gray-50 flex-shrink-0 flex-wrap">
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('bold') }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold
-              text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-sm font-bold
+              text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Gras (Ctrl+B)"
           >B</button>
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('italic') }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm italic
-              text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-sm italic
+              text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Italique (Ctrl+I)"
           >I</button>
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('underline') }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm underline
-              text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-sm underline
+              text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Souligné (Ctrl+U)"
           >S</button>
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('strikeThrough') }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm line-through
-              text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-sm line-through
+              text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Barré"
           >S</button>
-          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <div className="w-px h-5 bg-bleu-fonce/15 mx-1" />
           {FONT_SIZES.map(({ label, value }) => (
             <button
               key={value}
               onMouseDown={(e) => { e.preventDefault(); execCmd('fontSize', value) }}
-              className="px-2 h-8 flex items-center justify-center rounded-lg
-                text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap"
+              className="px-2 h-8 flex items-center justify-center
+                text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors whitespace-nowrap"
               title={`Taille ${label}`}
               style={{ fontSize: value === '1' ? '11px' : value === '3' ? '13px' : '16px' }}
             >{label}</button>
@@ -209,7 +209,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
         {/* Editor */}
         <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
           {loading ? (
-            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+            <div className="flex items-center justify-center h-40 text-gray-500 text-sm">
               Chargement…
             </div>
           ) : (
@@ -219,7 +219,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
               suppressContentEditableWarning
               onInput={handleInput}
               onKeyDown={handleKeyDown}
-              className="min-h-[200px] text-sm text-gray-800 focus:outline-none"
+              className="min-h-[200px] text-sm leading-relaxed text-anthracite focus:outline-none"
               style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
               data-placeholder="Commencez à écrire vos notes…"
             />
@@ -227,8 +227,8 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-gray-100 flex-shrink-0">
-          <p className="text-xs text-gray-400">
+        <div className="px-6 py-3 border-t border-bleu-fonce/10 flex-shrink-0">
+          <p className="text-xs text-gray-500">
             Notes privées — visibles uniquement par vous. Sauvegarde automatique.
           </p>
         </div>

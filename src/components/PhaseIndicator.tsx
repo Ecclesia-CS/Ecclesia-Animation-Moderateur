@@ -33,8 +33,9 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2.5 py-1 whitespace-nowrap hover:bg-indigo-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
+      className="inline-flex items-center gap-2 border border-bleu-fonce/15 bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-bleu-fonce whitespace-nowrap hover:border-bleu-fonce/30 hover:bg-indigo-50/60 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
     >
+      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-bleu-clair shadow-[0_0_6px_1px_rgba(155,187,226,0.9)]" />
       Étape {step.number} · {step.label}
     </button>
   )
@@ -42,42 +43,43 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
   return (
     <>
       {floating ? (
-        <div className="fixed top-3 right-3 z-[100] bg-white/90 backdrop-blur rounded-full shadow-sm">
+        <div className="fixed top-3 right-3 z-[100] bg-white/90 backdrop-blur shadow-sm">
           {pill}
         </div>
       ) : pill}
 
       {open && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+          className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+            className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-entree"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-indigo-600 px-6 py-5 text-center">
+            <div className="bg-bleu-fonce px-6 py-5 text-center">
               <p className="text-2xl mb-1">🧭</p>
-              <h2 className="text-lg font-bold text-white">Où en est la séance ?</h2>
+              <h2 className="font-serif text-xl font-semibold text-creme">Où en est la séance ?</h2>
+              <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
             </div>
-            <div className="px-6 py-5 space-y-2">
+            <div className="px-6 py-5 space-y-1.5">
               {participantPhaseSteps(sessionType).map(s => {
                 const isCurrent = s.number === step.number
                 const isPast    = s.number < step.number
                 return (
                   <div
                     key={s.phase}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${
-                      isCurrent ? 'bg-indigo-50 border border-indigo-200' : ''
+                    className={`flex items-center gap-3 px-3 py-2.5 border ${
+                      isCurrent ? 'bg-indigo-50 border-indigo-200' : 'border-transparent'
                     }`}
                   >
                     <span
-                      className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                      className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold tabular-nums ${
                         isCurrent
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-bleu-fonce text-creme ring-4 ring-bleu-clair/40'
                           : isPast
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-400'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-gray-100 text-gray-500'
                       }`}
                     >
                       {isPast ? '✓' : s.number}
@@ -85,16 +87,16 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
                     <span
                       className={`text-sm ${
                         isCurrent
-                          ? 'font-semibold text-indigo-900'
+                          ? 'font-semibold text-bleu-fonce'
                           : isPast
-                            ? 'text-gray-500'
-                            : 'text-gray-400'
+                            ? 'text-gray-600'
+                            : 'text-gray-500'
                       }`}
                     >
                       {s.label}
                     </span>
                     {isCurrent && (
-                      <span className="ml-auto text-[10px] font-semibold text-indigo-600 uppercase tracking-wide">
+                      <span className="ml-auto text-[10px] font-bold text-bleu-fonce/70 uppercase tracking-[0.14em]">
                         En cours
                       </span>
                     )}
@@ -105,7 +107,8 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
             <div className="px-6 pb-6">
               <button
                 onClick={() => setOpen(false)}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 Fermer
               </button>

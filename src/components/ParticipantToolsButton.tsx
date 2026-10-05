@@ -112,8 +112,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
     }
   }
 
-  const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors'
-  const subLinkClass = 'flex items-center gap-3 px-5 py-2.5 w-full text-left text-sm text-gray-600 hover:bg-gray-50 transition-colors'
+  const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-anthracite hover:bg-indigo-50/70 hover:text-bleu-fonce transition-colors focus:outline-none focus:bg-indigo-50/70'
+  const subLinkClass = 'flex items-center gap-3 px-5 py-2.5 w-full text-left text-sm text-gray-700 hover:bg-indigo-50/70 hover:text-bleu-fonce transition-colors focus:outline-none focus:bg-indigo-50/70'
 
   return (
     <>
@@ -123,18 +123,18 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
 
       {panelOpen && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs shadow-2xl overflow-hidden">
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">Outils</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="text-gray-400 hover:text-bleu-fonce transition-colors p-1
+                  focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -146,7 +146,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             {/* Documentation */}
             <>
                 <div className="pt-3 pb-1 px-5">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
+                  <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Documentation</p>
                 </div>
                 {infoUrl && (
                   <a
@@ -156,7 +156,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                     className={subLinkClass}
                     onClick={() => setPanelOpen(false)}
                   >
-                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                    <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round"
                         d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -174,7 +174,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                     className={subLinkClass}
                     onClick={() => setPanelOpen(false)}
                   >
-                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                    <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round"
                         d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -187,7 +187,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 {hasCollab && (
                   session_join_code ? (
                     <button onClick={handleCollabClick} className={subLinkClass}>
-                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                      <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round"
                           d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -204,7 +204,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                       className={subLinkClass}
                       onClick={() => setPanelOpen(false)}
                     >
-                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                      <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round"
                           d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -222,7 +222,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                   className={subLinkClass}
                   onClick={() => setPanelOpen(false)}
                 >
-                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                  <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -238,7 +238,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                   className={subLinkClass}
                   onClick={() => setPanelOpen(false)}
                 >
-                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                  <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -247,13 +247,13 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                   </svg>
                   Arguments fallacieux
                 </a>
-                <div className="mt-2 border-t border-gray-100" />
+                <div className="mt-2 border-t border-bleu-fonce/10" />
               </>
 
             {/* Résultats du vote */}
             {!!table.session_id && !orgName && (
               <button onClick={openVoteResults} className={linkClass}>
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round"
                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -267,7 +267,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               onClick={() => { setPanelOpen(false); setQrOpen(true) }}
               className={linkClass}
             >
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" strokeWidth={2}>
                 <rect x="3" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
                 <rect x="14" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
@@ -283,7 +283,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               onClick={() => { setPanelOpen(false); setNotesOpen(true) }}
               className={linkClass}
             >
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -301,7 +301,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 onClick={() => { setPanelOpen(false); setModeratorActionOpen(true) }}
                 className={linkClass}
               >
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
@@ -316,7 +316,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 onClick={() => { setPanelOpen(false); setChangeTableOpen(true) }}
                 className={linkClass}
               >
-                <span className="w-4 text-center text-gray-400 shrink-0">🔀</span>
+                <span className="w-4 text-center shrink-0">🔀</span>
                 Changer de table
               </button>
             )}
@@ -329,14 +329,14 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               title={done ? 'Questionnaire déjà rempli' : undefined}
               className={`${linkClass}${done ? ' opacity-40 cursor-not-allowed' : ''}`}
             >
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
                 <rect x="9" y="3" width="6" height="4" rx="1" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Questionnaire post-débat
-              {done && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
+              {done && <span className="ml-auto text-xs font-medium text-emerald-700">✓ rempli</span>}
             </button>
             )}
 
@@ -346,7 +346,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 code de rappel (régénéré, pas relu — il est haché en base). */}
             {table.session_id && (
               <button onClick={() => { setPanelOpen(false); setRenameOpen(true) }} className={linkClass}>
-                <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
+                <span className="w-4 text-center shrink-0">✏️</span>
                 Changer mon nom / code
               </button>
             )}
@@ -403,16 +403,16 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
 
       {voteResultsOpen && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setVoteResultsOpen(false) }}
         >
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <h2 className="text-sm font-semibold text-gray-900">Résultats du vote</h2>
+          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Résultats du vote</h2>
               <button
                 onClick={() => setVoteResultsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="text-gray-400 hover:text-bleu-fonce transition-colors p-1
+                  focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

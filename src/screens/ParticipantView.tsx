@@ -186,27 +186,27 @@ export default function ParticipantView() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-creme flex flex-col">
 
       {/* ── Header ───────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <header className="bg-white border-b border-bleu-clair/60 px-4 py-3 flex items-center justify-between gap-2">
         <div className="flex flex-col min-w-0">
-          <span className="font-mono font-bold text-indigo-600 text-lg tracking-widest leading-tight">
+          <span className="font-mono font-bold text-bleu-fonce text-lg tracking-[0.2em] leading-tight">
             {table.join_code}
           </span>
           {sessionTitle && (
-            <span className="text-xs text-gray-400 truncate max-w-[140px]">{sessionTitle}</span>
+            <span className="text-xs text-gray-500 truncate max-w-[140px]">{sessionTitle}</span>
           )}
           {session && (
-            <div className="mt-1"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
+            <div className="mt-1.5"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
           )}
         </div>
-        <span className="text-sm text-gray-500 truncate max-w-[120px]">{myParticipant.pseudo}</span>
-        <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-600 truncate max-w-[120px]">{myParticipant.pseudo}</span>
+        <div className="flex items-center gap-1.5">
           {table.leaderless && (
             <button
               onClick={() => setShowAskAdminModal(true)}
-              className="text-xs px-3 py-1.5 border border-amber-300 text-amber-700 bg-amber-50 rounded-lg
+              className="text-xs px-2.5 py-1.5 border border-amber-300 text-amber-800 bg-amber-50
                 hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300"
             >
               🎙️ Devenir modérateur
@@ -215,13 +215,13 @@ export default function ParticipantView() {
           <ParticipantToolsButton
             session={sessionDocs}
             userPseudo={myParticipant.pseudo}
-            className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
-              hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80
+              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           />
           <button
             onClick={leaveTable}
-            className="text-xs px-3 py-1.5 border border-gray-300 text-gray-500 rounded-lg
-              hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+            className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80
+              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           >
             Quitter
           </button>
@@ -230,12 +230,13 @@ export default function ParticipantView() {
 
       {/* ── Speaking banner (self) ────────────────────────────── */}
       {iAmSpeaking && (
-        <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center">
-          <p className="text-xl font-bold text-amber-700">Vous avez la parole !</p>
+        <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center animate-entree">
+          <p className="font-serif text-2xl font-semibold text-amber-800">Vous avez la parole !</p>
           {table.leaderless && (
             <button
               onClick={() => endTurnAndAdvance().catch(() => {})}
-              className="mt-3 py-2 px-5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              className="mt-3 py-2.5 px-5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-amber-50"
             >
               J'ai fini de parler
             </button>
@@ -252,9 +253,9 @@ export default function ParticipantView() {
         {table.active_vote_id && !voteModalOpen && (
           <button
             onClick={() => setVoteModalOpen(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-              border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium
-              hover:bg-indigo-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3
+              border border-indigo-200 bg-indigo-50 text-bleu-fonce text-sm font-semibold
+              hover:bg-indigo-100 hover:border-indigo-300 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           >
             🗳️ Voir le vote en cours
           </button>
@@ -280,12 +281,12 @@ export default function ParticipantView() {
               value={topicTag}
               onChange={e => setTopicTag(e.target.value.slice(0, 60))}
               placeholder="Sujet ou thème dont tu veux parler (optionnel)"
-              className="w-full text-sm px-3.5 py-2 rounded-xl border border-gray-200 text-gray-700
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+              className="w-full text-sm px-3.5 py-2.5 bg-white border border-bleu-fonce/20 text-anthracite
+                placeholder:text-anthracite/45 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
             />
           ) : myLong?.topic_tag ? (
             <p className="text-xs text-gray-500 px-1">
-              Sujet indiqué : <span className="font-medium text-gray-700">{myLong.topic_tag}</span>
+              Sujet indiqué : <span className="font-semibold text-anthracite">{myLong.topic_tag}</span>
             </p>
           ) : null}
           <QueueToggle
@@ -304,12 +305,12 @@ export default function ParticipantView() {
           <button
             onClick={handleToggleNextTopic}
             disabled={pendingNextTopic}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 border
               text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 ${
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-creme focus:ring-emerald-400 ${
               myParticipant.wants_next_topic
                 ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50/50'
+                : 'bg-white border-bleu-fonce/15 text-anthracite/80 hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-800'
             }`}
           >
             {pendingNextTopic ? (
@@ -324,7 +325,7 @@ export default function ParticipantView() {
         </div>
 
         {err && (
-          <p className="text-sm text-red-600 text-center bg-red-50 w-full px-4 py-2 rounded-xl
+          <p className="text-sm text-red-700 text-center bg-red-50 w-full px-4 py-2.5
             border border-red-200">
             {err}
           </p>
@@ -347,7 +348,7 @@ export default function ParticipantView() {
           />
         </div>
 
-        <p className="text-xs text-gray-400 pb-2">
+        <p className="text-xs text-gray-500 tabular-nums pb-2">
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </p>
       </div>{/* end colonne principale */}
@@ -389,48 +390,49 @@ export default function ParticipantView() {
       {/* Questionnaire forcé par le modérateur — modal verrouillé */}
       {/* ── Panorama d'accueil — affiché une seule fois par table, avant les règles (chantier 40) ── */}
       {showWelcome && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
-            <div className="bg-indigo-600 px-6 py-5 text-center">
+        <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-entree">
+            <div className="bg-bleu-fonce px-6 py-5 text-center">
               <p className="text-2xl mb-1">👋</p>
-              <h2 className="text-lg font-bold text-white">Bienvenue dans le débat</h2>
+              <h2 className="font-serif text-xl font-semibold text-creme">Bienvenue dans le débat</h2>
+              <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
             </div>
-            <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
+            <div className="px-6 py-5 space-y-4 text-sm text-anthracite/80">
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">🙋</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Prendre la parole sur un autre sujet</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Pour introduire un nouveau point ou des informations complémentaires.</p>
+                  <p className="font-semibold text-anthracite">Prendre la parole sur un autre sujet</p>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pour introduire un nouveau point ou des informations complémentaires.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">⚡</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Demander la parole sur le sujet actuel</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
+                  <p className="font-semibold text-anthracite">Demander la parole sur le sujet actuel</p>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-xl shrink-0">🔧</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Bouton Outils</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
+                  <p className="font-semibold text-anthracite">Bouton Outils</p>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
                 </div>
               </div>
               {table.leaderless ? (
                 <div className="flex items-start gap-3">
                   <span className="text-xl shrink-0">🤝</span>
                   <div>
-                    <p className="font-semibold text-gray-900">Groupe auto-géré</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
+                    <p className="font-semibold text-anthracite">Groupe auto-géré</p>
+                    <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
                   <span className="text-xl shrink-0">🧑‍⚖️</span>
                   <div>
-                    <p className="font-semibold text-gray-900">Rôle du modérateur</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
+                    <p className="font-semibold text-anthracite">Rôle du modérateur</p>
+                    <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
                   </div>
                 </div>
               )}
@@ -441,7 +443,8 @@ export default function ParticipantView() {
                   localStorage.setItem('debate_welcome_' + table.id, '1')
                   setShowWelcome(false)
                 }}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 Lire les règles de débat Ecclesia →
               </button>
@@ -482,10 +485,11 @@ export default function ParticipantView() {
           deux overlays sont en z-50 superposés. 'post_voting' redirige déjà vers les
           résultats (avec revote possible) ; 'closed' n'en est que la suite définitive. */}
       {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-creme gap-4 px-6 text-center">
           <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} />
-          <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
-          <p className="text-gray-500">Merci pour votre participation.</p>
+          <p className="font-serif text-3xl font-semibold tracking-tight text-bleu-fonce">La séance est terminée</p>
+          <span aria-hidden="true" className="filet-spectre block w-14" />
+          <p className="text-gray-600">Merci pour votre participation.</p>
           {session.join_code && (
             <button
               onClick={() => {
@@ -493,15 +497,15 @@ export default function ParticipantView() {
                 leaveTable()
               }}
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white text-sm font-semibold rounded-xl transition-colors"
+                text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-creme"
             >
               Voir vos résultats →
             </button>
           )}
           <button
             onClick={leaveTable}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
-              text-gray-700 text-sm font-semibold rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
+              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           >
             ← Retour au menu
           </button>
@@ -527,33 +531,33 @@ function QueueToggle({
   onClick(): void
 }) {
   const filled = {
-    indigo: 'bg-indigo-600 border-indigo-600 text-white shadow-indigo-200 shadow-md',
-    teal:   'bg-teal-600 border-teal-600 text-white shadow-teal-200 shadow-md',
+    indigo: 'bg-indigo-600 border-indigo-600 text-white shadow-lg',
+    teal:   'bg-teal-600 border-teal-600 text-white shadow-lg',
   }
   const outline = {
-    indigo: 'bg-white border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/50',
-    teal:   'bg-white border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50/50',
+    indigo: 'bg-white border-bleu-fonce/15 border-l-indigo-600 text-anthracite shadow-sm hover:border-bleu-fonce/30 hover:border-l-indigo-600 hover:shadow-md',
+    teal:   'bg-white border-bleu-fonce/15 border-l-teal-600 text-anthracite shadow-sm hover:border-teal-300 hover:border-l-teal-600 hover:shadow-md',
   }
   const badgeBg = {
-    indigo: 'bg-indigo-500 text-white',
-    teal:   'bg-teal-500 text-white',
+    indigo: 'bg-bleu-clair text-bleu-fonce',
+    teal:   'bg-white/90 text-teal-800',
   }
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`relative w-full min-h-[88px] px-4 py-4 rounded-2xl border-2 text-left
-        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+      className={`relative w-full min-h-[88px] px-4 py-4 border border-l-4 text-left
+        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-creme
         disabled:opacity-40 disabled:cursor-not-allowed ${
         active
-          ? `${filled[color]} ${color === 'teal' ? 'focus:ring-teal-400' : 'focus:ring-indigo-400'}`
-          : `${outline[color]} focus:ring-gray-300`
+          ? `${filled[color]} ${color === 'teal' ? 'focus:ring-teal-400' : 'focus:ring-bleu-clair'}`
+          : `${outline[color]} focus:ring-bleu-clair`
       }`}
     >
       {/* Position badge — seulement quand confirmé par le serveur */}
       {active && position !== null && !pending && (
-        <span className={`absolute top-3 right-3 text-sm font-bold px-2.5 py-1 rounded-full
+        <span className={`absolute top-3 right-3 text-sm font-bold tabular-nums px-2.5 py-1
           ${badgeBg[color]}`}>
           {position} / {total}
         </span>
@@ -564,10 +568,12 @@ function QueueToggle({
           border-white/60 border-t-transparent animate-spin`} />
       )}
 
-      <p className={`text-xl font-semibold leading-tight pr-20 ${active ? 'text-white' : 'text-gray-800'}`}>
+      <p className={`font-serif text-xl font-semibold leading-snug pr-20 ${
+        active ? 'text-white' : color === 'teal' ? 'text-teal-800' : 'text-bleu-fonce'
+      }`}>
         {label}
       </p>
-      <p className={`text-sm mt-1 ${active ? 'text-white/80' : 'text-gray-400'}`}>
+      <p className={`text-sm mt-1 ${active ? 'text-white/80' : 'text-gray-500'}`}>
         {active
           ? 'Appuyer pour se retirer de la file'
           : sub}

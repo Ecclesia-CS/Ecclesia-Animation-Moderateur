@@ -85,22 +85,22 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={!forced ? onClose : undefined}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
+        className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col animate-entree"
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Questionnaire post-débat</h2>
+            <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Questionnaire post-débat</h2>
             <p className="text-sm text-gray-500 mt-0.5 leading-snug">
               Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
             </p>
             {savedResponse && (
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-amber-700 mt-1.5">
                 Certaines réponses sont déjà enregistrées et ne peuvent plus être modifiées.
               </p>
             )}
@@ -108,8 +108,8 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
           {!forced && (
             <button
               onClick={onClose}
-              className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-lg p-1"
+              className="ml-4 flex-shrink-0 text-gray-400 hover:text-bleu-fonce transition-colors
+                focus:outline-none focus:ring-2 focus:ring-bleu-clair p-1"
               aria-label="Fermer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
@@ -125,13 +125,13 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
           {showSuccess ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
-                <svg className="w-7 h-7 text-green-600" viewBox="0 0 24 24" fill="none"
+              <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                <svg className="w-7 h-7 text-emerald-600" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
-              <p className="text-lg font-semibold text-gray-900">Merci pour ton retour !</p>
+              <p className="font-serif text-xl font-semibold text-bleu-fonce">Merci pour ton retour !</p>
               <p className="text-sm text-gray-500">Fermeture automatique…</p>
             </div>
           ) : (
@@ -198,8 +198,8 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                 {!showAllThemes && (
                   <button
                     onClick={() => setShowAllThemes(true)}
-                    className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 hover:underline
-                      focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded"
+                    className="mt-3 pb-0.5 text-xs font-semibold text-bleu-fonce border-b border-bleu-fonce/40
+                      hover:border-bleu-clair transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                   >
                     Voir plus ({shuffledThemes.length - THEMES_INITIAL} autres)
                   </button>
@@ -211,7 +211,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                 label="Est-ce que tu voudrais staffer chez Ecclesia ?"
                 locked={locked.staffInterest}
               >
-                <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                <p className="text-xs text-gray-600 mb-2 leading-relaxed">
                   Modérer un débat, aider à la préparation des fiches d'informations ou à la
                   communication, etc. Si oui, ajoute ton Prénom Nom et un contact (num ou mail).
                 </p>
@@ -226,7 +226,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
               </QuestionBlock>
 
               {err && (
-                <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+                <p className="text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">
                   {err}
                 </p>
               )}
@@ -236,13 +236,13 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
 
         {/* ── Footer ── */}
         {!showSuccess && (
-          <div className="px-6 pb-6 pt-4 border-t border-gray-100 flex-shrink-0">
+          <div className="px-6 pb-6 pt-4 border-t border-bleu-fonce/10 flex-shrink-0">
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white rounded-xl
+              className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                focus:ring-bleu-clair focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Envoi…' : 'Envoyer'}
             </button>
@@ -266,8 +266,8 @@ function QuestionBlock({
   return (
     <div className={`space-y-2 ${locked ? 'opacity-60' : ''}`}>
       <div className="flex items-center gap-1.5">
-        <p className="text-sm font-semibold text-gray-800 leading-snug">
-          {label}{required && !locked && <span className="text-red-500"> *</span>}
+        <p className="text-sm font-semibold text-anthracite leading-snug">
+          {label}{required && !locked && <span className="text-red-600"> *</span>}
         </p>
         {locked && (
           <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none"
@@ -299,14 +299,14 @@ function ThemeRatingRow({
             key={n}
             onClick={() => !locked && onChange(value === n ? null : n)}
             disabled={locked}
-            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors
-              focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1
+            className={`w-8 h-8 border text-sm font-medium tabular-nums transition-colors
+              focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-1
               disabled:cursor-not-allowed ${
               value === n
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-indigo-600 border-indigo-600 text-white'
                 : locked
-                  ? 'bg-gray-100 text-gray-400'
-                  : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+                  ? 'bg-gray-100 border-gray-100 text-gray-400'
+                  : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-bleu-fonce/40 hover:bg-indigo-50'
             }`}
           >
             {n}
@@ -331,14 +331,14 @@ function RatingRow({
           key={n}
           onClick={() => !locked && onChange(value === n ? null : n)}
           disabled={locked}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors
-            focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1
+          className={`flex-1 py-2.5 border text-sm font-semibold tabular-nums transition-colors
+            focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-1
             disabled:cursor-not-allowed ${
             value === n
-              ? 'bg-indigo-600 text-white shadow-md'
+              ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
               : locked
-                ? 'bg-gray-100 text-gray-400'
-                : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+                ? 'bg-gray-100 border-gray-100 text-gray-400'
+                : 'bg-white border-bleu-fonce/15 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-indigo-50'
           }`}
         >
           {n}
@@ -348,9 +348,9 @@ function RatingRow({
   )
 }
 
-const textareaClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
-  text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed
-  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`
+const textareaClass = `w-full bg-white border border-bleu-fonce/20 px-3 py-2.5 text-sm
+  text-anthracite placeholder:text-anthracite/40 resize-none leading-relaxed
+  focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40`
 
-const textareaLockedClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
-  text-gray-700 bg-gray-50 resize-none leading-relaxed cursor-not-allowed`
+const textareaLockedClass = `w-full border border-bleu-fonce/10 px-3 py-2.5 text-sm
+  text-gray-600 bg-gray-50 resize-none leading-relaxed cursor-not-allowed`

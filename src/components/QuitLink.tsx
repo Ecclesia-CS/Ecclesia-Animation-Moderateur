@@ -5,9 +5,9 @@ export default function QuitLink() {
   return (
     <button
       onClick={() => { window.location.hash = '' }}
-      className="fixed top-3 left-3 z-[100] flex items-center gap-1 text-xs text-gray-500 bg-white/90
-        backdrop-blur border border-gray-200 rounded-full px-3 py-1.5 shadow-sm
-        hover:bg-white hover:text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+      className="fixed top-3 left-3 z-[100] flex items-center gap-1 text-xs font-medium text-bleu-fonce/80 bg-white/90
+        backdrop-blur border border-bleu-fonce/15 px-3 py-1.5 shadow-sm
+        hover:bg-white hover:text-bleu-fonce hover:border-bleu-fonce/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
     >
       ← Menu
     </button>

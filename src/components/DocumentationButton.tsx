@@ -27,7 +27,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
 
   const hasCollab = !orgName && (!!session_join_code || !!doc_collab_url)
 
-  const linkClass = `block px-4 py-2 text-sm hover:bg-gray-50 text-gray-700 whitespace-nowrap`
+  const linkClass = `block px-4 py-2 text-sm hover:bg-indigo-50/70 hover:text-bleu-fonce text-anthracite whitespace-nowrap transition-colors`
 
   function handleCollabClick() {
     setOpen(false)
@@ -53,7 +53,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className={`absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200
+            className={`absolute right-0 top-full mt-1 bg-white border border-bleu-fonce/15
               shadow-lg py-1 z-50 min-w-[200px] ${dropdownClass ?? ''}`}
           >
             {doc_info_url && (
@@ -81,7 +81,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
             {hasCollab && (
               <>
                 {(doc_info_url || doc_summary_url) && (
-                  <div className="my-1 border-t border-gray-100" />
+                  <div className="my-1 border-t border-bleu-fonce/10" />
                 )}
                 {session_join_code ? (
                   <button
@@ -104,7 +104,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
               </>
             )}
             {(doc_info_url || doc_summary_url || hasCollab) && (
-              <div className="my-1 border-t border-gray-100" />
+              <div className="my-1 border-t border-bleu-fonce/10" />
             )}
             <a
               href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
