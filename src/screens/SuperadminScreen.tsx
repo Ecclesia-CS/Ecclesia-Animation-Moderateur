@@ -812,8 +812,8 @@ function AssertionsLockToggle({ session, settings }: { session: SessionRow; sett
         label={session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
         title={
           session.assertions_locked
-            ? "Seul le superadmin peut débloquer : plus personne d'autre ne peut proposer de nouvelle assertion sur cette séance"
-            : "Interdire à tout le monde sauf le superadmin de proposer de nouvelles assertions sur cette séance"
+            ? "Seule l'administration de la séance peut débloquer : plus personne d'autre ne peut proposer de nouvelle assertion"
+            : "Interdire à tout le monde sauf l'administration de la séance de proposer de nouvelles assertions"
         }
         onClick={() => settings.change('locked', { assertions_locked: !session.assertions_locked },
           pwd => setSessionAssertionsLocked(pwd, session.id, !session.assertions_locked))}
@@ -918,7 +918,7 @@ function SessionSettingsSection({ session, settings }: {
         {showAssertions && (
           <div className="space-y-1">
             <AssertionsLockToggle session={session} settings={settings} />
-            <p className="text-xs text-gray-400">Verrouillées, seul le superadmin peut ajouter des assertions.</p>
+            <p className="text-xs text-gray-400">Verrouillées, seule l'administration de la séance peut ajouter des assertions.</p>
             <AssertionRules session={session} settings={settings} />
           </div>
         )}
