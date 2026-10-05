@@ -729,25 +729,19 @@ function PillToggle({ on, highlighted, tone, label, title, onClick }: {
 
 // ── Réglages de la séance (onglet Préparation) ────────────────────
 
-type SettingKey = 'results' | 'onboarding' | 'locked' | 'rules'
+type SettingKey = 'results' | 'onboarding' | 'locked' | 'rules' | 'home'
 
 /**
- * Les réglages de la séance qui vivaient sur la carte de la liste (résultats
- * publics — chantier 46, onboarding — 71, verrou des propositions — 124,
- * règles de proposition — 153) : une carte de liste n'a pas la place de les
- * expliquer, et un clic de travers y était trop facile. Ne reste sur la carte
- * que la visibilité sur l'accueil (154), qui s'y règle d'un coup d'œil.
- *
- * Mise à jour optimiste, comme sur la carte : on applique `patch`, on le défait
- * si l'appel échoue.
+ * Écriture d'un réglage de séance, avec mise à jour optimiste : on applique
+ * `patch`, on le défait si l'appel échoue. Un seul hook par écran de détail,
+ * pour que les réglages affichés à deux endroits (visibilité sur l'accueil,
+ * verrou des propositions) partagent leurs erreurs.
  */
-function SessionSettingsSection({ session, onPatch, onAuthError }: {
-  session: SessionRow
-  onPatch(patch: Partial<SessionRow>): void
-  onAuthError(): void
-}) {
-  const isOrg = useOrg() !== null
-  const type = sessionTypeOf(session)
+function useSessionSettings(
+  session: SessionRow,
+  onPatch: (patch: Partial<SessionRow>) => void,
+  onAuthError: () => void,
+) {
   const [errors, setErrors] = useState<Partial<Record<SettingKey, string>>>({})
 
   async function change(
@@ -774,10 +768,81 @@ function SessionSettingsSection({ session, onPatch, onAuthError }: {
     }
   }
 
+  return { errors, change }
+}
+
+type SessionSettings = ReturnType<typeof useSessionSettings>
+
+/** Visibilité sur l'accueil (chantier 154) — une séance d'association n'y figure
+ *  jamais (filtre d'EntryScreen), une séance close non plus. */
+function VisibleOnHomeToggle({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  const isOrg = useOrg() !== null
+  if (isOrg || session.phase === 'closed' || session.organization_id) return null
+  const visible = session.visible_on_home ?? true
+  return (
+    <div className="space-y-1">
+      <PillToggle
+        on={visible}
+        highlighted={!visible}
+        tone="amber"
+        label={visible ? "Visible sur l'accueil" : "Masquée de l'accueil"}
+        title={
+          visible
+            ? "La séance figure sur la liste « Séances en cours » de l'accueil"
+            : "La séance est masquée de l'accueil ; elle reste accessible par son lien et son QR code"
+        }
+        onClick={() => settings.change('home', { visible_on_home: !visible },
+          pwd => setSessionVisibleOnHome(pwd, session.id, !visible))}
+      />
+      {settings.errors.home && <p className="text-xs text-red-600">{settings.errors.home}</p>}
+    </div>
+  )
+}
+
+/** Verrou des propositions d'assertions (chantier 124) — sans objet dans un
+ *  débat simple (aucune assertion). */
+function AssertionsLockToggle({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  if (sessionTypeOf(session) === 'debate') return null
+  return (
+    <div className="space-y-1">
+      <PillToggle
+        on={session.assertions_locked}
+        highlighted={session.assertions_locked}
+        tone="red"
+        label={session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
+        title={
+          session.assertions_locked
+            ? "Seul le superadmin peut débloquer : plus personne d'autre ne peut proposer de nouvelle assertion sur cette séance"
+            : "Interdire à tout le monde sauf le superadmin de proposer de nouvelles assertions sur cette séance"
+        }
+        onClick={() => settings.change('locked', { assertions_locked: !session.assertions_locked },
+          pwd => setSessionAssertionsLocked(pwd, session.id, !session.assertions_locked))}
+      />
+      {settings.errors.locked && <p className="text-xs text-red-600">{settings.errors.locked}</p>}
+    </div>
+  )
+}
+
+/**
+ * Les réglages de la séance qui vivaient sur la carte de la liste (résultats
+ * publics — chantier 46, onboarding — 71, verrou des propositions — 124,
+ * règles de proposition — 153). Ne reste sur la carte que la visibilité sur
+ * l'accueil (154), qui s'y règle d'un coup d'œil ; elle et le verrou des
+ * propositions sont aussi ici, et le verrou dans « En direct ».
+ */
+function SessionSettingsSection({ session, settings }: {
+  session: SessionRow
+  settings: SessionSettings
+}) {
+  const isOrg = useOrg() !== null
+  const type = sessionTypeOf(session)
+  const { errors, change } = settings
+
   const showResults    = session.phase === 'closed' && !isOrg
   const showOnboarding = !isOrg
   const showAssertions = type !== 'debate'
-  if (!showResults && !showOnboarding && !showAssertions) return null
+  const showHome       = !isOrg && session.phase !== 'closed' && !session.organization_id
+  if (!showHome && !showResults && !showOnboarding && !showAssertions) return null
 
   return (
     <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -785,6 +850,13 @@ function SessionSettingsSection({ session, onPatch, onAuthError }: {
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Réglages</span>
       </div>
       <div className="border-t border-gray-100 px-5 py-4 space-y-4">
+        {showHome && (
+          <div className="space-y-1">
+            <VisibleOnHomeToggle session={session} settings={settings} />
+            <p className="text-xs text-gray-400">Fait figurer la séance dans « Séances en cours » sur l'accueil. Masquée, elle reste joignable par son lien et son QR code.</p>
+          </div>
+        )}
+
         {showResults && (
           <div className="space-y-1">
             <PillToggle
@@ -827,25 +899,10 @@ function SessionSettingsSection({ session, onPatch, onAuthError }: {
           </div>
         )}
 
-        {/* Verrou propositions d'assertions (chantier 124) — sans objet dans
-            un débat simple (aucune assertion). */}
         {showAssertions && (
           <div className="space-y-1">
-            <PillToggle
-              on={session.assertions_locked}
-              highlighted={session.assertions_locked}
-              tone="red"
-              label={session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
-              title={
-                session.assertions_locked
-                  ? "Seul le superadmin peut débloquer : plus personne d'autre ne peut proposer de nouvelle assertion sur cette séance"
-                  : "Interdire à tout le monde sauf le superadmin de proposer de nouvelles assertions sur cette séance"
-              }
-              onClick={() => change('locked', { assertions_locked: !session.assertions_locked },
-                pwd => setSessionAssertionsLocked(pwd, session.id, !session.assertions_locked))}
-            />
+            <AssertionsLockToggle session={session} settings={settings} />
             <p className="text-xs text-gray-400">Verrouillées, seul le superadmin peut ajouter des assertions.</p>
-            {errors.locked && <p className="text-xs text-red-600">{errors.locked}</p>}
             <AssertionRulesControl
               voteFirst={session.assertions_vote_first ?? false}
               max={session.max_assertions_per_member ?? null}
@@ -1845,6 +1902,11 @@ function SessionDetail({
 
   // ── Current session state (mutable for phase changes) ──────
   const [currentSession, setCurrentSession] = useState<SessionRow>(session)
+  const sessionSettings = useSessionSettings(
+    currentSession,
+    patch => setCurrentSession(prev => ({ ...prev, ...patch })),
+    onAuthError,
+  )
 
   // ── Phase transitions ──────────────────────────────────────
   // Chantier 134 — la séquence dépend du mode de séance (miroir de la garde SQL).
@@ -3365,6 +3427,10 @@ function SessionDetail({
                 />
 
                 {showVotingSections && (
+                  <AssertionsLockToggle session={currentSession} settings={sessionSettings} />
+                )}
+
+                {showVotingSections && (
                   <SectionAccordion
                     title="Assertions"
                     open={assertionsOpen}
@@ -4111,11 +4177,7 @@ function SessionDetail({
                   </div>
                 </section>
 
-                <SessionSettingsSection
-                  session={currentSession}
-                  onPatch={patch => setCurrentSession(prev => ({ ...prev, ...patch }))}
-                  onAuthError={onAuthError}
-                />
+                <SessionSettingsSection session={currentSession} settings={sessionSettings} />
 
                 {/* Documentation (accordion) */}
                 <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
