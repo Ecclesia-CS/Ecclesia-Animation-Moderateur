@@ -269,3 +269,12 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 **Reste à vérifier**
 - [ ] Une séance masquée reste joignable par `#session/<code>` (non rejoué).
 - [ ] **Prod, après merge** : appliquer `20261005_chantier154_visibilite_accueil.sql` AVANT de déployer le code (sinon l'accueil de prod devient vide : colonne inconnue) et vérifier que l'accueil liste toujours les séances.
+
+## Chantier 156 (2026-10-05) — Réglages de séance rangés dans Préparation / En direct
+
+**Vérifié au navigateur sur dev** (superadmin, copies de test remises dans leur état, chaque écriture relue en base) : verrou des propositions depuis Préparation et depuis En direct ; plafond de propositions saisi depuis En direct ; « Visible sur l'accueil » depuis Préparation ; « Résultats publics » (séance close, absent de la liste et de « Visible sur l'accueil » comme prévu) ; onboarding.
+
+**Reste à vérifier**
+- [ ] **Côté association (`#asso`)** — non rejoué, mot de passe d'association inconnu de la session : dans une séance d'association (sondage ou débat simple), la section « Réglages » de Préparation ne doit montrer ni « Visible sur l'accueil », ni onboarding, ni résultats publics ; le verrou et ses deux règles doivent y être (sondage) et fonctionner (le jeton `org_…` passe dans `p_password`). Un débat simple d'association n'a plus de section « Réglages ».
+- [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).
+

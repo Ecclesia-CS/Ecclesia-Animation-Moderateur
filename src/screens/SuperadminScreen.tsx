@@ -823,6 +823,22 @@ function AssertionsLockToggle({ session, settings }: { session: SessionRow; sett
   )
 }
 
+/** Règles de proposition (chantier 153) : « voter d'abord » + plafond par personne.
+ *  Affichées à côté du verrou, dans Préparation comme dans En direct. */
+function AssertionRules({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  if (sessionTypeOf(session) === 'debate') return null
+  return (
+    <AssertionRulesControl
+      voteFirst={session.assertions_vote_first ?? false}
+      max={session.max_assertions_per_member ?? null}
+      onChange={(voteFirst, max) => settings.change('rules',
+        { assertions_vote_first: voteFirst, max_assertions_per_member: max },
+        pwd => setSessionAssertionRules(pwd, session.id, voteFirst, max))}
+      error={settings.errors.rules}
+    />
+  )
+}
+
 /**
  * Les réglages de la séance qui vivaient sur la carte de la liste (résultats
  * publics — chantier 46, onboarding — 71, verrou des propositions — 124,
@@ -903,14 +919,7 @@ function SessionSettingsSection({ session, settings }: {
           <div className="space-y-1">
             <AssertionsLockToggle session={session} settings={settings} />
             <p className="text-xs text-gray-400">Verrouillées, seul le superadmin peut ajouter des assertions.</p>
-            <AssertionRulesControl
-              voteFirst={session.assertions_vote_first ?? false}
-              max={session.max_assertions_per_member ?? null}
-              onChange={(voteFirst, max) => change('rules',
-                { assertions_vote_first: voteFirst, max_assertions_per_member: max },
-                pwd => setSessionAssertionRules(pwd, session.id, voteFirst, max))}
-              error={errors.rules}
-            />
+            <AssertionRules session={session} settings={settings} />
           </div>
         )}
       </div>
@@ -3427,7 +3436,10 @@ function SessionDetail({
                 />
 
                 {showVotingSections && (
-                  <AssertionsLockToggle session={currentSession} settings={sessionSettings} />
+                  <div className="space-y-1">
+                    <AssertionsLockToggle session={currentSession} settings={sessionSettings} />
+                    <AssertionRules session={currentSession} settings={sessionSettings} />
+                  </div>
                 )}
 
                 {showVotingSections && (
