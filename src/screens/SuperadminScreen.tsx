@@ -3587,7 +3587,7 @@ function SessionDetail({
                 {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
                   <div className="bg-white border border-bleu-fonce/10 overflow-hidden px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Groupes</h3>
+                      <h3 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Groupes</h3>
                       <div className="flex items-center gap-2">
                         {/* Chantier 95 — création d'une table de rattrapage, pendant
                             l'allocation comme pendant le débat. Chantier 135 — une
@@ -5060,7 +5060,7 @@ function SectionAccordion({
     <section className="bg-white border border-bleu-fonce/10 px-5 py-4">
       <div className="flex items-center justify-between mb-0">
         <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left">
-          <h2 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">{title}</h2>
+          <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">{title}</h2>
           {badge && (
             <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5">{badge}</span>
           )}

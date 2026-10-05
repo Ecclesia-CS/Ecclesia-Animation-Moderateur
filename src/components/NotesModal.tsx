@@ -237,7 +237,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
       <style>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
-          color: #9ca3af;
+          color: #898a8c;
           pointer-events: none;
         }
       `}</style>

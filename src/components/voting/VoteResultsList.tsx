@@ -7,11 +7,11 @@ interface VoteResultsListProps {
 
 export default function VoteResultsList({ results, loading }: VoteResultsListProps) {
   if (loading) {
-    return <p className="text-sm text-gray-400 py-2">Chargement…</p>
+    return <p className="text-sm text-gray-500 py-2">Chargement…</p>
   }
 
   if (results.length === 0) {
-    return <p className="text-sm text-gray-400 py-2">Aucune assertion approuvée pour cette séance.</p>
+    return <p className="text-sm text-gray-500 py-2">Aucune assertion approuvée pour cette séance.</p>
   }
 
   const sorted = [...results].sort((a, b) => (b.consensus_score ?? -1) - (a.consensus_score ?? -1))
@@ -21,7 +21,7 @@ export default function VoteResultsList({ results, loading }: VoteResultsListPro
       {sorted.map(r => (
         <AssertionRow key={r.id} result={r} />
       ))}
-      <p className="text-xs text-gray-400 text-center pt-1">
+      <p className="text-xs text-gray-500 text-center pt-1">
         {results.length} assertion{results.length > 1 ? 's' : ''} approuvée{results.length > 1 ? 's' : ''}
       </p>
     </div>
@@ -55,7 +55,7 @@ function AssertionRow({ result }: { result: VoteResult }) {
     <div className="space-y-2">
       <div className="flex items-start gap-2">
         <p className="flex-1 text-sm text-gray-800 leading-snug">{result.content}</p>
-        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${badge.className}`}>
+        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 ${badge.className}`}>
           {badge.label}
         </span>
       </div>
@@ -70,7 +70,7 @@ function AssertionRow({ result }: { result: VoteResult }) {
           <div className="bg-gray-300 h-full" style={{ width: `${passPct}%` }} />
         )}
       </div>
-      <div className="flex gap-3 text-xs text-gray-400">
+      <div className="flex gap-3 text-xs text-gray-500">
         <span className="text-green-600">✓ {result.agree_count}</span>
         <span className="text-red-500">✗ {result.disagree_count}</span>
         <span>⏭ {result.pass_count}</span>

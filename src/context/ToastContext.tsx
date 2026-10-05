@@ -15,9 +15,9 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | null>(null)
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
-  success: 'bg-emerald-600 text-white',
-  error:   'bg-red-600 text-white',
-  info:    'bg-gray-900 text-white',
+  success: 'border-l-emerald-500',
+  error:   'border-l-red-500',
+  info:    'border-l-indigo-500',
 }
 
 const VARIANT_ICON: Record<ToastVariant, string> = {
@@ -49,8 +49,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             role="status"
-            className={`pointer-events-auto max-w-sm w-full sm:w-auto flex items-center gap-2 px-4 py-2.5
-              rounded-xl shadow-lg text-sm font-medium animate-toast-in ${VARIANT_STYLES[t.variant]}`}
+            className={`pointer-events-auto max-w-sm w-full sm:w-auto flex items-center gap-3 px-4 py-3
+              bg-white border border-bleu-fonce/10 border-l-4 shadow-lg text-sm font-medium text-anthracite animate-toast-in ${VARIANT_STYLES[t.variant]}`}
           >
             <span aria-hidden="true">{VARIANT_ICON[t.variant]}</span>
             <span>{t.message}</span>

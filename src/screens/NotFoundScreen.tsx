@@ -12,13 +12,13 @@ export default function NotFoundScreen({
 }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+      <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
         <div className="text-5xl mb-4">🧭</div>
-        <h1 className="text-lg font-bold text-gray-900">{title}</h1>
-        <p className="text-sm text-gray-400 mt-3">{subtitle}</p>
+        <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{title}</h1>
+        <p className="text-sm text-gray-500 mt-3">{subtitle}</p>
         <button
           onClick={() => { window.location.hash = '' }}
-          className="mt-6 text-xs text-indigo-600 hover:underline"
+          className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
         >
           ← Retour à l'accueil
         </button>

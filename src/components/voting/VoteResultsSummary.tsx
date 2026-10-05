@@ -8,18 +8,18 @@ interface VoteResultsSummaryProps {
 export default function VoteResultsSummary({ results, loading }: VoteResultsSummaryProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Résultats du vote</h2>
-        <p className="text-sm text-gray-400">Chargement…</p>
+      <div className="bg-white border border-bleu-fonce/10 p-5 space-y-3">
+        <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Résultats du vote</h2>
+        <p className="text-sm text-gray-500">Chargement…</p>
       </div>
     )
   }
 
   if (results.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Résultats du vote</h2>
-        <p className="text-sm text-gray-400">Aucune assertion approuvée pour cette séance.</p>
+      <div className="bg-white border border-bleu-fonce/10 p-5">
+        <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Résultats du vote</h2>
+        <p className="text-sm text-gray-500">Aucune assertion approuvée pour cette séance.</p>
       </div>
     )
   }
@@ -64,8 +64,8 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
   return (
     <div className="space-y-3">
       {/* Top consensus */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+      <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
+        <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Points de consensus
         </h2>
         <div className="space-y-3">
@@ -77,8 +77,8 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
 
       {/* Bottom dissensus */}
       {bottom.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
+          <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
             Points de désaccord
           </h2>
           <div className="space-y-3">
@@ -91,12 +91,12 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
 
       {/* Beaucoup d'hésitation */}
       {uncertain.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+        <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
           <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
               Beaucoup d'hésitation
             </h2>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Beaucoup de « passe » sur ces affirmations — le sujet laisse perplexe, ou la formulation gagnerait à être plus claire.
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
       )}
 
       {/* Global stats */}
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-gray-500 text-center">
         {results.length} assertion{results.length > 1 ? 's' : ''} approuvée{results.length > 1 ? 's' : ''} · {totalVotes} vote{totalVotes > 1 ? 's' : ''} au total
       </p>
     </div>
@@ -141,7 +141,7 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
     <div className="space-y-2">
       <div className="flex items-start gap-2">
         <p className="flex-1 text-sm text-gray-800 leading-snug">{result.content}</p>
-        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${badge.className}`}>
+        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 ${badge.className}`}>
           {badge.label}
         </span>
       </div>
@@ -157,7 +157,7 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
           <div className="bg-gray-300 h-full" style={{ width: `${passPct}%` }} />
         )}
       </div>
-      <div className="flex gap-3 text-xs text-gray-400">
+      <div className="flex gap-3 text-xs text-gray-500">
         <span className="text-green-600">✓ {result.agree_count}</span>
         <span className="text-red-500">✗ {result.disagree_count}</span>
         <span>⏭ {result.pass_count}</span>

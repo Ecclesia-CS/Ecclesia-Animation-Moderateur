@@ -15,10 +15,10 @@ import type { PublicResultsData } from '../lib/analysis'
 import type { Session } from '../lib/types'
 
 // ── Constantes ────────────────────────────────────────────────
-const GROUP_COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED']
+const GROUP_COLORS = ['#2b4a86', '#b04a3c', '#3f8462', '#c8742a', '#6b4c8a']
 
 function groupColor(groupId: number): string {
-  return GROUP_COLORS[groupId % GROUP_COLORS.length] ?? '#6B7280'
+  return GROUP_COLORS[groupId % GROUP_COLORS.length] ?? '#6d6f71'
 }
 
 // ── Nuage de points anonyme (même représentation que l'onglet Analyse) ──
@@ -77,16 +77,16 @@ function PublicScatterPlot({
           return (
             <div key={g} className="flex items-start gap-1.5 text-xs text-gray-600">
               <span
-                className="inline-block w-3 h-3 rounded-sm flex-shrink-0 mt-0.5"
+                className="inline-block w-3 h-3 flex-shrink-0 mt-0.5"
                 style={{ backgroundColor: groupColor(g) }}
               />
               <div>
                 <span className={gn?.name ? 'font-medium' : ''}>
                   {gn?.name ?? `Camp ${g + 1}`}
                 </span>
-                <span className="text-gray-400 ml-1">({groupCounts[g] ?? 0})</span>
+                <span className="text-gray-500 ml-1">({groupCounts[g] ?? 0})</span>
                 {gn?.description && (
-                  <p className="text-gray-400 italic leading-tight mt-0.5">{gn.description}</p>
+                  <p className="text-gray-500 italic leading-tight mt-0.5">{gn.description}</p>
                 )}
               </div>
             </div>
@@ -112,7 +112,7 @@ function PublicAssertionRow({ assertion }: { assertion: PublicResultsData['asser
         {disagreePct > 0 && <div className="bg-red-400 h-full" style={{ width: `${disagreePct}%` }} />}
         {passPct > 0 && <div className="bg-gray-300 h-full" style={{ width: `${passPct}%` }} />}
       </div>
-      <div className="flex gap-3 text-xs text-gray-400">
+      <div className="flex gap-3 text-xs text-gray-500">
         <span className="text-green-600">✓ {assertion.agree_count}</span>
         <span className="text-red-500">✗ {assertion.disagree_count}</span>
         <span>⏭ {assertion.pass_count}</span>
@@ -174,7 +174,7 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
 
         {/* Header */}
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Résultats de la séance</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Résultats de la séance</h1>
           {session && <p className="text-sm text-gray-500 mt-1">{session.title}</p>}
         </div>
 
@@ -188,23 +188,23 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
         )}
 
         {sessionErr && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
+          <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             {sessionErr}
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
+          <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {!isLoading && !error && !sessionErr && !data && (
-          <div className="bg-white rounded-2xl border border-gray-200 px-5 py-8 text-center">
+          <div className="bg-white border border-bleu-fonce/10 px-5 py-8 text-center">
             <p className="text-sm text-gray-500">
               Les résultats de cette séance ne sont pas disponibles publiquement.
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Revenez plus tard — l'organisateur publie les résultats après analyse.
             </p>
           </div>
@@ -214,11 +214,11 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
           <>
             {/* Placement idéologique */}
             {points.length > 0 && (
-              <section className="bg-white rounded-2xl border border-gray-200 px-5 py-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+                <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                   Placement idéologique des participants
                 </h2>
-                <p className="text-xs text-gray-400 mb-4">
+                <p className="text-xs text-gray-500 mb-4">
                   Un point par participant, anonyme — aucune identité associée.
                 </p>
                 <PublicScatterPlot points={points} kChosen={data.k_chosen ?? 1} session={session} />
@@ -226,12 +226,12 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
             )}
 
             {/* Assertions et votes */}
-            <section className="bg-white rounded-2xl border border-gray-200 px-5 py-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+              <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-4">
                 Assertions et votes
               </h2>
               {assertions.length === 0 ? (
-                <p className="text-sm text-gray-400">Aucune assertion approuvée pour cette séance.</p>
+                <p className="text-sm text-gray-500">Aucune assertion approuvée pour cette séance.</p>
               ) : (
                 <div className="space-y-4">
                   {assertions.map((a, i) => (
@@ -248,12 +248,12 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
           <button
             onClick={() => { window.location.hash = '' }}
             className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
-              text-gray-700 text-sm font-semibold rounded-xl transition-colors"
+              text-gray-700 text-sm font-semibold transition-colors"
           >
             ← Retour au menu
           </button>
         </div>
-        <p className="text-center text-sm text-gray-400 pb-4">
+        <p className="text-center text-sm text-gray-500 pb-4">
           Merci pour votre participation à cette séance Ecclesia.
         </p>
       </div>

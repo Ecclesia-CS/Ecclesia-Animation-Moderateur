@@ -24,10 +24,10 @@ import type { GroupNameResult } from '../lib/types'
 
 // ── Constantes ────────────────────────────────────────────────
 const CONSENSUS_THRESHOLD = 0.5
-const GROUP_COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED']
+const GROUP_COLORS = ['#2b4a86', '#b04a3c', '#3f8462', '#c8742a', '#6b4c8a']
 
 function groupColor(groupId: number): string {
-  return GROUP_COLORS[groupId % GROUP_COLORS.length] ?? '#6B7280'
+  return GROUP_COLORS[groupId % GROUP_COLORS.length] ?? '#6d6f71'
 }
 
 // ── Props ─────────────────────────────────────────────────────

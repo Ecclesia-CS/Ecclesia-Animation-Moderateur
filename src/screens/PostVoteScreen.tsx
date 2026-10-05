@@ -152,9 +152,9 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Revoter</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Revoter</h1>
           <p className="text-sm text-gray-500 mt-1">{session.title}</p>
-          <p className="text-sm text-gray-400 mt-2">
+          <p className="text-sm text-gray-500 mt-2">
             Le débat a peut-être fait bouger tes positions — c'est le moment de le vérifier.
           </p>
           <button
@@ -168,7 +168,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
         {loading && <Spinner />}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
+          <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -176,15 +176,15 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
         {!loading && !error && (
           <>
             {/* ── 1. Revoter sur ses propres assertions ─────────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 px-5 py-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+              <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                 1 · Tes assertions
               </h2>
-              <p className="text-xs text-gray-400 mb-3">
+              <p className="text-xs text-gray-500 mb-3">
                 Ton avis a-t-il changé sur ce que tu as toi-même proposé ?
               </p>
               {myOwnAssertions.length === 0 ? (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-500">
                   Aucune de tes assertions n'a été approuvée dans cette séance.
                 </p>
               ) : (
@@ -211,22 +211,22 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
 
             {/* ── 2. Proposer une nouvelle assertion ─────────────── */}
             {canPropose && (
-            <section className="bg-white rounded-2xl border border-gray-200 px-5 py-5">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+              <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                 2 · Proposer une nouvelle assertion
               </h2>
-              <p className="text-xs text-gray-400 mb-3">
+              <p className="text-xs text-gray-500 mb-3">
                 Une idée t'est venue pendant le débat ? Elle suit le même circuit de modération
                 que pendant le vote.
               </p>
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 ✏️ Proposer une assertion
               </button>
               {proposedJustNow > 0 && (
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   {proposedJustNow} assertion{proposedJustNow > 1 ? 's' : ''} proposée
                   {proposedJustNow > 1 ? 's' : ''} depuis cet écran.
                 </p>
@@ -235,17 +235,17 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
             )}
 
             {/* ── 3. Voter sur les assertions non vues ───────────── */}
-            <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <section className="bg-white border border-bleu-fonce/10 overflow-hidden">
               <div className="px-5 pt-5 pb-1">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                   {canPropose ? '3' : '2'} · Assertions non vues
                 </h2>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   D'autres participants ont peut-être proposé de nouvelles idées depuis ton dernier vote.
                 </p>
               </div>
               {unvotedAssertions.length === 0 ? (
-                <p className="text-sm text-gray-400 px-5 pb-5 pt-2">
+                <p className="text-sm text-gray-500 px-5 pb-5 pt-2">
                   Tu as déjà voté sur toutes les assertions disponibles.
                 </p>
               ) : currentUnvoted ? (
@@ -273,18 +273,18 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
       {/* Modal "Changer mon vote" — même pattern que VoteScreen (D16) */}
       {revoteAssertion && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
           onClick={() => setRevoteAssertion(null)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+            className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-1 flex-shrink-0">
-              <h2 className="text-sm font-bold text-gray-900">Changer mon vote</h2>
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Changer mon vote</h2>
               <button
                 onClick={() => setRevoteAssertion(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 aria-label="Fermer"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -11,7 +11,7 @@
 import type { TableDiagnostics } from '../../lib/allocation'
 
 /** Palette des camps d'opinion — alignée sur AnalysisPanel / ResultsMapScreen. */
-const CAMP_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6']
+const CAMP_COLORS = ['#2b4a86', '#c8742a', '#3f8462', '#b04a3c', '#6b4c8a']
 
 export function campColor(groupId: number): string {
   return CAMP_COLORS[groupId % CAMP_COLORS.length]
@@ -47,7 +47,7 @@ export function CampCompositionBar({ d }: { d: TableDiagnostics }) {
           ))}
         {d.neutral_count > 0 && (
           <div
-            style={{ width: `${(d.neutral_count / Math.max(1, d.actives)) * 100}%`, background: '#d1d5db' }}
+            style={{ width: `${(d.neutral_count / Math.max(1, d.actives)) * 100}%`, background: '#c6c4bf' }}
             title={`${d.neutral_count} sans vote`}
           />
         )}

@@ -37,15 +37,15 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+      className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900">Composition idéologique de la table</h2>
+      <div className="bg-white w-full sm:max-w-md shadow-2xl flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
+          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Composition idéologique de la table</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+            className="text-gray-500 hover:text-gray-600 transition-colors p-1
               focus:outline-none focus:ring-2 focus:ring-gray-300"
             aria-label="Fermer"
           >
@@ -55,23 +55,23 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
           </button>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-5">
-          {loading && <p className="text-sm text-gray-400 py-2">Chargement…</p>}
+          {loading && <p className="text-sm text-gray-500 py-2">Chargement…</p>}
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
           )}
           {!loading && !error && summary && (
             <>
               {!summary.opinions_available ? (
-                <p className="text-sm text-gray-400 py-2">
+                <p className="text-sm text-gray-500 py-2">
                   Aucune analyse des camps d'opinion disponible pour cette séance.
                 </p>
               ) : summary.camps.length === 0 ? (
-                <p className="text-sm text-gray-400 py-2">
+                <p className="text-sm text-gray-500 py-2">
                   Aucune donnée d'opinion pour les membres de cette table.
                 </p>
               ) : (
                 <div className="space-y-4">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <h3 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                     Camps présents à cette table
                   </h3>
                   {summary.camps.map(c => (
@@ -84,12 +84,12 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
                         <span className="text-sm font-semibold text-gray-800">
                           {c.name ?? `Camp ${c.group_id + 1}`}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {c.count} personne{c.count > 1 ? 's' : ''}
                         </span>
                       </div>
                       {c.description && (
-                        <p className="text-xs text-gray-400 pl-4.5 leading-snug">{c.description}</p>
+                        <p className="text-xs text-gray-500 pl-4.5 leading-snug">{c.description}</p>
                       )}
                       {c.top_assertions.length > 0 && (
                         <ul className="pl-4.5 space-y-1">
@@ -106,8 +106,8 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
               )}
 
               {summary.votes.length > 0 && (
-                <div className="border-t border-gray-100 pt-4">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                <div className="border-t border-bleu-fonce/10 pt-4">
+                  <h3 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
                     Assertions clivantes / consensuelles dans cette table
                   </h3>
                   <VoteResultsList results={summary.votes} loading={false} />

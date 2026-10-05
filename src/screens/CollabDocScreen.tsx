@@ -240,7 +240,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-sm text-gray-400">Chargement…</p>
+        <p className="text-sm text-gray-500">Chargement…</p>
       </div>
     )
   }
@@ -265,11 +265,11 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── Header ───────────────────────────────────────────── */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-20">
+      <header className="bg-white border-b border-bleu-fonce/10 px-4 py-4 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             onClick={() => { window.location.hash = returnHash || '' }}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 -ml-1 shrink-0"
+            className="text-gray-500 hover:text-gray-600 transition-colors p-1 -ml-1 shrink-0"
             title="Retour"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -278,11 +278,11 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             </svg>
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-gray-900 truncate">
+            <h1 className="font-serif text-lg font-semibold leading-tight text-bleu-fonce truncate">
               Sources collaboratives
             </h1>
             {session && (
-              <p className="text-xs text-gray-400 truncate">{session.title}</p>
+              <p className="text-xs text-gray-500 truncate">{session.title}</p>
             )}
           </div>
           {myIdentity && (
@@ -291,7 +291,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
               <button
                 onClick={openAdd}
                 className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white
-                  text-xs font-medium rounded-lg transition-colors focus:outline-none
+                  text-xs font-medium transition-colors focus:outline-none
                   focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
               >
                 + Ajouter
@@ -303,7 +303,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
 
       <main className="max-w-2xl mx-auto p-4 space-y-6">
         {error && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+          <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{error}</span>
             <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 shrink-0">✕</button>
           </div>
@@ -311,9 +311,9 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
 
         {/* ── Registration panel ────────────────────────────── */}
         {!myIdentity && (
-          <section className="bg-white rounded-2xl border border-indigo-200 px-5 py-5 space-y-4">
+          <section className="bg-white border border-indigo-200 px-5 py-5 space-y-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 mb-1">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce mb-1">
                 Ajouter vos sources
               </h2>
               <p className="text-xs text-gray-500 leading-relaxed">
@@ -330,15 +330,15 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   value={registerPseudo}
                   onChange={e => setRegisterPseudo(e.target.value)}
                   placeholder="Nom prénom"
-                  className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+                  className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-bleu-fonce/20
                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                     placeholder:text-gray-300 transition-shadow"
                 />
                 <button
                   type="submit"
                   disabled={registering || !registerPseudo.trim()}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                    text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                    text-white text-sm font-medium transition-colors focus:outline-none
                     focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 flex items-center gap-2 shrink-0"
                 >
                   {registering && <SmallSpinner />}
@@ -356,7 +356,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             {registerErr && (
               <p className="text-xs text-red-600">{registerErr}</p>
             )}
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Vous pouvez parcourir les sources sans vous identifier.
               {' '}Pas encore inscrit ?{' '}
               <a href={`#session/${sessionJoinCode}`} className="text-indigo-600 hover:underline">
@@ -369,7 +369,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         {/* ── Source list ───────────────────────────────────── */}
         {sources.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <p className="text-sm text-gray-400">Aucune source partagée pour l'instant.</p>
+            <p className="text-sm text-gray-500">Aucune source partagée pour l'instant.</p>
             {myIdentity && (
               <button
                 onClick={openAdd}
@@ -386,7 +386,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                 {/* Group header */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2">
                     {group.tableJoinCode
                       ? `Table ${group.tableJoinCode}`
                       : 'Non assigné à une table'}
@@ -416,20 +416,20 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       {/* ── Add / Edit modal ──────────────────────────────────── */}
       {showAddForm && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
           onClick={() => setShowAddForm(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
+            className="bg-white w-full max-w-md shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-0">
-              <h2 className="text-sm font-semibold text-gray-900">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
                 {editingSource ? 'Modifier la source' : 'Ajouter une source'}
               </h2>
               <button
                 onClick={() => setShowAddForm(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-gray-500 hover:text-gray-600 p-1"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -439,7 +439,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             </div>
             <form onSubmit={handleFormSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
                   Titre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -448,35 +448,35 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   value={formTitle}
                   onChange={e => setFormTitle(e.target.value)}
                   placeholder="Ex : Rapport sur le thème X"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+                  className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                     placeholder:text-gray-300 transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Lien <span className="text-gray-400 font-normal">(optionnel)</span>
+                <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
+                  Lien <span className="text-gray-500 font-normal">(optionnel)</span>
                 </label>
                 <input
                   type="url"
                   value={formUrl}
                   onChange={e => setFormUrl(e.target.value)}
                   placeholder="https://…"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+                  className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                     placeholder:text-gray-300 transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Notes <span className="text-gray-400 font-normal">(optionnel)</span>
+                <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
+                  Notes <span className="text-gray-500 font-normal">(optionnel)</span>
                 </label>
                 <textarea
                   value={formContent}
                   onChange={e => setFormContent(e.target.value)}
                   rows={3}
                   placeholder="Résumé, extraits pertinents, commentaire…"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl resize-none
+                  className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20 resize-none
                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                     placeholder:text-gray-300 transition-shadow"
                 />
@@ -488,7 +488,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl
+                  className="flex-1 py-2.5 text-sm border border-bleu-fonce/10
                     text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Annuler
@@ -496,9 +496,9 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                    text-white text-sm font-medium rounded-xl transition-colors
-                    flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                    text-white text-sm font-medium transition-colors
+                    flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   {formLoading && <SmallSpinner />}
                   {formLoading ? 'Enregistrement…' : (editingSource ? 'Modifier' : 'Ajouter')}
@@ -539,16 +539,16 @@ function SourceCard({
   })
 
   return (
-    <div className={`bg-white rounded-xl border px-4 py-3.5 space-y-2 transition-colors ${
-      isOwn ? 'border-indigo-200' : 'border-gray-200'
+    <div className={`bg-white border px-4 py-3.5 space-y-2 transition-colors ${
+      isOwn ? 'border-indigo-200' : 'border-bleu-fonce/10'
     }`}>
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-indigo-600">{source.pseudo}</span>
-            <span className="text-xs text-gray-300">·</span>
-            <span className="text-xs text-gray-400">{date}</span>
+            <span className="text-xs text-gray-500">·</span>
+            <span className="text-xs text-gray-500">{date}</span>
           </div>
           <p className="text-sm font-medium text-gray-900 mt-0.5 leading-snug">{source.title}</p>
         </div>
@@ -557,7 +557,7 @@ function SourceCard({
             <button
               onClick={onEdit}
               title="Modifier"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -569,7 +569,7 @@ function SourceCard({
               onClick={onDelete}
               disabled={deleting}
               title="Supprimer"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50
+              className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50
                 transition-colors disabled:opacity-40"
             >
               {deleting ? (

@@ -11,7 +11,7 @@ export default function SpeakerTimer({ startedAt, offsetMs = 0, className = '' }
   const now = useLiveMs()
   const elapsed = now - new Date(startedAt).getTime() + offsetMs
   return (
-    <span className={`font-mono tabular-nums ${className}`}>
+    <span className={`tabular-nums ${className}`}>
       {formatDuration(elapsed)}
     </span>
   )
