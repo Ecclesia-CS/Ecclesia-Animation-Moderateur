@@ -258,8 +258,8 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 
 **Vérifié au navigateur sur dev** : « QA Vérifs — Débat » masquée en base (`visible_on_home = false`) → absente de « Séances en cours » ; les autres séances et le filtre asso inchangés ; remise visible ensuite.
 
-**Reste à vérifier** (mot de passe superadmin requis, non saisi par la session)
-- [ ] Écran superadmin : pastille « Visible sur l'accueil » ↔ « Masquée de l'accueil » sur une séance en cours, persistante après rechargement, et effet immédiat sur l'accueil (≤ 30 s, polling).
-- [ ] Création : case « Visible sur l'accueil de l'application » décochée → la séance créée n'apparaît pas sur l'accueil.
-- [ ] Une séance masquée reste joignable par `#session/<code>`.
+**Écran superadmin — vérifié au navigateur sur dev le 2026-10-05** (Jules a saisi le mot de passe) : pastille sur les séances en cours (absente sur les séances closes et d'association), bascule « Visible » → « Masquée » écrite en base, conservée après rechargement, puis remise ; case « Visible sur l'accueil de l'application » à la création, décochée → séance créée avec `visible_on_home = false` (séance de test supprimée). Les séances `QA 155 …` sont masquées volontairement par le chantier 155.
+
+**Reste à vérifier**
+- [ ] Une séance masquée reste joignable par `#session/<code>` (non rejoué).
 - [ ] **Prod, après merge** : appliquer `20261005_chantier154_visibilite_accueil.sql` AVANT de déployer le code (sinon l'accueil de prod devient vide : colonne inconnue) et vérifier que l'accueil liste toujours les séances.
