@@ -95,7 +95,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="ml-4 flex-shrink-0 text-gray-400 hover:text-bleu-fonce transition-colors
+            className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
               focus:outline-none focus:ring-2 focus:ring-bleu-clair p-1"
             aria-label="Fermer"
           >

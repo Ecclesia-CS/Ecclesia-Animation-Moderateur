@@ -94,7 +94,7 @@ export function LinkedMemberFrames<T>({
             key={`frame-${i}`}
             data-testid="linked-frame"
             title={`🔗 Liés entre eux : ${seg.items.map(pseudoOf).join(', ')}`}
-            className="inline-flex flex-wrap items-center gap-1 rounded-lg border-2 p-1"
+            className="inline-flex flex-wrap items-center gap-1 border-2 p-1"
             style={{ borderColor: seg.color, background: `${seg.color}14` }}
           >
             {seg.items.map(renderItem)}

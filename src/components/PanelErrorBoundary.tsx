@@ -43,7 +43,7 @@ export default class PanelErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children
 
     return (
-      <section className="bg-white rounded-2xl border border-red-200 overflow-hidden">
+      <section className="bg-white border border-red-200 overflow-hidden">
         <div className="px-5 py-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
@@ -66,14 +66,14 @@ export default class PanelErrorBoundary extends Component<Props, State> {
           </div>
 
           <p className="text-xs font-mono text-red-700 bg-red-50 border border-red-200
-            rounded-xl px-3 py-2 break-words whitespace-pre-wrap">
+            px-3 py-2 break-words whitespace-pre-wrap">
             {error.message || String(error)}
           </p>
 
           <button
             onClick={() => this.setState({ error: null })}
             className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded-lg px-1 py-0.5"
+              focus:outline-none focus:ring-2 focus:ring-indigo-300 px-1 py-0.5"
           >
             ↻ Réessayer d'afficher ce panneau
           </button>

@@ -138,7 +138,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                className="text-gray-400 hover:text-bleu-fonce transition-colors p-1
+                className="text-gray-500 hover:text-bleu-fonce transition-colors p-1
                   focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                 aria-label="Fermer"
               >
@@ -420,7 +420,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Résultats du vote</h2>
               <button
                 onClick={() => setVoteResultsOpen(false)}
-                className="text-gray-400 hover:text-bleu-fonce transition-colors p-1
+                className="text-gray-500 hover:text-bleu-fonce transition-colors p-1
                   focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                 aria-label="Fermer"
               >

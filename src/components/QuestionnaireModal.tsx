@@ -108,7 +108,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
           {!forced && (
             <button
               onClick={onClose}
-              className="ml-4 flex-shrink-0 text-gray-400 hover:text-bleu-fonce transition-colors
+              className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
                 focus:outline-none focus:ring-2 focus:ring-bleu-clair p-1"
               aria-label="Fermer"
             >
@@ -270,7 +270,7 @@ function QuestionBlock({
           {label}{required && !locked && <span className="text-red-600"> *</span>}
         </p>
         {locked && (
-          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none"
+          <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -305,7 +305,7 @@ function ThemeRatingRow({
               value === n
                 ? 'bg-indigo-600 border-indigo-600 text-white'
                 : locked
-                  ? 'bg-gray-100 border-gray-100 text-gray-400'
+                  ? 'bg-gray-100 border-bleu-fonce/10 text-gray-500'
                   : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-bleu-fonce/40 hover:bg-indigo-50'
             }`}
           >
@@ -337,7 +337,7 @@ function RatingRow({
             value === n
               ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
               : locked
-                ? 'bg-gray-100 border-gray-100 text-gray-400'
+                ? 'bg-gray-100 border-bleu-fonce/10 text-gray-500'
                 : 'bg-white border-bleu-fonce/15 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-indigo-50'
           }`}
         >

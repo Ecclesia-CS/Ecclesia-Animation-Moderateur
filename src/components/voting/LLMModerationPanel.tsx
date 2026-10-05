@@ -598,21 +598,21 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   // ── Rendu ───────────────────────────────────────────────────
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
 
       {/* En-tête accordéon */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
       >
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           🤖 Modération IA
           {(autoModerate || autoMergePeriodic) && ['voting', 'pre_voting'].includes(session.phase) && (
             <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
           )}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -620,11 +620,11 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 px-5 py-4 space-y-5">
+        <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-5">
 
           {/* Message succès / erreur */}
           {actionMsg && (
-            <div className={`rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-2 ${
+            <div className={`px-4 py-3 text-sm flex items-center justify-between gap-2 ${
               isError
                 ? 'bg-red-50 border border-red-200 text-red-700'
                 : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
@@ -636,7 +636,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
           {/* ── Section Actions manuelles ─── */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
               Actions manuelles
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -644,7 +644,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <button
                 onClick={handleModerate}
                 disabled={isLoading}
-                className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 {isLoading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -655,7 +655,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <button
                 onClick={handleAnalyzeMerges}
                 disabled={isLoading}
-                className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -670,7 +670,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
               <button
                 onClick={() => setShowReport(r => !r)}
-                className="text-sm px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="text-sm px-3 py-2 border border-bleu-fonce/10 text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 {showReport ? 'Masquer le rapport' : 'Rapport token'}
               </button>
@@ -679,7 +679,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
           {/* ── Section Fusions proposées (validation humaine — B4) ─── */}
           {proposals.length > 0 && (
-            <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4 space-y-3">
+            <div className="border border-purple-200 bg-purple-50/50 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
                   Fusions proposées — à valider
@@ -689,14 +689,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   <button
                     onClick={handleApplyAllProposals}
                     disabled={isLoading}
-                    className="text-xs px-2.5 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    className="text-xs px-2.5 py-1.5 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
                   >
                     Tout fusionner
                   </button>
                   <button
                     onClick={ignoreAllProposals}
                     disabled={isLoading}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-white disabled:opacity-50 transition-colors"
+                    className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-gray-600 hover:bg-white disabled:opacity-50 transition-colors"
                   >
                     Tout ignorer
                   </button>
@@ -715,12 +715,12 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                     ...p.reject_ids.map((id, ri) => ({ id, content: p.reject_contents[ri] ?? id, keep: false })),
                   ]
                   return (
-                    <div key={`${p.keep_id}-${i}`} className="bg-white rounded-xl border border-purple-100 p-3 space-y-2">
+                    <div key={`${p.keep_id}-${i}`} className="bg-white border border-purple-100 p-3 space-y-2">
                       <div className="space-y-1.5">
                         {all.map(a => (
                           <div
                             key={a.id}
-                            className={`flex items-start gap-2 rounded-lg px-2 py-1.5 ${
+                            className={`flex items-start gap-2 px-2 py-1.5 ${
                               a.keep ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50/60 border border-red-100'
                             }`}
                           >
@@ -733,7 +733,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                                 onClick={() => swapKeep(i, a.id)}
                                 disabled={isLoading}
                                 title="Conserver celle-ci à la place"
-                                className="shrink-0 text-xs px-2 py-0.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+                                className="shrink-0 text-xs px-2 py-0.5 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
                               >
                                 Garder celle-ci
                               </button>
@@ -750,7 +750,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
                       {/* Formulation combinée (chantier 7) — éditable avant application */}
                       {p.merged_content !== undefined && (
-                        <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 space-y-1">
+                        <div className="bg-amber-50 border border-amber-200 p-2 space-y-1">
                           <label className="block text-[11px] font-semibold text-amber-700 uppercase tracking-wide">
                             ✨ Formulation combinée (réunit les deux)
                           </label>
@@ -759,7 +759,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                             onChange={e => editMergedContent(i, e.target.value)}
                             disabled={isLoading}
                             rows={2}
-                            className="w-full text-sm text-gray-800 bg-white rounded border border-amber-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y disabled:opacity-50"
+                            className="w-full text-sm text-gray-800 bg-white border border-amber-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y disabled:opacity-50"
                           />
                           <p className="text-[11px] text-amber-600">
                             Remplace le texte de l'assertion « ✅ » par cette version, puis rejette l'autre et transfère ses votes.
@@ -772,7 +772,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           <button
                             onClick={() => handleApplyProposal(i, 'combine')}
                             disabled={isLoading}
-                            className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                            className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
                           >
                             ✨ Fusionner (formulation combinée)
                           </button>
@@ -780,14 +780,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         <button
                           onClick={() => handleApplyProposal(i, 'keep')}
                           disabled={isLoading}
-                          className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                          className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                         >
                           ✓ Garder « ✅ » telle quelle
                         </button>
                         <button
                           onClick={() => ignoreProposal(i)}
                           disabled={isLoading}
-                          className="flex-1 min-w-[6rem] text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                          className="flex-1 min-w-[6rem] text-xs px-3 py-1.5 border border-bleu-fonce/20 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                         >
                           ✗ Ignorer
                         </button>
@@ -802,7 +802,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           {/* ── Section Rapport ─── */}
           {showReport && (
             <div className="space-y-4">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                 Consommation API
               </h4>
 
@@ -832,12 +832,12 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                     style={{ width: `${Math.min(sessionTokens / 1_000_000 * 100, 100)}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-400">Référence : 1M tokens/min (limite burst, indicatif)</p>
+                <p className="text-xs text-gray-500">Référence : 1M tokens/min (limite burst, indicatif)</p>
               </div>
 
               {/* Détail brut Gemini (F22) — valeurs telles que retournées par Google,
                   jamais recalculées (total_tokens peut inclure thoughts_tokens). */}
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs bg-gray-50 rounded-xl px-3 py-2.5">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs bg-gray-50 px-3 py-2.5">
                 <div className="flex justify-between">
                   <span className="text-gray-500">prompt_tokens</span>
                   <span className="font-mono text-gray-700">{sessionPromptTokens.toLocaleString('fr-FR')}</span>
@@ -858,7 +858,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               </div>
 
               {/* Modèle Gemini utilisé (F19 — remplace l'ancienne estimation d'énergie) */}
-              <div className="flex justify-between text-xs text-gray-500 bg-gray-50 rounded-xl px-3 py-2.5">
+              <div className="flex justify-between text-xs text-gray-500 bg-gray-50 px-3 py-2.5">
                 <span>Modèle</span>
                 <span className="font-mono text-gray-700">{sessionModel ?? '—'}</span>
               </div>
@@ -866,7 +866,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               {/* Historique log */}
               {log.length > 0 ? (
                 <div className="space-y-1">
-                  <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Historique</h5>
+                  <h5 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Historique</h5>
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {log.map((e, i) => (
                       <div
@@ -874,17 +874,17 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         className="text-xs text-gray-600 flex justify-between gap-2"
                         title={`prompt ${e.usage.prompt_tokens} · completion ${e.usage.completion_tokens} · thoughts ${e.usage.thoughts_tokens} · ${e.usage.model || '?'}`}
                       >
-                        <span className="text-gray-400 shrink-0">
+                        <span className="text-gray-500 shrink-0">
                           {new Date(e.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                         </span>
                         <span className="flex-1">{e.action} — {e.summary}</span>
-                        <span className="font-mono text-gray-400 shrink-0">{e.usage.total_tokens} tok</span>
+                        <span className="font-mono text-gray-500 shrink-0">{e.usage.total_tokens} tok</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">Aucun appel Gemini enregistré pour cette séance.</p>
+                <p className="text-xs text-gray-500">Aucun appel Gemini enregistré pour cette séance.</p>
               )}
             </div>
           )}
@@ -892,20 +892,20 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           {/* ── Section Assertions rejetées par l'IA ─── */}
           {showRejectSection && (
             <div>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
                 Assertions rejetées par l'IA
                 {rejectedAssertions.length > 0 && (
-                  <span className="ml-2 font-normal normal-case text-gray-400">
+                  <span className="ml-2 font-normal normal-case text-gray-500">
                     ({rejectedAssertions.length})
                   </span>
                 )}
               </h4>
               {rejectedAssertions.length === 0 ? (
-                <p className="text-xs text-gray-400">Aucune assertion rejetée.</p>
+                <p className="text-xs text-gray-500">Aucune assertion rejetée.</p>
               ) : (
                 <div className="space-y-2">
                   {rejectedAssertions.map(a => (
-                    <div key={a.id} className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-2">
+                    <div key={a.id} className="flex items-start gap-3 bg-gray-50 px-3 py-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800">{a.content}</p>
                       </div>
@@ -920,7 +920,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           }
                         }}
                         disabled={isLoading}
-                        className="shrink-0 text-xs px-2 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+                        className="shrink-0 text-xs px-2 py-1 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
                       >
                         Accepter quand même
                       </button>
@@ -933,16 +933,16 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
           {/* ── Section Fusions effectuées (base, annulables — F24) ─── */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
               Fusions effectuées
               {merges.length > 0 && (
-                <span className="ml-2 font-normal normal-case text-gray-400">
+                <span className="ml-2 font-normal normal-case text-gray-500">
                   ({merges.filter(m => !m.reverted_at).length} active(s) / {merges.length})
                 </span>
               )}
             </h4>
             {merges.length === 0 ? (
-              <p className="text-xs text-gray-400">Aucune fusion enregistrée.</p>
+              <p className="text-xs text-gray-500">Aucune fusion enregistrée.</p>
             ) : (
               <div className="space-y-2">
                 {merges.map(m => {
@@ -952,7 +952,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   return (
                     <div
                       key={m.id}
-                      className={`flex items-start gap-3 rounded-xl px-3 py-2 ${reverted ? 'bg-gray-50 opacity-60' : 'bg-gray-50'}`}
+                      className={`flex items-start gap-3 px-3 py-2 ${reverted ? 'bg-gray-50 opacity-60' : 'bg-gray-50'}`}
                     >
                       <div className="flex-1 min-w-0 space-y-1">
                         <p className="text-xs text-gray-700">
@@ -960,7 +960,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           {m.keep_content_after}
                         </p>
                         {combined && (
-                          <p className="text-xs text-gray-400 pl-3 border-l-2 border-gray-200">
+                          <p className="text-xs text-gray-500 pl-3 border-l-2 border-bleu-fonce/10">
                             formulation d'origine : {m.keep_content_before}
                           </p>
                         )}
@@ -969,7 +969,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           {m.reject_content}
                         </p>
                         {m.reason && (
-                          <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-gray-200 pl-2">{m.reason}</p>
+                          <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-bleu-fonce/10 pl-2">{m.reason}</p>
                         )}
                         {reverted && (
                           <p className="text-xs text-amber-700 font-medium">↩ Fusion annulée</p>
@@ -981,14 +981,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                             <button
                               onClick={() => handleRevertMerge(m.id)}
                               disabled={revertingId !== null}
-                              className="text-xs px-2 py-1 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                              className="text-xs px-2 py-1 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
                             >
                               {revertingId === m.id ? 'Annulation…' : 'Confirmer'}
                             </button>
                             <button
                               onClick={() => setConfirmRevertId(null)}
                               disabled={revertingId !== null}
-                              className="text-xs px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                              className="text-xs px-2 py-1 border border-bleu-fonce/20 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
                             >
                               Non
                             </button>
@@ -997,7 +997,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           <button
                             onClick={() => setConfirmRevertId(m.id)}
                             disabled={isLoading || revertingId !== null}
-                            className="shrink-0 text-xs px-2 py-1 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                            className="shrink-0 text-xs px-2 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
                           >
                             Annuler
                           </button>
@@ -1017,20 +1017,20 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               des votes). Se vide naturellement. */}
           {mergeLog.length > 0 && (
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
               Fusions antérieures (journal local)
-              <span className="ml-2 font-normal normal-case text-gray-400">
+              <span className="ml-2 font-normal normal-case text-gray-500">
                 ({mergeLog.length}) — annulation partielle
               </span>
             </h4>
             {(
               <div className="space-y-2">
                 {mergeLog.map((m, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-2">
+                  <div key={i} className="flex items-start gap-3 bg-gray-50 px-3 py-2">
                     <div className="flex-1 min-w-0 space-y-1">
                       <p className="text-xs text-gray-700">
                         <span className="font-medium text-green-700">✅ Conservée :</span>{' '}
-                        {m.keep_content || <span className="font-mono text-gray-400">{m.keep_id.slice(0, 8)}…</span>}
+                        {m.keep_content || <span className="font-mono text-gray-500">{m.keep_id.slice(0, 8)}…</span>}
                       </p>
                       {m.reject_contents?.length > 0 ? (
                         <div className="space-y-0.5">
@@ -1046,7 +1046,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         </p>
                       )}
                       {m.reason && (
-                        <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-gray-200 pl-2">{m.reason}</p>
+                        <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-bleu-fonce/10 pl-2">{m.reason}</p>
                       )}
                     </div>
                     <button
@@ -1066,7 +1066,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         }
                       }}
                       disabled={isLoading}
-                      className="shrink-0 text-xs px-2 py-1 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                      className="shrink-0 text-xs px-2 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
                     >
                       Annuler (partiel)
                     </button>
@@ -1079,8 +1079,8 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
           {/* ── Section Automatisation (uniquement si policy = 'ai') ─── */}
           {session.moderation_policy === 'ai' && (
-            <div className="border-t border-gray-100 pt-4 space-y-3">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <div className="border-t border-bleu-fonce/10 pt-4 space-y-3">
+              <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                 Automatisation
               </h4>
 
@@ -1117,7 +1117,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   disabled={!autoModerate}
                   className="w-full accent-indigo-600"
                 />
-                <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                <div className="flex justify-between text-xs text-gray-500 mt-0.5">
                   <span>1 min</span>
                   <span>10 min</span>
                 </div>
@@ -1173,14 +1173,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   disabled={!autoMergePeriodic}
                   className="w-full accent-purple-600"
                 />
-                <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                <div className="flex justify-between text-xs text-gray-500 mt-0.5">
                   <span>1 min</span>
                   <span>30 min</span>
                 </div>
               </div>
 
               {!['voting', 'pre_voting'].includes(session.phase) && (autoModerate || autoMergePeriodic) && (
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2">
                   L'automatisation est active mais la séance n'est pas en phase "vote" ou "pré-vote".
                 </p>
               )}

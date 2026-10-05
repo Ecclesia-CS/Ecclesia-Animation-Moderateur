@@ -111,13 +111,13 @@ function phaseLabel(phase: Session['phase'], type: SessionType = 'full'): string
 }
 
 const PHASE_CLASS: Record<string, string> = {
-  draft:         'bg-gray-100 text-gray-600',
-  pre_voting:    'bg-amber-100 text-amber-700',
-  voting:        'bg-purple-100 text-purple-700',
-  allocating:    'bg-orange-100 text-orange-700',
-  debating:      'bg-indigo-100 text-indigo-700',
-  post_voting:   'bg-teal-100 text-teal-700',
-  closed:        'bg-slate-100 text-slate-500',
+  draft:         'border-bleu-fonce/10 bg-gray-100 text-gray-700',
+  pre_voting:    'border-amber-200 bg-amber-50 text-amber-800',
+  voting:        'border-purple-200 bg-purple-50 text-purple-800',
+  allocating:    'border-orange-200 bg-orange-50 text-orange-800',
+  debating:      'border-indigo-200 bg-indigo-50 text-bleu-fonce',
+  post_voting:   'border-teal-200 bg-teal-50 text-teal-800',
+  closed:        'border-slate-200 bg-slate-100 text-slate-600',
 }
 
 const PHASE_ORDER: Record<string, number> = {
@@ -365,11 +365,11 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-b from-creme to-sable flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="mb-3 text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+            className="mb-3 text-sm font-medium text-bleu-fonce/70 hover:text-bleu-fonce transition-colors flex items-center gap-1"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -377,20 +377,20 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             </svg>
             Retour
           </button>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 pt-7 pb-2 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none"
+        <div className="bg-white shadow-xl border border-bleu-fonce/10 overflow-hidden animate-entree">
+          <div className="bg-grain bg-bleu-fonce px-6 pt-7 pb-6 flex items-center gap-4">
+            <div className="relative w-11 h-11 border border-bleu-clair/40 bg-white/5 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-bleu-clair" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900 leading-tight">
+            <div className="relative">
+              <h1 className="font-serif text-2xl font-semibold tracking-tight text-creme leading-tight">
                 {isOrgMode ? 'Ecclesia · Espace association' : 'Ecclesia · Superadmin'}
               </h1>
-              <p className="text-xs text-gray-400 leading-tight">
+              <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair leading-tight">
                 {isOrgMode ? 'Débats et sondages de votre association' : 'Accès restreint'}
               </p>
             </div>
@@ -414,7 +414,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             />
             <SubmitBtn loading={authLoading} label="Accéder" />
             {authErr && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {authErr}
               </div>
             )}
@@ -429,11 +429,11 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
     <OrgContext.Provider value={isOrgMode ? org : null}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+      <header className="bg-grain bg-bleu-fonce text-creme border-b border-bleu-clair/30 px-4 py-4">
+        <div className="relative max-w-3xl mx-auto flex items-center justify-between gap-4">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="shrink-0 text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+            className="shrink-0 text-sm text-slate-300 hover:text-creme transition-colors flex items-center gap-1"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -442,8 +442,8 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             Retour
           </button>
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none"
+            <div className="w-9 h-9 border border-bleu-clair/40 bg-white/5 flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4 text-bleu-clair" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -452,10 +452,10 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
               </svg>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-gray-900 leading-tight truncate">
+              <h1 className="font-serif text-xl font-semibold text-creme leading-tight truncate">
                 {isOrgMode ? (org?.name ?? 'Espace association') : 'Ecclesia · Superadmin'}
               </h1>
-              <p className="text-xs text-gray-400 leading-tight">
+              <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-bleu-clair leading-tight">
                 {isOrgMode && org
                   ? `${org.open_sessions ?? '…'}/${org.max_open_sessions} séance${org.max_open_sessions > 1 ? 's' : ''} en cours`
                     + (org.expires_at ? ` · compte valable jusqu'au ${new Date(org.expires_at).toLocaleDateString('fr-FR')}` : '')
@@ -465,19 +465,19 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
           </div>
           {isOrgMode && (
             <div className="shrink-0 flex flex-col items-end gap-0.5">
-              <button onClick={() => setShowPwdChange(true)} className="text-xs text-gray-500 hover:text-indigo-600">
+              <button onClick={() => setShowPwdChange(true)} className="text-xs text-slate-300 hover:text-creme">
                 Mot de passe
               </button>
-              <button onClick={handleOrgLogout} className="text-xs text-gray-500 hover:text-red-600">
+              <button onClick={handleOrgLogout} className="text-xs text-slate-300 hover:text-red-300">
                 Déconnexion
               </button>
             </div>
           )}
           <button
             onClick={() => setShowCreate(true)}
-            className="shrink-0 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white
-              text-sm font-medium rounded-xl transition-colors focus:outline-none
-              focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="btn-verre btn-verre-primaire shrink-0 py-2 px-4 text-creme
+              text-sm font-semibold focus:outline-none
+              focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-bleu-fonce"
           >
             + Nouvelle séance
           </button>
@@ -487,7 +487,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
       {/* Main */}
       <main className="max-w-3xl mx-auto p-4">
         {listErr && (
-          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{listErr}</span>
             <button onClick={() => setListErr(null)} className="shrink-0 text-red-400 hover:text-red-600">✕</button>
           </div>
@@ -498,23 +498,23 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
 
         {/* ── Votes toutes séances ───────────────────────────── */}
         {!isOrgMode && (
-        <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="mb-4 bg-white border border-bleu-fonce/10 overflow-hidden">
           <button
             onClick={() => setAllVotesOpen(o => !o)}
-            className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
           >
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
               Thèmes — toutes séances
               {allVotesLoading ? (
-                <span className="ml-2 font-normal normal-case text-gray-400">Chargement…</span>
+                <span className="ml-2 font-normal normal-case text-gray-500">Chargement…</span>
               ) : allThemeStats.length > 0 ? (
-                <span className="ml-2 font-normal normal-case text-gray-400">
+                <span className="ml-2 font-normal normal-case text-gray-500">
                   ({allThemeStats.length} thème{allThemeStats.length !== 1 ? 's' : ''})
                 </span>
               ) : null}
             </span>
             <svg
-              className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${allVotesOpen ? 'rotate-180' : ''}`}
+              className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${allVotesOpen ? 'rotate-180' : ''}`}
               viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
             >
@@ -522,13 +522,13 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             </svg>
           </button>
           {allVotesOpen && (
-            <div className="border-t border-gray-100">
+            <div className="border-t border-bleu-fonce/10">
               {allVotesErr ? (
                 <p className="px-5 py-4 text-xs text-red-600">{allVotesErr}</p>
               ) : allVotesLoading ? (
-                <p className="px-5 py-4 text-sm text-gray-400">Chargement…</p>
+                <p className="px-5 py-4 text-sm text-gray-500">Chargement…</p>
               ) : allThemeStats.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-gray-400 text-center">Aucune réponse au questionnaire</p>
+                <p className="px-5 py-4 text-sm text-gray-500 text-center">Aucune réponse au questionnaire</p>
               ) : (
                 <div className="px-5 py-4 space-y-2.5">
                   {allThemeStats.map(s => (
@@ -541,7 +541,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
                         />
                       </div>
                       <span className="shrink-0 text-gray-500 font-medium w-8 text-right">{s.avg}/5</span>
-                      <span className="shrink-0 text-gray-400 w-14 text-right">{s.count} rép.</span>
+                      <span className="shrink-0 text-gray-500 w-14 text-right">{s.count} rép.</span>
                     </div>
                   ))}
                 </div>
@@ -552,12 +552,12 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
         )}
 
         {listLoading ? (
-          <div className="flex items-center justify-center py-20 text-sm text-gray-400">
+          <div className="flex items-center justify-center py-20 text-sm text-gray-500">
             Chargement…
           </div>
         ) : sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <p className="text-sm text-gray-400">Aucune séance pour l'instant</p>
+            <p className="text-sm text-gray-500">Aucune séance pour l'instant</p>
             <button
               onClick={() => setShowCreate(true)}
               className="text-sm text-indigo-600 hover:underline"
@@ -674,7 +674,7 @@ function AssertionRulesControl({ voteFirst, max, onChange, error }: {
           onChange={e => setDraft(e.target.value)}
           onBlur={commitMax}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-          className="w-20 px-2 py-0.5 rounded border border-gray-300 text-xs"
+          className="w-20 px-2 py-0.5 border border-bleu-fonce/20 text-xs"
         />
       </label>
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -711,8 +711,8 @@ function PillToggle({ on, highlighted, tone, label, title, onClick }: {
     <button
       onClick={onClick}
       title={title}
-      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
-        highlighted ? t.chip : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 border transition-colors ${
+        highlighted ? t.chip : 'bg-gray-50 text-gray-500 border-bleu-fonce/10 hover:border-bleu-fonce/20'
       }`}
     >
       <span className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${highlighted ? t.track : 'bg-gray-300'}`}>
@@ -861,15 +861,15 @@ function SessionSettingsSection({ session, settings }: {
   if (!showHome && !showResults && !showOnboarding && !showAssertions) return null
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
       <div className="px-5 py-4">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Réglages</span>
+        <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Réglages</span>
       </div>
-      <div className="border-t border-gray-100 px-5 py-4 space-y-4">
+      <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-4">
         {showHome && (
           <div className="space-y-1">
             <VisibleOnHomeToggle session={session} settings={settings} />
-            <p className="text-xs text-gray-400">Fait figurer la séance dans « Séances en cours » sur l'accueil. Masquée, elle reste joignable par son lien et son QR code.</p>
+            <p className="text-xs text-gray-500">Fait figurer la séance dans « Séances en cours » sur l'accueil. Masquée, elle reste joignable par son lien et son QR code.</p>
           </div>
         )}
 
@@ -888,7 +888,7 @@ function SessionSettingsSection({ session, settings }: {
               onClick={() => change('results', { results_public: !session.results_public },
                 pwd => setSessionResultsPublic(pwd, session.id, !session.results_public))}
             />
-            <p className="text-xs text-gray-400">Ouvre les résultats de la séance aux visiteurs non connectés.</p>
+            <p className="text-xs text-gray-500">Ouvre les résultats de la séance aux visiteurs non connectés.</p>
             {errors.results && <p className="text-xs text-red-600">{errors.results}</p>}
           </div>
         )}
@@ -910,7 +910,7 @@ function SessionSettingsSection({ session, settings }: {
               onClick={() => change('onboarding', { onboarding_enabled: !session.onboarding_enabled },
                 pwd => setSessionOnboardingEnabled(pwd, session.id, !session.onboarding_enabled))}
             />
-            <p className="text-xs text-gray-400">Questionnaire d'entrée (3 questions) posé aux participants avant le vote.</p>
+            <p className="text-xs text-gray-500">Questionnaire d'entrée (3 questions) posé aux participants avant le vote.</p>
             {errors.onboarding && <p className="text-xs text-red-600">{errors.onboarding}</p>}
           </div>
         )}
@@ -918,7 +918,7 @@ function SessionSettingsSection({ session, settings }: {
         {showAssertions && (
           <div className="space-y-1">
             <AssertionsLockToggle session={session} settings={settings} />
-            <p className="text-xs text-gray-400">Verrouillées, seule l'administration de la séance peut ajouter des assertions.</p>
+            <p className="text-xs text-gray-500">Verrouillées, seule l'administration de la séance peut ajouter des assertions.</p>
             <AssertionRules session={session} settings={settings} />
           </div>
         )}
@@ -966,7 +966,7 @@ function SessionCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden transition-colors hover:border-indigo-200">
+    <div className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden transition-all duration-300 hover:border-bleu-fonce/30 hover:shadow-md">
       {/* ── Header row ── */}
       <div
         className="px-5 py-4 flex items-start gap-3 cursor-pointer hover:bg-indigo-50/30 transition-colors"
@@ -976,7 +976,7 @@ function SessionCard({
         <button
           onClick={toggleExpand}
           title={expanded ? 'Réduire' : 'Voir les tables'}
-          className="shrink-0 mt-0.5 text-gray-400 hover:text-indigo-600 transition-colors"
+          className="shrink-0 mt-1 text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
         >
           <svg
             width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -990,17 +990,17 @@ function SessionCard({
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Title + badge */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900 truncate">{session.title}</span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[session.phase] ?? 'bg-gray-100 text-gray-600'}`}>
+            <span className="font-serif text-lg font-semibold leading-snug text-bleu-fonce truncate">{session.title}</span>
+            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[session.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
               {phaseLabel(session.phase, sessionTypeOf(session))}
             </span>
             {sessionTypeOf(session) !== 'full' && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-white border border-bleu-fonce/15 text-gray-600">
                 {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
               </span>
             )}
             {orgName && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-violet-50 border border-violet-200 text-violet-800">
                 Asso : {orgName}
               </span>
             )}
@@ -1022,7 +1022,7 @@ function SessionCard({
 
           {/* Description */}
           {session.description && (
-            <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{session.description}</p>
+            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{session.description}</p>
           )}
 
           {/* Visibilité sur l'accueil (chantier 154) — une séance d'association
@@ -1053,7 +1053,7 @@ function SessionCard({
           {!isClosed && (
             <button
               onClick={onClose}
-              className="py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg
+              className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/10
                 text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
             >
               Fermer
@@ -1063,7 +1063,7 @@ function SessionCard({
           <button
             onClick={onDelete}
             title="Supprimer la séance"
-            className="p-1.5 rounded-lg border border-transparent text-gray-300
+            className="p-1.5 border border-transparent text-gray-500
               hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -1080,16 +1080,16 @@ function SessionCard({
 
       {/* ── Expanded tables panel ── */}
       {expanded && (
-        <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/60">
+        <div className="border-t border-bleu-fonce/10 px-5 py-3 bg-gray-50/60">
           {tablesLoading && (
-            <p className="text-xs text-gray-400 py-2">Chargement…</p>
+            <p className="text-xs text-gray-500 py-2">Chargement…</p>
           )}
           {tablesErr && (
             <p className="text-xs text-red-500 py-2">{tablesErr}</p>
           )}
           {!tablesLoading && !tablesErr && tables !== null && (
             tables.length === 0 ? (
-              <p className="text-xs text-gray-400 py-2 text-center">Aucune table rattachée</p>
+              <p className="text-xs text-gray-500 py-2 text-center">Aucune table rattachée</p>
             ) : (
               <div className="space-y-1.5">
                 {tables.map(t => (
@@ -1100,20 +1100,20 @@ function SessionCard({
                     <span className="font-mono tracking-widest text-gray-700 w-14 shrink-0">{t.join_code}</span>
                     {/* Leaderless badge */}
                     {t.leaderless && (
-                      <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 shrink-0">
+                      <span className="text-xs font-medium px-1.5 py-0.5 bg-yellow-100 text-yellow-700 shrink-0">
                         Sans modérateur
                       </span>
                     )}
                     {/* Moderator */}
                     <span className="text-gray-500 truncate flex-1">
-                      {t.leaderless ? null : (t.moderator_pseudo ?? <span className="italic text-gray-300">—</span>)}
+                      {t.leaderless ? null : (t.moderator_pseudo ?? <span className="italic text-gray-500">—</span>)}
                     </span>
                     {/* Participants */}
-                    <span className="text-gray-400 shrink-0">
+                    <span className="text-gray-500 shrink-0">
                       {t.participant_count} participant{Number(t.participant_count) !== 1 ? 's' : ''}
                     </span>
                     {/* Created at */}
-                    <span className="text-gray-300 shrink-0 hidden sm:block">
+                    <span className="text-gray-500 shrink-0 hidden sm:block">
                       {new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -1167,19 +1167,19 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
   }
 
   return (
-    <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div className="mb-4 bg-white border border-bleu-fonce/10 overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
       >
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Associations
           {rows.length > 0 && (
-            <span className="ml-2 font-normal normal-case text-gray-400">({rows.length})</span>
+            <span className="ml-2 font-normal normal-case text-gray-500">({rows.length})</span>
           )}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
         >
@@ -1187,7 +1187,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
         </svg>
       </button>
       {open && (
-        <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+        <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-3">
           <p className="text-xs text-gray-500">
             Comptes des associations externes : elles se connectent sur{' '}
             <span className="font-mono">#asso</span> avec leur nom et leur mot de passe, et n'ont accès
@@ -1195,11 +1195,11 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
           </p>
           {err && <p className="text-xs text-red-600">{err}</p>}
           {loading && rows.length === 0 ? (
-            <p className="text-sm text-gray-400">Chargement…</p>
+            <p className="text-sm text-gray-500">Chargement…</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-gray-400">Aucune association pour l'instant.</p>
+            <p className="text-sm text-gray-500">Aucune association pour l'instant.</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-bleu-fonce/10">
               {rows.map(o => {
                 const expired = o.expires_at !== null && new Date(o.expires_at) <= new Date()
                 return (
@@ -1208,13 +1208,13 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-gray-900 truncate">{o.name}</span>
                         {!o.active && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Désactivée</span>
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500">Désactivée</span>
                         )}
                         {expired && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Expirée</span>
+                          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700">Expirée</span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-500">
                         {o.open_sessions}/{o.max_open_sessions} en cours · {o.total_sessions} au total
                         {o.expires_at && ` · expire le ${new Date(o.expires_at).toLocaleDateString('fr-FR')}`}
                         {o.note && ` · ${o.note}`}
@@ -1222,7 +1222,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
                     </div>
                     <button
                       onClick={() => setEditing(o)}
-                      className="shrink-0 py-1.5 px-3 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:border-indigo-200 hover:text-indigo-600"
+                      className="shrink-0 py-1.5 px-3 text-xs font-medium border border-bleu-fonce/10 text-gray-600 hover:border-indigo-200 hover:text-indigo-600"
                     >
                       Modifier
                     </button>
@@ -1294,17 +1294,17 @@ function OrganizationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
             {org ? `Modifier « ${org.name} »` : 'Nouvelle association'}
           </h2>
           <Field label="Nom de l'association (sert d'identifiant de connexion)" value={name} onChange={setName} placeholder="Les Amis du Débat" />
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
               {org ? 'Nouveau mot de passe' : 'Mot de passe'}
-              <span className="text-gray-400 font-normal">
+              <span className="text-gray-500 font-normal">
                 {org ? ' (laisser vide pour ne pas le changer)' : ' (8 caractères minimum)'}
               </span>
             </label>
@@ -1316,38 +1316,38 @@ function OrganizationModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Séances en cours max.</label>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Séances en cours max.</label>
               <input
                 type="number" min={0} value={maxOpen} onChange={e => setMaxOpen(e.target.value)}
-                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Expire le <span className="text-gray-400 font-normal">(facultatif)</span></label>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Expire le <span className="text-gray-500 font-normal">(facultatif)</span></label>
               <input
                 type="date" value={expires} onChange={e => setExpires(e.target.value)}
-                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Note interne <span className="text-gray-400 font-normal">(facultatif)</span></label>
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Note interne <span className="text-gray-500 font-normal">(facultatif)</span></label>
             <input
               value={note} onChange={e => setNote(e.target.value)} placeholder="Contact, contexte…"
-              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
             />
           </div>
           {org && (
             <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
               <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500" />
               Compte actif (décocher coupe l'accès immédiatement, sans rien supprimer)
             </label>
           )}
-          {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+          {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
+              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/10 text-gray-700 hover:bg-gray-50">
               Annuler
             </button>
             <SubmitBtn loading={loading} label={org ? 'Enregistrer' : 'Créer le compte'} className="flex-1" />
@@ -1385,31 +1385,31 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
         {done ? (
           <div className="p-6 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900">Mot de passe changé</h2>
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Mot de passe changé</h2>
             <p className="text-sm text-gray-600">
               Pensez à le communiquer à vos modérateurs : c'est aussi avec lui qu'ils prennent l'animation d'une table.
             </p>
-            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">
+            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2">
               OK
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <h2 className="text-base font-semibold text-gray-900">Changer le mot de passe</h2>
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Changer le mot de passe</h2>
             <Field label="Mot de passe actuel" value={oldPwd} onChange={setOldPwd} type="password" />
             <Field label="Nouveau mot de passe (8 caractères minimum)" value={newPwd} onChange={setNewPwd} type="password" />
             <Field label="Confirmer le nouveau mot de passe" value={confirm} onChange={setConfirm} type="password" />
             <p className="text-xs text-gray-500">
               Le mot de passe sert aussi à vos modérateurs pour prendre l'animation d'une table.
             </p>
-            {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+            {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
+                className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/10 text-gray-700 hover:bg-gray-50">
                 Annuler
               </button>
               <SubmitBtn loading={loading} label="Changer" className="flex-1" />
@@ -1487,18 +1487,18 @@ function CreateModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
+        className="bg-white w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 pt-5 pb-0 shrink-0">
-          <h2 className="text-base font-semibold text-gray-900">Nouvelle séance</h2>
+          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nouvelle séance</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+            className="text-gray-500 hover:text-gray-600 transition-colors p-1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1511,7 +1511,7 @@ function CreateModal({
           {/* Chantier 134 — trois modes. Non modifiable après création : la
               séquence de phases en dépend (garde de set_session_phase). */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Type de séance</label>
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Type de séance</label>
             <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {([
                 { id: 'full',   icon: '🏛️', hint: 'Vote, allocation, débat, résultats' },
@@ -1522,59 +1522,59 @@ function CreateModal({
                   key={opt.id}
                   type="button"
                   onClick={() => setSessionType(opt.id)}
-                  className={`py-2 px-2 rounded-xl border-2 text-left transition-all ${
+                  className={`py-2 px-2 border-2 text-left transition-all ${
                     sessionType === opt.id
                       ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-gray-200 hover:border-indigo-200'
+                      : 'border-bleu-fonce/10 hover:border-indigo-200'
                   }`}
                 >
                   <span className="block text-base leading-none mb-1">{opt.icon}</span>
                   <span className={`block text-xs font-semibold ${sessionType === opt.id ? 'text-indigo-700' : 'text-gray-700'}`}>
                     {SESSION_TYPE_LABEL[opt.id]}
                   </span>
-                  <span className="block text-[10px] text-gray-400 leading-tight mt-0.5">{opt.hint}</span>
+                  <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">{opt.hint}</span>
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] text-gray-400">Le type ne pourra plus être changé après la création.</p>
+            <p className="mt-1.5 text-[11px] text-gray-500">Le type ne pourra plus être changé après la création.</p>
           </div>
 
           <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale — mai 2026" />
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Description <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Description <span className="text-gray-500 font-normal">(optionnel)</span></label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={3}
               placeholder="Thème, lieu, organisateurs…"
-              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl resize-none
+              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 resize-none
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                 placeholder:text-gray-300 transition-shadow"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Date prévue <span className="text-gray-400 font-normal">(optionnel)</span></label>
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Date prévue <span className="text-gray-500 font-normal">(optionnel)</span></label>
             <input
               type="datetime-local"
               value={scheduledAt}
               onChange={e => setScheduledAt(e.target.value)}
-              className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                 transition-shadow"
             />
           </div>
 
-          <div className="pt-1 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Documentation <span className="font-normal normal-case text-gray-400">(optionnel)</span>
+          <div className="pt-1 border-t border-bleu-fonce/10">
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
+              Documentation <span className="font-normal normal-case text-gray-500">(optionnel)</span>
             </p>
             <div className="space-y-3">
               <DocFileField label={DOC_INFO_LABEL} placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
             </div>
             {!isOrgMode && (
-            <p className="mt-3 text-xs text-gray-400">
+            <p className="mt-3 text-xs text-gray-500">
               Le document de sources collaboratives est disponible automatiquement pour chaque séance
               avec un code de rejoindre.
             </p>
@@ -1582,22 +1582,22 @@ function CreateModal({
           </div>
 
           {sessionType !== 'debate' && (
-          <div className="pt-1 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Configuration du vote <span className="font-normal normal-case text-gray-400">(optionnel)</span>
+          <div className="pt-1 border-t border-bleu-fonce/10">
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
+              Configuration du vote <span className="font-normal normal-case text-gray-500">(optionnel)</span>
             </p>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Modération des assertions</label>
               <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {(isOrgMode ? (['closed', 'open'] as const) : (['closed', 'open', 'ai'] as const)).map(val => (
                   <button
                     key={val}
                     type="button"
                     onClick={() => setModerationPolicy(val)}
-                    className={`py-2 px-3 rounded-xl border-2 text-xs font-medium transition-all ${
+                    className={`py-2 px-3 border-2 text-xs font-medium transition-all ${
                       moderationPolicy === val
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 text-gray-600 hover:border-indigo-200'
+                        : 'border-bleu-fonce/10 text-gray-600 hover:border-indigo-200'
                     }`}
                   >
                     {val === 'closed' ? '🔒 Fermée (validation requise)' : val === 'open' ? '🔓 Ouverte (immédiat)' : '🤖 Gérée par IA'}
@@ -1614,7 +1614,7 @@ function CreateModal({
                 type="checkbox"
                 checked={onboardingEnabled}
                 onChange={e => setOnboardingEnabled(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
               />
               Onboarding (questionnaire d'entrée avant le vote)
             </label>
@@ -1628,14 +1628,14 @@ function CreateModal({
                 type="checkbox"
                 checked={visibleOnHome}
                 onChange={e => setVisibleOnHome(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
               />
               Visible sur l'accueil de l'application
             </label>
           )}
 
           {sessionType === 'debate' && (
-            <p className="pt-3 border-t border-gray-100 text-xs text-gray-500">
+            <p className="pt-3 border-t border-bleu-fonce/10 text-xs text-gray-500">
               {isOrgMode
                 ? "Une table est créée automatiquement. Le modérateur la prend en rejoignant avec le mot de passe de votre association, ou vous le désignez depuis l'onglet Tables."
                 : "Une table est créée automatiquement. Le modérateur la prend avec le Code Ecclesia en rejoignant, ou tu le désignes depuis l'onglet Tables ; tu peux aussi y ajouter d'autres tables."}
@@ -1643,7 +1643,7 @@ function CreateModal({
           )}
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -1652,7 +1652,7 @@ function CreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 text-sm font-medium border border-gray-200 rounded-xl
+              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/10
                 text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none
                 focus:ring-2 focus:ring-gray-300"
             >
@@ -1681,7 +1681,7 @@ function Field({
 
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">{label}</label>
       {isPassword ? (
         <PasswordInput value={value} onChange={onChange} placeholder={placeholder} />
       ) : (
@@ -1691,7 +1691,7 @@ function Field({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+          className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
             placeholder:text-gray-300 transition-shadow"
         />
@@ -1705,8 +1705,8 @@ function SubmitBtn({ loading, label, className = 'w-full' }: { loading: boolean;
     <button
       type="submit"
       disabled={loading}
-      className={`${className} py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-        text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+      className={`${className} py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+        text-white text-sm font-medium transition-colors focus:outline-none
         focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center gap-2`}
     >
       {loading ? <><Spinner />Chargement…</> : label}
@@ -3309,11 +3309,11 @@ function SessionDetail({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
+      <header className="bg-grain bg-bleu-fonce text-creme border-b border-bleu-clair/30 px-4 py-4">
+        <div className="relative max-w-3xl mx-auto flex items-center gap-3">
           <button
             onClick={onBack}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 -ml-1"
+            className="text-slate-300 hover:text-creme transition-colors p-1 -ml-1 focus:outline-none focus:ring-2 focus:ring-bleu-clair/60"
             title="Retour"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -3325,17 +3325,17 @@ function SessionDetail({
             {/* Chantier 72 — `currentSession` et non la prop `session` (figée au
                 montage) : l'en-tête doit refléter une édition du titre faite dans
                 l'onglet Préparation, sans repasser par la liste des séances. */}
-            <span className="text-sm font-semibold text-gray-900 truncate">{currentSession.title}</span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_CLASS[currentSession.phase] ?? 'bg-gray-100 text-gray-600'}`}>
+            <span className="font-serif text-xl font-semibold text-creme truncate">{currentSession.title}</span>
+            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[currentSession.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
               {phaseLabel(currentSession.phase, sessionType)}
             </span>
             {session.join_code && (
-              <span className="font-mono text-xs tracking-widest text-gray-500">{session.join_code}</span>
+              <span className="font-mono text-xs font-bold tracking-[0.2em] text-bleu-clair">{session.join_code}</span>
             )}
           </div>
         </div>
         {(currentSession.description || session.scheduled_at) && (
-          <div className="max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-gray-400 space-y-0.5">
+          <div className="relative max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-slate-300 space-y-0.5">
             {session.scheduled_at && (
               <div>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             )}
@@ -3346,7 +3346,7 @@ function SessionDetail({
 
       <main className="max-w-3xl mx-auto p-4 space-y-6">
         {error && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+          <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{error}</span>
             <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600">✕</button>
           </div>
@@ -3374,7 +3374,7 @@ function SessionDetail({
         />
 
         {/* ── Barre d'onglets ─────────────────────────────── */}
-        <div className="flex gap-1 bg-white rounded-2xl border border-gray-200 p-1">
+        <div className="flex gap-1 border border-bleu-fonce/15 bg-creme/70 p-1">
           {([
             { id: 'live',     label: '🟢 En direct' },
             { id: 'tables',   label: '🪑 Tables' },
@@ -3384,10 +3384,10 @@ function SessionDetail({
             <button
               key={tab.id}
               onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-colors ${
+              className={`flex-1 py-2.5 px-3 text-[13px] font-semibold leading-tight transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair ${
                 activeTab === tab.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-bleu-fonce text-creme shadow-[0_10px_24px_-16px_rgba(21,35,63,0.8)]'
+                  : 'text-bleu-fonce/70 hover:bg-bleu-fonce/[0.05] hover:text-bleu-fonce'
               }`}
             >
               {tab.label}
@@ -3396,7 +3396,7 @@ function SessionDetail({
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-sm text-gray-400">Chargement…</div>
+          <div className="flex items-center justify-center py-16 text-sm text-gray-500">Chargement…</div>
         ) : (
           <>
             {/* ── Onglet En direct ─────────────────────────── */}
@@ -3414,7 +3414,7 @@ function SessionDetail({
                     ) : undefined}
                   >
                     {statsLoading && !votingStats ? (
-                      <p className="text-sm text-gray-400 py-2">Chargement…</p>
+                      <p className="text-sm text-gray-500 py-2">Chargement…</p>
                     ) : votingStats ? (
                       <VotingStatsPanel stats={votingStats} />
                     ) : null}
@@ -3505,19 +3505,19 @@ function SessionDetail({
                 )}
 
                 {showVotingSections && voteResults.length > 0 && (
-                  <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                     <button
                       onClick={() => setSynthOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
                     >
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                         Synthèse des votes
-                        <span className="ml-2 font-normal normal-case text-gray-400">
+                        <span className="ml-2 font-normal normal-case text-gray-500">
                           ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
                         </span>
                       </span>
                       <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
+                        className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                       >
@@ -3525,7 +3525,7 @@ function SessionDetail({
                       </svg>
                     </button>
                     {synthOpen && (
-                      <div className="border-t border-gray-100 px-5 py-4">
+                      <div className="border-t border-bleu-fonce/10 px-5 py-4">
                         <VoteResultsSummary results={voteResults} loading={false} />
                       </div>
                     )}
@@ -3585,9 +3585,9 @@ function SessionDetail({
 
                 {/* Groupes (allocating/debating) */}
                 {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden px-5 py-4 space-y-3">
+                  <div className="bg-white border border-bleu-fonce/10 overflow-hidden px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Groupes</h3>
+                      <h3 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Groupes</h3>
                       <div className="flex items-center gap-2">
                         {/* Chantier 95 — création d'une table de rattrapage, pendant
                             l'allocation comme pendant le débat. Chantier 135 — une
@@ -3596,7 +3596,7 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(false)}
                           disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200
                             text-indigo-600 hover:bg-indigo-50 transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Crée une table animée, vide, déjà numérotée — à peupler par glisser-déposer ou par son code"
@@ -3606,7 +3606,7 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(true)}
                           disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-gray-200 rounded-lg
+                          className="py-1 px-2.5 text-xs font-medium border border-bleu-fonce/10
                             text-gray-600 hover:bg-gray-50 transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Crée une table sans modérateur, vide, déjà numérotée"
@@ -3617,7 +3617,7 @@ function SessionDetail({
                         {groups.length > 0 && (
                           <button
                             onClick={() => setRosterOpen(true)}
-                            className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                            className="text-xs text-gray-500 hover:text-indigo-600 transition-colors"
                             title="Vue récapitulative, prête à capturer en screenshot"
                           >
                             🖨️ Récapitulatif
@@ -3627,7 +3627,7 @@ function SessionDetail({
                           <Spinner />
                         ) : groupsSyncedAt ? (
                           <span
-                            className="flex items-center gap-1 text-xs text-gray-400"
+                            className="flex items-center gap-1 text-xs text-gray-500"
                             title="Se met à jour automatiquement (glisser-déposer local ou changement fait ailleurs)"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
@@ -3637,14 +3637,14 @@ function SessionDetail({
                       </div>
                     </div>
                     {assignError && (
-                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+                      <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
                         <span>{assignError}</span>
                         <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
                       </div>
                     )}
                     {groups.length > 0 && <MemberBadgeLegend />}
                     {groups.length === 0 && !groupsLoading ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
+                      <p className="text-sm text-gray-500 py-4 text-center">Aucun groupe créé</p>
                     ) : (
                       <DndContext
                         sensors={dndSensors}
@@ -3684,14 +3684,14 @@ function SessionDetail({
                           <DroppableGroupCard key={g.table_number} tableNumber={g.table_number}>
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
-                              <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              <span className="text-xs text-gray-500">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
                               {/* Chantier 121 — nombre d'actifs, ce qui guide les choix du superadmin (seuils du chantier 91) */}
                               {(() => {
                                 const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
                                 if (withProfile.length === 0) return null
                                 const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
                                 return (
-                                  <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
+                                  <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
                                     {activeCount} actif{activeCount !== 1 ? 's' : ''}
                                   </span>
                                 )
@@ -3711,7 +3711,7 @@ function SessionDetail({
                                     title={broken.length === 0
                                       ? 'Tous les seuils atteints'
                                       : `Seuils non atteints : ${broken.join(', ')}`}
-                                    className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                                    className={`text-xs px-1.5 py-0.5 shrink-0 ${
                                       broken.length === 0
                                         ? 'bg-green-50 text-green-700'
                                         : 'bg-amber-100 text-amber-700'
@@ -3725,12 +3725,12 @@ function SessionDetail({
                                 const d = groupDiagnostics.find(x => x.table_number === g.table_number)
                                 if (!d) return null
                                 return d.recordable ? (
-                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded shrink-0"
+                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 shrink-0"
                                     title="Aucun non-consentant et table non homogène">
                                     🎙️ enregistrable
                                   </span>
                                 ) : (
-                                  <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded shrink-0"
+                                  <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 shrink-0"
                                     title={d.non_consenting > 0
                                       ? `${d.non_consenting} personne(s) non consentante(s)`
                                       : "Table homogène en opinion — un enregistrement n'y apporterait rien"}>
@@ -3758,7 +3758,7 @@ function SessionDetail({
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       {activeMods.map(mod => (
                                         <span key={mod.member_id ?? `physical-${g.table_id}`}
-                                          className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
+                                          className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 border border-indigo-100 inline-flex items-center gap-1">
                                           🎙️ Modérateur : <strong>{mod.pseudo}</strong>
                                           {/* Chantier 117 — modérateur « physique » (rejoint par
                                               Code Ecclesia, aucune ligne session_members) : pas de
@@ -3769,7 +3769,7 @@ function SessionDetail({
                                               ? handleRemoveTableModerator(mod.member_id)
                                               : g.table_id && handleReleaseTableModeration(g.table_id)}
                                             disabled={movingMember}
-                                            className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                            className="text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                             title={mod.member_id
                                               ? "Redevient un participant ordinaire de cette table"
                                               : "Rejoint par Code Ecclesia, non inscrit à la séance — remet la table à disposition"}
@@ -3787,7 +3787,7 @@ function SessionDetail({
                                           `surplusMods` : le `!` ci-dessous est sûr. */}
                                       {surplusMods.map(mod => (
                                         <span key={mod.member_id}
-                                          className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-100 inline-flex items-center gap-1"
+                                          className="text-xs bg-amber-50 text-amber-700 px-2 py-1 border border-amber-100 inline-flex items-center gap-1"
                                           title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
                                           🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
                                           {/* Chantier 123 — Jules : « il faut juste qu'il
@@ -3810,7 +3810,7 @@ function SessionDetail({
                                           <button
                                             onClick={() => handleRemoveTableModerator(mod.member_id!)}
                                             disabled={movingMember}
-                                            className="text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                            className="text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                             title="Retire le drapeau modérateur"
                                           >
                                             Retirer
@@ -3854,7 +3854,7 @@ function SessionDetail({
                                     <button
                                       onClick={() => handleReleaseTableModeration(g.table_id!)}
                                       disabled={movingMember}
-                                      className="text-xs text-gray-400 hover:text-red-600 underline disabled:opacity-50"
+                                      className="text-xs text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                       title={"Remet la table à disposition : quiconque a le Code Ecclesia pourra la prendre en charge "
                                         + "avec son code. À utiliser si un modérateur est parti et que la table refuse encore "
                                         + "toute reprise (« cette table a déjà un modérateur »)."}
@@ -3871,7 +3871,7 @@ function SessionDetail({
                                     <button
                                       onClick={() => handleMakeTableLeaderless(g.table_id!)}
                                       disabled={movingMember}
-                                      className="text-xs text-gray-400 hover:text-amber-700 underline disabled:opacity-50"
+                                      className="text-xs text-gray-500 hover:text-amber-700 underline disabled:opacity-50"
                                       title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
                                         + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
                                         + "disponible pour une autre table) — utilise « Retirer » pour le lui enlever aussi."}
@@ -3900,7 +3900,7 @@ function SessionDetail({
                             <div className="flex flex-wrap gap-1.5 mb-3">
                               {/* Chantier 95 — table créée à la main, encore vide. */}
                               {g.members.length === 0 && (
-                                <span className="text-xs text-gray-400 italic">
+                                <span className="text-xs text-gray-500 italic">
                                   En attente de participants — glisse quelqu'un ici, ou communique le code ci-dessous.
                                 </span>
                               )}
@@ -3927,15 +3927,15 @@ function SessionDetail({
                                 )}
                               />
                             </div>
-                            <div className="border-t border-gray-100 pt-3">
+                            <div className="border-t border-bleu-fonce/10 pt-3">
                               {g.join_code ? (
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 border border-green-200">
                                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
                                       <span className="font-mono tracking-widest">{g.join_code}</span>
                                     </span>
-                                    <span className="text-xs text-gray-400">rattachée</span>
+                                    <span className="text-xs text-gray-500">rattachée</span>
                                   </div>
                                   {/* Chantier 95 — seule porte de suppression restante
                                       depuis le retrait des accordéons, volontairement
@@ -3946,7 +3946,7 @@ function SessionDetail({
                                         const row = attachedTables.find(t => t.id === g.table_id)
                                         if (row) setDeleteTableConfirm(row)
                                       }}
-                                      className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-400
+                                      className="py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
                                         hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     >
                                       Supprimer
@@ -3956,7 +3956,7 @@ function SessionDetail({
                                   <button
                                     onClick={() => handleAssignGroup(g.table_number, null)}
                                     disabled={assigningGroup === g.table_number}
-                                    className="py-1 px-2.5 text-xs border border-gray-200 rounded-lg text-gray-500
+                                    className="py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
                                       hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
                                       disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
@@ -3969,7 +3969,7 @@ function SessionDetail({
                                   <select
                                     value={selectedTableId[g.table_number] ?? ''}
                                     onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
-                                    className="flex-1 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+                                    className="flex-1 text-xs px-2 py-1.5 border border-bleu-fonce/20
                                       focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
                                   >
                                     <option value="">— Sélectionner une table —</option>
@@ -3985,7 +3985,7 @@ function SessionDetail({
                                       if (tableId) handleAssignGroup(g.table_number, tableId)
                                     }}
                                     disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
-                                    className="py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+                                    className="py-1.5 px-3 text-xs font-medium border border-indigo-200
                                       text-indigo-600 hover:bg-indigo-50 transition-colors
                                       disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
@@ -3999,7 +3999,7 @@ function SessionDetail({
                       </div>
                       <DragOverlay dropAnimation={null}>
                         {draggingMember && (
-                          <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium rounded-lg shadow-lg opacity-90">
+                          <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium shadow-lg opacity-90 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2">
                             {draggingMember.pseudo}
                           </div>
                         )}
@@ -4009,8 +4009,8 @@ function SessionDetail({
                     {/* Chantier 19 (§7) — santé des tables, recalculée en
                         direct après chaque glisser-déposer. */}
                     {groupDiagnostics.length > 0 && (
-                      <details className="border-t border-gray-100 pt-3">
-                        <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer hover:text-indigo-600 transition-colors">
+                      <details className="border-t border-bleu-fonce/10 pt-3">
+                        <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:text-indigo-600 transition-colors">
                           Santé des tables ({groupDiagnostics.filter(d => d.audience_ok && !d.over_capacity && d.veterans_ok).length}/{groupDiagnostics.length} conformes)
                           {clusters.length > 0 && (
                             <span className={brokenGroupClusters > 0 ? 'text-amber-600' : ''}>
@@ -4021,7 +4021,7 @@ function SessionDetail({
                         <div className="mt-3">
                           <TableDiagnosticsList diagnostics={groupDiagnostics} compact />
                           {!allocInputs?.opinionsAvailable && (
-                            <p className="text-xs text-gray-400 mt-2 leading-snug">
+                            <p className="text-xs text-gray-500 mt-2 leading-snug">
                               Règle 2 (hétérogénéité) non évaluable : aucune analyse des camps d'opinion.
                             </p>
                           )}
@@ -4032,7 +4032,7 @@ function SessionDetail({
                     {currentSession.phase === 'allocating' && (
                       <div className="space-y-2">
                         {groups.some(g => !g.join_code) && (
-                          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
                             ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
                             les participants concernés ne pourront pas rejoindre directement.
                           </p>
@@ -4040,7 +4040,7 @@ function SessionDetail({
                         <button
                           onClick={openDebateConfirm}
                           className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
-                            text-sm font-semibold rounded-xl transition-colors"
+                            text-sm font-semibold transition-colors"
                         >
                           Ouvrir le débat →
                         </button>
@@ -4051,7 +4051,7 @@ function SessionDetail({
 
                 {/* Notification table créée */}
                 {newTableCode && (
-                  <div className="px-5 py-3 bg-green-50 rounded-2xl border border-green-200 flex items-center justify-between gap-2 text-sm text-green-800">
+                  <div className="px-5 py-3 bg-green-50 border border-green-200 flex items-center justify-between gap-2 text-sm text-green-800">
                     <span>Table créée ! Code : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
                     <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
                   </div>
@@ -4112,9 +4112,9 @@ function SessionDetail({
                     l'identité de la séance, elle est reprise partout (accueil
                     participant, en-tête de vote, résultats publics) et une faute
                     de frappe y restait jusqu'ici définitive. */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Titre et description
                     </span>
                     {!editingMeta && (
@@ -4131,7 +4131,7 @@ function SessionDetail({
                       </button>
                     )}
                   </div>
-                  <div className="border-t border-gray-100 px-5 py-4">
+                  <div className="border-t border-bleu-fonce/10 px-5 py-4">
                     {editingMeta ? (
                       <form onSubmit={handleSaveMeta} className="space-y-3">
                         <div>
@@ -4145,20 +4145,20 @@ function SessionDetail({
                             onChange={e => setMetaTitle(e.target.value)}
                             maxLength={200}
                             autoFocus
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl
+                            className="w-full px-3 py-2 text-sm border border-bleu-fonce/20
                               focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1" htmlFor="session-meta-desc">
-                            Description <span className="text-gray-400">(optionnelle)</span>
+                            Description <span className="text-gray-500">(optionnelle)</span>
                           </label>
                           <textarea
                             id="session-meta-desc"
                             value={metaDesc}
                             onChange={e => setMetaDesc(e.target.value)}
                             rows={3}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl resize-y
+                            className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 resize-y
                               focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
                         </div>
@@ -4167,15 +4167,15 @@ function SessionDetail({
                           <button
                             type="button"
                             onClick={() => { setEditingMeta(false); setMetaErr(null) }}
-                            className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+                            className="flex-1 py-2 text-xs border border-bleu-fonce/10 text-gray-600 hover:bg-gray-50 transition-colors"
                           >
                             Annuler
                           </button>
                           <button
                             type="submit"
                             disabled={metaLoading || !metaTitle.trim()}
-                            className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                              text-white rounded-xl transition-colors"
+                            className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                              text-white transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                           >
                             {metaLoading ? 'Enregistrement…' : 'Enregistrer'}
                           </button>
@@ -4186,7 +4186,7 @@ function SessionDetail({
                         <p className="text-sm font-medium text-gray-900">{currentSession.title}</p>
                         {currentSession.description
                           ? <p className="text-xs text-gray-500 whitespace-pre-wrap">{currentSession.description}</p>
-                          : <p className="text-xs text-gray-400">Aucune description</p>}
+                          : <p className="text-xs text-gray-500">Aucune description</p>}
                       </div>
                     )}
                   </div>
@@ -4195,16 +4195,16 @@ function SessionDetail({
                 <SessionSettingsSection session={currentSession} settings={sessionSettings} />
 
                 {/* Documentation (accordion) */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <button
                     onClick={() => setDocsOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
                   >
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Documentation
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${docsOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${docsOpen ? 'rotate-180' : ''}`}
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     >
@@ -4212,7 +4212,7 @@ function SessionDetail({
                     </svg>
                   </button>
                   {docsOpen && (
-                    <div className="border-t border-gray-100 px-5 py-4">
+                    <div className="border-t border-bleu-fonce/10 px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
                         {!editingDocs && (
                           <button
@@ -4243,15 +4243,15 @@ function SessionDetail({
                             <button
                               type="button"
                               onClick={() => setEditingDocs(false)}
-                              className="flex-1 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+                              className="flex-1 py-2 text-xs border border-bleu-fonce/10 text-gray-600 hover:bg-gray-50 transition-colors"
                             >
                               Annuler
                             </button>
                             <button
                               type="submit"
                               disabled={docsLoading}
-                              className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                                text-white rounded-xl transition-colors"
+                              className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                                text-white transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                             >
                               {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
@@ -4264,10 +4264,10 @@ function SessionDetail({
                             <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
                           )}
                           {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
-                            <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
+                            <p className="text-xs text-gray-500">Aucun document PDF configuré</p>
                           )}
                           {session.join_code && !isOrg && (
-                            <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-2">
+                            <div className="flex items-center gap-2 pt-1 border-t border-bleu-fonce/10 mt-2">
                               <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
                               <a
                                 href={`#collab/${session.join_code}`}
@@ -4303,19 +4303,19 @@ function SessionDetail({
 
                 {/* Synthèse des votes */}
                 {showVotingSections && voteResults.length > 0 && (
-                  <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                     <button
                       onClick={() => setSynthOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
                     >
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                         Synthèse des votes
-                        <span className="ml-2 font-normal normal-case text-gray-400">
+                        <span className="ml-2 font-normal normal-case text-gray-500">
                           ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
                         </span>
                       </span>
                       <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
+                        className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${synthOpen ? 'rotate-180' : ''}`}
                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                       >
@@ -4323,7 +4323,7 @@ function SessionDetail({
                       </svg>
                     </button>
                     {synthOpen && (
-                      <div className="border-t border-gray-100 px-5 py-4">
+                      <div className="border-t border-bleu-fonce/10 px-5 py-4">
                         <VoteResultsSummary results={voteResults} loading={false} />
                       </div>
                     )}
@@ -4335,22 +4335,22 @@ function SessionDetail({
                 {sessionType !== 'poll' && (
                 <>
                 {/* Thèmes */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <button
                     onClick={() => setThemesOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
                       hover:bg-gray-50 transition-colors"
                   >
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Thèmes — classement par moyenne
                       {responses.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-400">
+                        <span className="ml-2 font-normal normal-case text-gray-500">
                           ({responses.length} réponse{responses.length > 1 ? 's' : ''})
                         </span>
                       )}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${themesOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${themesOpen ? 'rotate-180' : ''}`}
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     >
@@ -4358,29 +4358,29 @@ function SessionDetail({
                     </svg>
                   </button>
                   {themesOpen && (
-                    <div className="px-5 pb-5 border-t border-gray-100">
+                    <div className="px-5 pb-5 border-t border-bleu-fonce/10">
                       <ThemeDashboard responses={responses} loading={responsesLoading} />
                     </div>
                   )}
                 </section>
 
                 {/* Réponses au questionnaire */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <button
                     onClick={() => setResponsesOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
                       hover:bg-gray-50 transition-colors"
                   >
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Réponses au questionnaire
                       {responses.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-400">
+                        <span className="ml-2 font-normal normal-case text-gray-500">
                           ({responses.length})
                         </span>
                       )}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${responsesOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${responsesOpen ? 'rotate-180' : ''}`}
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     >
@@ -4388,7 +4388,7 @@ function SessionDetail({
                     </svg>
                   </button>
                   {responsesOpen && (
-                    <div className="border-t border-gray-100">
+                    <div className="border-t border-bleu-fonce/10">
                       <ResponsesList
                         responses={responses}
                         loading={responsesLoading}
@@ -4406,22 +4406,22 @@ function SessionDetail({
                     libre). Signal de recrutement pur, indépendant de session_members.
                     is_moderator (modérateur POUR cette séance, utilisé par l'algo
                     d'allocation) — voir CLAUDE.md. */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <button
                     onClick={() => setStaffOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
                       hover:bg-gray-50 transition-colors"
                   >
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       🙋 Recrutement modérateurs
                       {staffInterestResponses.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-400">
+                        <span className="ml-2 font-normal normal-case text-gray-500">
                           ({staffInterestResponses.length})
                         </span>
                       )}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${staffOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${staffOpen ? 'rotate-180' : ''}`}
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     >
@@ -4429,8 +4429,8 @@ function SessionDetail({
                     </svg>
                   </button>
                   {staffOpen && (
-                    <div className="border-t border-gray-100 px-5 py-4">
-                      <p className="text-xs text-gray-400 mb-3">
+                    <div className="border-t border-bleu-fonce/10 px-5 py-4">
+                      <p className="text-xs text-gray-500 mb-3">
                         Personnes ayant répondu vouloir aider (modérer, préparer les fiches, communication…)
                         au questionnaire de fin de séance — à solliciter pour de futures séances. Sans lien
                         avec « modérateur pour cette séance » (onglet Participants).
@@ -4443,22 +4443,22 @@ function SessionDetail({
                 )}
 
                 {/* Sources collaboratives */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <button
                     onClick={() => setSourcesOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
                       hover:bg-gray-50 transition-colors"
                   >
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Sources collaboratives
                       {sources.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-400">
+                        <span className="ml-2 font-normal normal-case text-gray-500">
                           ({sources.length} source{sources.length > 1 ? 's' : ''})
                         </span>
                       )}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${sourcesOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${sourcesOpen ? 'rotate-180' : ''}`}
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     >
@@ -4466,7 +4466,7 @@ function SessionDetail({
                     </svg>
                   </button>
                   {sourcesOpen && (
-                    <div className="border-t border-gray-100 px-5 py-4">
+                    <div className="border-t border-bleu-fonce/10 px-5 py-4">
                       <CollabSourcesList
                         sources={sources}
                         loading={sourcesLoading}
@@ -4478,16 +4478,16 @@ function SessionDetail({
                 </section>
 
                 {/* Actions post-séance */}
-                <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
                   <button
                     onClick={() => setPostSessionOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
                   >
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Actions post-séance
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${postSessionOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${postSessionOpen ? 'rotate-180' : ''}`}
                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     >
@@ -4495,26 +4495,26 @@ function SessionDetail({
                     </svg>
                   </button>
                   {postSessionOpen && (
-                    <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+                    <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-700">Questionnaire forcé</span>
                         <button
                           onClick={() => setShowQConfirm(true)}
                           disabled={qActing}
-                          className="py-1.5 px-3 text-xs font-medium border rounded-lg transition-colors
+                          className="py-1.5 px-3 text-xs font-medium border transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed
                             border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                         >
                           {qActing ? '…' : isQForced ? 'Annuler forçage' : 'Forcer questionnaire'}
                         </button>
                       </div>
-                      <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                      <div className="flex flex-col gap-2 pt-2 border-t border-bleu-fonce/10">
                         <span className="text-xs font-medium text-gray-500">Exports CSV</span>
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={handleExportQuestionnaires}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-teal-200 rounded-lg
+                            className="py-1.5 px-3 text-xs font-medium border border-teal-200
                               text-teal-700 hover:bg-teal-50 transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -4523,7 +4523,7 @@ function SessionDetail({
                           <button
                             onClick={handleExportSpeakingTimes}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-teal-200 rounded-lg
+                            className="py-1.5 px-3 text-xs font-medium border border-teal-200
                               text-teal-700 hover:bg-teal-50 transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -4532,7 +4532,7 @@ function SessionDetail({
                           <button
                             onClick={handleExportHistory}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-teal-200 rounded-lg
+                            className="py-1.5 px-3 text-xs font-medium border border-teal-200
                               text-teal-700 hover:bg-teal-50 transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -4598,13 +4598,13 @@ function SessionDetail({
             <div className="space-y-2 text-left">
               <p>Passer la séance en phase « Débat » ? Les participants verront le code de leur table et pourront rejoindre immédiatement.</p>
               {debatePreviewLoading && (
-                <p className="text-xs text-gray-400">Calcul du placement des modérateurs en attente…</p>
+                <p className="text-xs text-gray-500">Calcul du placement des modérateurs en attente…</p>
               )}
               {debatePreviewErr && (
                 <p className="text-xs text-red-600">{debatePreviewErr}</p>
               )}
               {debatePreview && (
-                <div className="text-xs bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1.5">
+                <div className="text-xs bg-gray-50 border border-bleu-fonce/10 p-3 space-y-1.5">
                   {debatePreview.placements.length > 0 ? (
                     <p>
                       <strong>{debatePreview.placements.length}</strong> modérateur(s) en attente
@@ -4690,7 +4690,7 @@ function SessionDetail({
                 Une analyse déjà calculée n'est pas recalculée : les camps peuvent bouger
                 au prochain calcul.
               </p>
-              {deletingMember && <p className="text-xs text-gray-400">Suppression en cours…</p>}
+              {deletingMember && <p className="text-xs text-gray-500">Suppression en cours…</p>}
             </div>
           }
           confirmLabel="Supprimer définitivement"
@@ -4701,11 +4701,11 @@ function SessionDetail({
 
       {deleteMemberReport && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setDeleteMemberReport(null) }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-900">
+          <div className="bg-white w-full max-w-sm shadow-2xl p-5 space-y-3">
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
               {deleteMemberReport.pseudo} a été supprimé·e
             </h2>
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-0.5">
@@ -4726,7 +4726,7 @@ function SessionDetail({
             </ul>
             <button
               onClick={() => setDeleteMemberReport(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Fermer
             </button>
@@ -4748,11 +4748,11 @@ function SessionDetail({
           seule fois : seul son bcrypt est stocké. */}
       {regeneratedCode && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setRegeneratedCode(null) }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4 text-center">
-            <h2 className="text-sm font-semibold text-gray-900">Nouveau code de rappel</h2>
+          <div className="bg-white w-full max-w-sm shadow-2xl p-5 space-y-4 text-center">
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nouveau code de rappel</h2>
             <p className="text-sm text-gray-600">
               À lire à <strong>{regeneratedCode.pseudo}</strong>. L'ancien code ne
               fonctionne plus, et celui-ci ne sera plus affiché.
@@ -4762,7 +4762,7 @@ function SessionDetail({
             </p>
             <button
               onClick={() => setRegeneratedCode(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Fermer
             </button>
@@ -4824,8 +4824,8 @@ function ModerationPolicyEditor({
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+    <section className="bg-white border border-bleu-fonce/10 px-5 py-4">
+      <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
         Politique de modération
       </p>
       <div className={`grid gap-2 mb-3 ${allowAi ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -4834,10 +4834,10 @@ function ModerationPolicyEditor({
             key={val}
             type="button"
             onClick={() => setSelected(val)}
-            className={`py-2 px-3 rounded-xl border-2 text-xs font-medium transition-all ${
+            className={`py-2 px-3 border-2 text-xs font-medium transition-all ${
               selected === val
                 ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                : 'border-gray-200 text-gray-600 hover:border-indigo-200'
+                : 'border-bleu-fonce/10 text-gray-600 hover:border-indigo-200'
             }`}
           >
             {val === 'closed' ? '🔒 Fermée' : val === 'open' ? '🔓 Ouverte' : '🤖 IA'}
@@ -4848,7 +4848,7 @@ function ModerationPolicyEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
         >
           {saving ? 'Enregistrement…' : saved ? '✅ Enregistré' : 'Enregistrer'}
         </button>
@@ -4873,15 +4873,15 @@ function DebateExitModal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-sm shadow-2xl"
+        className="bg-white w-full max-w-sm shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
-          <h2 className="text-base font-semibold text-gray-900">Fin du débat</h2>
+          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Fin du débat</h2>
           <p className="mt-1 text-sm text-gray-500 leading-relaxed">
             Le passage par le post-vote (revote possible, résultats provisoires) est
             optionnel. Clôturer directement le saute et coupe le revote immédiatement.
@@ -4890,7 +4890,7 @@ function DebateExitModal({
           <div className="mt-6 space-y-2">
             <button
               onClick={onPostVoting}
-              className="w-full py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-xl
+              className="w-full py-2.5 text-sm font-medium bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2
                 focus:ring-indigo-500 focus:ring-offset-2"
             >
@@ -4898,7 +4898,7 @@ function DebateExitModal({
             </button>
             <button
               onClick={onClosed}
-              className="w-full py-2.5 text-sm font-medium bg-red-600 text-white rounded-xl
+              className="w-full py-2.5 text-sm font-medium bg-red-600 text-white
                 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2
                 focus:ring-red-500 focus:ring-offset-2"
             >
@@ -4906,7 +4906,7 @@ function DebateExitModal({
             </button>
             <button
               onClick={onCancel}
-              className="w-full py-2.5 text-sm font-medium border border-gray-200 rounded-xl
+              className="w-full py-2.5 text-sm font-medium border border-bleu-fonce/10
                 text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none
                 focus:ring-2 focus:ring-gray-300"
             >
@@ -4968,7 +4968,7 @@ function PhaseBar({
   const currentIdx = steps.findIndex(p => p.phase === currentPhase)
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 space-y-4">
+    <div className="bg-white border border-bleu-fonce/10 shadow-sm px-5 py-4 space-y-4">
       {/* Step indicators */}
       <div className="flex items-center gap-0">
         {steps.map((p, i) => {
@@ -4979,7 +4979,7 @@ function PhaseBar({
             <div key={p.phase} className="flex items-center flex-1 min-w-0">
               <div className="flex flex-col items-center flex-shrink-0">
                 {isCurrent ? (
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-indigo-600 text-white ring-2 ring-indigo-200">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-bleu-fonce text-creme ring-4 ring-bleu-clair/40">
                     {i}
                   </div>
                 ) : (
@@ -4989,15 +4989,15 @@ function PhaseBar({
                     title={`Aller en ${p.short}`}
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors disabled:cursor-not-allowed ${
                       isPast
-                        ? 'bg-indigo-200 text-indigo-700 hover:bg-indigo-300 hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
+                        ? 'bg-indigo-100 text-bleu-fonce hover:bg-indigo-200 hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
                     }`}
                   >
                     {isPast ? '✓' : i}
                   </button>
                 )}
-                <span className={`mt-1 text-[10px] font-medium text-center leading-tight hidden sm:block ${
-                  isCurrent ? 'text-indigo-700' : isFuture ? 'text-gray-400' : 'text-indigo-400'
+                <span className={`mt-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-center leading-tight hidden sm:block ${
+                  isCurrent ? 'text-bleu-fonce' : isFuture ? 'text-gray-500' : 'text-indigo-500'
                 }`}>
                   {p.short}
                 </span>
@@ -5016,7 +5016,7 @@ function PhaseBar({
           <button
             onClick={onPrev}
             disabled={acting}
-            className="text-xs text-gray-400 hover:text-gray-600 py-1.5 px-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
+            className="text-xs text-gray-600 hover:text-bleu-fonce py-1.5 px-3 border border-bleu-fonce/15 hover:border-bleu-fonce/30 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           >
             ← {phaseLabel(prevPhase, sessionType)}
           </button>
@@ -5026,13 +5026,13 @@ function PhaseBar({
           <button
             onClick={onNext}
             disabled={acting}
-            className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50"
+            className="text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-2 px-4 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)} →`}
           </button>
         )}
         {!nextPhase && currentPhase !== 'closed' && (
-          <span className="text-xs text-gray-400">Phase finale</span>
+          <span className="text-xs text-gray-500">Phase finale</span>
         )}
       </div>
     </div>
@@ -5057,22 +5057,22 @@ function SectionAccordion({
   children: React.ReactNode
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+    <section className="bg-white border border-bleu-fonce/10 px-5 py-4">
       <div className="flex items-center justify-between mb-0">
         <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</h2>
+          <h2 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">{title}</h2>
           {badge && (
-            <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{badge}</span>
+            <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5">{badge}</span>
           )}
           <svg
-            className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`ml-auto w-4 h-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
           ><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="ml-2 p-1 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            className="ml-2 p-1 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
             title="Rafraîchir"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -5136,36 +5136,36 @@ function TableOverviewCard({
   const surplusMods = g.members.filter(m => m.is_moderator && !m.active)
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-bleu-fonce/10 overflow-hidden">
       <div className="px-3 py-2 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-bold text-indigo-700">
             {g.table_number > 0 ? `Table N°${g.table_number}` : 'Table sans numéro'}
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-500">
             {g.seated != null && g.members.length === 0
               ? `(${g.seated} personne${g.seated !== 1 ? 's' : ''} à table)`
               : `(${g.members.length} membre${g.members.length !== 1 ? 's' : ''})`}
           </span>
           {withProfile.length > 0 && (
-            <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
               {activeCount} actif{activeCount !== 1 ? 's' : ''}
             </span>
           )}
           {d && (
-            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+            <span className={`text-xs px-1.5 py-0.5 shrink-0 ${
               d.audience_ok && !d.over_capacity && d.veterans_ok ? 'bg-green-50 text-green-700' : 'bg-amber-100 text-amber-700'
             }`}>
               {d.audience_ok && !d.over_capacity && d.veterans_ok ? '✓ seuils OK' : '⚠️ seuils non atteints'}
             </span>
           )}
           {d && (
-            <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            <span className={`text-xs px-1.5 py-0.5 shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
               {d.recordable ? '🎙️ enregistrable' : 'non enregistrable'}
             </span>
           )}
           {g.join_code && (
-            <span className="text-xs font-mono tracking-widest text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
+            <span className="text-xs font-mono tracking-widest text-green-700 bg-green-50 px-1.5 py-0.5 border border-green-200">
               {g.join_code}
             </span>
           )}
@@ -5173,17 +5173,17 @@ function TableOverviewCard({
         {(activeMods.length > 0 || surplusMods.length > 0 || !g.moderated) && (
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
             {activeMods.map(m => (
-              <span key={m.member_id ?? `physical-${g.table_id}`} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-100">
+              <span key={m.member_id ?? `physical-${g.table_id}`} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 border border-indigo-100">
                 🎙️ Modérateur : <strong>{m.pseudo}</strong>
               </span>
             ))}
             {surplusMods.map(m => (
-              <span key={m.member_id} className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-100">
+              <span key={m.member_id} className="bg-amber-50 text-amber-700 px-2 py-0.5 border border-amber-100">
                 🎙️ En surplus : <strong>{m.pseudo}</strong>
               </span>
             ))}
             {activeMods.length === 0 && (
-              <span className="text-gray-400 italic">Table sans animateur</span>
+              <span className="text-gray-500 italic">Table sans animateur</span>
             )}
           </div>
         )}
@@ -5209,7 +5209,7 @@ function TableOverviewCard({
                   linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')}` : null,
                 ].filter(Boolean).join(' · ') || undefined}
                 style={color ? { borderColor: color, background: `${color}1a` } : undefined}
-                className={`px-2 py-0.5 rounded-md text-xs font-medium border inline-flex items-center gap-1 ${
+                className={`px-2 py-0.5 text-xs font-medium border inline-flex items-center gap-1 ${
                   color ? 'text-gray-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
                 }`}
               >
@@ -5227,14 +5227,14 @@ function TableOverviewCard({
             }}
           />
           {g.members.length === 0 && (g.seated ?? 0) === 0 && (
-            <span className="text-xs text-gray-400 italic">Personne n'a rejoint cette table</span>
+            <span className="text-xs text-gray-500 italic">Personne n'a rejoint cette table</span>
           )}
         </div>
       </div>
       {g.table_id && (
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs text-gray-500 border-t border-gray-100 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs text-gray-500 border-t border-bleu-fonce/10 hover:bg-gray-50 transition-colors"
         >
           <span>Temps et tours de parole</span>
           <svg
@@ -5244,30 +5244,30 @@ function TableOverviewCard({
         </button>
       )}
       {expanded && (
-        <div className="border-t border-gray-100 px-3 py-3 space-y-3 bg-gray-50">
+        <div className="border-t border-bleu-fonce/10 px-3 py-3 space-y-3 bg-gray-50">
           {loading ? (
-            <p className="text-xs text-gray-400 py-2">Chargement…</p>
+            <p className="text-xs text-gray-500 py-2">Chargement…</p>
           ) : !history ? null : (
             <>
               <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Participants</h4>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Participants</h4>
                 {sortedParts.length === 0 ? (
-                  <p className="text-xs text-gray-400">Personne n'a rejoint cette table</p>
+                  <p className="text-xs text-gray-500">Personne n'a rejoint cette table</p>
                 ) : (
                   <ul className="space-y-1">
                     {sortedParts.map(p => (
                       <li key={p.participant_id} className="flex items-center justify-between text-xs text-gray-600">
                         <span>{p.pseudo}</span>
-                        <span className="text-gray-400">{p.turn_count} tour{p.turn_count !== 1 ? 's' : ''} · {formatDurationShort(p.total_ms)}</span>
+                        <span className="text-gray-500">{p.turn_count} tour{p.turn_count !== 1 ? 's' : ''} · {formatDurationShort(p.total_ms)}</span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
               <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Déroulé des tours de parole</h4>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Déroulé des tours de parole</h4>
                 {sortedTurns.length === 0 ? (
-                  <p className="text-xs text-gray-400">Aucun tour de parole enregistré</p>
+                  <p className="text-xs text-gray-500">Aucun tour de parole enregistré</p>
                 ) : (
                   <ol className="space-y-1">
                     {sortedTurns.map((turn, i) => {
@@ -5277,8 +5277,8 @@ function TableOverviewCard({
                         : null
                       return (
                         <li key={turn.id} className="flex items-center justify-between text-xs text-gray-600">
-                          <span>{i + 1}. {pseudo} <span className="text-gray-400">({HISTORY_SOURCE_LABEL[turn.source] ?? turn.source})</span></span>
-                          <span className="text-gray-400">
+                          <span>{i + 1}. {pseudo} <span className="text-gray-500">({HISTORY_SOURCE_LABEL[turn.source] ?? turn.source})</span></span>
+                          <span className="text-gray-500">
                             {new Date(turn.started_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             {durMs != null ? ` · ${formatDurationShort(durMs)}` : ' · en cours'}
                           </span>
@@ -5308,7 +5308,7 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
           { emoji: '🗳️', label: 'Ont voté au moins 1 fois', val: stats.voter_count },
           { emoji: '💬', label: 'Assertions approuvées',    val: stats.approved_assertion_count },
         ].map(item => (
-          <div key={item.label} className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+          <div key={item.label} className="bg-gray-50 p-3 flex items-center gap-2">
             <span className="text-xl">{item.emoji}</span>
             <div>
               <p className="text-lg font-bold text-gray-900">{item.val}</p>
@@ -5321,11 +5321,11 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
       {/* Répartition présentiel / distance (si des votants à distance existent) */}
       {stats.remote_count > 0 && (
         <div className="flex gap-2">
-          <div className="flex-1 bg-indigo-50 rounded-xl px-3 py-2 text-center">
+          <div className="flex-1 bg-indigo-50 px-3 py-2 text-center">
             <p className="text-lg font-bold text-indigo-700">{stats.attending_count}</p>
             <p className="text-xs text-indigo-500">Présentiels</p>
           </div>
-          <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-center">
+          <div className="flex-1 bg-gray-50 px-3 py-2 text-center">
             <p className="text-lg font-bold text-gray-700">{stats.remote_count}</p>
             <p className="text-xs text-gray-500">À distance</p>
           </div>
@@ -5378,7 +5378,7 @@ function DraggableMemberChip({
         profile ? memberProfileTitle(profile) : null,
         linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')} — se déplace avec sa grappe` : null,
       ].filter(Boolean).join(' · ') || undefined}
-      className={`px-2 py-0.5 rounded-md text-xs font-medium border cursor-grab active:cursor-grabbing select-none
+      className={`px-2 py-0.5 text-xs font-medium border cursor-grab active:cursor-grabbing select-none
         transition-opacity inline-flex items-center gap-1 ${
         isDragging
           ? 'opacity-0'
@@ -5401,7 +5401,7 @@ function DraggableMemberChip({
 /** H20 — légende des lettres et de la couleur, affichée une fois au-dessus des tables. */
 function MemberBadgeLegend() {
   return (
-    <details className="text-xs text-gray-500 bg-gray-50/60 border border-gray-100 rounded-lg px-3 py-1.5">
+    <details className="text-xs text-gray-500 bg-gray-50/60 border border-bleu-fonce/10 px-3 py-1.5">
       <summary className="cursor-pointer select-none font-medium text-gray-600">
         Légende des cartes participant
       </summary>
@@ -5420,8 +5420,8 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
   return (
     <div
       ref={setNodeRef}
-      className={`bg-white rounded-xl border p-4 transition-colors ${
-        isOver ? 'border-indigo-400 bg-indigo-50/30' : 'border-gray-200'
+      className={`bg-white border p-4 transition-colors ${
+        isOver ? 'border-indigo-400 bg-indigo-50/30' : 'border-bleu-fonce/10'
       }`}
     >
       {children}
@@ -5483,7 +5483,7 @@ function AddModeratorControl({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg border px-2.5 py-2 transition-colors ${
+      className={`border px-2.5 py-2 transition-colors ${
         isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-amber-200 bg-amber-50/60'
       }`}
     >
@@ -5493,7 +5493,7 @@ function AddModeratorControl({
             ? '🔁 Remplacer le modérateur'
             : leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
         </span>
-        <span className="text-xs text-gray-400">glisse un participant ici, ou :</span>
+        <span className="text-xs text-gray-500">glisse un participant ici, ou :</span>
       </div>
       <form onSubmit={handleSubmit} className="flex items-center gap-1.5">
         <input
@@ -5502,7 +5502,7 @@ function AddModeratorControl({
           onChange={e => { setName(e.target.value); setError(null) }}
           disabled={disabled}
           placeholder="Nom prénom du modérateur…"
-          className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-gray-300 rounded-lg
+          className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-bleu-fonce/20
             focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white disabled:opacity-50"
         />
         <datalist id={datalistId}>
@@ -5511,7 +5511,7 @@ function AddModeratorControl({
         <button
           type="submit"
           disabled={disabled || !name.trim()}
-          className="shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200 rounded-lg
+          className="shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200
             text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ➕ Ajouter
@@ -5532,16 +5532,16 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
   const sorted = [...groups].sort((a, b) => a.table_number - b.table_number)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bleu-fonce/60">
+      <div className="bg-white shadow-xl w-full max-w-lg overflow-hidden">
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">🖨️ Récapitulatif des tables</h2>
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">🖨️ Récapitulatif des tables</h2>
             <p className="text-xs text-gray-500 mt-0.5">Prêt à capturer en screenshot</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >
             ✕
           </button>
@@ -5550,7 +5550,7 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
         <div className="px-6 pb-6">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-bleu-fonce/10 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 <th className="py-2 pr-3">Table</th>
                 <th className="py-2 pr-3">Modérateur</th>
                 <th className="py-2">Table physique</th>
@@ -5562,7 +5562,7 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
                 // pas en exercice ici) ne doit pas se substituer à « en attente ».
                 const mod = g.members.find(m => m.active)
                 return (
-                  <tr key={g.table_number} className="border-b border-gray-100 last:border-0">
+                  <tr key={g.table_number} className="border-b border-bleu-fonce/10 last:border-0">
                     <td className="py-2.5 pr-3 font-semibold text-gray-900">N°{g.table_number}</td>
                     <td className="py-2.5 pr-3 text-gray-700">
                       {mod ? mod.pseudo : (g.moderated ? '⏳ en attente' : '— sans animateur —')}
@@ -5575,7 +5575,7 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="py-4 text-center text-gray-400">Aucune table.</td>
+                  <td colSpan={3} className="py-4 text-center text-gray-500">Aucune table.</td>
                 </tr>
               )}
             </tbody>
@@ -5749,7 +5749,7 @@ function AssertionsPanel({
     <div className="space-y-3">
       {/* ── Formulaire admin ── */}
       {onAdminSubmit && (
-        <div className="border border-indigo-100 rounded-xl bg-indigo-50/40 overflow-hidden">
+        <div className="border border-indigo-100 bg-indigo-50/40 overflow-hidden">
           <button
             onClick={() => setAdminFormOpen(o => !o)}
             className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors"
@@ -5769,22 +5769,22 @@ function AssertionsPanel({
                 placeholder="Saisir une assertion… (Entrée pour valider)"
                 rows={2}
                 disabled={adminAdding}
-                className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none
+                className="w-full mt-3 px-3 py-2 text-sm border border-bleu-fonce/10 resize-none
                   focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50"
               />
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={handleAdminAdd}
                   disabled={adminAdding || !adminText.trim()}
-                  className="py-1.5 px-4 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl
-                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="py-1.5 px-4 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white
+                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   {adminAdding ? '…' : 'Ajouter'}
                 </button>
                 <button
                   onClick={() => csvInputRef.current?.click()}
                   disabled={csvImporting}
-                  className="py-1.5 px-4 text-xs font-medium border border-indigo-200 text-indigo-700 rounded-xl
+                  className="py-1.5 px-4 text-xs font-medium border border-indigo-200 text-indigo-700
                     hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {csvImporting
@@ -5804,14 +5804,14 @@ function AssertionsPanel({
                       ids: lastImportIds,
                       body: `Supprimer les ${lastImportIds.length} assertion${lastImportIds.length > 1 ? 's' : ''} du dernier import CSV ? Cette action est irréversible.`,
                     })}
-                    className="py-1.5 px-4 text-xs font-medium border border-red-200 text-red-700 rounded-xl
+                    className="py-1.5 px-4 text-xs font-medium border border-red-200 text-red-700
                       hover:bg-red-50 transition-colors"
                   >
                     ↩ Annuler l'import ({lastImportIds.length})
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-[10px] text-gray-500">
                 CSV : une assertion par ligne, colonne optionnelle <code>content</code> en en-tête.
               </p>
             </div>
@@ -5820,12 +5820,12 @@ function AssertionsPanel({
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-gray-100 p-1">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => onTabChange(t.key)}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
               effectiveTab === t.key
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
@@ -5833,7 +5833,7 @@ function AssertionsPanel({
           >
             {t.label}
             {t.count > 0 && (
-              <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
+              <span className={`ml-1 px-1.5 py-0.5 text-[10px] ${
                 t.key === 'pending' ? 'bg-amber-100 text-amber-700' :
                 t.key === 'approved' ? 'bg-green-100 text-green-700' :
                 'bg-gray-200 text-gray-500'
@@ -5850,25 +5850,25 @@ function AssertionsPanel({
             <button
               onClick={onApproveAll}
               disabled={actingId !== null}
-              className="w-full py-2 px-3 text-xs font-medium bg-green-50 border border-green-200 text-green-700 rounded-xl hover:bg-green-100 transition-colors disabled:opacity-50"
+              className="w-full py-2 px-3 text-xs font-medium bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
             >
               ✅ Tout approuver ({pending.length})
             </button>
           )}
           {pending.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion en attente</p>
+            <p className="text-sm text-gray-500 text-center py-4">Aucune assertion en attente</p>
           )}
           {pending.map(a => (
             <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
               <button
                 onClick={() => onApprove(a.id)}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                className="py-1 px-2.5 text-xs font-medium bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
               >✅ Approuver</button>
               <button
                 onClick={() => onReject(a.id)}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
               >❌ Rejeter</button>
             </AssertionRow>
           ))}
@@ -5879,7 +5879,7 @@ function AssertionsPanel({
       {effectiveTab === 'approved' && (
         <div className="space-y-2">
           {approved.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion approuvée</p>
+            <p className="text-sm text-gray-500 text-center py-4">Aucune assertion approuvée</p>
           )}
           {[...approved]
             .sort((a, b) => {
@@ -5899,12 +5899,12 @@ function AssertionsPanel({
                     {v && v.total_votes > 0 ? (
                       <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
                     ) : (
-                      <span className="text-xs text-gray-400">Pas encore de votes</span>
+                      <span className="text-xs text-gray-500">Pas encore de votes</span>
                     )}
                     <button
                       onClick={() => onReject(a.id)}
                       disabled={actingId !== null}
-                      className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                      className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
                     >❌ Refuser</button>
                   </div>
                 </AssertionRow>
@@ -5917,7 +5917,7 @@ function AssertionsPanel({
       {effectiveTab === 'rejected' && (
         <div className="space-y-2">
           {rejected.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion rejetée</p>
+            <p className="text-sm text-gray-500 text-center py-4">Aucune assertion rejetée</p>
           )}
           {rejected.length > 0 && (
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -5940,7 +5940,7 @@ function AssertionsPanel({
                     body: `Supprimer définitivement ${selectedRejected.size} assertion${selectedRejected.size > 1 ? 's' : ''} ? Cette action est irréversible.`,
                   })}
                   disabled={actingId !== null}
-                  className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                  className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
                 >🗑 Supprimer la sélection ({selectedRejected.size})</button>
               )}
             </div>
@@ -5962,12 +5962,12 @@ function AssertionsPanel({
               <button
                 onClick={() => onReapprove(a.id)}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
               >↩ Réapprouver</button>
               <button
                 onClick={() => setDeleteConfirm({ ids: [a.id], body: 'Supprimer définitivement cette assertion ? Cette action est irréversible.' })}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
               >🗑 Supprimer</button>
             </AssertionRow>
           ))}
@@ -6002,7 +6002,7 @@ function ShareLinkBanner({ joinCode }: { joinCode: string }) {
   }
 
   return (
-    <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+    <div className="bg-indigo-50 border border-indigo-100 px-4 py-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide mb-0.5">
           Lien de partage
@@ -6011,14 +6011,14 @@ function ShareLinkBanner({ joinCode }: { joinCode: string }) {
       </div>
       <button
         onClick={() => setQrOpen(true)}
-        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
           text-indigo-700 hover:bg-indigo-100 transition-colors"
       >
         QR code
       </button>
       <button
         onClick={handleCopy}
-        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200 rounded-lg
+        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
           text-indigo-700 hover:bg-indigo-100 transition-colors"
       >
         {copied ? '✓ Copié' : 'Copier'}
@@ -6058,8 +6058,8 @@ const MEMBERS_SORTERS: Record<MembersSortKey, (a: SessionMemberAdmin, b: Session
 function SortArrows({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
   return (
     <span className="inline-flex flex-col leading-none ml-1 -space-y-0.5 align-middle">
-      <span className={`text-[8px] ${active && direction === 'asc' ? 'text-indigo-600' : 'text-gray-300'}`}>▲</span>
-      <span className={`text-[8px] ${active && direction === 'desc' ? 'text-indigo-600' : 'text-gray-300'}`}>▼</span>
+      <span className={`text-[8px] ${active && direction === 'asc' ? 'text-indigo-600' : 'text-gray-500'}`}>▲</span>
+      <span className={`text-[8px] ${active && direction === 'desc' ? 'text-indigo-600' : 'text-gray-500'}`}>▼</span>
     </span>
   )
 }
@@ -6121,17 +6121,17 @@ function MembersPanel({
   }, [members, sort])
 
   if (loading && members.length === 0) {
-    return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+    return <p className="text-sm text-gray-500 text-center py-4">Chargement…</p>
   }
   if (members.length === 0) {
-    return <p className="text-sm text-gray-400 text-center py-4">Aucun participant inscrit</p>
+    return <p className="text-sm text-gray-500 text-center py-4">Aucun participant inscrit</p>
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-gray-400 border-b border-gray-100">
+          <tr className="text-gray-500 border-b border-bleu-fonce/10">
             <SortableTh label="Pseudo" sortKey="pseudo" sort={sort} onSort={handleSort} />
             <SortableTh label="Heure" sortKey="created_at" sort={sort} onSort={handleSort} />
             <SortableTh label="Phase" sortKey="joined_phase" sort={sort} onSort={handleSort} />
@@ -6163,14 +6163,14 @@ function MembersPanel({
         </thead>
         <tbody>
           {sortedMembers.map(m => (
-            <tr key={m.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+            <tr key={m.id} className="border-b border-bleu-fonce/[0.06] hover:bg-gray-50 transition-colors">
               <td className="py-2 pr-3 font-medium text-gray-900">{m.pseudo}</td>
               <td className="py-2 pr-3 text-gray-500">
                 {new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
               </td>
               <td className="py-2 pr-3">
                 {m.joined_phase ? (
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                  <span className={`px-1.5 py-0.5 text-[10px] font-medium ${
                     m.joined_phase === 'voting' ? 'bg-purple-100 text-purple-700' :
                     m.joined_phase === 'draft'  ? 'bg-gray-100 text-gray-600' :
                     'bg-indigo-100 text-indigo-700'
@@ -6178,7 +6178,7 @@ function MembersPanel({
                     {PHASE_LABEL_MEMBER[m.joined_phase] ?? m.joined_phase}
                   </span>
                 ) : (
-                  <span className="text-gray-300">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </td>
               <td className="py-2 pr-3 text-center">
@@ -6196,16 +6196,16 @@ function MembersPanel({
                     title={m.is_moderator
                       ? 'Modérateur de cette séance — cliquer pour retirer'
                       : 'Marquer comme modérateur de cette séance'}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                    className={`px-1.5 py-0.5 text-[10px] font-medium border transition-colors ${
                       m.is_moderator
                         ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
-                        : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-300 hover:text-indigo-600'
+                        : 'bg-white border-bleu-fonce/10 text-gray-500 hover:border-indigo-300 hover:text-indigo-600'
                     }`}
                   >
                     {m.is_moderator ? 'modérateur' : '+ modérateur'}
                   </button>
                 ) : (
-                  <span className="text-gray-300">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </td>
               {onRegenerateCode && (
@@ -6213,7 +6213,7 @@ function MembersPanel({
                   <button
                     onClick={() => onRegenerateCode(m.id, m.pseudo)}
                     title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner — le code stocké est haché, il ne peut pas être relu)"
-                    className="px-1.5 py-0.5 rounded text-[10px] font-medium border bg-white border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-600 transition-colors"
+                    className="px-1.5 py-0.5 text-[10px] font-medium border bg-white border-bleu-fonce/10 text-gray-500 hover:border-amber-300 hover:text-amber-600 transition-colors"
                   >
                     🔑 nouveau
                   </button>
@@ -6225,7 +6225,7 @@ function MembersPanel({
                     onClick={() => onDeleteMember(m.id, m.pseudo)}
                     title="Supprimer ce participant de la base (confirmation demandée)"
                     aria-label={`Supprimer ${m.pseudo}`}
-                    className="w-5 h-5 leading-none rounded text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    className="w-5 h-5 leading-none text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
                   >
                     ✕
                   </button>
@@ -6257,7 +6257,7 @@ function AssertionRow({
   children: React.ReactNode
 }) {
   return (
-    <div className={`border rounded-xl p-3 space-y-2 transition-colors ${acting ? 'opacity-50' : ''} ${selected ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
+    <div className={`border p-3 space-y-2 transition-colors ${acting ? 'opacity-50' : ''} ${selected ? 'border-red-300 bg-red-50/50' : 'border-bleu-fonce/10'}`}>
       <div className="flex items-start gap-2">
         {selectable && (
           <input
@@ -6272,13 +6272,13 @@ function AssertionRow({
       </div>
       {aiLabels && (aiLabels.isMerged || aiLabels.isAiRejected || aiLabels.isAiApproved) && (
         <div className="flex gap-1.5 flex-wrap">
-          {aiLabels.isMerged    && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">fusionnée</span>}
-          {aiLabels.isAiRejected && !aiLabels.isMerged && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-medium">modérée par IA</span>}
-          {aiLabels.isAiApproved && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">acceptée par IA</span>}
+          {aiLabels.isMerged    && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 font-medium">fusionnée</span>}
+          {aiLabels.isAiRejected && !aiLabels.isMerged && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 font-medium">modérée par IA</span>}
+          {aiLabels.isAiApproved && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-medium">acceptée par IA</span>}
         </div>
       )}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <span className="text-xs text-gray-400">{new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        <span className="text-xs text-gray-500">{new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
         <div className="flex gap-2 flex-wrap">{children}</div>
       </div>
     </div>
@@ -6325,10 +6325,10 @@ function CollabSourcesList({
   onDeleteRequest(s: CollabSource): void
 }) {
   if (loading) {
-    return <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+    return <p className="text-sm text-gray-500 text-center py-4">Chargement…</p>
   }
   if (sources.length === 0) {
-    return <p className="text-sm text-gray-400 text-center py-4">Aucune source collaborative</p>
+    return <p className="text-sm text-gray-500 text-center py-4">Aucune source collaborative</p>
   }
 
   // Grouper par pseudo
@@ -6346,15 +6346,15 @@ function CollabSourcesList({
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-gray-700">{pseudo}</span>
             {items[0].table_join_code && (
-              <span className="text-xs text-gray-400">— table {items[0].table_join_code}</span>
+              <span className="text-xs text-gray-500">— table {items[0].table_join_code}</span>
             )}
           </div>
-          <div className="space-y-2 pl-3 border-l-2 border-gray-100">
+          <div className="space-y-2 pl-3 border-l-2 border-bleu-fonce/10">
             {items.map(s => (
               <div
                 key={s.id}
                 className="flex items-start justify-between gap-3 py-2 px-3
-                  bg-gray-50 rounded-xl"
+                  bg-gray-50"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-800 truncate">{s.title}</p>
@@ -6377,7 +6377,7 @@ function CollabSourcesList({
                   {s.content && (
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{s.content}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {new Date(s.created_at).toLocaleDateString('fr-FR', {
                       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                     })}
@@ -6386,7 +6386,7 @@ function CollabSourcesList({
                 <button
                   onClick={() => onDeleteRequest(s)}
                   disabled={deletingId === s.id}
-                  className="shrink-0 py-1 px-2.5 text-xs font-medium border border-red-200 rounded-lg
+                  className="shrink-0 py-1 px-2.5 text-xs font-medium border border-red-200
                     text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors"
                 >
                   {deletingId === s.id ? '…' : 'Supprimer'}
@@ -6425,13 +6425,13 @@ function DocFileField({ label, placeholder, value, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">{label}</label>
       <input
         type="url"
         value={value}
         onChange={e => onChange(e.target.value.trim())}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+        className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
           placeholder:text-gray-300 bg-white transition-shadow"
       />
@@ -6465,7 +6465,7 @@ function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExport
     </div>
   )
   if (stats.length === 0) return (
-    <p className="text-xs text-gray-400 py-2">Aucune note de thème pour l'instant.</p>
+    <p className="text-xs text-gray-500 py-2">Aucune note de thème pour l'instant.</p>
   )
   return (
     <div className="space-y-2.5 pt-4">
@@ -6474,19 +6474,19 @@ function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExport
         const barColor = s.avg >= 3.5 ? 'bg-teal-500' : s.avg >= 2 ? 'bg-indigo-400' : 'bg-amber-400'
         return (
           <div key={s.theme} className="flex items-center gap-3">
-            <span className="w-5 text-xs text-gray-400 text-right shrink-0">{i + 1}.</span>
+            <span className="w-5 text-xs text-gray-500 text-right shrink-0">{i + 1}.</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs text-gray-700 truncate leading-snug">{s.theme}</span>
                 <span className="text-xs font-semibold text-gray-900 shrink-0 tabular-nums">
-                  {s.avg.toFixed(1)}<span className="text-gray-400 font-normal">/5</span>
+                  {s.avg.toFixed(1)}<span className="text-gray-500 font-normal">/5</span>
                 </span>
               </div>
               <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
               </div>
             </div>
-            <span className="text-xs text-gray-400 shrink-0 w-12 text-right">
+            <span className="text-xs text-gray-500 shrink-0 w-12 text-right">
               {s.count} vote{s.count > 1 ? 's' : ''}
             </span>
           </div>
@@ -6513,10 +6513,10 @@ function StaffInterestList({
     </div>
   )
   if (responses.length === 0) return (
-    <p className="text-xs text-gray-400">Personne n'a manifesté d'intérêt pour l'instant.</p>
+    <p className="text-xs text-gray-500">Personne n'a manifesté d'intérêt pour l'instant.</p>
   )
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-bleu-fonce/10">
       {responses.map(r => {
         const date = new Date(r.created_at).toLocaleDateString('fr-FR', {
           day: '2-digit', month: '2-digit', year: 'numeric',
@@ -6527,7 +6527,7 @@ function StaffInterestList({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-sm font-semibold text-gray-900">{r.pseudo ?? 'Pseudo inconnu'}</span>
-                <span className="text-xs text-gray-400 tabular-nums">{date}</span>
+                <span className="text-xs text-gray-500 tabular-nums">{date}</span>
                 {r.table_join_code && (
                   <span className="font-mono text-xs text-indigo-600 tracking-widest">
                     {r.table_join_code}
@@ -6561,10 +6561,10 @@ function ResponsesList({
     </div>
   )
   if (responses.length === 0) return (
-    <p className="text-xs text-gray-400 px-5 py-4">Aucune réponse pour l'instant.</p>
+    <p className="text-xs text-gray-500 px-5 py-4">Aucune réponse pour l'instant.</p>
   )
   return (
-    <div className="divide-y divide-gray-100 px-5">
+    <div className="divide-y divide-bleu-fonce/10 px-5">
       {responses.map(r => (
         <ResponseRow
           key={r.id}
@@ -6604,13 +6604,13 @@ function ResponseRow({
         >
           {/* Chevron */}
           <svg
-            className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            className={`w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
             strokeLinecap="round" strokeLinejoin="round"
           >
             <polyline points="9 18 15 12 9 6"/>
           </svg>
-          <span className="text-xs text-gray-400 shrink-0 tabular-nums">{date}</span>
+          <span className="text-xs text-gray-500 shrink-0 tabular-nums">{date}</span>
           {r.table_join_code && (
             <span className="font-mono text-xs text-indigo-600 tracking-widest shrink-0">
               {r.table_join_code}
@@ -6625,7 +6625,7 @@ function ResponseRow({
             </span>
           )}
           {ratedThemes.length > 0 && (
-            <span className="shrink-0 text-xs text-gray-400">
+            <span className="shrink-0 text-xs text-gray-500">
               {ratedThemes.length} thème{ratedThemes.length > 1 ? 's' : ''}
             </span>
           )}
@@ -6636,8 +6636,8 @@ function ResponseRow({
           onClick={e => { e.stopPropagation(); onDeleteRequest() }}
           disabled={deleting}
           title="Supprimer cette réponse"
-          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg
-            text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors
+          className="shrink-0 w-6 h-6 flex items-center justify-center
+            text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors
             disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {deleting ? (
@@ -6653,7 +6653,7 @@ function ResponseRow({
 
       {/* ── Détail expandé ── */}
       {expanded && (
-        <div className="mt-3 ml-6 space-y-3 text-xs text-gray-600 bg-gray-50 rounded-xl p-4">
+        <div className="mt-3 ml-6 space-y-3 text-xs text-gray-600 bg-gray-50 p-4">
           {r.theme_ideas && (
             <div>
               <p className="font-semibold text-gray-500 mb-0.5">Idées de thèmes</p>
@@ -6688,7 +6688,7 @@ function ResponseRow({
             </div>
           )}
           {!r.theme_ideas && !r.staff_interest && !r.feedback && ratedThemes.length === 0 && (
-            <p className="text-gray-400 italic">Aucun détail renseigné.</p>
+            <p className="text-gray-500 italic">Aucun détail renseigné.</p>
           )}
         </div>
       )}

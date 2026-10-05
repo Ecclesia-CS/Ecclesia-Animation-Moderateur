@@ -52,7 +52,7 @@ export function CampCompositionBar({ d }: { d: TableDiagnostics }) {
           />
         )}
       </div>
-      <span className="text-xs text-gray-400 shrink-0">
+      <span className="text-xs text-gray-500 shrink-0">
         {Object.entries(d.camp_counts)
           .sort(([a], [b]) => Number(a) - Number(b))
           .map(([gid, c]) => `C${Number(gid) + 1}:${c}`)
@@ -71,26 +71,26 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
       {diagnostics.map(d => (
         <div
           key={d.table_number}
-          className={`rounded-xl border px-3 py-2.5 ${
-            d.audience_ok && !d.over_capacity ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50/60'
+          className={`border px-3 py-2.5 ${
+            d.audience_ok && !d.over_capacity ? 'border-bleu-fonce/10 bg-gray-50' : 'border-amber-200 bg-amber-50/60'
           }`}
         >
           {/* En-tête */}
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <span className="text-sm font-bold text-indigo-700">Table N°{d.table_number}</span>
-            <span className="text-xs text-gray-400">{d.size} pers.</span>
+            <span className="text-xs text-gray-500">{d.size} pers.</span>
             {d.moderated ? (
-              <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">🎙️ animée</span>
+              <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5">🎙️ animée</span>
             ) : (
-              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">sans animateur</span>
+              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5">sans animateur</span>
             )}
             {d.recordable ? (
-              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded" title="Aucun non-consentant et table non homogène">
+              <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5" title="Aucun non-consentant et table non homogène">
                 🎙️ enregistrable
               </span>
             ) : (
               <span
-                className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded"
+                className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5"
                 title={d.non_consenting > 0
                   ? `${d.non_consenting} personne(s) non consentante(s)`
                   : "Table homogène en opinion — un enregistrement n'y apporterait rien"}
@@ -107,7 +107,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
 
           {/* Statut des seuils — chantier 91 : règles sur les actifs, passifs en public */}
           <div className="flex flex-wrap gap-1.5">
-            <span className="text-xs px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">
+            <span className="text-xs px-1.5 py-0.5 bg-white border border-bleu-fonce/10 text-gray-600">
               {d.actives} actif{d.actives > 1 ? 's' : ''}
               {d.audience > 0 && ` · ${d.audience} en public`}
             </span>
@@ -135,7 +135,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
               title="Règle 3 — assez d'actifs ayant déjà fait un débat"
             />
             {d.newcomers > 0 && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-500">
+              <span className="text-xs px-1.5 py-0.5 bg-white border border-bleu-fonce/10 text-gray-500">
                 {d.newcomers} nouveau{d.newcomers > 1 ? 'x' : ''}
               </span>
             )}
@@ -143,7 +143,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
 
           {/* Composition nominative */}
           {!compact && membersByTable?.[d.table_number]?.length ? (
-            <p className="text-xs text-gray-400 mt-2 leading-snug">
+            <p className="text-xs text-gray-500 mt-2 leading-snug">
               {membersByTable[d.table_number].join(', ')}
             </p>
           ) : null}
@@ -157,7 +157,7 @@ function Threshold({ ok, label, title }: { ok: boolean; label: string; title: st
   return (
     <span
       title={title}
-      className={`text-xs px-1.5 py-0.5 rounded border ${
+      className={`text-xs px-1.5 py-0.5 border ${
         ok ? 'bg-green-50 border-green-200 text-green-700'
            : 'bg-amber-50 border-amber-200 text-amber-700'
       }`}

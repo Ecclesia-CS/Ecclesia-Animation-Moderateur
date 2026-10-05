@@ -152,7 +152,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                 <div className="border border-bleu-fonce/10 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-gray-900 leading-snug">{vote.question}</p>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                    <span className={`text-xs font-medium px-2 py-0.5 shrink-0 ${
                       vote.status === 'active'
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'bg-gray-100 text-gray-500'
@@ -276,7 +276,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                     <div key={h.id} className="bg-gray-50 border border-bleu-fonce/10 p-3 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-gray-800">{h.question}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                        <span className={`text-xs px-2 py-0.5 shrink-0 ${
                           h.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'
                         }`}>
                           {h.status === 'active' ? 'En cours' : 'Clôturé'}

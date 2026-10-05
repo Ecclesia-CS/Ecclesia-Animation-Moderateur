@@ -324,14 +324,14 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   }, [detailsShouldAutoOpen])
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 px-5 py-4 space-y-4">
+    <section className="bg-white border border-bleu-fonce/10 px-5 py-4 space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Allocation des tables
         </p>
         <button
           onClick={load}
-          className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+          className="text-xs text-gray-500 hover:text-indigo-600 transition-colors"
           title="Recharger les participants"
         >
           ↻
@@ -339,9 +339,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       </div>
 
       {loading && !inputs ? (
-        <p className="text-sm text-gray-400 py-2">Chargement des participants…</p>
+        <p className="text-sm text-gray-500 py-2">Chargement des participants…</p>
       ) : !inputs ? (
-        <p className="text-sm text-gray-400 py-2">Données indisponibles.</p>
+        <p className="text-sm text-gray-500 py-2">Données indisponibles.</p>
       ) : (
         <>
           {/* Récapitulatif des entrées */}
@@ -356,7 +356,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           </div>
 
           {!inputs.opinionsAvailable && (
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 leading-snug">
               ⚠️ Aucune analyse des camps d'opinion : la règle 2 (hétérogénéité) sera
               désactivée. L'allocation se fera sur les règles 1, 3 et 4. Lance
               l'analyse des camps d'abord si tu veux en tenir compte.
@@ -368,14 +368,14 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
             <details
               open={detailsOpen}
               onToggle={e => setDetailsOpen(e.currentTarget.open)}
-              className={`rounded-xl border ${
-                surplus > 0 ? 'border-amber-300 bg-amber-50/60' : 'border-gray-200 bg-gray-50/60'
+              className={`border ${
+                surplus > 0 ? 'border-amber-300 bg-amber-50/60' : 'border-bleu-fonce/10 bg-gray-50/60'
               }`}
             >
               <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-gray-700">
                 🎙️ Modérateurs présents ({keptModerators.length}/{moderatorChoices.length})
                 {excluded.length > 0 && (
-                  <span className="text-gray-400 font-normal"> — {excluded.length} à repasser en participant</span>
+                  <span className="text-gray-500 font-normal"> — {excluded.length} à repasser en participant</span>
                 )}
               </summary>
               <div className="px-3 pb-3 space-y-1.5">
@@ -399,10 +399,10 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                         type="checkbox"
                         checked={on}
                         onChange={() => toggleModerator(m.member_id, !on)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
+                        className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-400"
                       />
-                      <span className={on ? '' : 'text-gray-400 line-through'}>{m.pseudo}</span>
-                      {!on && <span className="text-xs text-gray-400">→ participant</span>}
+                      <span className={on ? '' : 'text-gray-500 line-through'}>{m.pseudo}</span>
+                      {!on && <span className="text-xs text-gray-500">→ participant</span>}
                     </label>
                   )
                 })}
@@ -413,21 +413,21 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           {/* Saisies optionnelles */}
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs font-medium text-gray-700 mb-1">
+              <span className="block text-xs font-semibold text-anthracite/80 mb-1.5">
                 Modérateurs à ajouter
               </span>
               <input
                 type="number" min={0} max={40}
                 value={extraModerators}
                 onChange={e => setExtraModerators(Math.max(0, Number(e.target.value) || 0))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
-              <span className="block text-xs text-gray-400 mt-1 leading-snug">
+              <span className="block text-xs text-gray-500 mt-1 leading-snug">
                 Ceux qui arrivent sous peu. Capacité retenue : <b>{capacity}</b>
               </span>
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-gray-700 mb-1">
+              <span className="block text-xs font-semibold text-anthracite/80 mb-1.5">
                 Enregistreurs disponibles
               </span>
               <input
@@ -435,9 +435,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 value={recorderCount}
                 placeholder="—"
                 onChange={e => setRecorderCount(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
-              <span className="block text-xs text-gray-400 mt-1 leading-snug">
+              <span className="block text-xs text-gray-500 mt-1 leading-snug">
                 Objectif visé : <b>{recorderGoal}</b> table(s) enregistrable(s).
                 Plus ce nombre est élevé, plus l'algorithme découpe en petites tables.
               </span>
@@ -449,11 +449,11 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               type="checkbox"
               checked={forbidUnmoderatedTables}
               onChange={e => setForbidUnmoderatedTables(e.target.checked)}
-              className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
+              className="mt-0.5 border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-400"
             />
             <span>
               Interdire les tables sans modérateur
-              <span className="block text-xs text-gray-400 leading-snug">
+              <span className="block text-xs text-gray-500 leading-snug">
                 Priorité maximale : si la capacité de modération est trop faible, les autres critères
                 (taille, hétérogénéité, anciens…) se dégradent en premier plutôt que de laisser une
                 table sans animateur.
@@ -464,20 +464,20 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           <button
             onClick={handleCompute}
             disabled={seatCount === 0}
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300
-              text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+              text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             🎯 {preview ? 'Recalculer la répartition' : 'Calculer la répartition'}
           </button>
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
 
           {applied && (
-            <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
+            <div className="p-3 bg-green-50 border border-green-200 text-sm text-green-700">
               ✅ Répartition appliquée — {applied}
             </div>
           )}
@@ -485,10 +485,10 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           {preview && (
             <div className="space-y-3 pt-1">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                   Proposition
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   {preview.tables.length} table(s) ·{' '}
                   {preview.tables.filter(t => t.moderated).length} animée(s)
                   {preview.clusters.length > 0 && (
@@ -501,7 +501,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               </div>
 
               {isStale && (
-                <p className="text-xs text-amber-800 bg-amber-100 border border-amber-300 rounded-xl px-3 py-2 leading-snug">
+                <p className="text-xs text-amber-800 bg-amber-100 border border-amber-300 px-3 py-2 leading-snug">
                   ⏳ Les réglages ont changé depuis ce calcul (modérateurs décochés,
                   enregistreurs ou participants). « Appliquer » recalculera d'abord la
                   répartition — clique « Recalculer » si tu veux la voir avant.
@@ -509,7 +509,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               )}
 
               {preview.warnings.map((w, i) => (
-                <p key={i} className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">
+                <p key={i} className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 leading-snug">
                   ⚠️ {w}
                 </p>
               ))}
@@ -526,7 +526,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 )}
               />
 
-              <p className="text-xs text-gray-400 leading-snug">
+              <p className="text-xs text-gray-500 leading-snug">
                 Résultat reproductible (graine {preview.seed}) : relancer le calcul sur
                 les mêmes participants et les mêmes réglages donne exactement la même
                 répartition. Cette proposition n'est pas encore en base — elle est
@@ -536,12 +536,12 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               <button
                 onClick={handleApply}
                 disabled={applying}
-                className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-300
-                  text-white text-sm font-semibold rounded-xl transition-colors"
+                className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-40
+                  text-white text-sm font-semibold transition-colors"
               >
                 {applying ? 'Application…' : 'Appliquer — créer les tables →'}
               </button>
-              <p className="text-xs text-gray-400 text-center leading-snug">
+              <p className="text-xs text-gray-500 text-center leading-snug">
                 Les retouches à la main se font ensuite dans l'onglet 🪑 Tables
                 (glisser-déposer), puis « Ouvrir le débat ».
               </p>
@@ -562,7 +562,7 @@ function Stat({ value, label, tone = 'neutral' }: {
             : tone === 'warn' ? 'bg-amber-50 text-amber-700'
             : 'bg-gray-50 text-gray-700'
   return (
-    <div className={`rounded-xl px-2 py-3 ${cls}`}>
+    <div className={`px-2 py-3 ${cls}`}>
       <p className="text-lg font-bold leading-none">{value}</p>
       <p className="text-xs opacity-70 leading-tight mt-1">{label}</p>
     </div>

@@ -108,16 +108,16 @@ function ScatterPlot({ members, kChosen, groupNames }: ScatterProps) {
           return (
             <div key={g} className="flex items-start gap-1.5 text-xs text-gray-600">
               <span
-                className="inline-block w-3 h-3 rounded-sm flex-shrink-0 mt-0.5"
+                className="inline-block w-3 h-3 flex-shrink-0 mt-0.5"
                 style={{ backgroundColor: groupColor(g) }}
               />
               <div>
                 <span className={gn?.name ? 'font-medium' : ''}>
                   {gn?.name ?? `Groupe ${g + 1}`}
                 </span>
-                <span className="text-gray-400 ml-1">({groupCounts[g] ?? 0})</span>
+                <span className="text-gray-500 ml-1">({groupCounts[g] ?? 0})</span>
                 {gn?.description && (
-                  <p className="text-gray-400 italic leading-tight mt-0.5">{gn.description}</p>
+                  <p className="text-gray-500 italic leading-tight mt-0.5">{gn.description}</p>
                 )}
               </div>
             </div>
@@ -366,15 +366,15 @@ export default function AnalysisPanel({
 
   // ── Rendu ─────────────────────────────────────────────────
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
       {/* En-tête cliquable */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
       >
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Analyse des camps
-          <span className="ml-2 font-normal normal-case text-gray-400">
+          <span className="ml-2 font-normal normal-case text-gray-500">
             ({badge()})
           </span>
           {autoAnalyze && ['voting', 'pre_voting'].includes(sessionPhase ?? '') && (
@@ -391,7 +391,7 @@ export default function AnalysisPanel({
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               {analyzeStatus === 'loading' ? 'Calcul…'
                 : analyzeStatus === 'naming' ? 'Nommage des camps…'
@@ -401,7 +401,7 @@ export default function AnalysisPanel({
 
           {/* Chevron */}
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -411,10 +411,10 @@ export default function AnalysisPanel({
 
       {/* Corps déroulant */}
       {open && (
-        <div className="border-t border-gray-100 px-5 py-4 space-y-5">
+        <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-5">
           {/* Erreur */}
           {errorMsg && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {errorMsg}
             </div>
           )}
@@ -425,10 +425,10 @@ export default function AnalysisPanel({
               <span className="text-xs text-gray-500">Vue :</span>
               <button
                 onClick={() => handleAttendingToggle(false)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                className={`text-xs px-3 py-1 border transition-colors ${
                   !attendingOnly
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                    : 'bg-white text-gray-600 border-bleu-fonce/20 hover:border-indigo-400'
                 }`}
               >
                 Tous les votants
@@ -436,10 +436,10 @@ export default function AnalysisPanel({
               <button
                 onClick={() => handleAttendingToggle(true)}
                 disabled={attendingOnlyLoading}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors disabled:opacity-50 ${
+                className={`text-xs px-3 py-1 border transition-colors disabled:opacity-50 ${
                   attendingOnly
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                    : 'bg-white text-gray-600 border-bleu-fonce/20 hover:border-indigo-400'
                 }`}
               >
                 {attendingOnlyLoading ? 'Calcul…' : 'Présentiels uniquement'}
@@ -469,7 +469,7 @@ export default function AnalysisPanel({
                     : 'n/c'}
                 </span>
                 {!attendingOnly && (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {new Date(displayAnalysis.created_at).toLocaleString('fr-FR', {
                       day: '2-digit', month: '2-digit', year: 'numeric',
                       hour: '2-digit', minute: '2-digit',
@@ -491,7 +491,7 @@ export default function AnalysisPanel({
 
               {/* Assertions clivantes */}
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
                   Assertions clivantes
                 </h4>
                 <div className="space-y-4">
@@ -510,20 +510,20 @@ export default function AnalysisPanel({
                                 {gn?.name ? `${gn.name} (Groupe ${g + 1})` : `Groupe ${g + 1}`}
                               </p>
                               {gn?.description && (
-                                <p className="text-xs text-gray-400 mb-1.5">{gn.description}</p>
+                                <p className="text-xs text-gray-500 mb-1.5">{gn.description}</p>
                               )}
                               {!gn?.description && <div className="mb-1.5" />}
                             </>
                           )
                         })()}
                         {items.length === 0 ? (
-                          <p className="text-xs text-gray-400">Aucune assertion disponible</p>
+                          <p className="text-xs text-gray-500">Aucune assertion disponible</p>
                         ) : (
                           <ul className="space-y-1">
                             {items.map(item => (
                               <li key={item.aid} className="flex items-start gap-2 text-sm text-gray-700">
                                 <span
-                                  className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 rounded"
+                                  className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5"
                                   style={{ backgroundColor: groupColor(g) + '20', color: groupColor(g) }}
                                 >
                                   {item.score.toFixed(1)}
@@ -543,11 +543,11 @@ export default function AnalysisPanel({
               <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                   Assertions consensuelles
-                  <span className="ml-1.5 font-normal normal-case text-gray-400">
+                  <span className="ml-1.5 font-normal normal-case text-gray-500">
                     (tous les camps · score &gt; {CONSENSUS_THRESHOLD})
                   </span>
                 </h4>
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-gray-500 mb-3">
                   Points de convergence : assertions que <strong>tous les camps approuvent en moyenne</strong>,
                   malgré leurs désaccords. Le score est la moyenne du camp le moins favorable (0 = neutre, 1 = adhésion totale).
                 </p>
@@ -555,7 +555,7 @@ export default function AnalysisPanel({
                   const items = consensuelles()
                   if (items.length === 0) {
                     return (
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500">
                         Aucune assertion ne fait consensus entre tous les camps pour l'instant.
                       </p>
                     )
@@ -564,7 +564,7 @@ export default function AnalysisPanel({
                     <ul className="space-y-1">
                       {items.map(item => (
                         <li key={item.aid} className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 rounded bg-green-50 text-green-700">
+                          <span className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 bg-green-50 text-green-700">
                             {item.score.toFixed(2)}
                           </span>
                           <span>{item.content}</span>
@@ -576,20 +576,20 @@ export default function AnalysisPanel({
               </div>
             </>
           ) : attendingOnly && attendingOnlyLoading ? (
-            <p className="text-sm text-gray-400">Calcul de l'analyse présentiels…</p>
+            <p className="text-sm text-gray-500">Calcul de l'analyse présentiels…</p>
           ) : loadStatus === 'loading' ? (
-            <p className="text-sm text-gray-400">Chargement…</p>
+            <p className="text-sm text-gray-500">Chargement…</p>
           ) : loadStatus === 'error' && !errorMsg ? (
             <p className="text-sm text-red-500">Erreur lors du chargement de l'analyse.</p>
           ) : (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               Aucune analyse disponible. Cliquez sur "Analyser les camps" pour lancer le calcul.
             </p>
           )}
 
           {/* ── Section Automatisation ─── */}
-          <div className="border-t border-gray-100 pt-4 space-y-3">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div className="border-t border-bleu-fonce/10 pt-4 space-y-3">
+            <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
               Automatisation
             </h4>
 
@@ -626,14 +626,14 @@ export default function AnalysisPanel({
                 disabled={!autoAnalyze}
                 className="w-full accent-indigo-600"
               />
-              <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+              <div className="flex justify-between text-xs text-gray-500 mt-0.5">
                 <span>1 min</span>
                 <span>15 min</span>
               </div>
             </div>
 
             {!['voting', 'pre_voting'].includes(sessionPhase ?? '') && autoAnalyze && (
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2">
                 L'auto-analyse est active mais la séance n'est pas en phase "vote" ou "pré-vote".
               </p>
             )}
@@ -783,16 +783,16 @@ export function AnalysisComparisonPanel({
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
       >
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Comparaison avant / après débat
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -800,19 +800,19 @@ export function AnalysisComparisonPanel({
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 px-5 py-4 space-y-5">
+        <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-5">
           {errorMsg && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {errorMsg}
             </div>
           )}
 
           {loadStatus === 'loading' && (
-            <p className="text-sm text-gray-400">Chargement des analyses disponibles…</p>
+            <p className="text-sm text-gray-500">Chargement des analyses disponibles…</p>
           )}
 
           {loadStatus === 'loaded' && summaries.filter(s => s.status === 'done').length < 2 && (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               Il faut au moins deux analyses terminées (une "avant débat" reconstituée depuis
               l'historique des votes, une "courante") pour comparer. Relancez l'analyse depuis
               "Analyse des camps" pour en obtenir une nouvelle si besoin.
@@ -827,7 +827,7 @@ export function AnalysisComparisonPanel({
                   <select
                     value={beforeId}
                     onChange={e => setBeforeId(e.target.value)}
-                    className="mt-1 w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5"
+                    className="mt-1 w-full text-sm border border-bleu-fonce/20 px-2 py-1.5"
                   >
                     <option value="">— choisir —</option>
                     {summaries.filter(s => s.status === 'done').map(s => (
@@ -840,7 +840,7 @@ export function AnalysisComparisonPanel({
                   <select
                     value={afterId}
                     onChange={e => setAfterId(e.target.value)}
-                    className="mt-1 w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5"
+                    className="mt-1 w-full text-sm border border-bleu-fonce/20 px-2 py-1.5"
                   >
                     <option value="">— choisir —</option>
                     {summaries.filter(s => s.status === 'done').map(s => (
@@ -851,7 +851,7 @@ export function AnalysisComparisonPanel({
               </div>
 
               {compareStatus === 'loading' && (
-                <p className="text-sm text-gray-400">Calcul de la comparaison…</p>
+                <p className="text-sm text-gray-500">Calcul de la comparaison…</p>
               )}
 
               {compareStatus === 'done' && before && after && (
@@ -865,7 +865,7 @@ export function AnalysisComparisonPanel({
                       <span><strong>{stayedCount}</strong> resté(s) dans leur camp</span>
                       <span><strong>{movedCount}</strong> changé(s) de camp</span>
                       {notRevotedCount > 0 && (
-                        <span className="text-gray-400">{notRevotedCount} sans vote correspondant après</span>
+                        <span className="text-gray-500">{notRevotedCount} sans vote correspondant après</span>
                       )}
                     </div>
                   </div>
@@ -874,25 +874,25 @@ export function AnalysisComparisonPanel({
                   <div>
                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                       Camps appariés
-                      <span className="ml-1.5 font-normal normal-case text-gray-400">
+                      <span className="ml-1.5 font-normal normal-case text-gray-500">
                         (par composition réelle, pas par numéro)
                       </span>
                     </h4>
                     <ul className="space-y-1 text-sm text-gray-700">
                       {pairings.map(p => (
                         <li key={p.aGroupId} className="flex items-center gap-2">
-                          <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100">
+                          <span className="font-mono text-xs px-1.5 py-0.5 bg-gray-100">
                             Avant #{p.aGroupId + 1} ({p.aSize})
                           </span>
-                          <span className="text-gray-400">→</span>
+                          <span className="text-gray-500">→</span>
                           {p.bGroupId !== null ? (
-                            <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100">
+                            <span className="font-mono text-xs px-1.5 py-0.5 bg-gray-100">
                               Après #{p.bGroupId + 1} ({p.bSize})
                             </span>
                           ) : (
                             <span className="text-xs text-amber-600">aucun camp correspondant après</span>
                           )}
-                          <span className="text-xs text-gray-400">{p.overlapCount} membre(s) en commun</span>
+                          <span className="text-xs text-gray-500">{p.overlapCount} membre(s) en commun</span>
                         </li>
                       ))}
                     </ul>
@@ -903,18 +903,18 @@ export function AnalysisComparisonPanel({
                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                       Assertions dont le consensus a le plus bougé
                     </h4>
-                    <p className="text-xs text-gray-400 mb-3">
+                    <p className="text-xs text-gray-500 mb-3">
                       Comparaison directe du score de consensus (indépendante du numéro de camp) —
                       seuil d'affichage : écart ≥ {CONSENSUS_MOVE_MIN_DELTA}.
                     </p>
                     {topMoved.length === 0 ? (
-                      <p className="text-xs text-gray-400">Aucun mouvement de consensus notable.</p>
+                      <p className="text-xs text-gray-500">Aucun mouvement de consensus notable.</p>
                     ) : (
                       <ul className="space-y-1.5">
                         {topMoved.map(m => (
                           <li key={m.assertionId} className="flex items-start gap-2 text-sm text-gray-700">
                             <span
-                              className={`flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 rounded ${
+                              className={`flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 ${
                                 m.delta > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                               }`}
                             >
@@ -922,7 +922,7 @@ export function AnalysisComparisonPanel({
                             </span>
                             <span>
                               {assertionMap.get(m.assertionId) ?? '(assertion supprimée)'}
-                              <span className="text-gray-400 ml-1">
+                              <span className="text-gray-500 ml-1">
                                 ({m.scoreA.toFixed(2)} → {m.scoreB.toFixed(2)})
                               </span>
                             </span>

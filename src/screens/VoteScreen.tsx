@@ -1319,7 +1319,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                                 if (unvotedIdx >= 0) setAssertionIndex(unvotedIdx)
                                 setShowAllAssertions(false)
                               }}
-                              className="shrink-0 text-[10px] font-medium text-indigo-600 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-50 transition-colors"
+                              className="shrink-0 text-[10px] font-medium text-indigo-600 border border-indigo-200 px-2 py-0.5 hover:bg-indigo-50 transition-colors"
                             >
                               Voter
                             </button>
