@@ -164,7 +164,7 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 > **Rappel des règles de Jules** : se demander d'abord si la modification se généralise ailleurs (la lui proposer), puis types de séance et associations ; vérifier soi-même au navigateur (voir `CLAUDE.md`).
 
-#### 154 — Le superadmin choisit quelles séances sont visibles sur l'accueil
+#### 154 — Le superadmin choisit quelles séances sont visibles sur l'accueil — ✅ fait le 2026-10-05, voir `docs/chantiers.md`
 > **Consigne de Jules** : « Décider quelles séances peuvent être visibles publiquement ou non sur l'accueil de l'appli. »
 
 **Décisions de Jules (2026-10-05)** : réglage **par séance**, choisi par le **superadmin** ; **visible par défaut** (séances existantes et nouvelles). Il concerne la **liste des séances en cours** de l'accueil (`EntryScreen`). Il reste **séparé** de la publication des résultats (`get_public_results` / `listPublicClosedSessions`), qu'on ne touche pas pour l'instant. Une séance masquée reste accessible par son lien et son QR code (`#session/<code>`, `#vote/<code>`).

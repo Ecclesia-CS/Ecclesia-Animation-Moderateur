@@ -259,3 +259,13 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 - [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer » (la partie « ne voit plus » est vérifiée ; la conservation des assertions est garantie par le code, qui ne supprime rien).
 
 **Point de comportement à connaître** : en « voter d'abord », les assertions du participant lui-même comptent parmi celles qu'il doit voter (l'app ne les exclut nulle part de sa file) ; avec la modération `open`, il doit donc voter sa propre proposition avant d'en faire une deuxième.
+
+## Chantier 154 (2026-10-05) — Visibilité des séances sur l'accueil
+
+**Vérifié au navigateur sur dev** : « QA Vérifs — Débat » masquée en base (`visible_on_home = false`) → absente de « Séances en cours » ; les autres séances et le filtre asso inchangés ; remise visible ensuite.
+
+**Écran superadmin — vérifié au navigateur sur dev le 2026-10-05** (Jules a saisi le mot de passe) : pastille sur les séances en cours (absente sur les séances closes et d'association), bascule « Visible » → « Masquée » écrite en base, conservée après rechargement, puis remise ; case « Visible sur l'accueil de l'application » à la création, décochée → séance créée avec `visible_on_home = false` (séance de test supprimée). Les séances `QA 155 …` sont masquées volontairement par le chantier 155.
+
+**Reste à vérifier**
+- [ ] Une séance masquée reste joignable par `#session/<code>` (non rejoué).
+- [ ] **Prod, après merge** : appliquer `20261005_chantier154_visibilite_accueil.sql` AVANT de déployer le code (sinon l'accueil de prod devient vide : colonne inconnue) et vérifier que l'accueil liste toujours les séances.
