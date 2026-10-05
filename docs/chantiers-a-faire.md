@@ -164,15 +164,19 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 > **Rappel des règles de Jules** : se demander d'abord si la modification se généralise ailleurs (la lui proposer), puis types de séance et associations ; vérifier soi-même au navigateur (voir `CLAUDE.md`).
 
-#### 154 — Choisir quelles séances sont visibles publiquement sur l'accueil
+#### 154 — Le superadmin choisit quelles séances sont visibles sur l'accueil
 > **Consigne de Jules** : « Décider quelles séances peuvent être visibles publiquement ou non sur l'accueil de l'appli. »
 
-**À préciser avec Jules avant de coder** : réglage **par séance** (booléen sur `sessions`, modifiable à tout moment depuis le superadmin et, pour leurs séances, depuis l'espace asso) ; valeur par défaut des séances existantes et des nouvelles ; concerne-t-il la liste des séances en cours (`EntryScreen`), celle des séances closes publiques (`listPublicClosedSessions`), ou les deux ? Une séance masquée reste accessible par son lien/QR (`#session/<code>`). Attention au `GRANT SELECT` restreint d'`anon` sur `sessions` (chantier 58 — cas réel du 30/09 : colonne absente du GRANT → accueil de prod vide) : ajouter la colonne au GRANT **sur dev et prod**.
+**Décisions de Jules (2026-10-05)** : réglage **par séance**, choisi par le **superadmin** ; **visible par défaut** (séances existantes et nouvelles). Il concerne la **liste des séances en cours** de l'accueil (`EntryScreen`). Il reste **séparé** de la publication des résultats (`get_public_results` / `listPublicClosedSessions`), qu'on ne touche pas pour l'instant. Une séance masquée reste accessible par son lien et son QR code (`#session/<code>`, `#vote/<code>`).
 
-#### 155 — Documentation : lien « Fiche info et résumé », et pas de fiches pédagogiques pour les sondages
+Points à traiter : colonne sur `sessions` (booléen, défaut `true`) à ajouter au `GRANT SELECT` restreint d'`anon` (chantier 58 — cas réel du 30/09 : colonne absente du GRANT → accueil de prod vide), **sur dev et prod** ; réglage dans l'écran superadmin, à la création et en cours de séance ; question de généralisation à poser : l'asso peut-elle choisir pour ses séances (par défaut non — fail-closed, voir règle des associations) ?
+
+#### 155 — Documentation : « Fiche info et résumé » à la place des deux liens, et pas de fiches pédagogiques pour les sondages
 > **Consignes de Jules** : « Pour la documentation, on peut rajouter un troisième lien : Fiche info et résumé (car le lien mène finalement vers les deux mêmes). Autre tâche : Pour les sondages uniquement, on peut enlever les liens vers biais cognitifs ou arguments fallacieux. Ça n'a pas d'intérêt. »
 
-Fichier : `src/components/DocumentationButton.tsx` (menu « Documentation » : « Fiche information », « Résumé fiche information », document collaboratif, fiches pédagogiques). À faire : (1) ajouter le lien « Fiche info et résumé » ; (2) pour `sessionTypeOf(session) === 'poll'`, masquer les liens biais cognitifs / arguments fallacieux (y compris leurs rappels dans les écrans du sondage, ex. `DocNudge`). Le composant ne reçoit aujourd'hui que `sessionId` : en déduire le type. **À préciser** : « troisième lien » = **en plus** des deux existants, ou **à leur place** quand les deux URL sont identiques ?
+**Décisions de Jules (2026-10-05)** : (1) le lien « Fiche info et résumé » **remplace** « Fiche information » et « Résumé fiche information » ; il n'apparaît **que lorsque le superadmin y a glissé le lien** ; valable pour **toutes** les séances, internes **et** d'association. (2) Le masquage de « Biais cognitifs » / « Arguments fallacieux » ne concerne **que les sondages** (`sessionTypeOf(session) === 'poll'`).
+
+Fichier : `src/components/DocumentationButton.tsx` (reçoit `sessionId` : en déduire le type). Points à traiter : le champ superadmin qui porte ce lien (aujourd'hui `doc_info_url`/`doc_summary_url`) — décider s'il s'agit d'un nouveau champ ou de la réutilisation d'un des deux, et comment traiter les séances qui ont déjà l'un ou l'autre ; rappels dans les écrans du sondage (`DocNudge`) ; l'asso peut-elle glisser ce lien pour ses séances (à vérifier : `check_session_admin`).
 
 ### 121, 122, 123 — Retours de Jules du 2026-09-22 (7 points), en 3 chantiers
 
@@ -301,7 +305,7 @@ Le plus gros des trois chantiers "fonctionnalités table de débat" — nouveau 
 
 Périmètre de fichiers (à affiner en démarrant) : nouvelles tables SQL (ex. `table_votes`/`table_vote_options`/`table_vote_responses`), nouvelle(s) RPC, `ModeratorView.tsx`, `ParticipantView.tsx`, `lib/realtime.ts` si nouveau topic.
 
-#### 134 — "Nouvelle séance" : 3 modes (séance complète / débat simple / sondage) — usage interne — **Opus demandé par Jules**
+#### 134 — "Nouvelle séance" : 3 modes (séance complète / débat simple / sondage) — usage interne — **Opus demandé par Jules** — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > 🟡 **Livré le 2026-09-26, pas mergé** (`claude/chantier-134-80bd0f`). Arbitrages de Jules et conception : [`docs/chantier-134-conception.md`](./chantier-134-conception.md) ; détail dans `docs/chantiers.md` et recette dans `A_VERIFIER.md` § Chantier 134. **Le 135 n'est plus bloqué sur la conception** (type de séance + séquence de phases par type = la brique réutilisable), mais reste à lancer après le merge du 134.
 
@@ -318,7 +322,7 @@ Arbitrage tranché avec Jules le 2026-09-25 sur la relation avec le point suivan
 
 Périmètre de fichiers : large et à définir en démarrant — au minimum `sessions` (schéma + RPC de création), `SuperadminScreen.tsx` (flux "nouvelle séance"), la state machine de phases.
 
-#### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134
+#### 135 — Ouvrir le sondage et la table de modérateur seule à des associations externes — **Opus demandé par Jules**, dépend de 134 — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > 🟡 **Livré le 2026-09-28, mergé dans `dev` le même jour, pas dans `main`** (branche `claude/chantier-135-external-users-592b48`, supprimée) — conception et arbitrages : [`docs/chantier-135-conception.md`](./chantier-135-conception.md) ; détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 135, mode d'emploi : [`docs/mode-emploi-associations.md`](./mode-emploi-associations.md). Arbitrage final de Jules : débat simple **et** sondage, sans questionnaire, une table par débat, 3 séances en cours, expiration facultative.
 
@@ -346,7 +350,7 @@ Périmètre de fichiers : à définir entièrement une fois 134 tranché — cha
 > - **141 (tests automatisés) dépend de tous les autres** pour ses vérifications d'`A_VERIFIER.md` : le lancer en dernier, ou par lots au fil des merges.
 > - **Règle « types de séance » (`CLAUDE.md`)** : chaque chantier doit dire s'il s'applique aussi aux séances `debate` et `poll`. 137-D, 138 : tous types. 137-E/F et 139 : types avec tables (`full`, `debate`). 140 : toutes les portes d'entrée, sondage compris.
 
-#### 137 — Petits correctifs : suppression d'un participant, icône du bannissement, vote qui se réaffiche au reload
+#### 137 — Petits correctifs : suppression d'un participant, icône du bannissement, vote qui se réaffiche au reload — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > ✅ **FAIT le 2026-09-28** — détail dans `docs/chantiers.md` ; l'énoncé ci-dessous est conservé tel que dicté. Un écart au cahier : le lien `participants` ↔ membre se fait par `user_id` + tables de la séance (aucune FK), et `assertions.member_id` a dû devenir nullable pour conserver les assertions sans auteur.
 
@@ -367,7 +371,7 @@ Trois sous-tâches indépendantes, sur des fichiers distincts.
 
 Périmètre de fichiers : `SuperadminScreen.tsx` + nouvelle migration (D), `ParticipantsTable.tsx` (E), `ParticipantView.tsx`, éventuellement `TableVoteModal.tsx` (F).
 
-#### 138 — Historique des tables : même vue que l'onglet Groupes, accessible dès que les tables existent
+#### 138 — Historique des tables : même vue que l'onglet Groupes, accessible dès que les tables existent — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > ✅ **Fait et mergé dans `dev` le 2026-09-28** — voir `docs/chantiers.md`. Détail conservé ci-dessous pour mémoire.
 
@@ -400,7 +404,7 @@ Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (ong
 
 Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (liste participants + glisser-déposer), `TableContext.tsx`, `set_member_moderator`/`assign_moderator_to_table` et les RPC voisines.
 
-#### 140 — Portes d'entrée : le code est toujours accessible, et un nom déjà pris ouvre l'accordéon — **Opus demandé par Jules**
+#### 140 — Portes d'entrée : le code est toujours accessible, et un nom déjà pris ouvre l'accordéon — **Opus demandé par Jules** — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > ✅ **FAIT et mergé dans `dev` le 2026-09-28** (branche `claude/lancer-140-b126c2`) — tableau des écarts et détail dans `docs/chantiers.md`, recette dans `A_VERIFIER.md` § Chantier 140. Cause du symptôme 1 : `join_table` (et quatre RPC sœurs) réécrivait le siège `participants` du titulaire avant tout contrôle. Migration appliquée sur dev uniquement ; sur prod, après celles du 135. Casse : traitée dans la foulée (140b, décision de Jules).
 
@@ -420,7 +424,7 @@ Périmètre de fichiers (à affiner en démarrant) : `SuperadminScreen.tsx` (lis
 
 Périmètre de fichiers : large, à définir après l'audit — au minimum `EntryScreen`, `VotingEntryForm`, `SessionRouterScreen`, `AttendanceConfirmScreen`, l'accordéon du chantier 125, et les RPC d'entrée (`join_table`, reclaim, `claim_*`).
 
-#### 141 — Passe de vérification automatisée de `A_VERIFIER.md` (navigateur)
+#### 141 — Passe de vérification automatisée de `A_VERIFIER.md` (navigateur) — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 **Consigne de Jules** : « Ajoute un autre chantier, sur lequel on va faire tous les tests d'A_VERIF en automation (j'expliquerai à la conv). »
 
@@ -457,7 +461,7 @@ Périmètre de fichiers : `A_VERIFIER.md` principalement ; aucun changement de `
 
 Sortie : ajouter une section « Volet 141f » à `docs/rapports-tests-141/lot-d.md` (ou un `lot-f.md`), annoter `A_VERIFIER.md` (« vérifié automatiquement sur dev le … », sans passer en « Validé »), commit sans push.
 
-#### 142 — Document collaboratif : on récupère les sources d'un autre en tapant son nom, sans code — **Opus demandé par Jules**
+#### 142 — Document collaboratif : on récupère les sources d'un autre en tapant son nom, sans code — **Opus demandé par Jules** — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 **Origine** : repéré pendant le chantier 140 (2026-09-28), laissé hors périmètre. **Consigne de Jules** : « tu peux écrire cela en tant qu'un nouveau chantier 142 […] Je la lancerai en Opus aussi. »
 
@@ -494,7 +498,7 @@ Périmètre de fichiers (à affiner après le diagnostic) : `CollabDocScreen.tsx
 
 ---
 
-#### 144 — Correctifs relevés par la passe de vérification automatisée (chantier 141)
+#### 144 — Correctifs relevés par la passe de vérification automatisée (chantier 141) — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > ✅ **Points 1 à 5 faits le 2026-09-29** (voir `docs/chantiers.md`). Point 6 arbitré et traité le même jour (voir `docs/chantiers.md`) : chantier entièrement fait.
 
@@ -518,7 +522,7 @@ Périmètre de fichiers : `src/screens/SuperadminScreen.tsx`, `src/components/Jo
 >
 > **Parallélisation** : 90, 93, 94 et 95 touchent des fichiers disjoints et peuvent tourner en même temps. **91 et 92 touchent tous les deux `src/lib/allocation.ts` et doivent être séquencés — 91 d'abord.**
 
-### 91 — Allocation : seuils, plafond de table, et traitement des passifs
+### 91 — Allocation : seuils, plafond de table, et traitement des passifs — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 > ✅ **Livré et mergé sur `main` le 2026-09-16** (modèle final : passifs en public, voir [`docs/chantier-91-comparatif-allocation.md`](./chantier-91-comparatif-allocation.md)). Ne pas le reprendre ; **le 92 part de `main`**. Détail dans `docs/chantiers.md` et `A_VERIFIER.md`.
 
 **Algorithme.** ⚠️ **À faire avant le 92** (même fichier). **Jules demande explicitement une session Opus** pour ce chantier.
@@ -538,7 +542,7 @@ Périmètre de fichiers : `src/screens/SuperadminScreen.tsx`, `src/components/Jo
 
 Périmètre : `src/lib/allocation.ts` et ses tests (49 aujourd'hui), `src/components/voting/AllocationPanel.tsx`.
 
-### 92 — Allocation : appairage entre participants
+### 92 — Allocation : appairage entre participants — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 > ✅ **Livré et mergé sur `main` le 2026-09-16** après validation de Jules : migration appliquée, parcours participant vérifié au navigateur, étapes superadmin restant à jouer (voir `A_VERIFIER.md`). Décisions par défaut retenues : réciprocité obligatoire, grappe déplacée entière au glisser-déposer, saisie libre sans autocomplétion. Ne pas le reprendre.
 
 **Algorithme + parcours.** ⚠️ **Après le 91** (même fichier). Le plus gros des six : modèle de données + onboarding + Outils + algorithme + DnD superadmin.
@@ -585,7 +589,7 @@ Branche `claude/chantiers-93-81-82-analyse-6347b4`. Migration appliquée en base
 
 Périmètre : `src/components/ModeratorView.tsx`, nouvelle RPC d'agrégation.
 
-### 95 — Ménage des portes d'entrée : onglet « tables rattachées » + bloc du menu principal (remplace le 75)
+### 95 — Ménage des portes d'entrée : onglet « tables rattachées » + bloc du menu principal (remplace le 75) — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 > ✅ **Fait le 2026-09-18** (branche `claude/lancer-95-analyse-059233`, non mergée). Analyse menée puis suppression, plus la création de tables vides numérotées dans la vue Groupes et la fenêtre de changement de table côté participant. Détail dans `docs/chantiers.md` et recette dans `A_VERIFIER.md` § Chantier 95.
 
 **Parcours + superadmin.** ⚠️ **Ce chantier remplace le chantier 75**, sur décision de Jules le 16/09 (« Oui, remplace le 75 »). Analyse d'abord, suppression ensuite — c'est explicitement ce qu'il demande.
@@ -621,11 +625,11 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 **Parcours.** Sujet de fond réservé par Jules. Il veut **réexpliquer lui-même** comment l'application et son flux sont censés fonctionner à chaque instant, et préfère une conversation dédiée lancée en **un prompt unique** qui attend son texte. **Ne rien analyser avant d'avoir reçu ce texte.**
 
-### 99 — Fiches pédagogiques : argument fallacieux et biais cognitifs
+### 99 — Fiches pédagogiques : argument fallacieux et biais cognitifs — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > ✅ **Fait et mergé le 2026-09-20** — Jules a débloqué le chantier autrement que prévu : au lieu de fournir les documents à intégrer dans l'app, il a donné deux liens vers des fiches déjà publiées sur `ecclesia-centralesupelec.vercel.app/ressources` (ancres `#biais-cognitifs` et `#arguments-fallacieux`). Deux liens statiques ajoutés dans les trois menus « Documentation » de l'app (`DocumentationButton.tsx`, `ParticipantToolsButton.tsx`, `VoteToolsPanel` dans `VoteScreen.tsx`), toujours visibles désormais (avant : masqués si la séance n'avait aucune URL de documentation propre). Détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 99. Vérifié au navigateur par Jules le jour même (séance de test jetable, purgée après validation).
 
-### 100 — Diagnostic cybersécurité : peut-on interrompre une séance ou voler des données ?
+### 100 — Diagnostic cybersécurité : peut-on interrompre une séance ou voler des données ? — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 > ✅ **Fait le 2026-09-19** — audit livré : [`docs/2026-09-19-audit-chantier100-interruption-exfiltration.md`](./2026-09-19-audit-chantier100-interruption-exfiltration.md). Réponse courte : vol de données non à grande échelle, **interruption de séance oui** (cinq helpers `SECURITY DEFINER` exposés à `anon` sans garde d'autorité, plus C7 et A4 déjà connus).
 >
@@ -654,7 +658,7 @@ Périmètre : `src/screens/SuperadminScreen.tsx` (onglet Tables, sous-accordéon
 
 > ✅ **105 fait le 2026-09-20** — détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 105. **Correction importante à l'ouverture** : contrairement à ce que disait l'entrée ci-dessous (sourcée sur l'audit du 100), la restriction était **déjà en vigueur en base** au moment de lancer le chantier — `member_id` n'était pas accordé. La cause exacte du soupçon initial (« rétabli hors migration ») n'a pas pu être confirmée faute de logs remontant assez loin ; une piste plausible (privilèges par défaut du schéma réappliqués si la table est recréée, ex. via le Table Editor du dashboard) est documentée dans `A_VERIFIER.md`, à confirmer avec Jules. Le geste fait quand même : la restriction, qui n'existait qu'en base, est maintenant recodifiée dans une migration du dépôt (idempotente) pour ne plus dépendre uniquement d'un `GRANT` invisible du code source.
 
-### 105 — Sécurité : rétablir la restriction de colonne du chantier 51 sur `assertions`
+### 105 — Sécurité : rétablir la restriction de colonne du chantier 51 sur `assertions` — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 **Sécurité, SQL uniquement.** Trouvé en passant par le [diagnostic du chantier 100](./2026-09-19-audit-chantier100-interruption-exfiltration.md) — sujet exfiltration, pas interruption, d'où son traitement à part.
 
@@ -666,7 +670,7 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 
 > ✅ **105bis fait le 2026-09-20** — arbitrage de Jules tranché (voir ci-dessous), détail dans `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 105bis.
 
-### 105bis — Sécurité : l'auto-désignation de modérateur (A4)
+### 105bis — Sécurité : l'auto-désignation de modérateur (A4) — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 **Produit avant d'être technique.** Lot 4 du [plan](./2026-09-19-plan-anti-interruption-seance.md).
 
@@ -711,7 +715,7 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - **Règle SQL** : `is_table_moderator` est réécrite → comparer son corps à `pg_get_functiondef` **en base**, jamais au fichier de migration.
 - **Fichiers** : `supabase/migrations/…`, `src/context/TableContext.tsx`, l'onglet Groupes de `src/screens/SuperadminScreen.tsx` (et/ou `src/components/ParticipantsTable.tsx`).
 
-### 107 — `claim_moderator_status` ne doit jamais déplacer quelqu'un déjà assis
+### 107 — `claim_moderator_status` ne doit jamais déplacer quelqu'un déjà assis — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 
 **SQL uniquement.** Problème B de l'audit, et condition préalable à l'arbitrage 1.
 
@@ -756,7 +760,7 @@ Le `REVOKE SELECT` + `GRANT SELECT (id, session_id, content, status, created_at)
 - S'il y a **moins** : des tables restent sans modérateur. L'option « interdire les tables sans modérateur » du chantier 98 existe déjà pour éviter d'en arriver là ; le signaler à l'écran suffit, ne rien corriger ici.
 - **Fichiers** : `supabase/migrations/…`, `src/screens/SuperadminScreen.tsx` (`handlePhaseChange`).
 
-### 110 — Bouton « Je suis le modérateur de cette table » dans les Outils + filet d'identité
+### 110 — Bouton « Je suis le modérateur de cette table » dans les Outils + filet d'identité — ✅ fait, voir `docs/chantiers.md` (vérifié le 2026-10-05)
 > 🟡 **Livré le 2026-09-21, pas encore mergé** (`claude/chantier-110-c54053`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 110 pour le détail complet et la recette de vérification.
 
 **Front + SQL léger.** Piège D1 de l'audit. **Après le 106.**
