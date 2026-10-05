@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useTable } from '../context/TableContext'
 import { getVoteResults } from '../lib/voting'
 import { QUESTIONNAIRE_THEMES } from '../lib/utils'
-import type { QuestionnaireResponse, VoteResult } from '../lib/types'
+import type { QuestionnaireResponse, SessionType, VoteResult } from '../lib/types'
 import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
 import VoteResultsList from './voting/VoteResultsList'
@@ -12,12 +12,16 @@ import ModeratorActionModal from './voting/ModeratorActionModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ChangeTableModal from './voting/ChangeTableModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
+import { sessionTypeOf } from '../lib/phaseLabels'
+import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 
 type SessionDocs = {
   doc_info_url: string | null
   doc_summary_url: string | null
   doc_collab_url: string | null
   session_join_code?: string | null
+  /** Chantier 155 — pas de fiches pédagogiques dans un sondage. */
+  session_type?: SessionType | null
 }
 
 interface Props {
@@ -103,6 +107,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const summaryUrl = doc_summary_url ?? null
   // Chantier 135 — pas de document collaboratif dans une séance d'association.
   const hasCollab  = !orgName && (!!session_join_code || !!doc_collab_url)
+  const showPedagogy = showPedagogyDocs(sessionTypeOf(session))
 
   function handleCollabClick() {
     setPanelOpen(false)
@@ -163,7 +168,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                       <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
                       <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
                     </svg>
-                    Fiche information
+                    {DOC_INFO_LABEL}
                   </a>
                 )}
                 {summaryUrl && (
@@ -181,7 +186,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                       <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
                       <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
                     </svg>
-                    Résumé fiche information
+                    {DOC_SUMMARY_LABEL}
                   </a>
                 )}
                 {hasCollab && (
@@ -215,38 +220,42 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                     </a>
                   )
                 )}
-                <a
-                  href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={subLinkClass}
-                  onClick={() => setPanelOpen(false)}
-                >
-                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
-                  </svg>
-                  Biais cognitifs
-                </a>
-                <a
-                  href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={subLinkClass}
-                  onClick={() => setPanelOpen(false)}
-                >
-                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
-                  </svg>
-                  Arguments fallacieux
-                </a>
+                {showPedagogy && (
+                  <>
+                    <a
+                      href={DOC_BIAIS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={subLinkClass}
+                      onClick={() => setPanelOpen(false)}
+                    >
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+                      </svg>
+                      Biais cognitifs
+                    </a>
+                    <a
+                      href={DOC_FALLACIES_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={subLinkClass}
+                      onClick={() => setPanelOpen(false)}
+                    >
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+                      </svg>
+                      Arguments fallacieux
+                    </a>
+                  </>
+                )}
                 <div className="mt-2 border-t border-gray-100" />
               </>
 

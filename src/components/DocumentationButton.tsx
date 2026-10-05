@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { useSessionOrganizationName } from '../lib/organizations'
+import { sessionTypeOf } from '../lib/phaseLabels'
+import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
+import type { SessionType } from '../lib/types'
 
 type SessionDocs = {
   doc_info_url: string | null
   doc_summary_url: string | null
   doc_collab_url: string | null
   session_join_code?: string | null
+  /** Chantier 155 — pas de fiches pédagogiques dans un sondage. */
+  session_type?: SessionType | null
 }
 
 interface Props {
@@ -26,6 +31,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
   const { doc_info_url, doc_summary_url, doc_collab_url, session_join_code } = session
 
   const hasCollab = !orgName && (!!session_join_code || !!doc_collab_url)
+  const showPedagogy = showPedagogyDocs(sessionTypeOf(session))
 
   const linkClass = `block px-4 py-2 text-sm hover:bg-gray-50 text-gray-700 whitespace-nowrap`
 
@@ -64,7 +70,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
                 className={linkClass}
                 onClick={() => setOpen(false)}
               >
-                Fiche information
+                {DOC_INFO_LABEL}
               </a>
             )}
             {doc_summary_url && (
@@ -75,7 +81,7 @@ export default function DocumentationButton({ session, className, dropdownClass,
                 className={linkClass}
                 onClick={() => setOpen(false)}
               >
-                Résumé fiche information
+                {DOC_SUMMARY_LABEL}
               </a>
             )}
             {hasCollab && (
@@ -103,27 +109,31 @@ export default function DocumentationButton({ session, className, dropdownClass,
                 )}
               </>
             )}
-            {(doc_info_url || doc_summary_url || hasCollab) && (
-              <div className="my-1 border-t border-gray-100" />
+            {showPedagogy && (
+              <>
+                {(doc_info_url || doc_summary_url || hasCollab) && (
+                  <div className="my-1 border-t border-gray-100" />
+                )}
+                <a
+                  href={DOC_BIAIS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                  onClick={() => setOpen(false)}
+                >
+                  Biais cognitifs
+                </a>
+                <a
+                  href={DOC_FALLACIES_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                  onClick={() => setOpen(false)}
+                >
+                  Arguments fallacieux
+                </a>
+              </>
             )}
-            <a
-              href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-              onClick={() => setOpen(false)}
-            >
-              Biais cognitifs
-            </a>
-            <a
-              href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-              onClick={() => setOpen(false)}
-            >
-              Arguments fallacieux
-            </a>
           </div>
         </>
       )}

@@ -17,7 +17,7 @@ import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
 import { getSessionById } from '../lib/sessions'
-import type { QueueEntry, SpeakingTurn } from '../lib/types'
+import type { QueueEntry, Session, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
 import QueuePanel from '../components/QueuePanel'
 import ParticipantsTable from '../components/ParticipantsTable'
@@ -118,6 +118,7 @@ export default function ModeratorView() {
     doc_summary_url: string | null
     doc_collab_url: string | null
     session_join_code: string | null
+    session_type: Session['session_type']
   } | null>(null)
 
   useEffect(() => {
@@ -130,6 +131,7 @@ export default function ModeratorView() {
           doc_summary_url:   data.doc_summary_url,
           doc_collab_url:    data.doc_collab_url,
           session_join_code: data.join_code,
+          session_type:      data.session_type,
         })
       })
       .catch(() => {})

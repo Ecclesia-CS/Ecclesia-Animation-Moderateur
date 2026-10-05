@@ -29,6 +29,7 @@ import {
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
 import { SESSION_TYPE_LABEL, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
+import { DOC_INFO_LABEL } from '../lib/docLinks'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
   listAssertionsAdmin, getSessionVotingStats, updateSessionConfig,
@@ -1371,7 +1372,6 @@ function CreateModal({
   const [description, setDescription]   = useState('')
   const [scheduledAt, setScheduledAt]   = useState('')
   const [docInfoUrl, setDocInfoUrl]     = useState('')
-  const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [onboardingEnabled, setOnboardingEnabled] = useState(true)
   // Chantier 135 — une association n'a que le débat simple et le sondage.
@@ -1393,7 +1393,7 @@ function CreateModal({
         description || undefined,
         scheduledAt ? fromDateTimeLocal(scheduledAt) : undefined,
         docInfoUrl || undefined,
-        docSummaryUrl || undefined,
+        undefined, // chantier 155 : plus de résumé séparé à la création
         undefined,
         onboardingEnabled,
         sessionType,
@@ -1501,8 +1501,7 @@ function CreateModal({
               Documentation <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
             <div className="space-y-3">
-              <DocFileField label="Fiche information" placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
-              <DocFileField label="Résumé" placeholder="https://…" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+              <DocFileField label={DOC_INFO_LABEL} placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
             </div>
             {!isOrgMode && (
             <p className="mt-3 text-xs text-gray-400">
@@ -4132,8 +4131,12 @@ function SessionDetail({
                       </div>
                       {editingDocs ? (
                         <form onSubmit={handleSaveDocs} className="space-y-3">
-                          <DocFileField label="Fiche information" placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
-                          <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                          <DocFileField label={DOC_INFO_LABEL} placeholder="fiche-info.html" value={docInfoUrl} onChange={setDocInfoUrl} />
+                          {/* Chantier 155 — le résumé séparé n'est plus proposé aux nouvelles séances ;
+                              on ne l'affiche en édition que s'il est déjà renseigné (anciennes séances). */}
+                          {!!sessionDocs.doc_summary_url && (
+                            <DocFileField label="Résumé" placeholder="résumé-info.html" value={docSummaryUrl} onChange={setDocSummaryUrl} />
+                          )}
                           {docsErr && (
                             <p className="text-xs text-red-600">{docsErr}</p>
                           )}
@@ -4157,8 +4160,10 @@ function SessionDetail({
                         </form>
                       ) : (
                         <div className="space-y-2 text-sm">
-                          <DocLink label="Fiche information" url={sessionDocs.doc_info_url} />
-                          <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                          <DocLink label={DOC_INFO_LABEL} url={sessionDocs.doc_info_url} />
+                          {!!sessionDocs.doc_summary_url && (
+                            <DocLink label="Résumé" url={sessionDocs.doc_summary_url} />
+                          )}
                           {!sessionDocs.doc_info_url && !sessionDocs.doc_summary_url && (
                             <p className="text-xs text-gray-400">Aucun document PDF configuré</p>
                           )}

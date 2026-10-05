@@ -171,7 +171,7 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 Points à traiter : colonne sur `sessions` (booléen, défaut `true`) à ajouter au `GRANT SELECT` restreint d'`anon` (chantier 58 — cas réel du 30/09 : colonne absente du GRANT → accueil de prod vide), **sur dev et prod** ; réglage dans l'écran superadmin, à la création et en cours de séance ; **associations : rien à faire** — une séance d'association n'apparaît déjà jamais sur l'accueil (`EntryScreen` filtre `organization_id IS NULL`, chantier 135), donc le réglage ne les concerne pas ; ne pas l'exposer dans l'espace asso (Jules, 2026-10-05 : « pourquoi pas, mais de toute façon… » — sans objet tant que le filtre existe).
 
-#### 155 — Documentation : « Fiche info et résumé » à la place des deux liens, et pas de fiches pédagogiques pour les sondages
+#### 155 — Documentation : « Fiche info et résumé » à la place des deux liens, et pas de fiches pédagogiques pour les sondages — ✅ fait le 2026-10-05, voir `docs/chantiers.md`
 > **Consignes de Jules** : « Pour la documentation, on peut rajouter un troisième lien : Fiche info et résumé (car le lien mène finalement vers les deux mêmes). Autre tâche : Pour les sondages uniquement, on peut enlever les liens vers biais cognitifs ou arguments fallacieux. Ça n'a pas d'intérêt. »
 
 **Décisions de Jules (2026-10-05)** : (1) le lien « Fiche info et résumé » **remplace** « Fiche information » et « Résumé fiche information » ; il n'apparaît **que lorsque le superadmin y a glissé le lien** ; valable pour **toutes** les séances, internes **et** d'association. (2) Le masquage de « Biais cognitifs » / « Arguments fallacieux » ne concerne **que les sondages** (`sessionTypeOf(session) === 'poll'`).

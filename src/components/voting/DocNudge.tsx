@@ -1,4 +1,6 @@
 import type { Session } from '../../lib/types'
+import { sessionTypeOf } from '../../lib/phaseLabels'
+import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../../lib/docLinks'
 
 // Chantier 122 — nudge documentaire partagé entre VoteScreen (phases
 // pre_voting/voting) et AllocatingScreen (phase allocating). Les liens biais
@@ -40,13 +42,13 @@ export default function DocNudge({ session }: DocNudgeProps) {
         {infoUrl && (
           <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
             {iconPath}
-            Fiche information
+            {DOC_INFO_LABEL}
           </a>
         )}
         {summaryUrl && (
           <a href={summaryUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>
             {iconPath}
-            Résumé fiche information
+            {DOC_SUMMARY_LABEL}
           </a>
         )}
         {/* Chantier 135 — pas de document collaboratif pour une association. */}
@@ -56,24 +58,19 @@ export default function DocNudge({ session }: DocNudgeProps) {
             Sources collaboratives
           </button>
         )}
-        <a
-          href="https://ecclesia-centralesupelec.vercel.app/ressources#biais-cognitifs"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          {iconPath}
-          Biais cognitifs
-        </a>
-        <a
-          href="https://ecclesia-centralesupelec.vercel.app/ressources#arguments-fallacieux"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={linkClass}
-        >
-          {iconPath}
-          Arguments fallacieux
-        </a>
+        {/* Chantier 155 — sans objet dans un sondage (aucun débat). */}
+        {showPedagogyDocs(sessionTypeOf(session)) && (
+          <>
+            <a href={DOC_BIAIS_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
+              {iconPath}
+              Biais cognitifs
+            </a>
+            <a href={DOC_FALLACIES_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
+              {iconPath}
+              Arguments fallacieux
+            </a>
+          </>
+        )}
       </div>
     </div>
   )
