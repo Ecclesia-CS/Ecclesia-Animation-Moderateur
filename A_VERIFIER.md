@@ -212,10 +212,6 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 
 - [ ] Lancer `run_transcription.ps1` sur un débat : la console doit afficher `Diarisation pyannote (cuda)...` et `nvidia-smi` montrer le GPU occupé (~7 min attendues pour 2 h, mesure du 19/09).
 
-## Chantier 149 — cadres autour des noms liés (2026-10-02)
-
-- [ ] ⚠️ **Doute relevé le 2026-10-05 (passe guidée, dev)** : sur « QA Vérifs — Complète », Camille QA et Dorian QA ont un lien d'appairage réciproque (`member_pairings`) et étaient à la même table (Table N°1), mais la capture de Jules ne montrait ni cadre commun ni 🔗 sur leurs puces. À contrôler : soit `allocInputs.pairs` n'était pas chargé dans l'onglet Groupes, soit le déploiement Vercel dev était en retard sur le chantier 149. Vérification non terminée (le code est bien dans `origin/dev`).
-
 ## Chantier 150 — modifier son questionnaire d'entrée (2026-10-02)
 
 - [ ] **Au merge `dev` → `main`** : appliquer `supabase/migrations/20261002_chantier150_modifier_questionnaire_entree.sql` sur la base **prod** (comparer d'abord `pg_get_functiondef(submit_entry_response)` prod à celle de dev). Une vérification faite sur dev ne vaut pas pour prod.
