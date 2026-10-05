@@ -160,6 +160,20 @@ Fichiers probables : `App.tsx`, `TableContext.tsx`, `ModeratorView.tsx`, `Partic
 
 **Précisions (réponse de Jules)** : deux **réglages par séance, activables en séance** : « voter sur toutes les options avant de proposer » et un **plafond de propositions par personne** (infini par défaut). Réglés par le **superadmin** pour les séances internes et par **l'association** pour les séances externes (nouvelles RPC via `check_session_admin`). Les personnes qui dépassent déjà le plafond gardent leurs propositions et n'en peuvent plus ajouter. Valable pour tous les types de séance (sans effet en `debate`). S'appuyer sur `assertions_locked` (chantier 124) comme modèle.
 
+### 154, 155 — Liste de tâches 3 (dictée par Jules le 2026-10-05), en 2 chantiers
+
+> **Rappel des règles de Jules** : se demander d'abord si la modification se généralise ailleurs (la lui proposer), puis types de séance et associations ; vérifier soi-même au navigateur (voir `CLAUDE.md`).
+
+#### 154 — Choisir quelles séances sont visibles publiquement sur l'accueil
+> **Consigne de Jules** : « Décider quelles séances peuvent être visibles publiquement ou non sur l'accueil de l'appli. »
+
+**À préciser avec Jules avant de coder** : réglage **par séance** (booléen sur `sessions`, modifiable à tout moment depuis le superadmin et, pour leurs séances, depuis l'espace asso) ; valeur par défaut des séances existantes et des nouvelles ; concerne-t-il la liste des séances en cours (`EntryScreen`), celle des séances closes publiques (`listPublicClosedSessions`), ou les deux ? Une séance masquée reste accessible par son lien/QR (`#session/<code>`). Attention au `GRANT SELECT` restreint d'`anon` sur `sessions` (chantier 58 — cas réel du 30/09 : colonne absente du GRANT → accueil de prod vide) : ajouter la colonne au GRANT **sur dev et prod**.
+
+#### 155 — Documentation : lien « Fiche info et résumé », et pas de fiches pédagogiques pour les sondages
+> **Consignes de Jules** : « Pour la documentation, on peut rajouter un troisième lien : Fiche info et résumé (car le lien mène finalement vers les deux mêmes). Autre tâche : Pour les sondages uniquement, on peut enlever les liens vers biais cognitifs ou arguments fallacieux. Ça n'a pas d'intérêt. »
+
+Fichier : `src/components/DocumentationButton.tsx` (menu « Documentation » : « Fiche information », « Résumé fiche information », document collaboratif, fiches pédagogiques). À faire : (1) ajouter le lien « Fiche info et résumé » ; (2) pour `sessionTypeOf(session) === 'poll'`, masquer les liens biais cognitifs / arguments fallacieux (y compris leurs rappels dans les écrans du sondage, ex. `DocNudge`). Le composant ne reçoit aujourd'hui que `sessionId` : en déduire le type. **À préciser** : « troisième lien » = **en plus** des deux existants, ou **à leur place** quand les deux URL sont identiques ?
+
 ### 121, 122, 123 — Retours de Jules du 2026-09-22 (7 points), en 3 chantiers
 
 > **Consigne de Jules (2026-09-22)**, citée intégralement puis découpée avec lui en conversation. **121 et 122 peuvent tourner en parallèle** — pas de conflit de fichier bloquant identifié entre eux. Ils touchent tous les deux `VoteScreen` (121 sur le bug du popup d'assertion, 122 sur l'ajout des liens docs) mais sur des zones différentes du composant : conflit peu probable, mais celui qui merge en second devra sans doute rebaser sur l'autre.
