@@ -45,15 +45,15 @@ export default function ParticipantsTable() {
   }
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-        <span className="font-semibold text-sm text-slate-100">Participants</span>
-        <span className="text-xs text-slate-400 font-mono tabular-nums">
-          Séance&nbsp;: <span className="text-slate-200">{formatDuration(sessionTotal)}</span>
+    <div className="bg-slate-800/60 border border-white/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+        <span className="font-semibold text-sm text-creme">Participants</span>
+        <span className="text-xs text-slate-300 font-mono tabular-nums">
+          Séance&nbsp;: <span className="text-creme">{formatDuration(sessionTotal)}</span>
         </span>
       </div>
       <table className="w-full text-sm">
-        <thead className="text-xs text-slate-500 border-b border-slate-700">
+        <thead className="text-[11px] uppercase tracking-[0.12em] text-slate-300 border-b border-white/10">
           <tr>
             <th className="w-8" />
             <th className="px-4 py-2.5 text-left font-medium">Pseudo</th>
@@ -86,11 +86,11 @@ export default function ParticipantsTable() {
         </tbody>
         {participants.length > 0 && (
           <tfoot>
-            <tr className="border-t border-slate-600">
-              <td colSpan={3} className="px-4 py-2.5 text-xs text-slate-500 font-medium">
+            <tr className="border-t border-white/15">
+              <td colSpan={3} className="px-4 py-2.5 text-[11px] uppercase tracking-[0.12em] text-slate-300 font-medium">
                 Total séance
               </td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-300 text-sm font-semibold">
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-creme text-sm font-semibold">
                 {formatDuration(sessionTotal)}
               </td>
               <td colSpan={2} />
@@ -109,7 +109,7 @@ export default function ParticipantsTable() {
         />
       )}
       {kickErr && (
-        <p className="px-4 pb-3 text-xs text-red-400">{kickErr}</p>
+        <p className="px-4 pb-3 text-xs text-red-300">{kickErr}</p>
       )}
     </div>
   )
@@ -139,8 +139,8 @@ function DraggableRow({
     <tr
       ref={setNodeRef}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className={`border-t border-slate-700/60 transition-colors ${
-        isSpeaking ? 'bg-indigo-900/40' : 'hover:bg-slate-700/30'
+      className={`border-t border-white/[0.06] transition-colors ${
+        isSpeaking ? 'bg-amber-400/10' : 'hover:bg-white/[0.04]'
       }`}
     >
       {/* Drag handle */}
@@ -150,9 +150,9 @@ function DraggableRow({
           {...listeners}
           disabled={isSpeaking}
           title="Glisser vers une file"
-          className="p-1.5 rounded text-slate-600 hover:text-slate-300 cursor-grab
+          className="p-1.5 text-slate-400 hover:text-creme cursor-grab
             active:cursor-grabbing disabled:opacity-20 disabled:cursor-not-allowed
-            transition-colors focus:outline-none"
+            transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60"
         >
           <DragHandleIcon />
         </button>
@@ -160,11 +160,11 @@ function DraggableRow({
 
       {/* Pseudo */}
       <td className="px-4 py-3 max-w-[120px]">
-        <span className={`font-medium truncate block ${isSpeaking ? 'text-white animate-speaking' : 'text-slate-100'}`}>
+        <span className={`font-medium truncate block ${isSpeaking ? 'text-amber-100 animate-speaking' : 'text-creme'}`}>
           {p.pseudo}
         </span>
         {isSpeaking && (
-          <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-400 font-semibold">
+          <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-300 font-semibold">
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -180,27 +180,27 @@ function DraggableRow({
       {/* Current turn */}
       <td className="px-4 py-3 text-right font-mono tabular-nums">
         {isSpeaking && table.current_turn_started_at ? (
-          <SpeakerTimer startedAt={table.current_turn_started_at} className="text-amber-400 text-sm" />
+          <SpeakerTimer startedAt={table.current_turn_started_at} className="text-amber-300 text-sm" />
         ) : (
-          <span className="text-slate-700">—</span>
+          <span className="text-slate-500">—</span>
         )}
       </td>
 
       {/* Cumulative */}
-      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-300">
+      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-200">
         {formatDuration(ms)}
       </td>
 
       {/* Percentage */}
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-2">
-          <div className="w-16 h-1.5 bg-slate-600 rounded-full overflow-hidden">
+          <div className="w-16 h-1.5 bg-white/10 overflow-hidden">
             <div
-              className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+              className="h-full bg-bleu-clair transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="tabular-nums text-slate-400 text-xs w-8 text-right">{pct}%</span>
+          <span className="tabular-nums text-slate-300 text-xs w-8 text-right">{pct}%</span>
         </div>
       </td>
 
@@ -211,9 +211,9 @@ function DraggableRow({
             onClick={onGrantFloor}
             disabled={isSpeaking}
             title="Donner le micro directement"
-            className="text-xs px-2.5 py-1 bg-slate-700 border border-slate-600
-              text-slate-200 rounded-lg hover:bg-slate-600 disabled:opacity-30
-              transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500
+            className="text-xs px-2.5 py-1 bg-white/5 border border-white/15
+              text-slate-200 hover:bg-bleu-clair/15 hover:border-bleu-clair/50 hover:text-creme disabled:opacity-30
+              transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60
               focus:ring-offset-1 focus:ring-offset-slate-800 whitespace-nowrap"
           >
             Donner la parole
@@ -223,9 +223,9 @@ function DraggableRow({
               onClick={onKick}
               title="Bannir"
               aria-label="Bannir ce participant"
-              className="p-1.5 rounded-lg border border-red-700/50 text-red-400
-                hover:bg-red-900/30 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-red-500 focus:ring-offset-1 focus:ring-offset-slate-800"
+              className="p-1.5 border border-red-400/30 text-red-300
+                hover:bg-red-500/15 hover:border-red-400/60 transition-colors focus:outline-none
+                focus:ring-2 focus:ring-red-400 focus:ring-offset-1 focus:ring-offset-slate-800"
             >
               <TrashIcon />
             </button>

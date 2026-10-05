@@ -74,11 +74,11 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="bg-indigo-600 px-6 py-5 text-center">
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="bg-bleu-fonce px-6 py-5 text-center">
           <p className="text-2xl mb-1">🎙️</p>
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="font-serif text-xl font-semibold text-creme">
             {step === 'choice' && 'Modérateur'}
             {step === 'form' && action === 'session' && 'Me déclarer modérateur'}
             {step === 'form' && action === 'table' && 'Reprendre l\'animation de cette table'}
@@ -95,7 +95,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
             {canClaimSession && (
               <button
                 onClick={() => pick('session')}
-                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                className="w-full text-left p-4 border border-bleu-fonce/10 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
               >
                 <p className="text-sm font-medium text-gray-900">Me déclarer modérateur de la séance</p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -110,7 +110,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
             {canReclaimTable && (
               <button
                 onClick={() => pick('table')}
-                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                className="w-full text-left p-4 border border-bleu-fonce/10 hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
               >
                 <p className="text-sm font-medium text-gray-900">Reprendre l'animation de cette table</p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -123,7 +123,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
 
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 text-gray-600 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="w-full py-3 px-4 text-gray-600 text-sm font-medium border border-bleu-fonce/10 hover:bg-gray-50 transition-colors"
             >
               Annuler
             </button>
@@ -142,7 +142,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
                   : 'Confirme avec le Code Ecclesia pour reprendre la main sur cette table.')}
             </p>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">{codeLabel}</label>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">{codeLabel}</label>
               <PasswordInput
                 autoFocus
                 value={password}
@@ -151,20 +151,20 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
               />
             </div>
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
             )}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setStep('choice')}
-                className="flex-1 py-3 px-4 text-gray-600 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 text-gray-600 text-sm font-medium border border-bleu-fonce/10 hover:bg-gray-50 transition-colors"
               >
                 Retour
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+                className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 {loading ? 'Vérification…' : (action === 'session' ? 'Confirmer' : 'Reprendre la main')}
               </button>
@@ -182,7 +182,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
             </p>
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Fermer
             </button>

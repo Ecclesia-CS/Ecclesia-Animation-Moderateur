@@ -36,15 +36,15 @@ export default function ParticipantCodesModal({ onClose }: Props) {
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 p-4"
         onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
       >
-        <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-            <h2 className="text-sm font-semibold text-gray-900">Code participant</h2>
+        <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Code participant</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+              className="text-gray-500 hover:text-gray-600 transition-colors p-1
                 focus:outline-none focus:ring-2 focus:ring-gray-300"
               aria-label="Fermer"
             >
@@ -61,16 +61,16 @@ export default function ParticipantCodesModal({ onClose }: Props) {
 
           <div className="overflow-y-auto px-2 py-2">
             {participants.length === 0 ? (
-              <p className="text-xs text-center text-gray-400 py-4">Aucun participant</p>
+              <p className="text-xs text-center text-gray-500 py-4">Aucun participant</p>
             ) : (
               <ul className="flex flex-col">
                 {participants.map(p => (
-                  <li key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-50">
+                  <li key={p.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50">
                     <span className="text-sm text-gray-800 truncate flex-1">{p.pseudo}</span>
                     <button
                       onClick={() => setTarget(p)}
                       title="Cette personne a perdu son code de rappel : en générer un nouveau, à lui lire (l'ancien cesse de fonctionner)"
-                      className="p-1.5 rounded-lg border border-amber-300 text-amber-600
+                      className="p-1.5 border border-amber-300 text-amber-600
                         hover:bg-amber-50 transition-colors focus:outline-none
                         focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
                     >
@@ -98,19 +98,19 @@ export default function ParticipantCodesModal({ onClose }: Props) {
 
       {newCode && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setNewCode(null) }}
         >
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 text-center">
-            <h2 className="text-sm font-semibold text-slate-100">Nouveau code de rappel</h2>
-            <p className="text-sm text-slate-400">
-              À lire à <strong className="text-slate-200">{newCode.pseudo}</strong>.
+          <div className="bg-slate-900 border border-white/15 shadow-2xl w-full max-w-sm p-6 space-y-4 text-center text-creme animate-entree">
+            <h2 className="font-serif text-xl font-semibold text-creme">Nouveau code de rappel</h2>
+            <p className="text-sm text-slate-300">
+              À lire à <strong className="text-creme">{newCode.pseudo}</strong>.
               L'ancien code ne fonctionne plus, et celui-ci ne sera plus affiché.
             </p>
-            <p className="text-4xl font-mono font-bold tracking-widest text-amber-400">{newCode.code}</p>
+            <p className="text-5xl font-mono font-bold tracking-[0.25em] tabular-nums text-amber-300">{newCode.code}</p>
             <button
               onClick={() => setNewCode(null)}
-              className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-xl transition-colors"
+              className="btn-verre w-full py-2.5 text-creme text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-bleu-clair/60"
             >
               Fermer
             </button>

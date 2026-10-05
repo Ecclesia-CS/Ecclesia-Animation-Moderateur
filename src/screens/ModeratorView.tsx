@@ -197,9 +197,9 @@ export default function ModeratorView() {
     manual:      'Manuel',
   }
   const sourceBadge: Record<string, string> = {
-    long:        'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-    interactive: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
-    manual:      'bg-slate-600 text-slate-300 border-slate-500',
+    long:        'bg-bleu-clair/10 text-bleu-clair border-bleu-clair/40',
+    interactive: 'bg-teal-400/10 text-teal-200 border-teal-400/40',
+    manual:      'bg-white/5 text-slate-200 border-white/20',
   }
 
   const currentTurn = speakingTurns.find(t => t.ended_at === null) ?? null
@@ -453,32 +453,32 @@ export default function ModeratorView() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-grain bg-slate-900 text-creme">
 
       {/* ── Header ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 bg-slate-950 border-b border-slate-700 px-3 py-2 sm:px-4 sm:py-3">
+      <header className="sticky top-0 z-10 bg-slate-950/95 border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
 
           {/* Left: session title + join code + live mini-speaker */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {sessionDocs?.title && (
-              <span className="hidden sm:block text-sm font-medium text-slate-400 truncate max-w-[180px]"
+              <span className="hidden sm:block font-serif text-base font-medium text-slate-300 truncate max-w-[200px]"
                 title={sessionDocs.title}>
                 {sessionDocs.title}
               </span>
             )}
-            <span className="font-mono text-lg sm:text-xl font-bold text-indigo-400 shrink-0 tracking-widest">
+            <span className="font-mono text-lg sm:text-xl font-bold text-bleu-clair shrink-0 tracking-[0.2em]">
               {table.join_code}
             </span>
             {speaker && table.current_turn_started_at && (
               <>
-                <span className="text-slate-700 shrink-0 hidden sm:inline">|</span>
+                <span className="text-white/20 shrink-0 hidden sm:inline">|</span>
                 <span className="flex items-center gap-2 text-sm min-w-0 basis-full sm:basis-auto order-1 sm:order-none">
-                  <span className="text-slate-300 truncate">{speaker.pseudo}</span>
+                  <span className="text-slate-200 truncate">{speaker.pseudo}</span>
                   <SpeakerTimer
                     startedAt={table.current_turn_started_at}
                     offsetMs={timerOffset}
-                    className="text-indigo-400 shrink-0 font-mono tabular-nums"
+                    className="text-bleu-clair shrink-0 font-mono tabular-nums"
                   />
                 </span>
               </>
@@ -491,19 +491,16 @@ export default function ModeratorView() {
               session={sessionDocs}
               currentTableJoinCode={table.join_code}
               sessionId={table.session_id}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
-                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 whitespace-nowrap"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 whitespace-nowrap"
             />
             <ModeratorToolsButton
               onError={setErr}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg text-slate-300
-                hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-slate-500 flex items-center gap-1.5 whitespace-nowrap"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 flex items-center gap-1.5 whitespace-nowrap"
             />
-            <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-300">
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-200">
               <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
-              <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-0.5
-                rounded-full border border-indigo-500/30 whitespace-nowrap">
+              <span className="bg-bleu-clair/10 text-bleu-clair text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-1
+                border border-bleu-clair/30 whitespace-nowrap">
                 Modérateur
               </span>
             </div>
@@ -517,9 +514,7 @@ export default function ModeratorView() {
 
             <button
               onClick={leaveTable}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-slate-600 rounded-lg
-                text-slate-300 hover:bg-slate-700 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-slate-500 whitespace-nowrap shrink-0"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 whitespace-nowrap shrink-0"
             >
               Quitter
             </button>
@@ -537,13 +532,13 @@ export default function ModeratorView() {
         onDragEnd={handleMasterDragEnd}
         onDragCancel={handleDragCancel}
       >
-      <main className="max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-start">
+      <main className="relative max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-start">
 
         {/* ── Colonne principale ─────────────────────────────── */}
         <div className="w-full flex-1 min-w-0 space-y-4">
 
         {err && (
-          <div className="p-3 rounded-xl bg-red-900/30 border border-red-700 text-sm text-red-300">
+          <div className="p-3 bg-red-900/30 border border-red-400/50 text-sm text-red-200">
             {err}
           </div>
         )}
@@ -552,73 +547,73 @@ export default function ModeratorView() {
 
         {/* Pause state */}
         {pausedSpeakerId && !speaker ? (
-          <div className="rounded-2xl border bg-amber-900/20 border-amber-600/40 p-6 flex flex-col items-center gap-4 text-center">
+          <div className="border bg-amber-900/20 border-amber-500/40 p-6 flex flex-col items-center gap-4 text-center animate-entree">
             <div className="flex items-center gap-2">
               <PauseIcon className="w-5 h-5 text-amber-400" />
-              <span className="text-amber-300 font-semibold text-lg">Pause</span>
+              <span className="text-amber-300 font-bold text-sm uppercase tracking-[0.2em]">Pause</span>
             </div>
-            <p className="text-3xl font-bold text-white">{pausedName}</p>
-            <p className="text-sm text-slate-400">Le micro est en pause</p>
+            <p className="font-serif text-4xl font-semibold text-creme">{pausedName}</p>
+            <p className="text-sm text-slate-300">Le micro est en pause</p>
             <SessionTimerDisplay
               speakingTurns={speakingTurns}
-              className="text-4xl font-mono tabular-nums text-slate-400 leading-none"
+              className="font-serif text-4xl font-medium tabular-nums text-slate-300 leading-none"
             />
-            <p className="text-xs text-slate-600 -mt-2">durée de séance</p>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 -mt-2">durée de séance</p>
             <div className="flex items-center gap-3 flex-wrap justify-center">
               <button
                 onClick={handleResume}
-                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl
-                  text-base font-medium transition-colors focus:outline-none
+                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white
+                  text-base font-semibold transition-colors focus:outline-none
                   focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
               >
                 Reprendre la parole
               </button>
               <button
                 onClick={handleSkip}
-                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl
-                  text-base font-medium transition-colors focus:outline-none
-                  focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                className="btn-verre px-6 py-3 text-creme
+                  text-base font-semibold focus:outline-none
+                  focus:ring-2 focus:ring-bleu-clair/60 focus:ring-offset-2 focus:ring-offset-slate-900"
               >
                 Passer au suivant
               </button>
             </div>
           </div>
         ) : (
-          <div className={`rounded-2xl border transition-all duration-300 ${
+          <div className={`border transition-all duration-300 ${
             speaker
-              ? 'bg-slate-800 border-indigo-500/40'
-              : 'bg-slate-800/60 border-slate-700'
+              ? 'bg-slate-800/70 border-bleu-clair/30 shadow-2xl'
+              : 'bg-slate-800/40 border-white/10'
           }`}>
             {speaker && table.current_turn_started_at ? (
               <div className="p-6 flex flex-col items-center text-center gap-3">
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full border font-medium
+                  <span className={`text-[11px] px-2.5 py-1 border font-bold uppercase tracking-[0.14em]
                     ${sourceBadge[currentTurn?.source ?? 'manual']}`}>
                     {sourceLabel[currentTurn?.source ?? 'manual']}
                   </span>
                 </div>
-                <p className="text-5xl font-bold text-white animate-speaking leading-tight">
+                <p className="font-serif text-5xl font-semibold text-creme animate-speaking leading-tight">
                   {speaker.pseudo}
                 </p>
                 <div className="flex items-center justify-center gap-8 flex-wrap">
                   <SpeakerTimer
                     startedAt={table.current_turn_started_at}
                     offsetMs={timerOffset}
-                    className="text-8xl font-mono tabular-nums text-indigo-300 leading-none"
+                    className="font-serif text-8xl font-medium tabular-nums text-bleu-clair leading-none"
                   />
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-xs text-slate-500 uppercase tracking-widest">Séance</span>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-[0.2em]">Séance</span>
                     <SessionTimerDisplay
                       speakingTurns={speakingTurns}
-                      className="text-5xl font-mono tabular-nums text-slate-400 leading-none"
+                      className="font-serif text-5xl font-medium tabular-nums text-slate-300 leading-none"
                     />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   <button
                     onClick={handlePause}
-                    className="px-5 py-2.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300
-                      border border-amber-600/40 rounded-xl text-sm font-medium transition-colors
+                    className="px-5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200
+                      border border-amber-400/50 text-sm font-semibold transition-colors
                       focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2
                       focus:ring-offset-slate-800 flex items-center gap-2"
                   >
@@ -627,9 +622,9 @@ export default function ModeratorView() {
                   </button>
                   <button
                     onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
-                    className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white
-                      rounded-xl text-base font-medium transition-colors focus:outline-none
-                      focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2
+                    className="btn-verre btn-verre-primaire px-8 py-2.5 text-creme
+                      text-base font-semibold focus:outline-none
+                      focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2
                       focus:ring-offset-slate-800"
                   >
                     Terminer la prise de parole
@@ -639,18 +634,18 @@ export default function ModeratorView() {
             ) : (
               <div className="py-10 text-center">
                 {isGranting ? (
-                  <p className="text-lg text-slate-500">Attribution en cours…</p>
+                  <p className="text-lg text-slate-400">Attribution en cours…</p>
                 ) : (
                   <>
-                    <p className="text-3xl font-semibold text-slate-600">Micro libre</p>
-                    <p className="mt-1 text-sm text-slate-600">Aucun orateur en cours</p>
+                    <p className="font-serif text-4xl font-semibold text-slate-300">Micro libre</p>
+                    <p className="mt-1 text-sm text-slate-400">Aucun orateur en cours</p>
                   </>
                 )}
                 <SessionTimerDisplay
                   speakingTurns={speakingTurns}
-                  className="text-5xl font-mono tabular-nums text-slate-500 mt-4 leading-none block"
+                  className="font-serif text-5xl font-medium tabular-nums text-slate-400 mt-4 leading-none block"
                 />
-                <p className="text-xs text-slate-600 mt-1">durée de séance</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 mt-1.5">durée de séance</p>
               </div>
             )}
           </div>
@@ -709,8 +704,8 @@ export default function ModeratorView() {
       {/* ── DragOverlay : bulle qui suit le curseur pendant le drag ── */}
       <DragOverlay dropAnimation={null}>
         {activeDragPseudo && (
-          <div className="px-4 py-2 bg-slate-700 text-slate-100 rounded-lg shadow-xl
-            text-sm font-medium border border-slate-500/80 opacity-90 cursor-grabbing
+          <div className="px-4 py-2 bg-slate-700 text-creme shadow-xl
+            text-sm font-semibold border border-bleu-clair/40 opacity-95 cursor-grabbing
             pointer-events-none select-none whitespace-nowrap">
             {activeDragPseudo}
           </div>
@@ -721,11 +716,12 @@ export default function ModeratorView() {
 
       {/* H23 — panorama d'accueil modérateur, affiché une seule fois par table */}
       {showModWelcome && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden text-gray-900">
-            <div className="bg-indigo-600 px-6 py-5 text-center">
+        <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden text-gray-900">
+            <div className="bg-bleu-fonce px-6 py-5 text-center">
               <p className="text-2xl mb-1">🧑‍⚖️</p>
-              <h2 className="text-lg font-bold text-white">Bienvenue, modérateur</h2>
+              <h2 className="font-serif text-xl font-semibold text-creme">Bienvenue, modérateur</h2>
+            <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
             </div>
             <div className="px-6 py-5 space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto">
               <div className="flex items-start gap-3">
@@ -758,7 +754,7 @@ export default function ModeratorView() {
                   localStorage.setItem('mod_welcome_' + table.id, '1')
                   setShowModWelcome(false)
                 }}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 C'est parti ! →
               </button>
@@ -772,9 +768,10 @@ export default function ModeratorView() {
           recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir. */}
       {(session?.phase === 'closed' || session?.phase === 'post_voting') &&
         !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now()) && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
-          <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
-          <p className="text-gray-500">La séance a été clôturée par le superadmin.</p>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-creme gap-4 px-6 text-center">
+          <p className="font-serif text-3xl font-semibold tracking-tight text-bleu-fonce">La séance est terminée</p>
+          <span aria-hidden="true" className="filet-spectre block w-14" />
+          <p className="text-gray-600">La séance a été clôturée par le superadmin.</p>
           {session.join_code && (
             <button
               onClick={() => {
@@ -782,15 +779,15 @@ export default function ModeratorView() {
                 leaveTable()
               }}
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white text-sm font-semibold rounded-xl transition-colors"
+                text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Voir les résultats →
             </button>
           )}
           <button
             onClick={leaveTable}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
-              text-gray-700 text-sm font-semibold rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
+              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           >
             ← Retour au menu
           </button>

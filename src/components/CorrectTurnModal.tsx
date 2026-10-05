@@ -50,48 +50,48 @@ export default function CorrectTurnModal({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-xl">
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-lg max-h-[80vh] flex flex-col shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
-          <h2 className="font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
+          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
             {editing ? 'Modifier le tour de parole' : 'Historique des tours'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-600 text-lg leading-none">✕</button>
         </div>
 
         {/* List view */}
         {!editing && (
           <div className="overflow-y-auto flex-1">
             {sorted.length === 0 && (
-              <p className="px-5 py-4 text-sm text-gray-400">Aucun tour de parole enregistré.</p>
+              <p className="px-5 py-4 text-sm text-gray-500">Aucun tour de parole enregistré.</p>
             )}
             {sorted.map(t => (
               <div
                 key={t.id}
-                className="flex items-center justify-between px-5 py-3 border-b border-gray-50 last:border-0 text-sm"
+                className="flex items-center justify-between px-5 py-3 border-b border-bleu-fonce/[0.06] last:border-0 text-sm"
               >
                 <div className="min-w-0">
                   <span className="font-medium text-gray-900">
                     {getP(t.participant_id)?.pseudo ?? '—'}
                   </span>
-                  <span className="ml-2 text-gray-400 text-xs">
+                  <span className="ml-2 text-gray-500 text-xs">
                     {new Date(t.started_at).toLocaleTimeString()}
                     {t.ended_at
                       ? ` → ${new Date(t.ended_at).toLocaleTimeString()}`
-                      : <span className="ml-1 bg-indigo-50 text-indigo-700 rounded px-1 text-xs"> en cours</span>
+                      : <span className="ml-1 bg-indigo-50 text-indigo-700 px-1 text-xs"> en cours</span>
                     }
                   </span>
-                  <span className="ml-2 text-xs text-gray-300 capitalize">{t.source}</span>
+                  <span className="ml-2 text-xs text-gray-500 capitalize">{t.source}</span>
                   {t.ended_at ? (
-                    <span className="ml-2 font-mono text-xs text-indigo-600 bg-indigo-50 rounded px-1">
+                    <span className="ml-2 font-mono text-xs text-indigo-600 bg-indigo-50 px-1">
                       {formatDuration(new Date(t.ended_at).getTime() - new Date(t.started_at).getTime())}
                     </span>
                   ) : null}
                 </div>
                 <button
                   onClick={() => openEdit(t)}
-                  className="ml-3 shrink-0 text-xs px-3 py-1 border border-gray-200 rounded-lg
+                  className="ml-3 shrink-0 text-xs px-3 py-1 border border-bleu-fonce/10
                     text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   Corriger
@@ -105,33 +105,33 @@ export default function CorrectTurnModal({ onClose }: Props) {
         {editing && (
           <div className="p-5 space-y-4 overflow-y-auto flex-1">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Début</label>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Début</label>
               <input
                 type="datetime-local"
                 value={startedAt}
                 onChange={e => setStartedAt(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2
+                className="w-full text-sm border border-bleu-fonce/20 px-3 py-2
                   focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Fin <span className="text-gray-400 font-normal">(laisser vide = tour encore ouvert)</span>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
+                Fin <span className="text-gray-500 font-normal">(laisser vide = tour encore ouvert)</span>
               </label>
               <input
                 type="datetime-local"
                 value={endedAt}
                 onChange={e => setEndedAt(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2
+                className="w-full text-sm border border-bleu-fonce/20 px-3 py-2
                   focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Participant</label>
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Participant</label>
               <select
                 value={participantId}
                 onChange={e => setParticipantId(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2
+                className="w-full text-sm border border-bleu-fonce/20 px-3 py-2
                   focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {participants.map(p => (
@@ -145,7 +145,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setEditing(null)}
-                className="flex-1 py-2 text-sm border border-gray-200 rounded-lg
+                className="flex-1 py-2 text-sm border border-bleu-fonce/10
                   text-gray-700 hover:bg-gray-50"
               >
                 ← Retour
@@ -153,8 +153,8 @@ export default function CorrectTurnModal({ onClose }: Props) {
               <button
                 onClick={save}
                 disabled={loading}
-                className="flex-1 py-2 text-sm bg-indigo-600 text-white rounded-lg
-                  disabled:opacity-50 hover:bg-indigo-700"
+                className="flex-1 py-2 text-sm bg-indigo-600 text-white
+                  disabled:opacity-50 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 {loading ? 'Enregistrement…' : 'Enregistrer'}
               </button>

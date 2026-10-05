@@ -30,9 +30,9 @@ export default function QueuePanel({
   const [err, setErr] = useState<string | null>(null)
 
   const dark = variant === 'dark'
-  const accentBorder = accent === 'teal' ? 'border-teal-500' : 'border-indigo-500'
-  const accentText   = accent === 'teal' ? 'text-teal-400'  : 'text-indigo-400'
-  const ringColor    = accent === 'teal' ? 'ring-teal-500/50' : 'ring-indigo-500/50'
+  const accentBorder = accent === 'teal' ? 'border-l-teal-400' : 'border-l-bleu-clair'
+  const accentText   = accent === 'teal' ? 'text-teal-300'  : 'text-bleu-clair'
+  const ringColor    = accent === 'teal' ? 'ring-teal-400/60' : 'ring-bleu-clair/60'
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: droppableId,
@@ -51,24 +51,24 @@ export default function QueuePanel({
   return (
     <div
       ref={setDropRef}
-      className={`rounded-xl overflow-hidden border transition-all ${
-        dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'
+      className={`overflow-hidden border transition-all ${
+        dark ? 'bg-slate-800/60 border-white/10' : 'bg-white border-bleu-fonce/10'
       } ${isOver ? `ring-2 ${ringColor}` : ''}`}
     >
       {/* Header */}
       <div className={`px-4 py-3 border-b border-l-4 ${accentBorder} ${
-        dark ? 'bg-slate-700/50 border-b-slate-700' : 'bg-gray-50 border-b-gray-100'
+        dark ? 'bg-white/[0.03] border-b-white/10' : 'bg-gray-50 border-b-bleu-fonce/10'
       }`}>
-        <div className="flex items-center justify-between">
-          <span className={`font-semibold text-sm ${dark ? 'text-slate-100' : 'text-gray-900'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span className={`font-semibold text-sm ${dark ? 'text-creme' : 'text-anthracite'}`}>
             {title}
           </span>
-          <span className={`text-xs ${accentText}`}>
+          <span className={`text-xs font-medium tabular-nums whitespace-nowrap shrink-0 ${accentText}`}>
             {visibleCount} {visibleCount !== 1 ? 'personnes' : 'personne'}
           </span>
         </div>
         {subtitle && (
-          <p className={`text-xs mt-0.5 ${dark ? 'text-slate-400' : 'text-gray-400'}`}>
+          <p className={`text-xs mt-0.5 ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
             {subtitle}
           </p>
         )}
@@ -77,8 +77,8 @@ export default function QueuePanel({
       {entries.length === 0 ? (
         <p className={`px-4 py-4 text-sm italic transition-colors ${
           isOver
-            ? dark ? 'text-slate-300' : 'text-gray-600'
-            : dark ? 'text-slate-500' : 'text-gray-400'
+            ? dark ? 'text-creme' : 'text-gray-700'
+            : dark ? 'text-slate-400' : 'text-gray-500'
         }`}>
           {isOver ? '↓ Déposer ici' : 'File vide'}
         </p>
@@ -104,7 +104,7 @@ export default function QueuePanel({
       )}
 
       {err && (
-        <p className={`px-4 pb-3 text-xs ${dark ? 'text-red-400' : 'text-red-600'}`}>{err}</p>
+        <p className={`px-4 pb-3 text-xs ${dark ? 'text-red-300' : 'text-red-600'}`}>{err}</p>
       )}
     </div>
   )
@@ -138,15 +138,15 @@ function SortableRow({
         ref={setNodeRef}
         style={style}
         className={`border-b border-dashed last:border-0 ${
-          dark ? 'border-slate-500' : 'border-gray-300'
+          dark ? 'border-white/25' : 'border-bleu-fonce/20'
         }`}
       >
         <td className={`px-4 py-2.5 w-8 tabular-nums font-mono text-sm ${
-          dark ? 'text-slate-500' : 'text-gray-400'
+          dark ? 'text-slate-400' : 'text-gray-500'
         }`}>
           {index + 1}
         </td>
-        <td className={`px-4 py-2.5 font-medium italic ${dark ? 'text-slate-400' : 'text-gray-500'}`}>
+        <td className={`px-4 py-2.5 font-medium italic ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
           {pseudo}
         </td>
         <td className="px-4 py-2.5" />
@@ -160,24 +160,24 @@ function SortableRow({
       style={style}
       className={`border-b last:border-0 transition-colors ${
         dark
-          ? 'border-slate-700 hover:bg-slate-700/50'
-          : 'border-gray-50 hover:bg-gray-50'
+          ? 'border-white/[0.06] hover:bg-white/[0.04]'
+          : 'border-bleu-fonce/[0.06] hover:bg-gray-50'
       }`}
     >
       {/* Position */}
       <td className={`px-4 py-2.5 w-8 tabular-nums font-mono text-sm ${
         index === 0
           ? `font-bold ${accentText}`
-          : dark ? 'text-slate-500' : 'text-gray-400'
+          : dark ? 'text-slate-400' : 'text-gray-500'
       }`}>
         {index + 1}
       </td>
 
       {/* Pseudo */}
-      <td className={`px-4 py-2.5 font-medium ${dark ? 'text-slate-100' : 'text-gray-900'}`}>
+      <td className={`px-4 py-2.5 font-medium ${dark ? 'text-creme' : 'text-anthracite'}`}>
         {pseudo}
         {entry.topic_tag && (
-          <span className={`ml-2 text-xs font-normal italic ${dark ? 'text-slate-400' : 'text-gray-400'}`}>
+          <span className={`ml-2 text-xs font-normal italic ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
             — {entry.topic_tag}
           </span>
         )}
@@ -191,11 +191,11 @@ function SortableRow({
             {...listeners}
             aria-label="Déplacer"
             title="Glisser pour réordonner"
-            className={`p-1.5 rounded-lg border cursor-grab active:cursor-grabbing
+            className={`p-1.5 border cursor-grab active:cursor-grabbing
               transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
               dark
-                ? 'border-slate-600 text-slate-400 hover:bg-slate-600 focus:ring-slate-400 focus:ring-offset-slate-800'
-                : 'border-gray-200 text-gray-500 hover:bg-gray-100 focus:ring-gray-300'
+                ? 'border-white/15 text-slate-300 hover:bg-white/10 hover:text-creme focus:ring-bleu-clair/60 focus:ring-offset-slate-800'
+                : 'border-bleu-fonce/15 text-gray-500 hover:bg-gray-100 focus:ring-bleu-clair'
             }`}
           >
             <DragHandleIcon />
@@ -205,11 +205,11 @@ function SortableRow({
             onClick={onRemove}
             aria-label="Retirer de la file"
             title="Retirer de la file"
-            className={`p-1.5 rounded-lg border transition-colors focus:outline-none
+            className={`p-1.5 border transition-colors focus:outline-none
               focus:ring-2 focus:ring-offset-1 ${
               dark
-                ? 'border-red-700 text-red-400 hover:bg-red-900/40 focus:ring-red-500 focus:ring-offset-slate-800'
-                : 'border-red-200 text-red-500 hover:bg-red-50 focus:ring-red-300'
+                ? 'border-red-400/30 text-red-300 hover:bg-red-500/15 hover:border-red-400/60 focus:ring-red-400 focus:ring-offset-slate-800'
+                : 'border-red-200 text-red-600 hover:bg-red-50 focus:ring-red-300'
             }`}
           >
             <XIcon />

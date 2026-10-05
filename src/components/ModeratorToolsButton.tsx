@@ -144,9 +144,9 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
   const questionnaireDone = checkDone && isQuestionnaireComplete(savedResponse)
 
-  const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors'
-  const sectionLabelClass = 'pt-3 pb-1 px-5 text-xs font-semibold text-gray-400 uppercase tracking-wide'
-  const dividerClass = 'mt-2 border-t border-gray-100'
+  const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-anthracite hover:bg-indigo-50/70 hover:text-bleu-fonce transition-colors focus:outline-none focus:bg-indigo-50/70'
+  const sectionLabelClass = 'pt-3 pb-1 px-5 text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]'
+  const dividerClass = 'mt-2 border-t border-bleu-fonce/10'
 
   return (
     <>
@@ -156,15 +156,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {panelOpen && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">Outils Modo</h2>
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils Modo</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+                className="text-gray-500 hover:text-gray-600 transition-colors p-1
                   focus:outline-none focus:ring-2 focus:ring-gray-300"
                 aria-label="Fermer"
               >
@@ -180,7 +180,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 <p className={sectionLabelClass}>Camps &amp; assertions</p>
 
                 <button onClick={() => { setPanelOpen(false); setCampsOpen(true) }} className={linkClass}>
-                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M3 12h18" />
                     <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -188,7 +188,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 </button>
 
                 <button onClick={openAssertions} className={linkClass}>
-                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
@@ -203,7 +203,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             <p className={sectionLabelClass}>Table</p>
 
             <button onClick={() => { setPanelOpen(false); setQrOpen(true) }} className={linkClass}>
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <rect x="3" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
                 <rect x="14" y="3" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
                 <rect x="3" y="14" width="7" height="7" rx="1" strokeLinecap="round" strokeLinejoin="round" />
@@ -217,7 +217,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               onClick={() => { setPanelOpen(false); setAddPersonError(null); setAddPersonOpen(true) }}
               className={linkClass}
             >
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="9" cy="8" r="3.5" strokeLinecap="round" strokeLinejoin="round" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 19c.8-3.4 3.4-5.5 6.5-5.5s5.7 2.1 6.5 5.5" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 5v6M13 8h6" />
@@ -227,7 +227,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
             {table.session_id && (
               <button onClick={() => { setPanelOpen(false); setCodesOpen(true) }} className={linkClass}>
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
                 </svg>
                 Code participant
@@ -235,7 +235,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             )}
 
             <button onClick={() => { setPanelOpen(false); setCorrectOpen(true) }} className={linkClass}>
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
               </svg>
@@ -243,7 +243,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             </button>
 
             <button onClick={() => { setPanelOpen(false); setVoteToolOpen(true) }} className={linkClass}>
-              <span className="w-4 text-center text-gray-400 shrink-0">🗳️</span>
+              <span className="w-4 text-center text-gray-500 shrink-0">🗳️</span>
               {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
             </button>
 
@@ -259,7 +259,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               }}
               className={linkClass}
             >
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l4.414 4.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
               </svg>
               {table.questionnaire_forced_at
@@ -274,7 +274,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             <p className={sectionLabelClass}>Personnel</p>
 
             <button onClick={() => { setPanelOpen(false); setNotesOpen(true) }} className={linkClass}>
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
               </svg>
@@ -288,13 +288,13 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               title={questionnaireDone ? 'Questionnaire déjà rempli' : undefined}
               className={`${linkClass}${questionnaireDone ? ' opacity-40 cursor-not-allowed' : ''}`}
             >
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
                 <rect x="9" y="3" width="6" height="4" rx="1" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Questionnaire post-débat
-              {questionnaireDone && <span className="ml-auto text-xs text-gray-400">✓ rempli</span>}
+              {questionnaireDone && <span className="ml-auto text-xs text-gray-500">✓ rempli</span>}
             </button>
             )}
 
@@ -313,15 +313,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {addPersonOpen && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 p-4"
           onMouseDown={e => { if (e.target === e.currentTarget) { setAddPersonOpen(false); setAddPersonCode(null) } }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">Ajouter une personne sans téléphone</h2>
+          <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden animate-entree">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Ajouter une personne sans téléphone</h2>
               <button
                 onClick={() => { setAddPersonOpen(false); setAddPersonCode(null) }}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+                className="text-gray-500 hover:text-gray-600 transition-colors p-1
                   focus:outline-none focus:ring-2 focus:ring-gray-300"
                 aria-label="Fermer"
               >
@@ -338,14 +338,14 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   de retrouver son profil (questionnaire, résultats) depuis son propre appareil,
                   en saisissant son nom et ce code.
                 </p>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                  <p className="text-xs font-medium text-amber-700 uppercase tracking-wide mb-1">Code de rappel</p>
+                <div className="bg-amber-50 border border-amber-200 p-4 text-center">
+                  <p className="text-[11px] font-bold text-amber-800 uppercase tracking-[0.16em] mb-1.5">Code de rappel</p>
                   <p className="text-2xl font-mono font-bold tracking-widest text-amber-600">{addPersonCode.code}</p>
                 </div>
                 <button
                   onClick={() => { setAddPersonCode(null); setAddPersonOpen(false) }}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium
-                    rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >
                   C'est noté
                 </button>
@@ -357,7 +357,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   retirer la parole comme n'importe quel participant.
                 </p>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
+                  <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Prénom Nom</label>
                   <input
                     type="text"
                     required
@@ -365,21 +365,21 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                     value={addPersonName}
                     onChange={e => setAddPersonName(e.target.value)}
                     placeholder="Prénom Nom"
-                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-xl
+                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-bleu-fonce/20
                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                       placeholder:text-gray-300 transition-shadow"
                   />
                 </div>
                 {addPersonError && (
-                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                     {addPersonError}
                   </div>
                 )}
                 <button
                   type="submit"
                   disabled={addPersonLoading}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                    text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                    text-white text-sm font-medium transition-colors focus:outline-none
                     focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >
                   {addPersonLoading ? 'Ajout…' : 'Ajouter'}
@@ -411,15 +411,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {assertionsOpen && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setAssertionsOpen(false) }}
         >
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <h2 className="text-sm font-semibold text-gray-900">Assertions votées</h2>
+          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
+              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Assertions votées</h2>
               <button
                 onClick={() => setAssertionsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
+                className="text-gray-500 hover:text-gray-600 transition-colors p-1
                   focus:outline-none focus:ring-2 focus:ring-gray-300"
                 aria-label="Fermer"
               >
