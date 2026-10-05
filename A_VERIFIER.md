@@ -12,11 +12,6 @@
 
 Sur une séance de test, avec la souris.
 
-- [ ] **Chantier 139** — glisser un participant d'une table déjà modérée sur l'encart « 🔁 Remplacer le modérateur » : la fenêtre « Remplacer le modérateur de la table N°X ? » doit s'ouvrir (nommant les deux personnes), « Annuler » ne change rien, « Remplacer » fait du participant l'animateur (l'ancien devient « Modérateur en surplus » et repasse en écran participant).
-- [ ] **Chantier 33** — glisser un participant sur une table sans modérateur dans l'onglet 🪑 Tables/Groupes : il devient le modérateur.
-- [ ] **Chantier 92, étape 4** — badges 🔗 sur un binôme ; glisser A vers une autre table doit déplacer A **et** B, le compteur de grappes reste à jour.
-- [ ] **Chantier 91, étape 4** — glisser un passif vers une table sans modérateur : l'alerte « en public sans modérateur » apparaît et « Santé des tables » baisse.
-- [ ] **Chantier 53** — glisser-déposer une entrée dans la file côté modérateur : la vue participant reflète le nouvel ordre en moins de 2 s.
 
 ## 2. Deux identités ou deux appareils en même temps (le navigateur intégré n'en gère qu'une)
 
@@ -27,8 +22,6 @@ Sur une séance de test, avec la souris.
   4. phase vote : badge « Vous êtes modérateur » disparaît sans rechargement quand le superadmin décoche ;
   5. régression : un modérateur classique sans ligne `session_members` garde son `ModeratorView`.
 - [ ] **Chantier 50 — Realtime ne livre que ses propres lignes** : deux navigateurs (participants A et B) ; le superadmin modifie A → **B ne reçoit aucun événement** (onglet Réseau, frames WebSocket) ; il modifie B → B réagit toujours (badge, bascule de vue, numéro de table).
-- [ ] **Chantier 53 — plafonnement du refetch** : enchaîner vite « donner la parole à A → fin de tour → auto-avance → donner à C » : aucun écran ne se fige côté participant, orateur cohérent des deux côtés (≤ ~1 s de retard) ; exclure un participant → il disparaît côté participant ; couper puis rétablir le réseau d'un client → resynchronisation.
-- [ ] **Chantier 132 — « proposer un vote », en direct** (modérateur + participant) : (1) Outils Modo → « Proposer un vote » → question + 2 options → « Lancer » ; (2) le popup s'ouvre côté participant sans rechargement, pour/contre indépendants ; (3) le décompte du modérateur se met à jour en direct sans révéler qui a voté quoi ; (4) « Clôturer » → le popup bascule sur les résultats en ~4 s ; (5) un second vote remplace le premier ; (6) « Voir l'historique des votes » les liste avec leurs décomptes ; (7) fermer la croix sans répondre puis rouvrir via « 🗳️ Voir le vote en cours » ; un nouveau vote rouvre le popup. *(La partie SQL a été vérifiée en transaction jetable sur dev.)*
 - [ ] **Écran du modérateur supprimé ou remplacé** — vu côté superadmin seulement, pas côté modérateur : (137-D d) supprimer un modérateur en `debating` → son écran bascule en participant ; (118, 109, 139) « Libérer la modération » ou le placement à l'ouverture du débat → le modérateur placé voit son écran, l'ancien animateur repasse en participant. (« Retirer » a été joué le 2026-10-05 : l'écran modérateur bascule en participant en moins de 3 s, sans rechargement.)
 - [ ] **Chantier 139, cas 6** — une personne désignée pour une **autre** table que la sienne doit rejoindre cette table (fenêtre « Changement de table ») ; vérifier qu'elle devient bien modératrice à l'arrivée.
 
