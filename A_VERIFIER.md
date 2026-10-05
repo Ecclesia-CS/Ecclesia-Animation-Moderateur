@@ -160,7 +160,7 @@ rollback;
 Vérifié au navigateur sur dev (sondage et séance complète, Outils du vote). Restent à rejouer, même logique de code :
 - [ ] 1. `DocNudge` (« Profites-en pour lire la documentation », séance avec au moins une assertion à voter) : « Fiche info et résumé » ; dans un **sondage**, ni Biais cognitifs ni Arguments fallacieux ; dans une séance complète, les deux sont là.
 - [ ] 2. Vue table (débat simple en `debating`) : **Outils** du participant et bouton **Documentation** du modérateur affichent « Fiche info et résumé » et gardent les fiches pédagogiques.
-- [ ] 3. Superadmin → séance → Documentation : champ « Fiche info et résumé » ; le champ « Résumé » n'apparaît en édition que si la séance en avait déjà un (et sa valeur survit à l'enregistrement). Même chose côté `#asso`.
+- [x] 3. Superadmin → séance → Documentation : champ « Fiche info et résumé » ; le champ « Résumé » n'apparaît en édition que si la séance en avait déjà un (et sa valeur survit à l'enregistrement). *(Vérifié au navigateur le 2026-10-05, superadmin connecté par Jules : séance à deux liens → les deux affichés, modification de la fiche enregistrée et résumé conservé en base ; séance à un lien → ni ligne ni champ « Résumé » ; formulaire de création → un seul champ. Reste le côté `#asso`.)*
 
 ## Chantier 144 — correctifs de la passe 141 (2026-09-29)
 Vérifié au navigateur le 2026-10-02 sur le déploiement Vercel dev (séances « QA Vérifs — Débat/Sondage/Complète »), sauf le point 5. Décision de Jules : pas de revérification sur prod, le comportement doit être identique.
