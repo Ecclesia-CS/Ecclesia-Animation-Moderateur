@@ -158,8 +158,9 @@ rollback;
 
 ## Chantier 155 — liens de documentation (2026-10-05)
 Vérifié au navigateur sur dev (sondage et séance complète, Outils du vote). Restent à rejouer, même logique de code :
-- [ ] 1. `DocNudge` (« Profites-en pour lire la documentation », séance avec au moins une assertion à voter) : « Fiche info et résumé » ; dans un **sondage**, ni Biais cognitifs ni Arguments fallacieux ; dans une séance complète, les deux sont là.
-- [ ] 2. Vue table (débat simple en `debating`) : **Outils** du participant et bouton **Documentation** du modérateur affichent « Fiche info et résumé » et gardent les fiches pédagogiques.
+- [x] 1. `DocNudge` (« Profites-en pour lire la documentation », séance avec au moins une assertion à voter) : « Fiche info et résumé » ; dans un **sondage**, ni Biais cognitifs ni Arguments fallacieux ; dans une séance complète, les deux sont là. *(Vérifié au navigateur sur dev le 2026-10-05 : sondage → Fiche info + Sources collaboratives seulement, aussi dans Outils ; séance complète → les quatre liens.)*
+- [x] 2. Vue table (débat simple en `debating`) : **Outils** du participant et bouton **Documentation** du modérateur affichent « Fiche info et résumé » et gardent les fiches pédagogiques. *(Vérifié au navigateur sur dev le 2026-10-05, Code Ecclesia saisi par Jules pour la vue modérateur.)*
+- [x] 4. Renommage des files de parole (« Prendre la parole sur un autre sujet », « Demander la parole sur le sujet actuel », « File d'attente : prendre la parole sur un autre sujet ») : vérifié au navigateur sur dev le 2026-10-05, vues participant **et** modérateur d'un débat simple ; plus aucune trace de « Proposer un futur sujet » ni « Coupe file ».
 - [x] 3. Superadmin → séance → Documentation : champ « Fiche info et résumé » ; le champ « Résumé » n'apparaît en édition que si la séance en avait déjà un (et sa valeur survit à l'enregistrement). *(Vérifié au navigateur le 2026-10-05, superadmin connecté par Jules : séance à deux liens → les deux affichés, modification de la fiche enregistrée et résumé conservé en base ; séance à un lien → ni ligne ni champ « Résumé » ; formulaire de création → un seul champ. Reste le côté `#asso`.)*
 
 ## Chantier 144 — correctifs de la passe 141 (2026-09-29)
@@ -246,7 +247,7 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 - **Migration** `supabase/migrations/20261002_chantier151_activite_trois_niveaux.sql` : appliquée sur **dev uniquement** (élargit le `CHECK` de `entry_responses.participation_style` à `listener|intermediate|active` et fait compter `intermediate` comme actif dans `get_allocation_inputs`). **À appliquer sur prod au merge vers `main`, après `20260906_chantier72_2_*`** (la fonction diffère entre dev et prod tant que 72_2 n'y est pas).
 - ✅ **Vérifié au navigateur par la session (dev, séance de test supprimée)** : les trois boutons s'affichent, « Intermédiaire » s'enregistre (`intermediate` en base), la réouverture via Outils → « Modifier questionnaire d'entrée » est pré-remplie sur Intermédiaire, le passage à « Actif » s'enregistre.
 - ✅ **Allocation vérifiée côté superadmin au navigateur (dev, 2026-10-02, avec Jules)** : séance de test à 9 présentiels (3 passifs, 3 intermédiaires, 3 actifs) → le panneau d'allocation annonce « 6 actifs · 3 en public » : les intermédiaires comptent comme actifs, les passifs restent en public. Calcul seul (aucun « Appliquer »).
-- ⏳ Visuel du badge **Intermédiaire** (ambre) dans la barre latérale du modérateur : non vérifié à l'écran (il faut une table en débat avec un participant « Intermédiaire »).
+- ✅ Visuel du badge **Intermédiaire** (ambre) dans la barre latérale du modérateur : vérifié au navigateur sur dev le 2026-10-05 (table de débat avec 5 membres : « Intermédiaire » en ambre, « Actif » en vert, « Passif » en gris).
 
 ## Chantier 153 (2026-10-02) — Propositions : « voter d'abord » et plafond par personne
 
@@ -256,7 +257,7 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 
 **Reste à vérifier**
 - [ ] Même contrôle côté **association** (`#asso`, sondage) : les commandes y sont visibles et la RPC passe (`check_session_admin`) — non joué, pas de compte d'association de test sous la main.
-- [ ] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer » (la partie « ne voit plus » est vérifiée ; la conservation des assertions est garantie par le code, qui ne supprime rien).
+- [x] Un participant qui avait déjà dépassé un plafond abaissé garde ses assertions (rien ne disparaît) mais ne voit plus « Proposer ». *(Vérifié au navigateur sur dev le 2026-10-05 : 3 propositions, plafond 4 → « Proposer » visible ; plafond abaissé à 2 sans recharger → le bouton disparaît en ~2 s, « ✏️ 3 proposées » reste affiché, aucune mention du plafond, les 3 assertions sont toujours en base.)*
 
 **Point de comportement à connaître** : en « voter d'abord », les assertions du participant lui-même comptent parmi celles qu'il doit voter (l'app ne les exclut nulle part de sa file) ; avec la modération `open`, il doit donc voter sa propre proposition avant d'en faire une deuxième.
 
@@ -267,5 +268,5 @@ Tout ce qui se vérifie au navigateur l'a été, sur **dev** (bouton dans Outils
 **Écran superadmin — vérifié au navigateur sur dev le 2026-10-05** (Jules a saisi le mot de passe) : pastille sur les séances en cours (absente sur les séances closes et d'association), bascule « Visible » → « Masquée » écrite en base, conservée après rechargement, puis remise ; case « Visible sur l'accueil de l'application » à la création, décochée → séance créée avec `visible_on_home = false` (séance de test supprimée). Les séances `QA 155 …` sont masquées volontairement par le chantier 155.
 
 **Reste à vérifier**
-- [ ] Une séance masquée reste joignable par `#session/<code>` (non rejoué).
+- [x] Une séance masquée reste joignable par `#session/<code>`. *(Vérifié le 2026-10-05 sur dev, par la base et le code, pas par un parcours complet à l'écran : séance masquée via le bouton du superadmin → absente de la requête de l'accueil en rôle `anon`, les autres restent listées ; lecture par `join_code` toujours possible en `anon` ; seul `EntryScreen` filtre sur `visible_on_home`.)*
 - [ ] **Prod, après merge** : appliquer `20261005_chantier154_visibilite_accueil.sql` AVANT de déployer le code (sinon l'accueil de prod devient vide : colonne inconnue) et vérifier que l'accueil liste toujours les séances.
