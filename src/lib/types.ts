@@ -68,6 +68,9 @@ export interface Session {
   // par 20260926_chantier135_comptes_associations.sql : absente d'un blob
   // relu d'avant, d'où l'optionnel.
   organization_id?: string | null
+  // Chantier 154 — séance listée sur l'accueil (défaut true). Optionnel : absent
+  // d'un blob relu d'avant ; absent = visible.
+  visible_on_home?: boolean
 }
 
 export interface Table {

@@ -61,6 +61,9 @@ export default function EntryScreen() {
         // Chantier 135 — une séance d'association ne se rejoint que par son
         // QR code / lien, jamais depuis l'accueil d'Ecclesia.
         .is('organization_id', null)
+        // Chantier 154 — le superadmin peut masquer une séance de l'accueil
+        // (elle reste accessible par son lien / QR code).
+        .eq('visible_on_home', true)
         .order('created_at', { ascending: false })
         .then(({ data }) => { if (data) setActiveSessions(data as ActiveSession[]) })
     }

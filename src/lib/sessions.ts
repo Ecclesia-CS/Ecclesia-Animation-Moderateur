@@ -125,6 +125,21 @@ export async function setSessionAssertionsLocked(
   return data as Session
 }
 
+// Chantier 154 — visibilité de la séance sur la liste « Séances en cours » de l'accueil.
+export async function setSessionVisibleOnHome(
+  password: string,
+  sessionId: string,
+  visibleOnHome: boolean,
+): Promise<Session> {
+  const { data, error } = await supabase.rpc('set_session_visible_on_home', {
+    p_password: password,
+    p_session_id: sessionId,
+    p_visible_on_home: visibleOnHome,
+  })
+  if (error) throw new Error(extractErr(error))
+  return data as Session
+}
+
 // Chantier 153 — règles de proposition (voter d'abord / plafond par personne).
 // Les deux valeurs partent toujours ensemble : l'écran renvoie ce qu'il affiche.
 // `max` null = illimité.

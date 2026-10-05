@@ -16,7 +16,7 @@ import PasswordInput from '../components/PasswordInput'
 import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
-  setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules,
+  setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules, setSessionVisibleOnHome,
   listSessionTables, updateSessionDocs,
   getQuestionnaireResponses, deleteQuestionnaireResponse,
   getTableParticipants, deleteTableAdmin, forceSessionQuestionnaire,
@@ -350,6 +350,29 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
   // ── Bascule verrouillage des propositions d'assertions (chantier 124) ──
   const [assertionsLockedErr, setAssertionsLockedErr] = useState<Record<string, string>>({})
 
+  // ── Visibilité sur l'accueil (chantier 154) ──
+  const [visibleOnHomeErr, setVisibleOnHomeErr] = useState<Record<string, string>>({})
+
+  async function handleToggleVisibleOnHome(target: SessionRow, next: boolean) {
+    const password = getPwd()!
+    setVisibleOnHomeErr(prev => {
+      const { [target.id]: _omit, ...rest } = prev
+      return rest
+    })
+    setSessions(prev => prev.map(s => s.id === target.id ? { ...s, visible_on_home: next } : s))
+    try {
+      await setSessionVisibleOnHome(password, target.id, next)
+    } catch (e) {
+      setSessions(prev => prev.map(s => s.id === target.id ? { ...s, visible_on_home: !next } : s))
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        clearPwd(); setAuthed(false)
+        return
+      }
+      setVisibleOnHomeErr(prev => ({ ...prev, [target.id]: msg }))
+    }
+  }
+
   // ── Règles de proposition : voter d'abord / plafond par personne (chantier 153) ──
   const [assertionRulesErr, setAssertionRulesErr] = useState<Record<string, string>>({})
 
@@ -656,6 +679,8 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
                 onboardingError={onboardingErr[s.id]}
                 onAssertionsLockedChange={next => handleToggleAssertionsLocked(s, next)}
                 assertionsLockedError={assertionsLockedErr[s.id]}
+                onVisibleOnHomeChange={next => handleToggleVisibleOnHome(s, next)}
+                visibleOnHomeError={visibleOnHomeErr[s.id]}
                 onAssertionRulesChange={(voteFirst, max) => handleSetAssertionRules(s, voteFirst, max)}
                 assertionRulesError={assertionRulesErr[s.id]}
               />
@@ -768,7 +793,7 @@ function AssertionRulesControl({ voteFirst, max, onChange, error }: {
 function SessionCard({
   session, orgName, onClose, onDelete, onClick, onResultsPublicChange, resultsPublicError,
   onOnboardingChange, onboardingError, onAssertionsLockedChange, assertionsLockedError,
-  onAssertionRulesChange, assertionRulesError,
+  onAssertionRulesChange, assertionRulesError, onVisibleOnHomeChange, visibleOnHomeError,
 }: {
   session: SessionRow
   /** Chantier 135 — nom de l'association propriétaire (vue superadmin), null sinon. */
@@ -784,6 +809,8 @@ function SessionCard({
   assertionsLockedError?: string
   onAssertionRulesChange(voteFirst: boolean, max: number | null): void
   assertionRulesError?: string
+  onVisibleOnHomeChange(next: boolean): void
+  visibleOnHomeError?: string
 }) {
   const isClosed = session.phase === 'closed'
   const isOrgMode = useOrg() !== null
@@ -902,6 +929,42 @@ function SessionCard({
                 <p className="text-xs text-red-600 mt-1">{resultsPublicError}</p>
               )}
             </div>
+          )}
+
+          {/* Visibilité sur l'accueil (chantier 154) — une séance d'association
+              n'y figure jamais (filtre d'EntryScreen), une séance close non plus. */}
+          {!isOrgMode && !isClosed && !session.organization_id && (
+          <div onClick={e => e.stopPropagation()} className="pt-0.5">
+            <button
+              onClick={() => onVisibleOnHomeChange(!(session.visible_on_home ?? true))}
+              title={
+                (session.visible_on_home ?? true)
+                  ? "La séance figure sur la liste « Séances en cours » de l'accueil"
+                  : "La séance est masquée de l'accueil ; elle reste accessible par son lien et son QR code"
+              }
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                (session.visible_on_home ?? true)
+                  ? 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              <span
+                className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
+                  (session.visible_on_home ?? true) ? 'bg-gray-300' : 'bg-amber-500'
+                }`}
+              >
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${
+                    (session.visible_on_home ?? true) ? 'translate-x-3' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+              {(session.visible_on_home ?? true) ? "Visible sur l'accueil" : "Masquée de l'accueil"}
+            </button>
+            {visibleOnHomeError && (
+              <p className="text-xs text-red-600 mt-1">{visibleOnHomeError}</p>
+            )}
+          </div>
           )}
 
           {/* Onboarding (chantier 71) — questions propres à Ecclesia, pas
@@ -1374,6 +1437,8 @@ function CreateModal({
   const [docSummaryUrl, setDocSummaryUrl] = useState('')
   const [moderationPolicy, setModerationPolicy] = useState<ModerationPolicy>('closed')
   const [onboardingEnabled, setOnboardingEnabled] = useState(true)
+  // Chantier 154 — visibilité sur l'accueil à la création (visible par défaut).
+  const [visibleOnHome, setVisibleOnHome] = useState(true)
   // Chantier 135 — une association n'a que le débat simple et le sondage.
   const isOrgMode = useOrg() !== null
   // Chantier 134 — mode de séance, choisi une fois pour toutes à la création.
@@ -1402,7 +1467,11 @@ function CreateModal({
       if (sessionType !== 'debate' && moderationPolicy !== 'closed') {
         await updateSessionConfig(password, session.id, moderationPolicy)
       }
-      onCreated(session)
+      let created = session
+      if (!isOrgMode && !visibleOnHome) {
+        created = await setSessionVisibleOnHome(password, session.id, false)
+      }
+      onCreated(created)
     } catch (e) {
       const msg = extractErr(e)
       if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
@@ -1551,6 +1620,18 @@ function CreateModal({
             </label>
             )}
           </div>
+          )}
+
+          {!isOrgMode && (
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={visibleOnHome}
+                onChange={e => setVisibleOnHome(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Visible sur l'accueil de l'application
+            </label>
           )}
 
           {sessionType === 'debate' && (
