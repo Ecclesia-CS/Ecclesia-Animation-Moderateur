@@ -2263,9 +2263,12 @@ function SessionDetail({
   // Le code est haché : il est IMPOSSIBLE de relire celui qu'on a donné. On en
   // tire un nouveau, à lire à la personne — l'ancien cesse de fonctionner.
   const [regeneratedCode, setRegeneratedCode] = useState<{ pseudo: string; code: string } | null>(null)
+  // Confirmation avant de couper l'ancien code : l'action est irréversible.
+  const [regenTarget, setRegenTarget] = useState<{ id: string; pseudo: string } | null>(null)
 
   const handleRegenerateCode = useCallback(async (memberId: string) => {
     const password = getPwd()!
+    setRegenTarget(null)
     try {
       const res = await regenerateReclaimCodeAdmin(password, memberId)
       setRegeneratedCode({ pseudo: res.pseudo, code: res.new_reclaim_code })
@@ -3553,7 +3556,7 @@ function SessionDetail({
                       members={members}
                       loading={membersLoading}
                       onToggleModerator={handleToggleModerator}
-                      onRegenerateCode={handleRegenerateCode}
+                      onRegenerateCode={(id, pseudo) => setRegenTarget({ id, pseudo })}
                       onDeleteMember={(id, pseudo) => setMemberToDelete({ id, pseudo })}
                     />
                   </SectionAccordion>
@@ -4729,6 +4732,16 @@ function SessionDetail({
             </button>
           </div>
         </div>
+      )}
+
+      {regenTarget && (
+        <ConfirmModal
+          title={`Réinitialiser le code de ${regenTarget.pseudo} ?`}
+          body="Attention : cela réinitialise le code de rappel de cette personne. Son ancien code sera supprimé et ne fonctionnera plus ; elle ne pourra se reconnecter qu'avec le nouveau code, que vous devrez lui communiquer."
+          confirmLabel="Réinitialiser le code"
+          onConfirm={() => handleRegenerateCode(regenTarget.id)}
+          onCancel={() => setRegenTarget(null)}
+        />
       )}
 
       {/* Chantier 93 — nouveau code de rappel, à lire à la personne. Affiché une
@@ -6090,7 +6103,7 @@ function MembersPanel({
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
   onToggleModerator?: (memberId: string, next: boolean) => Promise<void>
   /** Chantier 93 — capture d'écran perdue : nouveau code, à lire à la personne. */
-  onRegenerateCode?: (memberId: string) => Promise<void>
+  onRegenerateCode?: (memberId: string, pseudo: string) => void
 }) {
   // H10 — tri par colonne, alphabétique ou ordre d'arrivée, croissant/décroissant.
   const [sort, setSort] = useState<{ key: MembersSortKey; direction: 'asc' | 'desc' }>(
@@ -6198,7 +6211,7 @@ function MembersPanel({
               {onRegenerateCode && (
                 <td className="py-2 pl-3 text-center">
                   <button
-                    onClick={() => onRegenerateCode(m.id)}
+                    onClick={() => onRegenerateCode(m.id, m.pseudo)}
                     title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner — le code stocké est haché, il ne peut pas être relu)"
                     className="px-1.5 py-0.5 rounded text-[10px] font-medium border bg-white border-gray-200 text-gray-400 hover:border-amber-300 hover:text-amber-600 transition-colors"
                   >

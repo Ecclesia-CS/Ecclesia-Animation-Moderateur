@@ -88,9 +88,9 @@ export default function ParticipantCodesModal({ onClose }: Props) {
 
       {target && (
         <ConfirmModal
-          title={`Remplacer le code de ${target.pseudo} ?`}
-          body="L'ancien code de rappel sera immédiatement supprimé et ne fonctionnera plus. Un nouveau code sera généré, à lire à cette personne."
-          confirmLabel="Remplacer"
+          title={`Réinitialiser le code de ${target.pseudo} ?`}
+          body="Attention : cela réinitialise le code de rappel de cette personne. Son ancien code sera supprimé et ne fonctionnera plus ; elle ne pourra se reconnecter qu'avec le nouveau code, que vous devrez lui lire."
+          confirmLabel="Réinitialiser le code"
           onConfirm={doRegenerate}
           onCancel={() => setTarget(null)}
         />
