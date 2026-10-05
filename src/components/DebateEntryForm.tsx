@@ -93,23 +93,23 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
     )
   }
 
-  const inputCls = `w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+  const inputCls = `w-full px-3 py-3 text-sm border border-bleu-fonce/20
     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
     placeholder:text-gray-300 transition-shadow`
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+      <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8">
         <div className="text-center mb-5">
           <div className="text-5xl mb-4">🗣️</div>
-          <h1 className="text-lg font-bold text-gray-900">Rejoindre le débat</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Rejoindre le débat</h1>
           {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
-          {orgName && <p className="text-xs text-gray-400 mt-1">Organisé par {orgName}</p>}
+          {orgName && <p className="text-xs text-gray-500 mt-1">Organisé par {orgName}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Prénom Nom</label>
             <input
               type="text"
               required
@@ -125,7 +125,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
               type="checkbox"
               checked={asModerator}
               onChange={e => { setAsModerator(e.target.checked); setError(null) }}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
             />
             Je suis le modérateur
           </label>
@@ -137,7 +137,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
             />
           )}
 
-          <div className="border border-gray-100 rounded-xl">
+          <div className="border border-bleu-fonce/10">
             <button
               type="button"
               onClick={() => { setReclaimOpen(o => !o); setError(null) }}
@@ -167,8 +167,8 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
           <button
             type="submit"
             disabled={loading || !pseudo.trim() || (asModerator && !creationCode) || (reclaimOpen && !reclaimCode.trim())}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-              text-white text-sm font-semibold rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+              text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Rejoindre le débat'}
           </button>

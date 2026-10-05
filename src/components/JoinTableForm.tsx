@@ -155,19 +155,19 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
 
   const codeField = locked ? (
     <div className="text-center">
-      <p className="text-xs text-gray-400">Code de table</p>
+      <p className="text-xs text-gray-500">Code de table</p>
       <p className="font-mono text-xl font-bold tracking-widest text-indigo-600">{joinCode}</p>
     </div>
   ) : (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1.5">Code de table</label>
+      <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Code de table</label>
       <input
         type="text"
         required
         value={joinCode}
         onChange={e => setJoinCode(e.target.value.toUpperCase())}
         placeholder="A1B2C3"
-        className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+        className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
           placeholder:text-gray-300 transition-shadow"
       />
@@ -175,7 +175,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   )
 
   const errorBox = error && (
-    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+    <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
       {error}
     </div>
   )
@@ -186,7 +186,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           aux deux actions. Sans elle, ordre historique (code puis nom). */}
       {!canAutoAssign && codeField}
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1.5">Prénom Nom</label>
+        <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Prénom Nom</label>
         <input
           type="text"
           required
@@ -197,7 +197,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
             if (reclaimAutoOpened.current) { reclaimAutoOpened.current = false; setReclaimOpen(false); setReclaimCode('') }
           }}
           placeholder="Prénom Nom"
-          className="w-full px-3 py-3 text-sm border border-gray-300 rounded-xl
+          className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
             placeholder:text-gray-300 transition-shadow"
         />
@@ -217,11 +217,11 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
             onClick={handleAutoAssign}
             disabled={loading}
             className="w-full py-3 px-4 bg-white border border-indigo-300 hover:bg-indigo-50
-              disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-xl transition-colors"
+              disabled:opacity-60 text-indigo-700 text-sm font-semibold transition-colors"
           >
             {loading ? 'Placement…' : 'Assignez-moi une table'}
           </button>
-          <p className="text-xs text-gray-400 text-center">— ou, si tu as un code de table —</p>
+          <p className="text-xs text-gray-500 text-center">— ou, si tu as un code de table —</p>
           {codeField}
         </>
       )}
@@ -230,13 +230,13 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           type="checkbox"
           checked={asModerator}
           onChange={e => { setAsModerator(e.target.checked); setError(null) }}
-          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+          className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
         />
         <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
       </label>
       {asModerator && (
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1.5">Code Ecclesia</label>
+          <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Code Ecclesia</label>
           <PasswordInput
             value={moderatorCode}
             onChange={setModeratorCode}
@@ -248,8 +248,8 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
       <button
         type="submit"
         disabled={loading || (reclaimOpen && !reclaimCode.trim())}
-        className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-          text-white text-sm font-medium rounded-xl transition-colors focus:outline-none
+        className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+          text-white text-sm font-medium transition-colors focus:outline-none
           focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
       >
         {loading ? 'Chargement…' : submitLabel}

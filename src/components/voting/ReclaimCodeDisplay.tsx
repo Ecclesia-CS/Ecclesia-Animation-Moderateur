@@ -20,45 +20,45 @@ export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueL
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-50 border border-amber-200">
           <span className="text-2xl">🔑</span>
         </div>
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3">
-          <p className="text-base font-bold text-amber-700">📸 Fais un screen de cet écran !</p>
+        <div className="bg-amber-50 border border-amber-300 border-l-4 border-l-amber-500 px-4 py-3">
+          <p className="text-base font-bold text-amber-800">📸 Fais un screen de cet écran !</p>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Note ton code de rappel</h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Note ton code de rappel</h1>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
             Ce code évite qu'une autre personne prenne ton identité : il est demandé
             <strong> avec ton nom</strong> à chaque reconnexion, sur un autre appareil ou un autre navigateur.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+        <div className="bg-white border border-bleu-fonce/10 shadow-lg p-6 space-y-5">
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Prénom Nom</p>
-            <p className="text-lg font-bold text-gray-900">{pseudo}</p>
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.2em] mb-1.5">Prénom Nom</p>
+            <p className="font-serif text-2xl font-semibold text-bleu-fonce">{pseudo}</p>
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Code de rappel</p>
-            <p className="text-4xl font-mono font-bold tracking-widest text-amber-600">{code}</p>
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.2em] mb-1.5">Code de rappel</p>
+            <p className="text-5xl font-mono font-bold tracking-[0.25em] tabular-nums text-amber-700">{code}</p>
           </div>
           <button
             onClick={handleCopy}
-            className="w-full py-2 text-sm text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-colors"
+            className="w-full py-2.5 text-sm font-semibold text-bleu-fonce bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
           >
             {copied ? '✓ Copié !' : 'Copier pseudo + code'}
           </button>
         </div>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs leading-relaxed text-gray-500">
           Il n'est affiché qu'une fois. Perdu ? L'organisateur, ou le modérateur de
           ta table, peut t'en redonner un nouveau.
         </p>
 
         <button
           onClick={onContinue}
-          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-creme"
         >
           {continueLabel}
         </button>

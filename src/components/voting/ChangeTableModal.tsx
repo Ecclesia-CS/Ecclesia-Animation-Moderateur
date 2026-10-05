@@ -50,18 +50,18 @@ export default function ChangeTableModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-gray-200 p-6" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="w-full max-w-sm bg-white shadow-lg border border-bleu-fonce/10 p-6" onClick={e => e.stopPropagation()}>
         <div className="text-center mb-4">
           <div className="text-4xl mb-3">🔀</div>
-          <h2 className="text-lg font-bold text-gray-900">Changer de table</h2>
+          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Changer de table</h2>
           <p className="text-sm text-gray-500 mt-2">
             Demande le code à la table que tu veux rejoindre, et saisis-le ici.
           </p>
         </div>
 
         {error && (
-          <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          <div className="mb-3 p-3 bg-red-50 border border-red-200 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -71,15 +71,15 @@ export default function ChangeTableModal({
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase())}
             placeholder="A1B2C3"
-            className="flex-1 px-3 py-2.5 text-sm border border-gray-300 rounded-xl
+            className="flex-1 px-3 py-2.5 text-sm border border-bleu-fonce/20
               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
               placeholder:text-gray-300"
           />
           <button
             onClick={join}
             disabled={joining || code.trim().length === 0}
-            className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300
-              text-white text-sm font-medium rounded-xl transition-colors"
+            className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+              text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             {joining ? 'Changement…' : 'Rejoindre'}
           </button>
@@ -88,7 +88,7 @@ export default function ChangeTableModal({
         <button
           onClick={onClose}
           disabled={joining}
-          className="mt-4 w-full text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="mt-4 w-full text-xs text-gray-500 hover:text-gray-600 transition-colors"
         >
           Annuler
         </button>

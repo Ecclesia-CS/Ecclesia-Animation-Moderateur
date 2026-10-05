@@ -120,14 +120,14 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             <span className="text-3xl">⚠️</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Bienvenue {pendingMember.pseudo} !</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Bienvenue {pendingMember.pseudo} !</h1>
             <p className="mt-2 text-sm text-gray-500">
               {pendingIsReclaim ? 'Tes votes ont bien été récupérés' : 'Ton inscription est bien enregistrée'}, mais la déclaration modérateur a échoué : {moderatorError}
             </p>
           </div>
           <button
             onClick={() => (pendingIsReclaim ? onReclaimSuccess(pendingMember) : onSuccess(pendingMember))}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             Continuer →
           </button>
@@ -141,16 +141,16 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100 mb-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-50 border border-amber-200 mb-4">
               <span className="text-2xl">🔑</span>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Ce nom est déjà utilisé</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Ce nom est déjà utilisé</h1>
             <p className="mt-2 text-sm text-gray-500">{PSEUDO_TAKEN_MESSAGE}</p>
           </div>
 
           <form onSubmit={handleReclaim} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-anthracite mb-1.5">
                 Prénom Nom
               </label>
               <input
@@ -158,12 +158,12 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
                 value={pseudo}
                 onChange={e => setPseudo(e.target.value)}
                 maxLength={40}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-anthracite mb-1.5">
                 Code de rappel (4 chiffres)
               </label>
               <input
@@ -174,16 +174,16 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
                 onChange={e => setReclaimCodeInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="_ _ _ _"
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-lg font-mono font-bold text-bleu-fonce text-center tracking-[0.5em] placeholder:text-anthracite/30 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
-              <p className="text-xs text-gray-400 mt-1.5">
+              <p className="text-xs text-gray-500 mt-1.5">
                 Le code à 4 chiffres affiché lors de ta première inscription à cette séance.
                 Perdu ? L'organisateur peut t'en redonner un.
               </p>
             </div>
 
             {reclaimError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {reclaimError}
               </div>
             )}
@@ -191,7 +191,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             <button
               type="submit"
               disabled={reclaimLoading || !pseudo.trim() || reclaimCodeInput.trim().length === 0}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               {reclaimLoading ? 'Récupération…' : 'Récupérer mes votes →'}
             </button>
@@ -213,10 +213,10 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-100 mb-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 border border-indigo-200 mb-4">
             <span className="text-2xl">🗣️</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">{session.title}</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{session.title}</h1>
           {session.description && (
             <p className="mt-1 text-sm text-gray-500">{session.description}</p>
           )}
@@ -224,7 +224,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
 
         {/* Contexte vote présentiel */}
         {session.phase === 'voting' && (
-          <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
+          <div className="p-3 bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
             <strong>Vote présentiel ouvert.</strong>{' '}
             Tu as voté à distance avant le débat ? <strong>Entre le même nom et prénom</strong> pour retrouver tes votes et confirmer ta présence.
           </div>
@@ -233,7 +233,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-anthracite mb-1.5">
               Indique ton nom et prénom pour cette séance
             </label>
             <input
@@ -244,15 +244,15 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
               maxLength={40}
               required
               autoFocus
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
             />
-            <p className="text-xs text-gray-400 mt-1.5">
+            <p className="text-xs text-gray-500 mt-1.5">
               {sessionTypeOf(session) === 'poll' ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE} Tu pourras le changer plus tard.
             </p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -269,7 +269,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           <button
             type="submit"
             disabled={loading || !pseudo.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Continuer →'}
           </button>

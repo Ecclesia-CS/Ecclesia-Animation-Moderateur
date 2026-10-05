@@ -10,10 +10,10 @@ const ALL_DEBATES_URL = 'https://ecclesia-centralesupelec.vercel.app/#debats'
 
 // ── Séances en cours ────────────────────────────────────────────
 const PHASE_BADGE: Record<string, string> = {
-  pre_voting:    'bg-amber-100 text-amber-700',
-  voting:        'bg-indigo-100 text-indigo-700',
-  allocating:    'bg-amber-100 text-amber-700',
-  debating:      'bg-green-100 text-green-700',
+  pre_voting:    'border-amber-200 bg-amber-50 text-amber-800',
+  voting:        'border-indigo-200 bg-indigo-50 text-bleu-fonce',
+  allocating:    'border-amber-200 bg-amber-50 text-amber-800',
+  debating:      'border-emerald-200 bg-emerald-50 text-emerald-800',
 }
 const PHASE_LABEL: Record<string, string> = {
   pre_voting:    'Vote à distance ouvert',
@@ -73,50 +73,51 @@ export default function EntryScreen() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-creme to-sable flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white shadow-xl border border-bleu-fonce/10 overflow-hidden animate-entree">
 
         {/* Brand header */}
-        <div className="px-6 pt-7 pb-2 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="bg-grain bg-bleu-fonce px-6 pt-7 pb-6 flex items-center gap-4">
+          <div className="relative w-14 h-14 bg-indigo-600 flex items-center justify-center shrink-0 overflow-hidden">
             <img src={ecclesiaLogo} alt="Ecclesia" className="w-full h-full object-cover" />
           </div>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 leading-tight">Ecclesia</h1>
-            <p className="text-xs text-gray-400 leading-tight">Modération de débat</p>
+          <div className="relative">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight text-creme leading-none">Ecclesia</h1>
+            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair leading-tight">Modération de débat</p>
           </div>
         </div>
 
         {/* Message d'accueil — première chose vue en arrivant ou en quittant une séance (chantier 46) */}
-        <div className="px-6 pt-3 pb-1">
-          <p className="text-sm text-gray-600">
+        <div className="px-6 pt-6 pb-1">
+          <p className="font-serif text-lg leading-snug text-bleu-fonce">
             Bienvenue sur l'application d'Ecclesia !
           </p>
         </div>
 
         {/* Séances en cours */}
-        <section className="px-6 pt-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <section className="px-6 pt-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-fonce/70 mb-3">
             Séances en cours
           </p>
           {activeSessions.filter(s => s.join_code).length === 0 ? (
-            <p className="text-sm text-gray-400 py-3">
+            <p className="text-sm text-gray-500 py-3">
               Aucune séance en cours pour l'instant.
             </p>
           ) : (
             <div className="space-y-2">
               {activeSessions.filter(s => s.join_code).map(s => (
                 <div key={s.id}
-                  className="bg-gray-50 rounded-xl border border-gray-200 p-3 flex items-center justify-between gap-3">
+                  className="bg-white border border-bleu-fonce/10 border-l-4 border-l-bleu-fonce px-4 py-3.5 flex items-center justify-between gap-3 shadow-sm">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 break-words">{s.title}</p>
-                    <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${PHASE_BADGE[s.phase] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <p className="font-serif text-lg font-semibold leading-snug text-bleu-fonce break-words">{s.title}</p>
+                    <span className={`inline-flex items-center mt-1.5 border px-2 py-0.5 text-[10px] font-bold uppercase leading-snug tracking-[0.08em] ${PHASE_BADGE[s.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-600'}`}>
                       {PHASE_LABEL[s.phase] ?? s.phase}
                     </span>
                   </div>
                   <button
                     onClick={() => { window.location.hash = '#session/' + s.join_code! }}
-                    className="shrink-0 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors"
+                    className="shrink-0 py-2.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                   >
                     {PHASE_ACTION[s.phase] ?? 'Accéder →'}
                   </button>
@@ -126,35 +127,35 @@ export default function EntryScreen() {
           )}
         </section>
 
-        <div className="pt-5 pb-5 px-6 flex flex-col items-center gap-2">
+        <div className="pt-6 pb-5 px-6 flex flex-col items-center gap-2">
           <a
             href={ALL_DEBATES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full text-center py-2.5 px-4 border border-gray-200 rounded-xl
-              text-sm font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+            className="w-full text-center py-2.5 px-4 bg-white border border-bleu-fonce/20
+              text-sm font-semibold text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
           >
             Voir tous les débats ↗
           </a>
           <button
             onClick={() => setShowPastSessions(true)}
-            className="w-full text-center py-2.5 px-4 border border-gray-200 rounded-xl
-              text-sm font-medium text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+            className="w-full text-center py-2.5 px-4 bg-white border border-bleu-fonce/20
+              text-sm font-semibold text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
           >
             Voir les votes des anciennes séances
           </button>
         </div>
 
-        <div className="pb-4 text-center">
+        <div className="pb-5 pt-1 text-center border-t border-bleu-fonce/[0.06] mx-6">
           <a
             href="#superadmin"
-            className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
+            className="inline-block mt-4 text-xs text-gray-500 hover:text-bleu-fonce transition-colors"
           >
             Administration
           </a>
           <a
             href="#asso"
-            className="block mt-1 text-xs text-gray-300 hover:text-gray-400 transition-colors"
+            className="block mt-1 text-xs text-gray-500 hover:text-bleu-fonce transition-colors"
           >
             Asso
           </a>
@@ -181,26 +182,26 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center p-4 z-50"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden max-h-[80vh] flex flex-col"
+        className="w-full max-w-md bg-white shadow-2xl border border-bleu-fonce/10 overflow-hidden max-h-[80vh] flex flex-col animate-entree"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900">Anciennes séances</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+        <div className="px-5 py-4 border-b border-bleu-fonce/10 flex items-center justify-between shrink-0">
+          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Anciennes séances</h2>
+          <button onClick={onClose} className="p-1 text-gray-500 hover:text-bleu-fonce text-lg leading-none transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair">✕</button>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-2">
           {error && (
             <p className="text-sm text-red-600">{error}</p>
           )}
           {!error && sessions === null && (
-            <p className="text-sm text-gray-400 text-center py-6">Chargement…</p>
+            <p className="text-sm text-gray-500 text-center py-6">Chargement…</p>
           )}
           {!error && sessions !== null && sessions.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-6">
+            <p className="text-sm text-gray-500 text-center py-6">
               Aucune séance aux résultats publics pour l'instant.
             </p>
           )}
@@ -208,12 +209,12 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
             <button
               key={s.id}
               onClick={() => { window.location.hash = '#results/' + s.id }}
-              className="w-full text-left bg-gray-50 hover:bg-indigo-50 rounded-xl border border-gray-200
-                hover:border-indigo-200 px-4 py-3 transition-colors"
+              className="w-full text-left bg-white hover:bg-indigo-50/60 border border-bleu-fonce/10
+                hover:border-indigo-200 px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
             >
-              <p className="text-sm font-semibold text-gray-900">{s.title}</p>
+              <p className="font-serif text-base font-semibold text-bleu-fonce">{s.title}</p>
               {s.scheduled_at && (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {new Date(s.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               )}

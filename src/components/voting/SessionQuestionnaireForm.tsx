@@ -59,15 +59,15 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
       <div
-        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
+        className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0 space-y-2">
+        <div className="px-6 pt-6 pb-4 border-b border-bleu-fonce/10 flex-shrink-0 space-y-2">
           <PhaseIndicator phase={sessionType === 'debate' ? 'closed' : 'post_voting'} sessionType={sessionType} />
-          <h2 className="text-lg font-bold text-gray-900">Questionnaire post-débat</h2>
+          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Questionnaire post-débat</h2>
           <p className="text-sm text-gray-500 mt-0.5 leading-snug">
             Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
           </p>
@@ -95,7 +95,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
                     <button
                       key={n}
                       onClick={() => setDebateRating(debateRating === n ? null : n)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors
+                      className={`flex-1 py-2.5 text-sm font-semibold transition-colors
                         focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
                         debateRating === n
                           ? 'bg-indigo-600 text-white shadow-md'
@@ -171,7 +171,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
               </QBlock>
 
               {err && (
-                <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-xl border border-red-200">
+                <p className="text-sm text-red-600 bg-red-50 px-4 py-2 border border-red-200">
                   {err}
                 </p>
               )}
@@ -181,11 +181,11 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
 
         {/* Footer */}
         {!showSuccess && (
-          <div className="px-6 pb-6 pt-4 border-t border-gray-100 flex-shrink-0">
+          <div className="px-6 pb-6 pt-4 border-t border-bleu-fonce/10 flex-shrink-0">
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white rounded-xl
+              className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2
                 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -222,7 +222,7 @@ function ThemeRow({ theme, value, onChange }: {
           <button
             key={n}
             onClick={() => onChange(value === n ? null : n)}
-            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors
+            className={`w-8 h-8 text-sm font-medium transition-colors
               focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
               value === n
                 ? 'bg-indigo-600 text-white'
@@ -237,6 +237,6 @@ function ThemeRow({ theme, value, onChange }: {
   )
 }
 
-const taClass = `w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
+const taClass = `w-full border border-bleu-fonce/10 px-3 py-2.5 text-sm
   text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed
   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`

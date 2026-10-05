@@ -37,16 +37,16 @@ export default function SubmitAssertionModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 space-y-4">
+      <div className="w-full max-w-md bg-white shadow-xl p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">Proposer une assertion</h2>
+          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Proposer une assertion</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             ✕
           </button>
@@ -63,7 +63,7 @@ export default function SubmitAssertionModal({
             </p>
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Fermer
             </button>
@@ -85,7 +85,7 @@ export default function SubmitAssertionModal({
             )}
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Fermer
             </button>
@@ -93,7 +93,7 @@ export default function SubmitAssertionModal({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
                 Formule une affirmation que tu voudrais soumettre au vote
               </label>
               <textarea
@@ -104,19 +104,19 @@ export default function SubmitAssertionModal({
                 maxLength={500}
                 required
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 resize-none bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
-              <p className="text-right text-xs text-gray-400 mt-0.5">{content.length}/500</p>
+              <p className="text-right text-xs text-gray-500 mt-0.5">{content.length}/500</p>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {error}
               </div>
             )}
 
             {session.moderation_policy !== 'open' && (
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 p-3">
                 ℹ️ Cette séance utilise la modération {session.moderation_policy === 'ai' ? 'automatique' : 'fermée'}. Ton assertion sera visible après validation.
               </p>
             )}
@@ -124,7 +124,7 @@ export default function SubmitAssertionModal({
             <button
               type="submit"
               disabled={loading || !content.trim()}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               {loading ? 'Envoi…' : 'Soumettre →'}
             </button>

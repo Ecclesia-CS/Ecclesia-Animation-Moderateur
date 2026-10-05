@@ -103,17 +103,17 @@ export default function TableAssignmentCard({
   }
 
   const waitingSpinner = (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
+    <div className="bg-white border border-bleu-fonce/10 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
       <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
       <p className="text-sm text-gray-500 text-center">Formation des groupes en cours…</p>
-      <p className="text-xs text-gray-400 text-center max-w-[240px]">
+      <p className="text-xs text-gray-500 text-center max-w-[240px]">
         L'organisateur répartit tous les participants en groupes aux avis variés à partir des votes.
         Tu seras notifié(e) dès que ton groupe est prêt.
       </p>
-      <p className="text-xs text-gray-400 text-center pt-1">
+      <p className="text-xs text-gray-500 text-center pt-1">
         Ça ne bouge pas ?{' '}
         <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
           Recharge la page
@@ -130,7 +130,7 @@ export default function TableAssignmentCard({
     // Chantier 62 — sortie de secours : phase de débat sans aucune affectation.
     if (phase === 'debating') {
       return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-3">
+        <div className="bg-white border border-bleu-fonce/10 p-6 space-y-3">
           <p className="text-sm text-gray-700 text-center font-medium">
             Le débat a commencé, mais tu n'as pas encore de table.
           </p>
@@ -147,7 +147,7 @@ export default function TableAssignmentCard({
                 onClick={onAssignLeastFilled}
                 disabled={assignLoading}
                 className="w-full py-2.5 px-3 bg-white border border-indigo-300 hover:bg-indigo-50
-                  disabled:opacity-60 text-indigo-700 text-sm font-semibold rounded-lg transition-colors"
+                  disabled:opacity-60 text-indigo-700 text-sm font-semibold transition-colors"
               >
                 {assignLoading ? 'Placement…' : 'Assignez-moi une table'}
               </button>
@@ -156,7 +156,7 @@ export default function TableAssignmentCard({
               )}
             </div>
           )}
-          <p className="text-xs text-gray-400 text-center pt-1">— ou —</p>
+          <p className="text-xs text-gray-500 text-center pt-1">— ou —</p>
           <div className="pt-1 space-y-2">
             <input
               type="text"
@@ -164,7 +164,7 @@ export default function TableAssignmentCard({
               onChange={e => { setSwitchCode(e.target.value.toUpperCase()); setLocalSwitchError(null) }}
               placeholder="A1B2C3"
               maxLength={6}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono
+              className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 font-mono
                 tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
                 placeholder:text-gray-300"
             />
@@ -177,7 +177,7 @@ export default function TableAssignmentCard({
                     type="checkbox"
                     checked={asModerator}
                     onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
                   />
                   <span className="text-xs font-medium text-gray-700">
                     Je suis modérateur de cette table
@@ -189,7 +189,7 @@ export default function TableAssignmentCard({
                     value={creationCode}
                     onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
                     placeholder="Code Ecclesia"
-                    className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg
+                    className="w-full px-3 py-2 pr-10 text-sm border border-bleu-fonce/20
                       focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
                   />
                 )}
@@ -201,8 +201,8 @@ export default function TableAssignmentCard({
             <button
               onClick={handleRescueSubmit}
               disabled={switchLoading || switchCode.trim().length === 0}
-              className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                text-white text-sm font-semibold rounded-lg transition-colors"
+              className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               {switchLoading ? 'Connexion…' : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
             </button>
@@ -216,9 +216,9 @@ export default function TableAssignmentCard({
     // d'AllocatingScreen prend le relais juste en dessous).
     if (phase === 'closed' || phase === 'post_voting') {
       return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col items-center justify-center gap-2 min-h-[140px]">
+        <div className="bg-white border border-bleu-fonce/10 p-6 flex flex-col items-center justify-center gap-2 min-h-[140px]">
           <p className="text-sm text-gray-500 text-center">Le débat est terminé.</p>
-          <p className="text-xs text-gray-400 text-center max-w-[240px]">
+          <p className="text-xs text-gray-500 text-center max-w-[240px]">
             Tu n'as rejoint aucune table pendant cette séance.
           </p>
         </div>
@@ -253,11 +253,11 @@ export default function TableAssignmentCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div className="bg-white border border-bleu-fonce/10 shadow-lg overflow-hidden animate-entree">
       {/* Table number */}
-      <div className="bg-indigo-600 px-6 py-5 text-center">
-        <p className="text-indigo-200 text-sm font-medium mb-1">Tu es à la</p>
-        <p className="text-white text-5xl font-black tracking-tight">
+      <div className="bg-grain bg-bleu-fonce px-6 pt-6 pb-7 text-center">
+        <p className="relative text-bleu-clair text-[11px] font-bold uppercase tracking-[0.2em] mb-2">Tu es à la</p>
+        <p className="relative font-serif text-creme text-5xl font-semibold tracking-tight">
           Table {assignment.table_number}
         </p>
       </div>
@@ -275,11 +275,11 @@ export default function TableAssignmentCard({
         {/* Join code */}
         {joinCode ? (
           <div className="text-center space-y-1">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Code de ta table</p>
-            <p className="text-3xl font-mono font-bold text-gray-800 tracking-widest">{joinCode}</p>
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.2em]">Code de ta table</p>
+            <p className="text-3xl font-mono font-bold text-bleu-fonce tracking-[0.2em]">{joinCode}</p>
           </div>
         ) : !isDebating ? (
-          <p className="text-sm text-gray-400 text-center">
+          <p className="text-sm text-gray-500 text-center">
             Tu recevras le code quand ta table sera créée.
           </p>
         ) : null}
@@ -292,8 +292,8 @@ export default function TableAssignmentCard({
                 <button
                   onClick={onJoin}
                   disabled={joinLoading}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                    text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                    text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   {joinLoading ? (
                     <>
@@ -310,7 +310,7 @@ export default function TableAssignmentCard({
                 )}
               </>
             ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-1">
+              <div className="bg-amber-50 border border-amber-200 px-4 py-3 space-y-1">
                 <p className="text-sm text-amber-700 text-center">
                   Ta table n'est pas encore créée.<br />
                   Rends-toi à la <strong>Table {assignment.table_number}</strong> en salle.
@@ -337,7 +337,7 @@ export default function TableAssignmentCard({
                 Je veux rejoindre une autre table
               </button>
             ) : (
-              <div className="mt-1 p-3 bg-gray-50 rounded-xl border border-gray-200 text-left space-y-2">
+              <div className="mt-1 p-3 bg-gray-50 border border-bleu-fonce/10 text-left space-y-2">
                 <p className="text-xs text-gray-500">
                   Demande le code à 6 caractères de la table visée à un ami déjà installé
                   là-bas, ou à son modérateur.
@@ -348,7 +348,7 @@ export default function TableAssignmentCard({
                   onChange={e => { setSwitchCode(e.target.value.toUpperCase()); setLocalSwitchError(null) }}
                   placeholder="A1B2C3"
                   maxLength={6}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono
+                  className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 font-mono
                     tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
                     placeholder:text-gray-300"
                 />
@@ -360,7 +360,7 @@ export default function TableAssignmentCard({
                         type="checkbox"
                         checked={asModerator}
                         onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
-                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
                       />
                       <span className="text-xs font-medium text-gray-700">
                         Je suis modérateur de cette table
@@ -372,7 +372,7 @@ export default function TableAssignmentCard({
                         value={creationCode}
                         onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
                         placeholder="Code Ecclesia"
-                        className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg
+                        className="w-full px-3 py-2 pr-10 text-sm border border-bleu-fonce/20
                           focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
                       />
                     )}
@@ -385,8 +385,8 @@ export default function TableAssignmentCard({
                   <button
                     onClick={handleSwitchSubmit}
                     disabled={switchLoading || switchCode.trim().length === 0}
-                    className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                      text-white text-xs font-semibold rounded-lg transition-colors"
+                    className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                      text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                   >
                     {switchLoading
                       ? 'Connexion…'
@@ -407,7 +407,7 @@ export default function TableAssignmentCard({
 
         {/* Allocating phase — waiting message */}
         {!isDebating && joinCode && (
-          <p className="text-xs text-gray-400 text-center">
+          <p className="text-xs text-gray-500 text-center">
             Le débat n'a pas encore démarré. Attends le signal de l'organisateur.
           </p>
         )}

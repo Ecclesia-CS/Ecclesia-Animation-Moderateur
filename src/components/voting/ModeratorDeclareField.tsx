@@ -26,18 +26,18 @@ export default function ModeratorDeclareField({
           type="checkbox"
           checked={checked}
           onChange={e => onCheckedChange(e.target.checked)}
-          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+          className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
         />
         <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette séance</span>
       </label>
       {checked && (
         <div className="mt-2">
-          <label className="block text-xs font-medium text-gray-700 mb-1">Code Ecclesia</label>
+          <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Code Ecclesia</label>
           <PasswordInput
             value={password}
             onChange={onPasswordChange}
             placeholder="••••••••"
-            className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 pr-10 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
           />
         </div>
       )}

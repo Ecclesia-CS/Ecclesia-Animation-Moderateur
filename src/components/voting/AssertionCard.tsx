@@ -38,24 +38,24 @@ export default function AssertionCard({
       className={`flex flex-col flex-1 transition-opacity duration-200 ${fade ? 'opacity-0' : 'opacity-100'}`}
     >
       {/* Position indicator */}
-      <div className="px-4 pt-2 pb-1 text-center">
-        <span className="text-xs text-gray-400">
+      <div className="px-4 pt-3 pb-1 text-center">
+        <span className="text-[11px] font-bold uppercase tracking-[0.2em] tabular-nums text-bleu-fonce/70">
           {index + 1} / {total}
         </span>
       </div>
 
       {/* Card */}
       <div className="flex-1 flex items-center px-4 py-4">
-        <div className="w-full bg-white rounded-3xl shadow-md border border-gray-100 p-6 min-h-[220px] flex flex-col justify-center">
+        <div className="w-full bg-white shadow-lg border border-bleu-fonce/10 border-t-2 border-t-bleu-fonce px-6 py-7 min-h-[220px] flex flex-col justify-center">
           {currentVote && (
             <div className="mb-3 flex justify-center">
               <span
-                className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                className={`text-xs font-semibold px-3 py-1 border ${
                   currentVote === 'agree'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                     : currentVote === 'disagree'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-gray-100 text-gray-500'
+                    ? 'border-red-200 bg-red-50 text-red-800'
+                    : 'border-bleu-fonce/10 bg-gray-100 text-gray-600'
                 }`}
               >
                 {currentVote === 'agree'
@@ -67,7 +67,7 @@ export default function AssertionCard({
               </span>
             </div>
           )}
-          <p className="text-lg font-semibold text-gray-900 text-center leading-snug">
+          <p className="font-serif text-xl sm:text-2xl font-medium text-bleu-fonce text-center leading-snug">
             {assertion.content}
           </p>
         </div>
@@ -102,7 +102,7 @@ export default function AssertionCard({
           />
         </div>
         {index === 0 && (
-          <p className="text-center text-[10px] text-gray-400 mt-3 px-4">
+          <p className="text-center text-[11px] leading-relaxed text-gray-500 mt-4 px-4">
             💡 « Passe » veut dire ni l'un ni l'autre, ou que la question n'est pas claire — c'est un vrai choix, compté dans les résultats, pas pareil que de ne jamais répondre.
           </p>
         )}
@@ -127,18 +127,18 @@ function VoteBtn({
   onClick: () => void
 }) {
   const base =
-    'flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-2xl border-2 transition-all min-h-[72px] font-medium text-xs disabled:opacity-50'
+    'flex flex-col items-center justify-center gap-1 py-3 px-1 border transition-colors min-h-[72px] font-semibold text-xs disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-creme'
 
   const colorMap = {
     green: active
-      ? 'bg-green-500 border-green-500 text-white'
-      : 'bg-white border-green-200 text-green-700 hover:bg-green-50',
+      ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
+      : 'bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50 hover:border-emerald-300',
     red: active
-      ? 'bg-red-500 border-red-500 text-white'
-      : 'bg-white border-red-200 text-red-700 hover:bg-red-50',
+      ? 'bg-red-600 border-red-600 text-white shadow-md'
+      : 'bg-white border-red-200 text-red-800 hover:bg-red-50 hover:border-red-300',
     gray: active
-      ? 'bg-gray-500 border-gray-500 text-white'
-      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50',
+      ? 'bg-gray-600 border-gray-600 text-white shadow-md'
+      : 'bg-white border-bleu-fonce/15 text-gray-700 hover:bg-gray-50 hover:border-bleu-fonce/30',
   }
 
   return (

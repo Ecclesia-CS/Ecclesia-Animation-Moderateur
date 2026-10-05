@@ -70,11 +70,11 @@ export default function RenamePseudoModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 px-4"
+      className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 px-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">Nom et code de rappel</h2>
+      <div className="bg-white w-full sm:max-w-sm shadow-2xl p-5 space-y-4">
+        <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nom et code de rappel</h2>
 
         {done ? (
           <>
@@ -84,7 +84,7 @@ export default function RenamePseudoModal({
             </p>
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               Fermer
             </button>
@@ -92,20 +92,20 @@ export default function RenamePseudoModal({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom Nom</label>
+              <label className="block text-sm font-semibold text-anthracite mb-1.5">Prénom Nom</label>
               <input
                 type="text"
                 value={value}
                 onChange={e => setValue(e.target.value)}
                 maxLength={40}
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
-              <p className="text-xs text-gray-400 mt-1.5">{isPoll ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE}</p>
+              <p className="text-xs text-gray-500 mt-1.5">{isPoll ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE}</p>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {error}
               </div>
             )}
@@ -114,7 +114,7 @@ export default function RenamePseudoModal({
               <button
                 type="submit"
                 disabled={loading || !value.trim() || value.trim() === currentPseudo}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
               >
                 {loading ? 'Enregistrement…' : 'Enregistrer'}
               </button>
@@ -129,22 +129,22 @@ export default function RenamePseudoModal({
           </form>
         )}
 
-        <div className="border-t border-gray-100 pt-4 space-y-2">
+        <div className="border-t border-bleu-fonce/10 pt-4 space-y-2">
           <p className="text-sm font-medium text-gray-700">Code de rappel oublié ?</p>
 
           {newCode ? (
-            <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-center">
+            <div className="p-3 bg-indigo-50 border border-indigo-200 text-center">
               <p className="text-xs text-gray-500 mb-1">Ton nouveau code, à noter tout de suite :</p>
               <p className="text-2xl font-bold tracking-widest text-indigo-700">{newCode}</p>
-              <p className="text-xs text-gray-400 mt-1">L'ancien code ne fonctionne plus.</p>
+              <p className="text-xs text-gray-500 mt-1">L'ancien code ne fonctionne plus.</p>
             </div>
           ) : (
             <>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 Ton code est chiffré, on ne peut pas le relire — seulement t'en donner un nouveau. L'ancien cessera de fonctionner.
               </p>
               {codeError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                   {codeError}
                 </div>
               )}
@@ -152,7 +152,7 @@ export default function RenamePseudoModal({
                 type="button"
                 onClick={handleRegenerateCode}
                 disabled={codeLoading}
-                className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+                className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 text-sm font-medium transition-colors"
               >
                 {codeLoading ? 'Génération…' : 'Faire réapparaître mon code'}
               </button>

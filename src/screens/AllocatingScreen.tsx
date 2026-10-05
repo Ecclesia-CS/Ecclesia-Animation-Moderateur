@@ -367,11 +367,11 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       <QuitLink />
       <PhaseIndicator phase={currentSession.phase} floating />
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 py-5 text-center">
+      <header className="bg-white border-b border-bleu-fonce/10 px-4 py-5 text-center">
         <div className="text-3xl mb-1">🎉</div>
-        <h1 className="text-lg font-bold text-gray-900">Vote terminé !</h1>
+        <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote terminé !</h1>
         <p className="text-sm text-gray-500 mt-0.5">{session.title}</p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-gray-500 mt-1">
           Connecté en tant que <span className="font-medium text-gray-600">{member.pseudo}</span>
         </p>
       </header>
@@ -403,7 +403,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         {pairings.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ton binôme</p>
-            <div className="bg-white rounded-2xl border border-gray-200 p-4">
+            <div className="bg-white border border-bleu-fonce/10 p-4">
               <PairingResultsList results={pairings} />
             </div>
           </div>
@@ -418,11 +418,11 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             elle ne déplace plus personne dans la répartition en cours. */}
         {currentSession.phase === 'allocating' && (
           currentMember.is_moderator ? (
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-gray-500 text-center">
               Tu es modérateur·rice. Tu seras placé·e à une table au démarrage du débat.
             </p>
           ) : (
-            <form onSubmit={handleDeclareModerator} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+            <form onSubmit={handleDeclareModerator} className="bg-white border border-bleu-fonce/10 p-4 space-y-3">
               <ModeratorDeclareField
                 checked={asModerator}
                 onCheckedChange={setAsModerator}
@@ -438,8 +438,8 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
                 <button
                   type="submit"
                   disabled={moderatorDeclareBusy || !moderatorPassword.trim()}
-                  className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
-                    text-white text-sm font-semibold rounded-lg transition-colors"
+                  className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                    text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   {moderatorDeclareBusy ? 'Déclaration…' : 'Me déclarer modérateur·rice'}
                 </button>
@@ -450,7 +450,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
         {/* Bannière clôture — affichée en-dessous de la carte */}
         {sessionClosed && (
-          <div className="bg-gray-100 rounded-xl px-4 py-3 text-center text-sm text-gray-500">
+          <div className="bg-gray-100 px-4 py-3 text-center text-sm text-gray-500">
             🔒 Cette séance est maintenant clôturée. Merci pour ta participation !
           </div>
         )}
@@ -463,14 +463,14 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             <div className="mt-3">
               <button
                 onClick={() => setShowAllResults(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200
-                  rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-bleu-fonce/10
+                  text-sm text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 <span>Voir toutes les assertions ({voteResults.length})</span>
-                <span className="text-gray-400">{showAllResults ? '▲' : '▼'}</span>
+                <span className="text-gray-500">{showAllResults ? '▲' : '▼'}</span>
               </button>
               {showAllResults && (
-                <div className="mt-2 bg-white border border-gray-200 rounded-xl p-4">
+                <div className="mt-2 bg-white border border-bleu-fonce/10 p-4">
                   <VoteResultsList results={voteResults} loading={false} />
                 </div>
               )}

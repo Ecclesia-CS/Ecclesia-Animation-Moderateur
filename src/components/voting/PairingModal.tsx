@@ -12,7 +12,7 @@ export const PAIRING_EXPLANATION =
 /** Chantier 92 — la réciprocité doit sauter aux yeux, à la proposition comme après l'enregistrement. */
 export function ReciprocityNotice() {
   return (
-    <div className="text-sm text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 leading-snug">
+    <div className="text-sm text-indigo-900 bg-indigo-50 border border-indigo-200 px-3 py-2.5 leading-snug">
       <p className="font-semibold">⚠️ Ça ne marche que dans les deux sens</p>
       <p className="mt-0.5">
         Vous ne serez à la même table que si <strong>cette personne te cite aussi</strong> de son côté.
@@ -42,7 +42,7 @@ export function PairingFields({
             onChange(next)
           }}
           placeholder={i === 0 ? 'Prénom Nom (facultatif)' : 'Une deuxième personne (facultatif)'}
-          className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
           maxLength={80}
         />
       ))}
@@ -56,7 +56,7 @@ export function PairingResultsList({ results }: { results: PairingResult[] }) {
   return (
     <div className="space-y-2">
     {waiting && (
-      <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-snug">
+      <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 leading-snug">
         ⏳ Enregistré, mais pas encore actif : tant que la personne ne t'a pas cité·e en retour,
         l'algorithme ne vous mettra pas forcément ensemble. Préviens-la !
       </p>
@@ -112,43 +112,43 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-md bg-white rounded-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-bleu-fonce/50 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+      <div className="w-full max-w-md bg-white p-5 space-y-4" onClick={e => e.stopPropagation()}>
         <div>
           {/* Chantier 150 — « facultatif » en première ligne, comme à l'onboarding. */}
-          <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mb-2 leading-snug">
+          <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 mb-2 leading-snug">
             Facultatif — tu peux le remplir ou le modifier à tout moment pendant le vote.
           </p>
-          <h2 className="text-lg font-bold text-gray-900">🔗 Être avec un ami</h2>
+          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">🔗 Être avec un ami</h2>
           <p className="text-sm text-gray-600 mt-1">Avec qui aimerais-tu être à table ? (2 personnes au plus)</p>
-          <p className="text-xs text-gray-400 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
+          <p className="text-xs text-gray-500 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
         </div>
         <ReciprocityNotice />
         {loading ? (
-          <p className="text-sm text-gray-400">Chargement…</p>
+          <p className="text-sm text-gray-500">Chargement…</p>
         ) : (
           <PairingFields values={values} onChange={setValues} />
         )}
         <PairingResultsList results={results} />
         {placed !== null && (
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2">
             ✅ Tu as été placé·e au groupe {placed}, avec la personne que tu as citée.
           </p>
         )}
         {error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
         )}
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-gray-300 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50"
+            className="flex-1 py-3 border border-bleu-fonce/20 text-gray-600 text-sm font-medium hover:bg-gray-50"
           >
             Fermer
           </button>
           <button
             onClick={handleSave}
             disabled={loading || saving}
-            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium rounded-xl"
+            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>

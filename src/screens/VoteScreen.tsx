@@ -738,7 +738,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
         <div className="text-center space-y-3 max-w-sm">
           <div className="text-5xl">😕</div>
-          <h1 className="text-lg font-bold text-gray-900">Séance introuvable</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Séance introuvable</h1>
           <p className="text-sm text-gray-500">{errorMsg}</p>
           <a
             href="#"
@@ -794,7 +794,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">🔒</div>
-            <h1 className="text-xl font-bold text-gray-900">Séance pas encore ouverte</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Séance pas encore ouverte</h1>
             <p className="text-sm text-gray-500">
               Cette séance est encore en préparation. Reviens un peu plus tard, ou contacte l'organisateur si tu penses que c'est une erreur.
             </p>
@@ -813,12 +813,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <QuitLink />
           <PhaseIndicator sessionType={sessionTypeOf(session)} phase={session.phase} floating />
           <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+            <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8">
               <div className="text-center mb-4">
                 <div className="text-5xl mb-4">🗣️</div>
-                <h1 className="text-lg font-bold text-gray-900">Débat en cours</h1>
+                <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Débat en cours</h1>
                 <p className="text-sm text-gray-500 mt-1">{session.title}</p>
-                <p className="text-sm text-gray-400 mt-3">
+                <p className="text-sm text-gray-500 mt-3">
                   Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
                 </p>
               </div>
@@ -839,11 +839,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">🎉</div>
-            <h1 className="text-xl font-bold text-gray-900">Phase de vote terminée</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Phase de vote terminée</h1>
             <p className="text-sm text-gray-500">
               {errorMsg || 'Merci pour ta participation ! Les résultats vont être analysés pour former les groupes de débat.'}
             </p>
-            <p className="text-xs text-gray-400">Attends les instructions de l'organisateur.</p>
+            <p className="text-xs text-gray-500">Attends les instructions de l'organisateur.</p>
           </div>
         </div>
       </>
@@ -861,17 +861,17 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
           <div className="text-center space-y-4 max-w-sm">
             <div className="text-5xl">⏳</div>
-            <h1 className="text-xl font-bold text-gray-900">En attente de l'organisateur</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">En attente de l'organisateur</h1>
             <p className="text-sm text-gray-500">
               Bienvenue <strong>{member.pseudo}</strong> ! L'organisateur va ouvrir le vote dans quelques instants.
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Tu seras automatiquement redirigé(e) quand le vote commencera.
             </p>
             <div className="flex justify-center pt-2">
               <span className="inline-block w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
             </div>
-            <p className="text-xs text-gray-400 pt-1">
+            <p className="text-xs text-gray-500 pt-1">
               Ça ne bouge pas ?{' '}
               <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
                 Recharge la page
@@ -988,13 +988,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {showModeratorInfo && <ModeratorInfoModal onClose={() => setShowModeratorInfo(false)} />}
         {/* Header */}
-        <div className="bg-white border-b border-gray-100 px-4 py-3 flex flex-col gap-2">
+        <div className="bg-white border-b border-bleu-clair/60 px-4 py-3 flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-gray-900 truncate max-w-[200px]">
+              <h1 className="font-serif text-lg font-semibold leading-tight text-bleu-fonce truncate max-w-[220px]">
                 {session.title}
               </h1>
-              <p className="text-xs text-gray-500">{member.pseudo}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{member.pseudo}</p>
             </div>
             {/* Chantier 152 — propositions désactivées : le bouton disparaît (pas grisé).
                 Chantier 153 — idem tant qu'il reste à voter (« voter d'abord ») ou une
@@ -1002,7 +1002,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             {canProposeNow && (
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="shrink-0 text-xs text-indigo-600 font-medium py-1.5 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                className="shrink-0 text-xs font-semibold text-bleu-fonce py-1.5 px-3 bg-white border border-bleu-fonce/30 hover:border-bleu-fonce/50 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
               >
                 ✏️ Proposer
               </button>
@@ -1015,7 +1015,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <button
                   type="button"
                   onClick={() => setShowModeratorInfo(true)}
-                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 hover:bg-indigo-100 transition-colors"
+                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-bleu-fonce bg-indigo-50 border border-indigo-200 px-2 py-1 hover:bg-indigo-100 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                 >
                   🎙️ Vous êtes modérateur
                 </button>
@@ -1024,13 +1024,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => { window.location.hash = '' }}
-                className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="text-xs py-1.5 px-2.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
               >
                 Quitter
               </button>
               <button
                 onClick={() => setShowToolsPanel(true)}
-                className="text-xs text-gray-500 font-medium py-1.5 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="text-xs py-1.5 px-2.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
               >
                 Outils
               </button>
@@ -1040,7 +1040,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Allocating banner */}
         {session.phase === 'allocating' && (
-          <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
+          <div className="mx-4 mt-3 p-3 bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
             <p>⏳ L'organisateur forme les groupes de débat à partir des votes de tout le monde. Tu peux encore voter, mais ton vote n'influencera plus la répartition des tables.</p>
             <p>
               Si l'écran ne bouge pas quand ton groupe est prêt,{' '}
@@ -1058,7 +1058,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <div className="mx-4 mt-3">
             <button
               onClick={() => setShowLiveResults(true)}
-              className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
             >
               📊 Voir les résultats et les camps en direct
             </button>
@@ -1071,7 +1071,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             {/* Header compact */}
             <div className="text-center py-5 px-6">
               <div className="text-4xl mb-2">🏆</div>
-              <h2 className="text-lg font-bold text-gray-900">Tu as tout voté !</h2>
+              <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Tu as tout voté !</h2>
               {proposedCount > 0 && (
                 <p className="text-xs text-indigo-600 mt-1">
                   ✏️ Tu as proposé {proposedCount} assertion{proposedCount > 1 ? 's' : ''}
@@ -1080,7 +1080,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               {canProposeNow && (
                 <button
                   onClick={() => setShowSubmitModal(true)}
-                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   ✏️ Proposer une assertion
                 </button>
@@ -1115,7 +1115,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                     <button
                       key={a.id}
                       onClick={() => setRevoteAssertion(a)}
-                      className="w-full text-left bg-white rounded-xl border border-gray-200 p-3 space-y-2 hover:border-indigo-300 transition-colors"
+                      className="w-full text-left bg-white border border-bleu-fonce/10 p-3 space-y-2 hover:border-indigo-300 transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <span className="text-lg shrink-0">{icon}</span>
@@ -1133,7 +1133,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                               {disagreePct > 0 && <div className="bg-red-400"   style={{ width: `${disagreePct}%` }} />}
                               {passPct     > 0 && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
                             </div>
-                            <p className="text-[10px] text-gray-400">
+                            <p className="text-[10px] text-gray-500">
                               ✓ {r.agree_count} pour · ✗ {r.disagree_count} contre · ⏭ {r.pass_count} passe
                             </p>
                           </div>
@@ -1210,13 +1210,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Modal intro vote */}
         {showVoteIntro && (
-          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={closeVoteIntro}>
-            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+            <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
               onClick={e => e.stopPropagation()}>
-              <div className="bg-indigo-600 px-6 py-5 text-center">
+              <div className="bg-bleu-fonce px-6 py-5 text-center">
                 <p className="text-2xl mb-1">🗳️</p>
-                <h2 className="text-lg font-bold text-white">Comment fonctionne le vote ?</h2>
+                <h2 className="font-serif text-xl font-semibold text-creme">Comment fonctionne le vote ?</h2>
+              <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
               </div>
               <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
                 <div className="flex items-start gap-3">
@@ -1260,7 +1261,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               <div className="px-6 pb-6">
                 <button
                   onClick={closeVoteIntro}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   Commencer →
                 </button>
@@ -1271,15 +1272,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Modal "Voir toutes les assertions" */}
         {showAllAssertions && (
-          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowAllAssertions(false)}>
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
+            <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
               onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
-                <h2 className="text-sm font-bold text-gray-900">Toutes les assertions ({assertions.length})</h2>
+              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-bleu-fonce/10 flex-shrink-0">
+                <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Toutes les assertions ({assertions.length})</h2>
                 <button
                   onClick={() => setShowAllAssertions(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
                   aria-label="Fermer"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1289,14 +1290,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               </div>
               <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
                 {allResultsLoading ? (
-                  <p className="text-sm text-gray-400 text-center py-4">Chargement…</p>
+                  <p className="text-sm text-gray-500 text-center py-4">Chargement…</p>
                 ) : assertions.map(a => {
                   const myVote = myVotes.get(a.id)
                   const result = allAssertionResults.find(r => r.id === a.id)
                   const voteIcon = myVote?.vote === 'agree' ? '✅' : myVote?.vote === 'disagree' ? '❌' : myVote ? '⏭' : null
                   const unvotedIdx = unvotedAssertions.findIndex(u => u.id === a.id)
                   return (
-                    <div key={a.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                    <div key={a.id} className="border border-bleu-fonce/10 p-3 space-y-2">
                       <div className="flex items-start gap-2">
                         {voteIcon
                           ? (
@@ -1338,7 +1339,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                               {disagreePct > 0 && <div className="bg-red-400"   style={{ width: `${disagreePct}%` }} />}
                               {passPct > 0     && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
                             </div>
-                            <p className="text-[10px] text-gray-400">
+                            <p className="text-[10px] text-gray-500">
                               ✓ {result.agree_count} · ✗ {result.disagree_count} · ⏭ {result.pass_count}
                             </p>
                           </div>
@@ -1354,15 +1355,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Modal "Changer mon vote" (D16) */}
         {revoteAssertion && (
-          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setRevoteAssertion(null)}>
-            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+            <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-5 pt-5 pb-1 flex-shrink-0">
-                <h2 className="text-sm font-bold text-gray-900">Changer mon vote</h2>
+                <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Changer mon vote</h2>
                 <button
                   onClick={() => setRevoteAssertion(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
                   aria-label="Fermer"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1409,7 +1410,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <p className="text-sm text-red-700 text-center">{editEntry.error}</p>
                 <button
                   onClick={() => setEditEntry(null)}
-                  className="px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-xl hover:bg-gray-50"
+                  className="px-4 py-2 border border-bleu-fonce/20 text-gray-600 text-sm hover:bg-gray-50"
                 >
                   Fermer
                 </button>
@@ -1460,19 +1461,19 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         {/* Nudge proposition toutes les 10 assertions — masqué si le verrou
             s'active pendant que le popup est déjà ouvert (chantier 133) */}
         {showProposalNudge && canProposeNow && (
-          <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowProposalNudge(false)}>
-            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+            <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
               <div className="px-6 pt-6 pb-2 text-center">
                 <p className="text-3xl mb-2">✏️</p>
-                <h2 className="text-base font-bold text-gray-900">Tu as voté sur {myVotes.size} assertions !</h2>
+                <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Tu as voté sur {myVotes.size} assertions !</h2>
                 <p className="text-sm text-gray-500 mt-1">Veux-tu en proposer une à ton tour ?</p>
               </div>
               <div className="px-6 pb-6 pt-4 flex flex-col gap-2">
                 <button
                   onClick={() => { setShowProposalNudge(false); setShowSubmitModal(true) }}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
                 >
                   ✏️ Proposer une assertion
                 </button>
@@ -1541,14 +1542,15 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
       onClick={handleClose}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+      <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
-        <div className="bg-indigo-600 px-6 py-5 text-center">
+        <div className="bg-bleu-fonce px-6 py-5 text-center">
           <p className="text-2xl mb-1">🧭</p>
-          <h2 className="text-lg font-bold text-white">Comment se déroule la séance ?</h2>
-          <p className="text-indigo-100 text-xs mt-1">{session.title}</p>
+          <h2 className="font-serif text-xl font-semibold text-creme">Comment se déroule la séance ?</h2>
+          <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+          <p className="text-bleu-clair text-xs mt-1">{session.title}</p>
         </div>
         <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
           {introSteps.map(step => (
@@ -1564,7 +1566,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
         <div className="px-6 pb-6">
           <button
             onClick={handleClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             Compris, c'est parti →
           </button>
@@ -1579,13 +1581,14 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
 
 function ModeratorInfoModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
       onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+      <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
-        <div className="bg-indigo-600 px-6 py-5 text-center">
+        <div className="bg-bleu-fonce px-6 py-5 text-center">
           <p className="text-2xl mb-1">🎙️</p>
-          <h2 className="text-lg font-bold text-white">Tu es modérateur</h2>
+          <h2 className="font-serif text-xl font-semibold text-creme">Tu es modérateur</h2>
+        <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
         </div>
         <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
           <p>Tu es marqué·e comme modérateur pour cette séance. Au moment du débat, tu animeras une table plutôt que d'y participer comme un membre ordinaire.</p>
@@ -1594,7 +1597,7 @@ function ModeratorInfoModal({ onClose }: { onClose: () => void }) {
         <div className="px-6 pb-6">
           <button
             onClick={onClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             Compris
           </button>
@@ -1620,13 +1623,14 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4"
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
       onClick={handleClose}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+      <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
         <div className="bg-amber-500 px-6 py-5 text-center">
           <p className="text-2xl mb-1">🗳️</p>
-          <h2 className="text-lg font-bold text-white">Vote à distance ouvert</h2>
+          <h2 className="font-serif text-xl font-semibold text-creme">Vote à distance ouvert</h2>
+          <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
           <p className="text-amber-50 text-xs mt-1">{session.title}</p>
         </div>
         <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
@@ -1639,7 +1643,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
         <div className="px-6 pb-6">
           <button
             onClick={handleClose}
-            className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors"
           >
             Compris →
           </button>
@@ -1653,14 +1657,14 @@ function EmptyAssertions({ canPropose, onPropose }: { canPropose: boolean; onPro
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
       <div className="text-5xl">💭</div>
-      <h2 className="text-lg font-bold text-gray-900">Aucune assertion pour l'instant</h2>
+      <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Aucune assertion pour l'instant</h2>
       <p className="text-sm text-gray-500">
         Les assertions apparaîtront ici dès qu'elles seront approuvées.{canPropose ? ' Tu peux en proposer une !' : ''}
       </p>
       {canPropose && (
         <button
           onClick={onPropose}
-          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
         >
           ✏️ Proposer une assertion
         </button>
@@ -1702,7 +1706,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
   const subLinkClass = 'flex items-center gap-3 px-5 py-2.5 w-full text-left text-sm text-gray-600 hover:bg-gray-50 transition-colors'
   const linkClass    = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors'
   const ExternalIcon = () => (
-    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
       <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
       <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
@@ -1712,16 +1716,16 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+        className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
         onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
       >
-        <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xs shadow-2xl overflow-hidden">
+        <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">Outils</h2>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
+            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
               aria-label="Fermer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1732,7 +1736,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
 
           {/* Documentation */}
           <div className="pt-3 pb-1 px-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Documentation</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Documentation</p>
           </div>
           {infoUrl && (
             <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
@@ -1766,14 +1770,14 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
             </>
           )}
 
-          <div className="mt-2 border-t border-gray-100" />
+          <div className="mt-2 border-t border-bleu-fonce/10" />
 
           {/* Notes */}
           <button
             onClick={() => { onClose(); onOpenNotes() }}
             className={linkClass}
           >
-            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
@@ -1788,7 +1792,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
             onClick={() => { onClose(); onOpenModeratorClaim() }}
             className={linkClass}
           >
-            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
             </svg>
@@ -1802,7 +1806,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
             onClick={() => { onClose(); onOpenRename() }}
             className={linkClass}
           >
-            <span className="w-4 text-center text-gray-400 shrink-0">✏️</span>
+            <span className="w-4 text-center text-gray-500 shrink-0">✏️</span>
             Changer mon nom / code
           </button>
 
@@ -1815,7 +1819,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
               onClick={() => { onClose(); onOpenPairing() }}
               className={linkClass}
             >
-              <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+              <span className="w-4 text-center text-gray-500 shrink-0">🔗</span>
               Être avec un ami (facultatif)
             </button>
           )}
@@ -1830,7 +1834,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
               onClick={() => { onClose(); onOpenEditEntry() }}
               className={linkClass}
             >
-              <span className="w-4 text-center text-gray-400 shrink-0">📝</span>
+              <span className="w-4 text-center text-gray-500 shrink-0">📝</span>
               Modifier questionnaire d'entrée
             </button>
           )}
@@ -1850,7 +1854,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
 
 function AllocatingEntryNotice() {
   return (
-    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-center">
+    <div className="p-3 bg-amber-50 border border-amber-200 text-xs text-amber-800 text-center">
       Les groupes de débat sont en cours de formation. Tu peux quand même
       t'inscrire et voter — ton vote ne changera plus la répartition des tables.
     </div>
@@ -1954,19 +1958,19 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
             <span className="text-3xl">{moderatorError ? '⚠️' : '✅'}</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Bienvenue {completed.member.pseudo} !</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Bienvenue {completed.member.pseudo} !</h1>
             <p className="mt-2 text-sm text-gray-500">
               {completed.isNew ? 'Ton inscription est bien enregistrée.' : 'Tes votes ont bien été récupérés.'}
             </p>
             {moderatorError && (
-              <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
                 La déclaration modérateur a échoué : {moderatorError}
               </p>
             )}
           </div>
           <button
             onClick={() => (completed.isNew ? onNewMember(completed.member) : onConfirmed(completed.member))}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             Continuer →
           </button>
@@ -1979,10 +1983,10 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-100 mb-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 border border-indigo-200 mb-4">
             <span className="text-2xl">🏛️</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Vote présentiel</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote présentiel</h1>
           <p className="mt-1 text-sm text-gray-500">{session.title}</p>
         </div>
 
@@ -1990,7 +1994,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-anthracite mb-1.5">
               Prénom Nom
             </label>
             <input
@@ -2001,9 +2005,9 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
               maxLength={40}
               required
               autoFocus
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
             />
-            <p className="text-xs text-gray-400 mt-1.5">
+            <p className="text-xs text-gray-500 mt-1.5">
               {PSEUDO_PUBLIC_NOTICE}
             </p>
           </div>
@@ -2016,14 +2020,14 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
                 setUseCode(e.target.checked)
                 if (!e.target.checked) setCodeInput('')
               }}
-              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="w-4 h-4 border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
             />
             J'ai déjà un code de rappel
           </label>
 
           {useCode && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-anthracite mb-1.5">
                 Code de rappel (4 chiffres)
               </label>
               <input
@@ -2035,9 +2039,9 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
                 onChange={e => setCodeInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="_ _ _ _"
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-lg font-mono font-bold text-bleu-fonce text-center tracking-[0.5em] placeholder:text-anthracite/30 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
-              <p className="text-xs text-gray-400 mt-1.5">
+              <p className="text-xs text-gray-500 mt-1.5">
                 Tu as déjà voté à distance, ou tu changes d'appareil ? Entre ton nom
                 <strong> et </strong>ton code.
               </p>
@@ -2045,7 +2049,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           )}
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -2060,7 +2064,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           <button
             type="submit"
             disabled={loading || !pseudoInput.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Continuer →'}
           </button>
@@ -2171,14 +2175,14 @@ function AttendanceConfirmScreen({
             <span className="text-3xl">⚠️</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Présence confirmée</h1>
-            <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Présence confirmée</h1>
+            <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
               La déclaration modérateur a échoué : {moderatorError}
             </p>
           </div>
           <button
             onClick={() => onConfirmed(pendingConfirmed)}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             Continuer →
           </button>
@@ -2198,10 +2202,10 @@ function AttendanceConfirmScreen({
 
   const header = (
     <div className="text-center">
-      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-100 mb-4">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 border border-indigo-200 mb-4">
         <span className="text-2xl">🏛️</span>
       </div>
-      <h1 className="text-xl font-bold text-gray-900">Vote présentiel</h1>
+      <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote présentiel</h1>
       <p className="mt-1 text-sm text-gray-500">{session.title}</p>
       {session.phase === 'allocating' && (
         <div className="mt-4 text-left"><AllocatingEntryNotice /></div>
@@ -2216,14 +2220,14 @@ function AttendanceConfirmScreen({
         <div className="w-full max-w-sm space-y-6">
           {header}
 
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3 text-center">
+          <div className="bg-white border border-bleu-fonce/10 p-5 space-y-3 text-center">
             <p className="text-sm text-gray-500">Tu avais voté à distance sous le nom</p>
             <p className="text-xl font-bold text-gray-900">{pseudo}</p>
             <p className="text-sm text-gray-600 font-medium">Es-tu présent(e) au débat aujourd'hui ?</p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
           )}
 
           {moderatorField}
@@ -2232,14 +2236,14 @@ function AttendanceConfirmScreen({
             <button
               onClick={handleKnownUserConfirm}
               disabled={loading}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               {loading ? 'Confirmation…' : '✓ Oui, je suis présent(e)'}
             </button>
             <button
               onClick={handleContinueRemoteClick}
               disabled={loading}
-              className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-60 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+              className="w-full py-3 px-4 bg-white border border-bleu-fonce/20 hover:bg-gray-50 disabled:opacity-60 text-gray-700 text-sm font-medium transition-colors"
             >
               {loading ? 'Un instant…' : 'Non, je continue à voter à distance'}
             </button>
@@ -2261,13 +2265,13 @@ function AttendanceConfirmScreen({
       <div className="w-full max-w-sm space-y-6">
         {header}
 
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-sm text-indigo-800 text-center">
+        <div className="bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-800 text-center">
           Retrouve ton profil avec <strong>ton nom et prénom</strong> et <strong>ton code de rappel</strong> — les deux sont nécessaires.
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+        <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Prénom Nom</label>
+            <label className="block text-sm font-semibold text-anthracite mb-1.5">Prénom Nom</label>
             <input
               type="text"
               value={reclaimInput}
@@ -2275,12 +2279,12 @@ function AttendanceConfirmScreen({
               placeholder="Ton nom et prénom…"
               maxLength={40}
               autoFocus
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Code de rappel (4 chiffres)</label>
+            <label className="block text-sm font-semibold text-anthracite mb-1.5">Code de rappel (4 chiffres)</label>
             <input
               type="text"
               inputMode="numeric"
@@ -2288,15 +2292,15 @@ function AttendanceConfirmScreen({
               value={reclaimCodeInput}
               onChange={e => setReclaimCodeInput(e.target.value.replace(/\D/g, ''))}
               placeholder="_ _ _ _"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-mono text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-lg font-mono font-bold text-bleu-fonce text-center tracking-[0.5em] placeholder:text-anthracite/30 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
             />
-            <p className="text-xs text-gray-400 mt-1.5">
+            <p className="text-xs text-gray-500 mt-1.5">
               Perdu ? L'organisateur, ou le modérateur de ta table, peut t'en redonner un.
             </p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
           )}
         </div>
 
@@ -2306,7 +2310,7 @@ function AttendanceConfirmScreen({
           <button
             onClick={handleReclaimConfirm}
             disabled={loading || !reclaimInput.trim() || !reclaimCodeInput.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             {loading ? 'Recherche…' : 'Retrouver mes votes →'}
           </button>

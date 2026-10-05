@@ -46,13 +46,13 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
 
   if (done) {
     return (
-      <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
-        <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-6 text-center space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
+        <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden p-6 text-center space-y-4" onClick={e => e.stopPropagation()}>
           <p className="text-3xl">✅</p>
           <p className="text-sm text-gray-700">Tu es marqué·e modérateur pour cette séance.</p>
           <button
             onClick={onClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
           >
             Fermer
           </button>
@@ -62,11 +62,12 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="bg-indigo-600 px-6 py-5 text-center">
+    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
+      <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="bg-bleu-fonce px-6 py-5 text-center">
           <p className="text-2xl mb-1">🎙️</p>
-          <h2 className="text-lg font-bold text-white">Me déclarer modérateur</h2>
+          <h2 className="font-serif text-xl font-semibold text-creme">Me déclarer modérateur</h2>
+        <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <p className="text-xs text-gray-500">
@@ -75,7 +76,7 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
               : 'Confirme avec le mot de passe Ecclesia que tu es bien modérateur pour cette séance.'}
           </p>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Code Ecclesia</label>
+            <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Code Ecclesia</label>
             <PasswordInput
               autoFocus
               value={password}
@@ -84,20 +85,20 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
             />
           </div>
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
           )}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 text-gray-600 text-sm font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 text-gray-600 text-sm font-medium border border-bleu-fonce/10 hover:bg-gray-50 transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-xl transition-colors"
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
             >
               {loading ? 'Vérification…' : 'Confirmer'}
             </button>

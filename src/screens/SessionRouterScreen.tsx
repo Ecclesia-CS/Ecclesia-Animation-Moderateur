@@ -241,12 +241,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   if (status === 'debating_no_member') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8">
           <div className="text-center mb-4">
             <div className="text-5xl mb-4">🗣️</div>
-            <h1 className="text-lg font-bold text-gray-900">Débat en cours</h1>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Débat en cours</h1>
             {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
-            <p className="text-sm text-gray-400 mt-3">
+            <p className="text-sm text-gray-500 mt-3">
               Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
             </p>
           </div>
@@ -298,11 +298,11 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   if (status === 'post_voting_no_member') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+        <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
           <div className="text-5xl mb-4">🗳️</div>
-          <h1 className="text-lg font-bold text-gray-900">Le débat vient de se terminer</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Le débat vient de se terminer</h1>
           {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
-          <p className="text-sm text-gray-400 mt-3">
+          <p className="text-sm text-gray-500 mt-3">
             Les résultats publics seront disponibles une fois la séance clôturée par l'organisateur.
           </p>
           <button
@@ -320,13 +320,13 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+      <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
         <div className="text-5xl mb-4">{cfg.icon}</div>
-        <h1 className="text-lg font-bold text-gray-900">{cfg.title}</h1>
+        <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{cfg.title}</h1>
         {sessionTitle && (
           <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>
         )}
-        <p className="text-sm text-gray-400 mt-3">{cfg.subtitle}</p>
+        <p className="text-sm text-gray-500 mt-3">{cfg.subtitle}</p>
         <button
           onClick={() => { window.location.hash = '' }}
           className="mt-6 text-xs text-indigo-600 hover:underline"
