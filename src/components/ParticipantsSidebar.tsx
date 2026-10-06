@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Participant, ParticipationStyle, QueueEntry, TableMemberForModerator } from '../lib/types'
 import { loadTableMembersForModerator } from '../lib/voting'
+import { initiales } from '../lib/utils'
 
 const ROSTER_POLL_MS = 10_000
 
@@ -20,6 +21,8 @@ interface Props {
    */
   tableId?: string
   isModerator?: boolean
+  /** Classes ajoutées à la version claire (animation d'arrivée). */
+  className?: string
 }
 
 const STYLE_LABEL: Record<ParticipationStyle, string> = {
@@ -36,6 +39,7 @@ export default function ParticipantsSidebar({
   variant = 'dark',
   tableId,
   isModerator = false,
+  className = '',
 }: Props) {
   const dark = variant === 'dark'
   const longIds        = new Set(queueLong.map(e => e.participant_id))
@@ -106,6 +110,81 @@ export default function ParticipantsSidebar({
       >
         {STYLE_LABEL[style]}
       </span>
+    )
+  }
+
+  // Chantier 158 : version claire (vue participant), pastilles d'initiales
+  // et orateur en ocre. Même colonne de gauche (w-14) que les files et les
+  // boutons de ParticipantView : pastilles et textes tombent sur leurs axes.
+  // La version sombre (vue modérateur) est inchangée.
+  if (!dark) {
+    return (
+      <aside className={`w-full self-start border border-bleu-fonce/10 bg-white shadow-sm md:sticky md:top-4 ${className}`}>
+        <div className="flex items-stretch border-b border-bleu-fonce/10">
+          <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-fonce/55">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+              strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </span>
+          <div className="flex flex-1 items-center justify-between gap-3 py-3 pr-4">
+            <span className="text-sm font-semibold text-anthracite">Présents</span>
+            <span className="bg-indigo-50 px-2 py-1 text-xs font-semibold tabular-nums text-bleu-fonce">
+              {roster ? roster.length : participants.length}
+            </span>
+          </div>
+        </div>
+
+        <ul className="flex flex-col py-1.5">
+          {sortedConnected.map(p => {
+            const isSpeaking    = p.id === currentSpeakerId
+            const inInteractive = interactiveIds.has(p.id)
+            const inLong        = longIds.has(p.id)
+            return (
+              <li
+                key={p.id}
+                className={`flex items-center transition-colors duration-300 ${isSpeaking ? 'bg-amber-50' : ''}`}
+              >
+                <span aria-hidden="true" className="flex w-14 shrink-0 justify-center py-1.5">
+                  <span className="relative flex h-7 w-7">
+                    {isSpeaking && <span className="absolute -inset-1 rounded-full bg-amber-400/40 animate-speaking" />}
+                    <span className={`relative flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${
+                      isSpeaking ? 'bg-amber-600 text-creme' : 'bg-indigo-50 text-bleu-fonce'
+                    }`}>
+                      {initiales(p.pseudo)}
+                    </span>
+                  </span>
+                </span>
+                <span className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-4">
+                  <span className={`min-w-0 flex-1 truncate text-sm ${isSpeaking ? 'font-semibold text-amber-800' : 'text-anthracite'}`}>
+                    {p.pseudo}
+                  </span>
+                  {inInteractive && !isSpeaking && (
+                    <span className="h-2 w-2 shrink-0 bg-teal-600" title="Demander la parole sur le sujet actuel" />
+                  )}
+                  {inLong && !isSpeaking && (
+                    <span className="h-2 w-2 shrink-0 bg-bleu-fonce" title="File d'attente" />
+                  )}
+                </span>
+              </li>
+            )
+          })}
+
+          {notYetConnected.map(r => (
+            <li key={r.member_id} className="flex items-center">
+              <span aria-hidden="true" className="flex w-14 shrink-0 justify-center py-1.5">
+                <span className="h-7 w-7 rounded-full border border-dashed border-gray-400" />
+              </span>
+              <span className="min-w-0 flex-1 truncate py-1.5 pr-4 text-sm italic text-gray-500">{r.pseudo}</span>
+            </li>
+          ))}
+        </ul>
+
+        {participants.length === 0 && notYetConnected.length === 0 && (
+          <p className="pb-4 pl-14 pr-4 text-xs italic text-gray-500">Aucun participant</p>
+        )}
+      </aside>
     )
   }
 

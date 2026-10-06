@@ -4,7 +4,7 @@ import { privateChannel } from '../lib/realtime'
 import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus, assignLeastFilledTable, getMyPairings } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
-import { extractErr } from '../lib/utils'
+import { extractErr, titreSeance } from '../lib/utils'
 import type { Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import VoteResultsList from '../components/voting/VoteResultsList'
@@ -370,7 +370,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       <header className="bg-white border-b border-bleu-fonce/10 px-4 pt-14 pb-5 text-center">
         <div className="text-3xl mb-1">🎉</div>
         <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote terminé !</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{session.title}</p>
+        <p className="text-sm text-gray-500 mt-0.5">{titreSeance(session.title)}</p>
         <p className="text-xs text-gray-500 mt-1">
           Connecté en tant que <span className="font-medium text-gray-600">{member.pseudo}</span>
         </p>

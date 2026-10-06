@@ -17,6 +17,24 @@ export function extractErr(e: unknown): string {
   return String(e)
 }
 
+/**
+ * Titre de séance tel qu'affiché (chantier 158) : sans tiret cadratin, ni
+ * demi-cadratin employé comme séparateur, remplacés par un point médian
+ * (« Débat — Énergie » → « Débat · Énergie »). Le titre en base n'est pas
+ * touché ; ne pas s'en servir pour un champ de saisie, un export ou un nom de
+ * fichier.
+ */
+export function titreSeance(titre: string): string {
+  return titre.replace(/\s*—\s*/g, ' · ').replace(/\s+–\s+/g, ' · ')
+}
+
+/** Initiales d'un pseudo (« Antoine Doumas » → « AD »), pour une pastille. */
+export function initiales(pseudo: string): string {
+  const mots = pseudo.trim().split(/[\s\-']+/).filter(Boolean)
+  // Array.from : premier caractère entier, même hors du plan de base (émoji).
+  return mots.slice(0, 2).map(m => Array.from(m)[0]).join('').toUpperCase() || '?'
+}
+
 export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`

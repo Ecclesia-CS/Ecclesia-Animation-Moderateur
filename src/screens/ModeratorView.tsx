@@ -15,7 +15,7 @@ import {
 
 import { useTable } from '../context/TableContext'
 import { useLiveMs } from '../hooks/useLiveMs'
-import { formatDuration, extractErr } from '../lib/utils'
+import { formatDuration, extractErr, titreSeance } from '../lib/utils'
 import { getSessionById } from '../lib/sessions'
 import type { QueueEntry, Session, SpeakingTurn } from '../lib/types'
 import SpeakerTimer from '../components/SpeakerTimer'
@@ -464,7 +464,7 @@ export default function ModeratorView() {
             {sessionDocs?.title && (
               <span className="hidden sm:block font-serif text-base font-medium text-slate-300 truncate max-w-[200px]"
                 title={sessionDocs.title}>
-                {sessionDocs.title}
+                {titreSeance(sessionDocs.title)}
               </span>
             )}
             <span className="font-mono text-lg sm:text-xl font-bold text-bleu-clair shrink-0 tracking-[0.2em]">

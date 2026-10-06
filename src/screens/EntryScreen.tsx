@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { extractErr } from '../lib/utils'
+import { extractErr, titreSeance } from '../lib/utils'
 import { listPublicClosedSessions } from '../lib/sessions'
 import type { Session } from '../lib/types'
 import ecclesiaLogo from '../assets/ecclesia-logo.webp'
@@ -109,7 +109,7 @@ export default function EntryScreen() {
                 <div key={s.id}
                   className="bg-white border border-bleu-fonce/10 border-l-4 border-l-bleu-fonce px-4 py-3.5 flex flex-col gap-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="font-serif text-lg font-semibold leading-snug text-bleu-fonce break-words">{s.title}</p>
+                    <p className="font-serif text-lg font-semibold leading-snug text-bleu-fonce break-words">{titreSeance(s.title)}</p>
                     <span className={`inline-flex items-center mt-1.5 border px-2 py-0.5 text-[10px] font-bold uppercase leading-snug tracking-[0.08em] ${PHASE_BADGE[s.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-600'}`}>
                       {PHASE_LABEL[s.phase] ?? s.phase}
                     </span>
@@ -212,7 +212,7 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
               className="w-full text-left bg-white hover:bg-indigo-50/60 border border-bleu-fonce/10
                 hover:border-indigo-200 px-4 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
-              <p className="font-serif text-base font-semibold text-bleu-fonce">{s.title}</p>
+              <p className="font-serif text-base font-semibold text-bleu-fonce">{titreSeance(s.title)}</p>
               {s.scheduled_at && (
                 <p className="text-xs text-gray-500 mt-0.5">
                   {new Date(s.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}

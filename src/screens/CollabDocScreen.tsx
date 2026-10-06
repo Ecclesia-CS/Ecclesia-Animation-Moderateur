@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { extractErr, isSafeUrl } from '../lib/utils'
+import { extractErr, isSafeUrl, titreSeance } from '../lib/utils'
 import {
   getCollabIdentity,
   claimCollabIdentity,
@@ -279,7 +279,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
               Sources collaboratives
             </h1>
             {session && (
-              <p className="text-xs text-gray-500 truncate">{session.title}</p>
+              <p className="text-xs text-gray-500 truncate">{titreSeance(session.title)}</p>
             )}
           </div>
           {myIdentity && (

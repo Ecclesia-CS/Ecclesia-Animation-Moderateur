@@ -278,9 +278,22 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 
 **Reste à voir à l'œil**
 - [ ] Relire les textes réécrits (175) : la liste complète est dans le commit `0bbf0b7` (`git show 0bbf0b7`). Ponctuation choisie phrase par phrase ; dire si une tournure ne convient pas.
-- [ ] Encore des tirets cadratins hors du code de l'écran, à trancher : messages renvoyés par la base (par exemple « Cette table a déjà un modérateur — choisis-en une autre… », dans plusieurs fonctions SQL : migration à prévoir, dev puis prod) ; titres de séances saisis avec un « — » (« QA Vérifs — Débat ») ; consignes envoyées à Gemini (les noms de camps générés peuvent en contenir).
+- [ ] Encore des tirets cadratins hors du code de l'écran, à trancher : messages renvoyés par la base (par exemple « Cette table a déjà un modérateur — choisis-en une autre… », dans plusieurs fonctions SQL : migration à prévoir, dev puis prod) ; consignes envoyées à Gemini (les noms de camps générés peuvent en contenir). Les titres de séances saisis avec un « — » sont réglés au lot 9 (affichés avec un point médian).
 - [ ] Supprimer aussi, sur la base dev : la séance « Audit charte 158 (sondage) » et les participants fictifs Sondé Un à Sondé Quatre, Participant Démo, Modo Démo (table B8F10C de « Test charte 154 — Débat »).
 
 **Observé en passant (non corrigé, hors charte)**
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
+
+## Chantier 158, lot 9 (2026-10-06) — Page participant refaite (fond quadrillé du site)
+
+**Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », participant fictif « Votant Trois »), à 320, 375 et 1 280 px : en-tête marine quadrillé (cases qui s'allument, vague, emblème, puce d'étape, titre sans tiret cadratin, initiales, code de table) ; repos ; dans les deux files avec un sujet indiqué (position en grand, ligne surlignée dans les files, marques dans « Présents ») ; « sujet suivant » activé puis annulé ; menu Outils, fenêtre des étapes, accueil et règles du débat ; carte « Vous avez la parole ! » (vue chez « Participant Démo » quand il avait la parole, puis en maquette injectée). Audit automatique : aucun chevauchement, texte coupé ou décentré, aucun débordement, contrastes ≥ 4,5:1. Tests : 133 réussis, 4 ignorés (6 nouveaux, `src/lib/utils.test.ts`) ; build OK.
+
+**Reste à voir à l'œil**
+- [ ] Sur un vrai téléphone, et dans Messenger : fluidité du défilement avec les cases animées de l'en-tête (seule l'opacité est animée, en CSS).
+- [ ] Bannière « 🗳️ Voir le vote en cours » (après avoir fermé la fenêtre d'un vote proposé par le modérateur) : pas déclenchée pendant la vérification.
+- [ ] Table sans animateur : bouton « 🎙️ Devenir modérateur » sous le nom (ambre sur marine), et « J'ai fini de parler » dans la carte ocre.
+- [ ] Séance d'association : l'emblème d'Ecclesia doit disparaître de l'en-tête.
+- [ ] Écran « La séance est terminée » (plein écran marine quadrillé), au passage en post-vote.
+- [ ] Mouvement réduit activé sur le téléphone : plus de cases allumées ni d'entrées en fondu, la trame reste.
+- [ ] Titres de séance avec un « — » : affichés « · » sur l'accueil, le vote, les résultats, le document collaboratif et le superadmin (`titreSeance()`, 24 affichages) ; le champ de modification du titre, lui, montre le titre tel qu'il a été saisi.

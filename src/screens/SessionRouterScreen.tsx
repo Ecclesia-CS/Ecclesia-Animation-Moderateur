@@ -10,6 +10,7 @@ import { hasQuestionnaireResponse, joinSimpleDebate } from '../lib/voting'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import DebateEntryForm from '../components/DebateEntryForm'
 import { tableStore } from '../lib/storage'
+import { titreSeance } from '../lib/utils'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -245,7 +246,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           <div className="text-center mb-4">
             <div className="text-5xl mb-4">🗣️</div>
             <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Débat en cours</h1>
-            {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
+            {sessionTitle && <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>}
             <p className="text-sm text-gray-500 mt-3">
               Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
             </p>
@@ -301,7 +302,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
         <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
           <div className="text-5xl mb-4">🗳️</div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Le débat vient de se terminer</h1>
-          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
+          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>}
           <p className="text-sm text-gray-500 mt-3">
             Les résultats publics seront disponibles une fois la séance clôturée par l'organisateur.
           </p>
@@ -324,7 +325,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
         <div className="text-5xl mb-4">{cfg.icon}</div>
         <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{cfg.title}</h1>
         {sessionTitle && (
-          <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>
+          <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>
         )}
         <p className="text-sm text-gray-500 mt-3">{cfg.subtitle}</p>
         <button

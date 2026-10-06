@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
 import PasswordInput from '../components/PasswordInput'
-import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES, titreSeance } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
   setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules, setSessionVisibleOnHome,
@@ -587,7 +587,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
       {toClose && (
         <ConfirmModal
           title="Fermer la séance"
-          body={`Fermer "${toClose.title}" ? La séance passera en phase "Clôturée".`}
+          body={`Fermer "${titreSeance(toClose.title)}" ? La séance passera en phase "Clôturée".`}
           confirmLabel="Fermer la séance"
           onConfirm={handleClose}
           onCancel={() => setToClose(null)}
@@ -597,7 +597,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
       {toDelete && (
         <ConfirmModal
           title="Supprimer la séance"
-          body={`Supprimer définitivement "${toDelete.title}" ? Les tables rattachées seront détachées mais pas supprimées.`}
+          body={`Supprimer définitivement "${titreSeance(toDelete.title)}" ? Les tables rattachées seront détachées mais pas supprimées.`}
           confirmLabel="Supprimer"
           onConfirm={handleDelete}
           onCancel={() => setToDelete(null)}
@@ -982,7 +982,7 @@ function SessionCard({
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Title + badge */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-serif text-lg font-semibold leading-snug text-bleu-fonce truncate">{session.title}</span>
+            <span className="font-serif text-lg font-semibold leading-snug text-bleu-fonce truncate">{titreSeance(session.title)}</span>
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[session.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
               {phaseLabel(session.phase, sessionTypeOf(session))}
             </span>
@@ -3314,7 +3314,7 @@ function SessionDetail({
             {/* Chantier 72 — `currentSession` et non la prop `session` (figée au
                 montage) : l'en-tête doit refléter une édition du titre faite dans
                 l'onglet Préparation, sans repasser par la liste des séances. */}
-            <span className="font-serif text-xl font-semibold text-creme truncate">{currentSession.title}</span>
+            <span className="font-serif text-xl font-semibold text-creme truncate">{titreSeance(currentSession.title)}</span>
             <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[currentSession.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
               {phaseLabel(currentSession.phase, sessionType)}
             </span>
@@ -4172,7 +4172,7 @@ function SessionDetail({
                       </form>
                     ) : (
                       <div className="space-y-1.5">
-                        <p className="text-sm font-medium text-gray-900">{currentSession.title}</p>
+                        <p className="text-sm font-medium text-gray-900">{titreSeance(currentSession.title)}</p>
                         {currentSession.description
                           ? <p className="text-xs text-gray-500 whitespace-pre-wrap">{currentSession.description}</p>
                           : <p className="text-xs text-gray-500">Aucune description</p>}

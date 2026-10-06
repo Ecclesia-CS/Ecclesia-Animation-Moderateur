@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
 import { castVote, getMyAssertionIds, canProposeAssertion } from '../lib/voting'
-import { extractErr } from '../lib/utils'
+import { extractErr, titreSeance } from '../lib/utils'
 import type { Assertion, AssertionVote, Session } from '../lib/types'
 import AssertionCard from '../components/voting/AssertionCard'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
@@ -153,7 +153,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Revoter</h1>
-          <p className="text-sm text-gray-500 mt-1">{session.title}</p>
+          <p className="text-sm text-gray-500 mt-1">{titreSeance(session.title)}</p>
           <p className="text-sm text-gray-500 mt-2">
             Le débat a peut-être fait bouger tes positions : c'est le moment de le vérifier.
           </p>

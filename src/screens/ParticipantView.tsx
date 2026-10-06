@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
-import { extractErr } from '../lib/utils'
+import { extractErr, initiales, titreSeance } from '../lib/utils'
 import type { QuestionnaireResponse, Session } from '../lib/types'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
@@ -14,6 +14,8 @@ import PhaseIndicator from '../components/PhaseIndicator'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import TableChangeModal from '../components/TableChangeModal'
 import TableVoteModal from '../components/TableVoteModal'
+import FondQuadrille from '../components/FondQuadrille'
+import ecclesiaLogo from '../assets/ecclesia-logo.webp'
 
 export default function ParticipantView() {
   const {
@@ -187,186 +189,273 @@ export default function ParticipantView() {
     }
   }
 
+  // Chantier 158 : le titre vient du contexte (chargé avant le premier rendu),
+  // à défaut de la lecture propre à cet écran, pour ne pas voir le code de
+  // table s'afficher en grand puis céder la place au titre.
+  const titre = session?.title ?? sessionTitle
+  const boutonVerre = `btn-verre inline-flex h-10 items-center px-4 text-xs font-semibold text-creme
+    focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
+
   return (
     <div className="min-h-screen bg-creme flex flex-col">
 
-      {/* ── Header ───────────────────────────────────────────── */}
-      <header className="bg-white border-b border-bleu-clair/60 px-4 py-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5">
-        <div className="flex flex-col min-w-0">
-          <span className="font-mono font-bold text-bleu-fonce text-lg tracking-[0.2em] leading-tight">
-            {table.join_code}
-          </span>
-          {sessionTitle && (
-            <span className="text-xs text-gray-500 truncate max-w-[140px]">{sessionTitle}</span>
-          )}
-          {session && (
-            <div className="mt-1.5"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
-          )}
-        </div>
-        <span className="text-sm text-gray-600 truncate max-w-[120px]">{myParticipant.pseudo}</span>
-        <div className="ml-auto flex items-center gap-1.5">
-          {table.leaderless && (
-            <button
-              onClick={() => setShowAskAdminModal(true)}
-              className="text-xs px-2.5 py-1.5 border border-amber-300 text-amber-800 bg-amber-50
-                hover:bg-amber-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-            >
-              🎙️ Devenir modérateur
-            </button>
-          )}
-          <ParticipantToolsButton
-            session={sessionDocs}
-            userPseudo={myParticipant.pseudo}
-            className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80
-              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          />
-          <button
-            onClick={leaveTable}
-            className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80
-              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Quitter
-          </button>
+      {/* ── En-tête : bandeau marine quadrillé du site, bord inférieur en vague ── */}
+      {/* Ni z-index ni isolation ici (voir FondQuadrille) : Outils et l'indicateur
+          d'étape y ouvrent des fenêtres fixed qui doivent couvrir toute la page. */}
+      <header className="relative overflow-hidden bg-bleu-fonce text-creme">
+        <FondQuadrille />
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 800 40"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-5 w-full sm:h-8"
+        >
+          <path d="M0 0 Q400 80 800 0 V40 H0 Z" className="fill-creme" />
+        </svg>
+
+        <div className="relative mx-auto w-full max-w-5xl px-4 pb-10 pt-3 sm:px-6 sm:pb-14 sm:pt-4">
+          <div className="flex items-center gap-2">
+            {/* Emblème d'Ecclesia, sauf dans une séance d'association (chantier 135). */}
+            {!session?.organization_id && (
+              <img
+                src={ecclesiaLogo}
+                alt=""
+                aria-hidden="true"
+                className="h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)]"
+              />
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <ParticipantToolsButton
+                session={sessionDocs}
+                userPseudo={myParticipant.pseudo}
+                className={boutonVerre}
+              />
+              <button onClick={leaveTable} className={boutonVerre}>
+                Quitter
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 animate-montee sm:mt-7">
+            {session && (
+              <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
+            )}
+            <h1 className={`mt-4 break-words text-creme ${
+              titre
+                ? 'font-serif text-[1.75rem] font-semibold leading-[1.1] tracking-tight sm:text-4xl'
+                : 'font-sans text-2xl font-bold tracking-[0.16em] sm:text-3xl'
+            }`}>
+              {titre ? titreSeance(titre) : table.join_code}
+            </h1>
+            <span aria-hidden="true" className="filet-spectre mt-4 block w-16" />
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+              <span className="inline-flex min-w-0 items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bleu-clair text-[11px] font-bold text-bleu-fonce"
+                >
+                  {initiales(myParticipant.pseudo)}
+                </span>
+                <span className="truncate text-sm font-semibold text-creme">{myParticipant.pseudo}</span>
+              </span>
+              {titre && (
+                <span className="inline-flex items-baseline gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair">Table</span>
+                  <span className="text-sm font-semibold tracking-[0.14em] text-creme">{table.join_code}</span>
+                </span>
+              )}
+            </div>
+            {table.leaderless && (
+              <button
+                onClick={() => setShowAskAdminModal(true)}
+                className="mt-5 inline-flex h-10 items-center gap-2 border border-amber-300/50 bg-amber-300/10 px-4
+                  text-sm font-semibold text-amber-100 transition-colors hover:border-amber-300/80 hover:bg-amber-300/20
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+              >
+                🎙️ Devenir modérateur
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* ── Speaking banner (self) ────────────────────────────── */}
-      {iAmSpeaking && (
-        <div className="bg-amber-50 border-b-2 border-amber-400 px-4 py-5 text-center animate-entree">
-          <p className="font-serif text-2xl font-semibold text-amber-800">Vous avez la parole !</p>
-          {table.leaderless && (
-            <button
-              onClick={() => endTurnAndAdvance().catch(() => {})}
-              className="mt-3 py-2.5 px-5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-amber-50"
-            >
-              J'ai fini de parler
-            </button>
-          )}
-        </div>
-      )}
+      {/* ── Corps : actions, files, présents (colonne de droite sur md+) ── */}
+      <div className="flex-1 bg-gradient-to-b from-creme to-sable">
+        <div className="mx-auto grid w-full max-w-5xl items-start gap-6 px-4 pb-12 pt-1 sm:px-6
+          md:grid-cols-[minmax(0,1fr)_16.5rem] md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
 
-      {/* ── Body (main + sidebar sur md+) ────────────────────── */}
-      <div className="flex-1 flex gap-4 p-4 pt-6 max-w-2xl mx-auto w-full items-start">
+          <div className="flex min-w-0 flex-col gap-3">
 
-      <div className="flex-1 flex flex-col items-center gap-5 min-w-0">
-
-        {/* Chantier 132 — bannière de réouverture du vote en cours, après un dismiss */}
-        {table.active_vote_id && !voteModalOpen && (
-          <button
-            onClick={() => setVoteModalOpen(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3
-              border border-indigo-200 bg-indigo-50 text-bleu-fonce text-sm font-semibold
-              hover:bg-indigo-100 hover:border-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            🗳️ Voir le vote en cours
-          </button>
-        )}
-
-        {/* ── Queue buttons ────────────────────────────────────── */}
-        <div className="w-full space-y-3">
-          <QueueToggle
-            label="Prendre la parole sur un autre sujet"
-            sub="Introduire un nouveau point ou des informations complémentaires"
-            color="indigo"
-            active={pendingLong || !!myLong}
-            position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
-            total={queueLong.length}
-            pending={pendingLong}
-            disabled={iAmSpeaking}
-            onClick={() => toggle('long', myLong)}
-          />
-          {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
-          {!myLong && !pendingLong ? (
-            <input
-              type="text"
-              value={topicTag}
-              onChange={e => setTopicTag(e.target.value.slice(0, 60))}
-              placeholder="Sujet ou thème dont tu veux parler (optionnel)"
-              className="w-full text-sm px-3.5 py-2.5 bg-white border border-bleu-fonce/20 text-anthracite
-                placeholder:text-anthracite/45 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
-            />
-          ) : myLong?.topic_tag ? (
-            <p className="text-xs text-gray-500 px-1">
-              Sujet indiqué : <span className="font-semibold text-anthracite">{myLong.topic_tag}</span>
-            </p>
-          ) : null}
-          <QueueToggle
-            label="Demander la parole sur le sujet actuel"
-            sub="Pour répondre à ce qui est dit actuellement uniquement"
-            color="teal"
-            active={pendingInteractive || !!myInteractive}
-            position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
-            total={queueInteractive.length}
-            pending={pendingInteractive}
-            disabled={iAmSpeaking}
-            onClick={() => toggle('interactive', myInteractive)}
-          />
-
-          {/* Chantier 131 — "d'accord pour passer au sujet suivant" */}
-          <button
-            onClick={handleToggleNextTopic}
-            disabled={pendingNextTopic}
-            className={`block w-full px-4 py-3 border text-center
-              text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-creme focus-visible:ring-emerald-400 ${
-              myParticipant.wants_next_topic
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-white border-bleu-fonce/15 text-anthracite/80 hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-800'
-            }`}
-          >
-            {pendingNextTopic ? (
-              <span className="mr-2 inline-block h-4 w-4 align-[-2px] rounded-full border-2 border-current/60 border-t-transparent animate-spin" />
-            ) : (
-              <span className="mr-1.5">👍</span>
+            {/* ── « Vous avez la parole ! » ─────────────────────────── */}
+            {iAmSpeaking && (
+              <div className="relative flex items-stretch overflow-hidden bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee">
+                <FondQuadrille cases={3} grain={false} traits={0.12} />
+                <span aria-hidden="true" className="relative flex w-14 shrink-0 items-center justify-center bg-amber-700/70">
+                  <span className="flex h-6 items-end gap-[3px]">
+                    {[14, 22, 17, 24].map((h, i) => (
+                      <span
+                        key={i}
+                        className="block w-[3px] origin-bottom bg-creme animate-onde"
+                        style={{ height: h, animationDelay: `${i * 0.15}s` }}
+                      />
+                    ))}
+                  </span>
+                </span>
+                <div className="relative flex flex-1 flex-col items-start gap-3 px-4 py-5">
+                  <p className="font-serif text-[1.7rem] font-semibold leading-tight text-creme">Vous avez la parole !</p>
+                  {table.leaderless && (
+                    <button
+                      onClick={() => endTurnAndAdvance().catch(() => {})}
+                      className="inline-flex h-10 items-center bg-creme px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-white
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-creme focus-visible:ring-offset-2 focus-visible:ring-offset-amber-600"
+                    >
+                      J'ai fini de parler
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
-            {myParticipant.wants_next_topic
-              ? "D'accord pour le sujet suivant (appuyer pour annuler)"
-              : 'Je suis d’accord pour passer au sujet suivant'}
-          </button>
-        </div>
 
-        {err && (
-          <p className="text-sm text-red-700 text-center bg-red-50 w-full px-4 py-2.5
-            border border-red-200">
-            {err}
-          </p>
-        )}
+            {/* Chantier 132 — bannière de réouverture du vote en cours, après un dismiss */}
+            {table.active_vote_id && !voteModalOpen && (
+              <button
+                onClick={() => setVoteModalOpen(true)}
+                className="relative flex w-full items-stretch overflow-hidden bg-bleu-fonce text-left text-creme
+                  shadow-[0_20px_44px_-24px_rgba(21,35,63,0.9)] transition-shadow hover:shadow-[0_26px_52px_-22px_rgba(21,35,63,0.95)] animate-montee
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
+              >
+                <FondQuadrille cases={2} />
+                <span aria-hidden="true" className="relative flex w-14 shrink-0 items-center justify-center bg-bleu-clair/15 text-xl">🗳️</span>
+                <span className="relative flex flex-1 items-center gap-3 px-4 py-3.5">
+                  <span className="flex-1 text-sm font-semibold">Voir le vote en cours</span>
+                  <span aria-hidden="true" className="relative flex h-2 w-2 shrink-0">
+                    <span className="absolute inset-0 rounded-full bg-bleu-clair animate-pouls" />
+                    <span className="relative h-2 w-2 rounded-full bg-bleu-clair" />
+                  </span>
+                </span>
+              </button>
+            )}
 
-        {/* ── Files en lecture seule ────────────────────────────── */}
-        <div className="w-full space-y-3">
-          <ReadOnlyQueuePanel
-            title="File d'attente : prendre la parole sur un autre sujet"
-            entries={queueLong}
+            {/* ── Boutons de file ──────────────────────────────────── */}
+            <QueueToggle
+              label="Prendre la parole sur un autre sujet"
+              sub="Introduire un nouveau point ou des informations complémentaires"
+              color="indigo"
+              icone={<IconeAutreSujet className="h-6 w-6" />}
+              active={pendingLong || !!myLong}
+              position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
+              total={queueLong.length}
+              pending={pendingLong}
+              disabled={iAmSpeaking}
+              onClick={() => toggle('long', myLong)}
+              className="animate-montee [animation-delay:60ms]"
+            >
+              {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
+              {!myLong && !pendingLong ? (
+                <label className="flex items-stretch border-t border-bleu-fonce/10 transition-colors
+                  focus-within:bg-indigo-50/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-bleu-clair/60">
+                  <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-fonce/45">
+                    <IconeSujet className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="text"
+                    value={topicTag}
+                    onChange={e => setTopicTag(e.target.value.slice(0, 60))}
+                    placeholder="Sujet ou thème (optionnel)"
+                    className="min-w-0 flex-1 bg-transparent py-3 pr-4 text-sm text-anthracite placeholder:text-anthracite/45 focus:outline-none"
+                  />
+                </label>
+              ) : myLong?.topic_tag ? (
+                <p className="flex items-stretch border-t border-white/10">
+                  <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-clair">
+                    <IconeSujet className="h-4 w-4" />
+                  </span>
+                  <span className="py-2.5 pr-4 text-xs text-white/75">
+                    Sujet indiqué : <span className="font-semibold text-white">{myLong.topic_tag}</span>
+                  </span>
+                </p>
+              ) : null}
+            </QueueToggle>
+
+            <QueueToggle
+              label="Demander la parole sur le sujet actuel"
+              sub="Pour répondre à ce qui est dit actuellement uniquement"
+              color="teal"
+              icone={<IconeSujetActuel className="h-6 w-6" />}
+              active={pendingInteractive || !!myInteractive}
+              position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
+              total={queueInteractive.length}
+              pending={pendingInteractive}
+              disabled={iAmSpeaking}
+              onClick={() => toggle('interactive', myInteractive)}
+              className="animate-montee [animation-delay:120ms]"
+            />
+
+            {/* Chantier 131 — "d'accord pour passer au sujet suivant" */}
+            <button
+              onClick={handleToggleNextTopic}
+              disabled={pendingNextTopic}
+              className={`group flex w-full items-stretch overflow-hidden border text-left transition-colors duration-300
+                animate-montee [animation-delay:180ms] disabled:cursor-not-allowed disabled:opacity-60
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400 ${
+                myParticipant.wants_next_topic
+                  ? 'border-emerald-600 bg-emerald-600 text-white'
+                  : 'border-emerald-600/25 bg-white text-emerald-800 hover:border-emerald-600/50 hover:bg-emerald-50/70'
+              }`}
+            >
+              <span aria-hidden="true" className={`flex w-14 shrink-0 items-center justify-center text-lg transition-colors duration-300 ${
+                myParticipant.wants_next_topic ? 'bg-white/15' : 'bg-emerald-50'
+              }`}>
+                {pendingNextTopic ? (
+                  <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                ) : (
+                  <span className="transition-transform duration-300 group-hover:scale-110">👍</span>
+                )}
+              </span>
+              <span className="flex flex-1 items-center px-4 py-3.5 text-sm font-semibold leading-snug">
+                {myParticipant.wants_next_topic
+                  ? "D'accord pour le sujet suivant (appuyer pour annuler)"
+                  : 'Je suis d’accord pour passer au sujet suivant'}
+              </span>
+            </button>
+
+            {err && (
+              <p className="border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+                {err}
+              </p>
+            )}
+
+            {/* ── Files en lecture seule ────────────────────────────── */}
+            <div className="mt-5 flex flex-col gap-3 animate-montee [animation-delay:240ms]">
+              <ReadOnlyQueuePanel
+                title="File d'attente : prendre la parole sur un autre sujet"
+                entries={queueLong}
+                participants={participants}
+                accent="indigo"
+                selfId={myParticipant.id}
+              />
+              <ReadOnlyQueuePanel
+                title="Demander la parole sur le sujet actuel"
+                subtitle="Pour répondre à ce qui est dit actuellement uniquement"
+                entries={queueInteractive}
+                participants={participants}
+                accent="teal"
+                selfId={myParticipant.id}
+              />
+            </div>
+          </div>{/* end colonne principale */}
+
+          {/* Présents : sous les files sur téléphone, en colonne de droite sur md+ */}
+          <ParticipantsSidebar
             participants={participants}
-            accent="indigo"
-          />
-          <ReadOnlyQueuePanel
-            title="Demander la parole sur le sujet actuel"
-            subtitle="Pour répondre à ce qui est dit actuellement uniquement"
-            entries={queueInteractive}
-            participants={participants}
-            accent="teal"
+            currentSpeakerId={table.current_speaker_id}
+            queueLong={queueLong}
+            queueInteractive={queueInteractive}
+            variant="light"
+            className="animate-montee [animation-delay:300ms]"
           />
         </div>
-
-        <p className="text-xs text-gray-500 tabular-nums pb-2">
-          {participants.length} participant{participants.length !== 1 ? 's' : ''}
-        </p>
-      </div>{/* end colonne principale */}
-
-      {/* Sidebar participants — caché sur mobile */}
-      <div className="hidden md:block">
-        <ParticipantsSidebar
-          participants={participants}
-          currentSpeakerId={table.current_speaker_id}
-          queueLong={queueLong}
-          queueInteractive={queueInteractive}
-          variant="light"
-        />
       </div>
-
-      </div>{/* end body flex */}
 
       {/* ── Règles du débat — lecture individuelle, sans attente des autres (D1) ── */}
       {/* Chantier 40 : affichée après le panorama d'accueil (voir plus bas), jamais avant */}
@@ -394,28 +483,31 @@ export default function ParticipantView() {
       {showWelcome && (
         <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-entree">
-            <div className="bg-bleu-fonce px-6 py-5 text-center">
-              <p className="text-2xl mb-1">👋</p>
-              <h2 className="font-serif text-xl font-semibold text-creme">Bienvenue dans le débat</h2>
-              <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+            <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
+              <FondQuadrille cases={3} />
+              <div className="relative">
+                <p className="text-2xl mb-1">👋</p>
+                <h2 className="font-serif text-xl font-semibold text-creme">Bienvenue dans le débat</h2>
+                <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+              </div>
             </div>
             <div className="px-6 py-5 space-y-4 text-sm text-anthracite/80">
               <div className="flex items-start gap-3">
-                <span className="w-7 shrink-0 text-center text-xl">🙋</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-50 text-lg">🙋</span>
                 <div>
                   <p className="font-semibold text-anthracite">Prendre la parole sur un autre sujet</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pour introduire un nouveau point ou des informations complémentaires.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-7 shrink-0 text-center text-xl">⚡</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-teal-50 text-lg">⚡</span>
                 <div>
                   <p className="font-semibold text-anthracite">Demander la parole sur le sujet actuel</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-7 shrink-0 text-center text-xl">🔧</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-sable text-lg">🔧</span>
                 <div>
                   <p className="font-semibold text-anthracite">Bouton Outils</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
@@ -423,7 +515,7 @@ export default function ParticipantView() {
               </div>
               {table.leaderless ? (
                 <div className="flex items-start gap-3">
-                  <span className="w-7 shrink-0 text-center text-xl">🤝</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-amber-50 text-lg">🤝</span>
                   <div>
                     <p className="font-semibold text-anthracite">Groupe auto-géré</p>
                     <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
@@ -431,7 +523,7 @@ export default function ParticipantView() {
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
-                  <span className="w-7 shrink-0 text-center text-xl">🧑‍⚖️</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-amber-50 text-lg">🧑‍⚖️</span>
                   <div>
                     <p className="font-semibold text-anthracite">Rôle du modérateur</p>
                     <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
@@ -485,101 +577,166 @@ export default function ParticipantView() {
           debating → post_voting force le questionnaire au même instant où cette condition
           devient vraie (chantier 39, déplacée en post_voting au chantier 89), et les
           deux overlays sont en z-50 superposés. 'post_voting' redirige déjà vers les
-          résultats (avec revote possible) ; 'closed' n'en est que la suite définitive. */}
+          résultats (avec revote possible) ; 'closed' n'en est que la suite définitive.
+          Chantier 158 : plein écran marine quadrillé, comme le bandeau d'accueil du site. */}
       {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-creme gap-4 px-6 text-center">
-          <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} />
-          <p className="font-serif text-3xl font-semibold tracking-tight text-bleu-fonce">La séance est terminée</p>
-          <span aria-hidden="true" className="filet-spectre block w-14" />
-          <p className="text-gray-600">Merci pour votre participation.</p>
-          {session.join_code && (
-            <button
-              onClick={() => {
-                window.location.hash = `#session/${session.join_code}`
-                leaveTable()
-              }}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
-            >
-              Voir vos résultats
-            </button>
-          )}
-          <button
-            onClick={leaveTable}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
-              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Retour au menu
-          </button>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-bleu-fonce px-6 text-center text-creme">
+          <FondQuadrille cases={14} />
+          <div className="relative flex flex-col items-center gap-5 animate-montee">
+            <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
+            <p className="font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">La séance est terminée</p>
+            <span aria-hidden="true" className="filet-spectre block w-16" />
+            <p className="text-base text-creme/75">Merci pour votre participation.</p>
+            <div className="mt-3 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+              {session.join_code && (
+                <button
+                  onClick={() => {
+                    window.location.hash = `#session/${session.join_code}`
+                    leaveTable()
+                  }}
+                  className="btn-verre btn-verre-primaire inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+                >
+                  Voir vos résultats
+                </button>
+              )}
+              <button
+                onClick={leaveTable}
+                className="btn-verre inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+              >
+                Retour au menu
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   )
 }
 
+// ── Icônes des boutons de file (traits, comme celles du menu Outils) ──
+
+function IconeAutreSujet({ className = '' }: { className?: string }) {
+  // Bulle de parole et signe plus : un nouveau point.
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z" />
+      <path d="M12 8v7M8.5 11.5h7" />
+    </svg>
+  )
+}
+
+function IconeSujetActuel({ className = '' }: { className?: string }) {
+  // Éclair : réagir tout de suite à ce qui vient d'être dit (⚡ de l'accueil).
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+    </svg>
+  )
+}
+
+function IconeSujet({ className = '' }: { className?: string }) {
+  // Étiquette : le sujet dont on veut parler.
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z" />
+      <path d="M7 7h.01" />
+    </svg>
+  )
+}
+
 // ── Queue toggle button ────────────────────────────────────────
+// Chantier 158 : bloc de couleur à gauche (w-14, même colonne que les files
+// et le bouton « sujet suivant »), titre en sans-serif (c'est un bouton), et
+// position en grand une fois dans la file. Au repos, le bloc donne déjà la
+// couleur de la file ; dans la file, tout le bouton prend cette couleur.
+
+const TONS = {
+  indigo: {
+    repos:     'border-bleu-fonce/15 bg-white shadow-sm hover:border-bleu-fonce/30 hover:shadow-md',
+    actif:     'border-bleu-fonce bg-bleu-fonce shadow-[0_22px_46px_-24px_rgba(21,35,63,0.9)]',
+    survol:    'hover:bg-indigo-50/50',
+    blocRepos: 'bg-bleu-fonce text-bleu-clair',
+    blocActif: 'bg-bleu-clair text-bleu-fonce',
+    titre:     'text-bleu-fonce',
+    anneau:    'focus-visible:ring-bleu-clair',
+  },
+  teal: {
+    repos:     'border-teal-600/25 bg-white shadow-sm hover:border-teal-600/45 hover:shadow-md',
+    actif:     'border-teal-600 bg-teal-600 shadow-[0_22px_46px_-24px_rgba(30,107,109,0.9)]',
+    survol:    'hover:bg-teal-50/60',
+    blocRepos: 'bg-teal-600 text-white',
+    blocActif: 'bg-white text-teal-700',
+    titre:     'text-teal-800',
+    anneau:    'focus-visible:ring-teal-400',
+  },
+} as const
 
 function QueueToggle({
-  label, sub, color, active, position, total, pending, disabled, onClick,
+  label, sub, color, icone, active, position, total, pending, disabled, onClick, className = '', children,
 }: {
   label: string
   sub: string
   color: 'indigo' | 'teal'
+  icone: ReactNode
   active: boolean
   position: number | null
   total: number
   pending: boolean
   disabled: boolean
   onClick(): void
+  className?: string
+  /** Rangée attachée sous le bouton (sujet de la prise de parole). */
+  children?: ReactNode
 }) {
-  const filled = {
-    indigo: 'bg-indigo-600 border-indigo-600 text-white shadow-lg',
-    teal:   'bg-teal-600 border-teal-600 text-white shadow-lg',
-  }
-  const outline = {
-    indigo: 'bg-white border-bleu-fonce/15 border-l-indigo-600 text-anthracite shadow-sm hover:border-bleu-fonce/30 hover:border-l-indigo-600 hover:shadow-md',
-    teal:   'bg-white border-bleu-fonce/15 border-l-teal-600 text-anthracite shadow-sm hover:border-teal-300 hover:border-l-teal-600 hover:shadow-md',
-  }
-  const badgeBg = {
-    indigo: 'bg-bleu-clair text-bleu-fonce',
-    teal:   'bg-white/90 text-teal-800',
-  }
+  const t = TONS[color]
 
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative w-full min-h-[88px] px-4 py-4 border border-l-4 text-left
-        transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-creme
-        disabled:opacity-40 disabled:cursor-not-allowed ${
-        active
-          ? `${filled[color]} ${color === 'teal' ? 'focus-visible:ring-teal-400' : 'focus-visible:ring-bleu-clair'}`
-          : `${outline[color]} focus-visible:ring-bleu-clair`
-      }`}
-    >
-      {/* Position badge — seulement quand confirmé par le serveur */}
-      {active && position !== null && !pending && (
-        <span className={`absolute top-3 right-3 text-sm font-bold tabular-nums px-2.5 py-1
-          ${badgeBg[color]}`}>
-          {position} / {total}
+    <div className={`overflow-hidden border transition-[background-color,border-color,box-shadow] duration-300 ${
+      active ? t.actif : t.repos
+    } ${className}`}>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`group relative flex min-h-[88px] w-full items-stretch text-left transition-colors duration-200
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.anneau}
+          disabled:cursor-not-allowed disabled:opacity-50 ${active ? '' : t.survol}`}
+      >
+        {active && <FondQuadrille cases={0} grain={false} traits={0.07} />}
+        <span aria-hidden="true" className={`relative flex w-14 shrink-0 items-center justify-center transition-colors duration-300 ${
+          active ? t.blocActif : t.blocRepos
+        }`}>
+          <span className="transition-transform duration-300 group-hover:scale-110 group-active:scale-95">{icone}</span>
         </span>
-      )}
-      {/* Indicateur pending : ordre envoyé, en attente de confirmation */}
-      {pending && (
-        <span className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2
-          border-white/60 border-t-transparent animate-spin`} />
-      )}
-
-      <p className={`font-serif text-xl font-semibold leading-snug pr-20 ${
-        active ? 'text-white' : color === 'teal' ? 'text-teal-800' : 'text-bleu-fonce'
-      }`}>
-        {label}
-      </p>
-      <p className={`text-sm mt-1 ${active ? 'text-white/80' : 'text-gray-500'}`}>
-        {active
-          ? 'Appuyer pour se retirer de la file'
-          : sub}
-      </p>
-    </button>
+        <span className="relative flex min-w-0 flex-1 items-center gap-3 px-4 py-4">
+          <span className="min-w-0 flex-1">
+            <span className={`block text-[17px] font-semibold leading-snug ${active ? 'text-white' : t.titre}`}>
+              {label}
+            </span>
+            <span className={`mt-1 block text-sm leading-snug ${active ? 'text-white/80' : 'text-gray-500'}`}>
+              {active
+                ? 'Appuyer pour se retirer de la file'
+                : sub}
+            </span>
+          </span>
+          {/* Indicateur pending : ordre envoyé, en attente de confirmation */}
+          {pending && (
+            <span className="h-6 w-6 shrink-0 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
+          )}
+          {/* Position — seulement quand confirmée par le serveur */}
+          {active && position !== null && !pending && (
+            <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-white animate-pop">
+              <span className="text-3xl font-bold leading-none">{position}</span>
+              <span className="text-sm font-semibold text-white/70"> / {total}</span>
+            </span>
+          )}
+        </span>
+      </button>
+      {children}
+    </div>
   )
 }

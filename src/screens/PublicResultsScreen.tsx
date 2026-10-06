@@ -13,6 +13,7 @@ import { loadPublicResults } from '../lib/analysis'
 import { getSessionById } from '../lib/sessions'
 import type { PublicResultsData } from '../lib/analysis'
 import type { Session } from '../lib/types'
+import { titreSeance } from '../lib/utils'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2b4a86', '#b04a3c', '#3f8462', '#c8742a', '#6b4c8a']
@@ -175,7 +176,7 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
         {/* Header */}
         <div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Résultats de la séance</h1>
-          {session && <p className="text-sm text-gray-500 mt-1">{session.title}</p>}
+          {session && <p className="text-sm text-gray-500 mt-1">{titreSeance(session.title)}</p>}
         </div>
 
         {isLoading && (

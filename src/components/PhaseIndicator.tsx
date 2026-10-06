@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Session, SessionType } from '../lib/types'
 import { participantPhaseStep, participantPhaseSteps } from '../lib/phaseLabels'
+import FondQuadrille from './FondQuadrille'
 
 interface Props {
   phase: Session['phase'] | null | undefined
@@ -8,6 +9,8 @@ interface Props {
   floating?: boolean
   /** Chantier 134 — numérotation propre au mode de séance (défaut : séance complète). */
   sessionType?: SessionType
+  /** Chantier 158 : `marine`, puce de verre du site, pour un bandeau bleu marine. */
+  tone?: 'clair' | 'marine'
 }
 
 /**
@@ -24,12 +27,26 @@ interface Props {
  * ne vit jamais dans un composant que sa propre fermeture pourrait démonter —
  * ici il n'y a qu'un seul composant, donc pas de risque de ce genre.
  */
-export default function PhaseIndicator({ phase, floating = false, sessionType = 'full' }: Props) {
+export default function PhaseIndicator({ phase, floating = false, sessionType = 'full', tone = 'clair' }: Props) {
   const [open, setOpen] = useState(false)
   const step = participantPhaseStep(phase, sessionType)
   if (!step) return null
 
-  const pill = (
+  const pill = tone === 'marine' ? (
+    // Puce de verre du bandeau d'accueil du site, point « en direct » qui respire.
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      // after: zone de toucher de 41 px sans grossir la puce
+      className="relative inline-flex items-center gap-2.5 border border-creme/20 bg-creme/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair whitespace-nowrap backdrop-blur-md hover:border-creme/40 hover:bg-creme/[0.12] transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+    >
+      <span aria-hidden="true" className="relative flex h-1.5 w-1.5 shrink-0">
+        <span className="absolute inset-0 rounded-full bg-bleu-clair animate-pouls" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-bleu-clair shadow-[0_0_8px_2px_rgba(155,187,226,0.65)]" />
+      </span>
+      Étape {step.number} · {step.label}
+    </button>
+  ) : (
     <button
       type="button"
       onClick={() => setOpen(true)}
@@ -57,10 +74,13 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
             className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-entree"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-bleu-fonce px-6 py-5 text-center">
-              <p className="text-2xl mb-1">🧭</p>
-              <h2 className="font-serif text-xl font-semibold text-creme">Où en est la séance ?</h2>
-              <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+            <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
+              <FondQuadrille cases={3} />
+              <div className="relative">
+                <p className="text-2xl mb-1">🧭</p>
+                <h2 className="font-serif text-xl font-semibold text-creme">Où en est la séance ?</h2>
+                <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+              </div>
             </div>
             <div className="px-6 py-5 space-y-1.5">
               {participantPhaseSteps(sessionType).map(s => {

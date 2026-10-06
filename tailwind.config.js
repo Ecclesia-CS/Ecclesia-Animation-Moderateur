@@ -239,6 +239,20 @@ export default {
         speaking: 'speaking-pulse 2s ease-in-out infinite',
         'toast-in': 'toast-in 0.15s ease-out',
         entree: 'entree 0.45s cubic-bezier(0.16, 0.84, 0.44, 1) both',
+        // Montée des blocs à l'arrivée sur un écran (« hero-in » du site).
+        // `backwards` et non `both` : une fois jouée, l'animation ne laisse
+        // aucun transform derrière elle. Un transform résiduel ferait du bloc
+        // le repère des fenêtres `position: fixed` qu'il contient (Outils,
+        // étapes), qui s'ouvriraient alors dans le bloc et non sur l'écran.
+        montee: 'montee 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) backwards',
+        // Cases du fond quadrillé qui s'allument et s'éteignent (GrilleAnimee du site).
+        case: 'case 8s ease-in-out infinite',
+        // Halo qui s'élargit autour d'un point « en direct ».
+        pouls: 'pouls 2.4s cubic-bezier(0, 0, 0.2, 1) infinite',
+        // Barres de « Vous avez la parole ! ».
+        onde: 'onde 1.1s ease-in-out infinite',
+        // Apparition d'une position dans la file.
+        pop: 'pop 0.45s cubic-bezier(0.16, 0.84, 0.44, 1) both',
       },
       keyframes: {
         'speaking-pulse': {
@@ -253,6 +267,28 @@ export default {
         entree: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        montee: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        case: {
+          '0%, 100%': { opacity: '0' },
+          '35%, 55%': { opacity: '1' },
+          '85%': { opacity: '0' },
+        },
+        pouls: {
+          '0%': { transform: 'scale(1)', opacity: '0.75' },
+          '80%, 100%': { transform: 'scale(2.8)', opacity: '0' },
+        },
+        onde: {
+          '0%, 100%': { transform: 'scaleY(0.35)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
+        pop: {
+          '0%': { opacity: '0', transform: 'scale(0.6)' },
+          '60%': { opacity: '1', transform: 'scale(1.08)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
     },

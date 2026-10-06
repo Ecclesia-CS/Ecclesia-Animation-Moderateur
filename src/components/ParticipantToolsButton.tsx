@@ -12,6 +12,7 @@ import ModeratorActionModal from './voting/ModeratorActionModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ChangeTableModal from './voting/ChangeTableModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
+import FondQuadrille from './FondQuadrille'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 
@@ -131,14 +132,15 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
-          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden animate-entree">
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils</h2>
+            {/* Header : bandeau marine quadrillé, comme les autres fenêtres de la page (chantier 158) */}
+            <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-5 py-4">
+              <FondQuadrille cases={2} />
+              <h2 className="relative font-serif text-lg font-semibold text-creme">Outils</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
+                className="relative text-creme/70 hover:text-creme transition-colors -m-1.5 p-2
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
@@ -415,12 +417,13 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setVoteResultsOpen(false) }}
         >
-          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Résultats du vote</h2>
+          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] animate-entree">
+            <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-5 py-4 shrink-0">
+              <FondQuadrille cases={2} />
+              <h2 className="relative font-serif text-lg font-semibold text-creme">Résultats du vote</h2>
               <button
                 onClick={() => setVoteResultsOpen(false)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
+                className="relative text-creme/70 hover:text-creme transition-colors -m-1.5 p-2
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >

@@ -274,6 +274,9 @@ Ce qu'il ne faut pas casser :
 - **Focus** : `focus-visible:ring-*` sur les boutons et les liens (avec `focus:`, l'anneau reste collé au bouton après un clic ou un toucher), `focus:` sur les champs de saisie.
 - **Contraste ≥ 4,5:1** pour le petit texte : sur un fond teinté (`bg-gray-100`, `bg-indigo-50`…), `text-gray-600` au minimum.
 - **Couleurs des camps écrites en dur**, à changer ensemble : `GROUP_COLORS` (`ResultsMapScreen`, `PublicResultsScreen`, `AnalysisPanel`) et `CAMP_COLORS`/`campColor()` (`TableDiagnosticsList`, repris par `CampSpeakingTimes`, `TableOpinionModal` et `SuperadminScreen`).
+- **Aucun tiret cadratin à l'écran** (demande d'Antoine, lot 8) : pas de « — » dans un texte de l'appli, et tout titre de séance affiché passe par `titreSeance()` (`src/lib/utils.ts`), qui le remplace par « · » sans toucher à la base. Pas de petites flèches (← → ↗ ↻ ↩) non plus.
+- **Fond quadrillé du site** (lot 9) : `components/FondQuadrille.tsx`, à poser en premier enfant d'un aplat `relative overflow-hidden`. Jamais de `z-index`, d'`isolation` ni de `bg-grain` sur un en-tête qui contient un bouton ouvrant une fenêtre `fixed` (Outils, `PhaseIndicator`) : le contexte d'empilement ferait passer la fenêtre sous le reste de la page. Pour la même raison, l'entrée des blocs se fait avec `animate-montee` (remplissage `backwards`) et pas `animate-entree` (`both` laisse un `transform` qui capture les fenêtres `fixed` du bloc).
+- **Une famille par rôle** : serif pour les titres seulement (jamais dans un bouton), Archivo pour tout le reste, codes de table compris. Pas de `font-mono` sur les écrans participant refaits.
 
 ---
 

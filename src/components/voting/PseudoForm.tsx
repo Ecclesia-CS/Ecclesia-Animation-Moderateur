@@ -11,6 +11,7 @@ import { lastNameStore } from '../../lib/storage'
 import ModeratorDeclareField from './ModeratorDeclareField'
 import { sessionTypeOf } from '../../lib/phaseLabels'
 import type { Session, SessionMember } from '../../lib/types'
+import { titreSeance } from '../../lib/utils'
 
 interface PseudoFormProps {
   session: Session
@@ -216,7 +217,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 border border-indigo-200 mb-4">
             <span className="text-2xl">🗣️</span>
           </div>
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{session.title}</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{titreSeance(session.title)}</h1>
           {session.description && (
             <p className="mt-1 text-sm text-gray-500">{session.description}</p>
           )}

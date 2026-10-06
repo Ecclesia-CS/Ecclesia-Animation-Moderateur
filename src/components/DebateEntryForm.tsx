@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { confirmAttendance, joinSimpleDebate, PSEUDO_TAKEN_MESSAGE } from '../lib/voting'
 import { tableStore, lastNameStore } from '../lib/storage'
-import { extractErr } from '../lib/utils'
+import { extractErr, titreSeance } from '../lib/utils'
 import ReclaimCodeDisplay from './voting/ReclaimCodeDisplay'
 import PasswordInput from './PasswordInput'
 import { useSessionOrganizationName, orgCodeError } from '../lib/organizations'
@@ -103,7 +103,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
         <div className="text-center mb-5">
           <div className="text-5xl mb-4">🗣️</div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Rejoindre le débat</h1>
-          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{sessionTitle}</p>}
+          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>}
           {orgName && <p className="text-xs text-gray-500 mt-1">Organisé par {orgName}</p>}
         </div>
 

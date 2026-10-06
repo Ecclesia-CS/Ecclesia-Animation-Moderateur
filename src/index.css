@@ -157,12 +157,19 @@
 }
 
 /* ── Mouvement réduit ─────────────────────────────────────────────────── */
+/* Les cases du fond quadrillé partent de opacity-0 : sans animation, elles
+   restent éteintes et il ne reste que la trame, comme sur le site. */
 @media (prefers-reduced-motion: reduce) {
   .btn-verre,
   .btn-verre:hover {
     transform: none;
   }
-  .animate-entree {
-    animation: none;
+  .animate-entree,
+  .animate-montee,
+  .animate-case,
+  .animate-pouls,
+  .animate-onde,
+  .animate-pop {
+    animation: none !important;
   }
 }

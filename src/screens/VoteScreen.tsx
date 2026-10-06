@@ -7,7 +7,7 @@ import {
   canProposeAssertion, proposalsMentionable,
   PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE, getMyEntryResponse,
 } from '../lib/voting'
-import { extractErr } from '../lib/utils'
+import { extractErr, titreSeance } from '../lib/utils'
 import { getSessionById, getSessionByJoinCode } from '../lib/sessions'
 import { lastNameStore } from '../lib/storage'
 import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
@@ -817,7 +817,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               <div className="text-center mb-4">
                 <div className="text-5xl mb-4">🗣️</div>
                 <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Débat en cours</h1>
-                <p className="text-sm text-gray-500 mt-1">{session.title}</p>
+                <p className="text-sm text-gray-500 mt-1">{titreSeance(session.title)}</p>
                 <p className="text-sm text-gray-500 mt-3">
                   Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
                 </p>
@@ -992,7 +992,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <h1 className="font-serif text-lg font-semibold leading-tight text-bleu-fonce truncate max-w-[220px]">
-                {session.title}
+                {titreSeance(session.title)}
               </h1>
               <p className="text-xs text-gray-600 mt-0.5">{member.pseudo}</p>
             </div>
@@ -1550,7 +1550,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
           <p className="text-2xl mb-1">🧭</p>
           <h2 className="font-serif text-xl font-semibold text-creme">Comment se déroule la séance ?</h2>
           <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
-          <p className="text-bleu-clair text-xs mt-1">{session.title}</p>
+          <p className="text-bleu-clair text-xs mt-1">{titreSeance(session.title)}</p>
         </div>
         <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
           {introSteps.map(step => (
@@ -1631,7 +1631,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
           <p className="text-2xl mb-1">🗳️</p>
           <h2 className="font-serif text-xl font-semibold text-white">Vote à distance ouvert</h2>
           <span aria-hidden="true" className="mx-auto mt-3 block h-0.5 w-12 bg-amber-200/80" />
-          <p className="text-amber-50 text-xs mt-2">{session.title}</p>
+          <p className="text-amber-50 text-xs mt-2">{titreSeance(session.title)}</p>
         </div>
         <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
           <p>Tu peux voter dès maintenant depuis chez toi.</p>
@@ -1987,7 +1987,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
             <span className="text-2xl">🏛️</span>
           </div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote présentiel</h1>
-          <p className="mt-1 text-sm text-gray-500">{session.title}</p>
+          <p className="mt-1 text-sm text-gray-500">{titreSeance(session.title)}</p>
         </div>
 
         {session.phase === 'allocating' && <AllocatingEntryNotice />}
@@ -2206,7 +2206,7 @@ function AttendanceConfirmScreen({
         <span className="text-2xl">🏛️</span>
       </div>
       <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote présentiel</h1>
-      <p className="mt-1 text-sm text-gray-500">{session.title}</p>
+      <p className="mt-1 text-sm text-gray-500">{titreSeance(session.title)}</p>
       {session.phase === 'allocating' && (
         <div className="mt-4 text-left"><AllocatingEntryNotice /></div>
       )}

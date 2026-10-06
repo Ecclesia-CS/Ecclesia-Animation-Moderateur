@@ -13,6 +13,7 @@ import PhaseIndicator from '../components/PhaseIndicator'
 import PostVoteScreen from './PostVoteScreen'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import { sessionTypeOf } from '../lib/phaseLabels'
+import { titreSeance } from '../lib/utils'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2b4a86', '#b04a3c', '#3f8462', '#c8742a', '#6b4c8a']
@@ -292,7 +293,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">
             {sessionTypeOf(session) === 'poll' ? 'Votre position dans le sondage' : 'Votre position dans le débat'}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">{session.title}</p>
+          <p className="text-sm text-gray-500 mt-1">{titreSeance(session.title)}</p>
           <button
             onClick={() => { if (onBack) onBack(); else window.location.hash = '' }}
             className="mt-3 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
