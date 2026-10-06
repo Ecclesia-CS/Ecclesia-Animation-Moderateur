@@ -141,14 +141,14 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-bleu-fonce/20 text-bleu-fonce text-sm font-medium hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
+            className="flex-1 py-3 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
           >
             Fermer
           </button>
           <button
             onClick={handleSave}
             disabled={loading || saving}
-            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>

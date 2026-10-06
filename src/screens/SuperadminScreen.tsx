@@ -369,12 +369,8 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
         <div className="w-full max-w-md">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="mb-3 text-sm font-medium text-bleu-fonce/70 hover:text-bleu-fonce transition-colors flex items-center gap-1"
+            className="mb-3 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
             Retour
           </button>
         <div className="bg-white shadow-xl border border-bleu-fonce/10 overflow-hidden animate-entree">
@@ -433,12 +429,8 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
         <div className="relative max-w-3xl mx-auto flex items-center justify-between gap-4">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="shrink-0 text-sm text-slate-300 hover:text-creme transition-colors flex items-center gap-1"
+            className="shrink-0 border border-white/20 px-2.5 py-1.5 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
             Retour
           </button>
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -560,7 +552,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             <p className="text-sm text-gray-500">Aucune séance pour l'instant</p>
             <button
               onClick={() => setShowCreate(true)}
-              className="text-sm text-indigo-600 hover:underline"
+              className="inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               {isOrgMode ? 'Créer votre premier débat ou sondage' : 'Créer la première séance'}
             </button>
@@ -1233,7 +1225,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
           )}
           <button
             onClick={() => setCreating(true)}
-            className="text-sm text-indigo-600 hover:underline"
+            className="text-sm font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
           >
             + Nouvelle association
           </button>
@@ -1347,7 +1339,7 @@ function OrganizationModal({
           {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
+              className="flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
               Annuler
             </button>
             <SubmitBtn loading={loading} label={org ? 'Enregistrer' : 'Créer le compte'} className="flex-1" />
@@ -1393,7 +1385,7 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
             <p className="text-sm text-gray-600">
               Pensez à le communiquer à vos modérateurs : c'est aussi avec lui qu'ils prennent l'animation d'une table.
             </p>
-            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2">
+            <button onClick={onClose} className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2">
               OK
             </button>
           </div>
@@ -1409,7 +1401,7 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
             {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
+                className="flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
                 Annuler
               </button>
               <SubmitBtn loading={loading} label="Changer" className="flex-1" />
@@ -1652,7 +1644,7 @@ function CreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/20
+              className="flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20
                 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
                 focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
@@ -1706,7 +1698,7 @@ function SubmitBtn({ loading, label, className = 'w-full' }: { loading: boolean;
       type="submit"
       disabled={loading}
       className={`${className} py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-        text-white text-sm font-medium transition-colors focus:outline-none
+        text-white text-sm font-semibold transition-colors focus:outline-none
         focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 flex items-center justify-center gap-2`}
     >
       {loading ? <><Spinner />Chargement…</> : label}
@@ -3313,13 +3305,10 @@ function SessionDetail({
         <div className="relative max-w-3xl mx-auto flex items-center gap-3">
           <button
             onClick={onBack}
-            className="text-slate-300 hover:text-creme transition-colors p-1 -ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60"
+            className="shrink-0 border border-white/20 px-2.5 py-1.5 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             title="Retour"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
+            Retour
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
             {/* Chantier 72 — `currentSession` et non la prop `session` (figée au
@@ -4125,7 +4114,7 @@ function SessionDetail({
                           setMetaErr(null)
                           setEditingMeta(true)
                         }}
-                        className="text-xs text-indigo-600 hover:underline"
+                        className="text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
                       >
                         Modifier
                       </button>
@@ -4222,7 +4211,7 @@ function SessionDetail({
                               setDocsErr(null)
                               setEditingDocs(true)
                             }}
-                            className="text-xs text-indigo-600 hover:underline"
+                            className="text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
                           >
                             Modifier
                           </button>
@@ -4271,7 +4260,7 @@ function SessionDetail({
                               <span className="text-gray-500 text-xs shrink-0">Sources collaboratives</span>
                               <a
                                 href={`#collab/${session.join_code}`}
-                                className="text-indigo-600 hover:underline text-xs"
+                                className="text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
                               >
                                 Ouvrir le document
                               </a>
@@ -4726,7 +4715,7 @@ function SessionDetail({
             </ul>
             <button
               onClick={() => setDeleteMemberReport(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -4762,7 +4751,7 @@ function SessionDetail({
             </p>
             <button
               onClick={() => setRegeneratedCode(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -4890,7 +4879,7 @@ function DebateExitModal({
           <div className="mt-6 space-y-2">
             <button
               onClick={onPostVoting}
-              className="w-full py-2.5 text-sm font-medium bg-indigo-600 text-white
+              className="w-full py-2.5 text-sm font-semibold bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
@@ -4906,7 +4895,7 @@ function DebateExitModal({
             </button>
             <button
               onClick={onCancel}
-              className="w-full py-2.5 text-sm font-medium border border-bleu-fonce/20
+              className="w-full py-2.5 text-sm font-semibold border border-bleu-fonce/20
                 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
                 focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
@@ -6364,7 +6353,7 @@ function CollabSourcesList({
                         href={s.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:underline truncate block"
+                        className="block truncate text-xs text-bleu-fonce underline decoration-bleu-fonce/30 underline-offset-2 hover:decoration-bleu-clair"
                       >
                         {s.url}
                       </a>
@@ -6409,7 +6398,7 @@ function DocLink({ label, url }: { label: string; url: string | null }) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-indigo-600 hover:underline text-xs truncate"
+        className="truncate text-xs text-bleu-fonce underline decoration-bleu-fonce/30 underline-offset-2 hover:decoration-bleu-clair"
       >
         {url}
       </a>

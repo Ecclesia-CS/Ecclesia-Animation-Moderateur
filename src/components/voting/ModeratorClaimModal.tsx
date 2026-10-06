@@ -52,7 +52,7 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
           <p className="text-sm text-gray-700">Tu es marqué·e modérateur pour cette séance.</p>
           <button
             onClick={onClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Fermer
           </button>
@@ -91,14 +91,14 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 text-bleu-fonce text-sm font-medium border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+              className="flex-1 py-3 px-4 text-bleu-fonce text-sm font-semibold border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {loading ? 'Vérification…' : 'Confirmer'}
             </button>

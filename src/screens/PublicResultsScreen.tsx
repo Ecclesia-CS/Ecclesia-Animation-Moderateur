@@ -247,8 +247,7 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
         <div className="flex justify-center pb-2">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
-              text-gray-700 text-sm font-semibold transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Retour au menu
           </button>

@@ -295,7 +295,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
           <p className="text-sm text-gray-500 mt-1">{session.title}</p>
           <button
             onClick={() => { if (onBack) onBack(); else window.location.hash = '' }}
-            className="mt-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            className="mt-3 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             {onBack ? 'Retour au vote' : 'Retour au menu'}
           </button>

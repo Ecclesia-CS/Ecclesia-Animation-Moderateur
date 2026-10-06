@@ -262,7 +262,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           />
           <button
             onClick={() => { window.location.hash = '' }}
-            className="mt-4 w-full text-xs text-indigo-600 hover:underline"
+            className="mx-auto mt-4 block w-fit pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Retour à l'accueil
           </button>
@@ -307,7 +307,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           </p>
           <button
             onClick={() => { window.location.hash = '' }}
-            className="mt-6 text-xs text-indigo-600 hover:underline"
+            className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Retour à l'accueil
           </button>
@@ -329,7 +329,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
         <p className="text-sm text-gray-500 mt-3">{cfg.subtitle}</p>
         <button
           onClick={() => { window.location.hash = '' }}
-          className="mt-6 text-xs text-indigo-600 hover:underline"
+          className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           Retour à l'accueil
         </button>

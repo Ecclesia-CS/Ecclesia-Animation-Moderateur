@@ -45,8 +45,8 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
           <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Composition idéologique de la table</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-600 transition-colors p-1
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+            className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             aria-label="Fermer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

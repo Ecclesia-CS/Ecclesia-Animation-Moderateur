@@ -138,7 +138,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors p-1
+                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
@@ -325,7 +325,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 onClick={() => { setPanelOpen(false); setChangeTableOpen(true) }}
                 className={linkClass}
               >
-                <span className="w-4 text-center shrink-0">🔀</span>
+                <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 Changer de table
               </button>
             )}
@@ -355,7 +355,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 code de rappel (régénéré, pas relu — il est haché en base). */}
             {table.session_id && (
               <button onClick={() => { setPanelOpen(false); setRenameOpen(true) }} className={linkClass}>
-                <span className="w-4 text-center shrink-0">✏️</span>
+                <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></svg>
                 Changer mon nom / code
               </button>
             )}
@@ -420,7 +420,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Résultats du vote</h2>
               <button
                 onClick={() => setVoteResultsOpen(false)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors p-1
+                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >

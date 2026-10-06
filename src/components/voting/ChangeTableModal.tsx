@@ -79,7 +79,7 @@ export default function ChangeTableModal({
             onClick={join}
             disabled={joining || code.trim().length === 0}
             className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-              text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {joining ? 'Changement…' : 'Rejoindre'}
           </button>

@@ -115,7 +115,7 @@ export default function TableAssignmentCard({
       </p>
       <p className="text-xs text-gray-500 text-center pt-1">
         Ça ne bouge pas ?{' '}
-        <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
+        <button onClick={() => window.location.reload()} className="font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors">
           Recharge la page
         </button>
       </p>

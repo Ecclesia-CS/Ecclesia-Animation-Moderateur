@@ -159,7 +159,7 @@ function DraggableRow({
       </td>
 
       {/* Pseudo */}
-      <td className="px-4 py-3 max-w-[120px]">
+      <td className="px-4 py-3 max-w-[180px]">
         <span className={`font-medium truncate block ${isSpeaking ? 'text-amber-100 animate-speaking' : 'text-creme'}`}>
           {p.pseudo}
         </span>
@@ -211,7 +211,7 @@ function DraggableRow({
             onClick={onGrantFloor}
             disabled={isSpeaking}
             title="Donner le micro directement"
-            className="text-xs px-2.5 py-1 bg-white/5 border border-white/15
+            className="inline-flex h-7 items-center text-xs px-2.5 bg-white/5 border border-white/15
               text-slate-200 hover:bg-bleu-clair/15 hover:border-bleu-clair/50 hover:text-creme disabled:opacity-30
               transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60
               focus-visible:ring-offset-1 focus-visible:ring-offset-slate-800 whitespace-nowrap"
@@ -223,7 +223,7 @@ function DraggableRow({
               onClick={onKick}
               title="Bannir"
               aria-label="Bannir ce participant"
-              className="p-1.5 border border-red-400/30 text-red-300
+              className="inline-flex h-7 w-7 items-center justify-center border border-red-400/30 text-red-300
                 hover:bg-red-500/15 hover:border-red-400/60 transition-colors focus:outline-none
                 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-800"
             >

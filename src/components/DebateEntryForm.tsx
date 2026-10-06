@@ -176,7 +176,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
 
         <button
           onClick={() => { window.location.hash = '' }}
-          className="mt-4 w-full text-xs text-indigo-600 hover:underline"
+          className="mx-auto mt-4 block w-fit pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           Retour à l'accueil
         </button>

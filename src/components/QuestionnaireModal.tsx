@@ -109,7 +109,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
             <button
               onClick={onClose}
               className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair p-1"
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair -m-1.5 p-2"
               aria-label="Fermer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"

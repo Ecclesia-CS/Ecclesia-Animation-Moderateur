@@ -107,7 +107,7 @@ export default function EntryScreen() {
             <div className="space-y-2">
               {activeSessions.filter(s => s.join_code).map(s => (
                 <div key={s.id}
-                  className="bg-white border border-bleu-fonce/10 border-l-4 border-l-bleu-fonce px-4 py-3.5 flex items-center justify-between gap-3 shadow-sm">
+                  className="bg-white border border-bleu-fonce/10 border-l-4 border-l-bleu-fonce px-4 py-3.5 flex flex-col gap-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="font-serif text-lg font-semibold leading-snug text-bleu-fonce break-words">{s.title}</p>
                     <span className={`inline-flex items-center mt-1.5 border px-2 py-0.5 text-[10px] font-bold uppercase leading-snug tracking-[0.08em] ${PHASE_BADGE[s.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-600'}`}>
@@ -116,7 +116,7 @@ export default function EntryScreen() {
                   </div>
                   <button
                     onClick={() => { window.location.hash = '#session/' + s.join_code! }}
-                    className="shrink-0 py-2.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors
+                    className="shrink-0 w-full py-3 px-3.5 text-center bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors sm:w-36 sm:py-2.5 sm:text-xs
                       focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
                     {PHASE_ACTION[s.phase] ?? 'Accéder'}
@@ -149,13 +149,13 @@ export default function EntryScreen() {
         <div className="pb-5 pt-1 text-center border-t border-bleu-fonce/[0.06] mx-6">
           <a
             href="#superadmin"
-            className="inline-block mt-4 text-xs text-gray-500 hover:text-bleu-fonce transition-colors"
+            className="mx-auto mt-3 block w-fit py-1.5 text-xs text-gray-500 hover:text-bleu-fonce transition-colors"
           >
             Administration
           </a>
           <a
             href="#asso"
-            className="block mt-1 text-xs text-gray-500 hover:text-bleu-fonce transition-colors"
+            className="mx-auto block w-fit py-1.5 text-xs text-gray-500 hover:text-bleu-fonce transition-colors"
           >
             Asso
           </a>

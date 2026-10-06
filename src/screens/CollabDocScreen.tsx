@@ -251,7 +251,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         <p className="text-sm text-gray-500">Séance introuvable ou lien invalide.</p>
         <button
           onClick={() => { window.location.hash = '' }}
-          className="text-sm text-indigo-600 hover:underline"
+          className="inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           Retour à l'accueil
         </button>
@@ -269,13 +269,10 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             onClick={() => { window.location.hash = returnHash || '' }}
-            className="text-gray-500 hover:text-gray-600 transition-colors p-1 -ml-1 shrink-0"
+            className="shrink-0 border border-bleu-fonce/20 px-2.5 py-1.5 text-xs font-medium text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             title="Retour"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
+            Retour
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="font-serif text-lg font-semibold leading-tight text-bleu-fonce truncate">
@@ -338,7 +335,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   type="submit"
                   disabled={registering || !registerPseudo.trim()}
                   className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                    text-white text-sm font-medium transition-colors focus:outline-none
+                    text-white text-sm font-semibold transition-colors focus:outline-none
                     focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 flex items-center gap-2 shrink-0"
                 >
                   {registering && <SmallSpinner />}
@@ -359,7 +356,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             <p className="text-xs text-gray-500">
               Vous pouvez parcourir les sources sans vous identifier.
               {' '}Pas encore inscrit ?{' '}
-              <a href={`#session/${sessionJoinCode}`} className="text-indigo-600 hover:underline">
+              <a href={`#session/${sessionJoinCode}`} className="font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors">
                 Rejoindre la séance
               </a>
             </p>
@@ -373,7 +370,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             {myIdentity && (
               <button
                 onClick={openAdd}
-                className="text-sm text-indigo-600 hover:underline"
+                className="inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
               >
                 Ajouter la première source
               </button>
@@ -497,7 +494,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   type="submit"
                   disabled={formLoading}
                   className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                    text-white text-sm font-medium transition-colors
+                    text-white text-sm font-semibold transition-colors
                     flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {formLoading && <SmallSpinner />}
@@ -595,7 +592,7 @@ function SourceCard({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-indigo-600 hover:underline truncate"
+            className="flex items-center gap-1.5 text-xs text-bleu-fonce underline decoration-bleu-fonce/30 underline-offset-2 hover:decoration-bleu-clair truncate"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

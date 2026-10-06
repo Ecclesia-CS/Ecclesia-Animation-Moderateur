@@ -307,7 +307,7 @@ export default function ParticipantView() {
           <button
             onClick={handleToggleNextTopic}
             disabled={pendingNextTopic}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 border
+            className={`block w-full px-4 py-3 border text-center
               text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
               focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-creme focus-visible:ring-emerald-400 ${
               myParticipant.wants_next_topic
@@ -316,9 +316,9 @@ export default function ParticipantView() {
             }`}
           >
             {pendingNextTopic ? (
-              <span className="w-4 h-4 rounded-full border-2 border-current/60 border-t-transparent animate-spin" />
+              <span className="mr-2 inline-block h-4 w-4 align-[-2px] rounded-full border-2 border-current/60 border-t-transparent animate-spin" />
             ) : (
-              <span>👍</span>
+              <span className="mr-1.5">👍</span>
             )}
             {myParticipant.wants_next_topic
               ? "D'accord pour le sujet suivant (appuyer pour annuler)"

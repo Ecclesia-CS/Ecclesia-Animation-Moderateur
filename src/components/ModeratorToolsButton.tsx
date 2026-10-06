@@ -164,8 +164,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils Modo</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -321,8 +321,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Ajouter une personne sans téléphone</h2>
               <button
                 onClick={() => { setAddPersonOpen(false); setAddPersonCode(null) }}
-                className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -344,7 +344,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 </div>
                 <button
                   onClick={() => { setAddPersonCode(null); setAddPersonOpen(false) }}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold
                     transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   C'est noté
@@ -379,7 +379,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   type="submit"
                   disabled={addPersonLoading}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                    text-white text-sm font-medium transition-colors focus:outline-none
+                    text-white text-sm font-semibold transition-colors focus:outline-none
                     focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   {addPersonLoading ? 'Ajout…' : 'Ajouter'}
@@ -419,8 +419,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Assertions votées</h2>
               <button
                 onClick={() => setAssertionsOpen(false)}
-                className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
