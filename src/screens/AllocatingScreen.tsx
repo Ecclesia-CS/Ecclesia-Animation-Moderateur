@@ -367,7 +367,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       <QuitLink />
       <PhaseIndicator phase={currentSession.phase} floating />
       {/* Header */}
-      <header className="bg-white border-b border-bleu-fonce/10 px-4 py-5 text-center">
+      <header className="bg-white border-b border-bleu-fonce/10 px-4 pt-14 pb-5 text-center">
         <div className="text-3xl mb-1">🎉</div>
         <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote terminé !</h1>
         <p className="text-sm text-gray-500 mt-0.5">{session.title}</p>
@@ -439,7 +439,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
                   type="submit"
                   disabled={moderatorDeclareBusy || !moderatorPassword.trim()}
                   className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                    text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                    text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {moderatorDeclareBusy ? 'Déclaration…' : 'Me déclarer modérateur·rice'}
                 </button>

@@ -127,7 +127,7 @@ function VoteBtn({
   onClick: () => void
 }) {
   const base =
-    'flex flex-col items-center justify-center gap-1 py-3 px-1 border transition-colors min-h-[72px] font-semibold text-xs disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-creme'
+    'flex flex-col items-center justify-center gap-1 py-3 px-1 border transition-colors min-h-[72px] font-semibold text-xs disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme'
 
   const colorMap = {
     green: active

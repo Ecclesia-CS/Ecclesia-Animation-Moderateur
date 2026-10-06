@@ -94,14 +94,14 @@ export default function ReconnectPrompt({ sessionId, pseudo, onConfirmed, onGive
             type="submit"
             disabled={loading || code.trim().length === 0}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {loading ? 'Vérification…' : 'Me reconnecter →'}
           </button>
           <button
             type="button"
             onClick={onGiveUp}
-            className="w-full py-2.5 text-sm font-medium text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+            className="w-full py-2.5 text-sm font-medium text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Je ne connais plus mon code
           </button>

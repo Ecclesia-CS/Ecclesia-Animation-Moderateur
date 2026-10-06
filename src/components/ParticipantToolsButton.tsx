@@ -139,7 +139,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               <button
                 onClick={() => setPanelOpen(false)}
                 className="text-gray-500 hover:text-bleu-fonce transition-colors p-1
-                  focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -421,7 +421,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               <button
                 onClick={() => setVoteResultsOpen(false)}
                 className="text-gray-500 hover:text-bleu-fonce transition-colors p-1
-                  focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -477,7 +477,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             onClick={() => setShowCreate(true)}
             className="btn-verre btn-verre-primaire shrink-0 py-2 px-4 text-creme
               text-sm font-semibold focus:outline-none
-              focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-bleu-fonce"
+              focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
           >
             + Nouvelle séance
           </button>
@@ -506,9 +506,9 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
               Thèmes — toutes séances
               {allVotesLoading ? (
-                <span className="ml-2 font-normal normal-case text-gray-500">Chargement…</span>
+                <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">Chargement…</span>
               ) : allThemeStats.length > 0 ? (
-                <span className="ml-2 font-normal normal-case text-gray-500">
+                <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                   ({allThemeStats.length} thème{allThemeStats.length !== 1 ? 's' : ''})
                 </span>
               ) : null}
@@ -534,9 +534,9 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
                   {allThemeStats.map(s => (
                     <div key={s.theme} className="flex items-center gap-3 text-xs">
                       <span className="w-48 shrink-0 text-gray-700 truncate" title={s.theme}>{s.theme}</span>
-                      <div className="flex-1 flex h-2 rounded-full overflow-hidden bg-gray-100">
+                      <div className="flex-1 flex h-2 overflow-hidden bg-gray-100">
                         <div
-                          className="bg-teal-400 h-full rounded-full"
+                          className="bg-teal-400 h-full"
                           style={{ width: `${(s.avg / 5) * 100}%` }}
                         />
                       </div>
@@ -976,7 +976,7 @@ function SessionCard({
         <button
           onClick={toggleExpand}
           title={expanded ? 'Réduire' : 'Voir les tables'}
-          className="shrink-0 mt-1 text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+          className="shrink-0 mt-1 text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           <svg
             width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1175,7 +1175,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
         <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Associations
           {rows.length > 0 && (
-            <span className="ml-2 font-normal normal-case text-gray-500">({rows.length})</span>
+            <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">({rows.length})</span>
           )}
         </span>
         <svg
@@ -1208,7 +1208,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-gray-900 truncate">{o.name}</span>
                         {!o.active && (
-                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500">Désactivée</span>
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600">Désactivée</span>
                         )}
                         {expired && (
                           <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700">Expirée</span>
@@ -1347,7 +1347,7 @@ function OrganizationModal({
           {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/10 text-gray-700 hover:bg-gray-50">
+              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
               Annuler
             </button>
             <SubmitBtn loading={loading} label={org ? 'Enregistrer' : 'Créer le compte'} className="flex-1" />
@@ -1393,7 +1393,7 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
             <p className="text-sm text-gray-600">
               Pensez à le communiquer à vos modérateurs : c'est aussi avec lui qu'ils prennent l'animation d'une table.
             </p>
-            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2">
+            <button onClick={onClose} className="w-full py-3 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2">
               OK
             </button>
           </div>
@@ -1409,7 +1409,7 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
             {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/10 text-gray-700 hover:bg-gray-50">
+                className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
                 Annuler
               </button>
               <SubmitBtn loading={loading} label="Changer" className="flex-1" />
@@ -1568,7 +1568,7 @@ function CreateModal({
 
           <div className="pt-1 border-t border-bleu-fonce/10">
             <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
-              Documentation <span className="font-normal normal-case text-gray-500">(optionnel)</span>
+              Documentation <span className="font-normal normal-case tracking-normal text-gray-500">(optionnel)</span>
             </p>
             <div className="space-y-3">
               <DocFileField label={DOC_INFO_LABEL} placeholder="https://…" value={docInfoUrl} onChange={setDocInfoUrl} />
@@ -1584,7 +1584,7 @@ function CreateModal({
           {sessionType !== 'debate' && (
           <div className="pt-1 border-t border-bleu-fonce/10">
             <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
-              Configuration du vote <span className="font-normal normal-case text-gray-500">(optionnel)</span>
+              Configuration du vote <span className="font-normal normal-case tracking-normal text-gray-500">(optionnel)</span>
             </p>
             <div>
               <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Modération des assertions</label>
@@ -1652,9 +1652,9 @@ function CreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/10
-                text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-gray-300"
+              className="flex-1 py-3 text-sm font-medium border border-bleu-fonce/20
+                text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
+                focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               Annuler
             </button>
@@ -1707,7 +1707,7 @@ function SubmitBtn({ loading, label, className = 'w-full' }: { loading: boolean;
       disabled={loading}
       className={`${className} py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
         text-white text-sm font-medium transition-colors focus:outline-none
-        focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex items-center justify-center gap-2`}
+        focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 flex items-center justify-center gap-2`}
     >
       {loading ? <><Spinner />Chargement…</> : label}
     </button>
@@ -3313,7 +3313,7 @@ function SessionDetail({
         <div className="relative max-w-3xl mx-auto flex items-center gap-3">
           <button
             onClick={onBack}
-            className="text-slate-300 hover:text-creme transition-colors p-1 -ml-1 focus:outline-none focus:ring-2 focus:ring-bleu-clair/60"
+            className="text-slate-300 hover:text-creme transition-colors p-1 -ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60"
             title="Retour"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -3384,7 +3384,7 @@ function SessionDetail({
             <button
               key={tab.id}
               onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
-              className={`flex-1 py-2.5 px-3 text-[13px] font-semibold leading-tight transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair ${
+              className={`flex-1 py-2.5 px-3 text-[13px] font-semibold leading-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair ${
                 activeTab === tab.id
                   ? 'bg-bleu-fonce text-creme shadow-[0_10px_24px_-16px_rgba(21,35,63,0.8)]'
                   : 'text-bleu-fonce/70 hover:bg-bleu-fonce/[0.05] hover:text-bleu-fonce'
@@ -3512,7 +3512,7 @@ function SessionDetail({
                     >
                       <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                         Synthèse des votes
-                        <span className="ml-2 font-normal normal-case text-gray-500">
+                        <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
                         </span>
                       </span>
@@ -3606,8 +3606,8 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(true)}
                           disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-bleu-fonce/10
-                            text-gray-600 hover:bg-gray-50 transition-colors
+                          className="py-1 px-2.5 text-xs font-medium border border-bleu-fonce/20
+                            text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Crée une table sans modérateur, vide, déjà numérotée"
                         >
@@ -3730,7 +3730,7 @@ function SessionDetail({
                                     🎙️ enregistrable
                                   </span>
                                 ) : (
-                                  <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 shrink-0"
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 shrink-0"
                                     title={d.non_consenting > 0
                                       ? `${d.non_consenting} personne(s) non consentante(s)`
                                       : "Table homogène en opinion — un enregistrement n'y apporterait rien"}>
@@ -3999,7 +3999,7 @@ function SessionDetail({
                       </div>
                       <DragOverlay dropAnimation={null}>
                         {draggingMember && (
-                          <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium shadow-lg opacity-90 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2">
+                          <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium shadow-lg opacity-90">
                             {draggingMember.pseudo}
                           </div>
                         )}
@@ -4167,7 +4167,7 @@ function SessionDetail({
                           <button
                             type="button"
                             onClick={() => { setEditingMeta(false); setMetaErr(null) }}
-                            className="flex-1 py-2 text-xs border border-bleu-fonce/10 text-gray-600 hover:bg-gray-50 transition-colors"
+                            className="flex-1 py-2 text-xs border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
                           >
                             Annuler
                           </button>
@@ -4175,7 +4175,7 @@ function SessionDetail({
                             type="submit"
                             disabled={metaLoading || !metaTitle.trim()}
                             className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                              text-white transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                              text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                           >
                             {metaLoading ? 'Enregistrement…' : 'Enregistrer'}
                           </button>
@@ -4243,7 +4243,7 @@ function SessionDetail({
                             <button
                               type="button"
                               onClick={() => setEditingDocs(false)}
-                              className="flex-1 py-2 text-xs border border-bleu-fonce/10 text-gray-600 hover:bg-gray-50 transition-colors"
+                              className="flex-1 py-2 text-xs border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
                             >
                               Annuler
                             </button>
@@ -4251,7 +4251,7 @@ function SessionDetail({
                               type="submit"
                               disabled={docsLoading}
                               className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                                text-white transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                                text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                             >
                               {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
@@ -4310,7 +4310,7 @@ function SessionDetail({
                     >
                       <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                         Synthèse des votes
-                        <span className="ml-2 font-normal normal-case text-gray-500">
+                        <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({voteResults.length} assertion{voteResults.length !== 1 ? 's' : ''} approuvée{voteResults.length !== 1 ? 's' : ''})
                         </span>
                       </span>
@@ -4344,7 +4344,7 @@ function SessionDetail({
                     <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Thèmes — classement par moyenne
                       {responses.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-500">
+                        <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({responses.length} réponse{responses.length > 1 ? 's' : ''})
                         </span>
                       )}
@@ -4374,7 +4374,7 @@ function SessionDetail({
                     <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Réponses au questionnaire
                       {responses.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-500">
+                        <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({responses.length})
                         </span>
                       )}
@@ -4415,7 +4415,7 @@ function SessionDetail({
                     <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       🙋 Recrutement modérateurs
                       {staffInterestResponses.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-500">
+                        <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({staffInterestResponses.length})
                         </span>
                       )}
@@ -4452,7 +4452,7 @@ function SessionDetail({
                     <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Sources collaboratives
                       {sources.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-gray-500">
+                        <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({sources.length} source{sources.length > 1 ? 's' : ''})
                         </span>
                       )}
@@ -4726,7 +4726,7 @@ function SessionDetail({
             </ul>
             <button
               onClick={() => setDeleteMemberReport(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -4762,7 +4762,7 @@ function SessionDetail({
             </p>
             <button
               onClick={() => setRegeneratedCode(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -4848,7 +4848,7 @@ function ModerationPolicyEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+          className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
           {saving ? 'Enregistrement…' : saved ? '✅ Enregistré' : 'Enregistrer'}
         </button>
@@ -4891,24 +4891,24 @@ function DebateExitModal({
             <button
               onClick={onPostVoting}
               className="w-full py-2.5 text-sm font-medium bg-indigo-600 text-white
-                hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-indigo-500 focus:ring-offset-2"
+                hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
+                focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               → Post-vote (revote possible)
             </button>
             <button
               onClick={onClosed}
               className="w-full py-2.5 text-sm font-medium bg-red-600 text-white
-                hover:bg-red-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-red-500 focus:ring-offset-2"
+                hover:bg-red-700 transition-colors focus:outline-none focus-visible:ring-2
+                focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
               → Clôturer directement
             </button>
             <button
               onClick={onCancel}
-              className="w-full py-2.5 text-sm font-medium border border-bleu-fonce/10
-                text-gray-700 hover:bg-gray-50 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-gray-300"
+              className="w-full py-2.5 text-sm font-medium border border-bleu-fonce/20
+                text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
+                focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               Annuler
             </button>
@@ -4990,7 +4990,7 @@ function PhaseBar({
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors disabled:cursor-not-allowed ${
                       isPast
                         ? 'bg-indigo-100 text-bleu-fonce hover:bg-indigo-200 hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:ring-2 hover:ring-gray-300 hover:ring-offset-1'
                     }`}
                   >
                     {isPast ? '✓' : i}
@@ -5016,7 +5016,7 @@ function PhaseBar({
           <button
             onClick={onPrev}
             disabled={acting}
-            className="text-xs text-gray-600 hover:text-bleu-fonce py-1.5 px-3 border border-bleu-fonce/15 hover:border-bleu-fonce/30 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+            className="text-xs text-gray-600 hover:text-bleu-fonce py-1.5 px-3 border border-bleu-fonce/15 hover:border-bleu-fonce/30 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             ← {phaseLabel(prevPhase, sessionType)}
           </button>
@@ -5026,7 +5026,7 @@ function PhaseBar({
           <button
             onClick={onNext}
             disabled={acting}
-            className="text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-2 px-4 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-2 px-4 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)} →`}
           </button>
@@ -5160,7 +5160,7 @@ function TableOverviewCard({
             </span>
           )}
           {d && (
-            <span className={`text-xs px-1.5 py-0.5 shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            <span className={`text-xs px-1.5 py-0.5 shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
               {d.recordable ? '🎙️ enregistrable' : 'non enregistrable'}
             </span>
           )}
@@ -5216,7 +5216,7 @@ function TableOverviewCard({
                 <span>{m.pseudo}</span>
                 {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
                 {profile && (
-                  <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
+                  <span className="text-[10px] font-mono tracking-tight opacity-75 shrink-0">
                     <span className={profile.is_active ? '' : 'line-through'}>a</span>
                     <span className={profile.consents ? '' : 'line-through'}>e</span>
                     <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
@@ -5388,7 +5388,7 @@ function DraggableMemberChip({
       <span>{pseudo}</span>
       {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
       {profile && (
-        <span className="text-[10px] font-mono tracking-tight opacity-60 shrink-0">
+        <span className="text-[10px] font-mono tracking-tight opacity-75 shrink-0">
           <span className={profile.is_active ? '' : 'line-through'}>a</span>
           <span className={profile.consents ? '' : 'line-through'}>e</span>
           <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
@@ -5777,7 +5777,7 @@ function AssertionsPanel({
                   onClick={handleAdminAdd}
                   disabled={adminAdding || !adminText.trim()}
                   className="py-1.5 px-4 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white
-                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {adminAdding ? '…' : 'Ajouter'}
                 </button>
@@ -5828,7 +5828,7 @@ function AssertionsPanel({
             className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
               effectiveTab === t.key
                 ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-gray-600 hover:text-bleu-fonce'
             }`}
           >
             {t.label}
@@ -6295,7 +6295,7 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
 
   return (
     <div className="w-full space-y-1">
-      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+      <div className="flex h-2 overflow-hidden gap-px">
         <div className="bg-green-400 transition-all" style={{ width: `${agreePct}%` }} />
         <div className="bg-red-400 transition-all"   style={{ width: `${disagreePct}%` }} />
         <div className="bg-gray-300 transition-all"  style={{ width: `${passPct}%` }} />
@@ -6482,8 +6482,8 @@ function ThemeDashboard({ responses, loading }: { responses: QuestionnaireExport
                   {s.avg.toFixed(1)}<span className="text-gray-500 font-normal">/5</span>
                 </span>
               </div>
-              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+              <div className="h-1.5 bg-gray-100 overflow-hidden">
+                <div className={`h-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
               </div>
             </div>
             <span className="text-xs text-gray-500 shrink-0 w-12 text-right">

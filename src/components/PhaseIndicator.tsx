@@ -33,7 +33,7 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="inline-flex items-center gap-2 border border-bleu-fonce/15 bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-bleu-fonce whitespace-nowrap hover:border-bleu-fonce/30 hover:bg-indigo-50/60 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+      className="inline-flex items-center gap-2 border border-bleu-fonce/15 bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-bleu-fonce whitespace-nowrap hover:border-bleu-fonce/30 hover:bg-indigo-50/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-bleu-clair shadow-[0_0_6px_1px_rgba(155,187,226,0.9)]" />
       Étape {step.number} · {step.label}
@@ -79,7 +79,7 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
                           ? 'bg-bleu-fonce text-creme ring-4 ring-bleu-clair/40'
                           : isPast
                             ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-gray-100 text-gray-500'
+                            : 'bg-gray-100 text-gray-600'
                       }`}
                     >
                       {isPast ? '✓' : s.number}
@@ -108,7 +108,7 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
               <button
                 onClick={() => setOpen(false)}
                 className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 Fermer
               </button>

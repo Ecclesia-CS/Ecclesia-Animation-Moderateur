@@ -39,15 +39,15 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
               onClick={onCancel}
               className="flex-1 py-2.5 text-sm font-semibold bg-white border border-bleu-fonce/20
                 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
-                focus:ring-2 focus:ring-bleu-clair"
+                focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               Annuler
             </button>
             <button
               onClick={onConfirm}
               className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white
-                hover:bg-red-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-red-400 focus:ring-offset-2"
+                hover:bg-red-700 transition-colors focus:outline-none focus-visible:ring-2
+                focus-visible:ring-red-400 focus-visible:ring-offset-2"
             >
               {confirmLabel}
             </button>

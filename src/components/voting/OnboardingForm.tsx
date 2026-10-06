@@ -107,7 +107,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           <p className="text-xs text-gray-500">Tu peux les modifier à tout moment dans « Outils » → « Être avec un ami ».</p>
           <button
             onClick={() => onSuccess(pairingDone.response)}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Continuer vers le vote →
           </button>
@@ -132,9 +132,9 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           </span>
           <span className="text-xs text-indigo-600 font-medium">{member.pseudo}</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
+        <div className="w-full bg-gray-200 h-1.5">
           <div
-            className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
+            className="bg-indigo-600 h-1.5 transition-all duration-300"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -196,7 +196,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           {currentQ > 0 && (
             <button
               onClick={() => setCurrentQ(q => q - 1)}
-              className="flex-1 py-3 px-4 border border-bleu-fonce/20 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 border border-bleu-fonce/20 text-bleu-fonce text-sm font-medium hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
             >
               ← Précédent
             </button>
@@ -205,7 +205,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
             <button
               onClick={() => setCurrentQ(q => q + 1)}
               disabled={!isCurrentAnswered()}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Suivant →
             </button>
@@ -213,7 +213,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
             <button
               onClick={handleValidate}
               disabled={loading || !isCurrentAnswered()}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {loading ? 'Enregistrement…' : editing ? 'Enregistrer mes réponses ✓' : 'Valider et voter ✓'}
             </button>

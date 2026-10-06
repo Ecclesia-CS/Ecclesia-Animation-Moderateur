@@ -45,7 +45,7 @@ export default function ParticipantCodesModal({ onClose }: Props) {
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                focus:outline-none focus:ring-2 focus:ring-gray-300"
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
               aria-label="Fermer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -72,7 +72,7 @@ export default function ParticipantCodesModal({ onClose }: Props) {
                       title="Cette personne a perdu son code de rappel : en générer un nouveau, à lui lire (l'ancien cesse de fonctionner)"
                       className="p-1.5 border border-amber-300 text-amber-600
                         hover:bg-amber-50 transition-colors focus:outline-none
-                        focus:ring-2 focus:ring-amber-400 focus:ring-offset-1"
+                        focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
                     >
                       🔑
                     </button>
@@ -110,7 +110,7 @@ export default function ParticipantCodesModal({ onClose }: Props) {
             <p className="text-5xl font-mono font-bold tracking-[0.25em] tabular-nums text-amber-300">{newCode.code}</p>
             <button
               onClick={() => setNewCode(null)}
-              className="btn-verre w-full py-2.5 text-creme text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-bleu-clair/60"
+              className="btn-verre w-full py-2.5 text-creme text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60"
             >
               Fermer
             </button>

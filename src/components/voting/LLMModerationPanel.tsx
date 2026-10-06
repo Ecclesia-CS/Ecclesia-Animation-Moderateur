@@ -608,7 +608,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           🤖 Modération IA
           {(autoModerate || autoMergePeriodic) && ['voting', 'pre_voting'].includes(session.phase) && (
-            <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
+            <span className="ml-2 font-normal normal-case tracking-normal text-emerald-600">● auto</span>
           )}
         </span>
         <svg
@@ -644,7 +644,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <button
                 onClick={handleModerate}
                 disabled={isLoading}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 {isLoading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -670,7 +670,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
               <button
                 onClick={() => setShowReport(r => !r)}
-                className="text-sm px-3 py-2 border border-bleu-fonce/10 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="text-sm px-3 py-2 border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
               >
                 {showReport ? 'Masquer le rapport' : 'Rapport token'}
               </button>
@@ -683,7 +683,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <div className="flex items-center justify-between gap-2">
                 <h4 className="text-[11px] font-bold text-purple-700 uppercase tracking-[0.16em]">
                   Fusions proposées — à valider
-                  <span className="ml-2 font-normal normal-case text-purple-400">({proposals.length})</span>
+                  <span className="ml-2 font-normal normal-case tracking-normal text-purple-400">({proposals.length})</span>
                 </h4>
                 <div className="flex gap-2 shrink-0">
                   <button
@@ -787,7 +787,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         <button
                           onClick={() => ignoreProposal(i)}
                           disabled={isLoading}
-                          className="flex-1 min-w-[6rem] text-xs px-3 py-1.5 border border-bleu-fonce/20 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                          className="flex-1 min-w-[6rem] text-xs px-3 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-50 transition-colors"
                         >
                           ✗ Ignorer
                         </button>
@@ -812,9 +812,9 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   <span>Requêtes aujourd'hui</span>
                   <span className="font-mono">{dayTokens.request_count} / 1 500</span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-gray-100 h-1.5 overflow-hidden">
                   <div
-                    className="h-full bg-indigo-400 rounded-full transition-all"
+                    className="h-full bg-indigo-400 transition-all"
                     style={{ width: `${Math.min(dayTokens.request_count / 1500 * 100, 100)}%` }}
                   />
                 </div>
@@ -826,9 +826,9 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   <span>Tokens cette séance (total_tokens)</span>
                   <span className="font-mono">{sessionTokens.toLocaleString('fr-FR')}</span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-gray-100 h-1.5 overflow-hidden">
                   <div
-                    className="h-full bg-purple-400 rounded-full transition-all"
+                    className="h-full bg-purple-400 transition-all"
                     style={{ width: `${Math.min(sessionTokens / 1_000_000 * 100, 100)}%` }}
                   />
                 </div>
@@ -895,7 +895,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
                 Assertions rejetées par l'IA
                 {rejectedAssertions.length > 0 && (
-                  <span className="ml-2 font-normal normal-case text-gray-500">
+                  <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                     ({rejectedAssertions.length})
                   </span>
                 )}
@@ -936,7 +936,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
             <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
               Fusions effectuées
               {merges.length > 0 && (
-                <span className="ml-2 font-normal normal-case text-gray-500">
+                <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                   ({merges.filter(m => !m.reverted_at).length} active(s) / {merges.length})
                 </span>
               )}
@@ -1019,7 +1019,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           <div>
             <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
               Fusions antérieures (journal local)
-              <span className="ml-2 font-normal normal-case text-gray-500">
+              <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                 ({mergeLog.length}) — annulation partielle
               </span>
             </h4>

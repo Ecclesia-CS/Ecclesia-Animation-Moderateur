@@ -117,7 +117,7 @@ export default function EntryScreen() {
                   <button
                     onClick={() => { window.location.hash = '#session/' + s.join_code! }}
                     className="shrink-0 py-2.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                      focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
                     {PHASE_ACTION[s.phase] ?? 'Accéder →'}
                   </button>
@@ -191,7 +191,7 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
       >
         <div className="px-5 py-4 border-b border-bleu-fonce/10 flex items-center justify-between shrink-0">
           <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Anciennes séances</h2>
-          <button onClick={onClose} className="p-1 text-gray-500 hover:text-bleu-fonce text-lg leading-none transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair">✕</button>
+          <button onClick={onClose} className="p-1 text-gray-500 hover:text-bleu-fonce text-lg leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair">✕</button>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-2">
           {error && (
@@ -210,7 +210,7 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
               key={s.id}
               onClick={() => { window.location.hash = '#results/' + s.id }}
               className="w-full text-left bg-white hover:bg-indigo-50/60 border border-bleu-fonce/10
-                hover:border-indigo-200 px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                hover:border-indigo-200 px-4 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               <p className="font-serif text-base font-semibold text-bleu-fonce">{s.title}</p>
               {s.scheduled_at && (

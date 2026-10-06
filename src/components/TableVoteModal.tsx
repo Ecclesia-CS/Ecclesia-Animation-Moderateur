@@ -96,7 +96,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
           <button
             onClick={onClose}
             className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
-              focus:outline-none focus:ring-2 focus:ring-bleu-clair p-1"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair p-1"
             aria-label="Fermer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
@@ -145,7 +145,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                               onClick={() => handleAnswer(opt.id, true)}
                               disabled={pendingId === opt.id}
                               className={`flex-1 py-2.5 border text-sm font-semibold transition-colors
-                                disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+                                disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
                                 myAnswers[opt.id] === true
                                   ? 'bg-emerald-600 border-emerald-600 text-white'
                                   : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800'
@@ -157,7 +157,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                               onClick={() => handleAnswer(opt.id, false)}
                               disabled={pendingId === opt.id}
                               className={`flex-1 py-2.5 border text-sm font-semibold transition-colors
-                                disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-400 ${
+                                disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
                                 myAnswers[opt.id] === false
                                   ? 'bg-red-600 border-red-600 text-white'
                                   : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800'

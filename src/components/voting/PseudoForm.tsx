@@ -127,7 +127,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           </div>
           <button
             onClick={() => (pendingIsReclaim ? onReclaimSuccess(pendingMember) : onSuccess(pendingMember))}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Continuer →
           </button>
@@ -191,7 +191,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             <button
               type="submit"
               disabled={reclaimLoading || !pseudo.trim() || reclaimCodeInput.trim().length === 0}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {reclaimLoading ? 'Récupération…' : 'Récupérer mes votes →'}
             </button>
@@ -269,7 +269,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           <button
             type="submit"
             disabled={loading || !pseudo.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Continuer →'}
           </button>

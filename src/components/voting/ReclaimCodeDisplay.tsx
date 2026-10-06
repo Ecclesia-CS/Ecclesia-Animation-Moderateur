@@ -45,7 +45,7 @@ export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueL
           </div>
           <button
             onClick={handleCopy}
-            className="w-full py-2.5 text-sm font-semibold text-bleu-fonce bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+            className="w-full py-2.5 text-sm font-semibold text-bleu-fonce bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             {copied ? '✓ Copié !' : 'Copier pseudo + code'}
           </button>
@@ -58,7 +58,7 @@ export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueL
 
         <button
           onClick={onContinue}
-          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-creme"
+          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
         >
           {continueLabel}
         </button>

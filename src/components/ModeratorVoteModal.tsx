@@ -129,7 +129,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-600 transition-colors p-1
-              focus:outline-none focus:ring-2 focus:ring-gray-300"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
             aria-label="Fermer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -155,7 +155,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                     <span className={`text-xs font-medium px-2 py-0.5 shrink-0 ${
                       vote.status === 'active'
                         ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-gray-100 text-gray-500'
+                        : 'bg-gray-100 text-gray-600'
                     }`}>
                       {vote.status === 'active' ? 'En cours' : 'Clôturé'}
                     </span>
@@ -237,7 +237,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                   <button
                     onClick={addOption}
                     className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline
-                      focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                   >
                     + Ajouter une option
                   </button>
@@ -245,7 +245,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                     onClick={handleCreate}
                     disabled={!canSubmit || creating}
                     className="w-full py-2.5 text-sm font-semibold bg-indigo-600 text-white
-                      hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                      hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
                     {creating ? 'Lancement…' : 'Lancer le vote'}
                   </button>
@@ -260,7 +260,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
               <button
                 onClick={loadHistory}
                 className="text-xs text-gray-500 hover:text-gray-700 hover:underline
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
               >
                 Voir l'historique des votes de cette table
               </button>

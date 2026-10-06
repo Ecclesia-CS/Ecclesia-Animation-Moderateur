@@ -59,7 +59,7 @@ function AssertionRow({ result }: { result: VoteResult }) {
           {badge.label}
         </span>
       </div>
-      <div className="flex rounded-full h-1.5 overflow-hidden bg-gray-100">
+      <div className="flex h-1.5 overflow-hidden bg-gray-100">
         {agreePct > 0 && (
           <div className="bg-green-400 h-full" style={{ width: `${agreePct}%` }} />
         )}

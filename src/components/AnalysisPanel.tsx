@@ -374,11 +374,11 @@ export default function AnalysisPanel({
       >
         <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Analyse des camps
-          <span className="ml-2 font-normal normal-case text-gray-500">
+          <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
             ({badge()})
           </span>
           {autoAnalyze && ['voting', 'pre_voting'].includes(sessionPhase ?? '') && (
-            <span className="ml-2 font-normal normal-case text-emerald-600">● auto</span>
+            <span className="ml-2 font-normal normal-case tracking-normal text-emerald-600">● auto</span>
           )}
         </span>
 
@@ -391,7 +391,7 @@ export default function AnalysisPanel({
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {analyzeStatus === 'loading' ? 'Calcul…'
                 : analyzeStatus === 'naming' ? 'Nommage des camps…'
@@ -543,7 +543,7 @@ export default function AnalysisPanel({
               <div>
                 <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                   Assertions consensuelles
-                  <span className="ml-1.5 font-normal normal-case text-gray-500">
+                  <span className="ml-1.5 font-normal normal-case tracking-normal text-gray-500">
                     (tous les camps · score &gt; {CONSENSUS_THRESHOLD})
                   </span>
                 </h4>
@@ -874,7 +874,7 @@ export function AnalysisComparisonPanel({
                   <div>
                     <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">
                       Camps appariés
-                      <span className="ml-1.5 font-normal normal-case text-gray-500">
+                      <span className="ml-1.5 font-normal normal-case tracking-normal text-gray-500">
                         (par composition réelle, pas par numéro)
                       </span>
                     </h4>

@@ -250,7 +250,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
         disabled={loading || (reclaimOpen && !reclaimCode.trim())}
         className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
           text-white text-sm font-medium transition-colors focus:outline-none
-          focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >
         {loading ? 'Chargement…' : submitLabel}
       </button>

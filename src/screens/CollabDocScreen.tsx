@@ -292,7 +292,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                 onClick={openAdd}
                 className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white
                   text-xs font-medium transition-colors focus:outline-none
-                  focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
+                  focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
               >
                 + Ajouter
               </button>
@@ -339,7 +339,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   disabled={registering || !registerPseudo.trim()}
                   className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-medium transition-colors focus:outline-none
-                    focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 flex items-center gap-2 shrink-0"
+                    focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 flex items-center gap-2 shrink-0"
                 >
                   {registering && <SmallSpinner />}
                   {registering ? 'Connexion…' : 'Me connecter'}
@@ -488,8 +488,8 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-2.5 text-sm border border-bleu-fonce/10
-                    text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-2.5 text-sm border border-bleu-fonce/20
+                    text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
                 >
                   Annuler
                 </button>
@@ -498,7 +498,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   disabled={formLoading}
                   className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-medium transition-colors
-                    flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                    flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {formLoading && <SmallSpinner />}
                   {formLoading ? 'Enregistrement…' : (editingSource ? 'Modifier' : 'Ajouter')}

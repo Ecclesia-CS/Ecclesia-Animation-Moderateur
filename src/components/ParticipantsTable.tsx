@@ -152,7 +152,7 @@ function DraggableRow({
           title="Glisser vers une file"
           className="p-1.5 text-slate-400 hover:text-creme cursor-grab
             active:cursor-grabbing disabled:opacity-20 disabled:cursor-not-allowed
-            transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60"
+            transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60"
         >
           <DragHandleIcon />
         </button>
@@ -213,8 +213,8 @@ function DraggableRow({
             title="Donner le micro directement"
             className="text-xs px-2.5 py-1 bg-white/5 border border-white/15
               text-slate-200 hover:bg-bleu-clair/15 hover:border-bleu-clair/50 hover:text-creme disabled:opacity-30
-              transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60
-              focus:ring-offset-1 focus:ring-offset-slate-800 whitespace-nowrap"
+              transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60
+              focus-visible:ring-offset-1 focus-visible:ring-offset-slate-800 whitespace-nowrap"
           >
             Donner la parole
           </button>
@@ -225,7 +225,7 @@ function DraggableRow({
               aria-label="Bannir ce participant"
               className="p-1.5 border border-red-400/30 text-red-300
                 hover:bg-red-500/15 hover:border-red-400/60 transition-colors focus:outline-none
-                focus:ring-2 focus:ring-red-400 focus:ring-offset-1 focus:ring-offset-slate-800"
+                focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-800"
             >
               <TrashIcon />
             </button>

@@ -41,7 +41,7 @@ export default function NextTopicPanel() {
         disabled={busy || votes === 0}
         className="text-xs px-3 py-1.5 bg-white/5 border border-white/15 text-slate-200
           hover:bg-white/10 hover:border-white/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors
-          focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 focus:ring-offset-1 focus:ring-offset-slate-800
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-800
           whitespace-nowrap"
       >
         Réinitialiser

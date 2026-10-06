@@ -491,11 +491,11 @@ export default function ModeratorView() {
               session={sessionDocs}
               currentTableJoinCode={table.join_code}
               sessionId={table.session_id}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 whitespace-nowrap"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 whitespace-nowrap"
             />
             <ModeratorToolsButton
               onError={setErr}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 flex items-center gap-1.5 whitespace-nowrap"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 flex items-center gap-1.5 whitespace-nowrap"
             />
             <div className="hidden md:flex items-center gap-2 text-sm text-slate-200">
               <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
@@ -514,7 +514,7 @@ export default function ModeratorView() {
 
             <button
               onClick={leaveTable}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair/60 whitespace-nowrap shrink-0"
+              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 whitespace-nowrap shrink-0"
             >
               Quitter
             </button>
@@ -564,7 +564,7 @@ export default function ModeratorView() {
                 onClick={handleResume}
                 className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white
                   text-base font-semibold transition-colors focus:outline-none
-                  focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
               >
                 Reprendre la parole
               </button>
@@ -572,7 +572,7 @@ export default function ModeratorView() {
                 onClick={handleSkip}
                 className="btn-verre px-6 py-3 text-creme
                   text-base font-semibold focus:outline-none
-                  focus:ring-2 focus:ring-bleu-clair/60 focus:ring-offset-2 focus:ring-offset-slate-900"
+                  focus-visible:ring-2 focus-visible:ring-bleu-clair/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
               >
                 Passer au suivant
               </button>
@@ -614,8 +614,8 @@ export default function ModeratorView() {
                     onClick={handlePause}
                     className="px-5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200
                       border border-amber-400/50 text-sm font-semibold transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2
-                      focus:ring-offset-slate-800 flex items-center gap-2"
+                      focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2
+                      focus-visible:ring-offset-slate-800 flex items-center gap-2"
                   >
                     <PauseIcon className="w-4 h-4" />
                     Pause
@@ -624,8 +624,8 @@ export default function ModeratorView() {
                     onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
                     className="btn-verre btn-verre-primaire px-8 py-2.5 text-creme
                       text-base font-semibold focus:outline-none
-                      focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2
-                      focus:ring-offset-slate-800"
+                      focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2
+                      focus-visible:ring-offset-slate-800"
                   >
                     Terminer la prise de parole
                   </button>
@@ -725,21 +725,21 @@ export default function ModeratorView() {
             </div>
             <div className="px-6 py-5 space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto">
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🖐️</span>
+                <span className="w-7 shrink-0 text-center text-xl">🖐️</span>
                 <div>
                   <p className="font-semibold text-gray-900">Glisser-déposer</p>
                   <p className="text-gray-500 text-xs mt-0.5">Fais glisser un participant dans une file pour lui donner la parole, ou réordonne les files en glissant les lignes.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">▶️</span>
+                <span className="w-7 shrink-0 text-center text-xl">▶️</span>
                 <div>
                   <p className="font-semibold text-gray-900">Donner/retirer la parole</p>
                   <p className="text-gray-500 text-xs mt-0.5">Les files "Prendre la parole sur un autre sujet" et "Demander la parole sur le sujet actuel" gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🔧</span>
+                <span className="w-7 shrink-0 text-center text-xl">🔧</span>
                 <div>
                   <p className="font-semibold text-gray-900">Outils Modo</p>
                   <p className="text-gray-500 text-xs mt-0.5">{orgName
@@ -754,7 +754,7 @@ export default function ModeratorView() {
                   localStorage.setItem('mod_welcome_' + table.id, '1')
                   setShowModWelcome(false)
                 }}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 C'est parti ! →
               </button>
@@ -779,7 +779,7 @@ export default function ModeratorView() {
                 leaveTable()
               }}
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Voir les résultats →
             </button>
@@ -787,7 +787,7 @@ export default function ModeratorView() {
           <button
             onClick={leaveTable}
             className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
-              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             ← Retour au menu
           </button>

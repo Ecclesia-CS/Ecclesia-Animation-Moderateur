@@ -73,7 +73,7 @@ export default class PanelErrorBoundary extends Component<Props, State> {
           <button
             onClick={() => this.setState({ error: null })}
             className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-indigo-300 px-1 py-0.5"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 px-1 py-0.5"
           >
             ↻ Réessayer d'afficher ce panneau
           </button>

@@ -1002,7 +1002,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             {canProposeNow && (
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="shrink-0 text-xs font-semibold text-bleu-fonce py-1.5 px-3 bg-white border border-bleu-fonce/30 hover:border-bleu-fonce/50 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                className="shrink-0 text-xs font-semibold text-bleu-fonce py-1.5 px-3 bg-white border border-bleu-fonce/30 hover:border-bleu-fonce/50 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
               >
                 ✏️ Proposer
               </button>
@@ -1015,7 +1015,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <button
                   type="button"
                   onClick={() => setShowModeratorInfo(true)}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-bleu-fonce bg-indigo-50 border border-indigo-200 px-2 py-1 hover:bg-indigo-100 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-bleu-fonce bg-indigo-50 border border-indigo-200 px-2 py-1 hover:bg-indigo-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 >
                   🎙️ Vous êtes modérateur
                 </button>
@@ -1024,13 +1024,13 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => { window.location.hash = '' }}
-                className="text-xs py-1.5 px-2.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                className="text-xs py-1.5 px-2.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
               >
                 Quitter
               </button>
               <button
                 onClick={() => setShowToolsPanel(true)}
-                className="text-xs py-1.5 px-2.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                className="text-xs py-1.5 px-2.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
               >
                 Outils
               </button>
@@ -1058,7 +1058,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <div className="mx-4 mt-3">
             <button
               onClick={() => setShowLiveResults(true)}
-              className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+              className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               📊 Voir les résultats et les camps en direct
             </button>
@@ -1080,7 +1080,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               {canProposeNow && (
                 <button
                   onClick={() => setShowSubmitModal(true)}
-                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   ✏️ Proposer une assertion
                 </button>
@@ -1118,7 +1118,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                       className="w-full text-left bg-white border border-bleu-fonce/10 p-3 space-y-2 hover:border-indigo-300 transition-colors"
                     >
                       <div className="flex items-start gap-3">
-                        <span className="text-lg shrink-0">{icon}</span>
+                        <span className="w-6 shrink-0 text-center text-lg">{icon}</span>
                         <p className="text-xs text-gray-700 leading-relaxed flex-1">{a.content}</p>
                         <span className="text-[10px] text-indigo-500 shrink-0 self-center">Changer</span>
                       </div>
@@ -1128,7 +1128,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                         const passPct     = Math.round((r.pass_count     / total) * 100)
                         return (
                           <div className="space-y-1 pl-8">
-                            <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                            <div className="flex h-1.5 overflow-hidden bg-gray-100">
                               {agreePct    > 0 && <div className="bg-green-400" style={{ width: `${agreePct}%` }} />}
                               {disagreePct > 0 && <div className="bg-red-400"   style={{ width: `${disagreePct}%` }} />}
                               {passPct     > 0 && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
@@ -1221,14 +1221,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               </div>
               <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">👍</span>
+                  <span className="w-7 shrink-0 text-center text-xl">👍</span>
                   <div>
                     <p className="font-semibold text-gray-900">Voter sur chaque assertion</p>
                     <p className="text-gray-500 text-xs mt-0.5">Pour chaque affirmation, indique si tu es d'accord, en désaccord, ou si tu préfères passer.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">⏭</span>
+                  <span className="w-7 shrink-0 text-center text-xl">⏭</span>
                   <div>
                     <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
                     <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
@@ -1236,7 +1236,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 </div>
                 {proposalsMentionable(session) && (
                   <div className="flex items-start gap-3">
-                    <span className="text-xl shrink-0">✏️</span>
+                    <span className="w-7 shrink-0 text-center text-xl">✏️</span>
                     <div>
                       <p className="font-semibold text-gray-900">Proposer une assertion</p>
                       <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
@@ -1244,14 +1244,14 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   </div>
                 )}
                 <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">🔄</span>
+                  <span className="w-7 shrink-0 text-center text-xl">🔄</span>
                   <div>
                     <p className="font-semibold text-gray-900">Tu peux changer d'avis</p>
                     <p className="text-gray-500 text-xs mt-0.5">Reviens sur une assertion déjà votée en la retrouvant dans la liste des assertions.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">🔒</span>
+                  <span className="w-7 shrink-0 text-center text-xl">🔒</span>
                   <div>
                     <p className="font-semibold text-gray-900">Ton vote est anonyme</p>
                     <p className="text-gray-500 text-xs mt-0.5">Ni les autres participants ni les organisateurs ne peuvent voir comment tu as voté. Un lien technique existe dans notre base de données pour te permettre de voter, mais il n'est jamais consulté.</p>
@@ -1261,7 +1261,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               <div className="px-6 pb-6">
                 <button
                   onClick={closeVoteIntro}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   Commencer →
                 </button>
@@ -1280,7 +1280,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Toutes les assertions ({assertions.length})</h2>
                 <button
                   onClick={() => setShowAllAssertions(false)}
-                  className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                   aria-label="Fermer"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1334,7 +1334,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                         const passPct     = Math.round((result.pass_count     / total) * 100)
                         return (
                           <div className="space-y-1">
-                            <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                            <div className="flex h-1.5 overflow-hidden bg-gray-100">
                               {agreePct > 0    && <div className="bg-green-400" style={{ width: `${agreePct}%` }} />}
                               {disagreePct > 0 && <div className="bg-red-400"   style={{ width: `${disagreePct}%` }} />}
                               {passPct > 0     && <div className="bg-gray-300"  style={{ width: `${passPct}%` }} />}
@@ -1363,7 +1363,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Changer mon vote</h2>
                 <button
                   onClick={() => setRevoteAssertion(null)}
-                  className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                   aria-label="Fermer"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1410,7 +1410,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <p className="text-sm text-red-700 text-center">{editEntry.error}</p>
                 <button
                   onClick={() => setEditEntry(null)}
-                  className="px-4 py-2 border border-bleu-fonce/20 text-gray-600 text-sm hover:bg-gray-50"
+                  className="px-4 py-2 border border-bleu-fonce/20 text-bleu-fonce text-sm hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
                 >
                   Fermer
                 </button>
@@ -1473,7 +1473,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               <div className="px-6 pb-6 pt-4 flex flex-col gap-2">
                 <button
                   onClick={() => { setShowProposalNudge(false); setShowSubmitModal(true) }}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   ✏️ Proposer une assertion
                 </button>
@@ -1555,7 +1555,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
         <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
           {introSteps.map(step => (
             <div key={step.label} className="flex items-start gap-3">
-              <span className="text-xl shrink-0">{step.icon}</span>
+              <span className="w-7 shrink-0 text-center text-xl">{step.icon}</span>
               <div>
                 <p className="font-semibold text-gray-900">{step.label}</p>
                 <p className="text-gray-500 text-xs mt-0.5">{step.description}</p>
@@ -1566,7 +1566,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
         <div className="px-6 pb-6">
           <button
             onClick={handleClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Compris, c'est parti →
           </button>
@@ -1597,7 +1597,7 @@ function ModeratorInfoModal({ onClose }: { onClose: () => void }) {
         <div className="px-6 pb-6">
           <button
             onClick={onClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Compris
           </button>
@@ -1643,7 +1643,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
         <div className="px-6 pb-6">
           <button
             onClick={handleClose}
-            className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
           >
             Compris →
           </button>
@@ -1664,7 +1664,7 @@ function EmptyAssertions({ canPropose, onPropose }: { canPropose: boolean; onPro
       {canPropose && (
         <button
           onClick={onPropose}
-          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
           ✏️ Proposer une assertion
         </button>
@@ -1725,7 +1725,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
             <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils</h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="text-gray-500 hover:text-gray-600 transition-colors p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
               aria-label="Fermer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1970,7 +1970,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           </div>
           <button
             onClick={() => (completed.isNew ? onNewMember(completed.member) : onConfirmed(completed.member))}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Continuer →
           </button>
@@ -2064,7 +2064,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
           <button
             type="submit"
             disabled={loading || !pseudoInput.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Continuer →'}
           </button>
@@ -2182,7 +2182,7 @@ function AttendanceConfirmScreen({
           </div>
           <button
             onClick={() => onConfirmed(pendingConfirmed)}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Continuer →
           </button>
@@ -2236,14 +2236,14 @@ function AttendanceConfirmScreen({
             <button
               onClick={handleKnownUserConfirm}
               disabled={loading}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {loading ? 'Confirmation…' : '✓ Oui, je suis présent(e)'}
             </button>
             <button
               onClick={handleContinueRemoteClick}
               disabled={loading}
-              className="w-full py-3 px-4 bg-white border border-bleu-fonce/20 hover:bg-gray-50 disabled:opacity-60 text-gray-700 text-sm font-medium transition-colors"
+              className="w-full py-3 px-4 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-60 text-bleu-fonce text-sm font-medium transition-colors"
             >
               {loading ? 'Un instant…' : 'Non, je continue à voter à distance'}
             </button>
@@ -2310,7 +2310,7 @@ function AttendanceConfirmScreen({
           <button
             onClick={handleReclaimConfirm}
             disabled={loading || !reclaimInput.trim() || !reclaimCodeInput.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {loading ? 'Recherche…' : 'Retrouver mes votes →'}
           </button>

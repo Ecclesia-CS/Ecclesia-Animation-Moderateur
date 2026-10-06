@@ -191,7 +191,7 @@ export default function ParticipantView() {
     <div className="min-h-screen bg-creme flex flex-col">
 
       {/* ── Header ───────────────────────────────────────────── */}
-      <header className="bg-white border-b border-bleu-clair/60 px-4 py-3 flex items-center justify-between gap-2">
+      <header className="bg-white border-b border-bleu-clair/60 px-4 py-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5">
         <div className="flex flex-col min-w-0">
           <span className="font-mono font-bold text-bleu-fonce text-lg tracking-[0.2em] leading-tight">
             {table.join_code}
@@ -204,12 +204,12 @@ export default function ParticipantView() {
           )}
         </div>
         <span className="text-sm text-gray-600 truncate max-w-[120px]">{myParticipant.pseudo}</span>
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           {table.leaderless && (
             <button
               onClick={() => setShowAskAdminModal(true)}
               className="text-xs px-2.5 py-1.5 border border-amber-300 text-amber-800 bg-amber-50
-                hover:bg-amber-100 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300"
+                hover:bg-amber-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
             >
               🎙️ Devenir modérateur
             </button>
@@ -218,12 +218,12 @@ export default function ParticipantView() {
             session={sessionDocs}
             userPseudo={myParticipant.pseudo}
             className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80
-              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           />
           <button
             onClick={leaveTable}
             className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80
-              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+              hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Quitter
           </button>
@@ -238,7 +238,7 @@ export default function ParticipantView() {
             <button
               onClick={() => endTurnAndAdvance().catch(() => {})}
               className="mt-3 py-2.5 px-5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors
-                focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-amber-50"
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-amber-50"
             >
               J'ai fini de parler
             </button>
@@ -257,7 +257,7 @@ export default function ParticipantView() {
             onClick={() => setVoteModalOpen(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-3
               border border-indigo-200 bg-indigo-50 text-bleu-fonce text-sm font-semibold
-              hover:bg-indigo-100 hover:border-indigo-300 transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+              hover:bg-indigo-100 hover:border-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             🗳️ Voir le vote en cours
           </button>
@@ -309,7 +309,7 @@ export default function ParticipantView() {
             disabled={pendingNextTopic}
             className={`w-full flex items-center justify-center gap-2 px-4 py-3 border
               text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-creme focus:ring-emerald-400 ${
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-creme focus-visible:ring-emerald-400 ${
               myParticipant.wants_next_topic
                 ? 'bg-emerald-600 border-emerald-600 text-white'
                 : 'bg-white border-bleu-fonce/15 text-anthracite/80 hover:border-emerald-300 hover:bg-emerald-50/60 hover:text-emerald-800'
@@ -401,21 +401,21 @@ export default function ParticipantView() {
             </div>
             <div className="px-6 py-5 space-y-4 text-sm text-anthracite/80">
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🙋</span>
+                <span className="w-7 shrink-0 text-center text-xl">🙋</span>
                 <div>
                   <p className="font-semibold text-anthracite">Prendre la parole sur un autre sujet</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pour introduire un nouveau point ou des informations complémentaires.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">⚡</span>
+                <span className="w-7 shrink-0 text-center text-xl">⚡</span>
                 <div>
                   <p className="font-semibold text-anthracite">Demander la parole sur le sujet actuel</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🔧</span>
+                <span className="w-7 shrink-0 text-center text-xl">🔧</span>
                 <div>
                   <p className="font-semibold text-anthracite">Bouton Outils</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
@@ -423,7 +423,7 @@ export default function ParticipantView() {
               </div>
               {table.leaderless ? (
                 <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">🤝</span>
+                  <span className="w-7 shrink-0 text-center text-xl">🤝</span>
                   <div>
                     <p className="font-semibold text-anthracite">Groupe auto-géré</p>
                     <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
@@ -431,7 +431,7 @@ export default function ParticipantView() {
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">🧑‍⚖️</span>
+                  <span className="w-7 shrink-0 text-center text-xl">🧑‍⚖️</span>
                   <div>
                     <p className="font-semibold text-anthracite">Rôle du modérateur</p>
                     <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
@@ -446,7 +446,7 @@ export default function ParticipantView() {
                   setShowWelcome(false)
                 }}
                 className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 Lire les règles de débat Ecclesia →
               </button>
@@ -499,7 +499,7 @@ export default function ParticipantView() {
                 leaveTable()
               }}
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2 focus:ring-offset-creme"
+                text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
             >
               Voir vos résultats →
             </button>
@@ -507,7 +507,7 @@ export default function ParticipantView() {
           <button
             onClick={leaveTable}
             className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
-              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             ← Retour au menu
           </button>
@@ -550,11 +550,11 @@ function QueueToggle({
       onClick={onClick}
       disabled={disabled}
       className={`relative w-full min-h-[88px] px-4 py-4 border border-l-4 text-left
-        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-creme
+        transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-creme
         disabled:opacity-40 disabled:cursor-not-allowed ${
         active
-          ? `${filled[color]} ${color === 'teal' ? 'focus:ring-teal-400' : 'focus:ring-bleu-clair'}`
-          : `${outline[color]} focus:ring-bleu-clair`
+          ? `${filled[color]} ${color === 'teal' ? 'focus-visible:ring-teal-400' : 'focus-visible:ring-bleu-clair'}`
+          : `${outline[color]} focus-visible:ring-bleu-clair`
       }`}
     >
       {/* Position badge — seulement quand confirmé par le serveur */}

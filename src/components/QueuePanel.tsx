@@ -192,10 +192,10 @@ function SortableRow({
             aria-label="Déplacer"
             title="Glisser pour réordonner"
             className={`p-1.5 border cursor-grab active:cursor-grabbing
-              transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+              transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
               dark
-                ? 'border-white/15 text-slate-300 hover:bg-white/10 hover:text-creme focus:ring-bleu-clair/60 focus:ring-offset-slate-800'
-                : 'border-bleu-fonce/15 text-gray-500 hover:bg-gray-100 focus:ring-bleu-clair'
+                ? 'border-white/15 text-slate-300 hover:bg-white/10 hover:text-creme focus-visible:ring-bleu-clair/60 focus-visible:ring-offset-slate-800'
+                : 'border-bleu-fonce/15 text-gray-500 hover:bg-gray-100 focus-visible:ring-bleu-clair'
             }`}
           >
             <DragHandleIcon />
@@ -206,10 +206,10 @@ function SortableRow({
             aria-label="Retirer de la file"
             title="Retirer de la file"
             className={`p-1.5 border transition-colors focus:outline-none
-              focus:ring-2 focus:ring-offset-1 ${
+              focus-visible:ring-2 focus-visible:ring-offset-1 ${
               dark
-                ? 'border-red-400/30 text-red-300 hover:bg-red-500/15 hover:border-red-400/60 focus:ring-red-400 focus:ring-offset-slate-800'
-                : 'border-red-200 text-red-600 hover:bg-red-50 focus:ring-red-300'
+                ? 'border-red-400/30 text-red-300 hover:bg-red-500/15 hover:border-red-400/60 focus-visible:ring-red-400 focus-visible:ring-offset-slate-800'
+                : 'border-red-200 text-red-600 hover:bg-red-50 focus-visible:ring-red-300'
             }`}
           >
             <XIcon />

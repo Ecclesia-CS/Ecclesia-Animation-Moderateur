@@ -165,7 +165,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               <button
                 onClick={() => setPanelOpen(false)}
                 className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -322,7 +322,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               <button
                 onClick={() => { setAddPersonOpen(false); setAddPersonCode(null) }}
                 className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -345,7 +345,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 <button
                   onClick={() => { setAddPersonCode(null); setAddPersonOpen(false) }}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium
-                    transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   C'est noté
                 </button>
@@ -380,7 +380,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   disabled={addPersonLoading}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-medium transition-colors focus:outline-none
-                    focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   {addPersonLoading ? 'Ajout…' : 'Ajouter'}
                 </button>
@@ -420,7 +420,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               <button
                 onClick={() => setAssertionsOpen(false)}
                 className="text-gray-500 hover:text-gray-600 transition-colors p-1
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

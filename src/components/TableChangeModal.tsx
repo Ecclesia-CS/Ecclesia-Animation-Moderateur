@@ -117,7 +117,7 @@ export default function TableChangeModal({
           onClick={() => join(target.joinCode)}
           disabled={joining}
           className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60
-            text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+            text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
           {joining ? 'Changement…' : `Rejoindre la table N°${target.tableNumber}`}
         </button>
@@ -139,7 +139,7 @@ export default function TableChangeModal({
               onClick={() => join(otherCode)}
               disabled={joining || otherCode.trim().length === 0}
               className="py-2.5 px-4 bg-white border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold
-                hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               Aller
             </button>
@@ -156,7 +156,7 @@ export default function TableChangeModal({
               .catch(() => { /* la fenêtre réapparaîtra, ce n'est pas grave */ })
           }}
           disabled={joining}
-          className="mt-4 w-full py-1 text-xs font-medium text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+          className="mt-4 w-full py-1 text-xs font-medium text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           Rester à ma table
         </button>

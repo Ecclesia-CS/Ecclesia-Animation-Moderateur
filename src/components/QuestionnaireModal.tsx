@@ -109,7 +109,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
             <button
               onClick={onClose}
               className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
-                focus:outline-none focus:ring-2 focus:ring-bleu-clair p-1"
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair p-1"
               aria-label="Fermer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"
@@ -199,7 +199,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                   <button
                     onClick={() => setShowAllThemes(true)}
                     className="mt-3 pb-0.5 text-xs font-semibold text-bleu-fonce border-b border-bleu-fonce/40
-                      hover:border-bleu-clair transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+                      hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                   >
                     Voir plus ({shuffledThemes.length - THEMES_INITIAL} autres)
                   </button>
@@ -241,8 +241,8 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white
-                hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2
-                focus:ring-bleu-clair focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
+                focus-visible:ring-bleu-clair focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Envoi…' : 'Envoyer'}
             </button>
@@ -300,7 +300,7 @@ function ThemeRatingRow({
             onClick={() => !locked && onChange(value === n ? null : n)}
             disabled={locked}
             className={`w-8 h-8 border text-sm font-medium tabular-nums transition-colors
-              focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-1
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1
               disabled:cursor-not-allowed ${
               value === n
                 ? 'bg-indigo-600 border-indigo-600 text-white'
@@ -332,7 +332,7 @@ function RatingRow({
           onClick={() => !locked && onChange(value === n ? null : n)}
           disabled={locked}
           className={`flex-1 py-2.5 border text-sm font-semibold tabular-nums transition-colors
-            focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-1
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1
             disabled:cursor-not-allowed ${
             value === n
               ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'

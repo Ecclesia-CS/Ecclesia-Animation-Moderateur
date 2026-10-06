@@ -145,8 +145,8 @@ export default function CorrectTurnModal({ onClose }: Props) {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setEditing(null)}
-                className="flex-1 py-2 text-sm border border-bleu-fonce/10
-                  text-gray-700 hover:bg-gray-50"
+                className="flex-1 py-2 text-sm border border-bleu-fonce/20
+                  text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
               >
                 ← Retour
               </button>
@@ -154,7 +154,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
                 onClick={save}
                 disabled={loading}
                 className="flex-1 py-2 text-sm bg-indigo-600 text-white
-                  disabled:opacity-50 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                  disabled:opacity-50 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 {loading ? 'Enregistrement…' : 'Enregistrer'}
               </button>

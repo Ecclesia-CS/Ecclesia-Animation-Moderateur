@@ -306,7 +306,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
             passée en 'closed', le superadmin a fermé la fenêtre de revote. */}
         {session.phase === 'post_voting' && (
           <section className="bg-indigo-600 px-5 py-5 text-center space-y-2">
-            <p className="text-white text-sm font-semibold">Le débat a peut-être changé ton avis.</p>
+            <p className="font-serif text-lg font-semibold leading-snug text-creme">Le débat a peut-être changé ton avis.</p>
             <p className="text-indigo-100 text-xs">
               {proposalsMentionable(session)
                 ? "Revote sur tes propres assertions, propose-en une nouvelle, ou découvre celles que tu n'as pas encore vues."
@@ -314,7 +314,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
             </p>
             <button
               onClick={() => setShowPostVote(true)}
-              className="mt-1 w-full py-3 px-4 bg-white hover:bg-indigo-50 text-indigo-700 text-sm font-semibold transition-colors"
+              className="mt-1 w-full py-3 px-4 bg-white hover:bg-creme text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
             >
               ↻ Revoter
             </button>

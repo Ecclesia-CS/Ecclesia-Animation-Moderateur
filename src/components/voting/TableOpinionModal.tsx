@@ -46,7 +46,7 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-600 transition-colors p-1
-              focus:outline-none focus:ring-2 focus:ring-gray-300"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
             aria-label="Fermer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

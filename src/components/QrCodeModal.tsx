@@ -39,7 +39,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
         <button
           onClick={onClose}
           className="pb-0.5 text-xs font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors
-            focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           Fermer
         </button>

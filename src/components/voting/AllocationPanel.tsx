@@ -465,7 +465,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
             onClick={handleCompute}
             disabled={seatCount === 0}
             className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-              text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             🎯 {preview ? 'Recalculer la répartition' : 'Calculer la répartition'}
           </button>
@@ -564,7 +564,7 @@ function Stat({ value, label, tone = 'neutral' }: {
   return (
     <div className={`px-2 py-3 ${cls}`}>
       <p className="text-lg font-bold leading-none">{value}</p>
-      <p className="text-xs opacity-70 leading-tight mt-1">{label}</p>
+      <p className="text-xs opacity-90 leading-tight mt-1">{label}</p>
     </div>
   )
 }

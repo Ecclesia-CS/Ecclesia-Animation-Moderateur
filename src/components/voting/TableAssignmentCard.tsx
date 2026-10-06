@@ -202,7 +202,7 @@ export default function TableAssignmentCard({
               onClick={handleRescueSubmit}
               disabled={switchLoading || switchCode.trim().length === 0}
               className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {switchLoading ? 'Connexion…' : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
             </button>
@@ -293,7 +293,7 @@ export default function TableAssignmentCard({
                   onClick={onJoin}
                   disabled={joinLoading}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                    text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                    text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {joinLoading ? (
                     <>
@@ -386,7 +386,7 @@ export default function TableAssignmentCard({
                     onClick={handleSwitchSubmit}
                     disabled={switchLoading || switchCode.trim().length === 0}
                     className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
-                      text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+                      text-white text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
                     {switchLoading
                       ? 'Connexion…'

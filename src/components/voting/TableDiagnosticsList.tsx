@@ -35,7 +35,7 @@ export function CampCompositionBar({ d }: { d: TableDiagnostics }) {
   if (Object.keys(d.camp_counts).length === 0) return null
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <div className="flex h-2 rounded-full overflow-hidden flex-1 min-w-[80px] bg-gray-200">
+      <div className="flex h-2 overflow-hidden flex-1 min-w-[80px] bg-gray-200">
         {Object.entries(d.camp_counts)
           .sort(([a], [b]) => Number(a) - Number(b))
           .map(([gid, count]) => (
@@ -82,7 +82,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
             {d.moderated ? (
               <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5">🎙️ animée</span>
             ) : (
-              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5">sans animateur</span>
+              <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5">sans animateur</span>
             )}
             {d.recordable ? (
               <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5" title="Aucun non-consentant et table non homogène">
@@ -90,7 +90,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
               </span>
             ) : (
               <span
-                className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5"
+                className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5"
                 title={d.non_consenting > 0
                   ? `${d.non_consenting} personne(s) non consentante(s)`
                   : "Table homogène en opinion — un enregistrement n'y apporterait rien"}

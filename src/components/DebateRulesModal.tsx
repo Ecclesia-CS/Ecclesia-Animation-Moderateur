@@ -21,7 +21,7 @@ export default function DebateRulesModal({ onConfirm }: Props) {
           <button
             onClick={onConfirm}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-2"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             J'ai lu →
           </button>

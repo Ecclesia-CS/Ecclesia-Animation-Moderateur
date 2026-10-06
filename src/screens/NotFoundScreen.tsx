@@ -18,7 +18,7 @@ export default function NotFoundScreen({
         <p className="text-sm text-gray-500 mt-3">{subtitle}</p>
         <button
           onClick={() => { window.location.hash = '' }}
-          className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
+          className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           ← Retour à l'accueil
         </button>
