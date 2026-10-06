@@ -20,7 +20,7 @@ export default function NotFoundScreen({
           onClick={() => { window.location.hash = '' }}
           className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
-          ← Retour à l'accueil
+          Retour à l'accueil
         </button>
       </div>
     </div>

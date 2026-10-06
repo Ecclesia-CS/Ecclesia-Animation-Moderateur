@@ -829,7 +829,7 @@ export function AnalysisComparisonPanel({
                     onChange={e => setBeforeId(e.target.value)}
                     className="mt-1 w-full text-sm border border-bleu-fonce/20 px-2 py-1.5"
                   >
-                    <option value="">— choisir —</option>
+                    <option value="">Choisir une analyse</option>
                     {summaries.filter(s => s.status === 'done').map(s => (
                       <option key={s.id} value={s.id}>{analysisLabel(s)}</option>
                     ))}
@@ -842,7 +842,7 @@ export function AnalysisComparisonPanel({
                     onChange={e => setAfterId(e.target.value)}
                     className="mt-1 w-full text-sm border border-bleu-fonce/20 px-2 py-1.5"
                   >
-                    <option value="">— choisir —</option>
+                    <option value="">Choisir une analyse</option>
                     {summaries.filter(s => s.status === 'done').map(s => (
                       <option key={s.id} value={s.id}>{analysisLabel(s)}</option>
                     ))}
@@ -884,7 +884,7 @@ export function AnalysisComparisonPanel({
                           <span className="font-mono text-xs px-1.5 py-0.5 bg-gray-100">
                             Avant #{p.aGroupId + 1} ({p.aSize})
                           </span>
-                          <span className="text-gray-500">→</span>
+                          <span className="text-gray-500">·</span>
                           {p.bGroupId !== null ? (
                             <span className="font-mono text-xs px-1.5 py-0.5 bg-gray-100">
                               Après #{p.bGroupId + 1} ({p.bSize})
@@ -904,8 +904,8 @@ export function AnalysisComparisonPanel({
                       Assertions dont le consensus a le plus bougé
                     </h4>
                     <p className="text-xs text-gray-500 mb-3">
-                      Comparaison directe du score de consensus (indépendante du numéro de camp) —
-                      seuil d'affichage : écart ≥ {CONSENSUS_MOVE_MIN_DELTA}.
+                      Comparaison directe du score de consensus (indépendante du numéro de camp).
+                      Seuil d'affichage : écart ≥ {CONSENSUS_MOVE_MIN_DELTA}.
                     </p>
                     {topMoved.length === 0 ? (
                       <p className="text-xs text-gray-500">Aucun mouvement de consensus notable.</p>
@@ -923,7 +923,7 @@ export function AnalysisComparisonPanel({
                             <span>
                               {assertionMap.get(m.assertionId) ?? '(assertion supprimée)'}
                               <span className="text-gray-500 ml-1">
-                                ({m.scoreA.toFixed(2)} → {m.scoreB.toFixed(2)})
+                                (avant {m.scoreA.toFixed(2)}, après {m.scoreB.toFixed(2)})
                               </span>
                             </span>
                           </li>

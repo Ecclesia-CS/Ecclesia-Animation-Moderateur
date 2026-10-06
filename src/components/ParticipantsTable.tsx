@@ -182,7 +182,7 @@ function DraggableRow({
         {isSpeaking && table.current_turn_started_at ? (
           <SpeakerTimer startedAt={table.current_turn_started_at} className="font-mono text-amber-300 text-sm" />
         ) : (
-          <span className="text-slate-500">—</span>
+          <span className="text-slate-500">-</span>
         )}
       </td>
 

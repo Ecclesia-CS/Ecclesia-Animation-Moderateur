@@ -141,7 +141,7 @@ export default function RenamePseudoModal({
           ) : (
             <>
               <p className="text-xs text-gray-500">
-                Ton code est chiffré, on ne peut pas le relire — seulement t'en donner un nouveau. L'ancien cessera de fonctionner.
+                Ton code est chiffré : on ne peut pas le relire, seulement t'en donner un nouveau. L'ancien cessera de fonctionner.
               </p>
               {codeError && (
                 <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">

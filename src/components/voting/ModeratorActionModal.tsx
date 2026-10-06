@@ -89,7 +89,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
         {step === 'choice' && (
           <div className="px-6 py-5 space-y-3">
             <p className="text-xs text-gray-500">
-              Deux actions différentes se cachent derrière « modérateur » — choisis celle qui correspond à ta situation.
+              Deux actions différentes se cachent derrière « modérateur » : choisis celle qui correspond à ta situation.
             </p>
 
             {canClaimSession && (
@@ -101,7 +101,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
                 <p className="text-xs text-gray-500 mt-1">
                   Enregistre que tu es modérateur pour cette séance. Si tu es assis à une table qui attend
                   encore son modérateur, tu en prends l'animation dans la foulée. Si tu es assis ailleurs
-                  (table déjà animée, ou aucune table), ça ne change que ton statut de séance — sans te
+                  (table déjà animée, ou aucune table), ça ne change que ton statut de séance, sans te
                   déplacer ni déloger personne.
                 </p>
               </button>
@@ -116,7 +116,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
                 <p className="text-xs text-gray-500 mt-1">
                   Si tu animais déjà cette table et que tu as perdu la main (téléphone en veille, navigateur
                   qui a coupé), reprends-la ici. Si quelqu'un d'autre l'anime actuellement, il basculera en
-                  participant — sans perdre son statut de modérateur de séance.
+                  participant, sans perdre son statut de modérateur de séance.
                 </p>
               </button>
             )}

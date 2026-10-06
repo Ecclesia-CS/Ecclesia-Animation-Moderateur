@@ -147,7 +147,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
       <ReclaimCodeDisplay
         pseudo={pendingReclaim.pseudo}
         code={pendingReclaim.r.new_reclaim_code}
-        continueLabel="Rejoindre la table →"
+        continueLabel="Rejoindre la table"
         onContinue={() => finishJoin(pendingReclaim.r, pendingReclaim.pseudo, pendingReclaim.isModerator)}
       />
     )
@@ -221,7 +221,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           >
             {loading ? 'Placement…' : 'Assignez-moi une table'}
           </button>
-          <p className="text-xs text-gray-500 text-center">— ou, si tu as un code de table —</p>
+          <p className="flex items-center gap-3 text-center text-xs text-gray-500 before:h-px before:flex-1 before:bg-bleu-fonce/10 before:content-[''] after:h-px after:flex-1 after:bg-bleu-fonce/10 after:content-['']">ou, si tu as un code de table</p>
           {codeField}
         </>
       )}

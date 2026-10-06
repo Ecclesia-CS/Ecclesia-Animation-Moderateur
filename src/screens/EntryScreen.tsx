@@ -22,10 +22,10 @@ const PHASE_LABEL: Record<string, string> = {
   debating:      'Débat en cours',
 }
 const PHASE_ACTION: Record<string, string> = {
-  pre_voting:    'Voter →',
-  voting:        'Participer →',
-  allocating:    'Mon affectation →',
-  debating:      'Rejoindre →',
+  pre_voting:    'Voter',
+  voting:        'Participer',
+  allocating:    'Mon affectation',
+  debating:      'Rejoindre',
 }
 
 type ActiveSession = Pick<Session, 'id' | 'title' | 'phase' | 'join_code'>
@@ -119,7 +119,7 @@ export default function EntryScreen() {
                     className="shrink-0 py-2.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors
                       focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
-                    {PHASE_ACTION[s.phase] ?? 'Accéder →'}
+                    {PHASE_ACTION[s.phase] ?? 'Accéder'}
                   </button>
                 </div>
               ))}
@@ -135,7 +135,7 @@ export default function EntryScreen() {
             className="w-full text-center py-2.5 px-4 bg-white border border-bleu-fonce/20
               text-sm font-semibold text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
           >
-            Voir tous les débats ↗
+            Voir tous les débats
           </a>
           <button
             onClick={() => setShowPastSessions(true)}

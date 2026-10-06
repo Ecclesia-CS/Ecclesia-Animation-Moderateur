@@ -27,7 +27,7 @@ const ReclaimCodeAccordion = forwardRef<HTMLInputElement, Props>(function Reclai
         className="w-full px-3 py-2 text-left text-xs text-gray-500 hover:text-gray-700 flex items-center justify-between"
       >
         J'ai déjà un code de rappel
-        <span className={`transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
+        <span aria-hidden="true" className={`text-base leading-none text-bleu-fonce/60 transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
       </button>
       {open && (
         <div className="px-3 pb-3">

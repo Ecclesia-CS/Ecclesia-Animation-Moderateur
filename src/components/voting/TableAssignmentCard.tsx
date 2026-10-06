@@ -156,7 +156,7 @@ export default function TableAssignmentCard({
               )}
             </div>
           )}
-          <p className="text-xs text-gray-500 text-center pt-1">— ou —</p>
+          <p className="flex items-center gap-3 pt-1 text-xs text-gray-500 before:h-px before:flex-1 before:bg-bleu-fonce/10 before:content-[''] after:h-px after:flex-1 after:bg-bleu-fonce/10 after:content-['']">ou</p>
           <div className="pt-1 space-y-2">
             <input
               type="text"
@@ -303,7 +303,7 @@ export default function TableAssignmentCard({
                       </svg>
                       Connexion…
                     </>
-                  ) : 'Accéder à la table →'}
+                  ) : 'Accéder à la table'}
                 </button>
                 {joinError && (
                   <p className="text-xs text-red-600 text-center mt-2">{joinError}</p>

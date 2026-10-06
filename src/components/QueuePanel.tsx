@@ -91,7 +91,7 @@ export default function QueuePanel({
                   key={e.id}
                   entry={e}
                   index={i}
-                  pseudo={getP(e.participant_id)?.pseudo ?? '—'}
+                  pseudo={getP(e.participant_id)?.pseudo ?? '-'}
                   dark={dark}
                   accentText={accentText}
                   isGhost={e.id === ghostId}
@@ -178,7 +178,7 @@ function SortableRow({
         {pseudo}
         {entry.topic_tag && (
           <span className={`ml-2 text-xs font-normal italic ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
-            — {entry.topic_tag}
+            · {entry.topic_tag}
           </span>
         )}
       </td>

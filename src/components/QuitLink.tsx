@@ -9,7 +9,7 @@ export default function QuitLink() {
         backdrop-blur border border-bleu-fonce/15 px-3 py-1.5 shadow-sm
         hover:bg-white hover:text-bleu-fonce hover:border-bleu-fonce/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
     >
-      ← Menu
+      Menu
     </button>
   )
 }

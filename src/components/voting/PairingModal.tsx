@@ -117,7 +117,7 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
         <div>
           {/* Chantier 150 — « facultatif » en première ligne, comme à l'onboarding. */}
           <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 mb-2 leading-snug">
-            Facultatif — tu peux le remplir ou le modifier à tout moment pendant le vote.
+            Facultatif : tu peux le remplir ou le modifier à tout moment pendant le vote.
           </p>
           <h2 className="font-serif text-xl font-semibold text-bleu-fonce">🔗 Être avec un ami</h2>
           <p className="text-sm text-gray-600 mt-1">Avec qui aimerais-tu être à table ? (2 personnes au plus)</p>

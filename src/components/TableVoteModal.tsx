@@ -90,7 +90,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
           <div>
             <h2 className="font-serif text-xl font-semibold text-bleu-fonce">🗳️ Vote du modérateur</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              {isClosed ? 'Vote clôturé — résultats' : 'Dis si tu es pour ou contre chaque option.'}
+              {isClosed ? 'Vote clôturé : résultats' : 'Dis si tu es pour ou contre chaque option.'}
             </p>
           </div>
           <button

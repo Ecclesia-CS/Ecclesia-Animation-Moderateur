@@ -155,7 +155,7 @@ export default function App() {
             return
           }
           if (sess?.join_code) {
-            showToast("La séance est revenue au vote — rejoins-la depuis là.", 'info')
+            showToast("La séance est revenue au vote : rejoins-la depuis là.", 'info')
             window.location.hash = '#vote/' + sess.join_code
             setPhase({ type: 'entry', userId })
             return

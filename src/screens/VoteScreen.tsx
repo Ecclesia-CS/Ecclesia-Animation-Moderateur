@@ -745,7 +745,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             onClick={() => (window.location.hash = '')}
             className="inline-block mt-2 text-sm text-indigo-600 hover:underline"
           >
-            ← Retour à l'accueil
+            Retour à l'accueil
           </a>
         </div>
       </div>
@@ -876,7 +876,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               <button onClick={() => window.location.reload()} className="text-indigo-500 hover:underline">
                 Recharge la page
               </button>{' '}
-              — c'est possible et parfois nécessaire pour voir les nouvelles infos.
+              : c'est possible et parfois nécessaire pour voir les nouvelles infos.
             </p>
           </div>
         </div>
@@ -1231,7 +1231,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   <span className="w-7 shrink-0 text-center text-xl">⏭</span>
                   <div>
                     <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi, et ça compte dans les résultats.</p>
                   </div>
                 </div>
                 {proposalsMentionable(session) && (
@@ -1263,7 +1263,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   onClick={closeVoteIntro}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
-                  Commencer →
+                  Commencer
                 </button>
               </div>
             </div>
@@ -1568,7 +1568,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
             onClick={handleClose}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            Compris, c'est parti →
+            Compris, c'est parti
           </button>
         </div>
       </div>
@@ -1637,7 +1637,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
           <p>Tu peux voter dès maintenant depuis chez toi.</p>
           <p>
             Si tu comptes venir au débat, <strong>retiens bien le nom et prénom</strong> que
-            tu vas indiquer — ça te permettra de retrouver tes votes sur place.
+            tu vas indiquer : ça te permettra de retrouver tes votes sur place.
           </p>
         </div>
         <div className="px-6 pb-6">
@@ -1645,7 +1645,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
             onClick={handleClose}
             className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
           >
-            Compris →
+            Compris
           </button>
         </div>
       </div>
@@ -1856,7 +1856,7 @@ function AllocatingEntryNotice() {
   return (
     <div className="p-3 bg-amber-50 border border-amber-200 text-xs text-amber-800 text-center">
       Les groupes de débat sont en cours de formation. Tu peux quand même
-      t'inscrire et voter — ton vote ne changera plus la répartition des tables.
+      t'inscrire et voter, mais ton vote ne changera plus la répartition des tables.
     </div>
   )
 }
@@ -1972,7 +1972,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
             onClick={() => (completed.isNew ? onNewMember(completed.member) : onConfirmed(completed.member))}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            Continuer →
+            Continuer
           </button>
         </div>
       </div>
@@ -2066,7 +2066,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
             disabled={loading || !pseudoInput.trim()}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            {loading ? 'Connexion…' : 'Continuer →'}
+            {loading ? 'Connexion…' : 'Continuer'}
           </button>
         </form>
       </div>
@@ -2184,7 +2184,7 @@ function AttendanceConfirmScreen({
             onClick={() => onConfirmed(pendingConfirmed)}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            Continuer →
+            Continuer
           </button>
         </div>
       </div>
@@ -2266,7 +2266,7 @@ function AttendanceConfirmScreen({
         {header}
 
         <div className="bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-800 text-center">
-          Retrouve ton profil avec <strong>ton nom et prénom</strong> et <strong>ton code de rappel</strong> — les deux sont nécessaires.
+          Retrouve ton profil avec <strong>ton nom et prénom</strong> et <strong>ton code de rappel</strong> : les deux sont nécessaires.
         </div>
 
         <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
@@ -2312,13 +2312,13 @@ function AttendanceConfirmScreen({
             disabled={loading || !reclaimInput.trim() || !reclaimCodeInput.trim()}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            {loading ? 'Recherche…' : 'Retrouver mes votes →'}
+            {loading ? 'Recherche…' : 'Retrouver mes votes'}
           </button>
           <button
             onClick={onChangePseudo}
             className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            Je n'ai ni l'un ni l'autre — créer un nouveau profil
+            Je n'ai ni l'un ni l'autre, créer un nouveau profil
           </button>
         </div>
       </div>

@@ -504,7 +504,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
           >
             <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
-              Thèmes — toutes séances
+              Thèmes de toutes les séances
               {allVotesLoading ? (
                 <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">Chargement…</span>
               ) : allThemeStats.length > 0 ? (
@@ -1106,7 +1106,7 @@ function SessionCard({
                     )}
                     {/* Moderator */}
                     <span className="text-gray-500 truncate flex-1">
-                      {t.leaderless ? null : (t.moderator_pseudo ?? <span className="italic text-gray-500">—</span>)}
+                      {t.leaderless ? null : (t.moderator_pseudo ?? <span className="text-gray-500">-</span>)}
                     </span>
                     {/* Participants */}
                     <span className="text-gray-500 shrink-0">
@@ -1539,7 +1539,7 @@ function CreateModal({
             <p className="mt-1.5 text-[11px] text-gray-500">Le type ne pourra plus être changé après la création.</p>
           </div>
 
-          <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale — mai 2026" />
+          <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale de mai 2026" />
 
           <div>
             <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Description <span className="text-gray-500 font-normal">(optionnel)</span></label>
@@ -3215,7 +3215,7 @@ function SessionDetail({
           (a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
         )
         sorted.forEach((turn: TableSpeakingTurnRow, i: number) => {
-          const pseudo = parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '—'
+          const pseudo = parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '-'
           const durSec = turn.ended_at
             ? Math.round((new Date(turn.ended_at).getTime() - new Date(turn.started_at).getTime()) / 1000)
             : ''
@@ -3484,7 +3484,7 @@ function SessionDetail({
                 {isOrg && showVotingSections && (
                   <p className="text-xs text-gray-500 px-1">
                     {namingQuota && namingQuota.remaining === 0
-                      ? `Nommage automatique des camps : limite de ${namingQuota.max} par jour atteinte — les camps restent « Groupe 1, 2… » jusqu'à demain.`
+                      ? `Nommage automatique des camps : limite de ${namingQuota.max} par jour atteinte : les camps restent « Groupe 1, 2… » jusqu'à demain.`
                       : `Les camps sont nommés automatiquement après chaque analyse (${namingQuota ? `${namingQuota.remaining}/${namingQuota.max} restant${namingQuota.remaining > 1 ? 's' : ''} aujourd'hui` : '5 par jour'}).`}
                   </p>
                 )}
@@ -3599,7 +3599,7 @@ function SessionDetail({
                           className="py-1 px-2.5 text-xs font-medium border border-indigo-200
                             text-indigo-600 hover:bg-indigo-50 transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Crée une table animée, vide, déjà numérotée — à peupler par glisser-déposer ou par son code"
+                          title="Crée une table animée, vide, déjà numérotée, à peupler par glisser-déposer ou par son code"
                         >
                           {creatingTable ? '…' : '+ Table animée'}
                         </button>
@@ -3733,7 +3733,7 @@ function SessionDetail({
                                   <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 shrink-0"
                                     title={d.non_consenting > 0
                                       ? `${d.non_consenting} personne(s) non consentante(s)`
-                                      : "Table homogène en opinion — un enregistrement n'y apporterait rien"}>
+                                      : "Table homogène en opinion : un enregistrement n'y apporterait rien"}>
                                     non enregistrable
                                   </span>
                                 )
@@ -3772,7 +3772,7 @@ function SessionDetail({
                                             className="text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                             title={mod.member_id
                                               ? "Redevient un participant ordinaire de cette table"
-                                              : "Rejoint par Code Ecclesia, non inscrit à la séance — remet la table à disposition"}
+                                              : "Rejoint par Code Ecclesia, non inscrit à la séance : remet la table à disposition"}
                                           >
                                             Retirer
                                           </button>
@@ -3788,7 +3788,7 @@ function SessionDetail({
                                       {surplusMods.map(mod => (
                                         <span key={mod.member_id}
                                           className="text-xs bg-amber-50 text-amber-700 px-2 py-1 border border-amber-100 inline-flex items-center gap-1"
-                                          title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
+                                          title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) : ne voit pas l'écran modérateur ici.">
                                           🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
                                           {/* Chantier 123 — Jules : « il faut juste qu'il
                                               puisse passer en principal ». `assign_moderator_to_table`
@@ -3874,7 +3874,7 @@ function SessionDetail({
                                       className="text-xs text-gray-500 hover:text-amber-700 underline disabled:opacity-50"
                                       title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
                                         + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
-                                        + "disponible pour une autre table) — utilise « Retirer » pour le lui enlever aussi."}
+                                        + "disponible pour une autre table). Utilise « Retirer » pour le lui enlever aussi."}
                                     >
                                       Refaire une table sans animateur
                                     </button>
@@ -3901,7 +3901,7 @@ function SessionDetail({
                               {/* Chantier 95 — table créée à la main, encore vide. */}
                               {g.members.length === 0 && (
                                 <span className="text-xs text-gray-500 italic">
-                                  En attente de participants — glisse quelqu'un ici, ou communique le code ci-dessous.
+                                  En attente de participants : glisse quelqu'un ici, ou communique le code ci-dessous.
                                 </span>
                               )}
                               {/* Chantier 117 — seul un membre `is_moderator` peut avoir
@@ -3972,7 +3972,7 @@ function SessionDetail({
                                     className="flex-1 text-xs px-2 py-1.5 border border-bleu-fonce/20
                                       focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white"
                                   >
-                                    <option value="">— Sélectionner une table —</option>
+                                    <option value="">Sélectionner une table</option>
                                     {dropdownTables.map(t => (
                                       <option key={t.id} value={t.id}>
                                         {t.join_code}{t.moderator_pseudo ? ` (${t.moderator_pseudo})` : ''}
@@ -4033,7 +4033,7 @@ function SessionDetail({
                       <div className="space-y-2">
                         {groups.some(g => !g.join_code) && (
                           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2">
-                            ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée —
+                            ⚠️ {groups.filter(g => !g.join_code).length} groupe(s) sans table rattachée :
                             les participants concernés ne pourront pas rejoindre directement.
                           </p>
                         )}
@@ -4042,7 +4042,7 @@ function SessionDetail({
                           className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
                             text-sm font-semibold transition-colors"
                         >
-                          Ouvrir le débat →
+                          Ouvrir le débat
                         </button>
                       </div>
                     )}
@@ -4273,7 +4273,7 @@ function SessionDetail({
                                 href={`#collab/${session.join_code}`}
                                 className="text-indigo-600 hover:underline text-xs"
                               >
-                                Ouvrir le document →
+                                Ouvrir le document
                               </a>
                             </div>
                           )}
@@ -4342,7 +4342,7 @@ function SessionDetail({
                       hover:bg-gray-50 transition-colors"
                   >
                     <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
-                      Thèmes — classement par moyenne
+                      Thèmes classés par moyenne
                       {responses.length > 0 && (
                         <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
                           ({responses.length} réponse{responses.length > 1 ? 's' : ''})
@@ -4432,7 +4432,7 @@ function SessionDetail({
                     <div className="border-t border-bleu-fonce/10 px-5 py-4">
                       <p className="text-xs text-gray-500 mb-3">
                         Personnes ayant répondu vouloir aider (modérer, préparer les fiches, communication…)
-                        au questionnaire de fin de séance — à solliciter pour de futures séances. Sans lien
+                        au questionnaire de fin de séance, à solliciter pour de futures séances. Sans lien
                         avec « modérateur pour cette séance » (onglet Participants).
                       </p>
                       <StaffInterestList responses={staffInterestResponses} loading={responsesLoading} />
@@ -4609,7 +4609,7 @@ function SessionDetail({
                     <p>
                       <strong>{debatePreview.placements.length}</strong> modérateur(s) en attente
                       {' '}vont être placés : {debatePreview.placements
-                        .map(p => `${p.pseudo} → table ${p.table_number}`)
+                        .map(p => `${p.pseudo} à la table ${p.table_number}`)
                         .join(', ')}.
                     </p>
                   ) : (
@@ -4631,7 +4631,7 @@ function SessionDetail({
               )}
             </div>
           }
-          confirmLabel="Ouvrir le débat →"
+          confirmLabel="Ouvrir le débat"
           onConfirm={confirmOpenDebate}
           onCancel={() => { setShowDebateConfirm(false); setDebatePreview(null); setDebatePreviewErr(null) }}
         />
@@ -4715,13 +4715,13 @@ function SessionDetail({
                 <li>{deleteMemberReport.seats_removed} siège(s) de table retiré(s)</li>
               )}
               {deleteMemberReport.pairings_dissolved > 0 && (
-                <li>{deleteMemberReport.pairings_dissolved} binôme(s) dissous — le partenaire reste sans binôme</li>
+                <li>{deleteMemberReport.pairings_dissolved} binôme(s) dissous : le partenaire reste sans binôme</li>
               )}
               {deleteMemberReport.tables_now_leaderless > 0 && (
                 <li>{deleteMemberReport.tables_now_leaderless} table(s) repassée(s) sans animateur</li>
               )}
               {deleteMemberReport.analysis_rows_removed > 0 && (
-                <li>Retiré·e de l'analyse déjà calculée — les camps peuvent bouger au recalcul</li>
+                <li>Retiré·e de l'analyse déjà calculée : les camps peuvent bouger au recalcul</li>
               )}
             </ul>
             <button
@@ -4780,11 +4780,11 @@ function SessionDetail({
 
       {phaseConfirm && (
         <ConfirmModal
-          title={phaseConfirm.isBack ? '← Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
+          title={phaseConfirm.isBack ? 'Revenir à la phase précédente' : `Passer en phase « ${phaseConfirm.label} »`}
           body={phaseConfirm.isBack
             ? `Revenir à « ${phaseConfirm.label} » ? Les participants verront leur écran changer immédiatement.`
             : `Passer la séance en phase « ${phaseConfirm.label} » ? Les participants verront leur écran changer immédiatement.`}
-          confirmLabel={phaseConfirm.isBack ? '← Revenir' : 'Confirmer →'}
+          confirmLabel={phaseConfirm.isBack ? 'Revenir' : 'Confirmer'}
           onConfirm={() => handlePhaseChange(phaseConfirm.phase)}
           onCancel={() => setPhaseConfirm(null)}
         />
@@ -4894,7 +4894,7 @@ function DebateExitModal({
                 hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              → Post-vote (revote possible)
+              Passer en post-vote (revote possible)
             </button>
             <button
               onClick={onClosed}
@@ -4902,7 +4902,7 @@ function DebateExitModal({
                 hover:bg-red-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              → Clôturer directement
+              Clôturer directement
             </button>
             <button
               onClick={onCancel}
@@ -5018,7 +5018,7 @@ function PhaseBar({
             disabled={acting}
             className="text-xs text-gray-600 hover:text-bleu-fonce py-1.5 px-3 border border-bleu-fonce/15 hover:border-bleu-fonce/30 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
-            ← {phaseLabel(prevPhase, sessionType)}
+            Revenir en {phaseLabel(prevPhase, sessionType)}
           </button>
         )}
         <div className="flex-1" />
@@ -5028,7 +5028,7 @@ function PhaseBar({
             disabled={acting}
             className="text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-2 px-4 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)} →`}
+            {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)}`}
           </button>
         )}
         {!nextPhase && currentPhase !== 'closed' && (
@@ -5271,7 +5271,7 @@ function TableOverviewCard({
                 ) : (
                   <ol className="space-y-1">
                     {sortedTurns.map((turn, i) => {
-                      const pseudo = history.parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '—'
+                      const pseudo = history.parts.find(p => p.participant_id === turn.participant_id)?.pseudo ?? '-'
                       const durMs = turn.ended_at
                         ? new Date(turn.ended_at).getTime() - new Date(turn.started_at).getTime()
                         : null
@@ -5376,7 +5376,7 @@ function DraggableMemberChip({
       }}
       title={[
         profile ? memberProfileTitle(profile) : null,
-        linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')} — se déplace avec sa grappe` : null,
+        linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')} , se déplace avec sa grappe` : null,
       ].filter(Boolean).join(' · ') || undefined}
       className={`px-2 py-0.5 text-xs font-medium border cursor-grab active:cursor-grabbing select-none
         transition-opacity inline-flex items-center gap-1 ${
@@ -5472,7 +5472,7 @@ function AddModeratorControl({
     const trimmed = name.trim().toLowerCase()
     const match = candidates.find(c => c.pseudo.trim().toLowerCase() === trimmed)
     if (!match) {
-      setError('Aucun participant inscrit avec ce nom — vérifie l\'orthographe.')
+      setError('Aucun participant inscrit avec ce nom : vérifie l\'orthographe.')
       return
     }
     setError(null)
@@ -5565,10 +5565,10 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
                   <tr key={g.table_number} className="border-b border-bleu-fonce/10 last:border-0">
                     <td className="py-2.5 pr-3 font-semibold text-gray-900">N°{g.table_number}</td>
                     <td className="py-2.5 pr-3 text-gray-700">
-                      {mod ? mod.pseudo : (g.moderated ? '⏳ en attente' : '— sans animateur —')}
+                      {mod ? mod.pseudo : (g.moderated ? '⏳ en attente' : 'sans animateur')}
                     </td>
                     <td className="py-2.5 font-mono tracking-widest text-gray-700">
-                      {g.join_code ?? '—'}
+                      {g.join_code ?? '-'}
                     </td>
                   </tr>
                 )
@@ -5807,7 +5807,7 @@ function AssertionsPanel({
                     className="py-1.5 px-4 text-xs font-medium border border-red-200 text-red-700
                       hover:bg-red-50 transition-colors"
                   >
-                    ↩ Annuler l'import ({lastImportIds.length})
+                    Annuler l'import ({lastImportIds.length})
                   </button>
                 )}
               </div>
@@ -5963,7 +5963,7 @@ function AssertionsPanel({
                 onClick={() => onReapprove(a.id)}
                 disabled={actingId !== null}
                 className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
-              >↩ Réapprouver</button>
+              >Réapprouver</button>
               <button
                 onClick={() => setDeleteConfirm({ ids: [a.id], body: 'Supprimer définitivement cette assertion ? Cette action est irréversible.' })}
                 disabled={actingId !== null}
@@ -6178,7 +6178,7 @@ function MembersPanel({
                     {PHASE_LABEL_MEMBER[m.joined_phase] ?? m.joined_phase}
                   </span>
                 ) : (
-                  <span className="text-gray-500">—</span>
+                  <span className="text-gray-500">-</span>
                 )}
               </td>
               <td className="py-2 pr-3 text-center">
@@ -6194,7 +6194,7 @@ function MembersPanel({
                   <button
                     onClick={() => onToggleModerator(m.id, !m.is_moderator)}
                     title={m.is_moderator
-                      ? 'Modérateur de cette séance — cliquer pour retirer'
+                      ? 'Modérateur de cette séance : cliquer pour retirer'
                       : 'Marquer comme modérateur de cette séance'}
                     className={`px-1.5 py-0.5 text-[10px] font-medium border transition-colors ${
                       m.is_moderator
@@ -6205,14 +6205,14 @@ function MembersPanel({
                     {m.is_moderator ? 'modérateur' : '+ modérateur'}
                   </button>
                 ) : (
-                  <span className="text-gray-500">—</span>
+                  <span className="text-gray-500">-</span>
                 )}
               </td>
               {onRegenerateCode && (
                 <td className="py-2 pl-3 text-center">
                   <button
                     onClick={() => onRegenerateCode(m.id, m.pseudo)}
-                    title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner — le code stocké est haché, il ne peut pas être relu)"
+                    title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner ; le code stocké est haché, il ne peut pas être relu)"
                     className="px-1.5 py-0.5 text-[10px] font-medium border bg-white border-bleu-fonce/10 text-gray-500 hover:border-amber-300 hover:text-amber-600 transition-colors"
                   >
                     🔑 nouveau
@@ -6305,7 +6305,7 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
         {score !== null && <span className="font-semibold text-indigo-600">Score : {score}%</span>}
       </div>
       {manyPasses && (
-        <p className="text-[10px] text-amber-600">⚠️ Beaucoup de passes — formulation peut-être à revoir</p>
+        <p className="text-[10px] text-amber-600">⚠️ Beaucoup de passes : formulation peut-être à revoir</p>
       )}
     </div>
   )
@@ -6346,7 +6346,7 @@ function CollabSourcesList({
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-gray-700">{pseudo}</span>
             {items[0].table_join_code && (
-              <span className="text-xs text-gray-500">— table {items[0].table_join_code}</span>
+              <span className="text-xs text-gray-500">· table {items[0].table_join_code}</span>
             )}
           </div>
           <div className="space-y-2 pl-3 border-l-2 border-bleu-fonce/10">

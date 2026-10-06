@@ -59,7 +59,7 @@ export default function CampSpeakingTimes({ tableId, isModerator }: Props) {
         Temps de parole par camp
       </p>
       <p className="text-[11px] leading-relaxed text-slate-400 mb-2.5">
-        Mis à jour toutes les 5 minutes — camps affichés seulement à partir de 2 personnes à la table et d'un temps cumulé suffisant.
+        Mis à jour toutes les 5 minutes. Camps affichés seulement à partir de 2 personnes à la table et d'un temps cumulé suffisant.
       </p>
       <ul className="space-y-1.5">
         {camps.map(c => (

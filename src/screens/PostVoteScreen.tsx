@@ -155,13 +155,13 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Revoter</h1>
           <p className="text-sm text-gray-500 mt-1">{session.title}</p>
           <p className="text-sm text-gray-500 mt-2">
-            Le débat a peut-être fait bouger tes positions — c'est le moment de le vérifier.
+            Le débat a peut-être fait bouger tes positions : c'est le moment de le vérifier.
           </p>
           <button
             onClick={onBack}
             className="mt-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
-            ← Retour aux résultats
+            Retour aux résultats
           </button>
         </div>
 

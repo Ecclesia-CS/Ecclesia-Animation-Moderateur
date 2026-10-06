@@ -264,7 +264,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
             onClick={() => { window.location.hash = '' }}
             className="mt-4 w-full text-xs text-indigo-600 hover:underline"
           >
-            ← Retour à l'accueil
+            Retour à l'accueil
           </button>
         </div>
       </div>
@@ -309,7 +309,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
             onClick={() => { window.location.hash = '' }}
             className="mt-6 text-xs text-indigo-600 hover:underline"
           >
-            ← Retour à l'accueil
+            Retour à l'accueil
           </button>
         </div>
       </div>
@@ -331,7 +331,7 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
           onClick={() => { window.location.hash = '' }}
           className="mt-6 text-xs text-indigo-600 hover:underline"
         >
-          ← Retour à l'accueil
+          Retour à l'accueil
         </button>
       </div>
     </div>

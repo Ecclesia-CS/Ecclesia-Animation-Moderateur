@@ -55,8 +55,8 @@ export default function ParticipantCodesModal({ onClose }: Props) {
           </div>
 
           <p className="px-5 pt-3 text-xs text-gray-500 leading-relaxed">
-            Une personne a perdu son code de rappel ? Génère-lui-en un nouveau à lui lire —
-            l'ancien cessera aussitôt de fonctionner.
+            Une personne a perdu son code de rappel ? Génère-lui-en un nouveau à lui lire.
+            L'ancien cessera aussitôt de fonctionner.
           </p>
 
           <div className="overflow-y-auto px-2 py-2">

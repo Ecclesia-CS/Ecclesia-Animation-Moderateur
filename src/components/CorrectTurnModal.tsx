@@ -73,12 +73,12 @@ export default function CorrectTurnModal({ onClose }: Props) {
               >
                 <div className="min-w-0">
                   <span className="font-medium text-gray-900">
-                    {getP(t.participant_id)?.pseudo ?? '—'}
+                    {getP(t.participant_id)?.pseudo ?? '-'}
                   </span>
                   <span className="ml-2 text-gray-500 text-xs">
                     {new Date(t.started_at).toLocaleTimeString()}
                     {t.ended_at
-                      ? ` → ${new Date(t.ended_at).toLocaleTimeString()}`
+                      ? ` à ${new Date(t.ended_at).toLocaleTimeString()}`
                       : <span className="ml-1 bg-indigo-50 text-indigo-700 px-1 text-xs"> en cours</span>
                     }
                   </span>
@@ -148,7 +148,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
                 className="flex-1 py-2 text-sm border border-bleu-fonce/20
                   text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
               >
-                ← Retour
+                Retour
               </button>
               <button
                 onClick={save}

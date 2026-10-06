@@ -54,7 +54,7 @@ export function generateTableCSV(
   const rows: string[] = []
 
   // En-tête de session
-  rows.push(cell('Ecclesia — Export débat'))
+  rows.push(cell('Ecclesia · Export débat'))
   rows.push([cell('Session'), cell(table.join_code), cell('Créé le'), cell(table.created_at)].join(','))
   rows.push('')
 
@@ -79,7 +79,7 @@ export function generateTableCSV(
     (a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime(),
   )
   sorted.forEach((t, i) => {
-    const pseudo = participants.find(p => p.id === t.participant_id)?.pseudo ?? '—'
+    const pseudo = participants.find(p => p.id === t.participant_id)?.pseudo ?? '-'
     const durSec = t.ended_at
       ? Math.round((new Date(t.ended_at).getTime() - new Date(t.started_at).getTime()) / 1000)
       : ''
@@ -156,8 +156,8 @@ export function generateQuestionnaireCSV(rows: QuestionnaireExportRow[]): string
     })
     const row = [
       cell(date),
-      cell(r.session_title ?? '—'),
-      cell(r.table_join_code ?? '—'),
+      cell(r.session_title ?? '-'),
+      cell(r.table_join_code ?? '-'),
       cell(r.debate_attended),
       r.debate_rating !== null ? r.debate_rating : '',
       cell(r.theme_ideas),

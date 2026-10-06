@@ -93,7 +93,7 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
                 className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5"
                 title={d.non_consenting > 0
                   ? `${d.non_consenting} personne(s) non consentante(s)`
-                  : "Table homogène en opinion — un enregistrement n'y apporterait rien"}
+                  : "Table homogène en opinion : un enregistrement n'y apporterait rien"}
               >
                 non enregistrable
               </span>
@@ -120,19 +120,19 @@ export default function TableDiagnosticsList({ diagnostics, membersByTable, comp
             <Threshold
               ok={d.recordable}
               label="enregistrable"
-              title="Règle 1 — table sans non-consentant (public compris) et non homogène"
+              title="Règle 1 : table sans non-consentant (public compris) et non homogène"
             />
             <Threshold
               ok={d.heterogeneity_ok}
               label={d.majority_share === null
                 ? 'hétérogénéité n/a'
                 : `hétérogénéité ${Math.round((1 - d.majority_share) * 100)} %`}
-              title="Règle 2 — parmi les actifs, camp majoritaire ≤ 70 % et 2e camp ≥ 2 personnes"
+              title="Règle 2 : parmi les actifs, camp majoritaire ≤ 70 % et 2e camp ≥ 2 personnes"
             />
             <Threshold
               ok={d.veterans_ok}
               label={`anciens ${d.veterans}/${d.veterans_threshold}`}
-              title="Règle 3 — assez d'actifs ayant déjà fait un débat"
+              title="Règle 3 : assez d'actifs ayant déjà fait un débat"
             />
             {d.newcomers > 0 && (
               <span className="text-xs px-1.5 py-0.5 bg-white border border-bleu-fonce/10 text-gray-500">

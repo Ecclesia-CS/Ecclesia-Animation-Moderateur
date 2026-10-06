@@ -297,7 +297,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
             onClick={() => { if (onBack) onBack(); else window.location.hash = '' }}
             className="mt-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
-            {onBack ? '← Retour au vote' : '← Retour au menu'}
+            {onBack ? 'Retour au vote' : 'Retour au menu'}
           </button>
         </div>
 
@@ -316,7 +316,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
               onClick={() => setShowPostVote(true)}
               className="mt-1 w-full py-3 px-4 bg-white hover:bg-creme text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
             >
-              ↻ Revoter
+              Revoter
             </button>
           </section>
         )}
@@ -400,7 +400,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
                 <p className="text-xs text-gray-500 mt-1">
                   {isPoll
                     ? "Les camps apparaissent dès que l'organisateur lance l'analyse des votes, et se mettent à jour à chaque nouvelle analyse."
-                    : "Revenez plus tard — l'organisateur publie les résultats après analyse."}
+                    : "Revenez plus tard : l'organisateur publie les résultats après analyse."}
                 </p>
               </div>
             )}
@@ -482,7 +482,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
                   <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
                     <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">Points de clivage</h2>
                     <p className="text-xs text-gray-500 mb-4">
-                      Ces affirmations ont divisé les camps — les groupes ne s'accordaient pas.
+                      Ces affirmations ont divisé les camps : les groupes ne s'accordaient pas.
                     </p>
                     <ul className="space-y-4">
                       {clivantes.map((item, i) => (

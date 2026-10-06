@@ -72,7 +72,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
 
   const saveNote = useCallback(async (html: string) => {
     const userId = userIdRef.current
-    if (!userId) { setSaveErr('Session expirée – rechargez la page'); return }
+    if (!userId) { setSaveErr('Session expirée : rechargez la page'); return }
     setSaving(true)
     setSaveErr(null)
     // INSERT/UPDATE explicites pour éviter les complications RLS du upsert ON CONFLICT
@@ -229,7 +229,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
         {/* Footer */}
         <div className="px-6 py-3 border-t border-bleu-fonce/10 flex-shrink-0">
           <p className="text-xs text-gray-500">
-            Notes privées — visibles uniquement par vous. Sauvegarde automatique.
+            Notes privées, visibles uniquement par vous. Sauvegarde automatique.
           </p>
         </div>
       </div>

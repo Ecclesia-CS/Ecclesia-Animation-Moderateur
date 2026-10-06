@@ -348,12 +348,12 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         droppedClusters    ? `${droppedClusters} regroupement(s) de plus de 2 assertions` : null,
         droppedInclusions  ? `${droppedInclusions} inclusion(s) partielle(s)`             : null,
       ].filter(Boolean).join(' et ')
-      const suffixe = ecartes ? ` — ${ecartes} écarté(s) automatiquement` : ''
+      const suffixe = ecartes ? ` (${ecartes} écarté(s) automatiquement)` : ''
 
       if (fresh.length === 0) {
         showMsg(`Aucun doublon détecté${suffixe}`, droppedClusters > 0)
       } else {
-        showMsg(`🔎 ${fresh.length} fusion(s) proposée(s) — à valider ci-dessous${suffixe}`)
+        showMsg(`🔎 ${fresh.length} fusion(s) proposée(s), à valider ci-dessous${suffixe}`)
       }
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
@@ -458,7 +458,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
         r.votes_removed  ? `${r.votes_removed} vote(s) transféré(s) retiré(s)`        : null,
         r.votes_restored ? `${r.votes_restored} vote(s) rendu(s) à leur valeur`       : null,
       ].filter(Boolean).join(', ')
-      showMsg(`↩ Fusion annulée${details ? ` — ${details}` : ''}`)
+      showMsg(`Fusion annulée${details ? ` : ${details}` : ''}`)
       setConfirmRevertId(null)
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
@@ -492,7 +492,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
       // Retirer uniquement celles réellement appliquées
       updateProposals(proposals.filter(p => !appliedKeys.has(proposalKey(p))))
       await loadMerges()
-      showMsg(`✅ ${done} fusion(s) appliquée(s)${done < snapshot.length ? ` — ${snapshot.length - done} en échec (conservées)` : ''}`, done < snapshot.length)
+      showMsg(`✅ ${done} fusion(s) appliquée(s)${done < snapshot.length ? `, ${snapshot.length - done} en échec (conservées)` : ''}`, done < snapshot.length)
     } catch (e) {
       showMsg(e instanceof Error ? e.message : String(e), true)
     } finally {
@@ -682,7 +682,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
             <div className="border border-purple-200 bg-purple-50/50 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <h4 className="text-[11px] font-bold text-purple-700 uppercase tracking-[0.16em]">
-                  Fusions proposées — à valider
+                  Fusions proposées à valider
                   <span className="ml-2 font-normal normal-case tracking-normal text-purple-400">({proposals.length})</span>
                 </h4>
                 <div className="flex gap-2 shrink-0">
@@ -860,7 +860,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               {/* Modèle Gemini utilisé (F19 — remplace l'ancienne estimation d'énergie) */}
               <div className="flex justify-between text-xs text-gray-500 bg-gray-50 px-3 py-2.5">
                 <span>Modèle</span>
-                <span className="font-mono text-gray-700">{sessionModel ?? '—'}</span>
+                <span className="font-mono text-gray-700">{sessionModel ?? '-'}</span>
               </div>
 
               {/* Historique log */}
@@ -877,7 +877,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         <span className="text-gray-500 shrink-0">
                           {new Date(e.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                         </span>
-                        <span className="flex-1">{e.action} — {e.summary}</span>
+                        <span className="flex-1">{e.action} : {e.summary}</span>
                         <span className="font-mono text-gray-500 shrink-0">{e.usage.total_tokens} tok</span>
                       </div>
                     ))}
@@ -972,7 +972,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           <p className="text-xs text-gray-500 italic mt-1 border-l-2 border-bleu-fonce/10 pl-2">{m.reason}</p>
                         )}
                         {reverted && (
-                          <p className="text-xs text-amber-700 font-medium">↩ Fusion annulée</p>
+                          <p className="text-xs text-amber-700 font-medium">Fusion annulée</p>
                         )}
                       </div>
                       {!reverted && (
@@ -1020,7 +1020,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
             <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
               Fusions antérieures (journal local)
               <span className="ml-2 font-normal normal-case tracking-normal text-gray-500">
-                ({mergeLog.length}) — annulation partielle
+                ({mergeLog.length}) · annulation partielle
               </span>
             </h4>
             {(

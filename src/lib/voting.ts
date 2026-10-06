@@ -72,7 +72,7 @@ export function assertSeated(data: unknown): TableResult {
     if (!r.session_id) throw new Error(PSEUDO_TAKEN_MESSAGE)
     throw new PseudoTakenError(r.session_id, r.pseudo ?? '')
   }
-  if (!r?.id || !r.participant_id) throw new Error('Réponse inattendue du serveur — réessaie.')
+  if (!r?.id || !r.participant_id) throw new Error('Réponse inattendue du serveur, réessaie.')
   return r
 }
 

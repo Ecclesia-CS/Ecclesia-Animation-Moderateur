@@ -448,7 +448,7 @@ export default function ParticipantView() {
                 className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
-                Lire les règles de débat Ecclesia →
+                Lire les règles de débat Ecclesia
               </button>
             </div>
           </div>
@@ -501,7 +501,7 @@ export default function ParticipantView() {
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
                 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
             >
-              Voir vos résultats →
+              Voir vos résultats
             </button>
           )}
           <button
@@ -509,7 +509,7 @@ export default function ParticipantView() {
             className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
               hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
-            ← Retour au menu
+            Retour au menu
           </button>
         </div>
       )}

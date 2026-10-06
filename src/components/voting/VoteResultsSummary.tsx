@@ -97,7 +97,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
               Beaucoup d'hésitation
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Beaucoup de « passe » sur ces affirmations — le sujet laisse perplexe, ou la formulation gagnerait à être plus claire.
+              Beaucoup de « passe » sur ces affirmations : le sujet laisse perplexe, ou la formulation gagnerait à être plus claire.
             </p>
           </div>
           <div className="space-y-3">

@@ -87,7 +87,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
       <ReclaimCodeDisplay
         pseudo={pending.pseudo}
         code={pending.new_reclaim_code}
-        continueLabel="Rejoindre le débat →"
+        continueLabel="Rejoindre le débat"
         onContinue={() => finish(pending)}
       />
     )
@@ -144,7 +144,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
               className="w-full px-3 py-2 text-left text-xs text-gray-500 hover:text-gray-700 flex items-center justify-between"
             >
               J'ai déjà un code de rappel
-              <span className={`transition-transform ${reclaimOpen ? 'rotate-90' : ''}`}>›</span>
+              <span aria-hidden="true" className={`text-base leading-none text-bleu-fonce/60 transition-transform ${reclaimOpen ? 'rotate-45' : ''}`}>+</span>
             </button>
             {reclaimOpen && (
               <div className="px-3 pb-3">
@@ -178,7 +178,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
           onClick={() => { window.location.hash = '' }}
           className="mt-4 w-full text-xs text-indigo-600 hover:underline"
         >
-          ← Retour à l'accueil
+          Retour à l'accueil
         </button>
       </div>
     </div>

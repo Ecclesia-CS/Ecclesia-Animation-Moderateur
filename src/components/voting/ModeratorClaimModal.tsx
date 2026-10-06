@@ -72,7 +72,7 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <p className="text-xs text-gray-500">
             {alreadyModerator
-              ? 'Tu es déjà marqué·e modérateur pour cette séance — reconfirmer ici n\'aura aucun effet.'
+              ? 'Tu es déjà marqué·e modérateur pour cette séance : reconfirmer ici n\'aura aucun effet.'
               : 'Confirme avec le mot de passe Ecclesia que tu es bien modérateur pour cette séance.'}
           </p>
           <div>

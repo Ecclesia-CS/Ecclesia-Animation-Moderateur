@@ -205,7 +205,7 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
               Les résultats de cette séance ne sont pas disponibles publiquement.
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Revenez plus tard — l'organisateur publie les résultats après analyse.
+              Revenez plus tard : l'organisateur publie les résultats après analyse.
             </p>
           </div>
         )}
@@ -219,7 +219,7 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
                   Placement idéologique des participants
                 </h2>
                 <p className="text-xs text-gray-500 mb-4">
-                  Un point par participant, anonyme — aucune identité associée.
+                  Un point par participant, anonyme : aucune identité associée.
                 </p>
                 <PublicScatterPlot points={points} kChosen={data.k_chosen ?? 1} session={session} />
               </section>
@@ -250,7 +250,7 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
             className="inline-flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200
               text-gray-700 text-sm font-semibold transition-colors"
           >
-            ← Retour au menu
+            Retour au menu
           </button>
         </div>
         <p className="text-center text-sm text-gray-500 pb-4">

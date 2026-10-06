@@ -75,7 +75,7 @@ export default class PanelErrorBoundary extends Component<Props, State> {
             className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 px-1 py-0.5"
           >
-            ↻ Réessayer d'afficher ce panneau
+            Réessayer d'afficher ce panneau
           </button>
         </div>
       </section>

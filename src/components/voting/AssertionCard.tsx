@@ -103,7 +103,7 @@ export default function AssertionCard({
         </div>
         {index === 0 && (
           <p className="text-center text-[11px] leading-relaxed text-gray-500 mt-4 px-4">
-            💡 « Passe » veut dire ni l'un ni l'autre, ou que la question n'est pas claire — c'est un vrai choix, compté dans les résultats, pas pareil que de ne jamais répondre.
+            💡 « Passe » veut dire ni l'un ni l'autre, ou que la question n'est pas claire. C'est un vrai choix, compté dans les résultats, pas pareil que de ne jamais répondre.
           </p>
         )}
       </div>

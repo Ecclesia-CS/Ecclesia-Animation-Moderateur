@@ -43,9 +43,9 @@ export default function ReadOnlyQueuePanel({
                     {i + 1}
                   </td>
                   <td className="px-4 py-2.5 font-medium text-anthracite">
-                    {p?.pseudo ?? '—'}
+                    {p?.pseudo ?? '-'}
                     {e.topic_tag && (
-                      <span className="ml-2 text-xs font-normal text-gray-500 italic">— {e.topic_tag}</span>
+                      <span className="ml-2 text-xs font-normal text-gray-500 italic">· {e.topic_tag}</span>
                     )}
                   </td>
                 </tr>

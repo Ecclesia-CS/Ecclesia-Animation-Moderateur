@@ -284,7 +284,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                       </div>
                       {h.options.map(o => (
                         <p key={o.option_id} className="text-xs text-gray-500">
-                          {o.label} — <span className="text-emerald-600">{o.yes_count} pour</span>
+                          {o.label} : <span className="text-emerald-600">{o.yes_count} pour</span>
                           {' · '}<span className="text-red-500">{o.no_count} contre</span>
                         </p>
                       ))}

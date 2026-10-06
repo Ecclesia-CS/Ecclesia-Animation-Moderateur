@@ -333,8 +333,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             {addPersonCode ? (
               <div className="px-5 py-4 space-y-3">
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  <strong>{addPersonCode.pseudo}</strong> n'a pas d'appareil pour lire ce code —
-                  note-le et transmets-le lui à l'oral ou par écrit. Il lui permettra plus tard
+                  <strong>{addPersonCode.pseudo}</strong> n'a pas d'appareil pour lire ce code :
+                  note-le et transmets-le-lui à l'oral ou par écrit. Il lui permettra plus tard
                   de retrouver son profil (questionnaire, résultats) depuis son propre appareil,
                   en saisissant son nom et ce code.
                 </p>
@@ -353,7 +353,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             ) : (
               <form onSubmit={handleAddOfflinePerson} className="px-5 py-4 space-y-3">
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Elle apparaît dans la liste des présents à la table — tu pourras lui donner ou
+                  Elle apparaît dans la liste des présents à la table : tu pourras lui donner ou
                   retirer la parole comme n'importe quel participant.
                 </p>
                 <div>

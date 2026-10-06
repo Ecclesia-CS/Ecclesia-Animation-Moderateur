@@ -8,7 +8,7 @@ interface ReclaimCodeDisplayProps {
   continueLabel?: string
 }
 
-export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueLabel = 'Continuer vers le vote →' }: ReclaimCodeDisplayProps) {
+export default function ReclaimCodeDisplay({ pseudo, code, onContinue, continueLabel = 'Continuer vers le vote' }: ReclaimCodeDisplayProps) {
   const [copied, setCopied] = useState(false)
 
   function handleCopy() {

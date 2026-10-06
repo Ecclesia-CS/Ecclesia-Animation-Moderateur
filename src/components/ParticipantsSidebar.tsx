@@ -95,9 +95,9 @@ export default function ParticipantsSidebar({
       listener:     'bg-slate-600/40 text-slate-300 border-slate-500/40',
     }[style]
     const hint = {
-      active:       'Actif — censé prendre la parole',
-      intermediate: 'Intermédiaire — pourrait prendre la parole',
-      listener:     'Passif — ne doit pas prendre la parole spontanément, mais peut la recevoir',
+      active:       'Actif : censé prendre la parole',
+      intermediate: 'Intermédiaire : pourrait prendre la parole',
+      listener:     'Passif : ne doit pas prendre la parole spontanément, mais peut la recevoir',
     }[style]
     return (
       <span

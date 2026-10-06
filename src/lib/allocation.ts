@@ -1251,8 +1251,8 @@ function solveFor(
     return single(
       forbidUnmoderated
         ? "Capacité de modération insuffisante pour animer toutes les tables (option « interdire les tables " +
-          'sans modérateur » active) — repli sur une table unique.'
-        : 'Aucune répartition valide trouvée — repli sur une table unique.',
+          'sans modérateur » active) : repli sur une table unique.'
+        : 'Aucune répartition valide trouvée : repli sur une table unique.',
     )
   }
 
@@ -1643,7 +1643,7 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   }
   if (shape.moderatedCount > animatingIds.length) {
     warnings.push(
-      `${shape.moderatedCount - animatingIds.length} table(s) comptent sur un modérateur annoncé mais pas encore inscrit — ` +
+      `${shape.moderatedCount - animatingIds.length} table(s) comptent sur un modérateur annoncé mais pas encore inscrit, ` +
       `à rattacher à la main dès son arrivée.`,
     )
   }

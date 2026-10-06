@@ -104,12 +104,12 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           <h2 className="text-xl font-semibold text-bleu-fonce">🔗 Être avec un ami (facultatif)</h2>
           <PairingResultsList results={pairingDone.results} />
           <ReciprocityNotice />
-          <p className="text-xs text-gray-500">Tu peux les modifier à tout moment dans « Outils » → « Être avec un ami ».</p>
+          <p className="text-xs text-gray-500">Tu peux les modifier à tout moment dans « Outils », rubrique « Être avec un ami ».</p>
           <button
             onClick={() => onSuccess(pairingDone.response)}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            Continuer vers le vote →
+            Continuer vers le vote
           </button>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
         {/* Chantier 150 — « facultatif » en toute première ligne de l'écran. */}
         {currentQ === 3 && !editing && (
           <p className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 mb-3 leading-snug">
-            Facultatif — tu peux passer cette question et la remplir plus tard, à tout moment pendant le vote, dans « Outils » → « Être avec un ami ».
+            Facultatif : tu peux passer cette question et la remplir plus tard, à tout moment pendant le vote, dans « Outils », rubrique « Être avec un ami ».
           </p>
         )}
         <div className="flex items-center justify-between mb-2">
@@ -198,7 +198,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
               onClick={() => setCurrentQ(q => q - 1)}
               className="flex-1 py-3 px-4 border border-bleu-fonce/20 text-bleu-fonce text-sm font-medium hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
             >
-              ← Précédent
+              Précédent
             </button>
           )}
           {currentQ < totalQuestions - 1 ? (
@@ -207,7 +207,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
               disabled={!isCurrentAnswered()}
               className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
-              Suivant →
+              Suivant
             </button>
           ) : (
             <button

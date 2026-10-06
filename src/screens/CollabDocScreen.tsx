@@ -253,7 +253,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
           onClick={() => { window.location.hash = '' }}
           className="text-sm text-indigo-600 hover:underline"
         >
-          ← Retour à l'accueil
+          Retour à l'accueil
         </button>
       </div>
     )

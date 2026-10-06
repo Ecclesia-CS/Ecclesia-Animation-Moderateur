@@ -286,7 +286,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           ? ` · ${droppedModerators.length - failed.length} modérateur(s) repassé(s) en participant`
           : '') +
         (failed.length > 0
-          ? ` · ⚠️ statut non retiré pour ${failed.join(', ')} — à corriger dans l'onglet Participants`
+          ? ` · ⚠️ statut non retiré pour ${failed.join(', ')}, à corriger dans l'onglet Participants`
           : ''),
       )
       await load()
@@ -296,7 +296,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       if (/mot de passe|password/i.test(msg)) { onAuthError(); return }
       // Aucun flag n'a été touché : la sélection reste telle quelle, réessayable.
       setError(
-        `${msg} — aucune table créée et aucun statut de modérateur modifié. ` +
+        `${msg} (aucune table créée et aucun statut de modérateur modifié). ` +
         `Ta sélection est conservée : tu peux réessayer.`,
       )
     } finally {
@@ -334,7 +334,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           className="text-xs text-gray-500 hover:text-indigo-600 transition-colors"
           title="Recharger les participants"
         >
-          ↻
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </button>
       </div>
 
@@ -375,7 +375,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-gray-700">
                 🎙️ Modérateurs présents ({keptModerators.length}/{moderatorChoices.length})
                 {excluded.length > 0 && (
-                  <span className="text-gray-500 font-normal"> — {excluded.length} à repasser en participant</span>
+                  <span className="text-gray-500 font-normal"> · {excluded.length} à repasser en participant</span>
                 )}
               </summary>
               <div className="px-3 pb-3 space-y-1.5">
@@ -402,7 +402,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                         className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                       />
                       <span className={on ? '' : 'text-gray-500 line-through'}>{m.pseudo}</span>
-                      {!on && <span className="text-xs text-gray-500">→ participant</span>}
+                      {!on && <span className="text-xs text-gray-500">redevient participant</span>}
                     </label>
                   )
                 })}
@@ -433,7 +433,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               <input
                 type="number" min={0} max={40}
                 value={recorderCount}
-                placeholder="—"
+                placeholder="-"
                 onChange={e => setRecorderCount(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0))}
                 className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
@@ -478,7 +478,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
 
           {applied && (
             <div className="p-3 bg-green-50 border border-green-200 text-sm text-green-700">
-              ✅ Répartition appliquée — {applied}
+              ✅ Répartition appliquée : {applied}
             </div>
           )}
 
@@ -504,7 +504,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 <p className="text-xs text-amber-800 bg-amber-100 border border-amber-300 px-3 py-2 leading-snug">
                   ⏳ Les réglages ont changé depuis ce calcul (modérateurs décochés,
                   enregistreurs ou participants). « Appliquer » recalculera d'abord la
-                  répartition — clique « Recalculer » si tu veux la voir avant.
+                  répartition. Clique « Recalculer » si tu veux la voir avant.
                 </p>
               )}
 
@@ -529,7 +529,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               <p className="text-xs text-gray-500 leading-snug">
                 Résultat reproductible (graine {preview.seed}) : relancer le calcul sur
                 les mêmes participants et les mêmes réglages donne exactement la même
-                répartition. Cette proposition n'est pas encore en base — elle est
+                répartition. Cette proposition n'est pas encore en base : elle est
                 conservée si tu changes d'onglet ou recharges la page. « Appliquer » relance le calcul avec la sélection courante avant de créer les tables.
               </p>
 
@@ -539,7 +539,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-40
                   text-white text-sm font-semibold transition-colors"
               >
-                {applying ? 'Application…' : 'Appliquer — créer les tables →'}
+                {applying ? 'Application…' : 'Appliquer et créer les tables'}
               </button>
               <p className="text-xs text-gray-500 text-center leading-snug">
                 Les retouches à la main se font ensuite dans l'onglet 🪑 Tables

@@ -129,7 +129,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             onClick={() => (pendingIsReclaim ? onReclaimSuccess(pendingMember) : onSuccess(pendingMember))}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            Continuer →
+            Continuer
           </button>
         </div>
       </div>
@@ -193,14 +193,14 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
               disabled={reclaimLoading || !pseudo.trim() || reclaimCodeInput.trim().length === 0}
               className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
-              {reclaimLoading ? 'Récupération…' : 'Récupérer mes votes →'}
+              {reclaimLoading ? 'Récupération…' : 'Récupérer mes votes'}
             </button>
             <button
               type="button"
               onClick={() => { setShowReclaim(false); setReclaimError(null) }}
               className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
-              Ce n'est pas moi — choisir un autre nom
+              Ce n'est pas moi, choisir un autre nom
             </button>
           </form>
         </div>
@@ -271,7 +271,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             disabled={loading || !pseudo.trim()}
             className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            {loading ? 'Connexion…' : 'Continuer →'}
+            {loading ? 'Connexion…' : 'Continuer'}
           </button>
 
           {/* Chantier 125 — accès direct à la reconquête (pseudo + code),
@@ -281,7 +281,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             onClick={() => { setReclaimError(null); setShowReclaim(true) }}
             className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            J'ai déjà un code de rappel →
+            J'ai déjà un code de rappel
           </button>
         </form>
       </div>
