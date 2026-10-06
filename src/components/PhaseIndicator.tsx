@@ -33,16 +33,29 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
   if (!step) return null
 
   const pill = tone === 'marine' ? (
-    // Puce de verre du bandeau d'accueil du site, point « en direct » qui respire.
+    // Surtitre du site sur marine : la progression des étapes tient lieu de
+    // trait d'accent (barres de 3 px, l'étape en cours allongée, comme la
+    // pagination du carrousel du site), puis « Étape N · Libellé ». Sans
+    // cadre ni marge à gauche : il s'aligne sur le titre qu'il surmonte.
     <button
       type="button"
       onClick={() => setOpen(true)}
-      // after: zone de toucher de 41 px sans grossir la puce
-      className="relative inline-flex items-center gap-2.5 border border-creme/20 bg-creme/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair whitespace-nowrap backdrop-blur-md hover:border-creme/40 hover:bg-creme/[0.12] transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+      // -my-3 py-3 : zone de toucher de 41 px sans décaler la mise en page
+      className="group -my-3 inline-flex items-center gap-3 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair whitespace-nowrap transition-colors hover:text-creme focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-4 focus-visible:ring-offset-bleu-fonce"
     >
-      <span aria-hidden="true" className="relative flex h-1.5 w-1.5 shrink-0">
-        <span className="absolute inset-0 rounded-full bg-bleu-clair animate-pouls" />
-        <span className="relative h-1.5 w-1.5 rounded-full bg-bleu-clair shadow-[0_0_8px_2px_rgba(155,187,226,0.65)]" />
+      <span aria-hidden="true" className="flex items-center gap-1">
+        {participantPhaseSteps(sessionType).map(s => (
+          <span
+            key={s.phase}
+            className={`block h-[3px] transition-[width,background-color] duration-500 ${
+              s.number === step.number
+                ? 'w-7 bg-gradient-to-r from-bleu-clair to-creme'
+                : s.number < step.number
+                  ? 'w-2 bg-bleu-clair'
+                  : 'w-2 bg-creme/25 group-hover:bg-creme/40'
+            }`}
+          />
+        ))}
       </span>
       Étape {step.number} · {step.label}
     </button>

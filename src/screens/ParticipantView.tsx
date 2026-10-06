@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
-import { extractErr, initiales, titreSeance } from '../lib/utils'
+import { extractErr, titreSeance } from '../lib/utils'
 import type { QuestionnaireResponse, Session } from '../lib/types'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import ReadOnlyQueuePanel from '../components/ReadOnlyQueuePanel'
@@ -195,16 +195,27 @@ export default function ParticipantView() {
   const titre = session?.title ?? sessionTitle
   const boutonVerre = `btn-verre inline-flex h-10 items-center px-4 text-xs font-semibold text-creme
     focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
+  // Libellés des deux colonnes de l'en-tête (surtitre du site, sur marine).
+  const libelleEnTete = 'text-[10.5px] font-bold uppercase tracking-[0.2em] text-bleu-clair/80'
 
   return (
     <div className="min-h-screen bg-creme flex flex-col">
 
       {/* ── En-tête : bandeau marine quadrillé du site, bord inférieur en vague ── */}
       {/* Ni z-index ni isolation ici (voir FondQuadrille) : Outils et l'indicateur
-          d'étape y ouvrent des fenêtres fixed qui doivent couvrir toute la page. */}
+          d'étape y ouvrent des fenêtres fixed qui doivent couvrir toute la page.
+          Composition : barre du haut, surtitre d'étape, titre, puis un filet et
+          deux colonnes « Vous » / « Table ». La trame reste discrète derrière les
+          textes et ne se montre franchement que dans la bande du bas, où ses
+          cases s'allument, avant la vague. */}
       <header className="relative overflow-hidden bg-bleu-fonce text-creme">
-        <FondQuadrille />
+        <FondQuadrille
+          cases={7}
+          bande={56}
+          fondu="linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 55%, #000 88%)"
+        />
         <svg
+          data-fond-libre
           aria-hidden="true"
           viewBox="0 0 800 40"
           preserveAspectRatio="none"
@@ -213,7 +224,7 @@ export default function ParticipantView() {
           <path d="M0 0 Q400 80 800 0 V40 H0 Z" className="fill-creme" />
         </svg>
 
-        <div className="relative mx-auto w-full max-w-5xl px-4 pb-10 pt-3 sm:px-6 sm:pb-14 sm:pt-4">
+        <div className="relative mx-auto w-full max-w-5xl px-4 pb-14 pt-3 sm:px-6 sm:pt-4 md:pb-20">
           <div className="flex items-center gap-2">
             {/* Emblème d'Ecclesia, sauf dans une séance d'association (chantier 135). */}
             {!session?.organization_id && (
@@ -221,7 +232,8 @@ export default function ParticipantView() {
                 src={ecclesiaLogo}
                 alt=""
                 aria-hidden="true"
-                className="h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)]"
+                // -ml-1 : le disque de l'emblème (marge transparente de 4 px) s'aligne sur les textes
+                className="-ml-1 h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)]"
               />
             )}
             <div className="ml-auto flex items-center gap-2">
@@ -236,46 +248,46 @@ export default function ParticipantView() {
             </div>
           </div>
 
-          <div className="mt-5 animate-montee sm:mt-7">
-            {session && (
-              <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
-            )}
-            <h1 className={`mt-4 break-words text-creme ${
-              titre
-                ? 'font-serif text-[1.75rem] font-semibold leading-[1.1] tracking-tight sm:text-4xl'
-                : 'font-sans text-2xl font-bold tracking-[0.16em] sm:text-3xl'
-            }`}>
-              {titre ? titreSeance(titre) : table.join_code}
-            </h1>
-            <span aria-hidden="true" className="filet-spectre mt-4 block w-16" />
-            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2.5">
-              <span className="inline-flex min-w-0 items-center gap-2.5">
-                <span
-                  aria-hidden="true"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bleu-clair text-[11px] font-bold text-bleu-fonce"
-                >
-                  {initiales(myParticipant.pseudo)}
-                </span>
-                <span className="truncate text-sm font-semibold text-creme">{myParticipant.pseudo}</span>
-              </span>
-              {titre && (
-                <span className="inline-flex items-baseline gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair">Table</span>
-                  <span className="text-sm font-semibold tracking-[0.14em] text-creme">{table.join_code}</span>
-                </span>
+          <div className="mt-8 animate-montee md:mt-10 md:grid md:grid-cols-[minmax(0,1fr)_16.5rem] md:items-end md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="min-w-0">
+              {session && (
+                <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
               )}
+              <h1 className={`break-words text-creme ${session ? 'mt-3' : ''} ${
+                // Archivo, comme tout l'en-tête (demande d'Antoine : pas de serif ici).
+                titre
+                  ? 'font-sans text-[1.625rem] font-bold leading-[1.15] tracking-[-0.02em] sm:text-4xl md:text-[2.5rem]'
+                  : 'font-sans text-2xl font-bold tracking-[0.16em] sm:text-3xl'
+              }`}>
+                {titre ? titreSeance(titre) : table.join_code}
+              </h1>
             </div>
-            {table.leaderless && (
-              <button
-                onClick={() => setShowAskAdminModal(true)}
-                className="mt-5 inline-flex h-10 items-center gap-2 border border-amber-300/50 bg-amber-300/10 px-4
-                  text-sm font-semibold text-amber-100 transition-colors hover:border-amber-300/80 hover:bg-amber-300/20
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
-              >
-                🎙️ Devenir modérateur
-              </button>
-            )}
+
+            {/* Sur téléphone, sous un filet ; sur md+, dans la colonne de « Présents ». */}
+            <dl className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] gap-x-8 border-t border-white/10 pt-4 md:mt-0">
+              <div className="min-w-0">
+                <dt className={libelleEnTete}>Vous</dt>
+                <dd className="mt-1.5 truncate text-[15px] font-semibold leading-tight text-creme">{myParticipant.pseudo}</dd>
+              </div>
+              {titre && (
+                <div>
+                  <dt className={libelleEnTete}>Table</dt>
+                  <dd className="mt-1.5 text-[15px] font-semibold leading-tight tracking-[0.08em] text-creme">{table.join_code}</dd>
+                </div>
+              )}
+            </dl>
           </div>
+
+          {table.leaderless && (
+            <button
+              onClick={() => setShowAskAdminModal(true)}
+              className="mt-5 inline-flex h-10 items-center gap-2 border border-amber-300/50 bg-amber-300/10 px-4
+                text-sm font-semibold text-amber-100 transition-colors hover:border-amber-300/80 hover:bg-amber-300/20
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+            >
+              🎙️ Devenir modérateur
+            </button>
+          )}
         </div>
       </header>
 
