@@ -429,7 +429,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
         <div className="relative max-w-3xl mx-auto flex items-center justify-between gap-4">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="shrink-0 border border-white/20 px-2.5 py-1.5 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            className="inline-flex h-9 shrink-0 items-center border border-white/20 px-3 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Retour
           </button>
@@ -467,7 +467,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
           )}
           <button
             onClick={() => setShowCreate(true)}
-            className="btn-verre btn-verre-primaire shrink-0 py-2 px-4 text-creme
+            className="btn-verre btn-verre-primaire inline-flex h-9 shrink-0 items-center px-4 text-creme
               text-sm font-semibold focus:outline-none
               focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
           >
@@ -3305,7 +3305,7 @@ function SessionDetail({
         <div className="relative max-w-3xl mx-auto flex items-center gap-3">
           <button
             onClick={onBack}
-            className="shrink-0 border border-white/20 px-2.5 py-1.5 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            className="inline-flex h-9 shrink-0 items-center border border-white/20 px-3 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             title="Retour"
           >
             Retour
@@ -4163,7 +4163,7 @@ function SessionDetail({
                           <button
                             type="submit"
                             disabled={metaLoading || !metaTitle.trim()}
-                            className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                            className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                               text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                           >
                             {metaLoading ? 'Enregistrement…' : 'Enregistrer'}
@@ -4239,7 +4239,7 @@ function SessionDetail({
                             <button
                               type="submit"
                               disabled={docsLoading}
-                              className="flex-1 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                              className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                                 text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                             >
                               {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
@@ -4492,7 +4492,7 @@ function SessionDetail({
                           disabled={qActing}
                           className="py-1.5 px-3 text-xs font-medium border transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed
-                            border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce"
                         >
                           {qActing ? '…' : isQForced ? 'Annuler forçage' : 'Forcer questionnaire'}
                         </button>
@@ -4503,8 +4503,8 @@ function SessionDetail({
                           <button
                             onClick={handleExportQuestionnaires}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-teal-200
-                              text-teal-700 hover:bg-teal-50 transition-colors
+                            className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                              text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {exportingType === 'questionnaire' ? <><Spinner /> Export…</> : 'Questionnaire'}
@@ -4512,8 +4512,8 @@ function SessionDetail({
                           <button
                             onClick={handleExportSpeakingTimes}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-teal-200
-                              text-teal-700 hover:bg-teal-50 transition-colors
+                            className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                              text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {exportingType === 'speaking' ? <><Spinner /> Export…</> : 'Temps de parole'}
@@ -4521,8 +4521,8 @@ function SessionDetail({
                           <button
                             onClick={handleExportHistory}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-teal-200
-                              text-teal-700 hover:bg-teal-50 transition-colors
+                            className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                              text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {exportingType === 'history' ? <><Spinner /> Export…</> : 'Historique'}
@@ -4837,7 +4837,7 @@ function ModerationPolicyEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+          className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
           {saving ? 'Enregistrement…' : saved ? '✅ Enregistré' : 'Enregistrer'}
         </button>
@@ -5005,7 +5005,7 @@ function PhaseBar({
           <button
             onClick={onPrev}
             disabled={acting}
-            className="text-xs text-gray-600 hover:text-bleu-fonce py-1.5 px-3 border border-bleu-fonce/15 hover:border-bleu-fonce/30 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            className="inline-flex h-9 items-center text-xs font-medium text-bleu-fonce/80 hover:text-bleu-fonce px-3 border border-bleu-fonce/20 hover:border-bleu-fonce/40 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Revenir en {phaseLabel(prevPhase, sessionType)}
           </button>
@@ -5015,7 +5015,7 @@ function PhaseBar({
           <button
             onClick={onNext}
             disabled={acting}
-            className="text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-2 px-4 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="inline-flex h-9 items-center text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)}`}
           </button>
@@ -5765,7 +5765,7 @@ function AssertionsPanel({
                 <button
                   onClick={handleAdminAdd}
                   disabled={adminAdding || !adminText.trim()}
-                  className="py-1.5 px-4 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white
+                  className="py-1.5 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white
                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {adminAdding ? '…' : 'Ajouter'}
@@ -5884,7 +5884,7 @@ function AssertionsPanel({
                   isAiRejected: false,
                   isAiApproved: aiLabelMap.approvedIds.has(a.id),
                 }}>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex w-full items-center gap-2 flex-wrap">
                     {v && v.total_votes > 0 ? (
                       <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
                     ) : (
@@ -6268,7 +6268,7 @@ function AssertionRow({
       )}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs text-gray-500">{new Date(assertion.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-        <div className="flex gap-2 flex-wrap">{children}</div>
+        <div className="flex w-full gap-2 flex-wrap sm:w-80">{children}</div>
       </div>
     </div>
   )
@@ -6290,7 +6290,7 @@ function VoteBar({ agree, disagree, pass, total, score }: { agree: number; disag
         <div className="bg-gray-300 transition-all"  style={{ width: `${passPct}%` }} />
       </div>
       <div className="flex items-center justify-between text-[10px] text-gray-500">
-        <span>✅ {agree} · ❌ {disagree} · ⏭ {pass} ({total} votes)</span>
+        <span>✅ {agree} · ❌ {disagree} · ⏭️ {pass} ({total} votes)</span>
         {score !== null && <span className="font-semibold text-indigo-600">Score : {score}%</span>}
       </div>
       {manyPasses && (

@@ -288,7 +288,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
               <button
                 onClick={openAdd}
                 className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white
-                  text-xs font-medium transition-colors focus:outline-none
+                  text-xs font-semibold transition-colors focus:outline-none
                   focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
               >
                 + Ajouter

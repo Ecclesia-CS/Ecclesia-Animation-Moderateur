@@ -243,7 +243,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             </button>
 
             <button onClick={() => { setPanelOpen(false); setVoteToolOpen(true) }} className={linkClass}>
-              <span className="w-4 text-center text-gray-500 shrink-0">🗳️</span>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
               {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
             </button>
 

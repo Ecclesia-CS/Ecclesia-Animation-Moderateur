@@ -391,7 +391,7 @@ export default function AnalysisPanel({
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing}
-              className="text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {analyzeStatus === 'loading' ? 'Calcul…'
                 : analyzeStatus === 'naming' ? 'Nommage des camps…'
@@ -425,7 +425,7 @@ export default function AnalysisPanel({
               <span className="text-xs text-gray-500">Vue :</span>
               <button
                 onClick={() => handleAttendingToggle(false)}
-                className={`text-xs px-3 py-1 border transition-colors ${
+                className={`text-xs font-semibold px-3 py-1 border transition-colors ${
                   !attendingOnly
                     ? 'bg-indigo-600 text-white border-indigo-600'
                     : 'bg-white text-gray-600 border-bleu-fonce/20 hover:border-indigo-400'
@@ -436,7 +436,7 @@ export default function AnalysisPanel({
               <button
                 onClick={() => handleAttendingToggle(true)}
                 disabled={attendingOnlyLoading}
-                className={`text-xs px-3 py-1 border transition-colors disabled:opacity-50 ${
+                className={`text-xs font-semibold px-3 py-1 border transition-colors disabled:opacity-50 ${
                   attendingOnly
                     ? 'bg-indigo-600 text-white border-indigo-600'
                     : 'bg-white text-gray-600 border-bleu-fonce/20 hover:border-indigo-400'

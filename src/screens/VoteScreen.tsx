@@ -1058,7 +1058,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <div className="mx-4 mt-3">
             <button
               onClick={() => setShowLiveResults(true)}
-              className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+              className="w-full py-2.5 px-4 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               📊 Voir les résultats et les camps en direct
             </button>
@@ -1080,7 +1080,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               {canProposeNow && (
                 <button
                   onClick={() => setShowSubmitModal(true)}
-                  className="mt-3 py-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+                  className="mt-3 py-3 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   ✏️ Proposer une assertion
                 </button>
@@ -1108,7 +1108,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               <div className="space-y-2">
                 {assertions.map(a => {
                   const v = myVotes.get(a.id)
-                  const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : '⏭'
+                  const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : '⏭️'
                   const r = voteResults.find(x => x.id === a.id)
                   const total = r ? r.agree_count + r.disagree_count + r.pass_count : 0
                   return (
@@ -1228,7 +1228,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="w-7 shrink-0 text-center text-xl">⏭</span>
+                  <span className="w-7 shrink-0 text-center text-xl">⏭️</span>
                   <div>
                     <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
                     <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi, et ça compte dans les résultats.</p>
@@ -1294,7 +1294,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 ) : assertions.map(a => {
                   const myVote = myVotes.get(a.id)
                   const result = allAssertionResults.find(r => r.id === a.id)
-                  const voteIcon = myVote?.vote === 'agree' ? '✅' : myVote?.vote === 'disagree' ? '❌' : myVote ? '⏭' : null
+                  const voteIcon = myVote?.vote === 'agree' ? '✅' : myVote?.vote === 'disagree' ? '❌' : myVote ? '⏭️' : null
                   const unvotedIdx = unvotedAssertions.findIndex(u => u.id === a.id)
                   return (
                     <div key={a.id} className="border border-bleu-fonce/10 p-3 space-y-2">
@@ -1306,7 +1306,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                                 setRevoteAssertion(a)
                                 setShowAllAssertions(false)
                               }}
-                              className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-indigo-600 border border-indigo-200 rounded-full pl-1.5 pr-2 py-0.5 hover:bg-indigo-50 transition-colors"
+                              className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-indigo-600 border border-indigo-200 pl-1.5 pr-2 py-0.5 hover:bg-indigo-50 transition-colors"
                               aria-label="Changer mon vote"
                             >
                               <span className="text-sm leading-none">{voteIcon}</span>
@@ -1819,7 +1819,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
               onClick={() => { onClose(); onOpenPairing() }}
               className={linkClass}
             >
-              <span className="w-4 text-center text-gray-500 shrink-0">🔗</span>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
               Être avec un ami (facultatif)
             </button>
           )}
@@ -1834,7 +1834,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
               onClick={() => { onClose(); onOpenEditEntry() }}
               className={linkClass}
             >
-              <span className="w-4 text-center text-gray-500 shrink-0">📝</span>
+              <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
               Modifier questionnaire d'entrée
             </button>
           )}

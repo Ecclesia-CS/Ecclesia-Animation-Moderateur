@@ -45,7 +45,7 @@ export default function AssertionCard({
       </div>
 
       {/* Card */}
-      <div className="flex-1 flex items-center px-4 py-4">
+      <div className="flex items-center px-4 pt-2 pb-5">
         <div className="w-full bg-white shadow-lg border border-bleu-fonce/10 border-t-2 border-t-bleu-fonce px-6 py-7 min-h-[220px] flex flex-col justify-center">
           {currentVote && (
             <div className="mb-3 flex justify-center">
@@ -62,8 +62,8 @@ export default function AssertionCard({
                   ? '✅ Tu es d\'accord'
                   : currentVote === 'disagree'
                   ? '❌ Tu n\'es pas d\'accord'
-                  : '⏭ Tu as passé'}
-                {' '}&mdash; changer ?
+                  : '⏭️ Tu as passé'}
+                {' '}(changer ?)
               </span>
             </div>
           )}
@@ -86,7 +86,7 @@ export default function AssertionCard({
           />
           <VoteBtn
             label="Passe"
-            emoji="⏭"
+            emoji="⏭️"
             color="gray"
             active={currentVote === 'pass'}
             disabled={voting}

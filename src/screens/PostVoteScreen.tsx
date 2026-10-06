@@ -191,12 +191,12 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
                 <ul className="space-y-2">
                   {myOwnAssertions.map(a => {
                     const v = myVotes.get(a.id)
-                    const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : v ? '⏭' : null
+                    const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : v ? '⏭️' : null
                     return (
                       <li key={a.id} className="flex items-start gap-2">
                         <button
                           onClick={() => setRevoteAssertion(a)}
-                          className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-indigo-600 border border-indigo-200 rounded-full pl-1.5 pr-2 py-0.5 hover:bg-indigo-50 transition-colors mt-0.5"
+                          className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-indigo-600 border border-indigo-200 pl-1.5 pr-2 py-0.5 hover:bg-indigo-50 transition-colors mt-0.5"
                         >
                           {icon && <span className="text-sm leading-none">{icon}</span>}
                           <span>{icon ? 'Changer' : 'Voter'}</span>

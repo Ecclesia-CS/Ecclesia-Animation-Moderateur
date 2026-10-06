@@ -486,7 +486,7 @@ export default function ModeratorView() {
           </div>
 
           {/* Right: moderator badge + actions */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end">
             <DocumentationButton
               session={sessionDocs}
               currentTableJoinCode={table.join_code}
@@ -612,7 +612,7 @@ export default function ModeratorView() {
                 <div className="flex items-center gap-3 mt-2">
                   <button
                     onClick={handlePause}
-                    className="px-5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200
+                    className="h-12 px-5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200
                       border border-amber-400/50 text-sm font-semibold transition-colors
                       focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2
                       focus-visible:ring-offset-slate-800 flex items-center gap-2"
@@ -622,7 +622,7 @@ export default function ModeratorView() {
                   </button>
                   <button
                     onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
-                    className="btn-verre btn-verre-primaire px-8 py-2.5 text-creme
+                    className="btn-verre btn-verre-primaire inline-flex h-12 items-center px-8 text-creme
                       text-base font-semibold focus:outline-none
                       focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2
                       focus-visible:ring-offset-slate-800"
