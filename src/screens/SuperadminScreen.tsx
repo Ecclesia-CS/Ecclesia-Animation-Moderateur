@@ -1319,14 +1319,14 @@ function OrganizationModal({
               <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Séances en cours max.</label>
               <input
                 type="number" min={0} value={maxOpen} onChange={e => setMaxOpen(e.target.value)}
-                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Expire le <span className="text-gray-500 font-normal">(facultatif)</span></label>
               <input
                 type="date" value={expires} onChange={e => setExpires(e.target.value)}
-                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
             </div>
           </div>
@@ -1334,13 +1334,13 @@ function OrganizationModal({
             <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Note interne <span className="text-gray-500 font-normal">(facultatif)</span></label>
             <input
               value={note} onChange={e => setNote(e.target.value)} placeholder="Contact, contexte…"
-              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 placeholder:text-anthracite/40"
             />
           </div>
           {org && (
             <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
               <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)}
-                className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500" />
+                className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40" />
               Compte actif (décocher coupe l'accès immédiatement, sans rien supprimer)
             </label>
           )}
@@ -1522,14 +1522,14 @@ function CreateModal({
                   key={opt.id}
                   type="button"
                   onClick={() => setSessionType(opt.id)}
-                  className={`py-2 px-2 border-2 text-left transition-all ${
+                  className={`py-2 px-2 border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
                     sessionType === opt.id
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-bleu-fonce/10 hover:border-indigo-200'
+                      ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50'
+                      : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03]'
                   }`}
                 >
                   <span className="block text-base leading-none mb-1">{opt.icon}</span>
-                  <span className={`block text-xs font-semibold ${sessionType === opt.id ? 'text-indigo-700' : 'text-gray-700'}`}>
+                  <span className={`block text-xs font-semibold ${sessionType === opt.id ? 'text-bleu-fonce' : 'text-anthracite'}`}>
                     {SESSION_TYPE_LABEL[opt.id]}
                   </span>
                   <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">{opt.hint}</span>
@@ -1549,8 +1549,8 @@ function CreateModal({
               rows={3}
               placeholder="Thème, lieu, organisateurs…"
               className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 resize-none
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                placeholder:text-gray-300 transition-shadow"
+                focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+                placeholder:text-anthracite/40 transition-shadow"
             />
           </div>
 
@@ -1561,7 +1561,7 @@ function CreateModal({
               value={scheduledAt}
               onChange={e => setScheduledAt(e.target.value)}
               className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
                 transition-shadow"
             />
           </div>
@@ -1594,10 +1594,10 @@ function CreateModal({
                     key={val}
                     type="button"
                     onClick={() => setModerationPolicy(val)}
-                    className={`py-2 px-3 border-2 text-xs font-medium transition-all ${
+                    className={`py-2 px-3 border text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
                       moderationPolicy === val
-                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                        : 'border-bleu-fonce/10 text-gray-600 hover:border-indigo-200'
+                        ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50 text-bleu-fonce'
+                        : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03] text-anthracite/80'
                     }`}
                   >
                     {val === 'closed' ? '🔒 Fermée (validation requise)' : val === 'open' ? '🔓 Ouverte (immédiat)' : '🤖 Gérée par IA'}
@@ -1614,7 +1614,7 @@ function CreateModal({
                 type="checkbox"
                 checked={onboardingEnabled}
                 onChange={e => setOnboardingEnabled(e.target.checked)}
-                className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
+                className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
               Onboarding (questionnaire d'entrée avant le vote)
             </label>
@@ -1628,7 +1628,7 @@ function CreateModal({
                 type="checkbox"
                 checked={visibleOnHome}
                 onChange={e => setVisibleOnHome(e.target.checked)}
-                className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
+                className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
               Visible sur l'accueil de l'application
             </label>
@@ -1692,8 +1692,8 @@ function Field({
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
-            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-            placeholder:text-gray-300 transition-shadow"
+            focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+            placeholder:text-anthracite/40 transition-shadow"
         />
       )}
     </div>
@@ -3970,7 +3970,7 @@ function SessionDetail({
                                     value={selectedTableId[g.table_number] ?? ''}
                                     onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
                                     className="flex-1 text-xs px-2 py-1.5 border border-bleu-fonce/20
-                                      focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                      focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white"
                                   >
                                     <option value="">— Sélectionner une table —</option>
                                     {dropdownTables.map(t => (
@@ -4010,7 +4010,7 @@ function SessionDetail({
                         direct après chaque glisser-déposer. */}
                     {groupDiagnostics.length > 0 && (
                       <details className="border-t border-bleu-fonce/10 pt-3">
-                        <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:text-indigo-600 transition-colors">
+                        <summary className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] cursor-pointer hover:text-indigo-600 transition-colors">
                           Santé des tables ({groupDiagnostics.filter(d => d.audience_ok && !d.over_capacity && d.veterans_ok).length}/{groupDiagnostics.length} conformes)
                           {clusters.length > 0 && (
                             <span className={brokenGroupClusters > 0 ? 'text-amber-600' : ''}>
@@ -4146,7 +4146,7 @@ function SessionDetail({
                             maxLength={200}
                             autoFocus
                             className="w-full px-3 py-2 text-sm border border-bleu-fonce/20
-                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                           />
                         </div>
                         <div>
@@ -4159,7 +4159,7 @@ function SessionDetail({
                             onChange={e => setMetaDesc(e.target.value)}
                             rows={3}
                             className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 resize-y
-                              focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                           />
                         </div>
                         {metaErr && <p className="text-xs text-red-600">{metaErr}</p>}
@@ -4834,10 +4834,10 @@ function ModerationPolicyEditor({
             key={val}
             type="button"
             onClick={() => setSelected(val)}
-            className={`py-2 px-3 border-2 text-xs font-medium transition-all ${
+            className={`py-2 px-3 border text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
               selected === val
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                : 'border-bleu-fonce/10 text-gray-600 hover:border-indigo-200'
+                ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50 text-bleu-fonce'
+                : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03] text-anthracite/80'
             }`}
           >
             {val === 'closed' ? '🔒 Fermée' : val === 'open' ? '🔓 Ouverte' : '🤖 IA'}
@@ -5250,7 +5250,7 @@ function TableOverviewCard({
           ) : !history ? null : (
             <>
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Participants</h4>
+                <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1.5">Participants</h4>
                 {sortedParts.length === 0 ? (
                   <p className="text-xs text-gray-500">Personne n'a rejoint cette table</p>
                 ) : (
@@ -5265,7 +5265,7 @@ function TableOverviewCard({
                 )}
               </div>
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Déroulé des tours de parole</h4>
+                <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1.5">Déroulé des tours de parole</h4>
                 {sortedTurns.length === 0 ? (
                   <p className="text-xs text-gray-500">Aucun tour de parole enregistré</p>
                 ) : (
@@ -5311,7 +5311,7 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
           <div key={item.label} className="bg-gray-50 p-3 flex items-center gap-2">
             <span className="text-xl">{item.emoji}</span>
             <div>
-              <p className="text-lg font-bold text-gray-900">{item.val}</p>
+              <p className="font-serif text-xl font-semibold leading-tight text-bleu-fonce tabular-nums">{item.val}</p>
               <p className="text-xs text-gray-500 leading-tight">{item.label}</p>
             </div>
           </div>
@@ -5503,7 +5503,7 @@ function AddModeratorControl({
           disabled={disabled}
           placeholder="Nom prénom du modérateur…"
           className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-bleu-fonce/20
-            focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white disabled:opacity-50"
+            focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white disabled:opacity-50"
         />
         <datalist id={datalistId}>
           {candidates.map(c => <option key={c.id} value={c.pseudo} />)}
@@ -5550,7 +5550,7 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
         <div className="px-6 pb-6">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-bleu-fonce/10 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <tr className="border-b border-bleu-fonce/10 text-left text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                 <th className="py-2 pr-3">Table</th>
                 <th className="py-2 pr-3">Modérateur</th>
                 <th className="py-2">Table physique</th>
@@ -5769,8 +5769,8 @@ function AssertionsPanel({
                 placeholder="Saisir une assertion… (Entrée pour valider)"
                 rows={2}
                 disabled={adminAdding}
-                className="w-full mt-3 px-3 py-2 text-sm border border-bleu-fonce/10 resize-none
-                  focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50"
+                className="w-full mt-3 px-3 py-2 text-sm border border-bleu-fonce/20 resize-none
+                  focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 disabled:opacity-50"
               />
               <div className="flex gap-2 flex-wrap">
                 <button
@@ -6004,7 +6004,7 @@ function ShareLinkBanner({ joinCode }: { joinCode: string }) {
   return (
     <div className="bg-indigo-50 border border-indigo-100 px-4 py-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide mb-0.5">
+        <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.14em] mb-0.5">
           Lien de partage
         </p>
         <p className="text-xs font-mono text-gray-700 truncate">{url}</p>
@@ -6432,8 +6432,8 @@ function DocFileField({ label, placeholder, value, onChange }: {
         onChange={e => onChange(e.target.value.trim())}
         placeholder={placeholder}
         className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
-          focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-          placeholder:text-gray-300 bg-white transition-shadow"
+          focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+          placeholder:text-anthracite/40 bg-white transition-shadow"
       />
     </div>
   )

@@ -168,8 +168,8 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
         onChange={e => setJoinCode(e.target.value.toUpperCase())}
         placeholder="A1B2C3"
         className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
-          focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-          placeholder:text-gray-300 transition-shadow"
+          focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+          placeholder:text-anthracite/40 transition-shadow"
       />
     </div>
   )
@@ -198,8 +198,8 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           }}
           placeholder="Prénom Nom"
           className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
-            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-            placeholder:text-gray-300 transition-shadow"
+            focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+            placeholder:text-anthracite/40 transition-shadow"
         />
       </div>
       <ReclaimCodeAccordion
@@ -230,7 +230,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
           type="checkbox"
           checked={asModerator}
           onChange={e => { setAsModerator(e.target.checked); setError(null) }}
-          className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
+          className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:border-bleu-fonce focus:ring-bleu-clair/40"
         />
         <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette table</span>
       </label>

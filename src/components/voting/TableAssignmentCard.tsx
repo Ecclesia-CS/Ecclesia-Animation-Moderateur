@@ -165,8 +165,8 @@ export default function TableAssignmentCard({
               placeholder="A1B2C3"
               maxLength={6}
               className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 font-mono
-                tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
-                placeholder:text-gray-300"
+                tracking-widest text-center focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40
+                placeholder:text-anthracite/40"
             />
             {/* Chantier 108 (C3) — un modérateur en retard, sans affectation,
                 doit pouvoir se déclarer ici : c'est exactement son profil. */}
@@ -177,7 +177,7 @@ export default function TableAssignmentCard({
                     type="checkbox"
                     checked={asModerator}
                     onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
-                    className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
+                    className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                   />
                   <span className="text-xs font-medium text-gray-700">
                     Je suis modérateur de cette table
@@ -190,7 +190,7 @@ export default function TableAssignmentCard({
                     onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
                     placeholder="Code Ecclesia"
                     className="w-full px-3 py-2 pr-10 text-sm border border-bleu-fonce/20
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+                      focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 placeholder:text-anthracite/40"
                   />
                 )}
               </>
@@ -349,8 +349,8 @@ export default function TableAssignmentCard({
                   placeholder="A1B2C3"
                   maxLength={6}
                   className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 font-mono
-                    tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-indigo-500
-                    placeholder:text-gray-300"
+                    tracking-widest text-center focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40
+                    placeholder:text-anthracite/40"
                 />
                 {/* Chantier 95 — reprise d'une table précise en modérateur. */}
                 {onSwitchAsModerator && (
@@ -360,7 +360,7 @@ export default function TableAssignmentCard({
                         type="checkbox"
                         checked={asModerator}
                         onChange={e => { setAsModerator(e.target.checked); setLocalSwitchError(null) }}
-                        className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
+                        className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                       />
                       <span className="text-xs font-medium text-gray-700">
                         Je suis modérateur de cette table
@@ -373,7 +373,7 @@ export default function TableAssignmentCard({
                         onChange={v => { setCreationCode(v); setLocalSwitchError(null) }}
                         placeholder="Code Ecclesia"
                         className="w-full px-3 py-2 pr-10 text-sm border border-bleu-fonce/20
-                          focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-gray-300"
+                          focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 placeholder:text-anthracite/40"
                       />
                     )}
                   </>

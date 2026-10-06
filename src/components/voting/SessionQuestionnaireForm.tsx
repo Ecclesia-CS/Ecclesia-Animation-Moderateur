@@ -95,11 +95,11 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
                     <button
                       key={n}
                       onClick={() => setDebateRating(debateRating === n ? null : n)}
-                      className={`flex-1 py-2.5 text-sm font-semibold transition-colors
-                        focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+                      className={`flex-1 py-2.5 border text-sm font-semibold tabular-nums transition-colors
+                        focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-1 ${
                         debateRating === n
-                          ? 'bg-indigo-600 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                          : 'bg-white border-bleu-fonce/15 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-indigo-50'
                       }`}
                     >
                       {n}
@@ -148,7 +148,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
                 {!showAllThemes && (
                   <button
                     onClick={() => setShowAllThemes(true)}
-                    className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none"
+                    className="mt-3 pb-0.5 text-xs font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus:ring-2 focus:ring-bleu-clair"
                   >
                     Voir plus ({shuffledThemes.length - THEMES_INITIAL} autres)
                   </button>
@@ -222,11 +222,11 @@ function ThemeRow({ theme, value, onChange }: {
           <button
             key={n}
             onClick={() => onChange(value === n ? null : n)}
-            className={`w-8 h-8 text-sm font-medium transition-colors
-              focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+            className={`w-8 h-8 border text-sm font-medium tabular-nums transition-colors
+              focus:outline-none focus:ring-2 focus:ring-bleu-clair focus:ring-offset-1 ${
               value === n
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
+                ? 'bg-indigo-600 border-indigo-600 text-white'
+                : 'bg-white border-bleu-fonce/15 text-gray-700 hover:border-bleu-fonce/40 hover:bg-indigo-50'
             }`}
           >
             {n}
@@ -237,6 +237,6 @@ function ThemeRow({ theme, value, onChange }: {
   )
 }
 
-const taClass = `w-full border border-bleu-fonce/10 px-3 py-2.5 text-sm
-  text-gray-900 placeholder:text-gray-400 resize-none leading-relaxed
-  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`
+const taClass = `w-full border border-bleu-fonce/20 px-3 py-2.5 text-sm
+  text-gray-900 placeholder:text-anthracite/40 resize-none leading-relaxed
+  focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce`

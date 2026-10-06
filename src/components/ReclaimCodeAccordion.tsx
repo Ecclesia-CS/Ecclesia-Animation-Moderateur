@@ -40,8 +40,8 @@ const ReclaimCodeAccordion = forwardRef<HTMLInputElement, Props>(function Reclai
             onChange={e => onCodeChange(e.target.value.replace(/\D/g, ''))}
             placeholder="Code à 4 chiffres"
             className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 font-mono text-center tracking-[0.3em]
-              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-              placeholder:text-gray-300 placeholder:tracking-normal placeholder:font-sans transition-shadow"
+              focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+              placeholder:text-anthracite/40 placeholder:tracking-normal placeholder:font-sans transition-shadow"
           />
           <p className="text-xs text-gray-500 mt-1.5">
             Le code à 4 chiffres reçu à ta première inscription à cette séance, avec le même nom.

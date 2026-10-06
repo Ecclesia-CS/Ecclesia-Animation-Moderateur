@@ -72,8 +72,8 @@ export default function ChangeTableModal({
             onChange={e => setCode(e.target.value.toUpperCase())}
             placeholder="A1B2C3"
             className="flex-1 px-3 py-2.5 text-sm border border-bleu-fonce/20
-              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-              placeholder:text-gray-300"
+              focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+              placeholder:text-anthracite/40"
           />
           <button
             onClick={join}

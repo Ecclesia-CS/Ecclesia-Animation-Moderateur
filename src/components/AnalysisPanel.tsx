@@ -541,7 +541,7 @@ export default function AnalysisPanel({
 
               {/* Assertions consensuelles inter-groupes (D10) */}
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                   Assertions consensuelles
                   <span className="ml-1.5 font-normal normal-case text-gray-500">
                     (tous les camps · score &gt; {CONSENSUS_THRESHOLD})
@@ -858,7 +858,7 @@ export function AnalysisComparisonPanel({
                 <div className="space-y-5">
                   {/* Mouvement des membres */}
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">
                       Mouvement entre camps
                     </h4>
                     <div className="flex flex-wrap gap-4 text-sm text-gray-700">
@@ -872,7 +872,7 @@ export function AnalysisComparisonPanel({
 
                   {/* Appariement des groupes */}
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">
                       Camps appariés
                       <span className="ml-1.5 font-normal normal-case text-gray-500">
                         (par composition réelle, pas par numéro)
@@ -900,7 +900,7 @@ export function AnalysisComparisonPanel({
 
                   {/* Assertions dont le consensus a le plus bougé */}
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                       Assertions dont le consensus a le plus bougé
                     </h4>
                     <p className="text-xs text-gray-500 mb-3">

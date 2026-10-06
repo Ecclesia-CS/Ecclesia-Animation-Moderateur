@@ -1094,7 +1094,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
             {/* Résultats consensus / dissensus */}
             <div className="px-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">
                 Ce que vous avez voté
               </p>
               <VoteResultsSummary results={voteResults} loading={resultsLoading} />
@@ -1102,7 +1102,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
             {/* Liste des assertions votées + positions collectives */}
             <div className="px-4 mt-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">
                 Tes votes ({assertions.length})
               </p>
               <div className="space-y-2">
@@ -1736,7 +1736,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
 
           {/* Documentation */}
           <div className="pt-3 pb-1 px-5">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Documentation</p>
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Documentation</p>
           </div>
           {infoUrl && (
             <a href={infoUrl} target="_blank" rel="noopener noreferrer" className={subLinkClass} onClick={onClose}>
@@ -2020,7 +2020,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
                 setUseCode(e.target.checked)
                 if (!e.target.checked) setCodeInput('')
               }}
-              className="w-4 h-4 border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
+              className="w-4 h-4 border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
             />
             J'ai déjà un code de rappel
           </label>
@@ -2222,7 +2222,7 @@ function AttendanceConfirmScreen({
 
           <div className="bg-white border border-bleu-fonce/10 p-5 space-y-3 text-center">
             <p className="text-sm text-gray-500">Tu avais voté à distance sous le nom</p>
-            <p className="text-xl font-bold text-gray-900">{pseudo}</p>
+            <p className="font-serif text-2xl font-semibold text-bleu-fonce">{pseudo}</p>
             <p className="text-sm text-gray-600 font-medium">Es-tu présent(e) au débat aujourd'hui ?</p>
           </div>
 

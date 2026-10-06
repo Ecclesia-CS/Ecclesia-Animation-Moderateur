@@ -366,8 +366,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                     onChange={e => setAddPersonName(e.target.value)}
                     placeholder="Prénom Nom"
                     className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-bleu-fonce/20
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                      placeholder:text-gray-300 transition-shadow"
+                      focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+                      placeholder:text-anthracite/40 transition-shadow"
                   />
                 </div>
                 {addPersonError && (

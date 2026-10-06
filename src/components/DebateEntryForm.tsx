@@ -94,8 +94,8 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
   }
 
   const inputCls = `w-full px-3 py-3 text-sm border border-bleu-fonce/20
-    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-    placeholder:text-gray-300 transition-shadow`
+    focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+    placeholder:text-anthracite/40 transition-shadow`
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -125,7 +125,7 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
               type="checkbox"
               checked={asModerator}
               onChange={e => { setAsModerator(e.target.checked); setError(null) }}
-              className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-500"
+              className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
             />
             Je suis le modérateur
           </label>

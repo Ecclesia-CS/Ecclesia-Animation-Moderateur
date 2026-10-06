@@ -399,7 +399,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                         type="checkbox"
                         checked={on}
                         onChange={() => toggleModerator(m.member_id, !on)}
-                        className="border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-400"
+                        className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                       />
                       <span className={on ? '' : 'text-gray-500 line-through'}>{m.pseudo}</span>
                       {!on && <span className="text-xs text-gray-500">→ participant</span>}
@@ -420,7 +420,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 type="number" min={0} max={40}
                 value={extraModerators}
                 onChange={e => setExtraModerators(Math.max(0, Number(e.target.value) || 0))}
-                className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
               <span className="block text-xs text-gray-500 mt-1 leading-snug">
                 Ceux qui arrivent sous peu. Capacité retenue : <b>{capacity}</b>
@@ -435,7 +435,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
                 value={recorderCount}
                 placeholder="—"
                 onChange={e => setRecorderCount(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0))}
-                className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
               <span className="block text-xs text-gray-500 mt-1 leading-snug">
                 Objectif visé : <b>{recorderGoal}</b> table(s) enregistrable(s).
@@ -449,7 +449,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
               type="checkbox"
               checked={forbidUnmoderatedTables}
               onChange={e => setForbidUnmoderatedTables(e.target.checked)}
-              className="mt-0.5 border-bleu-fonce/20 text-indigo-600 focus:ring-indigo-400"
+              className="mt-0.5 border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
             />
             <span>
               Interdire les tables sans modérateur

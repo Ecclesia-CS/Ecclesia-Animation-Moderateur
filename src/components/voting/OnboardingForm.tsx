@@ -163,7 +163,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
         {currentQ === 3 && !editing && (
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Être avec un ami</p>
+              <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Être avec un ami</p>
               <h2 className="text-xl font-semibold text-bleu-fonce leading-snug">
                 Avec qui aimerais-tu être à table ?
               </h2>
@@ -230,7 +230,7 @@ function QuestionConsent({ value, onChange }: { value: boolean | null; onChange:
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Consentement</p>
+        <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Consentement</p>
         <h2 className="text-xl font-semibold text-bleu-fonce leading-snug">
           Acceptes-tu que les conversations à ta table soient transcrites de manière anonyme pour produire un résumé ?
         </h2>
@@ -251,7 +251,7 @@ function QuestionEcclesia({ value, onChange }: { value: boolean | null; onChange
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Expérience</p>
+        <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Expérience</p>
         <h2 className="text-xl font-semibold text-bleu-fonce leading-snug">
           As-tu déjà fait un débat Ecclesia ?
         </h2>
@@ -277,7 +277,7 @@ function QuestionStyle({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Style de participation</p>
+        <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Style de participation</p>
         <h2 className="text-xl font-semibold text-bleu-fonce leading-snug">
           Comment comptes-tu participer ?
         </h2>
@@ -310,10 +310,10 @@ function ChoiceButton({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1 py-4 px-3 border-2 transition-all ${
+      className={`flex flex-col items-center justify-center gap-1 py-4 px-3 border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
         selected
-          ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-          : 'border-bleu-fonce/10 bg-white text-gray-700 hover:border-indigo-200 hover:bg-indigo-50/50'
+          ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50 text-bleu-fonce'
+          : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03] text-anthracite'
       }`}
     >
       <span className="text-2xl">{emoji}</span>

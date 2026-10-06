@@ -681,7 +681,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
           {proposals.length > 0 && (
             <div className="border border-purple-200 bg-purple-50/50 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <h4 className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+                <h4 className="text-[11px] font-bold text-purple-700 uppercase tracking-[0.16em]">
                   Fusions proposées — à valider
                   <span className="ml-2 font-normal normal-case text-purple-400">({proposals.length})</span>
                 </h4>
@@ -751,7 +751,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                       {/* Formulation combinée (chantier 7) — éditable avant application */}
                       {p.merged_content !== undefined && (
                         <div className="bg-amber-50 border border-amber-200 p-2 space-y-1">
-                          <label className="block text-[11px] font-semibold text-amber-700 uppercase tracking-wide">
+                          <label className="block text-[11px] font-bold text-amber-800 uppercase tracking-[0.16em]">
                             ✨ Formulation combinée (réunit les deux)
                           </label>
                           <textarea

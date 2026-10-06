@@ -198,7 +198,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
               {/* Formulaire de création — visible sans vote actif, ou après clôture */}
               {showCreateForm && (
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                     {vote ? 'Proposer un nouveau vote' : 'Nouveau vote'}
                   </p>
                   <textarea
@@ -206,9 +206,9 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                     onChange={e => setQuestion(e.target.value)}
                     placeholder="Question à poser à la table…"
                     rows={2}
-                    className="w-full border border-bleu-fonce/10 px-3 py-2.5 text-sm text-gray-900
-                      placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2
-                      focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border border-bleu-fonce/20 px-3 py-2.5 text-sm text-gray-900
+                      placeholder:text-anthracite/40 resize-none focus:outline-none focus:ring-2
+                      focus:ring-bleu-clair/40 focus:border-bleu-fonce"
                   />
                   <div className="space-y-2">
                     {options.map((opt, i) => (
@@ -218,9 +218,9 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                           value={opt}
                           onChange={e => updateOption(i, e.target.value)}
                           placeholder={`Option ${i + 1}`}
-                          className="flex-1 border border-bleu-fonce/10 px-3 py-2 text-sm text-gray-900
-                            placeholder:text-gray-400 focus:outline-none focus:ring-2
-                            focus:ring-indigo-500 focus:border-transparent"
+                          className="flex-1 border border-bleu-fonce/20 px-3 py-2 text-sm text-gray-900
+                            placeholder:text-anthracite/40 focus:outline-none focus:ring-2
+                            focus:ring-bleu-clair/40 focus:border-bleu-fonce"
                         />
                         {options.length > 2 && (
                           <button
@@ -266,7 +266,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
               </button>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Historique</p>
+                <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Historique</p>
                 {historyLoading ? (
                   <p className="text-sm text-gray-500">Chargement…</p>
                 ) : history.length === 0 ? (

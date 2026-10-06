@@ -26,7 +26,7 @@ export default function ModeratorDeclareField({
           type="checkbox"
           checked={checked}
           onChange={e => onCheckedChange(e.target.checked)}
-          className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:ring-indigo-500"
+          className="w-4 h-4 text-indigo-600 border-bleu-fonce/20 focus:border-bleu-fonce focus:ring-bleu-clair/40"
         />
         <span className="text-sm font-medium text-gray-700">Je suis modérateur de cette séance</span>
       </label>

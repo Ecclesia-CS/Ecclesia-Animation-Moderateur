@@ -111,7 +111,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
                 value={startedAt}
                 onChange={e => setStartedAt(e.target.value)}
                 className="w-full text-sm border border-bleu-fonce/20 px-3 py-2
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
             </div>
             <div>
@@ -123,7 +123,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
                 value={endedAt}
                 onChange={e => setEndedAt(e.target.value)}
                 className="w-full text-sm border border-bleu-fonce/20 px-3 py-2
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
             </div>
             <div>
@@ -132,7 +132,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
                 value={participantId}
                 onChange={e => setParticipantId(e.target.value)}
                 className="w-full text-sm border border-bleu-fonce/20 px-3 py-2
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               >
                 {participants.map(p => (
                   <option key={p.id} value={p.id}>{p.pseudo}</option>

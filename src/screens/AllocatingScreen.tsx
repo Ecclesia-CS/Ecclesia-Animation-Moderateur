@@ -380,7 +380,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       <main className="flex-1 max-w-lg mx-auto w-full p-4 space-y-4 pb-8">
         {/* Table assignment */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ton groupe</p>
+          <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Ton groupe</p>
           <TableAssignmentCard
             assignment={assignment}
             loading={assignmentLoading}
@@ -402,7 +402,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             changement de choix reste indisponible à ce stade, inchangé). */}
         {pairings.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ton binôme</p>
+            <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Ton binôme</p>
             <div className="bg-white border border-bleu-fonce/10 p-4">
               <PairingResultsList results={pairings} />
             </div>
@@ -457,7 +457,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
         {/* Vote results */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ce que vous avez voté</p>
+          <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Ce que vous avez voté</p>
           <VoteResultsSummary results={voteResults} loading={resultsLoading} />
           {!resultsLoading && voteResults.length > 0 && (
             <div className="mt-3">
