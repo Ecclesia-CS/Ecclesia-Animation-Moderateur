@@ -1627,11 +1627,11 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
       onClick={handleClose}>
       <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
-        <div className="bg-amber-500 px-6 py-5 text-center">
+        <div className="bg-amber-600 px-6 py-5 text-center">
           <p className="text-2xl mb-1">🗳️</p>
-          <h2 className="font-serif text-xl font-semibold text-creme">Vote à distance ouvert</h2>
-          <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
-          <p className="text-amber-50 text-xs mt-1">{session.title}</p>
+          <h2 className="font-serif text-xl font-semibold text-white">Vote à distance ouvert</h2>
+          <span aria-hidden="true" className="mx-auto mt-3 block h-0.5 w-12 bg-amber-200/80" />
+          <p className="text-amber-50 text-xs mt-2">{session.title}</p>
         </div>
         <div className="px-6 py-5 space-y-3 text-sm text-gray-700">
           <p>Tu peux voter dès maintenant depuis chez toi.</p>
@@ -1643,7 +1643,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
         <div className="px-6 pb-6">
           <button
             onClick={handleClose}
-            className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors"
+            className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
           >
             Compris →
           </button>

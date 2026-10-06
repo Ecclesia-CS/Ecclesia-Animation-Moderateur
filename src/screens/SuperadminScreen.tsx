@@ -4996,7 +4996,7 @@ function PhaseBar({
                     {isPast ? '✓' : i}
                   </button>
                 )}
-                <span className={`mt-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-center leading-tight hidden sm:block ${
+                <span className={`mt-1.5 text-[10px] font-semibold text-center leading-tight hidden sm:block ${
                   isCurrent ? 'text-bleu-fonce' : isFuture ? 'text-gray-500' : 'text-indigo-500'
                 }`}>
                   {p.short}
