@@ -271,3 +271,16 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après une promotion de modérateur par le superadmin, la vue modérateur n'apparaît qu'au rechargement.
 - Les camps n'ont pas la même couleur partout (déjà le cas avant la charte) : le camp 2 est brique dans les résultats participant et ocre côté superadmin et modérateur (`GROUP_COLORS` et `CAMP_COLORS` rangés dans un ordre différent).
 - `ModeratorView` déborde horizontalement à 375 px (déjà noté, jamais tranché : pas touché).
+
+## Chantier 158, lot 8 (2026-10-06) — Textes sans tiret cadratin ni flèche, audit graphique
+
+**Vérifié au navigateur sur dev** : recensement automatique de tous les textes de l'appli (plus aucun « — », « – » d'incise, « ← », « → », « ↗ », « ↻ », « ↩ », entités HTML comprises) ; audit automatique et capture de chaque écran participant à 375 px (accueil, entrées par séance et par table, vote d'un sondage, résultats en direct, table, outils, résultats, page publique, document collaboratif, page introuvable), de la vue modérateur et des onglets du superadmin. Séance de test ajoutée : « Audit charte 158 (sondage) » (790690, masquée de l'accueil).
+
+**Reste à voir à l'œil**
+- [ ] Relire les textes réécrits (175) : la liste complète est dans le commit `0bbf0b7` (`git show 0bbf0b7`). Ponctuation choisie phrase par phrase ; dire si une tournure ne convient pas.
+- [ ] Encore des tirets cadratins hors du code de l'écran, à trancher : messages renvoyés par la base (par exemple « Cette table a déjà un modérateur — choisis-en une autre… », dans plusieurs fonctions SQL : migration à prévoir, dev puis prod) ; titres de séances saisis avec un « — » (« QA Vérifs — Débat ») ; consignes envoyées à Gemini (les noms de camps générés peuvent en contenir).
+- [ ] Supprimer aussi, sur la base dev : la séance « Audit charte 158 (sondage) » et les participants fictifs Sondé Un à Sondé Quatre, Participant Démo, Modo Démo (table B8F10C de « Test charte 154 — Débat »).
+
+**Observé en passant (non corrigé, hors charte)**
+- Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
+- Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
