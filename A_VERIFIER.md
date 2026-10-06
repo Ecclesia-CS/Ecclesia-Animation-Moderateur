@@ -249,3 +249,25 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [x] **Côté association (`#asso`) — vérifié au navigateur sur dev le 2026-10-05** (association de test « QA Asso 156 » créée depuis le menu superadmin, connexion `#asso`, puis association et séances supprimées) : sondage d'association → section « Réglages » réduite au verrou et à ses deux règles (ni « Visible sur l'accueil », ni onboarding, ni résultats publics) ; verrou, « voter d'abord » et plafond écrits en base avec le jeton `org_…` ; les mêmes contrôles sont dans « En direct » ; carte de la liste sans pastille. Débat simple d'association → plus aucune section « Réglages ». Au passage, les textes parlaient de « superadmin » (visible par l'association) : remplacé par « l'administration de la séance ».
 - [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).
 
+
+## Chantier 158 (2026-10-06) — Charte graphique : l'appli aux couleurs du site (apparence seule)
+
+**Vérifié au navigateur sur dev** (Browser pane et Chrome sans interface ; participant à 360, 375, 390 et 430 px, superadmin en largeur d'ordinateur ; audit de contraste automatique à chaque écran, 0 échec, aucun débordement horizontal) : accueil ; entrée par code ; vote à distance (code de rappel, fenêtres d'explication, assertions, « Tu as tout voté ») ; vote présentiel (confirmation de présence d'un pré-votant, nouvel arrivant, onboarding complet) ; allocation (calcul, application) ; affectation « Tu es à la Table N » et entrée à table ; vue participant sur table sans animateur (files avec et sans sujet, parole automatique, « J'ai fini de parler », sujet suivant puis annulation, outils) ; vue modérateur (orateur, chrono, pause, outils — lot 4) ; post-vote (questionnaire forcé, résultats, revote) ; clôture (résultats, page publique non publiée) ; superadmin (connexion, liste, création de séance, quatre onglets, barre de phases avancée jusqu'à la clôture). Séances de test : « Test charte 158 — Complète » (BB87C8) et « Test charte 154 — Débat » (153E51).
+
+**Reste à vérifier à l'œil**
+- [ ] Glisser-déposer à la souris : vue modérateur (réordonner une file, passer d'une file à l'autre, déposer un participant) et onglet Tables du superadmin — fantôme de glissement et zones de dépôt aux nouvelles couleurs.
+- [ ] Navigateurs intégrés (Messenger, Instagram) sur un vrai téléphone : polices bien chargées, aucune lenteur, boutons « verre » de la vue modérateur.
+- [ ] Vrais téléphones (iPhone, Android d'entrée de gamme) : en-tête de la vue participant sur deux lignes en dessous d'environ 400 px (voulu : les boutons recouvraient le repère d'étape), lisibilité en plein jour.
+- [ ] Projection de la vue modérateur sur grand écran : chrono et nom de l'orateur lisibles de loin.
+- [ ] Mode association (`#asso`) : pas de compte d'association de test sous la main — vérifier l'apparence des écrans restreints du superadmin.
+- [ ] Sondage : rejouer un sondage (bouton « Voir les résultats et les camps en direct », carte des camps pendant le vote) — mêmes composants que la séance complète, non rejoué tel quel.
+- [ ] Carte des camps avec une vraie analyse (nouvelles couleurs : marine, brique, vert, ocre, violet) dans les résultats, la page publique, l'onglet Analyse et les temps de parole par camp.
+- [ ] Prod, après merge : front seul, aucune migration. Vérifier que GitHub Pages et Vercel servent les polices (fichiers `.woff2` sous `assets/`) et le nouveau favicon.
+- [ ] Supprimer les données de test sur la base dev quand la charte sera validée : séances « Test charte 158 — Complète » et « Test charte 154 — Débat » (participants fictifs Léa Test, Modo Test, Aperçu Avant, Aperçu Après, Aperçu Participant, Votant Un, Votant Deux, Votant Trois, éventuellement Votant Quatre).
+
+**Bugs préexistants vus pendant les vérifications** (non corrigés : hors du périmètre d'un chantier d'apparence)
+- Débat simple : désigner le modérateur par son nom (superadmin › Tables › « Ajouter ») échoue quand la liste des membres n'est pas encore chargée ; contourné avec le Code Ecclesia.
+- « Me déclarer modérateur de la séance » met le membre en surplus au lieu de lui confier la table qui attend un animateur.
+- Après une promotion de modérateur par le superadmin, la vue modérateur n'apparaît qu'au rechargement.
+- Les camps n'ont pas la même couleur partout (déjà le cas avant la charte) : le camp 2 est brique dans les résultats participant et ocre côté superadmin et modérateur (`GROUP_COLORS` et `CAMP_COLORS` rangés dans un ordre différent).
+- `ModeratorView` déborde horizontalement à 375 px (déjà noté, jamais tranché : pas touché).

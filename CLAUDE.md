@@ -265,6 +265,18 @@ L'autorisation est décrite par `can_join_realtime_topic(topic)` (migration `202
 
 ---
 
+## Charte graphique (chantier 158)
+
+L'appli reprend la charte du site Ecclesia. **Les couleurs vivent dans `tailwind.config.js`, pas dans les composants** : les palettes existantes y sont remappées (`indigo` = bleu marine, `gray` = neutres chauds, `slate` = nuit bleue de la vue modérateur…) et cinq jetons s'y ajoutent : `bleu-fonce` (#15233f), `anthracite`, `bleu-clair` (#9bbbe2), `creme`, `sable`. Polices auto-hébergées (`@fontsource-variable`, aucune requête vers Google) : Newsreader pour les titres (`font-serif` ; h1 à h3 le sont d'office, `src/index.css`), Archivo pour le texte. Classes maison dans `src/index.css` : `filet-spectre`, `texte-spectre`, `accent-rect`, `btn-verre` (+ `btn-verre-primaire`), `bg-grain`.
+
+Ce qu'il ne faut pas casser :
+- **Angles droits** : les `rounded-*` sont redéfinis à 2-6 px ; `rounded-full` est réservé aux pastilles, points, rotors de chargement, étapes et interrupteurs.
+- **Focus** : `focus-visible:ring-*` sur les boutons et les liens (avec `focus:`, l'anneau reste collé au bouton après un clic ou un toucher), `focus:` sur les champs de saisie.
+- **Contraste ≥ 4,5:1** pour le petit texte : sur un fond teinté (`bg-gray-100`, `bg-indigo-50`…), `text-gray-600` au minimum.
+- **Couleurs des camps écrites en dur**, à changer ensemble : `GROUP_COLORS` (`ResultsMapScreen`, `PublicResultsScreen`, `AnalysisPanel`) et `CAMP_COLORS`/`campColor()` (`TableDiagnosticsList`, repris par `CampSpeakingTimes`, `TableOpinionModal` et `SuperadminScreen`).
+
+---
+
 ## Règles critiques
 
 ### Chrono
