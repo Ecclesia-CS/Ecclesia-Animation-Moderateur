@@ -12,7 +12,8 @@ import type { AssignmentWithJoinCode } from '../lib/voting'
 import PhaseIndicator from '../components/PhaseIndicator'
 import PostVoteScreen from './PostVoteScreen'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
-import { sessionTypeOf } from '../lib/phaseLabels'
+import { isConsentPoll, sessionTypeOf } from '../lib/phaseLabels'
+import ConsentResultsScreen from './ConsentResultsScreen'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED']
@@ -193,7 +194,17 @@ function RepnessLegend() {
 }
 
 // ── Composant principal ───────────────────────────────────────
-export default function ResultsMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) {
+// Chantier 160 — un sondage en vote par consentement n'a ni analyse ni camps :
+// il a son propre écran de décomptes. Le reste (séance complète, sondage à camps)
+// garde la carte d'opinion historique.
+export default function ResultsMapScreen(props: ResultsMapScreenProps) {
+  if (isConsentPoll(props.session)) {
+    return <ConsentResultsScreen session={props.session} onBack={props.onBack} />
+  }
+  return <OpinionMapScreen {...props} />
+}
+
+function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) {
   const [data,        setData]        = useState<ResultsMapData | null>(null)
   const [assignment,  setAssignment]  = useState<AssignmentWithJoinCode | null | undefined>(undefined)
   const [voteResults, setVoteResults] = useState<VoteResult[]>([])

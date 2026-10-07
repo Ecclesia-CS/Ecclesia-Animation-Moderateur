@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
+import { Session, SessionType, PollMode, QuestionnaireExportRow, CollabSource, GroupNameResult } from './types'
 import { extractErr } from './utils'
 
 export type SessionTableRow = {
@@ -78,6 +78,7 @@ export async function createSession(
   docCollabUrl?: string,
   onboardingEnabled?: boolean,
   sessionType: SessionType = 'full',
+  pollMode: PollMode = 'camps',
 ): Promise<Session> {
   const { data, error } = await supabase.rpc('create_session', {
     p_password: password,
@@ -90,6 +91,8 @@ export async function createSession(
     p_onboarding_enabled: onboardingEnabled ?? true,
     // Chantier 134 — en mode 'debate', la table unique est créée par la même RPC.
     p_session_type: sessionType,
+    // Chantier 160 — mode du sondage ; la base refuse 'consent' hors sondage.
+    p_poll_mode: sessionType === 'poll' ? pollMode : 'camps',
   })
   if (error) throw new Error(extractErr(error))
   return data as Session

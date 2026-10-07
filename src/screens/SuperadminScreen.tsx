@@ -27,8 +27,9 @@ import {
   updateSessionMeta,
 } from '../lib/sessions'
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
-import type { Session, SessionType, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
-import { SESSION_TYPE_LABEL, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
+import type { Session, SessionType, PollMode, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import { SESSION_TYPE_LABEL, isConsentPoll, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
+import ConsentResultsList from '../components/voting/ConsentResultsList'
 import { DOC_INFO_LABEL } from '../lib/docLinks'
 import {
   setSessionPhase, approveAssertion, rejectAssertion, deleteAssertionsAdmin, applyAssertionMerge,
@@ -997,6 +998,7 @@ function SessionCard({
             {sessionTypeOf(session) !== 'full' && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
                 {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
+                {isConsentPoll(session) && ' · consentement'}
               </span>
             )}
             {orgName && (
@@ -1444,6 +1446,9 @@ function CreateModal({
   const isOrgMode = useOrg() !== null
   // Chantier 134 — mode de séance, choisi une fois pour toutes à la création.
   const [sessionType, setSessionType]   = useState<SessionType>(isOrgMode ? 'debate' : 'full')
+  // Chantier 160 — mode du sondage (choisi ici, jamais modifié après) : camps
+  // d'opinion (historique) ou vote par consentement (décomptes seuls).
+  const [pollMode, setPollMode]         = useState<PollMode>('camps')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
 
@@ -1463,6 +1468,7 @@ function CreateModal({
         undefined,
         onboardingEnabled,
         sessionType,
+        pollMode,
       )
       // Apply moderation policy if not the default
       if (sessionType !== 'debate' && moderationPolicy !== 'closed') {
@@ -1516,7 +1522,7 @@ function CreateModal({
               {([
                 { id: 'full',   icon: '🏛️', hint: 'Vote, allocation, débat, résultats' },
                 { id: 'debate', icon: '🗣️', hint: 'Une table modérée, sans vote' },
-                { id: 'poll',   icon: '📊', hint: 'Vote à distance et camps, sans débat' },
+                { id: 'poll',   icon: '📊', hint: 'Vote à distance, sans débat' },
               ] as { id: SessionType; icon: string; hint: string }[]).filter(opt => !isOrgMode || opt.id !== 'full').map(opt => (
                 <button
                   key={opt.id}
@@ -1538,6 +1544,37 @@ function CreateModal({
             </div>
             <p className="mt-1.5 text-[11px] text-gray-400">Le type ne pourra plus être changé après la création.</p>
           </div>
+
+          {/* Chantier 160 — deux façons de faire un sondage, choisies une fois pour
+              toutes (le mode décide de ce que les participants voient). */}
+          {sessionType === 'poll' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode du sondage</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: 'camps',   label: 'Camps d\'opinion',  hint: 'Vote d\'accord / pas d\'accord / passer, puis camps d\'opinion' },
+                  { id: 'consent', label: 'Consentement',      hint: 'D\'accord ou pas d\'accord par option, décomptes seuls' },
+                ] as { id: PollMode; label: string; hint: string }[]).map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPollMode(opt.id)}
+                    className={`py-2 px-2 rounded-xl border-2 text-left transition-all ${
+                      pollMode === opt.id
+                        ? 'border-indigo-600 bg-indigo-50'
+                        : 'border-gray-200 hover:border-indigo-200'
+                    }`}
+                  >
+                    <span className={`block text-xs font-semibold ${pollMode === opt.id ? 'text-indigo-700' : 'text-gray-700'}`}>
+                      {opt.label}
+                    </span>
+                    <span className="block text-[10px] text-gray-400 leading-tight mt-0.5">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-gray-400">Le mode ne pourra plus être changé après la création.</p>
+            </div>
+          )}
 
           <Field label="Titre" value={title} onChange={setTitle} placeholder="Assemblée générale — mai 2026" />
 
@@ -1920,6 +1957,8 @@ function SessionDetail({
   // ── Phase transitions ──────────────────────────────────────
   // Chantier 134 — la séquence dépend du mode de séance (miroir de la garde SQL).
   const sessionType = sessionTypeOf(currentSession)
+  // Chantier 160 — sondage en vote par consentement : ni analyse ni camps.
+  const consentPoll = isConsentPoll(currentSession)
   const PHASE_SEQUENCE = phaseSequenceFor(sessionType)
   const phaseIdx = PHASE_SEQUENCE.indexOf(currentSession.phase)
   const nextPhase = phaseIdx < PHASE_SEQUENCE.length - 1 ? PHASE_SEQUENCE[phaseIdx + 1] : null
@@ -3505,7 +3544,7 @@ function SessionDetail({
                   </PanelErrorBoundary>
                 )}
 
-                {isOrg && showVotingSections && (
+                {isOrg && showVotingSections && !consentPoll && (
                   <p className="text-xs text-gray-500 px-1">
                     {namingQuota && namingQuota.remaining === 0
                       ? `Nommage automatique des camps : limite de ${namingQuota.max} par jour atteinte — les camps restent « Groupe 1, 2… » jusqu'à demain.`
@@ -3513,7 +3552,8 @@ function SessionDetail({
                   </p>
                 )}
 
-                {showVotingSections && (
+                {/* Chantier 160 — vote par consentement : aucune analyse des camps. */}
+                {showVotingSections && !consentPoll && (
                   <PanelErrorBoundary label="Analyse">
                     <AnalysisPanel
                       sessionId={session.id}
@@ -3528,7 +3568,12 @@ function SessionDetail({
                   </PanelErrorBoundary>
                 )}
 
-                {showVotingSections && voteResults.length > 0 && (
+                {/* Chantier 160 — décomptes par option, d'emblée visibles. */}
+                {showVotingSections && consentPoll && (
+                  <ConsentResultsList results={voteResults} />
+                )}
+
+                {showVotingSections && !consentPoll && voteResults.length > 0 && (
                   <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <button
                       onClick={() => setSynthOpen(o => !o)}
@@ -4317,8 +4362,11 @@ function SessionDetail({
                   </PanelErrorBoundary>
                 )}
 
-                {/* Synthèse des votes */}
-                {showVotingSections && voteResults.length > 0 && (
+                {/* Synthèse des votes — chantier 160 : en consentement, des décomptes par option */}
+                {showVotingSections && consentPoll && (
+                  <ConsentResultsList results={voteResults} />
+                )}
+                {showVotingSections && !consentPoll && voteResults.length > 0 && (
                   <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     <button
                       onClick={() => setSynthOpen(o => !o)}
@@ -4710,7 +4758,7 @@ function SessionDetail({
               {sessionType === 'debate' && (
                 <p>Si elle animait la table, celle-ci repasse sans animateur.</p>
               )}
-              {sessionType !== 'debate' && (
+              {sessionType !== 'debate' && !consentPoll && (
                 <p className="text-xs text-amber-700">
                   Une analyse déjà calculée n'est pas recalculée : les camps peuvent bouger
                   au prochain calcul.
@@ -5911,7 +5959,10 @@ function AssertionsPanel({
           )}
           {[...approved]
             .sort((a, b) => {
-              const scoreDiff = (voteMap.get(b.id)?.consensus_score ?? 0) - (voteMap.get(a.id)?.consensus_score ?? 0)
+              // Chantier 160 — en consentement : par nombre d'accords, pas par score de consensus.
+              const scoreDiff = isConsentPoll(session)
+                ? (voteMap.get(b.id)?.agree_count ?? 0) - (voteMap.get(a.id)?.agree_count ?? 0)
+                : (voteMap.get(b.id)?.consensus_score ?? 0) - (voteMap.get(a.id)?.consensus_score ?? 0)
               if (scoreDiff !== 0) return scoreDiff
               return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             })
@@ -5925,7 +5976,14 @@ function AssertionsPanel({
                 }}>
                   <div className="flex items-center gap-2 flex-wrap">
                     {v && v.total_votes > 0 ? (
-                      <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
+                      isConsentPoll(session) ? (
+                        // Chantier 160 — décomptes seuls : ni « passe », ni score.
+                        <p className="text-[11px] text-gray-500">
+                          ✅ {v.agree_count} d'accord · ❌ {v.disagree_count} pas d'accord
+                        </p>
+                      ) : (
+                        <VoteBar agree={v.agree_count} disagree={v.disagree_count} pass={v.pass_count} total={v.total_votes} score={v.consensus_score} />
+                      )
                     ) : (
                       <span className="text-xs text-gray-400">Pas encore de votes</span>
                     )}

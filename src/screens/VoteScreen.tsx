@@ -26,7 +26,8 @@ import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
-import { sessionTypeOf } from '../lib/phaseLabels'
+import { isConsentPoll, sessionTypeOf } from '../lib/phaseLabels'
+import ConsentVoteList from '../components/voting/ConsentVoteList'
 import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 import ResultsMapScreen from './ResultsMapScreen'
 import RenamePseudoModal from '../components/voting/RenamePseudoModal'
@@ -983,6 +984,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       ? Math.min(assertionIndex, unvotedAssertions.length - 1)
       : 0
     const currentAssertion = unvotedAssertions[safeIdx] ?? null
+    // Chantier 160 — sondage en vote par consentement : liste d'options à deux
+    // boutons, sans « Passer », ni camps, ni carte.
+    const consent = isConsentPoll(session)
 
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -1052,7 +1056,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         )}
 
         {/* Progress */}
-        <VoteProgress voted={votedCount} total={assertions.length} proposed={proposedCount} />
+        <VoteProgress
+          voted={votedCount}
+          total={assertions.length}
+          proposed={proposedCount}
+          label={consent ? 'options avec ton avis' : undefined}
+        />
 
         {sessionTypeOf(session) === 'poll' && (
           <div className="mx-4 mt-3">
@@ -1060,13 +1069,24 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               onClick={() => setShowLiveResults(true)}
               className="w-full py-2.5 px-4 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl transition-colors"
             >
-              📊 Voir les résultats et les camps en direct
+              {consent ? '📊 Voir les résultats en direct' : '📊 Voir les résultats et les camps en direct'}
             </button>
           </div>
         )}
 
         {/* Vote area */}
-        {allVoted ? (
+        {consent ? (
+          assertions.length === 0 ? (
+            <EmptyAssertions
+              canPropose={canProposeNow}
+              onPropose={() => setShowSubmitModal(true)}
+            />
+          ) : (
+            <div className="pt-3">
+              <ConsentVoteList assertions={assertions} myVotes={myVotes} onVote={handleVote} />
+            </div>
+          )
+        ) : allVoted ? (
           <div className="flex-1 overflow-auto pb-6">
             {/* Header compact */}
             <div className="text-center py-5 px-6">
@@ -1162,7 +1182,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         ) : null}
 
         {/* Navigation dots — only unvoted */}
-        {unvotedAssertions.length > 1 && !allVoted && (
+        {!consent && unvotedAssertions.length > 1 && !allVoted && (
           <div className="flex justify-center gap-1.5 pb-4 flex-wrap px-4">
             {unvotedAssertions.map((a, i) => (
               <button
@@ -1177,7 +1197,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         )}
 
         {/* Bouton "Voir toutes les assertions" */}
-        {assertions.length > 0 && (
+        {!consent && assertions.length > 0 && (
           <div className="flex justify-center pb-2">
             <button
               onClick={async () => {
@@ -1219,26 +1239,47 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                 <h2 className="text-lg font-bold text-white">Comment fonctionne le vote ?</h2>
               </div>
               <div className="px-6 py-5 space-y-4 text-sm text-gray-700">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">👍</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Voter sur chaque assertion</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Pour chaque affirmation, indique si tu es d'accord, en désaccord, ou si tu préfères passer.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0">⏭</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
-                  </div>
-                </div>
+                {consent ? (
+                  <>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0">👍</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">Dis si tu es d'accord</p>
+                        <p className="text-gray-500 text-xs mt-0.5">Pour chaque option, touche « D'accord » ou « Pas d'accord ». Tu peux être d'accord avec autant d'options que tu veux.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0">🙂</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">Pas d'avis, pas de vote</p>
+                        <p className="text-gray-500 text-xs mt-0.5">Une option sur laquelle tu ne votes pas compte comme « pas d'avis ».</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0">👍</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">Voter sur chaque assertion</p>
+                        <p className="text-gray-500 text-xs mt-0.5">Pour chaque affirmation, indique si tu es d'accord, en désaccord, ou si tu préfères passer.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0">⏭</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">« Passer » est un vrai choix</p>
+                        <p className="text-gray-500 text-xs mt-0.5">Ce n'est pas la même chose que de ne jamais répondre : ça veut dire que tu n'es ni d'accord ni en désaccord, ou que la question n'est pas claire pour toi — et ça compte dans les résultats.</p>
+                      </div>
+                    </div>
+                  </>
+                )}
                 {proposalsMentionable(session) && (
                   <div className="flex items-start gap-3">
                     <span className="text-xl shrink-0">✏️</span>
                     <div>
-                      <p className="font-semibold text-gray-900">Proposer une assertion</p>
-                      <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre ta propre affirmation.</p>
+                      <p className="font-semibold text-gray-900">{consent ? 'Proposer une option' : 'Proposer une assertion'}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">Le bouton <strong>Proposer</strong> en haut à droite te permet de soumettre {consent ? 'ta propre option' : 'ta propre affirmation'}.</p>
                     </div>
                   </div>
                 )}
@@ -1246,7 +1287,11 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   <span className="text-xl shrink-0">🔄</span>
                   <div>
                     <p className="font-semibold text-gray-900">Tu peux changer d'avis</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Reviens sur une assertion déjà votée en la retrouvant dans la liste des assertions.</p>
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      {consent
+                        ? "Touche l'autre bouton d'une option pour changer ta réponse."
+                        : 'Reviens sur une assertion déjà votée en la retrouvant dans la liste des assertions.'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -1520,8 +1565,12 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   const introSteps: Array<{ icon: string; label: string; description: string }> = sessionTypeOf(session) === 'poll' ? [
     { icon: '🗳️', label: '1. Vote',
       // Chantier 152 — la mention « propose les tiennes » disparaît quand les propositions sont verrouillées.
-      description: (proposalsMentionable(session) ? "Vote sur les assertions, et propose les tiennes. " : "Vote sur les assertions. ")
-        + "Tu peux voir les résultats et les camps d'opinion à tout moment." },
+      // Chantier 160 — en vote par consentement, ni camps ni analyse : des décomptes par option.
+      description: isConsentPoll(session)
+        ? (proposalsMentionable(session) ? "Dis si tu es d'accord avec chaque option, et propose les tiennes. " : "Dis si tu es d'accord avec chaque option. ")
+          + "Tu peux voir les résultats à tout moment."
+        : (proposalsMentionable(session) ? "Vote sur les assertions, et propose les tiennes. " : "Vote sur les assertions. ")
+          + "Tu peux voir les résultats et les camps d'opinion à tout moment." },
     { icon: '📊', label: '2. Résultats',
       // Chantier 135 — un sondage d'association n'est jamais rendu public.
       description: session.organization_id

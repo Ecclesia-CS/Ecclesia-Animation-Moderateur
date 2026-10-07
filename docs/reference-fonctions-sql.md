@@ -32,7 +32,7 @@
 | `reorder_queue_entry(entry_id, new_position)` | Déplace atomiquement |
 | `kick_participant(table_id, participant_id)` | Exclut + cascade |
 | `correct_turn(turn_id, started_at, ended_at, participant_id)` | COALESCE — NULL = ne pas modifier |
-| `create_session(password, title, description?, scheduled_at?, doc_*?, onboarding_enabled?, session_type?)` | Crée une séance. **Chantier 134** : `p_session_type` (`full` par défaut, `debate`, `poll`) — un débat simple naît avec sa table unique (`admin_create_session_table`, animée) et l'onboarding désactivé ; un sondage naît avec `results_public = true`. |
+| `create_session(password, title, description?, scheduled_at?, doc_*?, onboarding_enabled?, session_type?)` | Crée une séance. **Chantier 134** : `p_session_type` (`full` par défaut, `debate`, `poll`) — un débat simple naît avec sa table unique (`admin_create_session_table`, animée) et l'onboarding désactivé ; un sondage naît avec `results_public = true`. **Chantier 160** : `p_poll_mode` (`camps` par défaut, `consent`, réservé au sondage) — 10 paramètres, la signature à 9 a été `DROP`ée. |
 | `session_type_allows_phase(session_type, phase)` | **Chantier 134** — séquence de phases autorisée par type de séance, lue par `set_session_phase`. Miroir front : `phaseSequenceFor` (`src/lib/phaseLabels.ts`) — les deux doivent rester identiques. |
 | `join_simple_debate(session_id, pseudo, creation_code?)` | **Chantier 134** — entrée d'un participant dans un débat simple (phase `debating`) : inscription `session_members` si besoin (code de rappel renvoyé une fois dans `new_reclaim_code`), retour à sa table s'il y est déjà assis, sinon table la moins remplie ; avec le Code Ecclesia, prend l'animation d'une table **sans** modérateur (drapeau + `active_moderator_member_id` + `created_by`), refus explicite si toutes sont tenues. Atomique : une erreur n'inscrit personne. Renvoie aussi `is_moderator` et `pseudo`. |
 | `get_results_map(session_id, member_id)` | Carte des camps d'un membre (`ResultsMapScreen`) : dernière analyse `done`/`current`, points (avec `is_self`), consensus, repness. Ouverte en `closed` seulement — **chantier 134** : aussi en `pre_voting` pour un sondage. ⚠️ Pas ouverte en `post_voting` d'une séance complète (constat du chantier 134, non corrigé). |
@@ -51,7 +51,7 @@
 | `submit_entry_response(session_id, ...)` | Upsert entry_responses |
 | `submit_assertion(session_id, content)` | Insère assertion (status auto selon moderation_policy). Refuse si `assertions_locked` (124), si le plafond `max_assertions_per_member` est atteint, ou si `assertions_vote_first` et qu'il reste une assertion approuvée non votée (153) |
 | `set_session_assertion_rules(password, session_id, vote_first, max)` | Chantier 153 — règle les deux réglages de proposition (`check_session_admin`, ouverte aux associations). `max` NULL = illimité, sinon ≥ 1 |
-| `cast_vote(assertion_id, vote)` | Upsert assertion_votes |
+| `cast_vote(assertion_id, vote)` | Upsert assertion_votes. **Chantier 160** : refuse `pass` si la séance est un sondage en `poll_mode = 'consent'` (garde serveur). |
 | `get_vote_results(session_id)` | Retourne assertions approved avec consensus_score |
 | `approve_assertion(password, assertion_id)` | status → 'approved' |
 | `reject_assertion(password, assertion_id)` | status → 'rejected' |

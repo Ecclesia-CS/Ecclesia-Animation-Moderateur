@@ -27,6 +27,13 @@ export interface GroupNameResult {
 // sessionTypeOf() (lib/phaseLabels.ts), qui retombe sur 'full' si absent.
 export type SessionType = 'full' | 'debate' | 'poll'
 
+// Chantier 160 — mode d'un sondage, fixé à la création (sessions.poll_mode,
+// NOT NULL DEFAULT 'camps', 'consent' réservé au sondage par CHECK). 'camps' =
+// vote d'accord / pas d'accord / passer + analyse en camps d'opinion ;
+// 'consent' = d'accord ou pas d'accord par option, décomptes seuls, aucun camp.
+// Lire via isConsentPoll() (lib/phaseLabels.ts).
+export type PollMode = 'camps' | 'consent'
+
 export interface Session {
   id: string
   title: string
@@ -71,6 +78,9 @@ export interface Session {
   // Chantier 154 — séance listée sur l'accueil (défaut true). Optionnel : absent
   // d'un blob relu d'avant ; absent = visible.
   visible_on_home?: boolean
+  // Chantier 160 — mode du sondage ('camps' par défaut). Optionnel : absent d'un
+  // blob relu d'avant ; absent = 'camps'. Toujours 'camps' hors sondage.
+  poll_mode?: PollMode
 }
 
 export interface Table {

@@ -57,6 +57,18 @@ export function sessionTypeOf(session: { session_type?: SessionType | null } | n
   return t === 'debate' || t === 'poll' ? t : 'full'
 }
 
+/**
+ * Chantier 160 — sondage « vote par consentement » : d'accord / pas d'accord par
+ * option, décomptes seuls, jamais de camps. Frontière DB → front : tout ce qui
+ * n'est pas exactement un sondage en 'consent' (colonne absente, autre type)
+ * garde le comportement historique.
+ */
+export function isConsentPoll(
+  session: { session_type?: SessionType | null; poll_mode?: string | null } | null | undefined,
+): boolean {
+  return sessionTypeOf(session) === 'poll' && session?.poll_mode === 'consent'
+}
+
 export function phaseSequenceFor(type: SessionType): Session['phase'][] {
   return PHASE_SEQUENCES[type]
 }

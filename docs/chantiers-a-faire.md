@@ -8,6 +8,9 @@ Dernière mise à jour : **2026-10-07** (le 158 est fait ; ajout des chantiers 1
 
 ## Chantiers en cours
 
+### 160 — Sondage : mode « vote par consentement »
+**Branche** : `claude/chantier-160-9dc697` · **Depuis** : 2026-10-07 · **État** : codé, vérifié sur dev, migration appliquée sur dev, en attente de merge dans `dev` · **Fichiers touchés** : migration `supabase/migrations/20261007_chantier160_*` (`sessions.poll_mode`, `create_session`, `cast_vote`, `get_public_results`), `SuperadminScreen.tsx`, `VoteScreen.tsx`, `ResultsMapScreen.tsx`, `ConsentResultsScreen.tsx`, `PublicResultsScreen.tsx`, `components/voting/Consent*.tsx`, `lib/types.ts`, `lib/sessions.ts`, `lib/phaseLabels.ts`
+
 > **Le 2026-10-07, le chantier 159 est mergé dans `dev`** (accordéon « Participants inscrits » en débat simple — haut de l'onglet Tables — et en sondage — bas de « En direct ») — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 159. Front seul, **aucune migration**. **Le 160 peut démarrer.** Entrée « en cours » retirée au merge.
 
 > **Le 2026-10-07, le chantier 158 est mergé dans `dev`** (code de rappel montré à chaque nouvelle inscription : deux oublis corrigés dans `App.tsx` et `tryClaimModeratorStatus`) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 158. Front seul, **aucune migration**. **Le 159 et le 160 peuvent démarrer.** Entrée « en cours » retirée au merge.
@@ -204,7 +207,7 @@ Contexte technique : le code est stocké haché (bcrypt, chantier 93) — il ne 
 
 Contexte technique : `SuperadminScreen.tsx` masque l'accordéon pour `debate` (`showVotingSections = VOTE_PHASES.includes(phase) && sessionType !== 'debate'`) et il vit dans l'onglet `tables`, que le sondage n'a pas (`TABS_BY_TYPE.poll = ['live','prep','analysis']`). **Tranché par Jules (2026-10-05)** : « à la fin de l'onglet en direct, et au début de l'onglet table » → **sondage : tout en bas de l'onglet « En direct »** ; **débat simple : tout en haut de l'onglet Tables** (comme en séance complète). Vérifier aussi les onglets restreints d'association (`ORG_TABS_BY_TYPE` : `debate` → `tables`, `poll` → `live`).
 
-#### 160 — Sondage : mode « vote par consentement » (sans l'algorithme pol.is)
+#### 160 — ✅ FAIT le 2026-10-07 sur la branche `claude/chantier-160-9dc697` (pas encore mergé dans `dev`), voir `docs/chantiers.md` — Sondage : mode « vote par consentement » (sans l'algorithme pol.is)
 > **Consigne de Jules** : « Sondage : proposer également un type de vote juste par consentement, plutôt qu’avec l’algo pol.is. Ce vote, c’est juste pouvoir dire si on est d’accord ou non avec chacune des options, nb de vote illimité. »
 
 **Précisions (réponses de Jules)** : « le mode se choisit à la création de la séance, quand on clique sur sondage » (deux choix dans la modale de création : camps — comportement actuel — ou consentement). **Pas de bouton « Passer »** : deux boutons « d'accord / pas d'accord » par option ; ne pas voter = pas d'avis ; nombre de votes illimité (on peut être d'accord avec toutes les options). **Résultats** : « décompte par option, pas d'unanimité » → des décomptes seuls (X d'accord, Y pas d'accord), **aucune notion d'« adopté »** (ni zéro opposant, ni seuil). **Réservé au sondage** : « non, ça changerait trop de choses » pour les séances complètes. **Ouvert aux associations** : « oui », même choix à la création de leur sondage.
