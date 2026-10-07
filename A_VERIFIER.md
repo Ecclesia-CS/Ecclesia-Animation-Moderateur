@@ -250,6 +250,12 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).
 
 
+## Chantier 159 (2026-10-07) — Accordéon « Participants inscrits » en débat simple et en sondage
+
+Vérifié au navigateur sur dev côté superadmin (voir `docs/chantiers.md`). Reste ce que le navigateur de session ne sait pas jouer sans mot de passe d'association :
+
+- [ ] **Côté association (`#asso`), à rejouer** : connecté avec le mot de passe d'une association, ouvrir un **débat simple** (accordéon tout en haut de l'onglet Tables) et un **sondage** (tout en bas de « En direct ») ; la liste s'affiche, 🔑 et ✕ fonctionnent sur **ses** participants. Côté serveur, les quatre RPC passent par `check_session_admin` (relu sur dev et prod) : aucun accès aux séances d'une autre association.
+
 ## Chantier 158 (2026-10-07) — Code de connexion montré à chaque nouvelle inscription
 
 **Vérifié au navigateur sur dev** (identité anonyme vierge à chaque parcours, détails dans `docs/chantiers.md`) : sondage, débat simple, débat simple d'association, séance complète en vote présentiel, retardataire en débat (« Assignez-moi une table », code de table, lien `#table/<code>`) → le code de rappel s'affiche à chaque nouvelle inscription. Cas « inscription supprimée puis appareil rouvert » (`App.tsx`) rejoué : l'écran « Note ton code de rappel » s'affiche avant l'entrée à la table.

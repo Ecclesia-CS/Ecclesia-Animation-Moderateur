@@ -2246,12 +2246,13 @@ function SessionDetail({
     }
   }, [session.id])
 
+  // Chantier 159 — la liste des inscrits existe pour les trois types de séance
+  // (débat simple et sondage compris) : plus de garde sur `showVotingSections`.
   useEffect(() => {
-    if (!showVotingSections) return
     loadMembers()
     const interval = setInterval(loadMembers, 15000)
     return () => clearInterval(interval)
-  }, [loadMembers, showVotingSections])
+  }, [loadMembers])
 
   /**
    * Chantier 19 (G4) — marquage « modérateur pour cette séance ».
@@ -3307,6 +3308,29 @@ function SessionDetail({
     }
   }
 
+  // Chantier 159 — accordéon « Participants inscrits », identique dans les trois
+  // types de séance ; seules les colonnes sans objet pour le type sont masquées
+  // (voir `MembersPanel`). Rendu dans l'onglet Tables (séance complète, débat
+  // simple) ou tout en bas de « En direct » (sondage).
+  const membersAccordion = (
+    <SectionAccordion
+      title="Participants inscrits"
+      open={membersOpen}
+      onToggle={() => setMembersOpen(o => !o)}
+      badge={membersLoading ? '…' : `${members.length}`}
+      onRefresh={loadMembers}
+    >
+      <MembersPanel
+        members={members}
+        loading={membersLoading}
+        sessionType={sessionType}
+        onToggleModerator={sessionType === 'poll' ? undefined : handleToggleModerator}
+        onRegenerateCode={(id, pseudo) => setRegenTarget({ id, pseudo })}
+        onDeleteMember={(id, pseudo) => setMemberToDelete({ id, pseudo })}
+      />
+    </SectionAccordion>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-4">
@@ -3531,6 +3555,10 @@ function SessionDetail({
                     )}
                   </section>
                 )}
+
+                {/* Chantier 159 — sondage : pas d'onglet Tables, la liste des inscrits
+                    est tout en bas de « En direct » (consigne de Jules du 2026-10-05). */}
+                {sessionType === 'poll' && membersAccordion}
               </div>
             )}
 
@@ -3544,23 +3572,11 @@ function SessionDetail({
                     le nom exact d'un participant à saisir dans « ajouter un
                     modérateur », ou à le repérer avant de le glisser d'un groupe
                     à l'autre. */}
-                {showVotingSections && (
-                  <SectionAccordion
-                    title="Participants inscrits"
-                    open={membersOpen}
-                    onToggle={() => setMembersOpen(o => !o)}
-                    badge={membersLoading ? '…' : `${members.length}`}
-                    onRefresh={loadMembers}
-                  >
-                    <MembersPanel
-                      members={members}
-                      loading={membersLoading}
-                      onToggleModerator={handleToggleModerator}
-                      onRegenerateCode={(id, pseudo) => setRegenTarget({ id, pseudo })}
-                      onDeleteMember={(id, pseudo) => setMemberToDelete({ id, pseudo })}
-                    />
-                  </SectionAccordion>
-                )}
+                {/* Chantier 159 — l'accordéon existe aussi en débat simple (tout
+                    en haut de cet onglet, comme en séance complète) ; en sondage
+                    il vit tout en bas de l'onglet « En direct » (pas d'onglet
+                    Tables). */}
+                {sessionType !== 'poll' && membersAccordion}
 
                 {/* Chantier 19 — Allocation v2 : déclenchement manuel en phase
                     `allocating` (§7). Le panneau « Réponses modérateur » (E4)
@@ -4677,19 +4693,29 @@ function SessionDetail({
           body={
             <div className="space-y-2 text-left">
               <p>
-                Suppression <strong>définitive</strong>, à n'importe quelle phase : son
-                inscription, ses votes, ses réponses (onboarding, questionnaire), son
-                siège de table et son affectation disparaissent.
+                Suppression <strong>définitive</strong>, à n'importe quelle phase :{' '}
+                {sessionType === 'debate'
+                  ? "son inscription, ses réponses (questionnaire), son siège de table et son affectation disparaissent."
+                  : sessionType === 'poll'
+                    ? 'son inscription et ses votes disparaissent.'
+                    : "son inscription, ses votes, ses réponses (onboarding, questionnaire), son siège de table et son affectation disparaissent."}
               </p>
-              <p>
-                Les assertions qu'elle a proposées sont <strong>conservées</strong> (auteur
-                détaché) pour ne pas fausser les votes des autres. Si elle animait une
-                table, celle-ci repasse sans animateur.
-              </p>
-              <p className="text-xs text-amber-700">
-                Une analyse déjà calculée n'est pas recalculée : les camps peuvent bouger
-                au prochain calcul.
-              </p>
+              {sessionType !== 'debate' && (
+                <p>
+                  Les assertions qu'elle a proposées sont <strong>conservées</strong> (auteur
+                  détaché) pour ne pas fausser les votes des autres.
+                  {sessionType === 'full' && " Si elle animait une table, celle-ci repasse sans animateur."}
+                </p>
+              )}
+              {sessionType === 'debate' && (
+                <p>Si elle animait la table, celle-ci repasse sans animateur.</p>
+              )}
+              {sessionType !== 'debate' && (
+                <p className="text-xs text-amber-700">
+                  Une analyse déjà calculée n'est pas recalculée : les camps peuvent bouger
+                  au prochain calcul.
+                </p>
+              )}
               {deletingMember && <p className="text-xs text-gray-400">Suppression en cours…</p>}
             </div>
           }
@@ -4709,8 +4735,10 @@ function SessionDetail({
               {deleteMemberReport.pseudo} a été supprimé·e
             </h2>
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-0.5">
-              <li>{deleteMemberReport.votes_deleted} vote(s) supprimé(s)</li>
-              <li>{deleteMemberReport.assertions_detached} assertion(s) conservée(s), auteur détaché</li>
+              {sessionType !== 'debate' && (<>
+                <li>{deleteMemberReport.votes_deleted} vote(s) supprimé(s)</li>
+                <li>{deleteMemberReport.assertions_detached} assertion(s) conservée(s), auteur détaché</li>
+              </>)}
               {deleteMemberReport.seats_removed > 0 && (
                 <li>{deleteMemberReport.seats_removed} siège(s) de table retiré(s)</li>
               )}
@@ -6095,9 +6123,13 @@ function MembersPanel({
   onToggleModerator,
   onRegenerateCode,
   onDeleteMember,
+  sessionType = 'full',
 }: {
   members: SessionMemberAdmin[]
   loading: boolean
+  /** Chantier 159 — masque les colonnes sans objet : pas d'onboarding ni de vote
+   *  dans un débat simple, pas d'onboarding dans un sondage. */
+  sessionType?: SessionType
   /** Chantier 137-D — croix rouge : supprimer le participant de la base (avec confirmation). */
   onDeleteMember?: (memberId: string, pseudo: string) => void
   /** Chantier 19 (G4) — absent si la migration n'est pas appliquée. */
@@ -6127,6 +6159,9 @@ function MembersPanel({
     return <p className="text-sm text-gray-400 text-center py-4">Aucun participant inscrit</p>
   }
 
+  const showOnboardingCol = sessionType === 'full'
+  const showVotedCol      = sessionType !== 'debate'
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
@@ -6135,27 +6170,35 @@ function MembersPanel({
             <SortableTh label="Pseudo" sortKey="pseudo" sort={sort} onSort={handleSort} />
             <SortableTh label="Heure" sortKey="created_at" sort={sort} onSort={handleSort} />
             <SortableTh label="Phase" sortKey="joined_phase" sort={sort} onSort={handleSort} />
-            <SortableTh
-              label="Q."
-              title="Questionnaire d'entrée rempli"
-              sortKey="has_entry_response"
-              sort={sort} onSort={handleSort}
-              className="text-center py-2 pr-3"
-            />
-            <SortableTh
-              label="V."
-              title="A voté"
-              sortKey="has_voted"
-              sort={sort} onSort={handleSort}
-              className="text-center py-2 pr-3"
-            />
-            <SortableTh
-              label="🎙️"
-              title="Modérateur pour cette séance (utilisé par l'allocation)"
-              sortKey="is_moderator"
-              sort={sort} onSort={handleSort}
-              className="text-center py-2"
-            />
+            {showOnboardingCol && (
+              <SortableTh
+                label="Q."
+                title="Questionnaire d'entrée rempli"
+                sortKey="has_entry_response"
+                sort={sort} onSort={handleSort}
+                className="text-center py-2 pr-3"
+              />
+            )}
+            {showVotedCol && (
+              <SortableTh
+                label="V."
+                title="A voté"
+                sortKey="has_voted"
+                sort={sort} onSort={handleSort}
+                className="text-center py-2 pr-3"
+              />
+            )}
+            {onToggleModerator && (
+              <SortableTh
+                label="🎙️"
+                title={sessionType === 'full'
+                  ? "Modérateur pour cette séance (utilisé par l'allocation)"
+                  : 'Modérateur de la table'}
+                sortKey="is_moderator"
+                sort={sort} onSort={handleSort}
+                className="text-center py-2"
+              />
+            )}
             {/* Chantier 93 — régénération du code de rappel. */}
             {onRegenerateCode && <th className="text-center py-2 pl-3 font-medium">Code</th>}
             {onDeleteMember && <th className="py-2 pl-3 w-8" aria-label="Supprimer" />}
@@ -6181,16 +6224,21 @@ function MembersPanel({
                   <span className="text-gray-300">—</span>
                 )}
               </td>
-              <td className="py-2 pr-3 text-center">
-                {m.has_entry_response ? '✅' : '⬜'}
-              </td>
-              <td className="py-2 pr-3 text-center">
-                {m.has_voted ? '✅' : '⬜'}
-              </td>
+              {showOnboardingCol && (
+                <td className="py-2 pr-3 text-center">
+                  {m.has_entry_response ? '✅' : '⬜'}
+                </td>
+              )}
+              {showVotedCol && (
+                <td className="py-2 pr-3 text-center">
+                  {m.has_voted ? '✅' : '⬜'}
+                </td>
+              )}
               {/* Chantier 19 (G4) — marquage modérateur. Critère dur de
-                  l'allocation : à poser AVANT de lancer la répartition. */}
-              <td className="py-2 text-center">
-                {onToggleModerator ? (
+                  l'allocation : à poser AVANT de lancer la répartition.
+                  Chantier 159 : colonne absente en sondage (aucune table). */}
+              {onToggleModerator && (
+                <td className="py-2 text-center">
                   <button
                     onClick={() => onToggleModerator(m.id, !m.is_moderator)}
                     title={m.is_moderator
@@ -6204,10 +6252,8 @@ function MembersPanel({
                   >
                     {m.is_moderator ? 'modérateur' : '+ modérateur'}
                   </button>
-                ) : (
-                  <span className="text-gray-300">—</span>
-                )}
-              </td>
+                </td>
+              )}
               {onRegenerateCode && (
                 <td className="py-2 pl-3 text-center">
                   <button
