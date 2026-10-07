@@ -146,7 +146,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
       className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
-      <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] animate-entree">
+      <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden rounded-[12px] animate-entree">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">

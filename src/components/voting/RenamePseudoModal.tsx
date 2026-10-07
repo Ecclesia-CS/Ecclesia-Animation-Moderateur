@@ -73,7 +73,7 @@ export default function RenamePseudoModal({
       className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 px-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white w-full sm:max-w-sm shadow-2xl p-5 space-y-4">
+      <div className="bg-white w-full sm:max-w-sm shadow-2xl p-5 space-y-4 rounded-t-[12px] sm:rounded-[12px]">
         <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nom et code de rappel</h2>
 
         {done ? (

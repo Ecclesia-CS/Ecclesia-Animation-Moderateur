@@ -25,7 +25,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
       className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white shadow-2xl p-6 flex flex-col items-center gap-4 max-w-xs w-full animate-entree">
+      <div className="bg-white shadow-2xl p-6 flex flex-col items-center gap-4 max-w-xs w-full rounded-[12px] animate-entree">
         <h2 className="font-serif text-xl font-semibold text-bleu-fonce text-center">{title}</h2>
         {svg ? (
           <div className="w-56 h-56 p-2 border border-bleu-fonce/10 [&_svg]:w-full [&_svg]:h-full" dangerouslySetInnerHTML={{ __html: svg }} />

@@ -51,7 +51,7 @@ export default function ChangeTableModal({
 
   return (
     <div className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="w-full max-w-sm bg-white shadow-lg border border-bleu-fonce/10 p-6" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm bg-white shadow-lg border border-bleu-fonce/10 p-6 rounded-[12px]" onClick={e => e.stopPropagation()}>
         <div className="text-center mb-4">
           <div className="text-4xl mb-3">🔀</div>
           <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Changer de table</h2>
