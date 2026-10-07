@@ -1272,19 +1272,21 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         {revoteAssertion && (
           <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setRevoteAssertion(null)}>
-            <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
+            <div className="bg-creme w-full max-w-sm max-h-[90vh] shadow-2xl flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
               onClick={e => e.stopPropagation()}>
               <EnTeteFenetre titre={<>Changer mon vote</>} onClose={() => setRevoteAssertion(null)} />
-              <AssertionCard
-                assertion={revoteAssertion}
-                existingVote={myVotes.get(revoteAssertion.id) ?? null}
-                onVote={async vote => {
-                  await handleVote(revoteAssertion.id, vote)
-                  setRevoteAssertion(null)
-                }}
-                index={0}
-                total={1}
-              />
+              <div className="overflow-y-auto bg-creme px-4 pb-4">
+                <AssertionCard
+                  assertion={revoteAssertion}
+                  existingVote={myVotes.get(revoteAssertion.id) ?? null}
+                  onVote={async vote => {
+                    await handleVote(revoteAssertion.id, vote)
+                    setRevoteAssertion(null)
+                  }}
+                  index={0}
+                  total={1}
+                />
+              </div>
             </div>
           </div>
         )}

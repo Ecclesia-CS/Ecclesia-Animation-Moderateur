@@ -2,18 +2,18 @@
 // ResultsMapScreen — Carte d'opinion post-séance (vue participant)
 // =============================================================
 
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { loadResultsMap } from '../lib/analysis'
 import { getMyTableAssignment, getVoteResults, proposalsMentionable } from '../lib/voting'
 import type { ResultsMapData } from '../lib/analysis'
 import type { Session, GroupNameResult, VoteResult } from '../lib/types'
 import type { AssignmentWithJoinCode } from '../lib/voting'
-import PhaseIndicator from '../components/PhaseIndicator'
 import PostVoteScreen from './PostVoteScreen'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import { sessionTypeOf } from '../lib/phaseLabels'
-import { titreSeance } from '../lib/utils'
+import PageParcours, { BOUTON_VERRE_PARCOURS, CARTE_PARCOURS, ChargementParcours, ErreurParcours } from '../components/PageParcours'
+import FondQuadrille from '../components/FondQuadrille'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2b4a86', '#b04a3c', '#3f8462', '#c8742a', '#6b4c8a']
@@ -67,7 +67,16 @@ function ScatterSVG({
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-sm mx-auto block" aria-label="Carte des opinions">
+      <div className="relative overflow-hidden rounded-[8px] bg-creme ring-1 ring-bleu-fonce/10">
+      <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full text-bleu-fonce/[0.07]">
+        <defs>
+          <pattern id="quadrillage-carte" width="28" height="28" patternUnits="userSpaceOnUse">
+            <path d="M28 0H0V28" fill="none" stroke="currentColor" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#quadrillage-carte)" />
+      </svg>
+      <svg viewBox={`0 0 ${W} ${H}`} className="relative w-full max-w-sm mx-auto block" aria-label="Carte des opinions">
         {others.map((p, i) => (
           <circle key={i} cx={cx(p.pca_x)} cy={cy(p.pca_y)} r={5}
             fill={groupColor(p.group_id)} opacity={0.6} />
@@ -88,9 +97,10 @@ function ScatterSVG({
           </>
         )}
       </svg>
+      </div>
 
       {/* Légende — couleur du groupe réelle, mise en évidence pour le groupe du participant */}
-      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3 justify-center">
+      <div className="mt-4 grid gap-1">
         {groups.map(g => {
           const gn     = groupNames.find(n => n.table_number === g + 1)
           const isSelf = g === selfGroupId
@@ -98,11 +108,11 @@ function ScatterSVG({
           return (
             <div
               key={g}
-              className="flex items-start gap-1.5 text-xs px-2 py-1"
+              className="rounded-[6px] flex items-start gap-2 text-xs px-2.5 py-1.5"
               style={isSelf ? { backgroundColor: color + '18', outline: `1px solid ${color}60` } : {}}
             >
               <span
-                className="inline-block w-3 h-3 flex-shrink-0 mt-0.5"
+                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 mt-[3px]"
                 style={{ backgroundColor: color }}
               />
               <div>
@@ -123,7 +133,7 @@ function ScatterSVG({
       </div>
 
       {self && (
-        <p className="text-center text-xs text-gray-500 mt-2">● Grand point = votre position</p>
+        <p className="text-center text-xs text-gray-600 mt-3">Le grand point cerclé de blanc, c'est vous.</p>
       )}
     </div>
   )
@@ -172,8 +182,8 @@ function topClivantes(
 function RepnessBadge({ score, color }: { score: number; color: string }) {
   return (
     <span
-      className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5"
-      style={{ backgroundColor: color + '20', color }}
+      className="rounded-[6px] flex-shrink-0 mt-0.5 text-xs font-bold tabular-nums px-1.5 py-0.5"
+      style={{ backgroundColor: color + '1f', color }}
     >
       {score.toFixed(1)}
     </span>
@@ -183,9 +193,9 @@ function RepnessBadge({ score, color }: { score: number; color: string }) {
 // ── Légende score repness ─────────────────────────────────────
 function RepnessLegend() {
   return (
-    <div className="bg-gray-50 px-3 py-2.5 mb-3">
-      <p className="text-xs font-semibold text-gray-500 mb-0.5">Explication du score</p>
-      <p className="text-xs text-gray-500">
+    <div className="rounded-[8px] bg-gray-100 px-3 py-2.5 mb-3">
+      <p className="text-xs font-semibold text-gray-700 mb-0.5">Explication du score</p>
+      <p className="text-xs text-gray-600">
         Le score sur 5 mesure à quel point votre groupe se distingue des autres sur cette affirmation :
         différence d'accord moyen × nombre de votants dans le groupe. Plus il est élevé, plus l'assertion est caractéristique.
       </p>
@@ -285,57 +295,41 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
-
-        <div>
-          <div className="mb-2"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">
-            {sessionTypeOf(session) === 'poll' ? 'Votre position dans le sondage' : 'Votre position dans le débat'}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">{titreSeance(session.title)}</p>
-          <button
-            onClick={() => { if (onBack) onBack(); else window.location.hash = '' }}
-            className="mt-3 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            {onBack ? 'Retour au vote' : 'Retour au menu'}
-          </button>
-        </div>
+    <PageParcours
+      session={session}
+      sousTitre={isPoll ? 'Votre position dans le sondage' : 'Votre position dans le débat'}
+      sansMenu={!!onBack}
+      actions={onBack && <button onClick={onBack} className={BOUTON_VERRE_PARCOURS}>Retour au vote</button>}
+    >
+      <div className="space-y-5">
 
         {/* Chantier 69 — le débat a peut-être fait bouger les positions : proposer de revoter.
             Chantier 89 — n'a de sens que pendant la phase 'post_voting' : une fois la séance
             passée en 'closed', le superadmin a fermé la fenêtre de revote. */}
         {session.phase === 'post_voting' && (
-          <section className="bg-indigo-600 px-5 py-5 text-center space-y-2">
-            <p className="font-serif text-lg font-semibold leading-snug text-creme">Le débat a peut-être changé ton avis.</p>
-            <p className="text-indigo-100 text-xs">
+          <section className="relative overflow-hidden rounded-[12px] bg-bleu-fonce px-5 py-6 text-center shadow-[0_26px_54px_-26px_rgba(21,35,63,0.75)] animate-montee">
+            <FondQuadrille cases={4} />
+            <div className="relative space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair">Revote ouvert</p>
+            <p className="font-sans text-xl font-bold leading-snug tracking-[-0.01em] text-creme">Le débat a peut-être changé ton avis.</p>
+            <p className="text-creme/75 text-sm leading-relaxed">
               {proposalsMentionable(session)
                 ? "Revote sur tes propres assertions, propose-en une nouvelle, ou découvre celles que tu n'as pas encore vues."
                 : "Revote sur tes propres assertions, ou découvre celles que tu n'as pas encore vues."}
             </p>
             <button
               onClick={() => setShowPostVote(true)}
-              className="mt-1 w-full py-3 px-4 bg-white hover:bg-creme text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+              className="mt-2 w-full rounded-[8px] py-3 px-4 bg-creme hover:bg-white text-bleu-fonce text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
             >
               Revoter
             </button>
+            </div>
           </section>
         )}
 
-        {loading && (
-          <div className="flex justify-center py-12">
-            <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-          </div>
-        )}
+        {loading && <ChargementParcours texte="Chargement des résultats…" />}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <ErreurParcours>{error}</ErreurParcours>}
 
         {!loading && (
           <>
@@ -346,31 +340,28 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
                 != null, table physique de débat) mais aucun camp — ne pas afficher "pas encore
                 nommé" dans ce cas, réservé à un camp qui existe mais n'a pas encore de nom. */}
             {(assignment != null || isPoll) && selfGroupId !== null && (
-              <section className="bg-white border border-bleu-fonce/10 overflow-hidden">
+              <section className="overflow-hidden rounded-[12px] bg-white shadow-[0_26px_54px_-26px_rgba(21,35,63,0.6)] animate-montee">
                 <div
-                  className="px-6 py-5 text-center"
-                  style={{ backgroundColor: selfGroupId !== null ? groupColor(selfGroupId) : '#15233f' }}
+                  className="relative overflow-hidden px-6 pt-6 pb-7 text-center"
+                  style={{ backgroundColor: groupColor(selfGroupId) }}
                 >
-                  <p className="text-sm font-medium mb-1 opacity-80" style={{ color: 'white' }}>Votre groupe</p>
-                  <p className="font-serif text-white text-4xl font-semibold tracking-tight">
+                  <FondQuadrille cases={4} />
+                  <p className="relative text-[11px] font-bold uppercase tracking-[0.2em] text-white/80 mb-2">Votre groupe</p>
+                  <p className="relative break-words font-sans text-white text-3xl font-bold leading-tight tracking-[-0.02em] sm:text-4xl">
                     {groupName ? groupName.name : 'Camp pas encore nommé'}
                   </p>
                 </div>
-                {groupName ? (
-                  <div className="px-6 py-4 text-center space-y-0.5">
-                    <p className="text-xs text-gray-500">{groupName.description}</p>
-                  </div>
-                ) : (
-                  <div className="px-6 py-4 text-center">
-                    <p className="text-xs text-gray-500">L'organisateur n'a pas encore nommé les groupes.</p>
-                  </div>
-                )}
+                <div className="px-6 py-4 text-center">
+                  <p className="text-sm leading-relaxed text-gray-600">
+                    {groupName ? groupName.description : "L'organisateur n'a pas encore nommé les groupes."}
+                  </p>
+                </div>
               </section>
             )}
 
             {/* ── Ce qui caractérise votre groupe ──────────────── */}
             {myGroupTop.length > 0 && selfGroupId !== null && (
-              <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+              <section className={CARTE_PARCOURS}>
                 <h2 className="font-sans text-[11px] font-bold uppercase tracking-[0.16em] mb-1" style={{ color: groupColor(selfGroupId) }}>
                   Ce qui vous caractérise
                 </h2>
@@ -396,9 +387,9 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
             {/* ── Pas d'analyse PCA ────────────────────────────── */}
             {!error && !data && (
-              <div className="bg-white border border-bleu-fonce/10 px-5 py-8 text-center">
-                <p className="text-sm text-gray-500">La carte des opinions n'est pas encore disponible.</p>
-                <p className="text-xs text-gray-500 mt-1">
+              <div className="rounded-[12px] border border-bleu-fonce/10 bg-white px-5 py-8 text-center shadow-sm animate-montee">
+                <p className="text-sm font-semibold text-bleu-fonce">La carte des opinions n'est pas encore disponible.</p>
+                <p className="text-xs text-gray-600 mt-1">
                   {isPoll
                     ? "Les camps apparaissent dès que l'organisateur lance l'analyse des votes, et se mettent à jour à chaque nouvelle analyse."
                     : "Revenez plus tard : l'organisateur publie les résultats après analyse."}
@@ -409,7 +400,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
             {!error && data && (
               <>
                 {/* ── Scatter avec légende nommée ──────────────── */}
-                <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+                <section className={CARTE_PARCOURS}>
                   <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">Carte des opinions</h2>
                   <p className="text-xs text-gray-500 mb-4">
                     Chaque point représente un participant. Les couleurs indiquent les camps d'opinion détectés.
@@ -419,7 +410,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
                 {/* ── Les autres camps ─────────────────────────── */}
                 {otherGroupTops.length > 0 && (
-                  <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+                  <section className={CARTE_PARCOURS}>
                     <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                       Les autres camps
                     </h2>
@@ -460,7 +451,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
                 {/* ── Points de consensus global ────────────────── */}
                 {consensus.length > 0 && (
-                  <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+                  <section className={CARTE_PARCOURS}>
                     <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">Points de consensus</h2>
                     <p className="text-xs text-gray-500 mb-3">
                       Ces affirmations ont recueilli un large accord parmi tous les participants.
@@ -468,7 +459,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
                     <ul className="space-y-2">
                       {consensus.map((item, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 bg-green-50 text-green-700">
+                          <span className="rounded-[6px] flex-shrink-0 mt-0.5 text-xs font-bold tabular-nums px-1.5 py-0.5 bg-green-50 text-green-700">
                             {item.score.toFixed(2)}
                           </span>
                           <span>{item.content}</span>
@@ -480,35 +471,34 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
                 {/* ── Points de clivage (repness spread) ───────── */}
                 {clivantes !== null && clivantes.length > 0 && (
-                  <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+                  <section className={CARTE_PARCOURS}>
                     <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">Points de clivage</h2>
                     <p className="text-xs text-gray-500 mb-4">
                       Ces affirmations ont divisé les camps : les groupes ne s'accordaient pas.
                     </p>
-                    <ul className="space-y-4">
+                    <ul className="divide-y divide-bleu-fonce/10">
                       {clivantes.map((item, i) => (
-                        <li key={i}>
-                          <p className="text-sm text-gray-700 mb-1.5">{item.content}</p>
-                          <div className="flex flex-wrap gap-2">
+                        <li key={i} className="py-3.5 first:pt-0 last:pb-0">
+                          <p className="text-sm text-gray-800 mb-2">{item.content}</p>
+                          <div className="grid grid-cols-[minmax(0,8rem)_1fr_2rem] items-center gap-x-2.5 gap-y-1.5 text-xs">
                             {item.scores.map(s => {
                               const gn = allGroupNames.find(n => n.table_number === s.groupId + 1)
                               return (
-                                <div key={s.groupId} className="flex items-center gap-1.5 text-xs">
-                                  <span className="inline-block w-2 h-2 flex-shrink-0"
-                                    style={{ backgroundColor: groupColor(s.groupId) }} />
-                                  <span className="text-gray-500">
-                                    {gn?.name ?? `Gr. ${s.groupId + 1}`}
+                                <Fragment key={s.groupId}>
+                                  <span className="flex min-w-0 items-center gap-1.5 text-gray-600">
+                                    <span className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: groupColor(s.groupId) }} />
+                                    <span className="truncate">{gn?.name ?? `Groupe ${s.groupId + 1}`}</span>
                                   </span>
-                                  <div className="flex items-center gap-0.5">
-                                    <div className="h-2 min-w-[4px]"
+                                  <span className="h-2 bg-gray-100">
+                                    <span className="block h-full"
                                       style={{
                                         backgroundColor: groupColor(s.groupId),
-                                        width:           `${Math.round(Math.max(s.score, 0) * 32)}px`,
-                                        opacity:         0.75,
+                                        width:           `${Math.min(100, Math.max(s.score, 0) / 5 * 100)}%`,
                                       }} />
-                                    <span className="text-gray-500 font-mono">{s.score.toFixed(1)}</span>
-                                  </div>
-                                </div>
+                                  </span>
+                                  <span className="text-right font-semibold tabular-nums text-gray-700">{s.score.toFixed(1)}</span>
+                                </Fragment>
                               )
                             })}
                           </div>
@@ -522,13 +512,13 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
             {/* ── Fallback dissensus sans PCA ──────────────────── */}
             {dissensusFromVotes.length > 0 && (
-              <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+              <section className={CARTE_PARCOURS}>
                 <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">Points de dissensus</h2>
                 <p className="text-xs text-gray-500 mb-3">Ces affirmations ont divisé les participants.</p>
                 <ul className="space-y-2">
                   {dissensusFromVotes.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="flex-shrink-0 mt-0.5 text-xs font-mono px-1.5 py-0.5 bg-red-50 text-red-700">
+                      <span className="rounded-[6px] flex-shrink-0 mt-0.5 text-xs font-bold tabular-nums px-1.5 py-0.5 bg-red-50 text-red-700">
                         {item.consensus_score?.toFixed(2)}
                       </span>
                       <span>{item.content}</span>
@@ -540,10 +530,10 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
           </>
         )}
 
-        <p className="text-center text-sm text-gray-500 pb-4">
+        <p className="text-center text-sm text-gray-600 pt-2">
           Merci pour votre participation à cette séance Ecclesia.
         </p>
       </div>
-    </div>
+    </PageParcours>
   )
 }

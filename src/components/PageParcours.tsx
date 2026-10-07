@@ -20,6 +20,8 @@ interface Props {
   basEnTete?: ReactNode
   /** Sans « Menu » (l'écran a son propre bouton pour quitter). */
   sansMenu?: boolean
+  /** Sans l'étape en surtitre (page publique, hors parcours). */
+  sansEtape?: boolean
   /** Largeur du contenu : `etroit` pour un formulaire, `large` pour le vote. */
   largeur?: 'etroit' | 'large'
   children: ReactNode
@@ -33,7 +35,7 @@ interface Props {
  * fond crème. Ni z-index ni isolation sur l'en-tête (voir FondQuadrille) :
  * l'indicateur d'étape et les boutons y ouvrent des fenêtres `fixed`.
  */
-export default function PageParcours({ session, sousTitre, actions, basEnTete, sansMenu = false, largeur = 'etroit', children }: Props) {
+export default function PageParcours({ session, sousTitre, actions, basEnTete, sansMenu = false, sansEtape = false, largeur = 'etroit', children }: Props) {
   const conteneur = largeur === 'large' ? 'max-w-2xl' : 'max-w-md'
   return (
     <div className="min-h-screen bg-creme flex flex-col">
@@ -74,8 +76,8 @@ export default function PageParcours({ session, sousTitre, actions, basEnTete, s
           </div>
 
           <div className="mt-5 animate-montee">
-            <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
-            <h1 className="mt-3 break-words font-sans text-[1.625rem] font-bold leading-[1.15] tracking-[-0.02em] text-creme sm:text-3xl">
+            {!sansEtape && <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />}
+            <h1 className={`${sansEtape ? '' : 'mt-3 '}break-words font-sans text-[1.625rem] font-bold leading-[1.15] tracking-[-0.02em] text-creme sm:text-3xl`}>
               {titreSeance(session.title)}
             </h1>
             {sousTitre && <p className="mt-1.5 text-sm text-creme/75">{sousTitre}</p>}
@@ -107,6 +109,35 @@ export function CarteMessage({ icone, titre, note, children }: {
       <h2 className="font-sans text-2xl font-bold tracking-[-0.01em] text-bleu-fonce">{titre}</h2>
       <p className="text-sm leading-relaxed text-gray-600">{children}</p>
       {note && <p className="text-xs text-gray-600">{note}</p>}
+    </div>
+  )
+}
+
+/** Carte de contenu du parcours (résultats, revote…). */
+export const CARTE_PARCOURS = 'rounded-[12px] border border-bleu-fonce/10 bg-white px-5 py-5 shadow-sm animate-montee'
+
+/** Surtitre d'une carte du parcours. */
+export const SURTITRE_PARCOURS = 'font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-bleu-fonce/70'
+
+/** Chargement dans le contenu d'une page du parcours : les trois cases du site. */
+export function ChargementParcours({ texte = 'Chargement…' }: { texte?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-12" role="status">
+      <span aria-hidden="true" className="flex gap-1.5">
+        {[0, 1, 2].map(i => (
+          <span key={i} className="block h-2.5 w-2.5 bg-bleu-fonce animate-speaking" style={{ animationDelay: `${i * 0.25}s` }} />
+        ))}
+      </span>
+      <p className="text-sm font-semibold text-anthracite">{texte}</p>
+    </div>
+  )
+}
+
+/** Message d'erreur dans le contenu d'une page du parcours. */
+export function ErreurParcours({ children }: { children: ReactNode }) {
+  return (
+    <div role="alert" className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {children}
     </div>
   )
 }

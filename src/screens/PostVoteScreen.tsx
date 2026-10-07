@@ -22,11 +22,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
 import { castVote, getMyAssertionIds, canProposeAssertion } from '../lib/voting'
-import { extractErr, titreSeance } from '../lib/utils'
+import { extractErr } from '../lib/utils'
 import type { Assertion, AssertionVote, Session } from '../lib/types'
 import AssertionCard from '../components/voting/AssertionCard'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
 import VoteProgress from '../components/voting/VoteProgress'
+import PageParcours, { BOUTON_VERRE_PARCOURS, CARTE_PARCOURS, ChargementParcours, ErreurParcours } from '../components/PageParcours'
+import EnTeteFenetre from '../components/EnTeteFenetre'
 
 interface PostVoteScreenProps {
   session: Session
@@ -42,17 +44,6 @@ function shuffle<T>(arr: T[]): T[] {
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
-}
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-12">
-      <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-      </svg>
-    </div>
-  )
 }
 
 export default function PostVoteScreen({ session, memberId, onBack }: PostVoteScreenProps) {
@@ -149,59 +140,46 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Revoter</h1>
-          <p className="text-sm text-gray-500 mt-1">{titreSeance(session.title)}</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Le débat a peut-être fait bouger tes positions : c'est le moment de le vérifier.
-          </p>
-          <button
-            onClick={onBack}
-            className="mt-3 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Retour aux résultats
-          </button>
-        </div>
+    <PageParcours
+      session={session}
+      sousTitre="Revoter : le débat a peut-être fait bouger tes positions."
+      sansMenu
+      actions={<button onClick={onBack} className={BOUTON_VERRE_PARCOURS}>Retour aux résultats</button>}
+    >
+      <div className="space-y-5">
+        {loading && <ChargementParcours />}
 
-        {loading && <Spinner />}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <ErreurParcours>{error}</ErreurParcours>}
 
         {!loading && !error && (
           <>
             {/* ── 1. Revoter sur ses propres assertions ─────────── */}
-            <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+            <section className={CARTE_PARCOURS}>
               <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                 1 · Tes assertions
               </h2>
-              <p className="text-xs text-gray-500 mb-3">
-                Ton avis a-t-il changé sur ce que tu as toi-même proposé ?
+              <p className="text-xs text-gray-600 mb-3">
+                Ton avis a-t-il changé sur ce que tu as toi-même proposé&nbsp;?
               </p>
               {myOwnAssertions.length === 0 ? (
                 <p className="text-sm text-gray-500">
                   Aucune de tes assertions n'a été approuvée dans cette séance.
                 </p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="divide-y divide-bleu-fonce/10">
                   {myOwnAssertions.map(a => {
                     const v = myVotes.get(a.id)
                     const icon = v?.vote === 'agree' ? '✅' : v?.vote === 'disagree' ? '❌' : v ? '⏭️' : null
                     return (
-                      <li key={a.id} className="flex items-start gap-2">
+                      <li key={a.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                        <p className="text-sm text-gray-800 leading-snug flex-1">{a.content}</p>
                         <button
                           onClick={() => setRevoteAssertion(a)}
-                          className="shrink-0 flex items-center gap-1 text-[10px] font-medium text-indigo-600 border border-indigo-200 pl-1.5 pr-2 py-0.5 hover:bg-indigo-50 transition-colors mt-0.5"
+                          className="rounded-[8px] shrink-0 inline-flex h-8 items-center gap-1.5 border border-bleu-fonce/20 px-2.5 text-xs font-semibold text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                         >
-                          {icon && <span className="text-sm leading-none">{icon}</span>}
+                          {icon && <span className="text-sm leading-none" aria-hidden="true">{icon}</span>}
                           <span>{icon ? 'Changer' : 'Voter'}</span>
                         </button>
-                        <p className="text-sm text-gray-800 leading-snug flex-1">{a.content}</p>
                       </li>
                     )
                   })}
@@ -211,17 +189,17 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
 
             {/* ── 2. Proposer une nouvelle assertion ─────────────── */}
             {canPropose && (
-            <section className="bg-white border border-bleu-fonce/10 px-5 py-5">
+            <section className={CARTE_PARCOURS}>
               <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                 2 · Proposer une nouvelle assertion
               </h2>
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-gray-600 mb-3">
                 Une idée t'est venue pendant le débat ? Elle suit le même circuit de modération
                 que pendant le vote.
               </p>
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+                className="w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 ✏️ Proposer une assertion
               </button>
@@ -235,20 +213,21 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
             )}
 
             {/* ── 3. Voter sur les assertions non vues ───────────── */}
-            <section className="bg-white border border-bleu-fonce/10 overflow-hidden">
-              <div className="px-5 pt-5 pb-1">
+            <section className="space-y-3">
+              <div className={CARTE_PARCOURS}>
                 <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                   {canPropose ? '3' : '2'} · Assertions non vues
                 </h2>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-600">
                   D'autres participants ont peut-être proposé de nouvelles idées depuis ton dernier vote.
                 </p>
+                {unvotedAssertions.length === 0 && (
+                  <p className="text-sm font-semibold text-bleu-fonce mt-3">
+                    Tu as déjà voté sur toutes les assertions disponibles.
+                  </p>
+                )}
               </div>
-              {unvotedAssertions.length === 0 ? (
-                <p className="text-sm text-gray-500 px-5 pb-5 pt-2">
-                  Tu as déjà voté sur toutes les assertions disponibles.
-                </p>
-              ) : currentUnvoted ? (
+              {unvotedAssertions.length > 0 && currentUnvoted && (
                 <>
                   <VoteProgress
                     voted={assertions.length - unvotedAssertions.length}
@@ -264,7 +243,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
                     total={unvotedAssertions.length}
                   />
                 </>
-              ) : null}
+              )}
             </section>
           </>
         )}
@@ -277,31 +256,22 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
           onClick={() => setRevoteAssertion(null)}
         >
           <div
-            className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
+            className="bg-creme w-full max-w-sm max-h-[90vh] shadow-2xl flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 pt-5 pb-1 flex-shrink-0">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Changer mon vote</h2>
-              <button
-                onClick={() => setRevoteAssertion(null)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-                aria-label="Fermer"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+            <EnTeteFenetre titre="Changer mon vote" onClose={() => setRevoteAssertion(null)} />
+            <div className="overflow-y-auto bg-creme px-4 pb-4">
+              <AssertionCard
+                assertion={revoteAssertion}
+                existingVote={myVotes.get(revoteAssertion.id) ?? null}
+                onVote={async vote => {
+                  await handleVote(revoteAssertion.id, vote)
+                  setRevoteAssertion(null)
+                }}
+                index={0}
+                total={1}
+              />
             </div>
-            <AssertionCard
-              assertion={revoteAssertion}
-              existingVote={myVotes.get(revoteAssertion.id) ?? null}
-              onVote={async vote => {
-                await handleVote(revoteAssertion.id, vote)
-                setRevoteAssertion(null)
-              }}
-              index={0}
-              total={1}
-            />
           </div>
         </div>
       )}
@@ -313,6 +283,6 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
           onSubmitted={() => setProposedJustNow(c => c + 1)}
         />
       )}
-    </div>
+    </PageParcours>
   )
 }

@@ -285,6 +285,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 158, lot 9 (2026-10-07) — Résultats refaits
+
+**Vérifié au navigateur** : résultats publics (deux anciennes séances de dev), résultats en direct d'un sondage, et sur une page d'aperçu aux données fictives : carte des camps, revote, fenêtre « Changer mon vote ».
+
+**Reste à voir à l'œil**
+- [ ] Sur une vraie séance en post-débat : carte des camps avec une vraie analyse (nuage, noms Gemini), revote réel et proposition d'assertion depuis le revote.
+- [ ] Résultats publics d'une séance avec nuage de points (aucune des anciennes séances vues n'avait d'analyse publiée).
+
 ## Chantier 158, lot 9 (2026-10-07) — Allocation refaite
 
 **Vérifié au navigateur** sur une page d'aperçu temporaire (données fictives, rien écrit en base) : carte de la table en allocation et en débat, attente de la formation des groupes.
