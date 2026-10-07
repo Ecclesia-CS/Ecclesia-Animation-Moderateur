@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { tableStore } from './lib/storage'
 import type { TableResult } from './lib/supabase'
@@ -15,6 +15,7 @@ import JoinTableScreen from './screens/JoinTableScreen'
 import PublicResultsScreen from './screens/PublicResultsScreen'
 import NotFoundScreen from './screens/NotFoundScreen'
 import ReconnectPrompt from './components/ReconnectPrompt'
+import ReclaimCodeDisplay from './components/voting/ReclaimCodeDisplay'
 
 type AppPhase =
   | { type: 'loading' }
@@ -27,6 +28,12 @@ type AppPhase =
    * rappel avant de pouvoir rappeler `join_table`.
    */
   | { type: 'reconnect'; sessionId: string; pseudo: string; joinCode: string; userId: string }
+  /**
+   * Chantier 158 — `join_table` a dû RÉINSCRIRE la personne à la séance (son
+   * inscription avait été supprimée, chantier 137) et lui a généré un code de
+   * rappel neuf, retourné une seule fois. À montrer avant d'entrer à la table.
+   */
+  | { type: 'new_code'; pseudo: string; code: string; tableId: string; participantId: string; userId: string }
 
 // Chantier 129 — préfixes de hash qui expriment une intention de navigation
 // explicite (lien/QR code fraîchement scanné). Partagé entre `init()` (pour
@@ -81,10 +88,26 @@ export default function App() {
     // Chantier 140 — `r.pseudo` : pseudo du membre de séance (peut différer
     // du pseudo mémorisé, ex. après un renommage — chantier 93).
     tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo: r.pseudo ?? pseudo })
+    // Chantier 158 — réinscription silencieuse (inscription supprimée, puis
+    // rechargement) : le code neuf ne se réaffiche jamais, on le montre ici.
+    if (r.new_reclaim_code) {
+      setPhase({
+        type: 'new_code', pseudo: r.pseudo ?? pseudo, code: r.new_reclaim_code,
+        tableId: r.id, participantId: r.participant_id, userId,
+      })
+      return
+    }
     setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
   }
 
+  // Chantier 158 — `init()` ne doit tourner qu'une fois : sous StrictMode (dev)
+  // la seconde passe retrouvait le participant que la première venait de
+  // recréer et écrasait l'écran « note ton code de rappel » par la table.
+  const initStarted = useRef(false)
+
   useEffect(() => {
+    if (initStarted.current) return
+    initStarted.current = true
     async function init() {
       // Ensure anonymous auth session
       let session = (await supabase.auth.getSession()).data.session
@@ -265,6 +288,18 @@ export default function App() {
 
   if (phase.type === 'entry') {
     return <EntryScreen />
+  }
+
+  if (phase.type === 'new_code') {
+    const { pseudo, code, tableId, participantId, userId } = phase
+    return (
+      <ReclaimCodeDisplay
+        pseudo={pseudo}
+        code={code}
+        continueLabel="Rejoindre la table →"
+        onContinue={() => setPhase({ type: 'table', tableId, participantId, userId, isModerator: false })}
+      />
+    )
   }
 
   if (phase.type === 'reconnect') {
