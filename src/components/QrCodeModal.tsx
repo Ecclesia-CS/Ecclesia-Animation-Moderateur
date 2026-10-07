@@ -23,7 +23,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white shadow-2xl flex flex-col max-w-xs w-full overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">

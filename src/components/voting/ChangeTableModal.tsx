@@ -51,7 +51,7 @@ export default function ChangeTableModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
       <div className="w-full max-w-sm bg-white shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
           <FondQuadrille cases={3} />

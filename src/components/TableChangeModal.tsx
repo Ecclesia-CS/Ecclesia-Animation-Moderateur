@@ -96,7 +96,7 @@ export default function TableChangeModal({
   if (!target) return null
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-sm bg-white shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
           <FondQuadrille cases={3} />

@@ -157,7 +157,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {panelOpen && (
         <div
-          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
+          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
           <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
@@ -302,7 +302,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {addPersonOpen && (
         <div
-          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
           onMouseDown={e => { if (e.target === e.currentTarget) { setAddPersonOpen(false); setAddPersonCode(null) } }}
         >
           <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
@@ -388,7 +388,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {assertionsOpen && (
         <div
-          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
+          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setAssertionsOpen(false) }}
         >
           <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">

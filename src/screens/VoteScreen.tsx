@@ -1210,7 +1210,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Modal intro vote */}
         {showVoteIntro && (
-          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
             onClick={closeVoteIntro}>
             <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
               onClick={e => e.stopPropagation()}>
@@ -1272,7 +1272,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Modal "Voir toutes les assertions" */}
         {showAllAssertions && (
-          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowAllAssertions(false)}>
             <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]"
               onClick={e => e.stopPropagation()}>
@@ -1355,7 +1355,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Modal "Changer mon vote" (D16) */}
         {revoteAssertion && (
-          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setRevoteAssertion(null)}>
             <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
               onClick={e => e.stopPropagation()}>
@@ -1461,7 +1461,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         {/* Nudge proposition toutes les 10 assertions — masqué si le verrou
             s'active pendant que le popup est déjà ouvert (chantier 133) */}
         {showProposalNudge && canProposeNow && (
-          <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
+          <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowProposalNudge(false)}>
             <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}>
@@ -1542,7 +1542,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4"
       onClick={handleClose}>
       <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
@@ -1581,7 +1581,7 @@ function AppIntroModal({ session, onClose }: AppIntroModalProps) {
 
 function ModeratorInfoModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4"
       onClick={onClose}>
       <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
@@ -1623,7 +1623,7 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4"
       onClick={handleClose}>
       <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
@@ -1716,7 +1716,7 @@ function VoteToolsPanel({ session, onClose, onOpenNotes, onOpenModeratorClaim, o
   return (
     <>
       <div
-        className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
+        className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
         onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
       >
         <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { useTable } from '../context/TableContext'
 import { useToast } from '../context/ToastContext'
@@ -17,6 +17,7 @@ export default function ParticipantsTable() {
   const now = useLiveMs()
   const [kickTarget, setKickTarget] = useState<Participant | null>(null)
   const [kickErr, setKickErr]       = useState<string | null>(null)
+  const etroit = useEtroit()
 
   function cumMs(participantId: string): number {
     return speakingTurns
@@ -52,9 +53,30 @@ export default function ParticipantsTable() {
           Séance&nbsp;: <span className="font-semibold text-creme">{formatDuration(sessionTotal)}</span>
         </span>
       </div>
-      {/* Sur téléphone, le tableau défile dans sa carte plutôt que d'élargir la page. */}
-      <div className="overflow-x-auto">
-      <table className="w-full min-w-[33rem] text-sm">
+      {/* Sur téléphone, une carte par personne : les six colonnes du tableau n'y
+          tiennent pas. Un seul des deux rendus est monté à la fois, sinon chaque
+          participant aurait deux poignées de glisser-déposer au même identifiant. */}
+      {etroit ? (
+        <ul>
+          {participants.map(p => {
+            const ms = totals.find(t => t.id === p.id)?.ms ?? 0
+            return (
+              <DraggableCard
+                key={p.id}
+                p={p}
+                ms={ms}
+                pct={sessionTotal > 0 ? Math.round((ms / sessionTotal) * 100) : 0}
+                isSpeaking={table.current_speaker_id === p.id}
+                isSelf={p.id === myParticipant.id}
+                table={table}
+                onGrantFloor={() => grantFloor(p.id, 'manual')}
+                onKick={() => setKickTarget(p)}
+              />
+            )
+          })}
+        </ul>
+      ) : (
+      <table className="w-full text-sm">
         <thead className="text-[11px] uppercase tracking-[0.12em] text-slate-300 border-b border-white/10">
           <tr>
             <th className="w-8" />
@@ -100,7 +122,7 @@ export default function ParticipantsTable() {
           </tfoot>
         )}
       </table>
-      </div>
+      )}
 
       {kickTarget && (
         <ConfirmModal
@@ -115,6 +137,124 @@ export default function ParticipantsTable() {
         <p className="px-4 pb-3 text-xs text-red-300">{kickErr}</p>
       )}
     </div>
+  )
+}
+
+// ── Largeur d'écran ────────────────────────────────────────────
+
+const REQUETE_ETROIT = '(max-width: 639px)'
+
+function useEtroit(): boolean {
+  const [etroit, setEtroit] = useState(() =>
+    typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(REQUETE_ETROIT).matches)
+  useEffect(() => {
+    if (!window.matchMedia) return
+    const mq = window.matchMedia(REQUETE_ETROIT)
+    const suivre = () => setEtroit(mq.matches)
+    mq.addEventListener('change', suivre)
+    return () => mq.removeEventListener('change', suivre)
+  }, [])
+  return etroit
+}
+
+// ── Draggable card (téléphone) ─────────────────────────────────
+
+function DraggableCard({
+  p, ms, pct, isSpeaking, isSelf, table, onGrantFloor, onKick,
+}: {
+  p: Participant
+  ms: number
+  pct: number
+  isSpeaking: boolean
+  isSelf: boolean
+  table: Table
+  onGrantFloor(): void
+  onKick(): void
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: 'p-' + p.id,
+    data: { type: 'participant', participantId: p.id },
+    disabled: isSpeaking,
+  })
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      className={`flex items-start gap-2 border-t border-white/[0.06] py-3 pl-2 pr-4 first:border-t-0 ${
+        isSpeaking ? 'bg-amber-400/10' : ''
+      }`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        disabled={isSpeaking}
+        title="Glisser vers une file"
+        aria-label={`Glisser ${p.pseudo} vers une file`}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-slate-400 hover:bg-white/10 hover:text-creme cursor-grab
+          active:cursor-grabbing disabled:opacity-20 disabled:cursor-not-allowed
+          transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60"
+      >
+        <DragHandleIcon />
+      </button>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex min-h-8 items-center gap-3">
+          <span className={`min-w-0 flex-1 truncate text-sm font-medium ${isSpeaking ? 'font-semibold text-amber-200' : 'text-creme'}`}>
+            {p.pseudo}
+          </span>
+          {isSpeaking && table.current_turn_started_at && (
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-amber-300">
+              <MicIcon />
+              <SpeakerTimer startedAt={table.current_turn_started_at} className="tabular-nums" />
+            </span>
+          )}
+          <span className="shrink-0 text-sm tabular-nums text-slate-200">{formatDuration(ms)}</span>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2">
+          <div aria-hidden="true" className="h-1.5 min-w-0 flex-1 overflow-hidden bg-white/10">
+            <div className="h-full bg-bleu-clair transition-all duration-500" style={{ width: `${pct}%` }} />
+          </div>
+          <span className="w-8 shrink-0 text-right text-xs tabular-nums text-slate-300">{pct}%</span>
+          <button
+            onClick={onGrantFloor}
+            disabled={isSpeaking}
+            className="inline-flex h-8 shrink-0 items-center rounded-[6px] border border-white/15 bg-white/5 px-3 text-xs font-semibold
+              text-slate-200 transition-colors hover:border-bleu-clair/50 hover:bg-bleu-clair/15 hover:text-creme disabled:opacity-30
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 whitespace-nowrap"
+          >
+            Donner la parole
+          </button>
+          {!isSelf ? (
+            <button
+              onClick={onKick}
+              title="Bannir"
+              aria-label={`Exclure ${p.pseudo}`}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] border border-red-400/30 text-red-300
+                transition-colors hover:border-red-400/60 hover:bg-red-500/15
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              <TrashIcon />
+            </button>
+          ) : (
+            <span aria-hidden="true" className="h-8 w-8 shrink-0" />
+          )}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function MicIcon() {
+  return (
+    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
   )
 }
 

@@ -71,7 +71,7 @@ export default function RenamePseudoModal({
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 px-4"
+      className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 px-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white w-full sm:max-w-sm shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10">

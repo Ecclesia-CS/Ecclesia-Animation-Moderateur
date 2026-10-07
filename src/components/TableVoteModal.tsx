@@ -80,7 +80,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div

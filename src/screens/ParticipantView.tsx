@@ -501,7 +501,7 @@ export default function ParticipantView() {
       {/* Questionnaire forcé par le modérateur — modal verrouillé */}
       {/* ── Panorama d'accueil — affiché une seule fois par table, avant les règles (chantier 40) ── */}
       {showWelcome && (
-        <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
             <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
               <FondQuadrille cases={3} />

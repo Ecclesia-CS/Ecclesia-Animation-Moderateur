@@ -112,7 +112,7 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-bleu-fonce/50 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div className="w-full max-w-md bg-white p-5 space-y-4" onClick={e => e.stopPropagation()}>
         <div>
           {/* Chantier 150 — « facultatif » en première ligne, comme à l'onboarding. */}

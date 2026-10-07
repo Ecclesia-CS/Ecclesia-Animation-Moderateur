@@ -46,7 +46,7 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
 
   if (done) {
     return (
-      <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
         <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden p-6 text-center space-y-4" onClick={e => e.stopPropagation()}>
           <p className="text-3xl">✅</p>
           <p className="text-sm text-gray-700">Tu es marqué·e modérateur pour cette séance.</p>
@@ -62,7 +62,7 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="bg-bleu-fonce px-6 py-5 text-center">
           <p className="text-2xl mb-1">🎙️</p>

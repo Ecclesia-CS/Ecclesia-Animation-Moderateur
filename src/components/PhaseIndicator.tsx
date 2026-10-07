@@ -80,7 +80,7 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
 
       {open && (
         <div
-          className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4"
+          className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4"
           onClick={() => setOpen(false)}
         >
           <div

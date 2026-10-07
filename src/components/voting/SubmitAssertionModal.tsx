@@ -37,7 +37,7 @@ export default function SubmitAssertionModal({
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="w-full max-w-md bg-white shadow-xl p-6 space-y-4">

@@ -290,6 +290,8 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 **Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », « Modo Démo »), à 320, 375 et 800 px : en-tête quadrillé, « Micro libre », parole donnée à « Modo Démo » (carte ocre, puis rappel fixé en haut en descendant), pause, reprise et fin ; fenêtres Documentation, Outils Modo, Historique, Code participant, Proposer un vote, Ajouter une personne sans téléphone ; accueil du modérateur ; tableau des participants sans débordement à 800 px (il défile dans sa carte sur téléphone). Build OK, tests : 133 réussis, 4 ignorés.
 
 **Reste à voir à l'œil**
+- [ ] Glisser-déposer au doigt depuis les cartes des participants sur téléphone (finitions du 07/10, vérifiées au navigateur à 375 et 1 280 px : vague sous l'en-tête, cartes sans débordement, fenêtre « Exclure … ? » ouverte puis annulée).
+- [ ] Flou derrière les fenêtres (`backdrop-blur`) dans Messenger et sur un téléphone d'entrée de gamme : fluidité.
 - [ ] Glisser-déposer à la souris (participant vers une file, réordonner, passer d'une file à l'autre) : bulle arrondie, anneau de couleur de la file survolée, « Déposer ici ».
 - [ ] Grand écran (≥ 1 024 px) : colonne « Présents » à droite (256 px), collée sous le rappel de l'orateur quand on fait défiler.
 - [ ] Fenêtres Camps et Assertions votées avec de vraies données de vote, nouveau code de rappel (après « Réinitialiser le code »), vote en cours suivi en direct.

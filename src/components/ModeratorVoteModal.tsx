@@ -121,7 +121,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white w-full sm:max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">

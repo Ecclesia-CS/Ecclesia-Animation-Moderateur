@@ -478,20 +478,30 @@ export default function ModeratorView() {
   const auMicro = !!(speaker && table.current_turn_started_at)
 
   return (
-    <div className="min-h-screen bg-grain bg-slate-900 text-creme">
+    <div className="min-h-screen bg-grain bg-slate-950 text-creme">
 
       {/* ── En-tête : bandeau marine quadrillé, comme la vue participant ── */}
       {/* Ni z-index ni isolation ici (voir FondQuadrille) : Documentation, Outils
           Modo et l'indicateur d'étape y ouvrent des fenêtres fixed. L'en-tête
           n'est plus collant : c'est le rappel de l'orateur, plus bas, qui se fixe
           en haut de l'écran quand on fait défiler la page. */}
-      <header className="relative overflow-hidden border-b border-white/10 bg-bleu-fonce">
+      <header className="relative overflow-hidden bg-bleu-fonce">
         <FondQuadrille
           cases={6}
           bande={32}
           fondu="linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 55%, #000 88%)"
         />
-        <div className="relative mx-auto w-full max-w-6xl px-4 pb-6 pt-3 sm:px-6 sm:pt-4 md:pb-8">
+        {/* Même vague que la vue participant, dans le bleu plus profond de la page. */}
+        <svg
+          data-fond-libre
+          aria-hidden="true"
+          viewBox="0 0 800 40"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-3 w-full sm:h-4"
+        >
+          <path d="M0 0 Q400 80 800 0 V40 H0 Z" className="fill-slate-950" />
+        </svg>
+        <div className="relative mx-auto w-full max-w-6xl px-4 pb-8 pt-3 sm:px-6 sm:pt-4 md:pb-11">
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Emblème d'Ecclesia, sauf dans une séance d'association (chantier 135).
                 Masqué sous 360 px : les trois boutons prennent toute la ligne. */}
@@ -755,6 +765,7 @@ export default function ModeratorView() {
           queueInteractive={queueInteractive}
           tableId={table.id}
           isModerator={isModerator}
+          className={auMicro && !heroVisible ? 'lg:top-[4.5rem]' : 'lg:top-4'}
         />
 
       </main>
@@ -774,7 +785,7 @@ export default function ModeratorView() {
 
       {/* H23 — panorama d'accueil modérateur, affiché une seule fois par table */}
       {showModWelcome && (
-        <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] text-gray-900 ring-1 ring-white/10 animate-entree">
             <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
               <FondQuadrille cases={3} />
@@ -795,7 +806,7 @@ export default function ModeratorView() {
               <div className="flex items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-amber-50 text-lg">▶️</span>
                 <div>
-                  <p className="font-semibold text-anthracite">Donner/retirer la parole</p>
+                  <p className="font-semibold text-anthracite">Donner ou retirer la parole</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Les files « Prendre la parole sur un autre sujet » et « Demander la parole sur le sujet actuel » gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
                 </div>
               </div>
@@ -804,8 +815,8 @@ export default function ModeratorView() {
                 <div>
                   <p className="font-semibold text-anthracite">Outils Modo</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">{orgName
-                    ? "QR code de la table, ajout d'une personne sans téléphone, codes participants, historique et notes. Seule la documentation reste accessible depuis un bouton séparé du header."
-                    : 'Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.'}</p>
+                    ? "QR code de la table, ajout d'une personne sans téléphone, codes participants, historique et notes. Seule la documentation reste accessible depuis un bouton séparé, en haut de la page."
+                    : 'Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé, en haut de la page.'}</p>
                 </div>
               </div>
             </div>

@@ -1286,7 +1286,7 @@ function OrganizationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
@@ -1377,7 +1377,7 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
         {done ? (
           <div className="p-6 space-y-4">
@@ -1479,7 +1479,7 @@ function CreateModal({
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
@@ -4690,7 +4690,7 @@ function SessionDetail({
 
       {deleteMemberReport && (
         <div
-          className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setDeleteMemberReport(null) }}
         >
           <div className="bg-white w-full max-w-sm shadow-2xl p-5 space-y-3">
@@ -4737,7 +4737,7 @@ function SessionDetail({
           seule fois : seul son bcrypt est stocké. */}
       {regeneratedCode && (
         <div
-          className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setRegeneratedCode(null) }}
         >
           <div className="bg-white w-full max-w-sm shadow-2xl p-5 space-y-4 text-center">
@@ -4862,7 +4862,7 @@ function DebateExitModal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
       onClick={onCancel}
     >
       <div
@@ -5521,7 +5521,7 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
   const sorted = [...groups].sort((a, b) => a.table_number - b.table_number)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bleu-fonce/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bleu-fonce/60 backdrop-blur-[2px]">
       <div className="bg-white shadow-xl w-full max-w-lg overflow-hidden">
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <div>

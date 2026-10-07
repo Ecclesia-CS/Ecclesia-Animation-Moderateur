@@ -75,7 +75,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
           <FondQuadrille cases={3} />

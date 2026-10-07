@@ -21,7 +21,7 @@ interface Props {
    */
   tableId?: string
   isModerator?: boolean
-  /** Classes ajoutées à la version claire (animation d'arrivée). */
+  /** Classes ajoutées : animation d'arrivée (claire), arrêt en haut de l'écran (sombre). */
   className?: string
 }
 
@@ -189,10 +189,10 @@ export default function ParticipantsSidebar({
 
   // Version sombre (vue modérateur) : même construction, sur le fond nuit, avec
   // en plus le badge actif / intermédiaire / passif du roster (chantier 97).
-  // lg:top-[4.5rem] : sous le rappel de l'orateur, qui se fixe en haut de
-  // l'écran quand on fait défiler la page.
+  // `className` donne l'arrêt en haut de l'écran (lg:top-…) : plus bas quand
+  // le rappel de l'orateur est fixé en haut, pour ne pas passer dessous.
   return (
-    <aside className="w-full self-start overflow-hidden rounded-[12px] border border-white/10 bg-slate-800/60 lg:sticky lg:top-[4.5rem] lg:w-64 lg:shrink-0">
+    <aside className={`w-full self-start overflow-hidden rounded-[12px] border border-white/10 bg-slate-800/60 transition-[top] duration-300 lg:sticky lg:w-64 lg:shrink-0 ${className || 'lg:top-4'}`}>
       <div className="flex items-stretch border-b border-white/10 bg-white/[0.05]">
         <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-clair/80">
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}

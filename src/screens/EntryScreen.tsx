@@ -182,7 +182,7 @@ function PastSessionsModal({ onClose }: { onClose(): void }) {
 
   return (
     <div
-      className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-center justify-center p-4 z-50"
       onClick={onClose}
     >
       <div

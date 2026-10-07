@@ -59,7 +59,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4">
       <div
         className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}

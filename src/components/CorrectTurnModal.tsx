@@ -58,7 +58,7 @@ export default function CorrectTurnModal({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4">
       <div className="bg-white w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden rounded-[12px] shadow-2xl ring-1 ring-white/10 animate-entree">
         {/* Header */}
         <EnTeteFenetre titre={editing ? 'Modifier le tour de parole' : 'Historique des tours'} onClose={onClose} />
