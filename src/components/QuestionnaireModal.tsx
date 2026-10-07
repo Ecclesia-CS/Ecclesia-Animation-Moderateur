@@ -228,7 +228,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
               </QuestionBlock>
 
               {err && (
-                <p className="text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">
+                <p className="rounded-[8px] text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">
                   {err}
                 </p>
               )}
@@ -242,7 +242,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white
+              className="w-full rounded-[8px] py-3 text-sm font-semibold bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -301,7 +301,7 @@ function ThemeRatingRow({
             key={n}
             onClick={() => !locked && onChange(value === n ? null : n)}
             disabled={locked}
-            className={`w-8 h-8 border text-sm font-medium tabular-nums transition-colors
+            className={`w-8 h-8 rounded-[6px] border text-sm font-medium tabular-nums transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1
               disabled:cursor-not-allowed ${
               value === n
@@ -333,7 +333,7 @@ function RatingRow({
           key={n}
           onClick={() => !locked && onChange(value === n ? null : n)}
           disabled={locked}
-          className={`flex-1 py-2.5 border text-sm font-semibold tabular-nums transition-colors
+          className={`flex-1 py-2.5 rounded-[8px] border text-sm font-semibold tabular-nums transition-colors
             focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1
             disabled:cursor-not-allowed ${
             value === n
@@ -350,9 +350,9 @@ function RatingRow({
   )
 }
 
-const textareaClass = `w-full bg-white border border-bleu-fonce/20 px-3 py-2.5 text-sm
+const textareaClass = `w-full rounded-[8px] bg-white border border-bleu-fonce/20 px-3 py-2.5 text-sm
   text-anthracite placeholder:text-anthracite/40 resize-none leading-relaxed
   focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40`
 
-const textareaLockedClass = `w-full border border-bleu-fonce/10 px-3 py-2.5 text-sm
+const textareaLockedClass = `w-full rounded-[8px] border border-bleu-fonce/10 px-3 py-2.5 text-sm
   text-gray-600 bg-gray-50 resize-none leading-relaxed cursor-not-allowed`
