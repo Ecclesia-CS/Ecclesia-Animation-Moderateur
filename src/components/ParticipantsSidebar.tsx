@@ -119,8 +119,8 @@ export default function ParticipantsSidebar({
   // La version sombre (vue modérateur) est inchangée.
   if (!dark) {
     return (
-      <aside className={`w-full self-start border border-bleu-fonce/10 bg-white shadow-sm md:sticky md:top-4 ${className}`}>
-        <div className="flex items-stretch border-b border-bleu-fonce/10">
+      <aside className={`w-full self-start overflow-hidden rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm md:sticky md:top-4 ${className}`}>
+        <div className="flex items-stretch border-b border-bleu-fonce/10 bg-sable/70">
           <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-fonce/55">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
               strokeLinecap="round" strokeLinejoin="round">
@@ -130,7 +130,7 @@ export default function ParticipantsSidebar({
           </span>
           <div className="flex flex-1 items-center justify-between gap-3 py-3 pr-4">
             <span className="text-sm font-semibold text-anthracite">Présents</span>
-            <span className="bg-indigo-50 px-2 py-1 text-xs font-semibold tabular-nums text-bleu-fonce">
+            <span className="rounded-[6px] bg-white px-2 py-1 text-xs font-semibold tabular-nums text-bleu-fonce">
               {roster ? roster.length : participants.length}
             </span>
           </div>

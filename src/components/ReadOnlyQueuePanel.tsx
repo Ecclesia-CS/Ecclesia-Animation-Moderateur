@@ -19,8 +19,9 @@ export default function ReadOnlyQueuePanel({
   const teal = accent === 'teal'
 
   return (
-    <section className="overflow-hidden border border-bleu-fonce/10 bg-white shadow-sm">
-      <div className="flex items-stretch border-b border-bleu-fonce/10">
+    <section className="overflow-hidden rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm">
+      {/* Ligne de titre teintée de la couleur de la file (même couleur que son bouton) */}
+      <div className={`flex items-stretch border-b ${teal ? 'border-teal-600/15 bg-teal-50' : 'border-bleu-fonce/10 bg-indigo-50'}`}>
         <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center">
           <span className={`h-2.5 w-2.5 ${teal ? 'bg-teal-600' : 'bg-bleu-fonce'}`} />
         </span>
@@ -28,13 +29,13 @@ export default function ReadOnlyQueuePanel({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold leading-snug text-anthracite">{title}</p>
             {subtitle && (
-              <p className="mt-0.5 text-xs leading-snug text-gray-500">{subtitle}</p>
+              <p className="mt-0.5 text-xs leading-snug text-gray-600">{subtitle}</p>
             )}
           </div>
           {/* Chiffre seul, comme le compteur de « Présents » : le titre garde
               toute la largeur sur un petit téléphone. Le mot reste lu. */}
-          <span className={`shrink-0 whitespace-nowrap px-2 py-1 text-xs font-semibold tabular-nums ${
-            teal ? 'bg-teal-50 text-teal-800' : 'bg-indigo-50 text-bleu-fonce'
+          <span className={`shrink-0 whitespace-nowrap rounded-[6px] px-2 py-1 text-xs font-semibold tabular-nums ${
+            teal ? 'bg-white text-teal-800' : 'bg-white text-bleu-fonce'
           }`}>
             {entries.length}<span className="sr-only"> {entries.length !== 1 ? 'personnes' : 'personne'}</span>
           </span>
