@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { submitAssertion } from '../../lib/voting'
 import type { Session } from '../../lib/types'
+import { itemNoun } from '../../lib/phaseLabels'
 
 interface SubmitAssertionModalProps {
   session: Session
@@ -17,6 +18,9 @@ export default function SubmitAssertionModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  // Chantier 160 — « option » dans un sondage en consentement, « assertion » sinon.
+  const noun = itemNoun(session)
+  const Noun = noun === 'option' ? 'Option' : 'Assertion'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -43,7 +47,7 @@ export default function SubmitAssertionModal({
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">Proposer une assertion</h2>
+          <h2 className="text-base font-bold text-gray-900">Proposer une {noun}</h2>
           <button
             onClick={onClose}
             className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -59,7 +63,7 @@ export default function SubmitAssertionModal({
               Propositions désactivées
             </p>
             <p className="text-sm text-gray-500">
-              Le superadmin a désactivé la proposition de nouvelles assertions pour cette séance.
+              Le superadmin a désactivé la proposition de nouvelles {noun}s pour cette séance.
             </p>
             <button
               onClick={onClose}
@@ -72,15 +76,15 @@ export default function SubmitAssertionModal({
           <div className="py-4 text-center space-y-3">
             <div className="text-4xl">🎉</div>
             <p className="text-sm font-semibold text-gray-900">
-              Assertion soumise !
+              {Noun} soumise !
             </p>
             {session.moderation_policy !== 'open' ? (
               <p className="text-sm text-gray-500">
-                Ton assertion sera visible après validation.
+                Ton {noun} sera visible après validation.
               </p>
             ) : (
               <p className="text-sm text-gray-500">
-                Ton assertion est maintenant visible pour tous les participants.
+                Ton {noun} est maintenant visible pour tous les participants.
               </p>
             )}
             <button
@@ -94,12 +98,12 @@ export default function SubmitAssertionModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Formule une affirmation que tu voudrais soumettre au vote
+                {noun === 'option' ? 'Formule une option que tu voudrais soumettre au vote' : 'Formule une affirmation que tu voudrais soumettre au vote'}
               </label>
               <textarea
                 value={content}
                 onChange={e => setContent(e.target.value)}
-                placeholder="Ex : « La transition écologique doit être une priorité absolue »"
+                placeholder={noun === 'option' ? 'Ex : « Organiser la prochaine rencontre en septembre »' : 'Ex : « La transition écologique doit être une priorité absolue »'}
                 rows={4}
                 maxLength={500}
                 required
@@ -117,7 +121,7 @@ export default function SubmitAssertionModal({
 
             {session.moderation_policy !== 'open' && (
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                ℹ️ Cette séance utilise la modération {session.moderation_policy === 'ai' ? 'automatique' : 'fermée'}. Ton assertion sera visible après validation.
+                ℹ️ Cette séance utilise la modération {session.moderation_policy === 'ai' ? 'automatique' : 'fermée'}. Ton {noun} sera visible après validation.
               </p>
             )}
 

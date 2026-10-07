@@ -28,7 +28,7 @@ import {
 } from '../lib/sessions'
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, SessionType, PollMode, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
-import { SESSION_TYPE_LABEL, isConsentPoll, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
+import { SESSION_TYPE_LABEL, isConsentPoll, itemNoun, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
 import ConsentResultsList from '../components/voting/ConsentResultsList'
 import { DOC_INFO_LABEL } from '../lib/docLinks'
 import {
@@ -652,7 +652,7 @@ function AssertionRulesControl({ voteFirst, max, onChange, error }: {
     <div className="mt-1.5 space-y-1.5 text-xs text-gray-600">
       <label
         className="flex items-center gap-1.5 cursor-pointer"
-        title="Les participants ne peuvent proposer une assertion qu'une fois qu'ils ont voté sur toutes celles de la séance"
+        title="Les participants ne peuvent proposer qu'une fois qu'ils ont voté sur tout ce que la séance contient déjà"
       >
         <input
           type="checkbox"
@@ -813,8 +813,8 @@ function AssertionsLockToggle({ session, settings }: { session: SessionRow; sett
         label={session.assertions_locked ? 'Propositions verrouillées' : 'Propositions ouvertes'}
         title={
           session.assertions_locked
-            ? "Seule l'administration de la séance peut débloquer : plus personne d'autre ne peut proposer de nouvelle assertion"
-            : "Interdire à tout le monde sauf l'administration de la séance de proposer de nouvelles assertions"
+            ? `Seule l'administration de la séance peut débloquer : plus personne d'autre ne peut proposer de nouvelle ${itemNoun(session)}`
+            : `Interdire à tout le monde sauf l'administration de la séance de proposer de nouvelles ${itemNoun(session)}s`
         }
         onClick={() => settings.change('locked', { assertions_locked: !session.assertions_locked },
           pwd => setSessionAssertionsLocked(pwd, session.id, !session.assertions_locked))}
@@ -883,7 +883,7 @@ function SessionSettingsSection({ session, settings }: {
               label={session.results_public ? 'Résultats publics' : 'Résultats privés'}
               title={
                 session.results_public
-                  ? 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
+                  ? isConsentPoll(session) ? 'Les visiteurs non connectés peuvent voir les options et leurs décomptes de cette séance' : 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
                   : 'Rendre les résultats de cette séance consultables par les visiteurs non connectés'
               }
               onClick={() => change('results', { results_public: !session.results_public },
@@ -919,7 +919,7 @@ function SessionSettingsSection({ session, settings }: {
         {showAssertions && (
           <div className="space-y-1">
             <AssertionsLockToggle session={session} settings={settings} />
-            <p className="text-xs text-gray-400">Verrouillées, seule l'administration de la séance peut ajouter des assertions.</p>
+            <p className="text-xs text-gray-400">Verrouillées, seule l'administration de la séance peut ajouter des {itemNoun(session)}s.</p>
             <AssertionRules session={session} settings={settings} />
           </div>
         )}
@@ -1624,7 +1624,7 @@ function CreateModal({
               Configuration du vote <span className="font-normal normal-case text-gray-400">(optionnel)</span>
             </p>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des assertions</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Modération des {sessionType === 'poll' && pollMode === 'consent' ? 'options' : 'assertions'}</label>
               <div className={`grid gap-2 ${isOrgMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {(isOrgMode ? (['closed', 'open'] as const) : (['closed', 'open', 'ai'] as const)).map(val => (
                   <button
@@ -3479,7 +3479,7 @@ function SessionDetail({
                     {statsLoading && !votingStats ? (
                       <p className="text-sm text-gray-400 py-2">Chargement…</p>
                     ) : votingStats ? (
-                      <VotingStatsPanel stats={votingStats} />
+                      <VotingStatsPanel stats={votingStats} noun={itemNoun(currentSession)} />
                     ) : null}
                   </SectionAccordion>
                 )}
@@ -3510,7 +3510,7 @@ function SessionDetail({
 
                 {showVotingSections && (
                   <SectionAccordion
-                    title="Assertions"
+                    title={consentPoll ? 'Options' : 'Assertions'}
                     open={assertionsOpen}
                     onToggle={() => setAssertionsOpen(o => !o)}
                     badge={assertionsLoading ? '…' : `${assertions.filter(a => a.status === 'pending').length} en attente`}
@@ -4750,7 +4750,7 @@ function SessionDetail({
               </p>
               {sessionType !== 'debate' && (
                 <p>
-                  Les assertions qu'elle a proposées sont <strong>conservées</strong> (auteur
+                  Les {itemNoun(currentSession)}s qu'elle a proposées sont <strong>conservées</strong> (auteur
                   détaché) pour ne pas fausser les votes des autres.
                   {sessionType === 'full' && " Si elle animait une table, celle-ci repasse sans animateur."}
                 </p>
@@ -4785,7 +4785,7 @@ function SessionDetail({
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-0.5">
               {sessionType !== 'debate' && (<>
                 <li>{deleteMemberReport.votes_deleted} vote(s) supprimé(s)</li>
-                <li>{deleteMemberReport.assertions_detached} assertion(s) conservée(s), auteur détaché</li>
+                <li>{deleteMemberReport.assertions_detached} {itemNoun(currentSession)}(s) conservée(s), auteur détaché</li>
               </>)}
               {deleteMemberReport.seats_removed > 0 && (
                 <li>{deleteMemberReport.seats_removed} siège(s) de table retiré(s)</li>
@@ -5374,7 +5374,7 @@ function TableOverviewCard({
 
 // ── VotingStatsPanel ──────────────────────────────────────────────
 
-function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
+function VotingStatsPanel({ stats, noun }: { stats: SessionVotingStats; noun: 'option' | 'assertion' }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -5382,7 +5382,7 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
           { emoji: '👥', label: 'Participants inscrits',    val: stats.member_count },
           { emoji: '📋', label: 'Onboarding complété',      val: stats.onboarded_count },
           { emoji: '🗳️', label: 'Ont voté au moins 1 fois', val: stats.voter_count },
-          { emoji: '💬', label: 'Assertions approuvées',    val: stats.approved_assertion_count },
+          { emoji: '💬', label: noun === 'option' ? 'Options approuvées' : 'Assertions approuvées',    val: stats.approved_assertion_count },
         ].map(item => (
           <div key={item.label} className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
             <span className="text-xl">{item.emoji}</span>
@@ -5820,6 +5820,7 @@ function AssertionsPanel({
 
   // Default to approved tab if no closed moderation
   const effectiveTab = session.moderation_policy === 'open' && tab === 'pending' ? 'approved' : tab
+  const noun = itemNoun(session)
 
   return (
     <div className="space-y-3">
@@ -5830,7 +5831,7 @@ function AssertionsPanel({
             onClick={() => setAdminFormOpen(o => !o)}
             className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors"
           >
-            <span className="text-xs font-semibold text-indigo-700">+ Ajouter des assertions (animateur)</span>
+            <span className="text-xs font-semibold text-indigo-700">+ Ajouter des {noun}s (animateur)</span>
             <svg className={`w-3.5 h-3.5 text-indigo-400 transition-transform shrink-0 ${adminFormOpen ? 'rotate-180' : ''}`}
               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="6 9 12 15 18 9"/>
@@ -5842,7 +5843,7 @@ function AssertionsPanel({
                 value={adminText}
                 onChange={e => setAdminText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdminAdd() } }}
-                placeholder="Saisir une assertion… (Entrée pour valider)"
+                placeholder={`Saisir une ${noun}… (Entrée pour valider)`}
                 rows={2}
                 disabled={adminAdding}
                 className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 rounded-xl resize-none
@@ -5932,7 +5933,7 @@ function AssertionsPanel({
             </button>
           )}
           {pending.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion en attente</p>
+            <p className="text-sm text-gray-400 text-center py-4">Aucune {noun} en attente</p>
           )}
           {pending.map(a => (
             <AssertionRow key={a.id} assertion={a} acting={actingId === a.id}>
@@ -5955,7 +5956,7 @@ function AssertionsPanel({
       {effectiveTab === 'approved' && (
         <div className="space-y-2">
           {approved.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion approuvée</p>
+            <p className="text-sm text-gray-400 text-center py-4">Aucune {noun} approuvée</p>
           )}
           {[...approved]
             .sort((a, b) => {
@@ -6003,7 +6004,7 @@ function AssertionsPanel({
       {effectiveTab === 'rejected' && (
         <div className="space-y-2">
           {rejected.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Aucune assertion rejetée</p>
+            <p className="text-sm text-gray-400 text-center py-4">Aucune {noun} rejetée</p>
           )}
           {rejected.length > 0 && (
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -6023,7 +6024,7 @@ function AssertionsPanel({
                 <button
                   onClick={() => setDeleteConfirm({
                     ids: [...selectedRejected],
-                    body: `Supprimer définitivement ${selectedRejected.size} assertion${selectedRejected.size > 1 ? 's' : ''} ? Cette action est irréversible.`,
+                    body: `Supprimer définitivement ${selectedRejected.size} ${noun}${selectedRejected.size > 1 ? 's' : ''} ? Cette action est irréversible.`,
                   })}
                   disabled={actingId !== null}
                   className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
@@ -6051,7 +6052,7 @@ function AssertionsPanel({
                 className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
               >↩ Réapprouver</button>
               <button
-                onClick={() => setDeleteConfirm({ ids: [a.id], body: 'Supprimer définitivement cette assertion ? Cette action est irréversible.' })}
+                onClick={() => setDeleteConfirm({ ids: [a.id], body: `Supprimer définitivement cette ${noun} ? Cette action est irréversible.` })}
                 disabled={actingId !== null}
                 className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
               >🗑 Supprimer</button>

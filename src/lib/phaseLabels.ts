@@ -69,6 +69,17 @@ export function isConsentPoll(
   return sessionTypeOf(session) === 'poll' && session?.poll_mode === 'consent'
 }
 
+/**
+ * Chantier 160 — le mot que l'interface emploie pour ce qu'on vote : « option »
+ * dans un sondage en consentement, « assertion » partout ailleurs (au pluriel,
+ * ajouter un « s »).
+ */
+export function itemNoun(
+  session: { session_type?: SessionType | null; poll_mode?: string | null } | null | undefined,
+): 'option' | 'assertion' {
+  return isConsentPoll(session) ? 'option' : 'assertion'
+}
+
 export function phaseSequenceFor(type: SessionType): Session['phase'][] {
   return PHASE_SEQUENCES[type]
 }

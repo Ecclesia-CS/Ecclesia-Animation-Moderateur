@@ -26,7 +26,7 @@ import QuitLink from '../components/QuitLink'
 import JoinTableForm from '../components/JoinTableForm'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ModeratorClaimModal from '../components/voting/ModeratorClaimModal'
-import { isConsentPoll, sessionTypeOf } from '../lib/phaseLabels'
+import { isConsentPoll, itemNoun, sessionTypeOf } from '../lib/phaseLabels'
 import ConsentVoteList from '../components/voting/ConsentVoteList'
 import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 import ResultsMapScreen from './ResultsMapScreen'
@@ -1080,6 +1080,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             <EmptyAssertions
               canPropose={canProposeNow}
               onPropose={() => setShowSubmitModal(true)}
+              noun="option"
             />
           ) : (
             <div className="pt-3">
@@ -1511,7 +1512,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
               onClick={e => e.stopPropagation()}>
               <div className="px-6 pt-6 pb-2 text-center">
                 <p className="text-3xl mb-2">✏️</p>
-                <h2 className="text-base font-bold text-gray-900">Tu as voté sur {myVotes.size} assertions !</h2>
+                <h2 className="text-base font-bold text-gray-900">Tu as voté sur {myVotes.size} {itemNoun(session)}s !</h2>
                 <p className="text-sm text-gray-500 mt-1">Veux-tu en proposer une à ton tour ?</p>
               </div>
               <div className="px-6 pb-6 pt-4 flex flex-col gap-2">
@@ -1519,7 +1520,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
                   onClick={() => { setShowProposalNudge(false); setShowSubmitModal(true) }}
                   className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
                 >
-                  ✏️ Proposer une assertion
+                  ✏️ Proposer une {itemNoun(session)}
                 </button>
                 <button
                   onClick={() => setShowProposalNudge(false)}
@@ -1698,20 +1699,20 @@ function PreVotingAnnounceModal({ session, onClose }: PreVotingAnnounceModalProp
   )
 }
 
-function EmptyAssertions({ canPropose, onPropose }: { canPropose: boolean; onPropose: () => void }) {
+function EmptyAssertions({ canPropose, onPropose, noun = 'assertion' }: { canPropose: boolean; onPropose: () => void; noun?: 'assertion' | 'option' }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-4">
       <div className="text-5xl">💭</div>
-      <h2 className="text-lg font-bold text-gray-900">Aucune assertion pour l'instant</h2>
+      <h2 className="text-lg font-bold text-gray-900">Aucune {noun} pour l'instant</h2>
       <p className="text-sm text-gray-500">
-        Les assertions apparaîtront ici dès qu'elles seront approuvées.{canPropose ? ' Tu peux en proposer une !' : ''}
+        Les {noun}s apparaîtront ici dès qu'elles seront approuvées.{canPropose ? ' Tu peux en proposer une !' : ''}
       </p>
       {canPropose && (
         <button
           onClick={onPropose}
           className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
         >
-          ✏️ Proposer une assertion
+          ✏️ Proposer une {noun}
         </button>
       )}
     </div>
