@@ -14,6 +14,7 @@ import { getSessionById } from '../lib/sessions'
 import { privateChannel } from '../lib/realtime'
 import { useToast } from './ToastContext'
 import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
+import EcranChargement from '../components/EcranChargement'
 
 // ── Public types ───────────────────────────────────────────────
 
@@ -652,9 +653,7 @@ export function TableProvider({
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500 text-sm">
-        Chargement de la session…
-      </div>
+      <EcranChargement texte="Chargement de la session…" />
     )
   }
 

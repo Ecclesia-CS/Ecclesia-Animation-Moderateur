@@ -15,6 +15,7 @@ import JoinTableScreen from './screens/JoinTableScreen'
 import PublicResultsScreen from './screens/PublicResultsScreen'
 import NotFoundScreen from './screens/NotFoundScreen'
 import ReconnectPrompt from './components/ReconnectPrompt'
+import EcranChargement from './components/EcranChargement'
 
 type AppPhase =
   | { type: 'loading' }
@@ -257,9 +258,7 @@ export default function App() {
 
   if (phase.type === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-sm text-gray-500">Connexion…</p>
-      </div>
+      <EcranChargement texte="Connexion…" />
     )
   }
 

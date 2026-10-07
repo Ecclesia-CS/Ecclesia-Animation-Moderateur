@@ -97,7 +97,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
         <div className="relative flex items-start justify-between overflow-hidden bg-bleu-fonce px-6 pt-5 pb-4 flex-shrink-0">
           <FondQuadrille cases={2} />
           <div className="relative">
-            <h2 className="font-serif text-xl font-semibold text-creme">Questionnaire post-débat</h2>
+            <h2 className="font-sans text-xl font-bold tracking-[-0.01em] text-creme">Questionnaire post-débat</h2>
             <p className="text-sm text-creme/75 mt-0.5 leading-snug">
               Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
             </p>
@@ -133,7 +133,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
-              <p className="font-serif text-xl font-semibold text-bleu-fonce">Merci pour ton retour !</p>
+              <p className="font-sans text-xl font-bold tracking-[-0.01em] text-bleu-fonce">Merci pour ton retour !</p>
               <p className="text-sm text-gray-500">Fermeture automatique…</p>
             </div>
           ) : (
@@ -293,15 +293,15 @@ function ThemeRatingRow({
   onChange: (v: number | null) => void
 }) {
   return (
-    <div className={`flex items-start gap-3 ${locked ? 'opacity-60' : ''}`}>
-      <span className="flex-1 text-sm text-gray-700 leading-snug pt-1">{theme}</span>
-      <div className="flex gap-1 flex-shrink-0">
+    <div className={`flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3 ${locked ? 'opacity-60' : ''}`}>
+      <span className="text-sm text-gray-700 leading-snug sm:flex-1 sm:pt-1">{theme}</span>
+      <div className="grid grid-cols-6 gap-1.5 sm:flex sm:gap-1 sm:flex-shrink-0">
         {[0, 1, 2, 3, 4, 5].map(n => (
           <button
             key={n}
             onClick={() => !locked && onChange(value === n ? null : n)}
             disabled={locked}
-            className={`w-8 h-8 rounded-[6px] border text-sm font-medium tabular-nums transition-colors
+            className={`h-9 rounded-[6px] border text-sm sm:w-8 sm:h-8 font-medium tabular-nums transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1
               disabled:cursor-not-allowed ${
               value === n

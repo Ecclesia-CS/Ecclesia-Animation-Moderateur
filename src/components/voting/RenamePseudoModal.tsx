@@ -77,7 +77,7 @@ export default function RenamePseudoModal({
       <div className="bg-white w-full sm:max-w-sm shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px]">
         <div className="relative overflow-hidden bg-bleu-fonce px-5 py-4">
           <FondQuadrille cases={2} />
-          <h2 className="relative font-serif text-lg font-semibold text-creme">Nom et code de rappel</h2>
+          <h2 className="relative font-sans text-lg font-bold tracking-[-0.01em] text-creme">Nom et code de rappel</h2>
         </div>
         <div className="p-5 space-y-4">
 

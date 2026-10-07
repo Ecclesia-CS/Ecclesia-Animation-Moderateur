@@ -80,7 +80,7 @@ export default function ModeratorActionModal({ tableId, sessionId, pseudo, isMod
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
           <FondQuadrille cases={3} />
           <p className="relative text-2xl mb-1">🎙️</p>
-          <h2 className="relative font-serif text-xl font-semibold text-creme">
+          <h2 className="relative font-sans text-xl font-bold tracking-[-0.01em] text-creme">
             {step === 'choice' && 'Modérateur'}
             {step === 'form' && action === 'session' && 'Me déclarer modérateur'}
             {step === 'form' && action === 'table' && 'Reprendre l\'animation de cette table'}

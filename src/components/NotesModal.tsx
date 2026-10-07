@@ -153,7 +153,7 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
         <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-6 py-4 flex-shrink-0">
           <FondQuadrille cases={2} />
           <div className="relative flex items-baseline gap-3">
-            <h2 className="font-serif text-xl font-semibold text-creme">Mes notes</h2>
+            <h2 className="font-sans text-xl font-bold tracking-[-0.01em] text-creme">Mes notes</h2>
             {saving && <span className="text-xs text-creme/70">Enregistrement…</span>}
             {saveErr && <span className="text-xs text-red-200">Erreur : {saveErr}</span>}
           </div>
@@ -170,37 +170,37 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-bleu-fonce/10 bg-gray-50 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-0.5 px-3 py-2 border-b border-bleu-fonce/10 bg-gray-50 flex-shrink-0 flex-wrap sm:gap-1 sm:px-4">
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('bold') }}
-            className="w-8 h-8 flex items-center justify-center text-sm font-bold
+            className="w-8 h-8 rounded-[6px] flex items-center justify-center text-sm font-bold
               text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Gras (Ctrl+B)"
           >B</button>
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('italic') }}
-            className="w-8 h-8 flex items-center justify-center text-sm italic
+            className="w-8 h-8 rounded-[6px] flex items-center justify-center text-sm italic
               text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Italique (Ctrl+I)"
           >I</button>
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('underline') }}
-            className="w-8 h-8 flex items-center justify-center text-sm underline
+            className="w-8 h-8 rounded-[6px] flex items-center justify-center text-sm underline
               text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Souligné (Ctrl+U)"
           >S</button>
           <button
             onMouseDown={(e) => { e.preventDefault(); execCmd('strikeThrough') }}
-            className="w-8 h-8 flex items-center justify-center text-sm line-through
+            className="w-8 h-8 rounded-[6px] flex items-center justify-center text-sm line-through
               text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors"
             title="Barré"
           >S</button>
-          <div className="w-px h-5 bg-bleu-fonce/15 mx-1" />
+          <div className="w-px h-5 bg-bleu-fonce/15 mx-0.5 sm:mx-1" />
           {FONT_SIZES.map(({ label, value }) => (
             <button
               key={value}
               onMouseDown={(e) => { e.preventDefault(); execCmd('fontSize', value) }}
-              className="px-2 h-8 flex items-center justify-center
+              className="px-1.5 h-8 rounded-[6px] flex items-center justify-center sm:px-2
                 text-gray-700 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors whitespace-nowrap"
               title={`Taille ${label}`}
               style={{ fontSize: value === '1' ? '11px' : value === '3' ? '13px' : '16px' }}

@@ -7,6 +7,7 @@ import {
   submitTableVoteResponse,
 } from '../lib/tableVote'
 import type { TableVote, TableVoteOption, TableVoteResult } from '../lib/types'
+import FondQuadrille from './FondQuadrille'
 
 const POLL_MS = 4000
 
@@ -83,19 +84,20 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col animate-entree"
+        className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] animate-entree"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">
-          <div>
-            <h2 className="font-serif text-xl font-semibold text-bleu-fonce">🗳️ Vote du modérateur</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+        <div className="relative flex items-start justify-between overflow-hidden bg-bleu-fonce px-6 pt-5 pb-4 flex-shrink-0">
+          <FondQuadrille cases={2} />
+          <div className="relative">
+            <h2 className="font-sans text-xl font-bold tracking-[-0.01em] text-creme">🗳️ Vote du modérateur</h2>
+            <p className="text-sm text-creme/75 mt-0.5">
               {isClosed ? 'Vote clôturé : résultats' : 'Dis si tu es pour ou contre chaque option.'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
+            className="relative ml-4 flex-shrink-0 text-creme/70 hover:text-creme transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair -m-1.5 p-2"
             aria-label="Fermer"
           >
@@ -114,10 +116,10 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
             <p className="text-sm text-gray-500 text-center py-6">Ce vote n'existe plus.</p>
           ) : (
             <>
-              <p className="font-serif text-lg font-semibold text-anthracite leading-snug">{vote.question}</p>
+              <p className="font-sans text-lg font-bold tracking-[-0.01em] text-anthracite leading-snug">{vote.question}</p>
 
               {err && (
-                <p className="text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">
+                <p className="rounded-[8px] text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">
                   {err}
                 </p>
               )}
@@ -129,7 +131,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                   .map(opt => {
                     const result = results?.find(r => r.option_id === opt.id)
                     return (
-                      <div key={opt.id} className="border border-bleu-fonce/15 px-4 py-3">
+                      <div key={opt.id} className="rounded-[12px] border border-bleu-fonce/15 px-4 py-3">
                         <p className="text-sm font-medium text-anthracite mb-2">{opt.label}</p>
                         {isClosed ? (
                           <p className="text-xs text-gray-500 tabular-nums">
@@ -144,7 +146,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                             <button
                               onClick={() => handleAnswer(opt.id, true)}
                               disabled={pendingId === opt.id}
-                              className={`flex-1 py-2.5 border text-sm font-semibold transition-colors
+                              className={`flex-1 rounded-[8px] py-2.5 border text-sm font-semibold transition-colors
                                 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
                                 myAnswers[opt.id] === true
                                   ? 'bg-emerald-600 border-emerald-600 text-white'
@@ -156,7 +158,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
                             <button
                               onClick={() => handleAnswer(opt.id, false)}
                               disabled={pendingId === opt.id}
-                              className={`flex-1 py-2.5 border text-sm font-semibold transition-colors
+                              className={`flex-1 rounded-[8px] py-2.5 border text-sm font-semibold transition-colors
                                 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
                                 myAnswers[opt.id] === false
                                   ? 'bg-red-600 border-red-600 text-white'

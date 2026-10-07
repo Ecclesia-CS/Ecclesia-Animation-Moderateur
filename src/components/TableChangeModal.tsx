@@ -4,6 +4,7 @@ import { privateChannel } from '../lib/realtime'
 import { getMyTableAssignment, assertSeated } from '../lib/voting'
 import { tableStore } from '../lib/storage'
 import { extractErr } from '../lib/utils'
+import FondQuadrille from './FondQuadrille'
 
 /**
  * Chantier 95 — le superadmin peut déplacer quelqu'un d'une table à l'autre
@@ -96,19 +97,22 @@ export default function TableChangeModal({
 
   return (
     <div className="fixed inset-0 bg-bleu-fonce/50 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-sm bg-white shadow-2xl border border-bleu-fonce/10 p-6 animate-entree">
+      <div className="w-full max-w-sm bg-white shadow-2xl overflow-hidden rounded-[12px] animate-entree">
+        <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
+          <FondQuadrille cases={3} />
+          <p className="relative text-2xl mb-1">🔀</p>
+          <h2 className="relative font-sans text-xl font-bold tracking-[-0.01em] text-creme">Changement de table</h2>
+        </div>
+        <div className="p-6">
         <div className="text-center mb-5">
-          <div className="text-4xl mb-3">🔀</div>
-          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Changement de table</h2>
-          <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
-          <p className="text-sm text-gray-600 mt-3 leading-relaxed">
+          <p className="text-sm text-gray-600 leading-relaxed">
             L'organisateur t'a placé·e à la <strong>table N°{target.tableNumber}</strong>.
             Rejoins-la, ou saisis le code d'une autre table si tu es déjà installé·e ailleurs.
           </p>
         </div>
 
         {error && (
-          <div className="mb-3 px-3.5 py-2.5 bg-red-50 border border-red-200 text-sm text-red-700">
+          <div className="mb-3 rounded-[8px] px-3.5 py-2.5 bg-red-50 border border-red-200 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -116,7 +120,7 @@ export default function TableChangeModal({
         <button
           onClick={() => join(target.joinCode)}
           disabled={joining}
-          className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60
+          className="w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60
             text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
           {joining ? 'Changement…' : `Rejoindre la table N°${target.tableNumber}`}
@@ -131,14 +135,14 @@ export default function TableChangeModal({
               value={otherCode}
               onChange={e => setOtherCode(e.target.value.toUpperCase())}
               placeholder="A1B2C3"
-              className="flex-1 min-w-0 px-3 py-2.5 text-sm font-mono tracking-[0.2em] bg-white border border-bleu-fonce/20 text-bleu-fonce
+              className="flex-1 min-w-0 rounded-[8px] px-3 py-2.5 text-sm font-semibold tracking-[0.14em] bg-white border border-bleu-fonce/20 text-bleu-fonce
                 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40
                 placeholder:text-anthracite/30"
             />
             <button
               onClick={() => join(otherCode)}
               disabled={joining || otherCode.trim().length === 0}
-              className="py-2.5 px-4 bg-white border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold
+              className="rounded-[8px] py-2.5 px-4 bg-white border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold
                 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               Aller
@@ -160,6 +164,7 @@ export default function TableChangeModal({
         >
           Rester à ma table
         </button>
+        </div>
       </div>
     </div>
   )

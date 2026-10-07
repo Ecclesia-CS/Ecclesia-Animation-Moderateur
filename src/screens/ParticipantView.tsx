@@ -316,7 +316,7 @@ export default function ParticipantView() {
                   </span>
                 </span>
                 <div className="relative flex flex-1 flex-col items-start gap-3 px-4 py-5">
-                  <p className="font-serif text-[1.7rem] font-semibold leading-tight text-creme">Vous avez la parole !</p>
+                  <p className="font-sans text-[1.7rem] font-bold tracking-[-0.01em] leading-tight text-creme">Vous avez la parole !</p>
                   {table.leaderless && (
                     <button
                       onClick={() => endTurnAndAdvance().catch(() => {})}
@@ -492,6 +492,7 @@ export default function ParticipantView() {
           title="Va voir le superadmin"
           body="Pour éviter qu'une table sans animateur puisse être détournée, ce n'est plus un participant qui se désigne lui-même modérateur : va voir la personne qui gère la séance (le superadmin), elle pourra t'accorder ce rôle depuis son écran."
           confirmLabel="Compris"
+          tone="info"
           onConfirm={() => setShowAskAdminModal(false)}
           onCancel={() => setShowAskAdminModal(false)}
         />
@@ -501,32 +502,32 @@ export default function ParticipantView() {
       {/* ── Panorama d'accueil — affiché une seule fois par table, avant les règles (chantier 40) ── */}
       {showWelcome && (
         <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-entree">
+          <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] animate-entree">
             <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
               <FondQuadrille cases={3} />
               <div className="relative">
                 <p className="text-2xl mb-1">👋</p>
-                <h2 className="font-serif text-xl font-semibold text-creme">Bienvenue dans le débat</h2>
+                <h2 className="font-sans text-xl font-bold tracking-[-0.01em] text-creme">Bienvenue dans le débat</h2>
                 <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
               </div>
             </div>
             <div className="px-6 py-5 space-y-4 text-sm text-anthracite/80">
               <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-50 text-lg">🙋</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-indigo-50 text-lg">🙋</span>
                 <div>
                   <p className="font-semibold text-anthracite">Prendre la parole sur un autre sujet</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pour introduire un nouveau point ou des informations complémentaires.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-teal-50 text-lg">⚡</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-teal-50 text-lg">⚡</span>
                 <div>
                   <p className="font-semibold text-anthracite">Demander la parole sur le sujet actuel</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Uniquement pour répondre directement à ce qui vient d'être dit.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-sable text-lg">🔧</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-sable text-lg">🔧</span>
                 <div>
                   <p className="font-semibold text-anthracite">Bouton Outils</p>
                   <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Accédez aux fiches d'information et au document collaboratif via le bouton en haut à droite.</p>
@@ -534,15 +535,15 @@ export default function ParticipantView() {
               </div>
               {table.leaderless ? (
                 <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-amber-50 text-lg">🤝</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-amber-50 text-lg">🤝</span>
                   <div>
                     <p className="font-semibold text-anthracite">Groupe auto-géré</p>
-                    <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pas de modérateur. Quand vous avez la parole, appuyez sur "J'ai fini de parler" pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance ("🎙️ Devenir modérateur" en haut).</p>
+                    <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Pas de modérateur. Quand vous avez la parole, appuyez sur « J'ai fini de parler » pour passer au suivant. Pour qu'un modérateur soit désigné, voyez avec le superadmin de la séance (« 🎙️ Devenir modérateur » en haut).</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-amber-50 text-lg">🧑‍⚖️</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-amber-50 text-lg">🧑‍⚖️</span>
                   <div>
                     <p className="font-semibold text-anthracite">Rôle du modérateur</p>
                     <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Le modérateur gère l'ordre de parole et peut accorder ou retirer la parole à tout moment.</p>
@@ -556,7 +557,7 @@ export default function ParticipantView() {
                   localStorage.setItem('debate_welcome_' + table.id, '1')
                   setShowWelcome(false)
                 }}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
+                className="w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 Lire les règles de débat Ecclesia
@@ -603,7 +604,7 @@ export default function ParticipantView() {
           <FondQuadrille cases={14} />
           <div className="relative flex flex-col items-center gap-5 animate-montee">
             <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
-            <p className="font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">La séance est terminée</p>
+            <p className="font-sans text-4xl font-bold tracking-[-0.02em] leading-[1.05] sm:text-5xl">La séance est terminée</p>
             <span aria-hidden="true" className="filet-spectre block w-16" />
             <p className="text-base text-creme/75">Merci pour votre participation.</p>
             <div className="mt-3 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">

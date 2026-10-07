@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import FondQuadrille from './FondQuadrille'
 
 interface Props {
   title: string
@@ -6,9 +7,41 @@ interface Props {
   confirmLabel: string
   onConfirm(): void
   onCancel(): void
+  /**
+   * Chantier 158 : `info` pour un simple message (bandeau marine quadrillé,
+   * un seul bouton, pas d'alerte rouge). `danger` (défaut) pour une action
+   * irréversible à confirmer.
+   */
+  tone?: 'danger' | 'info'
 }
 
-export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onCancel }: Props) {
+export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onCancel, tone = 'danger' }: Props) {
+  if (tone === 'info') {
+    return (
+      <div className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+        <div
+          className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] animate-entree"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="relative overflow-hidden bg-bleu-fonce px-6 py-4">
+            <FondQuadrille cases={2} />
+            <h2 className="relative font-sans text-lg font-bold tracking-[-0.01em] leading-snug text-creme">{title}</h2>
+          </div>
+          <div className="p-6">
+            <div className="text-sm text-gray-600 leading-relaxed">{body}</div>
+            <button
+              onClick={onConfirm}
+              className="mt-6 w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
@@ -29,7 +62,7 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-serif text-lg font-semibold leading-snug text-bleu-fonce">{title}</h2>
+              <h2 className="font-sans text-lg font-bold tracking-[-0.01em] leading-snug text-bleu-fonce">{title}</h2>
               <div className="mt-1.5 text-sm text-gray-600 leading-relaxed">{body}</div>
             </div>
           </div>

@@ -137,7 +137,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             {/* Header : bandeau marine quadrillé, comme les autres fenêtres de la page (chantier 158) */}
             <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-5 py-4">
               <FondQuadrille cases={2} />
-              <h2 className="relative font-serif text-lg font-semibold text-creme">Outils</h2>
+              <h2 className="relative font-sans text-lg font-bold tracking-[-0.01em] text-creme">Outils</h2>
               <button
                 onClick={() => setPanelOpen(false)}
                 className="relative text-creme/70 hover:text-creme transition-colors -m-1.5 p-2
@@ -420,7 +420,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] animate-entree">
             <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-5 py-4 shrink-0">
               <FondQuadrille cases={2} />
-              <h2 className="relative font-serif text-lg font-semibold text-creme">Résultats du vote</h2>
+              <h2 className="relative font-sans text-lg font-bold tracking-[-0.01em] text-creme">Résultats du vote</h2>
               <button
                 onClick={() => setVoteResultsOpen(false)}
                 className="relative text-creme/70 hover:text-creme transition-colors -m-1.5 p-2

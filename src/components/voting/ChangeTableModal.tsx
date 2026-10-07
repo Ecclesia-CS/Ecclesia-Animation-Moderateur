@@ -56,7 +56,7 @@ export default function ChangeTableModal({
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
           <FondQuadrille cases={3} />
           <p className="relative text-2xl mb-1">🔀</p>
-          <h2 className="relative font-serif text-xl font-semibold text-creme">Changer de table</h2>
+          <h2 className="relative font-sans text-xl font-bold tracking-[-0.01em] text-creme">Changer de table</h2>
         </div>
         <div className="p-6">
         <div className="text-center mb-4">

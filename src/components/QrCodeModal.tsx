@@ -29,7 +29,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
       <div className="bg-white shadow-2xl flex flex-col max-w-xs w-full overflow-hidden rounded-[12px] animate-entree">
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-4 text-center">
           <FondQuadrille cases={2} />
-          <h2 className="relative font-serif text-xl font-semibold text-creme">{title}</h2>
+          <h2 className="relative font-sans text-xl font-bold tracking-[-0.01em] text-creme">{title}</h2>
         </div>
         <div className="p-6 flex flex-col items-center gap-4">
         {svg ? (
