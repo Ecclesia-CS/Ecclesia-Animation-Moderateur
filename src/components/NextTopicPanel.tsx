@@ -32,7 +32,7 @@ export default function NextTopicPanel() {
         <p className="text-sm font-semibold text-creme">Sujet suivant</p>
         <p className="text-xs text-slate-300 tabular-nums">
           <span className={votes > 0 ? 'text-emerald-300 font-semibold' : ''}>{votes}</span>
-          {' '}/ {total} d'accord pour passer au sujet suivant
+          {' '}/ {total} souhaitent passer au sujet suivant
         </p>
         {err && <p className="text-xs text-red-300 mt-1">{err}</p>}
       </div>

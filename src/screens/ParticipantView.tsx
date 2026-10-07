@@ -296,11 +296,13 @@ export default function ParticipantView() {
         <div className="mx-auto grid w-full max-w-5xl items-start gap-6 px-4 pb-12 pt-4 sm:px-6 sm:pt-6
           md:grid-cols-[minmax(0,1fr)_16.5rem] md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
 
-          <div className="flex min-w-0 flex-col gap-3">
+          {/* Téléphone : les deux boutons ensemble, le « sujet suivant » détaché, puis les files.
+              lg+ : deux colonnes, chaque bouton au-dessus de sa file, « sujet suivant » en bas. */}
+          <div className="grid min-w-0 grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
 
             {/* ── « Vous avez la parole ! » ─────────────────────────── */}
             {iAmSpeaking && (
-              <div className="relative flex items-stretch overflow-hidden rounded-[12px] bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee">
+              <div className="relative flex items-stretch overflow-hidden rounded-[12px] bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee lg:col-span-2">
                 <FondQuadrille cases={3} grain={false} traits={0.12} />
                 <span aria-hidden="true" className="relative flex w-14 shrink-0 items-center justify-center bg-amber-700/70">
                   <span className="flex h-6 items-end gap-[3px]">
@@ -333,7 +335,7 @@ export default function ParticipantView() {
               <button
                 onClick={() => setVoteModalOpen(true)}
                 className="relative flex w-full items-stretch overflow-hidden rounded-[12px] bg-bleu-fonce text-left text-creme
-                  shadow-[0_20px_44px_-24px_rgba(21,35,63,0.9)] transition-shadow hover:shadow-[0_26px_52px_-22px_rgba(21,35,63,0.95)] animate-montee
+                  shadow-[0_20px_44px_-24px_rgba(21,35,63,0.9)] transition-shadow hover:shadow-[0_26px_52px_-22px_rgba(21,35,63,0.95)] animate-montee lg:col-span-2
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
               >
                 <FondQuadrille cases={2} />
@@ -360,7 +362,7 @@ export default function ParticipantView() {
               pending={pendingLong}
               disabled={iAmSpeaking}
               onClick={() => toggle('long', myLong)}
-              className="animate-montee [animation-delay:60ms]"
+              className="animate-montee [animation-delay:60ms] lg:order-1"
             >
               {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
               {!myLong && !pendingLong ? (
@@ -400,15 +402,17 @@ export default function ParticipantView() {
               pending={pendingInteractive}
               disabled={iAmSpeaking}
               onClick={() => toggle('interactive', myInteractive)}
-              className="animate-montee [animation-delay:120ms]"
+              className="animate-montee [animation-delay:120ms] lg:order-2"
             />
 
-            {/* Chantier 131 — "d'accord pour passer au sujet suivant" */}
+            {/* Chantier 131 — "sujet suivant", détaché des deux boutons de parole */}
+            <div className="mt-3 animate-montee [animation-delay:180ms] lg:order-5 lg:col-span-2">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-800">Sujet suivant</p>
             <button
               onClick={handleToggleNextTopic}
               disabled={pendingNextTopic}
               className={`group flex w-full items-stretch overflow-hidden rounded-[12px] border text-left transition-colors duration-300
-                animate-montee [animation-delay:180ms] disabled:cursor-not-allowed disabled:opacity-60
+                disabled:cursor-not-allowed disabled:opacity-60
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400 ${
                 myParticipant.wants_next_topic
                   ? 'border-emerald-600 bg-emerald-600 text-white'
@@ -426,19 +430,20 @@ export default function ParticipantView() {
               </span>
               <span className="flex flex-1 items-center px-4 py-3.5 text-sm font-semibold leading-snug">
                 {myParticipant.wants_next_topic
-                  ? "D'accord pour le sujet suivant (appuyer pour annuler)"
-                  : 'Je suis d’accord pour passer au sujet suivant'}
+                  ? 'Vous souhaitez passer au sujet suivant (appuyer pour annuler)'
+                  : 'Je souhaite passer au sujet suivant'}
               </span>
             </button>
+            </div>
 
             {err && (
-              <p className="border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+              <p className="rounded-[8px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 lg:order-6 lg:col-span-2">
                 {err}
               </p>
             )}
 
             {/* ── Files en lecture seule ────────────────────────────── */}
-            <div className="mt-5 flex flex-col gap-3 animate-montee [animation-delay:240ms]">
+            <div className="mt-5 animate-montee [animation-delay:240ms] lg:order-3 lg:mt-0">
               <ReadOnlyQueuePanel
                 title="File d'attente : prendre la parole sur un autre sujet"
                 entries={queueLong}
@@ -446,6 +451,8 @@ export default function ParticipantView() {
                 accent="indigo"
                 selfId={myParticipant.id}
               />
+            </div>
+            <div className="animate-montee [animation-delay:280ms] lg:order-4">
               <ReadOnlyQueuePanel
                 title="Demander la parole sur le sujet actuel"
                 subtitle="Pour répondre à ce qui est dit actuellement uniquement"
