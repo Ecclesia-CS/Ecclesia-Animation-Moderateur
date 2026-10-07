@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Participant, ParticipationStyle, QueueEntry, TableMemberForModerator } from '../lib/types'
 import { loadTableMembersForModerator } from '../lib/voting'
 import { initiales } from '../lib/utils'
+import { IconeAutreSujet, IconeSujetActuel } from './IconesFiles'
 
 const ROSTER_POLL_MS = 10_000
 
@@ -159,11 +160,11 @@ export default function ParticipantsSidebar({
                   <span className={`min-w-0 flex-1 truncate text-sm ${isSpeaking ? 'font-semibold text-amber-800' : 'text-anthracite'}`}>
                     {p.pseudo}
                   </span>
-                  {inInteractive && !isSpeaking && (
-                    <span className="h-2 w-2 shrink-0 bg-teal-600" title="Demander la parole sur le sujet actuel" />
-                  )}
                   {inLong && !isSpeaking && (
-                    <span className="h-2 w-2 shrink-0 bg-bleu-fonce" title="File d'attente" />
+                    <span className="flex shrink-0 text-bleu-fonce" title="File d'attente : prendre la parole sur un autre sujet" role="img" aria-label="File d'attente : prendre la parole sur un autre sujet"><IconeAutreSujet className="h-3.5 w-3.5" /></span>
+                  )}
+                  {inInteractive && !isSpeaking && (
+                    <span className="flex shrink-0 text-teal-700" title="Demander la parole sur le sujet actuel" role="img" aria-label="Demander la parole sur le sujet actuel"><IconeSujetActuel className="h-3.5 w-3.5" /></span>
                   )}
                 </span>
               </li>
@@ -236,11 +237,11 @@ export default function ParticipantsSidebar({
                   {p.pseudo}
                 </span>
                 <StyleBadge style={style} />
-                {inInteractive && !isSpeaking && (
-                  <span className="h-2 w-2 shrink-0 bg-teal-300" title="Demander la parole sur le sujet actuel" />
-                )}
                 {inLong && !isSpeaking && (
-                  <span className="h-2 w-2 shrink-0 bg-bleu-clair" title="File d'attente" />
+                  <span className="flex shrink-0 text-bleu-clair" title="File d'attente : prendre la parole sur un autre sujet" role="img" aria-label="File d'attente : prendre la parole sur un autre sujet"><IconeAutreSujet className="h-3.5 w-3.5" /></span>
+                )}
+                {inInteractive && !isSpeaking && (
+                  <span className="flex shrink-0 text-teal-300" title="Demander la parole sur le sujet actuel" role="img" aria-label="Demander la parole sur le sujet actuel"><IconeSujetActuel className="h-3.5 w-3.5" /></span>
                 )}
               </span>
             </li>

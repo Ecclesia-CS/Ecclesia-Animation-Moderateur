@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -31,6 +31,7 @@ import FondQuadrille from '../components/FondQuadrille'
 import PhaseIndicator from '../components/PhaseIndicator'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import ecclesiaLogo from '../assets/ecclesia-logo.webp'
+import { IconeAutreSujet, IconeSujetActuel } from '../components/IconesFiles'
 
 export default function ModeratorView() {
   const {
@@ -200,11 +201,10 @@ export default function ModeratorView() {
     interactive: 'Demander la parole sur le sujet actuel',
     manual:      'Manuel',
   }
-  // Repère carré de la file d'où vient la parole (couleurs des deux files).
-  const sourceRepere: Record<string, string> = {
-    long:        'bg-bleu-fonce',
-    interactive: 'bg-teal-600',
-    manual:      'bg-creme/70',
+  // Icône de la file d'où vient la parole (aucune pour une parole donnée à la main).
+  const sourceIcone: Record<string, ReactNode> = {
+    long:        <IconeAutreSujet className="h-3.5 w-3.5" />,
+    interactive: <IconeSujetActuel className="h-3.5 w-3.5" />,
   }
 
   // Chantier 158 : l'en-tête n'est plus collant. Quand la carte de l'orateur
@@ -651,7 +651,7 @@ export default function ModeratorView() {
               <div className="flex items-center gap-3">
                 <BarresParole />
                 <span className="inline-flex items-center gap-2 rounded-[6px] bg-amber-800/45 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-creme">
-                  <span aria-hidden="true" className={`h-2 w-2 ${sourceRepere[currentTurn?.source ?? 'manual']}`} />
+                  {sourceIcone[currentTurn?.source ?? 'manual']}
                   {sourceLabel[currentTurn?.source ?? 'manual']}
                 </span>
               </div>
