@@ -285,6 +285,17 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 158, lot 9 (2026-10-07) — Superadmin refait
+
+**Vérifié au navigateur sur dev** à 375 et 800 px : connexion (avant la refonte des cartes), liste des séances, détail d'un débat simple (Tables, Préparation, Analyse) et d'une séance complète close (En direct, Analyse, synthèse des votes), carte de table de « Réunion apprentissage modération 21/09 », fenêtres « Nouvelle séance » et « Fermer la séance » ouvertes puis annulées. Build OK, tests : 133 réussis, 4 ignorés.
+
+**Reste à voir à l'œil**
+- [ ] Panneau Associations déplié, fenêtres « Nouvelle association » et « Changer le mot de passe ».
+- [ ] Phase Allocation : panneau d'allocation, tables proposées, glisser-déposer d'un participant vers une table et vers la zone « Remplacer le modérateur ».
+- [ ] Modération IA dépliée, liste des participants inscrits, onglet Tables d'une séance complète en débat.
+- [ ] Espace association (`#asso`) : connexion, en-tête au nom de l'association, une seule table.
+- [ ] Passe automatique des arrondis : un bouton ou une étiquette restés carrés dans une partie non vue.
+
 ## Chantier 158, lot 9 (2026-10-07) — Page modérateur refaite
 
 **Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », « Modo Démo »), à 320, 375 et 800 px : en-tête quadrillé, « Micro libre », parole donnée à « Modo Démo » (carte ocre, puis rappel fixé en haut en descendant), pause, reprise et fin ; fenêtres Documentation, Outils Modo, Historique, Code participant, Proposer un vote, Ajouter une personne sans téléphone ; accueil du modérateur ; tableau des participants sans débordement à 800 px (il défile dans sa carte sur téléphone). Build OK, tests : 133 réussis, 4 ignorés.

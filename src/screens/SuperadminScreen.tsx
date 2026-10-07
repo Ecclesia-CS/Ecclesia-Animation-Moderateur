@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
 import PasswordInput from '../components/PasswordInput'
-import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES, titreSeance } from '../lib/utils'
+import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES, titreSeance, initiales } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
   setSessionOnboardingEnabled, setSessionAssertionsLocked, setSessionAssertionRules, setSessionVisibleOnHome,
@@ -115,6 +115,14 @@ const BOUTON_VERRE = `btn-verre rounded-[8px] inline-flex h-10 shrink-0 items-ce
 
 // Trame discrète derrière les textes, franche dans la bande du bas.
 const FONDU_EN_TETE = 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 55%, #000 88%)'
+
+// Boutons secondaires des pieds de carte (tables, séances).
+const BOUTON_PIED = `inline-flex h-8 items-center rounded-[8px] border border-bleu-fonce/15 bg-white px-3 text-xs font-semibold text-gray-600
+  transition-colors hover:border-bleu-fonce/35 hover:text-bleu-fonce disabled:opacity-50
+  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair`
+const BOUTON_PIED_DANGER = `inline-flex h-8 items-center rounded-[8px] border border-bleu-fonce/15 bg-white px-3 text-xs font-semibold text-gray-600
+  transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed
+  focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300`
 
 /** Bord inférieur en vague de l'en-tête, dans la couleur de la page (crème). */
 function VagueEnTete() {
@@ -987,40 +995,37 @@ function SessionCard({
     setExpanded(v => !v)
   }
 
-  return (
-    <div className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px] transition-all duration-300 hover:border-bleu-fonce/30 hover:shadow-md">
-      {/* ── Header row ── */}
-      <div
-        className="px-5 py-4 flex items-start gap-3 cursor-pointer hover:bg-indigo-50/30 transition-colors"
-        onClick={onClick}
-      >
-        {/* Expand chevron */}
-        <button
-          onClick={toggleExpand}
-          title={expanded ? 'Réduire' : 'Voir les tables'}
-          className="-m-1.5 mt-0 shrink-0 rounded-[6px] p-1.5 text-gray-500 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-        >
-          <svg
-            width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
-          >
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
+  const type = sessionTypeOf(session)
+  const ton = isClosed ? TON_TYPE.closed : TON_TYPE[type]
 
-        <div className="flex-1 min-w-0 space-y-1.5">
-          {/* Title + badge */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="min-w-0 break-words font-sans text-lg font-bold leading-snug tracking-[-0.01em] text-bleu-fonce">{titreSeance(session.title)}</span>
-            <span className={`rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[session.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
-              {phaseLabel(session.phase, sessionTypeOf(session))}
-            </span>
-            {sessionTypeOf(session) !== 'full' && (
-              <span className="rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-white border border-bleu-fonce/15 text-gray-600">
-                {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
+  return (
+    <div className="group/carte flex items-stretch overflow-hidden rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm transition-[border-color,box-shadow] duration-300 hover:border-bleu-fonce/25 hover:shadow-md">
+      {/* Colonne de couleur du type de séance (même largeur que les colonnes des vues participant et modérateur) */}
+      <button
+        onClick={onClick}
+        tabIndex={-1}
+        aria-hidden="true"
+        className={`flex w-14 shrink-0 items-start justify-center pt-5 transition-colors ${ton.bloc}`}
+      >
+        <IconeTypeSeance type={type} className="h-5 w-5" />
+      </button>
+
+      <div className="min-w-0 flex-1">
+        {/* ── Corps cliquable : ouvre la séance ── */}
+        <div className="cursor-pointer px-4 pb-3 pt-4 transition-colors hover:bg-indigo-50/30" onClick={onClick}>
+          <p className={`text-[10.5px] font-bold uppercase tracking-[0.18em] ${ton.surtitre}`}>
+            {SESSION_TYPE_LABEL[type]}
+            {session.scheduled_at && (
+              <span className="text-gray-500">
+                {' · '}{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="min-w-0 break-words font-sans text-lg font-bold leading-snug tracking-[-0.01em] text-bleu-fonce">{titreSeance(session.title)}</span>
+            <span className={`rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[session.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
+              {phaseLabel(session.phase, type)}
+            </span>
             {orgName && (
               <span className="rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-violet-50 border border-violet-200 text-violet-800">
                 Asso : {orgName}
@@ -1028,125 +1033,198 @@ function SessionCard({
             )}
           </div>
 
-          {/* Meta row */}
-          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
-            {session.scheduled_at && (
-              <span>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-            )}
+          {session.description && (
+            <p className="mt-1.5 text-sm text-gray-600 leading-relaxed line-clamp-2">{session.description}</p>
+          )}
+
+          {/* Code, tables, membres */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-600">
             {session.join_code && (
-              <span className="font-semibold tracking-[0.14em] text-gray-700">{session.join_code}</span>
+              <span className="rounded-[6px] bg-gray-100 px-2 py-1 font-semibold tracking-[0.14em] text-anthracite">{session.join_code}</span>
             )}
-            <span>{session.tableCount} table{session.tableCount !== 1 ? 's' : ''}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <IconeTable className="h-3.5 w-3.5 text-gray-500" />
+              {session.tableCount} table{session.tableCount !== 1 ? 's' : ''}
+            </span>
             {session.memberCount > 0 && (
-              <span>{session.memberCount} membre{session.memberCount !== 1 ? 's' : ''}</span>
+              <span className="inline-flex items-center gap-1.5">
+                <IconeMembres className="h-3.5 w-3.5 text-gray-500" />
+                {session.memberCount} membre{session.memberCount !== 1 ? 's' : ''}
+              </span>
             )}
           </div>
+        </div>
 
-          {/* Description */}
-          {session.description && (
-            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{session.description}</p>
-          )}
+        {/* ── Pied : tables, visibilité, actions ── */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-bleu-fonce/[0.07] px-4 py-2.5">
+          <button
+            onClick={toggleExpand}
+            aria-expanded={expanded}
+            className="inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2 -ml-2 text-xs font-semibold text-bleu-fonce/80 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            {expanded ? 'Masquer les tables' : 'Voir les tables'}
+          </button>
 
           {/* Visibilité sur l'accueil (chantier 154) — une séance d'association
               n'y figure jamais (filtre d'EntryScreen), une séance close non plus. */}
           {!isOrgMode && !isClosed && !session.organization_id && (
-          <div onClick={e => e.stopPropagation()} className="pt-0.5">
-            <PillToggle
-              on={session.visible_on_home ?? true}
-              highlighted={!(session.visible_on_home ?? true)}
-              tone="amber"
-              label={(session.visible_on_home ?? true) ? "Visible sur l'accueil" : "Masquée de l'accueil"}
-              title={
-                (session.visible_on_home ?? true)
-                  ? "La séance figure sur la liste « Séances en cours » de l'accueil"
-                  : "La séance est masquée de l'accueil ; elle reste accessible par son lien et son QR code"
-              }
-              onClick={() => onVisibleOnHomeChange(!(session.visible_on_home ?? true))}
-            />
-            {visibleOnHomeError && (
-              <p className="text-xs text-red-600 mt-1">{visibleOnHomeError}</p>
+            <div>
+              <PillToggle
+                on={session.visible_on_home ?? true}
+                highlighted={!(session.visible_on_home ?? true)}
+                tone="amber"
+                label={(session.visible_on_home ?? true) ? "Visible sur l'accueil" : "Masquée de l'accueil"}
+                title={
+                  (session.visible_on_home ?? true)
+                    ? "La séance figure sur la liste « Séances en cours » de l'accueil"
+                    : "La séance est masquée de l'accueil ; elle reste accessible par son lien et son QR code"
+                }
+                onClick={() => onVisibleOnHomeChange(!(session.visible_on_home ?? true))}
+              />
+            </div>
+          )}
+
+          <div className="ml-auto flex items-center gap-1.5">
+            {!isClosed && (
+              <button
+                onClick={onClose}
+                className="inline-flex h-8 items-center rounded-[8px] px-3 text-xs font-semibold border border-bleu-fonce/15
+                  text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+              >
+                Fermer
+              </button>
+            )}
+            {(!isOrgMode || session.phase === 'draft') && (
+            <button
+              onClick={onDelete}
+              title="Supprimer la séance"
+              aria-label="Supprimer la séance"
+              className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-transparent text-gray-500
+                hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </button>
             )}
           </div>
+          {visibleOnHomeError && (
+            <p className="basis-full text-xs text-red-600">{visibleOnHomeError}</p>
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="shrink-0 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-          {!isClosed && (
-            <button
-              onClick={onClose}
-              className="inline-flex h-9 items-center rounded-[8px] px-3 text-xs font-semibold border border-bleu-fonce/15
-                text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-            >
-              Fermer
-            </button>
-          )}
-          {(!isOrgMode || session.phase === 'draft') && (
-          <button
-            onClick={onDelete}
-            title="Supprimer la séance"
-            aria-label="Supprimer la séance"
-            className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-transparent text-gray-500
-              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-          </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Expanded tables panel ── */}
-      {expanded && (
-        <div className="rounded-[8px] border-t border-bleu-fonce/10 px-5 py-3 bg-gray-50/60">
-          {tablesLoading && (
-            <p className="text-xs text-gray-500 py-2">Chargement…</p>
-          )}
-          {tablesErr && (
-            <p className="text-xs text-red-500 py-2">{tablesErr}</p>
-          )}
-          {!tablesLoading && !tablesErr && tables !== null && (
-            tables.length === 0 ? (
-              <p className="text-xs text-gray-500 py-2 text-center">Aucune table rattachée</p>
-            ) : (
-              <div className="space-y-1.5">
-                {tables.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 text-xs">
-                    {/* Active indicator */}
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.is_active ? 'bg-teal-400' : 'bg-gray-300'}`} />
-                    {/* Join code */}
-                    <span className="font-semibold tracking-[0.14em] text-gray-700 w-16 shrink-0">{t.join_code}</span>
-                    {/* Leaderless badge */}
-                    {t.leaderless && (
-                      <span className="rounded-[6px] text-xs font-medium px-1.5 py-0.5 bg-yellow-100 text-yellow-700 shrink-0">
-                        Sans modérateur
+        {/* ── Tables de la séance ── */}
+        {expanded && (
+          <div className="border-t border-bleu-fonce/[0.07] bg-gray-50/70 px-4 py-2">
+            {tablesLoading && (
+              <p className="text-xs text-gray-500 py-2">Chargement…</p>
+            )}
+            {tablesErr && (
+              <p className="text-xs text-red-600 py-2">{tablesErr}</p>
+            )}
+            {!tablesLoading && !tablesErr && tables !== null && (
+              tables.length === 0 ? (
+                <p className="text-xs text-gray-500 py-2">Aucune table rattachée</p>
+              ) : (
+                <ul className="divide-y divide-bleu-fonce/[0.06]">
+                  {tables.map(t => (
+                    <li key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-xs">
+                      <span
+                        className={`h-2 w-2 shrink-0 rounded-full ${t.is_active ? 'bg-teal-500' : 'bg-gray-300'}`}
+                        title={t.is_active ? 'Table active' : 'Table inactive'}
+                      />
+                      <span className="rounded-[6px] bg-white border border-bleu-fonce/10 px-2 py-0.5 font-semibold tracking-[0.14em] text-anthracite">{t.join_code}</span>
+                      {t.leaderless ? (
+                        <span className="rounded-[6px] px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 font-semibold">
+                          Sans modérateur
+                        </span>
+                      ) : (
+                        <span className="inline-flex min-w-0 items-center gap-1.5 text-gray-700">
+                          <span className="text-gray-500">Modérateur :</span>
+                          <span className="truncate font-semibold">{t.moderator_pseudo ?? 'aucun'}</span>
+                        </span>
+                      )}
+                      <span className="ml-auto inline-flex items-center gap-3 text-gray-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <IconeMembres className="h-3.5 w-3.5" />
+                          {t.participant_count} participant{Number(t.participant_count) !== 1 ? 's' : ''}
+                        </span>
+                        <span className="hidden sm:inline">
+                          {new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </span>
-                    )}
-                    {/* Moderator */}
-                    <span className="text-gray-500 truncate flex-1">
-                      {t.leaderless ? null : (t.moderator_pseudo ?? <span className="text-gray-500">-</span>)}
-                    </span>
-                    {/* Participants */}
-                    <span className="text-gray-500 shrink-0">
-                      {t.participant_count} participant{Number(t.participant_count) !== 1 ? 's' : ''}
-                    </span>
-                    {/* Created at */}
-                    <span className="text-gray-500 shrink-0 hidden sm:block">
-                      {new Date(t.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )
-          )}
-        </div>
-      )}
+                    </li>
+                  ))}
+                </ul>
+              )
+            )}
+          </div>
+        )}
+      </div>
     </div>
+  )
+}
+
+// ── Couleur et icône de chaque type de séance (chantier 158) ─────
+
+const TON_TYPE: Record<SessionType | 'closed', { bloc: string; surtitre: string }> = {
+  full:   { bloc: 'bg-bleu-fonce text-bleu-clair hover:bg-indigo-700', surtitre: 'text-bleu-fonce' },
+  debate: { bloc: 'bg-teal-600 text-white hover:bg-teal-700',          surtitre: 'text-teal-700' },
+  poll:   { bloc: 'bg-amber-600 text-creme hover:bg-amber-700',        surtitre: 'text-amber-700' },
+  closed: { bloc: 'bg-gray-100 text-gray-500 hover:bg-gray-200',       surtitre: 'text-gray-600' },
+}
+
+function IconeTypeSeance({ type, className = '' }: { type: SessionType; className?: string }) {
+  const trait = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (type === 'debate') {
+    // Bulle de parole : une table modérée.
+    return (
+      <svg className={className} viewBox="0 0 24 24" aria-hidden="true" {...trait}>
+        <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z" />
+      </svg>
+    )
+  }
+  if (type === 'poll') {
+    // Barres : un vote.
+    return (
+      <svg className={className} viewBox="0 0 24 24" aria-hidden="true" {...trait}>
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      </svg>
+    )
+  }
+  // Colonnes : la séance complète (vote, allocation, débat, résultats).
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" {...trait}>
+      <path d="M3 21h18M5 21V10M10 21V10M14 21V10M19 21V10M2 10l10-6 10 6" />
+    </svg>
+  )
+}
+
+function IconeTable({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    </svg>
+  )
+}
+
+function IconeMembres({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
   )
 }
 
@@ -3615,10 +3693,10 @@ function SessionDetail({
 
                 {/* Groupes (allocating/debating) */}
                 {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-                  <div className="rounded-[12px] bg-white border border-bleu-fonce/10 overflow-hidden px-5 py-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="rounded-[12px] bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden px-5 py-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                       <h3 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Groupes</h3>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Chantier 95 — création d'une table de rattrapage, pendant
                             l'allocation comme pendant le débat. Chantier 135 — une
                             association n'a qu'une table (consigne de Jules). */}
@@ -3626,9 +3704,9 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(false)}
                           disabled={creatingTable}
-                          className="rounded-[8px] py-1 px-2.5 text-xs font-medium border border-indigo-200
-                            text-indigo-600 hover:bg-indigo-50 transition-colors
-                            disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex h-8 items-center rounded-[8px] px-3 text-xs font-semibold bg-bleu-fonce text-creme
+                            hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                            focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                           title="Crée une table animée, vide, déjà numérotée, à peupler par glisser-déposer ou par son code"
                         >
                           {creatingTable ? '…' : '+ Table animée'}
@@ -3636,9 +3714,9 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(true)}
                           disabled={creatingTable}
-                          className="rounded-[8px] py-1 px-2.5 text-xs font-medium border border-bleu-fonce/20
-                            text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors
-                            disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex h-8 items-center rounded-[8px] px-3 text-xs font-semibold bg-teal-600 text-white
+                            hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                            focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2"
                           title="Crée une table sans modérateur, vide, déjà numérotée"
                         >
                           {creatingTable ? '…' : '+ Sans modérateur'}
@@ -3647,8 +3725,8 @@ function SessionDetail({
                         {groups.length > 0 && (
                           <button
                             onClick={() => setRosterOpen(true)}
-                            className="rounded-[8px] text-xs text-gray-500 hover:text-indigo-600 transition-colors"
-                            title="Vue récapitulative, prête à capturer en screenshot"
+                            className={BOUTON_PIED}
+                            title="Vue récapitulative, prête à capturer en capture d'écran"
                           >
                             🖨️ Récapitulatif
                           </button>
@@ -3712,64 +3790,86 @@ function SessionDetail({
                       <div className="space-y-3">
                         {groups.map(g => (
                           <DroppableGroupCard key={g.table_number} tableNumber={g.table_number}>
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
-                              <span className="text-xs text-gray-500">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
-                              {/* Chantier 121 — nombre d'actifs, ce qui guide les choix du superadmin (seuils du chantier 91) */}
-                              {(() => {
-                                const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
-                                if (withProfile.length === 0) return null
-                                const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
-                                return (
-                                  <span className="rounded-[6px] text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
-                                    {activeCount} actif{activeCount !== 1 ? 's' : ''}
-                                  </span>
-                                )
-                              })()}
-                              {/* Chantier 19 — statut des seuils, recalculé en direct */}
-                              {(() => {
-                                const d = groupDiagnostics.find(x => x.table_number === g.table_number)
-                                if (!d) return null
-                                const broken = [
-                                  !d.audience_ok && `${d.audience} en public sans modérateur`,
-                                  d.over_capacity && `${d.size} personnes (> 30)`,
-                                  !d.heterogeneity_ok && allocInputs?.opinionsAvailable && 'hétérogénéité',
-                                  !d.veterans_ok && `anciens ${d.veterans}/${d.veterans_threshold}`,
-                                ].filter(Boolean) as string[]
-                                return (
+                            {/* ── Ligne de titre teintée : numéro dans un bloc de couleur
+                                (marine si la table est animée, sarcelle sinon), effectif,
+                                état des seuils, puis le code de la table. ── */}
+                            <div className={`flex items-stretch border-b ${g.moderated ? 'border-bleu-fonce/10 bg-indigo-50' : 'border-teal-600/15 bg-teal-50'}`}>
+                              <span className={`flex w-14 shrink-0 flex-col items-center justify-center py-2 ${g.moderated ? 'bg-bleu-fonce text-creme' : 'bg-teal-600 text-white'}`}>
+                                <span className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-75">Table</span>
+                                <span className="text-xl font-bold leading-none tabular-nums">{g.table_number}</span>
+                              </span>
+                              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2.5">
+                                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-anthracite">
+                                  <IconeMembres className="h-3.5 w-3.5 text-gray-500" />
+                                  {g.members.length} membre{g.members.length !== 1 ? 's' : ''}
+                                </span>
+                                {/* Chantier 121 — nombre d'actifs, ce qui guide les choix du superadmin (seuils du chantier 91) */}
+                                {(() => {
+                                  const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
+                                  if (withProfile.length === 0) return null
+                                  const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
+                                  return (
+                                    <span className="rounded-[6px] bg-white px-2 py-0.5 text-xs font-semibold text-bleu-fonce shrink-0">
+                                      {activeCount} actif{activeCount !== 1 ? 's' : ''}
+                                    </span>
+                                  )
+                                })()}
+                                {/* Chantier 19 — statut des seuils, recalculé en direct */}
+                                {(() => {
+                                  const d = groupDiagnostics.find(x => x.table_number === g.table_number)
+                                  if (!d) return null
+                                  const broken = [
+                                    !d.audience_ok && `${d.audience} en public sans modérateur`,
+                                    d.over_capacity && `${d.size} personnes (> 30)`,
+                                    !d.heterogeneity_ok && allocInputs?.opinionsAvailable && 'hétérogénéité',
+                                    !d.veterans_ok && `anciens ${d.veterans}/${d.veterans_threshold}`,
+                                  ].filter(Boolean) as string[]
+                                  return (
+                                    <span
+                                      title={broken.length === 0
+                                        ? 'Tous les seuils atteints'
+                                        : `Seuils non atteints : ${broken.join(', ')}`}
+                                      className={`rounded-[6px] px-2 py-0.5 text-xs font-semibold shrink-0 ${
+                                        broken.length === 0
+                                          ? 'bg-emerald-100 text-emerald-800'
+                                          : 'bg-amber-100 text-amber-800'
+                                      }`}
+                                    >
+                                      {broken.length === 0 ? '✓ Seuils atteints' : `⚠️ ${broken.join(' · ')}`}
+                                    </span>
+                                  )
+                                })()}
+                                {(() => {
+                                  const d = groupDiagnostics.find(x => x.table_number === g.table_number)
+                                  if (!d) return null
+                                  return d.recordable ? (
+                                    <span className="rounded-[6px] bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 shrink-0"
+                                      title="Aucun non-consentant et table non homogène">
+                                      🎙️ Enregistrable
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-[6px] bg-white px-2 py-0.5 text-xs text-gray-600 shrink-0"
+                                      title={d.non_consenting > 0
+                                        ? `${d.non_consenting} personne(s) non consentante(s)`
+                                        : "Table homogène en opinion : un enregistrement n'y apporterait rien"}>
+                                      Non enregistrable
+                                    </span>
+                                  )
+                                })()}
+                                {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
+                                {g.join_code && (
                                   <span
-                                    title={broken.length === 0
-                                      ? 'Tous les seuils atteints'
-                                      : `Seuils non atteints : ${broken.join(', ')}`}
-                                    className={`rounded-[6px] text-xs px-1.5 py-0.5 shrink-0 ${
-                                      broken.length === 0
-                                        ? 'bg-green-50 text-green-700'
-                                        : 'bg-amber-100 text-amber-700'
-                                    }`}
+                                    className="ml-auto inline-flex items-center gap-1.5 rounded-[6px] border border-bleu-fonce/10 bg-white px-2 py-1 text-xs"
+                                    title="Code de la table, rattachée à la séance"
                                   >
-                                    {broken.length === 0 ? '✓ seuils OK' : `⚠️ ${broken.join(' · ')}`}
+                                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                                    <span className="font-semibold tracking-[0.14em] text-anthracite">{g.join_code}</span>
                                   </span>
-                                )
-                              })()}
-                              {(() => {
-                                const d = groupDiagnostics.find(x => x.table_number === g.table_number)
-                                if (!d) return null
-                                return d.recordable ? (
-                                  <span className="rounded-[6px] text-xs bg-green-100 text-green-700 px-1.5 py-0.5 shrink-0"
-                                    title="Aucun non-consentant et table non homogène">
-                                    🎙️ enregistrable
-                                  </span>
-                                ) : (
-                                  <span className="rounded-[6px] text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 shrink-0"
-                                    title={d.non_consenting > 0
-                                      ? `${d.non_consenting} personne(s) non consentante(s)`
-                                      : "Table homogène en opinion : un enregistrement n'y apporterait rien"}>
-                                    non enregistrable
-                                  </span>
-                                )
-                              })()}
-                              {movingMember && <span className="text-xs text-indigo-400 animate-pulse">…</span>}
+                                )}
+                              </div>
                             </div>
+
+                            <div className="space-y-3 px-4 py-3.5">
                             {/* Chantier 26 (H21) — nom du modérateur affecté à cette table, ou
                                 attente explicite si la table doit être animée mais que le
                                 modérateur annoncé n'est pas encore inscrit. Chantier 36 : un
@@ -3783,72 +3883,81 @@ function SessionDetail({
                               const activeMods = mods.filter(m => m.active)
                               const surplusMods = mods.filter(m => !m.active)
                               return (
-                                <div className="mb-2 space-y-1.5">
-                                  {activeMods.length > 0 && (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {activeMods.map(mod => (
-                                        <span key={mod.member_id ?? `physical-${g.table_id}`}
-                                          className="rounded-[6px] text-xs bg-indigo-50 text-indigo-700 px-2 py-1 border border-indigo-100 inline-flex items-center gap-1">
-                                          🎙️ Modérateur : <strong>{mod.pseudo}</strong>
-                                          {/* Chantier 117 — modérateur « physique » (rejoint par
-                                              Code Ecclesia, aucune ligne session_members) : pas de
-                                              flag à retirer, seule la libération de la table a un
-                                              effet (elle redevient reprenable). */}
-                                          <button
-                                            onClick={() => mod.member_id
-                                              ? handleRemoveTableModerator(mod.member_id)
-                                              : g.table_id && handleReleaseTableModeration(g.table_id)}
-                                            disabled={movingMember}
-                                            className="rounded-[8px] text-gray-500 hover:text-red-600 underline disabled:opacity-50"
-                                            title={mod.member_id
-                                              ? "Redevient un participant ordinaire de cette table"
-                                              : "Rejoint par Code Ecclesia, non inscrit à la séance : remet la table à disposition"}
-                                          >
-                                            Retirer
-                                          </button>
-                                        </span>
-                                      ))}
+                                <div className="space-y-2">
+                                  {activeMods.map(mod => (
+                                    <div key={mod.member_id ?? `physical-${g.table_id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bleu-fonce text-[11px] font-bold text-creme">
+                                        {initiales(mod.pseudo)}
+                                      </span>
+                                      <span className="min-w-0">
+                                        <span className="block text-[10.5px] font-bold uppercase tracking-[0.16em] text-bleu-fonce/70">Modérateur</span>
+                                        <span className="block truncate text-sm font-semibold text-anthracite">{mod.pseudo}</span>
+                                      </span>
+                                      {/* Chantier 117 — modérateur « physique » (rejoint par
+                                          Code Ecclesia, aucune ligne session_members) : pas de
+                                          flag à retirer, seule la libération de la table a un
+                                          effet (elle redevient reprenable). */}
+                                      <button
+                                        onClick={() => mod.member_id
+                                          ? handleRemoveTableModerator(mod.member_id)
+                                          : g.table_id && handleReleaseTableModeration(g.table_id)}
+                                        disabled={movingMember}
+                                        className="inline-flex h-8 items-center rounded-[8px] border border-bleu-fonce/15 px-3 text-xs font-semibold text-gray-600
+                                          hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50
+                                          focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                                        title={mod.member_id
+                                          ? "Redevient un participant ordinaire de cette table"
+                                          : "Rejoint par Code Ecclesia, non inscrit à la séance : remet la table à disposition"}
+                                      >
+                                        Retirer
+                                      </button>
                                     </div>
-                                  )}
-                                  {surplusMods.length > 0 && (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {/* Chantier 117 — un modérateur « physique » (member_id
-                                          null) est toujours `active` (cf. SQL), donc jamais dans
-                                          `surplusMods` : le `!` ci-dessous est sûr. */}
-                                      {surplusMods.map(mod => (
-                                        <span key={mod.member_id}
-                                          className="rounded-[6px] text-xs bg-amber-50 text-amber-700 px-2 py-1 border border-amber-100 inline-flex items-center gap-1"
-                                          title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) : ne voit pas l'écran modérateur ici.">
-                                          🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
-                                          {/* Chantier 123 — Jules : « il faut juste qu'il
-                                              puisse passer en principal ». `assign_moderator_to_table`
-                                              (corrigée par ce chantier) écrase désormais un
-                                              `active_moderator_member_id` périmé et fait sortir la
-                                              table de `leaderless`. Chantier 139 : plus masqué quand la
-                                              table a déjà un animateur — le bouton le remplace, avec
-                                              confirmation (cf. handleAssignTableModerator). */}
-                                          <button
-                                            onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
-                                            disabled={movingMember}
-                                            className="rounded-[8px] text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
-                                            title={activeMods.length === 0
-                                              ? "En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
-                                              : "En fait le modérateur principal de cette table, à la place de l'animateur actuel (confirmation demandée)."}
-                                          >
-                                            En faire le principal
-                                          </button>
-                                          <button
-                                            onClick={() => handleRemoveTableModerator(mod.member_id!)}
-                                            disabled={movingMember}
-                                            className="rounded-[8px] text-gray-500 hover:text-red-600 underline disabled:opacity-50"
-                                            title="Retire le drapeau modérateur"
-                                          >
-                                            Retirer
-                                          </button>
-                                        </span>
-                                      ))}
+                                  ))}
+                                  {/* Chantier 117 — un modérateur « physique » (member_id
+                                      null) est toujours `active` (cf. SQL), donc jamais dans
+                                      `surplusMods` : le `!` ci-dessous est sûr. */}
+                                  {surplusMods.map(mod => (
+                                    <div key={mod.member_id} className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                                      title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) : ne voit pas l'écran modérateur ici.">
+                                      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-800">
+                                        {initiales(mod.pseudo)}
+                                      </span>
+                                      <span className="min-w-0">
+                                        <span className="block text-[10.5px] font-bold uppercase tracking-[0.16em] text-amber-700">Modérateur en surplus</span>
+                                        <span className="block truncate text-sm font-semibold text-anthracite">{mod.pseudo}</span>
+                                      </span>
+                                      {/* Chantier 123 — Jules : « il faut juste qu'il
+                                          puisse passer en principal ». `assign_moderator_to_table`
+                                          (corrigée par ce chantier) écrase désormais un
+                                          `active_moderator_member_id` périmé et fait sortir la
+                                          table de `leaderless`. Chantier 139 : plus masqué quand la
+                                          table a déjà un animateur — le bouton le remplace, avec
+                                          confirmation (cf. handleAssignTableModerator). */}
+                                      <span className="inline-flex gap-1.5">
+                                        <button
+                                          onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
+                                          disabled={movingMember}
+                                          className="inline-flex h-8 items-center rounded-[8px] border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-bleu-fonce
+                                            hover:bg-indigo-100 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                                          title={activeMods.length === 0
+                                            ? "En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
+                                            : "En fait le modérateur principal de cette table, à la place de l'animateur actuel (confirmation demandée)."}
+                                        >
+                                          En faire le principal
+                                        </button>
+                                        <button
+                                          onClick={() => handleRemoveTableModerator(mod.member_id!)}
+                                          disabled={movingMember}
+                                          className="inline-flex h-8 items-center rounded-[8px] border border-bleu-fonce/15 px-3 text-xs font-semibold text-gray-600
+                                            hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50
+                                            focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                                          title="Retire le drapeau modérateur"
+                                        >
+                                          Retirer
+                                        </button>
+                                      </span>
                                     </div>
-                                  )}
+                                  ))}
                                   {/* Chantier 72 (retour 2 de Jules) — « rendre possible
                                       d'ajouter un modérateur dans une table qui a été créée
                                       sans modérateur ». La condition `g.moderated` qui
@@ -3871,45 +3980,6 @@ function SessionDetail({
                                     leaderless={!g.moderated}
                                     replacing={activeMods.length > 0}
                                   />
-
-                                  {/* Chantier 72 (défaut A du bug 1) — filet quand la table
-                                      reste bloquée : un modérateur « physique »
-                                      (tables.created_by, posé par « Devenir modérateur » ou
-                                      par le formulaire de rattrapage) n'a aucun flag
-                                      is_moderator, n'apparaît donc pas ci-dessus, et rend
-                                      pourtant la table non reprenable. */}
-                                  {/* Chantier 144 — les deux liens partageaient une ligne sans séparateur. */}
-                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                                  {g.table_id && (
-                                    <button
-                                      onClick={() => handleReleaseTableModeration(g.table_id!)}
-                                      disabled={movingMember}
-                                      className="rounded-[8px] text-xs text-gray-500 hover:text-red-600 underline disabled:opacity-50"
-                                      title={"Remet la table à disposition : quiconque a le Code Ecclesia pourra la prendre en charge "
-                                        + "avec son code. À utiliser si un modérateur est parti et que la table refuse encore "
-                                        + "toute reprise (« cette table a déjà un modérateur »)."}
-                                    >
-                                      Libérer la modération de cette table
-                                    </button>
-                                  )}
-                                  {/* Chantier 123 — chemin symétrique, demandé par Jules :
-                                      « si on peut proposer un bouton pour la refaire devenir
-                                      leaderless c'est l'idéal ». Les quatre chemins d'entrée
-                                      existaient, aucun chemin de sortie. Inutile sur une table
-                                      déjà sans animateur. */}
-                                  {g.table_id && g.moderated && (
-                                    <button
-                                      onClick={() => handleMakeTableLeaderless(g.table_id!)}
-                                      disabled={movingMember}
-                                      className="rounded-[8px] text-xs text-gray-500 hover:text-amber-700 underline disabled:opacity-50"
-                                      title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
-                                        + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
-                                        + "disponible pour une autre table). Utilise « Retirer » pour le lui enlever aussi."}
-                                    >
-                                      Refaire une table sans animateur
-                                    </button>
-                                  )}
-                                  </div>
                                 </div>
                               )
                             })()}
@@ -3917,21 +3987,19 @@ function SessionDetail({
                                 carte, sans avoir à déplier « Santé des tables » plus bas. */}
                             {(() => {
                               const d = groupDiagnostics.find(x => x.table_number === g.table_number)
-                              return d ? (
-                                <div className="mb-2">
-                                  <CampCompositionBar d={d} />
-                                </div>
-                              ) : null
+                              return d ? <CampCompositionBar d={d} /> : null
                             })()}
                             {/* Chantier 28 (H26) — le nom de camp Gemini indexé sur le numéro de
                                 table physique a été retiré : sous l'allocation v2 la table mélange
                                 volontairement plusieurs camps, ce nom était donc faux. La barre de
                                 composition ci-dessus donne l'information exacte. */}
-                            <div className="flex flex-wrap gap-1.5 mb-3">
+                            <div>
+                              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-bleu-fonce/70">Participants</p>
+                              <div className="flex flex-wrap gap-1.5">
                               {/* Chantier 95 — table créée à la main, encore vide. */}
                               {g.members.length === 0 && (
                                 <span className="text-xs text-gray-500 italic">
-                                  En attente de participants : glisse quelqu'un ici, ou communique le code ci-dessous.
+                                  En attente de participants : glisse quelqu'un ici, ou communique le code de la table.
                                 </span>
                               )}
                               {/* Chantier 117 — seul un membre `is_moderator` peut avoir
@@ -3956,17 +4024,50 @@ function SessionDetail({
                                   />
                                 )}
                               />
+                              </div>
                             </div>
-                            <div className="border-t border-bleu-fonce/10 pt-3">
+                            </div>
+
+                            {/* ── Pied : gestes sur la table ── */}
+                            {(g.table_id || !isOrg) && (
+                            <div className="flex flex-wrap items-center gap-2 border-t border-bleu-fonce/[0.07] bg-gray-50/70 px-4 py-2.5">
+                              {/* Chantier 72 (défaut A du bug 1) — filet quand la table
+                                  reste bloquée : un modérateur « physique »
+                                  (tables.created_by, posé par « Devenir modérateur » ou
+                                  par le formulaire de rattrapage) n'a aucun flag
+                                  is_moderator, n'apparaît donc pas ci-dessus, et rend
+                                  pourtant la table non reprenable. */}
+                              {g.table_id && (
+                                <button
+                                  onClick={() => handleReleaseTableModeration(g.table_id!)}
+                                  disabled={movingMember}
+                                  className={BOUTON_PIED}
+                                  title={"Remet la table à disposition : quiconque a le Code Ecclesia pourra la prendre en charge "
+                                    + "avec son code. À utiliser si un modérateur est parti et que la table refuse encore "
+                                    + "toute reprise (« cette table a déjà un modérateur »)."}
+                                >
+                                  Libérer la modération
+                                </button>
+                              )}
+                              {/* Chantier 123 — chemin symétrique, demandé par Jules :
+                                  « si on peut proposer un bouton pour la refaire devenir
+                                  leaderless c'est l'idéal ». Les quatre chemins d'entrée
+                                  existaient, aucun chemin de sortie. Inutile sur une table
+                                  déjà sans animateur. */}
+                              {g.table_id && g.moderated && (
+                                <button
+                                  onClick={() => handleMakeTableLeaderless(g.table_id!)}
+                                  disabled={movingMember}
+                                  className={BOUTON_PIED}
+                                  title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
+                                    + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
+                                    + "disponible pour une autre table). Utilise « Retirer » pour le lui enlever aussi."}
+                                >
+                                  Refaire une table sans animateur
+                                </button>
+                              )}
                               {g.join_code ? (
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="rounded-[6px] inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 border border-green-200">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                                      <span className="tracking-widest font-semibold tabular-nums">{g.join_code}</span>
-                                    </span>
-                                    <span className="text-xs text-gray-500">rattachée</span>
-                                  </div>
+                                <div className="ml-auto flex items-center gap-1.5">
                                   {/* Chantier 95 — seule porte de suppression restante
                                       depuis le retrait des accordéons, volontairement
                                       limitée aux tables vides. */}
@@ -3976,8 +4077,7 @@ function SessionDetail({
                                         const row = attachedTables.find(t => t.id === g.table_id)
                                         if (row) setDeleteTableConfirm(row)
                                       }}
-                                      className="rounded-[8px] py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
-                                        hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                      className={BOUTON_PIED_DANGER}
                                     >
                                       Supprimer
                                     </button>
@@ -3986,20 +4086,18 @@ function SessionDetail({
                                   <button
                                     onClick={() => handleAssignGroup(g.table_number, null)}
                                     disabled={assigningGroup === g.table_number}
-                                    className="rounded-[8px] py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
-                                      hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
-                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className={BOUTON_PIED_DANGER}
                                   >
                                     {assigningGroup === g.table_number ? '…' : 'Détacher'}
                                   </button>
                                   )}
                                 </div>
                               ) : isOrg ? null : (
-                                <div className="flex items-center gap-2">
+                                <div className="flex w-full items-center gap-2">
                                   <select
                                     value={selectedTableId[g.table_number] ?? ''}
                                     onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
-                                    className="rounded-[8px] flex-1 text-xs px-2 py-1.5 border border-bleu-fonce/20
+                                    className="rounded-[8px] flex-1 text-xs px-2 py-2 border border-bleu-fonce/20
                                       focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white"
                                   >
                                     <option value="">Sélectionner une table</option>
@@ -4015,15 +4113,16 @@ function SessionDetail({
                                       if (tableId) handleAssignGroup(g.table_number, tableId)
                                     }}
                                     disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
-                                    className="rounded-[8px] py-1.5 px-3 text-xs font-medium border border-indigo-200
-                                      text-indigo-600 hover:bg-indigo-50 transition-colors
-                                      disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex h-8 items-center rounded-[8px] px-3 text-xs font-semibold bg-indigo-600 text-white
+                                      hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                                      focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                                   >
                                     {assigningGroup === g.table_number ? '…' : 'Rattacher'}
                                   </button>
                                 </div>
                               )}
                             </div>
+                            )}
                           </DroppableGroupCard>
                         ))}
                       </div>
@@ -5412,17 +5511,17 @@ function DraggableMemberChip({
         profile ? memberProfileTitle(profile) : null,
         linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')} , se déplace avec sa grappe` : null,
       ].filter(Boolean).join(' · ') || undefined}
-      className={`rounded-[6px] px-2 py-0.5 text-xs font-medium border cursor-grab active:cursor-grabbing select-none
+      className={`rounded-[8px] px-2.5 py-1 text-[13px] font-medium border cursor-grab active:cursor-grabbing select-none
         transition-opacity inline-flex items-center gap-1 ${
         isDragging
           ? 'opacity-0'
-          : color ? 'text-gray-700 hover:brightness-95' : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+          : color ? 'text-anthracite hover:brightness-95' : 'bg-white border-bleu-fonce/15 text-anthracite hover:border-bleu-fonce/35'
       }`}
     >
       <span>{pseudo}</span>
       {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
       {profile && (
-        <span className="text-[10px] tracking-tight opacity-75 shrink-0 font-semibold tabular-nums">
+        <span className="rounded-[4px] bg-bleu-fonce/[0.07] px-1 text-[10px] tracking-tight text-gray-600 shrink-0 font-semibold tabular-nums">
           <span className={profile.is_active ? '' : 'line-through'}>a</span>
           <span className={profile.consents ? '' : 'line-through'}>e</span>
           <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
@@ -5435,8 +5534,8 @@ function DraggableMemberChip({
 /** H20 — légende des lettres et de la couleur, affichée une fois au-dessus des tables. */
 function MemberBadgeLegend() {
   return (
-    <details className="rounded-[8px] text-xs text-gray-500 bg-gray-50/60 border border-bleu-fonce/10 px-3 py-1.5">
-      <summary className="cursor-pointer select-none font-medium text-gray-600">
+    <details className="rounded-[8px] text-xs text-gray-600 bg-indigo-50/50 px-3 py-2">
+      <summary className="cursor-pointer select-none font-semibold text-bleu-fonce/80 hover:text-bleu-fonce">
         Légende des cartes participant
       </summary>
       <div className="pt-1.5 space-y-1 leading-snug">
@@ -5454,8 +5553,8 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-[12px] bg-white border p-4 transition-colors ${
-        isOver ? 'border-indigo-400 bg-indigo-50/30' : 'border-bleu-fonce/10'
+      className={`overflow-hidden rounded-[12px] bg-white border shadow-sm transition-[border-color,box-shadow] ${
+        isOver ? 'border-indigo-400 ring-2 ring-indigo-300/50' : 'border-bleu-fonce/10'
       }`}
     >
       {children}
@@ -5517,12 +5616,12 @@ function AddModeratorControl({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-[8px] border px-2.5 py-2 transition-colors ${
-        isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-amber-200 bg-amber-50/60'
+      className={`rounded-[8px] border border-dashed px-3 py-2.5 transition-colors ${
+        isOver ? 'border-indigo-400 bg-indigo-50/60' : 'border-amber-300 bg-amber-50/50'
       }`}
     >
-      <div className="flex items-center justify-between gap-2 mb-1.5">
-        <span className="text-xs text-amber-800 inline-flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-2">
+        <span className="text-xs font-semibold text-amber-800 inline-flex items-center gap-1">
           {replacing
             ? '🔁 Remplacer le modérateur'
             : leaderless ? '🙌 Table sans animateur' : '⏳ En attente de modérateur'}
@@ -5536,7 +5635,7 @@ function AddModeratorControl({
           onChange={e => { setName(e.target.value); setError(null) }}
           disabled={disabled}
           placeholder="Nom prénom du modérateur…"
-          className="rounded-[8px] flex-1 min-w-0 text-xs px-2 py-1.5 border border-bleu-fonce/20
+          className="rounded-[8px] flex-1 min-w-0 text-xs px-2.5 py-2 border border-bleu-fonce/20
             focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white disabled:opacity-50"
         />
         <datalist id={datalistId}>
@@ -5545,10 +5644,11 @@ function AddModeratorControl({
         <button
           type="submit"
           disabled={disabled || !name.trim()}
-          className="rounded-[8px] shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200
-            text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex h-8 shrink-0 items-center rounded-[8px] px-3 text-xs font-semibold bg-indigo-600 text-white
+            hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
-          ➕ Ajouter
+          Désigner
         </button>
       </form>
       {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
