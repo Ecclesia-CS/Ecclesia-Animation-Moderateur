@@ -285,6 +285,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 158, lot 9 (2026-10-07) — Accueil refait
+
+**Vérifié au navigateur sur dev** à 375 et 800 px : en-tête quadrillé, cinq séances en cours (vote à distance, deux débats, formation des groupes), fenêtre « Anciennes séances ».
+
+**Reste à voir à l'œil**
+- [ ] Accueil sans aucune séance en cours (encart en pointillés « Aucune séance en cours pour l'instant »).
+- [ ] Séance en vote présentiel (`voting`) : même couleur marine que le vote à distance.
+
 ## Chantier 158, lot 9 (2026-10-07) — Superadmin refait
 
 **Vérifié au navigateur sur dev** à 375 et 800 px : connexion (avant la refonte des cartes), liste des séances, détail d'un débat simple (Tables, Préparation, Analyse) et d'une séance complète close (En direct, Analyse, synthèse des votes), carte de table de « Réunion apprentissage modération 21/09 », fenêtres « Nouvelle séance » et « Fermer la séance » ouvertes puis annulées. Build OK, tests : 133 réussis, 4 ignorés.
