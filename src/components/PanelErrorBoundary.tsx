@@ -65,14 +65,14 @@ export default class PanelErrorBoundary extends Component<Props, State> {
             </div>
           </div>
 
-          <p className="text-xs font-mono text-red-700 bg-red-50 border border-red-200
-            px-3 py-2 break-words whitespace-pre-wrap">
+          <p className="text-xs text-red-700 bg-red-50 border border-red-200
+            px-3 py-2 break-words whitespace-pre-wrap font-semibold tabular-nums">
             {error.message || String(error)}
           </p>
 
           <button
             onClick={() => this.setState({ error: null })}
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors
+            className="rounded-[8px] text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 px-1 py-0.5"
           >
             Réessayer d'afficher ce panneau

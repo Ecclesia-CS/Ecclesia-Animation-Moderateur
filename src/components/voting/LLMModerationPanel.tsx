@@ -598,7 +598,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
   // ── Rendu ───────────────────────────────────────────────────
 
   return (
-    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
 
       {/* En-tête accordéon */}
       <button
@@ -624,13 +624,13 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
           {/* Message succès / erreur */}
           {actionMsg && (
-            <div className={`px-4 py-3 text-sm flex items-center justify-between gap-2 ${
+            <div className={`rounded-[8px] px-4 py-3 text-sm flex items-center justify-between gap-2 ${
               isError
                 ? 'bg-red-50 border border-red-200 text-red-700'
                 : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
             }`}>
               <span>{actionMsg}</span>
-              <button onClick={() => setActionMsg(null)} className="shrink-0 opacity-50 hover:opacity-100">✕</button>
+              <button onClick={() => setActionMsg(null)} className="rounded-[8px] shrink-0 opacity-50 hover:opacity-100">✕</button>
             </div>
           )}
 
@@ -644,7 +644,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <button
                 onClick={handleModerate}
                 disabled={isLoading}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+                className="rounded-[8px] flex items-center gap-2 text-sm px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 {isLoading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -655,7 +655,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <button
                 onClick={handleAnalyzeMerges}
                 disabled={isLoading}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="rounded-[8px] flex items-center gap-2 text-sm px-3 py-2 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -670,7 +670,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
               <button
                 onClick={() => setShowReport(r => !r)}
-                className="text-sm px-3 py-2 border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+                className="rounded-[8px] text-sm px-3 py-2 border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
               >
                 {showReport ? 'Masquer le rapport' : 'Rapport token'}
               </button>
@@ -689,14 +689,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   <button
                     onClick={handleApplyAllProposals}
                     disabled={isLoading}
-                    className="text-xs px-2.5 py-1.5 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    className="rounded-[8px] text-xs px-2.5 py-1.5 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
                   >
                     Tout fusionner
                   </button>
                   <button
                     onClick={ignoreAllProposals}
                     disabled={isLoading}
-                    className="text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-gray-600 hover:bg-white disabled:opacity-50 transition-colors"
+                    className="rounded-[8px] text-xs px-2.5 py-1.5 border border-bleu-fonce/20 text-gray-600 hover:bg-white disabled:opacity-50 transition-colors"
                   >
                     Tout ignorer
                   </button>
@@ -715,12 +715,12 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                     ...p.reject_ids.map((id, ri) => ({ id, content: p.reject_contents[ri] ?? id, keep: false })),
                   ]
                   return (
-                    <div key={`${p.keep_id}-${i}`} className="bg-white border border-purple-100 p-3 space-y-2">
+                    <div key={`${p.keep_id}-${i}`} className="rounded-[8px] bg-white border border-purple-100 p-3 space-y-2">
                       <div className="space-y-1.5">
                         {all.map(a => (
                           <div
                             key={a.id}
-                            className={`flex items-start gap-2 px-2 py-1.5 ${
+                            className={`rounded-[8px] flex items-start gap-2 px-2 py-1.5 ${
                               a.keep ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50/60 border border-red-100'
                             }`}
                           >
@@ -733,7 +733,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                                 onClick={() => swapKeep(i, a.id)}
                                 disabled={isLoading}
                                 title="Conserver celle-ci à la place"
-                                className="shrink-0 text-xs px-2 py-0.5 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+                                className="rounded-[8px] shrink-0 text-xs px-2 py-0.5 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
                               >
                                 Garder celle-ci
                               </button>
@@ -750,7 +750,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
                       {/* Formulation combinée (chantier 7) — éditable avant application */}
                       {p.merged_content !== undefined && (
-                        <div className="bg-amber-50 border border-amber-200 p-2 space-y-1">
+                        <div className="rounded-[8px] bg-amber-50 border border-amber-200 p-2 space-y-1">
                           <label className="block text-[11px] font-bold text-amber-800 uppercase tracking-[0.16em]">
                             ✨ Formulation combinée (réunit les deux)
                           </label>
@@ -759,7 +759,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                             onChange={e => editMergedContent(i, e.target.value)}
                             disabled={isLoading}
                             rows={2}
-                            className="w-full text-sm text-gray-800 bg-white border border-amber-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y disabled:opacity-50"
+                            className="rounded-[8px] w-full text-sm text-gray-800 bg-white border border-amber-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y disabled:opacity-50"
                           />
                           <p className="text-[11px] text-amber-600">
                             Remplace le texte de l'assertion « ✅ » par cette version, puis rejette l'autre et transfère ses votes.
@@ -772,7 +772,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           <button
                             onClick={() => handleApplyProposal(i, 'combine')}
                             disabled={isLoading}
-                            className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                            className="rounded-[8px] flex-1 min-w-[8rem] text-xs px-3 py-1.5 bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
                           >
                             ✨ Fusionner (formulation combinée)
                           </button>
@@ -780,14 +780,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         <button
                           onClick={() => handleApplyProposal(i, 'keep')}
                           disabled={isLoading}
-                          className="flex-1 min-w-[8rem] text-xs px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                          className="rounded-[8px] flex-1 min-w-[8rem] text-xs px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                         >
                           ✓ Garder « ✅ » telle quelle
                         </button>
                         <button
                           onClick={() => ignoreProposal(i)}
                           disabled={isLoading}
-                          className="flex-1 min-w-[6rem] text-xs px-3 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-50 transition-colors"
+                          className="rounded-[8px] flex-1 min-w-[6rem] text-xs px-3 py-1.5 border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-50 transition-colors"
                         >
                           ✗ Ignorer
                         </button>
@@ -810,7 +810,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-gray-600">
                   <span>Requêtes aujourd'hui</span>
-                  <span className="font-mono">{dayTokens.request_count} / 1 500</span>
+                  <span className="font-semibold tabular-nums">{dayTokens.request_count} / 1 500</span>
                 </div>
                 <div className="w-full bg-gray-100 h-1.5 overflow-hidden">
                   <div
@@ -824,7 +824,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-gray-600">
                   <span>Tokens cette séance (total_tokens)</span>
-                  <span className="font-mono">{sessionTokens.toLocaleString('fr-FR')}</span>
+                  <span className="font-semibold tabular-nums">{sessionTokens.toLocaleString('fr-FR')}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-1.5 overflow-hidden">
                   <div
@@ -840,27 +840,27 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs bg-gray-50 px-3 py-2.5">
                 <div className="flex justify-between">
                   <span className="text-gray-500">prompt_tokens</span>
-                  <span className="font-mono text-gray-700">{sessionPromptTokens.toLocaleString('fr-FR')}</span>
+                  <span className="text-gray-700 font-semibold tabular-nums">{sessionPromptTokens.toLocaleString('fr-FR')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">completion_tokens</span>
-                  <span className="font-mono text-gray-700">{sessionCompletionTokens.toLocaleString('fr-FR')}</span>
+                  <span className="text-gray-700 font-semibold tabular-nums">{sessionCompletionTokens.toLocaleString('fr-FR')}</span>
                 </div>
                 <div className="flex justify-between">
                   {/* F20 — tokens de réflexion (thinking), non inclus dans completion_tokens */}
                   <span className="text-gray-500">thoughts_tokens</span>
-                  <span className="font-mono text-gray-700">{sessionThoughtsTokens.toLocaleString('fr-FR')}</span>
+                  <span className="text-gray-700 font-semibold tabular-nums">{sessionThoughtsTokens.toLocaleString('fr-FR')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">total_tokens</span>
-                  <span className="font-mono text-gray-700">{sessionTokens.toLocaleString('fr-FR')}</span>
+                  <span className="text-gray-700 font-semibold tabular-nums">{sessionTokens.toLocaleString('fr-FR')}</span>
                 </div>
               </div>
 
               {/* Modèle Gemini utilisé (F19 — remplace l'ancienne estimation d'énergie) */}
               <div className="flex justify-between text-xs text-gray-500 bg-gray-50 px-3 py-2.5">
                 <span>Modèle</span>
-                <span className="font-mono text-gray-700">{sessionModel ?? '-'}</span>
+                <span className="text-gray-700 font-semibold tabular-nums">{sessionModel ?? '-'}</span>
               </div>
 
               {/* Historique log */}
@@ -878,7 +878,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           {new Date(e.timestamp).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                         </span>
                         <span className="flex-1">{e.action} : {e.summary}</span>
-                        <span className="font-mono text-gray-500 shrink-0">{e.usage.total_tokens} tok</span>
+                        <span className="text-gray-500 shrink-0 font-semibold tabular-nums">{e.usage.total_tokens} tok</span>
                       </div>
                     ))}
                   </div>
@@ -920,7 +920,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           }
                         }}
                         disabled={isLoading}
-                        className="shrink-0 text-xs px-2 py-1 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+                        className="rounded-[8px] shrink-0 text-xs px-2 py-1 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
                       >
                         Accepter quand même
                       </button>
@@ -952,7 +952,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                   return (
                     <div
                       key={m.id}
-                      className={`flex items-start gap-3 px-3 py-2 ${reverted ? 'bg-gray-50 opacity-60' : 'bg-gray-50'}`}
+                      className={`rounded-[8px] flex items-start gap-3 px-3 py-2 ${reverted ? 'bg-gray-50 opacity-60' : 'bg-gray-50'}`}
                     >
                       <div className="flex-1 min-w-0 space-y-1">
                         <p className="text-xs text-gray-700">
@@ -981,14 +981,14 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                             <button
                               onClick={() => handleRevertMerge(m.id)}
                               disabled={revertingId !== null}
-                              className="text-xs px-2 py-1 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                              className="rounded-[8px] text-xs px-2 py-1 bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
                             >
                               {revertingId === m.id ? 'Annulation…' : 'Confirmer'}
                             </button>
                             <button
                               onClick={() => setConfirmRevertId(null)}
                               disabled={revertingId !== null}
-                              className="text-xs px-2 py-1 border border-bleu-fonce/20 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                              className="rounded-[8px] text-xs px-2 py-1 border border-bleu-fonce/20 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
                             >
                               Non
                             </button>
@@ -997,7 +997,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                           <button
                             onClick={() => setConfirmRevertId(m.id)}
                             disabled={isLoading || revertingId !== null}
-                            className="shrink-0 text-xs px-2 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                            className="rounded-[8px] shrink-0 text-xs px-2 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
                           >
                             Annuler
                           </button>
@@ -1030,7 +1030,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                     <div className="flex-1 min-w-0 space-y-1">
                       <p className="text-xs text-gray-700">
                         <span className="font-medium text-green-700">✅ Conservée :</span>{' '}
-                        {m.keep_content || <span className="font-mono text-gray-500">{m.keep_id.slice(0, 8)}…</span>}
+                        {m.keep_content || <span className="text-gray-500 font-semibold tabular-nums">{m.keep_id.slice(0, 8)}…</span>}
                       </p>
                       {m.reject_contents?.length > 0 ? (
                         <div className="space-y-0.5">
@@ -1066,7 +1066,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
                         }
                       }}
                       disabled={isLoading}
-                      className="shrink-0 text-xs px-2 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
+                      className="rounded-[8px] shrink-0 text-xs px-2 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 transition-colors"
                     >
                       Annuler (partiel)
                     </button>
@@ -1181,7 +1181,7 @@ export default function LLMModerationPanel({ session, password }: LLMModerationP
 
               {!['voting', 'pre_voting'].includes(session.phase) && (autoModerate || autoMergePeriodic) && (
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2">
-                  L'automatisation est active mais la séance n'est pas en phase "vote" ou "pré-vote".
+                  L'automatisation est active mais la séance n'est pas en phase « vote » ou « pré-vote ».
                 </p>
               )}
             </div>

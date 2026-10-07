@@ -8,7 +8,7 @@ interface VoteResultsSummaryProps {
 export default function VoteResultsSummary({ results, loading }: VoteResultsSummaryProps) {
   if (loading) {
     return (
-      <div className="bg-white border border-bleu-fonce/10 p-5 space-y-3">
+      <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 space-y-3">
         <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Résultats du vote</h2>
         <p className="text-sm text-gray-500">Chargement…</p>
       </div>
@@ -17,7 +17,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
 
   if (results.length === 0) {
     return (
-      <div className="bg-white border border-bleu-fonce/10 p-5">
+      <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5">
         <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Résultats du vote</h2>
         <p className="text-sm text-gray-500">Aucune assertion approuvée pour cette séance.</p>
       </div>
@@ -64,7 +64,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
   return (
     <div className="space-y-3">
       {/* Top consensus */}
-      <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
+      <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 space-y-4">
         <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
           Points de consensus
         </h2>
@@ -77,7 +77,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
 
       {/* Bottom dissensus */}
       {bottom.length > 0 && (
-        <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
+        <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 space-y-4">
           <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
             Points de désaccord
           </h2>
@@ -91,7 +91,7 @@ export default function VoteResultsSummary({ results, loading }: VoteResultsSumm
 
       {/* Beaucoup d'hésitation */}
       {uncertain.length > 0 && (
-        <div className="bg-white border border-bleu-fonce/10 p-5 space-y-4">
+        <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 space-y-4">
           <div>
             <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
               Beaucoup d'hésitation
@@ -141,7 +141,7 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
     <div className="space-y-2">
       <div className="flex items-start gap-2">
         <p className="flex-1 text-sm text-gray-800 leading-snug">{result.content}</p>
-        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 ${badge.className}`}>
+        <span className={`shrink-0 rounded-[6px] text-xs font-semibold px-2 py-0.5 ${badge.className}`}>
           {badge.label}
         </span>
       </div>

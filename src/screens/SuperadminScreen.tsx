@@ -65,6 +65,9 @@ import {
   orgConsumeNamingQuota,
 } from '../lib/organizations'
 import type { OrgInfo, OrganizationAdminRow } from '../lib/organizations'
+import FondQuadrille from '../components/FondQuadrille'
+import EnTeteFenetre from '../components/EnTeteFenetre'
+import ecclesiaLogo from '../assets/ecclesia-logo.webp'
 
 // Chantier 135 — le même écran sert au superadmin (#superadmin) et aux
 // associations externes (#asso). En mode association, ce qui est stocké ici
@@ -105,6 +108,29 @@ const PHASE_LABEL: Record<string, string> = {
 
 // Chantier 134 — dans un sondage, `pre_voting` est l'unique phase de vote
 // (rien ne suit, pas de présentiel) : « Pré-vote » y serait trompeur.
+// ── Chantier 158 : en-têtes marine quadrillés, comme les vues participant et modérateur ──
+
+const BOUTON_VERRE = `btn-verre rounded-[8px] inline-flex h-10 shrink-0 items-center px-3 text-xs font-semibold text-creme whitespace-nowrap sm:px-4
+  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
+
+// Trame discrète derrière les textes, franche dans la bande du bas.
+const FONDU_EN_TETE = 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 55%, #000 88%)'
+
+/** Bord inférieur en vague de l'en-tête, dans la couleur de la page (crème). */
+function VagueEnTete() {
+  return (
+    <svg
+      data-fond-libre
+      aria-hidden="true"
+      viewBox="0 0 800 40"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-3 w-full sm:h-4"
+    >
+      <path d="M0 0 Q400 80 800 0 V40 H0 Z" className="fill-gray-50" />
+    </svg>
+  )
+}
+
 function phaseLabel(phase: Session['phase'], type: SessionType = 'full'): string {
   if (type === 'poll' && phase === 'pre_voting') return 'Vote'
   return PHASE_LABEL[phase] ?? phase
@@ -365,30 +391,34 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-creme to-sable flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      // Chantier 158 : plein écran marine quadrillé (comme le chargement et la fin
+      // de séance), la carte de connexion au centre.
+      <div className="relative min-h-screen overflow-hidden bg-bleu-fonce flex items-center justify-center p-4">
+        <FondQuadrille cases={10} />
+        <div className="relative w-full max-w-md animate-montee">
           <button
             onClick={() => { window.location.hash = '' }}
-            className="mb-3 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            className={`rounded-[8px] mb-4 ${BOUTON_VERRE}`}
           >
             Retour
           </button>
-        <div className="bg-white shadow-xl border border-bleu-fonce/10 overflow-hidden animate-entree">
-          <div className="bg-grain bg-bleu-fonce px-6 pt-7 pb-6 flex items-center gap-4">
-            <div className="relative w-11 h-11 border border-bleu-clair/40 bg-white/5 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-bleu-clair" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="bg-white shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10">
+          <div className="relative overflow-hidden bg-bleu-fonce px-6 pt-6 pb-5 flex items-center gap-4 border-b border-white/10">
+            <FondQuadrille cases={2} />
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] bg-bleu-clair/15 text-bleu-clair">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-            </div>
+            </span>
             <div className="relative">
-              <h1 className="font-serif text-2xl font-semibold tracking-tight text-creme leading-tight">
-                {isOrgMode ? 'Ecclesia · Espace association' : 'Ecclesia · Superadmin'}
-              </h1>
-              <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair leading-tight">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair leading-tight">
                 {isOrgMode ? 'Débats et sondages de votre association' : 'Accès restreint'}
               </p>
+              <h1 className="mt-1.5 font-sans text-2xl font-bold tracking-[-0.02em] text-creme leading-tight">
+                {isOrgMode ? 'Espace association' : 'Superadmin'}
+              </h1>
             </div>
           </div>
 
@@ -410,7 +440,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
             />
             <SubmitBtn loading={authLoading} label="Accéder" />
             {authErr && (
-              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {authErr}
               </div>
             )}
@@ -424,64 +454,64 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
   return (
     <OrgContext.Provider value={isOrgMode ? org : null}>
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-grain bg-bleu-fonce text-creme border-b border-bleu-clair/30 px-4 py-4">
-        <div className="relative max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <button
-            onClick={() => { window.location.hash = '' }}
-            className="inline-flex h-9 shrink-0 items-center border border-white/20 px-3 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Retour
-          </button>
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-9 h-9 border border-bleu-clair/40 bg-white/5 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-bleu-clair" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
+      {/* ── En-tête : bandeau marine quadrillé, comme les vues participant et modérateur ── */}
+      {/* Ni z-index ni isolation (voir FondQuadrille) ; les fenêtres s'ouvrent hors de l'en-tête. */}
+      <header className="relative overflow-hidden bg-bleu-fonce text-creme">
+        <FondQuadrille cases={6} bande={32} fondu={FONDU_EN_TETE} />
+        <VagueEnTete />
+        <div className="relative mx-auto w-full max-w-3xl px-4 pb-8 pt-3 sm:pt-4 md:pb-10">
+          <div className="flex items-center gap-2">
+            {!isOrgMode && (
+              <img src={ecclesiaLogo} alt="" aria-hidden="true"
+                className="-ml-1 hidden h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)] min-[360px]:block" />
+            )}
+            <button onClick={() => { window.location.hash = '' }} className={BOUTON_VERRE}>
+              Retour
+            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {isOrgMode && (
+                <>
+                  <button onClick={() => setShowPwdChange(true)} className={BOUTON_VERRE}>
+                    Mot de passe
+                  </button>
+                  <button onClick={handleOrgLogout} className={BOUTON_VERRE}>
+                    Déconnexion
+                  </button>
+                </>
+              )}
             </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 animate-montee md:mt-6">
             <div className="min-w-0">
-              <h1 className="font-serif text-xl font-semibold text-creme leading-tight truncate">
-                {isOrgMode ? (org?.name ?? 'Espace association') : 'Ecclesia · Superadmin'}
-              </h1>
-              <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-bleu-clair leading-tight">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair leading-tight">
                 {isOrgMode && org
                   ? `${org.open_sessions ?? '…'}/${org.max_open_sessions} séance${org.max_open_sessions > 1 ? 's' : ''} en cours`
                     + (org.expires_at ? ` · compte valable jusqu'au ${new Date(org.expires_at).toLocaleDateString('fr-FR')}` : '')
                   : 'Gestion des séances'}
               </p>
+              <h1 className="mt-2.5 break-words font-sans text-[1.625rem] font-bold leading-[1.15] tracking-[-0.02em] text-creme sm:text-4xl">
+                {isOrgMode ? (org?.name ?? 'Espace association') : 'Superadmin'}
+              </h1>
             </div>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="btn-verre btn-verre-primaire rounded-[8px] inline-flex h-11 shrink-0 items-center px-5 text-creme
+                text-sm font-bold focus:outline-none
+                focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+            >
+              + Nouvelle séance
+            </button>
           </div>
-          {isOrgMode && (
-            <div className="shrink-0 flex flex-col items-end gap-0.5">
-              <button onClick={() => setShowPwdChange(true)} className="text-xs text-slate-300 hover:text-creme">
-                Mot de passe
-              </button>
-              <button onClick={handleOrgLogout} className="text-xs text-slate-300 hover:text-red-300">
-                Déconnexion
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setShowCreate(true)}
-            className="btn-verre btn-verre-primaire inline-flex h-9 shrink-0 items-center px-4 text-creme
-              text-sm font-semibold focus:outline-none
-              focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
-          >
-            + Nouvelle séance
-          </button>
         </div>
       </header>
 
       {/* Main */}
-      <main className="max-w-3xl mx-auto p-4">
+      <main className="max-w-3xl mx-auto px-4 pb-12 pt-4">
         {listErr && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+          <div className="rounded-[8px] mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{listErr}</span>
-            <button onClick={() => setListErr(null)} className="shrink-0 text-red-400 hover:text-red-600">✕</button>
+            <button onClick={() => setListErr(null)} className="rounded-[8px] shrink-0 text-red-400 hover:text-red-600">✕</button>
           </div>
         )}
 
@@ -490,7 +520,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
 
         {/* ── Votes toutes séances ───────────────────────────── */}
         {!isOrgMode && (
-        <div className="mb-4 bg-white border border-bleu-fonce/10 overflow-hidden">
+        <div className="mb-4 bg-white border border-bleu-fonce/10 overflow-hidden rounded-[12px]">
           <button
             onClick={() => setAllVotesOpen(o => !o)}
             className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
@@ -587,7 +617,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
       {toClose && (
         <ConfirmModal
           title="Fermer la séance"
-          body={`Fermer "${titreSeance(toClose.title)}" ? La séance passera en phase "Clôturée".`}
+          body={`Fermer « ${titreSeance(toClose.title)} » ? La séance passera en phase « Clôturée ».`}
           confirmLabel="Fermer la séance"
           onConfirm={handleClose}
           onCancel={() => setToClose(null)}
@@ -597,7 +627,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
       {toDelete && (
         <ConfirmModal
           title="Supprimer la séance"
-          body={`Supprimer définitivement "${titreSeance(toDelete.title)}" ? Les tables rattachées seront détachées mais pas supprimées.`}
+          body={`Supprimer définitivement « ${titreSeance(toDelete.title)} » ? Les tables rattachées seront détachées mais pas supprimées.`}
           confirmLabel="Supprimer"
           onConfirm={handleDelete}
           onCancel={() => setToDelete(null)}
@@ -666,7 +696,7 @@ function AssertionRulesControl({ voteFirst, max, onChange, error }: {
           onChange={e => setDraft(e.target.value)}
           onBlur={commitMax}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-          className="w-20 px-2 py-0.5 border border-bleu-fonce/20 text-xs"
+          className="rounded-[8px] w-20 px-2 py-0.5 border border-bleu-fonce/20 text-xs"
         />
       </label>
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -703,7 +733,7 @@ function PillToggle({ on, highlighted, tone, label, title, onClick }: {
     <button
       onClick={onClick}
       title={title}
-      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 border transition-colors ${
+      className={`rounded-[8px] inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium px-2.5 py-1 border transition-colors ${
         highlighted ? t.chip : 'bg-gray-50 text-gray-500 border-bleu-fonce/10 hover:border-bleu-fonce/20'
       }`}
     >
@@ -853,7 +883,7 @@ function SessionSettingsSection({ session, settings }: {
   if (!showHome && !showResults && !showOnboarding && !showAssertions) return null
 
   return (
-    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+    <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
       <div className="px-5 py-4">
         <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Réglages</span>
       </div>
@@ -958,7 +988,7 @@ function SessionCard({
   }
 
   return (
-    <div className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden transition-all duration-300 hover:border-bleu-fonce/30 hover:shadow-md">
+    <div className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px] transition-all duration-300 hover:border-bleu-fonce/30 hover:shadow-md">
       {/* ── Header row ── */}
       <div
         className="px-5 py-4 flex items-start gap-3 cursor-pointer hover:bg-indigo-50/30 transition-colors"
@@ -968,7 +998,7 @@ function SessionCard({
         <button
           onClick={toggleExpand}
           title={expanded ? 'Réduire' : 'Voir les tables'}
-          className="shrink-0 mt-1 text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+          className="-m-1.5 mt-0 shrink-0 rounded-[6px] p-1.5 text-gray-500 hover:bg-indigo-50 hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         >
           <svg
             width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -982,17 +1012,17 @@ function SessionCard({
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Title + badge */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-serif text-lg font-semibold leading-snug text-bleu-fonce truncate">{titreSeance(session.title)}</span>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[session.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
+            <span className="min-w-0 break-words font-sans text-lg font-bold leading-snug tracking-[-0.01em] text-bleu-fonce">{titreSeance(session.title)}</span>
+            <span className={`rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[session.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
               {phaseLabel(session.phase, sessionTypeOf(session))}
             </span>
             {sessionTypeOf(session) !== 'full' && (
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-white border border-bleu-fonce/15 text-gray-600">
+              <span className="rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-white border border-bleu-fonce/15 text-gray-600">
                 {SESSION_TYPE_LABEL[sessionTypeOf(session)]}
               </span>
             )}
             {orgName && (
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-violet-50 border border-violet-200 text-violet-800">
+              <span className="rounded-[6px] text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 bg-violet-50 border border-violet-200 text-violet-800">
                 Asso : {orgName}
               </span>
             )}
@@ -1004,7 +1034,7 @@ function SessionCard({
               <span>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             )}
             {session.join_code && (
-              <span className="font-mono tracking-widest text-gray-700">{session.join_code}</span>
+              <span className="font-semibold tracking-[0.14em] text-gray-700">{session.join_code}</span>
             )}
             <span>{session.tableCount} table{session.tableCount !== 1 ? 's' : ''}</span>
             {session.memberCount > 0 && (
@@ -1045,8 +1075,8 @@ function SessionCard({
           {!isClosed && (
             <button
               onClick={onClose}
-              className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/10
-                text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+              className="inline-flex h-9 items-center rounded-[8px] px-3 text-xs font-semibold border border-bleu-fonce/15
+                text-gray-600 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               Fermer
             </button>
@@ -1055,8 +1085,9 @@ function SessionCard({
           <button
             onClick={onDelete}
             title="Supprimer la séance"
-            className="p-1.5 border border-transparent text-gray-500
-              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors"
+            aria-label="Supprimer la séance"
+            className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-transparent text-gray-500
+              hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1072,7 +1103,7 @@ function SessionCard({
 
       {/* ── Expanded tables panel ── */}
       {expanded && (
-        <div className="border-t border-bleu-fonce/10 px-5 py-3 bg-gray-50/60">
+        <div className="rounded-[8px] border-t border-bleu-fonce/10 px-5 py-3 bg-gray-50/60">
           {tablesLoading && (
             <p className="text-xs text-gray-500 py-2">Chargement…</p>
           )}
@@ -1089,10 +1120,10 @@ function SessionCard({
                     {/* Active indicator */}
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.is_active ? 'bg-teal-400' : 'bg-gray-300'}`} />
                     {/* Join code */}
-                    <span className="font-mono tracking-widest text-gray-700 w-14 shrink-0">{t.join_code}</span>
+                    <span className="font-semibold tracking-[0.14em] text-gray-700 w-16 shrink-0">{t.join_code}</span>
                     {/* Leaderless badge */}
                     {t.leaderless && (
-                      <span className="text-xs font-medium px-1.5 py-0.5 bg-yellow-100 text-yellow-700 shrink-0">
+                      <span className="rounded-[6px] text-xs font-medium px-1.5 py-0.5 bg-yellow-100 text-yellow-700 shrink-0">
                         Sans modérateur
                       </span>
                     )}
@@ -1159,7 +1190,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
   }
 
   return (
-    <div className="mb-4 bg-white border border-bleu-fonce/10 overflow-hidden">
+    <div className="mb-4 bg-white border border-bleu-fonce/10 overflow-hidden rounded-[12px]">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
@@ -1182,7 +1213,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
         <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-3">
           <p className="text-xs text-gray-500">
             Comptes des associations externes : elles se connectent sur{' '}
-            <span className="font-mono">#asso</span> avec leur nom et leur mot de passe, et n'ont accès
+            <span className="font-semibold tabular-nums">#asso</span> avec leur nom et leur mot de passe, et n'ont accès
             qu'au débat simple et au sondage, sur leurs propres séances.
           </p>
           {err && <p className="text-xs text-red-600">{err}</p>}
@@ -1200,10 +1231,10 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-gray-900 truncate">{o.name}</span>
                         {!o.active && (
-                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600">Désactivée</span>
+                          <span className="rounded-[6px] text-xs px-2 py-0.5 bg-gray-100 text-gray-600">Désactivée</span>
                         )}
                         {expired && (
-                          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700">Expirée</span>
+                          <span className="rounded-[6px] text-xs px-2 py-0.5 bg-amber-100 text-amber-700">Expirée</span>
                         )}
                       </div>
                       <div className="text-xs text-gray-500">
@@ -1214,7 +1245,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
                     </div>
                     <button
                       onClick={() => setEditing(o)}
-                      className="shrink-0 py-1.5 px-3 text-xs font-medium border border-bleu-fonce/10 text-gray-600 hover:border-indigo-200 hover:text-indigo-600"
+                      className="rounded-[8px] shrink-0 py-1.5 px-3 text-xs font-medium border border-bleu-fonce/10 text-gray-600 hover:border-indigo-200 hover:text-indigo-600"
                     >
                       Modifier
                     </button>
@@ -1225,7 +1256,7 @@ function OrganizationsPanel({ onChanged }: { onChanged(): void }) {
           )}
           <button
             onClick={() => setCreating(true)}
-            className="text-sm font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
+            className="rounded-[8px] text-sm font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
           >
             + Nouvelle association
           </button>
@@ -1287,11 +1318,9 @@ function OrganizationModal({
 
   return (
     <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
-            {org ? `Modifier « ${org.name} »` : 'Nouvelle association'}
-          </h2>
+      <div className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree" onClick={e => e.stopPropagation()}>
+        <EnTeteFenetre titre={org ? `Modifier « ${org.name} »` : 'Nouvelle association'} onClose={onClose} />
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <Field label="Nom de l'association (sert d'identifiant de connexion)" value={name} onChange={setName} placeholder="Les Amis du Débat" />
           <div>
             <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
@@ -1311,14 +1340,14 @@ function OrganizationModal({
               <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Séances en cours max.</label>
               <input
                 type="number" min={0} value={maxOpen} onChange={e => setMaxOpen(e.target.value)}
-                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
+                className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Expire le <span className="text-gray-500 font-normal">(facultatif)</span></label>
               <input
                 type="date" value={expires} onChange={e => setExpires(e.target.value)}
-                className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
+                className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40"
               />
             </div>
           </div>
@@ -1326,7 +1355,7 @@ function OrganizationModal({
             <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Note interne <span className="text-gray-500 font-normal">(facultatif)</span></label>
             <input
               value={note} onChange={e => setNote(e.target.value)} placeholder="Contact, contexte…"
-              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 placeholder:text-anthracite/40"
+              className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20 focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 placeholder:text-anthracite/40"
             />
           </div>
           {org && (
@@ -1336,10 +1365,10 @@ function OrganizationModal({
               Compte actif (décocher coupe l'accès immédiatement, sans rien supprimer)
             </label>
           )}
-          {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
+              className="rounded-[8px] flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
               Annuler
             </button>
             <SubmitBtn loading={loading} label={org ? 'Enregistrer' : 'Créer le compte'} className="flex-1" />
@@ -1378,30 +1407,29 @@ function OrgPasswordModal({ onClose, onAuthError }: { onClose(): void; onAuthErr
 
   return (
     <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-md shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree" onClick={e => e.stopPropagation()}>
+        <EnTeteFenetre titre={done ? 'Mot de passe changé' : 'Changer le mot de passe'} onClose={onClose} />
         {done ? (
           <div className="p-6 space-y-4">
-            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Mot de passe changé</h2>
             <p className="text-sm text-gray-600">
               Pensez à le communiquer à vos modérateurs : c'est aussi avec lui qu'ils prennent l'animation d'une table.
             </p>
-            <button onClick={onClose} className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2">
+            <button onClick={onClose} className="rounded-[8px] w-full py-3 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2">
               OK
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Changer le mot de passe</h2>
             <Field label="Mot de passe actuel" value={oldPwd} onChange={setOldPwd} type="password" />
             <Field label="Nouveau mot de passe (8 caractères minimum)" value={newPwd} onChange={setNewPwd} type="password" />
             <Field label="Confirmer le nouveau mot de passe" value={confirm} onChange={setConfirm} type="password" />
             <p className="text-xs text-gray-500">
               Le mot de passe sert aussi à vos modérateurs pour prendre l'animation d'une table.
             </p>
-            {error && <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+            {error && <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose}
-                className="flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
+                className="rounded-[8px] flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]">
                 Annuler
               </button>
               <SubmitBtn loading={loading} label="Changer" className="flex-1" />
@@ -1483,21 +1511,10 @@ function CreateModal({
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]"
+        className="bg-white w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 pt-5 pb-0 shrink-0">
-          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nouvelle séance</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-600 transition-colors p-1"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
+        <EnTeteFenetre titre="Nouvelle séance" onClose={onClose} />
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {/* Chantier 134 — trois modes. Non modifiable après création : la
@@ -1514,7 +1531,7 @@ function CreateModal({
                   key={opt.id}
                   type="button"
                   onClick={() => setSessionType(opt.id)}
-                  className={`py-2 px-2 border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
+                  className={`rounded-[8px] py-2 px-2 border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
                     sessionType === opt.id
                       ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50'
                       : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03]'
@@ -1540,7 +1557,7 @@ function CreateModal({
               onChange={e => setDescription(e.target.value)}
               rows={3}
               placeholder="Thème, lieu, organisateurs…"
-              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20 resize-none
+              className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20 resize-none
                 focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
                 placeholder:text-anthracite/40 transition-shadow"
             />
@@ -1552,7 +1569,7 @@ function CreateModal({
               type="datetime-local"
               value={scheduledAt}
               onChange={e => setScheduledAt(e.target.value)}
-              className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
+              className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20
                 focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
                 transition-shadow"
             />
@@ -1586,7 +1603,7 @@ function CreateModal({
                     key={val}
                     type="button"
                     onClick={() => setModerationPolicy(val)}
-                    className={`py-2 px-3 border text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
+                    className={`rounded-[8px] py-2 px-3 border text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
                       moderationPolicy === val
                         ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50 text-bleu-fonce'
                         : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03] text-anthracite/80'
@@ -1635,7 +1652,7 @@ function CreateModal({
           )}
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -1644,7 +1661,7 @@ function CreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20
+              className="rounded-[8px] flex-1 py-3 text-sm font-semibold border border-bleu-fonce/20
                 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
                 focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
@@ -1683,7 +1700,7 @@ function Field({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
+          className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20
             focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
             placeholder:text-anthracite/40 transition-shadow"
         />
@@ -1697,7 +1714,7 @@ function SubmitBtn({ loading, label, className = 'w-full' }: { loading: boolean;
     <button
       type="submit"
       disabled={loading}
-      className={`${className} py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+      className={`rounded-[8px] ${className} py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
         text-white text-sm font-semibold transition-colors focus:outline-none
         focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 flex items-center justify-center gap-2`}
     >
@@ -3301,43 +3318,67 @@ function SessionDetail({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-grain bg-bleu-fonce text-creme border-b border-bleu-clair/30 px-4 py-4">
-        <div className="relative max-w-3xl mx-auto flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="inline-flex h-9 shrink-0 items-center border border-white/20 px-3 text-xs font-medium text-creme/85 hover:bg-white/10 hover:text-creme transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-            title="Retour"
-          >
-            Retour
-          </button>
-          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+      {/* ── En-tête marine quadrillé : surtitre (phase, type), titre, puis code et date ── */}
+      <header className="relative overflow-hidden bg-bleu-fonce text-creme">
+        <FondQuadrille cases={6} bande={32} fondu={FONDU_EN_TETE} />
+        <VagueEnTete />
+        <div className="relative mx-auto w-full max-w-3xl px-4 pb-8 pt-3 sm:pt-4 md:pb-10">
+          <div className="flex items-center gap-2">
+            {!isOrg && (
+              <img src={ecclesiaLogo} alt="" aria-hidden="true"
+                className="-ml-1 hidden h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)] min-[360px]:block" />
+            )}
+            <button onClick={onBack} className={BOUTON_VERRE}>
+              Retour
+            </button>
+          </div>
+
+          <div className="mt-5 animate-montee md:mt-6">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair leading-tight">
+              {phaseLabel(currentSession.phase, sessionType)}
+              {sessionType !== 'full' && (
+                <>
+                  <span aria-hidden="true" className="text-bleu-clair/50">·</span>
+                  {SESSION_TYPE_LABEL[sessionType]}
+                </>
+              )}
+            </p>
             {/* Chantier 72 — `currentSession` et non la prop `session` (figée au
                 montage) : l'en-tête doit refléter une édition du titre faite dans
                 l'onglet Préparation, sans repasser par la liste des séances. */}
-            <span className="font-serif text-xl font-semibold text-creme truncate">{titreSeance(currentSession.title)}</span>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 border ${PHASE_CLASS[currentSession.phase] ?? 'border-bleu-fonce/10 bg-gray-100 text-gray-700'}`}>
-              {phaseLabel(currentSession.phase, sessionType)}
-            </span>
-            {session.join_code && (
-              <span className="font-mono text-xs font-bold tracking-[0.2em] text-bleu-clair">{session.join_code}</span>
+            <h1 className="mt-2.5 break-words font-sans text-[1.625rem] font-bold leading-[1.15] tracking-[-0.02em] text-creme sm:text-4xl">
+              {titreSeance(currentSession.title)}
+            </h1>
+            {currentSession.description && (
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-creme/75">{currentSession.description}</p>
+            )}
+            {(session.join_code || session.scheduled_at) && (
+              <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-3">
+                {session.join_code && (
+                  <div>
+                    <dt className="text-[10.5px] font-bold uppercase tracking-[0.2em] text-bleu-clair/80">Code</dt>
+                    <dd className="mt-1.5 text-[15px] font-semibold leading-tight tracking-[0.08em] text-creme">{session.join_code}</dd>
+                  </div>
+                )}
+                {session.scheduled_at && (
+                  <div>
+                    <dt className="text-[10.5px] font-bold uppercase tracking-[0.2em] text-bleu-clair/80">Date</dt>
+                    <dd className="mt-1.5 text-[15px] font-semibold leading-tight text-creme">
+                      {new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </dd>
+                  </div>
+                )}
+              </dl>
             )}
           </div>
         </div>
-        {(currentSession.description || session.scheduled_at) && (
-          <div className="relative max-w-3xl mx-auto mt-1.5 pl-9 text-xs text-slate-300 space-y-0.5">
-            {session.scheduled_at && (
-              <div>{new Date(session.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-            )}
-            {currentSession.description && <div>{currentSession.description}</div>}
-          </div>
-        )}
       </header>
 
-      <main className="max-w-3xl mx-auto p-4 space-y-6">
+      <main className="max-w-3xl mx-auto px-4 pb-12 pt-4 space-y-6">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+          <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="shrink-0 text-red-400 hover:text-red-600">✕</button>
+            <button onClick={() => setError(null)} className="rounded-[8px] shrink-0 text-red-400 hover:text-red-600">✕</button>
           </div>
         )}
 
@@ -3363,7 +3404,7 @@ function SessionDetail({
         />
 
         {/* ── Barre d'onglets ─────────────────────────────── */}
-        <div className="flex gap-1 border border-bleu-fonce/15 bg-creme/70 p-1">
+        <div className="flex gap-1 rounded-[12px] border border-bleu-fonce/15 bg-white p-1 shadow-sm">
           {([
             { id: 'live',     label: '🟢 En direct' },
             { id: 'tables',   label: '🪑 Tables' },
@@ -3373,7 +3414,7 @@ function SessionDetail({
             <button
               key={tab.id}
               onClick={() => { sessionStorage.setItem(adminTabKey, tab.id); setActiveTab(tab.id) }}
-              className={`flex-1 py-2.5 px-3 text-[13px] font-semibold leading-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair ${
+              className={`flex-1 rounded-[8px] py-2.5 px-3 text-[13px] font-semibold leading-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair ${
                 activeTab === tab.id
                   ? 'bg-bleu-fonce text-creme shadow-[0_10px_24px_-16px_rgba(21,35,63,0.8)]'
                   : 'text-bleu-fonce/70 hover:bg-bleu-fonce/[0.05] hover:text-bleu-fonce'
@@ -3494,7 +3535,7 @@ function SessionDetail({
                 )}
 
                 {showVotingSections && voteResults.length > 0 && (
-                  <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                  <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                     <button
                       onClick={() => setSynthOpen(o => !o)}
                       className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
@@ -3574,7 +3615,7 @@ function SessionDetail({
 
                 {/* Groupes (allocating/debating) */}
                 {(currentSession.phase === 'allocating' || currentSession.phase === 'debating') && (
-                  <div className="bg-white border border-bleu-fonce/10 overflow-hidden px-5 py-4 space-y-3">
+                  <div className="rounded-[12px] bg-white border border-bleu-fonce/10 overflow-hidden px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Groupes</h3>
                       <div className="flex items-center gap-2">
@@ -3585,7 +3626,7 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(false)}
                           disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-indigo-200
+                          className="rounded-[8px] py-1 px-2.5 text-xs font-medium border border-indigo-200
                             text-indigo-600 hover:bg-indigo-50 transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Crée une table animée, vide, déjà numérotée, à peupler par glisser-déposer ou par son code"
@@ -3595,7 +3636,7 @@ function SessionDetail({
                         <button
                           onClick={() => handleCreateGroupTable(true)}
                           disabled={creatingTable}
-                          className="py-1 px-2.5 text-xs font-medium border border-bleu-fonce/20
+                          className="rounded-[8px] py-1 px-2.5 text-xs font-medium border border-bleu-fonce/20
                             text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Crée une table sans modérateur, vide, déjà numérotée"
@@ -3606,7 +3647,7 @@ function SessionDetail({
                         {groups.length > 0 && (
                           <button
                             onClick={() => setRosterOpen(true)}
-                            className="text-xs text-gray-500 hover:text-indigo-600 transition-colors"
+                            className="rounded-[8px] text-xs text-gray-500 hover:text-indigo-600 transition-colors"
                             title="Vue récapitulative, prête à capturer en screenshot"
                           >
                             🖨️ Récapitulatif
@@ -3626,9 +3667,9 @@ function SessionDetail({
                       </div>
                     </div>
                     {assignError && (
-                      <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+                      <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
                         <span>{assignError}</span>
-                        <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                        <button onClick={() => setAssignError(null)} className="rounded-[8px] text-red-400 hover:text-red-600">✕</button>
                       </div>
                     )}
                     {groups.length > 0 && <MemberBadgeLegend />}
@@ -3680,7 +3721,7 @@ function SessionDetail({
                                 if (withProfile.length === 0) return null
                                 const activeCount = withProfile.filter(m => memberProfiles.get(m.member_id!)?.is_active).length
                                 return (
-                                  <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
+                                  <span className="rounded-[6px] text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
                                     {activeCount} actif{activeCount !== 1 ? 's' : ''}
                                   </span>
                                 )
@@ -3700,7 +3741,7 @@ function SessionDetail({
                                     title={broken.length === 0
                                       ? 'Tous les seuils atteints'
                                       : `Seuils non atteints : ${broken.join(', ')}`}
-                                    className={`text-xs px-1.5 py-0.5 shrink-0 ${
+                                    className={`rounded-[6px] text-xs px-1.5 py-0.5 shrink-0 ${
                                       broken.length === 0
                                         ? 'bg-green-50 text-green-700'
                                         : 'bg-amber-100 text-amber-700'
@@ -3714,12 +3755,12 @@ function SessionDetail({
                                 const d = groupDiagnostics.find(x => x.table_number === g.table_number)
                                 if (!d) return null
                                 return d.recordable ? (
-                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 shrink-0"
+                                  <span className="rounded-[6px] text-xs bg-green-100 text-green-700 px-1.5 py-0.5 shrink-0"
                                     title="Aucun non-consentant et table non homogène">
                                     🎙️ enregistrable
                                   </span>
                                 ) : (
-                                  <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 shrink-0"
+                                  <span className="rounded-[6px] text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 shrink-0"
                                     title={d.non_consenting > 0
                                       ? `${d.non_consenting} personne(s) non consentante(s)`
                                       : "Table homogène en opinion : un enregistrement n'y apporterait rien"}>
@@ -3747,7 +3788,7 @@ function SessionDetail({
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       {activeMods.map(mod => (
                                         <span key={mod.member_id ?? `physical-${g.table_id}`}
-                                          className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 border border-indigo-100 inline-flex items-center gap-1">
+                                          className="rounded-[6px] text-xs bg-indigo-50 text-indigo-700 px-2 py-1 border border-indigo-100 inline-flex items-center gap-1">
                                           🎙️ Modérateur : <strong>{mod.pseudo}</strong>
                                           {/* Chantier 117 — modérateur « physique » (rejoint par
                                               Code Ecclesia, aucune ligne session_members) : pas de
@@ -3758,7 +3799,7 @@ function SessionDetail({
                                               ? handleRemoveTableModerator(mod.member_id)
                                               : g.table_id && handleReleaseTableModeration(g.table_id)}
                                             disabled={movingMember}
-                                            className="text-gray-500 hover:text-red-600 underline disabled:opacity-50"
+                                            className="rounded-[8px] text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                             title={mod.member_id
                                               ? "Redevient un participant ordinaire de cette table"
                                               : "Rejoint par Code Ecclesia, non inscrit à la séance : remet la table à disposition"}
@@ -3776,7 +3817,7 @@ function SessionDetail({
                                           `surplusMods` : le `!` ci-dessous est sûr. */}
                                       {surplusMods.map(mod => (
                                         <span key={mod.member_id}
-                                          className="text-xs bg-amber-50 text-amber-700 px-2 py-1 border border-amber-100 inline-flex items-center gap-1"
+                                          className="rounded-[6px] text-xs bg-amber-50 text-amber-700 px-2 py-1 border border-amber-100 inline-flex items-center gap-1"
                                           title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) : ne voit pas l'écran modérateur ici.">
                                           🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
                                           {/* Chantier 123 — Jules : « il faut juste qu'il
@@ -3789,7 +3830,7 @@ function SessionDetail({
                                           <button
                                             onClick={() => handleAssignTableModerator(g.table_number, mod.member_id!)}
                                             disabled={movingMember}
-                                            className="text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
+                                            className="rounded-[8px] text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
                                             title={activeMods.length === 0
                                               ? "En fait le modérateur principal de cette table : il obtient l'écran modérateur et la table cesse d'être sans animateur."
                                               : "En fait le modérateur principal de cette table, à la place de l'animateur actuel (confirmation demandée)."}
@@ -3799,7 +3840,7 @@ function SessionDetail({
                                           <button
                                             onClick={() => handleRemoveTableModerator(mod.member_id!)}
                                             disabled={movingMember}
-                                            className="text-gray-500 hover:text-red-600 underline disabled:opacity-50"
+                                            className="rounded-[8px] text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                             title="Retire le drapeau modérateur"
                                           >
                                             Retirer
@@ -3843,7 +3884,7 @@ function SessionDetail({
                                     <button
                                       onClick={() => handleReleaseTableModeration(g.table_id!)}
                                       disabled={movingMember}
-                                      className="text-xs text-gray-500 hover:text-red-600 underline disabled:opacity-50"
+                                      className="rounded-[8px] text-xs text-gray-500 hover:text-red-600 underline disabled:opacity-50"
                                       title={"Remet la table à disposition : quiconque a le Code Ecclesia pourra la prendre en charge "
                                         + "avec son code. À utiliser si un modérateur est parti et que la table refuse encore "
                                         + "toute reprise (« cette table a déjà un modérateur »)."}
@@ -3860,7 +3901,7 @@ function SessionDetail({
                                     <button
                                       onClick={() => handleMakeTableLeaderless(g.table_id!)}
                                       disabled={movingMember}
-                                      className="text-xs text-gray-500 hover:text-amber-700 underline disabled:opacity-50"
+                                      className="rounded-[8px] text-xs text-gray-500 hover:text-amber-700 underline disabled:opacity-50"
                                       title={"Refait de cette table une table SANS ANIMATEUR : la parole s'y auto-attribue au "
                                         + "premier de la file. Le drapeau « modérateur » de la personne est conservé (elle reste "
                                         + "disponible pour une autre table). Utilise « Retirer » pour le lui enlever aussi."}
@@ -3920,9 +3961,9 @@ function SessionDetail({
                               {g.join_code ? (
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 border border-green-200">
+                                    <span className="rounded-[6px] inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 border border-green-200">
                                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                                      <span className="font-mono tracking-widest">{g.join_code}</span>
+                                      <span className="tracking-widest font-semibold tabular-nums">{g.join_code}</span>
                                     </span>
                                     <span className="text-xs text-gray-500">rattachée</span>
                                   </div>
@@ -3935,7 +3976,7 @@ function SessionDetail({
                                         const row = attachedTables.find(t => t.id === g.table_id)
                                         if (row) setDeleteTableConfirm(row)
                                       }}
-                                      className="py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
+                                      className="rounded-[8px] py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
                                         hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     >
                                       Supprimer
@@ -3945,7 +3986,7 @@ function SessionDetail({
                                   <button
                                     onClick={() => handleAssignGroup(g.table_number, null)}
                                     disabled={assigningGroup === g.table_number}
-                                    className="py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
+                                    className="rounded-[8px] py-1 px-2.5 text-xs border border-bleu-fonce/10 text-gray-500
                                       hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-colors
                                       disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
@@ -3958,7 +3999,7 @@ function SessionDetail({
                                   <select
                                     value={selectedTableId[g.table_number] ?? ''}
                                     onChange={e => setSelectedTableId(prev => ({ ...prev, [g.table_number]: e.target.value }))}
-                                    className="flex-1 text-xs px-2 py-1.5 border border-bleu-fonce/20
+                                    className="rounded-[8px] flex-1 text-xs px-2 py-1.5 border border-bleu-fonce/20
                                       focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white"
                                   >
                                     <option value="">Sélectionner une table</option>
@@ -3974,7 +4015,7 @@ function SessionDetail({
                                       if (tableId) handleAssignGroup(g.table_number, tableId)
                                     }}
                                     disabled={!selectedTableId[g.table_number] || assigningGroup === g.table_number}
-                                    className="py-1.5 px-3 text-xs font-medium border border-indigo-200
+                                    className="rounded-[8px] py-1.5 px-3 text-xs font-medium border border-indigo-200
                                       text-indigo-600 hover:bg-indigo-50 transition-colors
                                       disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
@@ -3988,7 +4029,7 @@ function SessionDetail({
                       </div>
                       <DragOverlay dropAnimation={null}>
                         {draggingMember && (
-                          <div className="px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium shadow-lg opacity-90">
+                          <div className="rounded-[8px] px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium shadow-lg opacity-90">
                             {draggingMember.pseudo}
                           </div>
                         )}
@@ -4028,7 +4069,7 @@ function SessionDetail({
                         )}
                         <button
                           onClick={openDebateConfirm}
-                          className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
+                          className="rounded-[8px] w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white
                             text-sm font-semibold transition-colors"
                         >
                           Ouvrir le débat
@@ -4040,9 +4081,9 @@ function SessionDetail({
 
                 {/* Notification table créée */}
                 {newTableCode && (
-                  <div className="px-5 py-3 bg-green-50 border border-green-200 flex items-center justify-between gap-2 text-sm text-green-800">
-                    <span>Table créée ! Code : <strong className="font-mono tracking-widest">{newTableCode}</strong></span>
-                    <button onClick={() => setNewTableCode(null)} className="shrink-0 text-green-500 hover:text-green-700">✕</button>
+                  <div className="rounded-[8px] px-5 py-3 bg-green-50 border border-green-200 flex items-center justify-between gap-2 text-sm text-green-800">
+                    <span>Table créée ! Code : <strong className="tracking-widest font-semibold tabular-nums">{newTableCode}</strong></span>
+                    <button onClick={() => setNewTableCode(null)} className="rounded-[8px] shrink-0 text-green-500 hover:text-green-700">✕</button>
                   </div>
                 )}
 
@@ -4101,7 +4142,7 @@ function SessionDetail({
                     l'identité de la séance, elle est reprise partout (accueil
                     participant, en-tête de vote, résultats publics) et une faute
                     de frappe y restait jusqu'ici définitive. */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <div className="px-5 py-4 flex items-center justify-between gap-2">
                     <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                       Titre et description
@@ -4114,7 +4155,7 @@ function SessionDetail({
                           setMetaErr(null)
                           setEditingMeta(true)
                         }}
-                        className="text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
+                        className="rounded-[8px] text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
                       >
                         Modifier
                       </button>
@@ -4134,7 +4175,7 @@ function SessionDetail({
                             onChange={e => setMetaTitle(e.target.value)}
                             maxLength={200}
                             autoFocus
-                            className="w-full px-3 py-2 text-sm border border-bleu-fonce/20
+                            className="rounded-[8px] w-full px-3 py-2 text-sm border border-bleu-fonce/20
                               focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                           />
                         </div>
@@ -4147,7 +4188,7 @@ function SessionDetail({
                             value={metaDesc}
                             onChange={e => setMetaDesc(e.target.value)}
                             rows={3}
-                            className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 resize-y
+                            className="rounded-[8px] w-full px-3 py-2 text-sm border border-bleu-fonce/20 resize-y
                               focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40"
                           />
                         </div>
@@ -4156,14 +4197,14 @@ function SessionDetail({
                           <button
                             type="button"
                             onClick={() => { setEditingMeta(false); setMetaErr(null) }}
-                            className="flex-1 py-2 text-xs border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+                            className="rounded-[8px] flex-1 py-2 text-xs border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
                           >
                             Annuler
                           </button>
                           <button
                             type="submit"
                             disabled={metaLoading || !metaTitle.trim()}
-                            className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                            className="rounded-[8px] flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                               text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                           >
                             {metaLoading ? 'Enregistrement…' : 'Enregistrer'}
@@ -4184,7 +4225,7 @@ function SessionDetail({
                 <SessionSettingsSection session={currentSession} settings={sessionSettings} />
 
                 {/* Documentation (accordion) */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <button
                     onClick={() => setDocsOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
@@ -4211,7 +4252,7 @@ function SessionDetail({
                               setDocsErr(null)
                               setEditingDocs(true)
                             }}
-                            className="text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
+                            className="rounded-[8px] text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors"
                           >
                             Modifier
                           </button>
@@ -4232,14 +4273,14 @@ function SessionDetail({
                             <button
                               type="button"
                               onClick={() => setEditingDocs(false)}
-                              className="flex-1 py-2 text-xs border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+                              className="rounded-[8px] flex-1 py-2 text-xs border border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
                             >
                               Annuler
                             </button>
                             <button
                               type="submit"
                               disabled={docsLoading}
-                              className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                              className="rounded-[8px] flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                                 text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                             >
                               {docsLoading ? 'Enregistrement…' : 'Enregistrer'}
@@ -4292,7 +4333,7 @@ function SessionDetail({
 
                 {/* Synthèse des votes */}
                 {showVotingSections && voteResults.length > 0 && (
-                  <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                  <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                     <button
                       onClick={() => setSynthOpen(o => !o)}
                       className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
@@ -4324,7 +4365,7 @@ function SessionDetail({
                 {sessionType !== 'poll' && (
                 <>
                 {/* Thèmes */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <button
                     onClick={() => setThemesOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
@@ -4354,7 +4395,7 @@ function SessionDetail({
                 </section>
 
                 {/* Réponses au questionnaire */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <button
                     onClick={() => setResponsesOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
@@ -4395,7 +4436,7 @@ function SessionDetail({
                     libre). Signal de recrutement pur, indépendant de session_members.
                     is_moderator (modérateur POUR cette séance, utilisé par l'algo
                     d'allocation) — voir CLAUDE.md. */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <button
                     onClick={() => setStaffOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
@@ -4432,7 +4473,7 @@ function SessionDetail({
                 )}
 
                 {/* Sources collaboratives */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <button
                     onClick={() => setSourcesOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left
@@ -4467,7 +4508,7 @@ function SessionDetail({
                 </section>
 
                 {/* Actions post-séance */}
-                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden">
+                <section className="bg-white border border-bleu-fonce/10 shadow-sm overflow-hidden rounded-[12px]">
                   <button
                     onClick={() => setPostSessionOpen(o => !o)}
                     className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/40 transition-colors focus:outline-none focus:bg-indigo-50/40"
@@ -4490,7 +4531,7 @@ function SessionDetail({
                         <button
                           onClick={() => setShowQConfirm(true)}
                           disabled={qActing}
-                          className="py-1.5 px-3 text-xs font-medium border transition-colors
+                          className="rounded-[8px] py-1.5 px-3 text-xs font-medium border transition-colors
                             disabled:opacity-50 disabled:cursor-not-allowed
                             border-bleu-fonce/20 text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce"
                         >
@@ -4503,7 +4544,7 @@ function SessionDetail({
                           <button
                             onClick={handleExportQuestionnaires}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                            className="rounded-[8px] py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
                               text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -4512,7 +4553,7 @@ function SessionDetail({
                           <button
                             onClick={handleExportSpeakingTimes}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                            className="rounded-[8px] py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
                               text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -4521,7 +4562,7 @@ function SessionDetail({
                           <button
                             onClick={handleExportHistory}
                             disabled={exportingType !== null}
-                            className="py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                            className="rounded-[8px] py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
                               text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
                               disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -4593,7 +4634,7 @@ function SessionDetail({
                 <p className="text-xs text-red-600">{debatePreviewErr}</p>
               )}
               {debatePreview && (
-                <div className="text-xs bg-gray-50 border border-bleu-fonce/10 p-3 space-y-1.5">
+                <div className="rounded-[8px] text-xs bg-gray-50 border border-bleu-fonce/10 p-3 space-y-1.5">
                   {debatePreview.placements.length > 0 ? (
                     <p>
                       <strong>{debatePreview.placements.length}</strong> modérateur(s) en attente
@@ -4693,10 +4734,9 @@ function SessionDetail({
           className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setDeleteMemberReport(null) }}
         >
-          <div className="bg-white w-full max-w-sm shadow-2xl p-5 space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
-              {deleteMemberReport.pseudo} a été supprimé·e
-            </h2>
+          <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
+            <EnTeteFenetre titre={`${deleteMemberReport.pseudo} a été supprimé·e`} onClose={() => setDeleteMemberReport(null)} />
+            <div className="p-5 space-y-3">
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-0.5">
               <li>{deleteMemberReport.votes_deleted} vote(s) supprimé(s)</li>
               <li>{deleteMemberReport.assertions_detached} assertion(s) conservée(s), auteur détaché</li>
@@ -4715,10 +4755,11 @@ function SessionDetail({
             </ul>
             <button
               onClick={() => setDeleteMemberReport(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
+          </div>
           </div>
         </div>
       )}
@@ -4740,21 +4781,24 @@ function SessionDetail({
           className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-center justify-center z-50 px-4"
           onMouseDown={e => { if (e.target === e.currentTarget) setRegeneratedCode(null) }}
         >
-          <div className="bg-white w-full max-w-sm shadow-2xl p-5 space-y-4 text-center">
-            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nouveau code de rappel</h2>
+          <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
+            <EnTeteFenetre titre="Nouveau code de rappel" onClose={() => setRegeneratedCode(null)} />
+            <div className="p-5 space-y-4 text-center">
             <p className="text-sm text-gray-600">
               À lire à <strong>{regeneratedCode.pseudo}</strong>. L'ancien code ne
               fonctionne plus, et celui-ci ne sera plus affiché.
             </p>
-            <p className="text-4xl font-mono font-bold tracking-widest text-amber-600">
-              {regeneratedCode.code}
-            </p>
+            <div className="rounded-[12px] bg-amber-50 border border-amber-200 p-4">
+              <p className="text-[11px] font-bold text-amber-800 uppercase tracking-[0.16em] mb-1.5">Code de rappel</p>
+              <p className="text-4xl font-bold tabular-nums tracking-[0.2em] text-amber-700">{regeneratedCode.code}</p>
+            </div>
             <button
               onClick={() => setRegeneratedCode(null)}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
+          </div>
           </div>
         </div>
       )}
@@ -4813,7 +4857,7 @@ function ModerationPolicyEditor({
   }
 
   return (
-    <section className="bg-white border border-bleu-fonce/10 px-5 py-4">
+    <section className="rounded-[12px] bg-white border border-bleu-fonce/10 px-5 py-4">
       <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
         Politique de modération
       </p>
@@ -4823,7 +4867,7 @@ function ModerationPolicyEditor({
             key={val}
             type="button"
             onClick={() => setSelected(val)}
-            className={`py-2 px-3 border text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
+            className={`rounded-[8px] py-2 px-3 border text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
               selected === val
                 ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50 text-bleu-fonce'
                 : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03] text-anthracite/80'
@@ -4837,7 +4881,7 @@ function ModerationPolicyEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+          className="rounded-[8px] text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
         >
           {saving ? 'Enregistrement…' : saved ? '✅ Enregistré' : 'Enregistrer'}
         </button>
@@ -4866,12 +4910,12 @@ function DebateExitModal({
       onClick={onCancel}
     >
       <div
-        className="bg-white w-full max-w-sm shadow-2xl"
+        className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
         onClick={e => e.stopPropagation()}
       >
+        <EnTeteFenetre titre="Fin du débat" onClose={onCancel} />
         <div className="p-6">
-          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Fin du débat</h2>
-          <p className="mt-1 text-sm text-gray-500 leading-relaxed">
+          <p className="text-sm text-gray-600 leading-relaxed">
             Le passage par le post-vote (revote possible, résultats provisoires) est
             optionnel. Clôturer directement le saute et coupe le revote immédiatement.
           </p>
@@ -4879,7 +4923,7 @@ function DebateExitModal({
           <div className="mt-6 space-y-2">
             <button
               onClick={onPostVoting}
-              className="w-full py-2.5 text-sm font-semibold bg-indigo-600 text-white
+              className="rounded-[8px] w-full py-2.5 text-sm font-semibold bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
@@ -4887,7 +4931,7 @@ function DebateExitModal({
             </button>
             <button
               onClick={onClosed}
-              className="w-full py-2.5 text-sm font-medium bg-red-600 text-white
+              className="rounded-[8px] w-full py-2.5 text-sm font-medium bg-red-600 text-white
                 hover:bg-red-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
@@ -4895,7 +4939,7 @@ function DebateExitModal({
             </button>
             <button
               onClick={onCancel}
-              className="w-full py-2.5 text-sm font-semibold border border-bleu-fonce/20
+              className="rounded-[8px] w-full py-2.5 text-sm font-semibold border border-bleu-fonce/20
                 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
                 focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
@@ -4957,7 +5001,7 @@ function PhaseBar({
   const currentIdx = steps.findIndex(p => p.phase === currentPhase)
 
   return (
-    <div className="bg-white border border-bleu-fonce/10 shadow-sm px-5 py-4 space-y-4">
+    <div className="bg-white border border-bleu-fonce/10 shadow-sm rounded-[12px] px-5 py-4 space-y-4">
       {/* Step indicators */}
       <div className="flex items-center gap-0">
         {steps.map((p, i) => {
@@ -5005,7 +5049,7 @@ function PhaseBar({
           <button
             onClick={onPrev}
             disabled={acting}
-            className="inline-flex h-9 items-center text-xs font-medium text-bleu-fonce/80 hover:text-bleu-fonce px-3 border border-bleu-fonce/20 hover:border-bleu-fonce/40 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            className="inline-flex h-10 items-center rounded-[8px] text-xs font-semibold text-bleu-fonce/80 hover:text-bleu-fonce hover:bg-bleu-fonce/[0.04] px-3.5 border border-bleu-fonce/20 hover:border-bleu-fonce/40 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Revenir en {phaseLabel(prevPhase, sessionType)}
           </button>
@@ -5015,7 +5059,7 @@ function PhaseBar({
           <button
             onClick={onNext}
             disabled={acting}
-            className="inline-flex h-9 items-center text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="inline-flex h-10 items-center rounded-[8px] text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-5 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {acting ? '…' : `Passer en ${phaseLabel(nextPhase, sessionType)}`}
           </button>
@@ -5046,12 +5090,12 @@ function SectionAccordion({
   children: React.ReactNode
 }) {
   return (
-    <section className="bg-white border border-bleu-fonce/10 px-5 py-4">
+    <section className="bg-white border border-bleu-fonce/10 rounded-[12px] shadow-sm px-5 py-4">
       <div className="flex items-center justify-between mb-0">
-        <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left">
+        <button onClick={onToggle} className="-my-1 flex items-center gap-2 flex-1 rounded-[6px] py-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair">
           <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">{title}</h2>
           {badge && (
-            <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5">{badge}</span>
+            <span className="rounded-[6px] text-xs font-semibold bg-indigo-50 text-bleu-fonce px-2 py-0.5">{badge}</span>
           )}
           <svg
             className={`ml-auto w-4 h-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
@@ -5061,8 +5105,9 @@ function SectionAccordion({
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="ml-2 p-1 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            className="ml-2 flex h-8 w-8 items-center justify-center rounded-[6px] text-gray-500 hover:text-bleu-fonce hover:bg-indigo-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             title="Rafraîchir"
+            aria-label="Rafraîchir"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -5125,7 +5170,7 @@ function TableOverviewCard({
   const surplusMods = g.members.filter(m => m.is_moderator && !m.active)
 
   return (
-    <div className="border border-bleu-fonce/10 overflow-hidden">
+    <div className="rounded-[12px] border border-bleu-fonce/10 overflow-hidden">
       <div className="px-3 py-2 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-bold text-indigo-700">
@@ -5137,24 +5182,24 @@ function TableOverviewCard({
               : `(${g.members.length} membre${g.members.length !== 1 ? 's' : ''})`}
           </span>
           {withProfile.length > 0 && (
-            <span className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
+            <span className="rounded-[6px] text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 shrink-0">
               {activeCount} actif{activeCount !== 1 ? 's' : ''}
             </span>
           )}
           {d && (
-            <span className={`text-xs px-1.5 py-0.5 shrink-0 ${
+            <span className={`rounded-[6px] text-xs px-1.5 py-0.5 shrink-0 ${
               d.audience_ok && !d.over_capacity && d.veterans_ok ? 'bg-green-50 text-green-700' : 'bg-amber-100 text-amber-700'
             }`}>
               {d.audience_ok && !d.over_capacity && d.veterans_ok ? '✓ seuils OK' : '⚠️ seuils non atteints'}
             </span>
           )}
           {d && (
-            <span className={`text-xs px-1.5 py-0.5 shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`rounded-[6px] text-xs px-1.5 py-0.5 shrink-0 ${d.recordable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
               {d.recordable ? '🎙️ enregistrable' : 'non enregistrable'}
             </span>
           )}
           {g.join_code && (
-            <span className="text-xs font-mono tracking-widest text-green-700 bg-green-50 px-1.5 py-0.5 border border-green-200">
+            <span className="rounded-[6px] text-xs tracking-widest text-green-700 bg-green-50 px-1.5 py-0.5 border border-green-200 font-semibold tabular-nums">
               {g.join_code}
             </span>
           )}
@@ -5162,12 +5207,12 @@ function TableOverviewCard({
         {(activeMods.length > 0 || surplusMods.length > 0 || !g.moderated) && (
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
             {activeMods.map(m => (
-              <span key={m.member_id ?? `physical-${g.table_id}`} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 border border-indigo-100">
+              <span key={m.member_id ?? `physical-${g.table_id}`} className="rounded-[6px] bg-indigo-50 text-indigo-700 px-2 py-0.5 border border-indigo-100">
                 🎙️ Modérateur : <strong>{m.pseudo}</strong>
               </span>
             ))}
             {surplusMods.map(m => (
-              <span key={m.member_id} className="bg-amber-50 text-amber-700 px-2 py-0.5 border border-amber-100">
+              <span key={m.member_id} className="rounded-[6px] bg-amber-50 text-amber-700 px-2 py-0.5 border border-amber-100">
                 🎙️ En surplus : <strong>{m.pseudo}</strong>
               </span>
             ))}
@@ -5198,14 +5243,14 @@ function TableOverviewCard({
                   linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')}` : null,
                 ].filter(Boolean).join(' · ') || undefined}
                 style={color ? { borderColor: color, background: `${color}1a` } : undefined}
-                className={`px-2 py-0.5 text-xs font-medium border inline-flex items-center gap-1 ${
+                className={`rounded-[6px] px-2 py-0.5 text-xs font-medium border inline-flex items-center gap-1 ${
                   color ? 'text-gray-700' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
                 }`}
               >
                 <span>{m.pseudo}</span>
                 {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
                 {profile && (
-                  <span className="text-[10px] font-mono tracking-tight opacity-75 shrink-0">
+                  <span className="text-[10px] tracking-tight opacity-75 shrink-0 font-semibold tabular-nums">
                     <span className={profile.is_active ? '' : 'line-through'}>a</span>
                     <span className={profile.consents ? '' : 'line-through'}>e</span>
                     <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
@@ -5223,7 +5268,7 @@ function TableOverviewCard({
       {g.table_id && (
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs text-gray-500 border-t border-bleu-fonce/10 hover:bg-gray-50 transition-colors"
+          className="rounded-[8px] w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs text-gray-500 border-t border-bleu-fonce/10 hover:bg-gray-50 transition-colors"
         >
           <span>Temps et tours de parole</span>
           <svg
@@ -5233,7 +5278,7 @@ function TableOverviewCard({
         </button>
       )}
       {expanded && (
-        <div className="border-t border-bleu-fonce/10 px-3 py-3 space-y-3 bg-gray-50">
+        <div className="rounded-[8px] border-t border-bleu-fonce/10 px-3 py-3 space-y-3 bg-gray-50">
           {loading ? (
             <p className="text-xs text-gray-500 py-2">Chargement…</p>
           ) : !history ? null : (
@@ -5297,10 +5342,10 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
           { emoji: '🗳️', label: 'Ont voté au moins 1 fois', val: stats.voter_count },
           { emoji: '💬', label: 'Assertions approuvées',    val: stats.approved_assertion_count },
         ].map(item => (
-          <div key={item.label} className="bg-gray-50 p-3 flex items-center gap-2">
+          <div key={item.label} className="rounded-[8px] bg-gray-50 p-3 flex items-center gap-2">
             <span className="text-xl">{item.emoji}</span>
             <div>
-              <p className="font-serif text-xl font-semibold leading-tight text-bleu-fonce tabular-nums">{item.val}</p>
+              <p className="font-sans text-xl font-bold leading-tight text-bleu-fonce tabular-nums tracking-[-0.01em]">{item.val}</p>
               <p className="text-xs text-gray-500 leading-tight">{item.label}</p>
             </div>
           </div>
@@ -5310,11 +5355,11 @@ function VotingStatsPanel({ stats }: { stats: SessionVotingStats }) {
       {/* Répartition présentiel / distance (si des votants à distance existent) */}
       {stats.remote_count > 0 && (
         <div className="flex gap-2">
-          <div className="flex-1 bg-indigo-50 px-3 py-2 text-center">
+          <div className="flex-1 rounded-[8px] bg-indigo-50 px-3 py-2 text-center">
             <p className="text-lg font-bold text-indigo-700">{stats.attending_count}</p>
             <p className="text-xs text-indigo-500">Présentiels</p>
           </div>
-          <div className="flex-1 bg-gray-50 px-3 py-2 text-center">
+          <div className="flex-1 rounded-[8px] bg-gray-50 px-3 py-2 text-center">
             <p className="text-lg font-bold text-gray-700">{stats.remote_count}</p>
             <p className="text-xs text-gray-500">À distance</p>
           </div>
@@ -5367,7 +5412,7 @@ function DraggableMemberChip({
         profile ? memberProfileTitle(profile) : null,
         linkedWith?.length ? `🔗 Binôme avec ${linkedWith.join(', ')} , se déplace avec sa grappe` : null,
       ].filter(Boolean).join(' · ') || undefined}
-      className={`px-2 py-0.5 text-xs font-medium border cursor-grab active:cursor-grabbing select-none
+      className={`rounded-[6px] px-2 py-0.5 text-xs font-medium border cursor-grab active:cursor-grabbing select-none
         transition-opacity inline-flex items-center gap-1 ${
         isDragging
           ? 'opacity-0'
@@ -5377,7 +5422,7 @@ function DraggableMemberChip({
       <span>{pseudo}</span>
       {linkedWith && linkedWith.length > 0 && <span className="text-[10px] shrink-0">🔗</span>}
       {profile && (
-        <span className="text-[10px] font-mono tracking-tight opacity-75 shrink-0">
+        <span className="text-[10px] tracking-tight opacity-75 shrink-0 font-semibold tabular-nums">
           <span className={profile.is_active ? '' : 'line-through'}>a</span>
           <span className={profile.consents ? '' : 'line-through'}>e</span>
           <span className={!profile.is_veteran ? '' : 'line-through'}>n</span>
@@ -5390,14 +5435,14 @@ function DraggableMemberChip({
 /** H20 — légende des lettres et de la couleur, affichée une fois au-dessus des tables. */
 function MemberBadgeLegend() {
   return (
-    <details className="text-xs text-gray-500 bg-gray-50/60 border border-bleu-fonce/10 px-3 py-1.5">
+    <details className="rounded-[8px] text-xs text-gray-500 bg-gray-50/60 border border-bleu-fonce/10 px-3 py-1.5">
       <summary className="cursor-pointer select-none font-medium text-gray-600">
         Légende des cartes participant
       </summary>
       <div className="pt-1.5 space-y-1 leading-snug">
-        <p><span className="font-mono">a</span> actif · <span className="font-mono line-through">a</span> plutôt passif</p>
-        <p><span className="font-mono">e</span> consentant à l'enregistrement · <span className="font-mono line-through">e</span> non consentant</p>
-        <p><span className="font-mono">n</span> nouveau · <span className="font-mono line-through">n</span> a déjà fait un débat Ecclesia</p>
+        <p><span className="font-semibold tabular-nums">a</span> actif · <span className="line-through font-semibold tabular-nums">a</span> plutôt passif</p>
+        <p><span className="font-semibold tabular-nums">e</span> consentant à l'enregistrement · <span className="line-through font-semibold tabular-nums">e</span> non consentant</p>
+        <p><span className="font-semibold tabular-nums">n</span> nouveau · <span className="line-through font-semibold tabular-nums">n</span> a déjà fait un débat Ecclesia</p>
         <p>Couleur du cadre = camp d'opinion (mêmes couleurs que l'onglet Analyse) · pas de couleur = n'a pas voté</p>
       </div>
     </details>
@@ -5409,7 +5454,7 @@ function DroppableGroupCard({ tableNumber, children }: { tableNumber: number; ch
   return (
     <div
       ref={setNodeRef}
-      className={`bg-white border p-4 transition-colors ${
+      className={`rounded-[12px] bg-white border p-4 transition-colors ${
         isOver ? 'border-indigo-400 bg-indigo-50/30' : 'border-bleu-fonce/10'
       }`}
     >
@@ -5472,7 +5517,7 @@ function AddModeratorControl({
   return (
     <div
       ref={setNodeRef}
-      className={`border px-2.5 py-2 transition-colors ${
+      className={`rounded-[8px] border px-2.5 py-2 transition-colors ${
         isOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-amber-200 bg-amber-50/60'
       }`}
     >
@@ -5491,7 +5536,7 @@ function AddModeratorControl({
           onChange={e => { setName(e.target.value); setError(null) }}
           disabled={disabled}
           placeholder="Nom prénom du modérateur…"
-          className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-bleu-fonce/20
+          className="rounded-[8px] flex-1 min-w-0 text-xs px-2 py-1.5 border border-bleu-fonce/20
             focus:outline-none focus:ring-1 focus:border-bleu-fonce focus:ring-bleu-clair/40 bg-white disabled:opacity-50"
         />
         <datalist id={datalistId}>
@@ -5500,7 +5545,7 @@ function AddModeratorControl({
         <button
           type="submit"
           disabled={disabled || !name.trim()}
-          className="shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200
+          className="rounded-[8px] shrink-0 py-1.5 px-2.5 text-xs font-medium border border-indigo-200
             text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ➕ Ajouter
@@ -5522,19 +5567,8 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bleu-fonce/60 backdrop-blur-[2px]">
-      <div className="bg-white shadow-xl w-full max-w-lg overflow-hidden">
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-serif text-lg font-semibold text-bleu-fonce">🖨️ Récapitulatif des tables</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Prêt à capturer en screenshot</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
+      <div className="bg-white shadow-2xl w-full max-w-lg overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
+        <EnTeteFenetre titre="🖨️ Récapitulatif des tables" sousTitre="Prêt à capturer en capture d'écran" onClose={onClose} />
 
         <div className="px-6 pb-6">
           <table className="w-full text-sm border-collapse">
@@ -5556,7 +5590,7 @@ function TableRosterModal({ groups, onClose }: { groups: GroupRow[]; onClose(): 
                     <td className="py-2.5 pr-3 text-gray-700">
                       {mod ? mod.pseudo : (g.moderated ? '⏳ en attente' : 'sans animateur')}
                     </td>
-                    <td className="py-2.5 font-mono tracking-widest text-gray-700">
+                    <td className="py-2.5 tracking-widest text-gray-700 font-semibold tabular-nums">
                       {g.join_code ?? '-'}
                     </td>
                   </tr>
@@ -5738,10 +5772,10 @@ function AssertionsPanel({
     <div className="space-y-3">
       {/* ── Formulaire admin ── */}
       {onAdminSubmit && (
-        <div className="border border-indigo-100 bg-indigo-50/40 overflow-hidden">
+        <div className="rounded-[12px] border border-indigo-100 bg-indigo-50/40 overflow-hidden">
           <button
             onClick={() => setAdminFormOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors"
+            className="rounded-[8px] w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-indigo-50 transition-colors"
           >
             <span className="text-xs font-semibold text-indigo-700">+ Ajouter des assertions (animateur)</span>
             <svg className={`w-3.5 h-3.5 text-indigo-400 transition-transform shrink-0 ${adminFormOpen ? 'rotate-180' : ''}`}
@@ -5758,14 +5792,14 @@ function AssertionsPanel({
                 placeholder="Saisir une assertion… (Entrée pour valider)"
                 rows={2}
                 disabled={adminAdding}
-                className="w-full mt-3 px-3 py-2 text-sm border border-bleu-fonce/20 resize-none
+                className="rounded-[8px] w-full mt-3 px-3 py-2 text-sm border border-bleu-fonce/20 resize-none
                   focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40 disabled:opacity-50"
               />
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={handleAdminAdd}
                   disabled={adminAdding || !adminText.trim()}
-                  className="py-1.5 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white
+                  className="rounded-[8px] py-1.5 px-4 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white
                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {adminAdding ? '…' : 'Ajouter'}
@@ -5773,7 +5807,7 @@ function AssertionsPanel({
                 <button
                   onClick={() => csvInputRef.current?.click()}
                   disabled={csvImporting}
-                  className="py-1.5 px-4 text-xs font-medium border border-indigo-200 text-indigo-700
+                  className="rounded-[8px] py-1.5 px-4 text-xs font-medium border border-indigo-200 text-indigo-700
                     hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {csvImporting
@@ -5793,7 +5827,7 @@ function AssertionsPanel({
                       ids: lastImportIds,
                       body: `Supprimer les ${lastImportIds.length} assertion${lastImportIds.length > 1 ? 's' : ''} du dernier import CSV ? Cette action est irréversible.`,
                     })}
-                    className="py-1.5 px-4 text-xs font-medium border border-red-200 text-red-700
+                    className="rounded-[8px] py-1.5 px-4 text-xs font-medium border border-red-200 text-red-700
                       hover:bg-red-50 transition-colors"
                   >
                     Annuler l'import ({lastImportIds.length})
@@ -5809,12 +5843,12 @@ function AssertionsPanel({
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1">
+      <div className="flex gap-1 rounded-[12px] bg-gray-100 p-1">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => onTabChange(t.key)}
-            className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
+            className={`rounded-[8px] flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
               effectiveTab === t.key
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-bleu-fonce'
@@ -5822,7 +5856,7 @@ function AssertionsPanel({
           >
             {t.label}
             {t.count > 0 && (
-              <span className={`ml-1 px-1.5 py-0.5 text-[10px] ${
+              <span className={`ml-1 rounded-[6px] px-1.5 py-0.5 text-[10px] ${
                 t.key === 'pending' ? 'bg-amber-100 text-amber-700' :
                 t.key === 'approved' ? 'bg-green-100 text-green-700' :
                 'bg-gray-200 text-gray-500'
@@ -5839,7 +5873,7 @@ function AssertionsPanel({
             <button
               onClick={onApproveAll}
               disabled={actingId !== null}
-              className="w-full py-2 px-3 text-xs font-medium bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+              className="rounded-[8px] w-full py-2 px-3 text-xs font-medium bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
             >
               ✅ Tout approuver ({pending.length})
             </button>
@@ -5852,12 +5886,12 @@ function AssertionsPanel({
               <button
                 onClick={() => onApprove(a.id)}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                className="rounded-[8px] py-1 px-2.5 text-xs font-medium bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
               >✅ Approuver</button>
               <button
                 onClick={() => onReject(a.id)}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="rounded-[8px] py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
               >❌ Rejeter</button>
             </AssertionRow>
           ))}
@@ -5893,7 +5927,7 @@ function AssertionsPanel({
                     <button
                       onClick={() => onReject(a.id)}
                       disabled={actingId !== null}
-                      className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                      className="rounded-[8px] py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
                     >❌ Refuser</button>
                   </div>
                 </AssertionRow>
@@ -5929,7 +5963,7 @@ function AssertionsPanel({
                     body: `Supprimer définitivement ${selectedRejected.size} assertion${selectedRejected.size > 1 ? 's' : ''} ? Cette action est irréversible.`,
                   })}
                   disabled={actingId !== null}
-                  className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                  className="rounded-[8px] py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
                 >🗑 Supprimer la sélection ({selectedRejected.size})</button>
               )}
             </div>
@@ -5951,12 +5985,12 @@ function AssertionsPanel({
               <button
                 onClick={() => onReapprove(a.id)}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                className="rounded-[8px] py-1 px-2.5 text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
               >Réapprouver</button>
               <button
                 onClick={() => setDeleteConfirm({ ids: [a.id], body: 'Supprimer définitivement cette assertion ? Cette action est irréversible.' })}
                 disabled={actingId !== null}
-                className="py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="rounded-[8px] py-1 px-2.5 text-xs font-medium bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
               >🗑 Supprimer</button>
             </AssertionRow>
           ))}
@@ -5991,23 +6025,23 @@ function ShareLinkBanner({ joinCode }: { joinCode: string }) {
   }
 
   return (
-    <div className="bg-indigo-50 border border-indigo-100 px-4 py-3 flex items-center gap-3">
+    <div className="rounded-[8px] bg-indigo-50 border border-indigo-100 px-4 py-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.14em] mb-0.5">
           Lien de partage
         </p>
-        <p className="text-xs font-mono text-gray-700 truncate">{url}</p>
+        <p className="text-xs text-gray-700 truncate font-semibold tabular-nums">{url}</p>
       </div>
       <button
         onClick={() => setQrOpen(true)}
-        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
+        className="rounded-[8px] shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
           text-indigo-700 hover:bg-indigo-100 transition-colors"
       >
         QR code
       </button>
       <button
         onClick={handleCopy}
-        className="shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
+        className="rounded-[8px] shrink-0 py-1.5 px-3 text-xs font-medium border border-indigo-200
           text-indigo-700 hover:bg-indigo-100 transition-colors"
       >
         {copied ? '✓ Copié' : 'Copier'}
@@ -6069,7 +6103,7 @@ function SortableTh({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="inline-flex items-center hover:text-indigo-600 transition-colors"
+        className="rounded-[8px] inline-flex items-center hover:text-indigo-600 transition-colors"
       >
         {label}
         <SortArrows active={active} direction={active ? sort.direction : 'asc'} />
@@ -6159,7 +6193,7 @@ function MembersPanel({
               </td>
               <td className="py-2 pr-3">
                 {m.joined_phase ? (
-                  <span className={`px-1.5 py-0.5 text-[10px] font-medium ${
+                  <span className={`rounded-[6px] px-1.5 py-0.5 text-[10px] font-medium ${
                     m.joined_phase === 'voting' ? 'bg-purple-100 text-purple-700' :
                     m.joined_phase === 'draft'  ? 'bg-gray-100 text-gray-600' :
                     'bg-indigo-100 text-indigo-700'
@@ -6185,7 +6219,7 @@ function MembersPanel({
                     title={m.is_moderator
                       ? 'Modérateur de cette séance : cliquer pour retirer'
                       : 'Marquer comme modérateur de cette séance'}
-                    className={`px-1.5 py-0.5 text-[10px] font-medium border transition-colors ${
+                    className={`rounded-[8px] px-1.5 py-0.5 text-[10px] font-medium border transition-colors ${
                       m.is_moderator
                         ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
                         : 'bg-white border-bleu-fonce/10 text-gray-500 hover:border-indigo-300 hover:text-indigo-600'
@@ -6202,7 +6236,7 @@ function MembersPanel({
                   <button
                     onClick={() => onRegenerateCode(m.id, m.pseudo)}
                     title="Générer un NOUVEAU code de rappel pour ce participant (l'ancien cesse de fonctionner ; le code stocké est haché, il ne peut pas être relu)"
-                    className="px-1.5 py-0.5 text-[10px] font-medium border bg-white border-bleu-fonce/10 text-gray-500 hover:border-amber-300 hover:text-amber-600 transition-colors"
+                    className="rounded-[8px] px-1.5 py-0.5 text-[10px] font-medium border bg-white border-bleu-fonce/10 text-gray-500 hover:border-amber-300 hover:text-amber-600 transition-colors"
                   >
                     🔑 nouveau
                   </button>
@@ -6214,7 +6248,7 @@ function MembersPanel({
                     onClick={() => onDeleteMember(m.id, m.pseudo)}
                     title="Supprimer ce participant de la base (confirmation demandée)"
                     aria-label={`Supprimer ${m.pseudo}`}
-                    className="w-5 h-5 leading-none text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    className="rounded-[8px] w-5 h-5 leading-none text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
                   >
                     ✕
                   </button>
@@ -6246,7 +6280,7 @@ function AssertionRow({
   children: React.ReactNode
 }) {
   return (
-    <div className={`border p-3 space-y-2 transition-colors ${acting ? 'opacity-50' : ''} ${selected ? 'border-red-300 bg-red-50/50' : 'border-bleu-fonce/10'}`}>
+    <div className={`rounded-[8px] border p-3 space-y-2 transition-colors ${acting ? 'opacity-50' : ''} ${selected ? 'border-red-300 bg-red-50/50' : 'border-bleu-fonce/10'}`}>
       <div className="flex items-start gap-2">
         {selectable && (
           <input
@@ -6261,9 +6295,9 @@ function AssertionRow({
       </div>
       {aiLabels && (aiLabels.isMerged || aiLabels.isAiRejected || aiLabels.isAiApproved) && (
         <div className="flex gap-1.5 flex-wrap">
-          {aiLabels.isMerged    && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 font-medium">fusionnée</span>}
-          {aiLabels.isAiRejected && !aiLabels.isMerged && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 font-medium">modérée par IA</span>}
-          {aiLabels.isAiApproved && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-medium">acceptée par IA</span>}
+          {aiLabels.isMerged    && <span className="rounded-[6px] text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 font-medium">fusionnée</span>}
+          {aiLabels.isAiRejected && !aiLabels.isMerged && <span className="rounded-[6px] text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 font-medium">modérée par IA</span>}
+          {aiLabels.isAiApproved && <span className="rounded-[6px] text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-medium">acceptée par IA</span>}
         </div>
       )}
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -6375,7 +6409,7 @@ function CollabSourcesList({
                 <button
                   onClick={() => onDeleteRequest(s)}
                   disabled={deletingId === s.id}
-                  className="shrink-0 py-1 px-2.5 text-xs font-medium border border-red-200
+                  className="rounded-[8px] shrink-0 py-1 px-2.5 text-xs font-medium border border-red-200
                     text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors"
                 >
                   {deletingId === s.id ? '…' : 'Supprimer'}
@@ -6420,7 +6454,7 @@ function DocFileField({ label, placeholder, value, onChange }: {
         value={value}
         onChange={e => onChange(e.target.value.trim())}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
+        className="rounded-[8px] w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
           focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
           placeholder:text-anthracite/40 bg-white transition-shadow"
       />
@@ -6518,7 +6552,7 @@ function StaffInterestList({
                 <span className="text-sm font-semibold text-gray-900">{r.pseudo ?? 'Pseudo inconnu'}</span>
                 <span className="text-xs text-gray-500 tabular-nums">{date}</span>
                 {r.table_join_code && (
-                  <span className="font-mono text-xs text-indigo-600 tracking-widest">
+                  <span className="text-xs text-indigo-600 tracking-widest font-semibold tabular-nums">
                     {r.table_join_code}
                   </span>
                 )}
@@ -6589,7 +6623,7 @@ function ResponseRow({
       <div className="flex items-center gap-3">
         <button
           onClick={onToggle}
-          className="flex-1 min-w-0 flex items-center gap-3 text-left group"
+          className="rounded-[8px] flex-1 min-w-0 flex items-center gap-3 text-left group"
         >
           {/* Chevron */}
           <svg
@@ -6601,7 +6635,7 @@ function ResponseRow({
           </svg>
           <span className="text-xs text-gray-500 shrink-0 tabular-nums">{date}</span>
           {r.table_join_code && (
-            <span className="font-mono text-xs text-indigo-600 tracking-widest shrink-0">
+            <span className="text-xs text-indigo-600 tracking-widest shrink-0 font-semibold tabular-nums">
               {r.table_join_code}
             </span>
           )}
@@ -6625,7 +6659,7 @@ function ResponseRow({
           onClick={e => { e.stopPropagation(); onDeleteRequest() }}
           disabled={deleting}
           title="Supprimer cette réponse"
-          className="shrink-0 w-6 h-6 flex items-center justify-center
+          className="rounded-[8px] shrink-0 w-6 h-6 flex items-center justify-center
             text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors
             disabled:opacity-40 disabled:cursor-not-allowed"
         >
