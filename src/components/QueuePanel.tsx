@@ -9,6 +9,7 @@ import { useTable } from '../context/TableContext'
 import { extractErr } from '../lib/utils'
 import { useState } from 'react'
 import type { Participant, QueueEntry } from '../lib/types'
+import { IconeAutreSujet, IconeSujetActuel } from './IconesFiles'
 
 interface Props {
   title: string
@@ -28,14 +29,14 @@ interface Props {
 const TONS = {
   indigo: {
     titre:   'border-b-bleu-clair/20 bg-bleu-clair/[0.12]',
-    repere:  'bg-bleu-clair',
-    premier: 'bg-bleu-clair text-bleu-fonce',
+    icone:   'text-bleu-clair',
+    premier: 'text-bleu-clair',
     anneau:  'ring-bleu-clair/70',
   },
   teal: {
     titre:   'border-b-teal-300/20 bg-teal-400/[0.16]',
-    repere:  'bg-teal-300',
-    premier: 'bg-teal-300 text-bleu-fonce',
+    icone:   'text-teal-300',
+    premier: 'text-teal-300',
     anneau:  'ring-teal-300/70',
   },
 } as const
@@ -70,8 +71,8 @@ export default function QueuePanel({
       }`}
     >
       <div className={`flex items-stretch border-b ${t.titre}`}>
-        <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center">
-          <span className={`h-2.5 w-2.5 ${t.repere}`} />
+        <span aria-hidden="true" className={`flex w-14 shrink-0 items-center justify-center ${t.icone}`}>
+          {queueType === 'long' ? <IconeAutreSujet className="h-5 w-5" /> : <IconeSujetActuel className="h-5 w-5" />}
         </span>
         <div className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4">
           <div className="min-w-0 flex-1">
@@ -121,7 +122,7 @@ function SortableRow({
   entry: QueueEntry
   index: number
   pseudo: string
-  /** Couleurs de la pastille du premier de la file. */
+  /** Couleur du numéro du premier de la file. */
   premier: string
   isGhost?: boolean
   onRemove(): void
@@ -136,17 +137,15 @@ function SortableRow({
   }
 
   const numero = (classes: string) => (
-    <td className="w-14 py-2">
-      <span className={`mx-auto flex h-7 w-7 items-center rounded-full justify-center text-xs font-bold tabular-nums ${classes}`}>
-        {index + 1}
-      </span>
+    <td className={`w-14 py-2.5 text-center text-sm font-bold tabular-nums ${classes}`}>
+      {index + 1}
     </td>
   )
 
   if (isGhost) {
     return (
       <tr ref={setNodeRef} style={style} className="border-b border-dashed border-white/25 last:border-0">
-        {numero('border border-dashed border-white/30 text-slate-300')}
+        {numero('italic text-slate-400')}
         <td className="py-2.5 pr-4 font-medium italic text-slate-300">{pseudo}</td>
         <td className="py-2.5 pr-3" />
       </tr>
@@ -159,7 +158,7 @@ function SortableRow({
       style={style}
       className="border-b border-white/[0.06] transition-colors last:border-0 hover:bg-white/[0.04]"
     >
-      {numero(index === 0 ? premier : 'bg-white/[0.07] text-slate-300')}
+      {numero(index === 0 ? premier : 'text-slate-400')}
 
       <td className="py-2.5 pr-4">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">

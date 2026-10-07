@@ -1,4 +1,5 @@
 import type { Participant, QueueEntry } from '../lib/types'
+import { IconeAutreSujet, IconeSujetActuel } from './IconesFiles'
 
 interface Props {
   title: string
@@ -11,7 +12,7 @@ interface Props {
 }
 
 // Chantier 158 : la colonne de gauche (w-14) est celle des boutons de file de
-// ParticipantView, au-dessus. Pastilles, numéros et icônes tombent ainsi sur un
+// ParticipantView, au-dessus. Icônes, numéros et pastilles tombent ainsi sur un
 // même axe vertical, et les textes commencent tous au même endroit.
 export default function ReadOnlyQueuePanel({
   title, subtitle, entries, participants, accent = 'indigo', selfId,
@@ -22,8 +23,8 @@ export default function ReadOnlyQueuePanel({
     <section className="overflow-hidden rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm">
       {/* Ligne de titre teintée de la couleur de la file (même couleur que son bouton) */}
       <div className={`flex items-stretch border-b ${teal ? 'border-teal-600/15 bg-teal-50' : 'border-bleu-fonce/10 bg-indigo-50'}`}>
-        <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center">
-          <span className={`h-2.5 w-2.5 ${teal ? 'bg-teal-600' : 'bg-bleu-fonce'}`} />
+        <span aria-hidden="true" className={`flex w-14 shrink-0 items-center justify-center ${teal ? 'text-teal-700' : 'text-bleu-fonce'}`}>
+          {teal ? <IconeSujetActuel className="h-5 w-5" /> : <IconeAutreSujet className="h-5 w-5" />}
         </span>
         <div className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4">
           <div className="min-w-0 flex-1">
@@ -51,14 +52,11 @@ export default function ReadOnlyQueuePanel({
             const moi = !!selfId && e.participant_id === selfId
             return (
               <li key={e.id} className={`flex items-center animate-montee ${moi ? 'bg-bleu-clair/20' : ''}`}>
-                <span className="flex w-14 shrink-0 justify-center py-2">
-                  <span className={`flex h-7 w-7 items-center rounded-full justify-center text-xs font-bold tabular-nums ${
-                    i === 0
-                      ? teal ? 'bg-teal-600 text-white' : 'bg-bleu-fonce text-creme'
-                      : 'bg-bleu-fonce/[0.06] text-bleu-fonce/70'
-                  }`}>
-                    {i + 1}
-                  </span>
+                {/* Chiffre simple, dans la couleur de la file pour le premier */}
+                <span className={`flex w-14 shrink-0 justify-center py-2.5 text-sm font-bold tabular-nums ${
+                  i === 0 ? teal ? 'text-teal-700' : 'text-bleu-fonce' : 'text-gray-500'
+                }`}>
+                  {i + 1}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 py-2.5 pr-4">
                   <span className={`text-sm text-anthracite ${moi ? 'font-semibold' : 'font-medium'}`}>{p?.pseudo ?? '-'}</span>
