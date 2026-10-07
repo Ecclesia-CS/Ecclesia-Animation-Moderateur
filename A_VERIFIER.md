@@ -285,6 +285,17 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 158, lot 9 (2026-10-07) — Page modérateur refaite
+
+**Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », « Modo Démo »), à 320, 375 et 800 px : en-tête quadrillé, « Micro libre », parole donnée à « Modo Démo » (carte ocre, puis rappel fixé en haut en descendant), pause, reprise et fin ; fenêtres Documentation, Outils Modo, Historique, Code participant, Proposer un vote, Ajouter une personne sans téléphone ; accueil du modérateur ; tableau des participants sans débordement à 800 px (il défile dans sa carte sur téléphone). Build OK, tests : 133 réussis, 4 ignorés.
+
+**Reste à voir à l'œil**
+- [ ] Glisser-déposer à la souris (participant vers une file, réordonner, passer d'une file à l'autre) : bulle arrondie, anneau de couleur de la file survolée, « Déposer ici ».
+- [ ] Grand écran (≥ 1 024 px) : colonne « Présents » à droite (256 px), collée sous le rappel de l'orateur quand on fait défiler.
+- [ ] Fenêtres Camps et Assertions votées avec de vraies données de vote, nouveau code de rappel (après « Réinitialiser le code »), vote en cours suivi en direct.
+- [ ] Écran « La séance est terminée » côté modérateur, au passage en post-vote.
+- [ ] Séance d'association : emblème absent, Documentation sans document collaboratif.
+
 ## Chantier 158, lot 9 (2026-10-06) — Page participant refaite (fond quadrillé du site)
 
 **Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », participant fictif « Votant Trois »), à 320, 375 et 1 280 px : en-tête marine quadrillé (cases qui s'allument dans la bande du bas sans jamais passer derrière un texte, vague, emblème, surtitre d'étape avec sa progression, titre en Archivo sans tiret cadratin, colonnes « Vous » et « Table ») ; repos ; dans les deux files avec un sujet indiqué (position en grand, ligne surlignée dans les files, marques dans « Présents ») ; « sujet suivant » activé puis annulé ; menu Outils, fenêtre des étapes, accueil et règles du débat ; carte « Vous avez la parole ! » (vue chez « Participant Démo » quand il avait la parole, puis en maquette injectée). Audit automatique : aucun chevauchement, texte coupé ou décentré, aucun débordement, contrastes ≥ 4,5:1. Tests : 133 réussis, 4 ignorés (6 nouveaux, `src/lib/utils.test.ts`) ; build OK.

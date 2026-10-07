@@ -55,7 +55,7 @@ function AssertionRow({ result }: { result: VoteResult }) {
     <div className="space-y-2">
       <div className="flex items-start gap-2">
         <p className="flex-1 text-sm text-gray-800 leading-snug">{result.content}</p>
-        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 ${badge.className}`}>
+        <span className={`shrink-0 rounded-[6px] text-xs font-semibold px-2 py-0.5 ${badge.className}`}>
           {badge.label}
         </span>
       </div>

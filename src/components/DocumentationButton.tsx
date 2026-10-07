@@ -3,6 +3,7 @@ import { useSessionOrganizationName } from '../lib/organizations'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 import type { SessionType } from '../lib/types'
+import EnTeteFenetre from './EnTeteFenetre'
 
 type SessionDocs = {
   doc_info_url: string | null
@@ -16,13 +17,15 @@ type SessionDocs = {
 interface Props {
   session: SessionDocs | null
   className?: string
-  dropdownClass?: string
   currentTableJoinCode?: string
   /** Chantier 135 — séance de rattachement : pas de document collaboratif si elle appartient à une association. */
   sessionId?: string | null
 }
 
-export default function DocumentationButton({ session, className, dropdownClass, currentTableJoinCode, sessionId }: Props) {
+// Chantier 158 : petite fenêtre (bandeau marine quadrillé), comme « Outils Modo »,
+// et non plus un menu déroulant : l'en-tête quadrillé de la vue modérateur est en
+// `overflow-hidden`, qui couperait un menu accroché sous le bouton.
+export default function DocumentationButton({ session, className, currentTableJoinCode, sessionId }: Props) {
   const [open, setOpen] = useState(false)
   const orgName = useSessionOrganizationName(sessionId)
 
@@ -33,7 +36,21 @@ export default function DocumentationButton({ session, className, dropdownClass,
   const hasCollab = !orgName && (!!session_join_code || !!doc_collab_url)
   const showPedagogy = showPedagogyDocs(sessionTypeOf(session))
 
-  const linkClass = `block px-4 py-2 text-sm hover:bg-indigo-50/70 hover:text-bleu-fonce text-anthracite whitespace-nowrap transition-colors`
+  const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-anthracite hover:bg-indigo-50/70 hover:text-bleu-fonce transition-colors focus:outline-none focus:bg-indigo-50/70'
+  const sectionLabelClass = 'pt-3 pb-1 px-5 text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]'
+  const icone = (
+    <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline strokeLinecap="round" strokeLinejoin="round" points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" />
+    </svg>
+  )
+  const lien = (href: string, label: string) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={linkClass} onClick={() => setOpen(false)}>
+      {icone}
+      {label}
+    </a>
+  )
 
   function handleCollabClick() {
     setOpen(false)
@@ -46,97 +63,52 @@ export default function DocumentationButton({ session, className, dropdownClass,
   }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className={className}
-        aria-expanded={open}
-      >
+    <>
+      <button onClick={() => setOpen(true)} className={className}>
         Documentation
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className={`absolute right-0 top-full mt-1 bg-white border border-bleu-fonce/15
-              shadow-lg py-1 z-50 min-w-[200px] ${dropdownClass ?? ''}`}
-          >
-            {doc_info_url && (
-              <a
-                href={doc_info_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-                onClick={() => setOpen(false)}
-              >
-                {DOC_INFO_LABEL}
-              </a>
-            )}
-            {doc_summary_url && (
-              <a
-                href={doc_summary_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-                onClick={() => setOpen(false)}
-              >
-                {DOC_SUMMARY_LABEL}
-              </a>
-            )}
-            {hasCollab && (
+        <div
+          className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
+          onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}
+        >
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+            <EnTeteFenetre titre="Documentation" onClose={() => setOpen(false)} />
+
+            {(doc_info_url || doc_summary_url || hasCollab) && (
               <>
-                {(doc_info_url || doc_summary_url) && (
-                  <div className="my-1 border-t border-bleu-fonce/10" />
-                )}
-                {session_join_code ? (
-                  <button
-                    onClick={handleCollabClick}
-                    className={`${linkClass} w-full text-left`}
-                  >
-                    Sources collaboratives
-                  </button>
-                ) : (
-                  <a
-                    href={doc_collab_url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={linkClass}
-                    onClick={() => setOpen(false)}
-                  >
-                    Document collaboratif
-                  </a>
+                <p className={sectionLabelClass}>Séance</p>
+                {doc_info_url && lien(doc_info_url, DOC_INFO_LABEL)}
+                {doc_summary_url && lien(doc_summary_url, DOC_SUMMARY_LABEL)}
+                {hasCollab && (
+                  session_join_code ? (
+                    <button onClick={handleCollabClick} className={linkClass}>
+                      {icone}
+                      Sources collaboratives
+                    </button>
+                  ) : lien(doc_collab_url!, 'Document collaboratif')
                 )}
               </>
             )}
+
             {showPedagogy && (
               <>
-                {(doc_info_url || doc_summary_url || hasCollab) && (
-                  <div className="my-1 border-t border-bleu-fonce/10" />
-                )}
-                <a
-                  href={DOC_BIAIS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClass}
-                  onClick={() => setOpen(false)}
-                >
-                  Biais cognitifs
-                </a>
-                <a
-                  href={DOC_FALLACIES_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClass}
-                  onClick={() => setOpen(false)}
-                >
-                  Arguments fallacieux
-                </a>
+                {(doc_info_url || doc_summary_url || hasCollab) && <div className="mt-2 border-t border-bleu-fonce/10" />}
+                <p className={sectionLabelClass}>Pour débattre</p>
+                {lien(DOC_BIAIS_URL, 'Biais cognitifs')}
+                {lien(DOC_FALLACIES_URL, 'Arguments fallacieux')}
               </>
             )}
+
+            {!doc_info_url && !doc_summary_url && !hasCollab && !showPedagogy && (
+              <p className="px-5 py-4 text-sm text-gray-500">Aucun document pour cette séance.</p>
+            )}
+
+            <div className="pb-2" />
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </>
   )
 }

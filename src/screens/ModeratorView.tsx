@@ -27,6 +27,10 @@ import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
+import FondQuadrille from '../components/FondQuadrille'
+import PhaseIndicator from '../components/PhaseIndicator'
+import { sessionTypeOf } from '../lib/phaseLabels'
+import ecclesiaLogo from '../assets/ecclesia-logo.webp'
 
 export default function ModeratorView() {
   const {
@@ -196,11 +200,25 @@ export default function ModeratorView() {
     interactive: 'Demander la parole sur le sujet actuel',
     manual:      'Manuel',
   }
-  const sourceBadge: Record<string, string> = {
-    long:        'bg-bleu-clair/10 text-bleu-clair border-bleu-clair/40',
-    interactive: 'bg-teal-400/10 text-teal-200 border-teal-400/40',
-    manual:      'bg-white/5 text-slate-200 border-white/20',
+  // Repère carré de la file d'où vient la parole (couleurs des deux files).
+  const sourceRepere: Record<string, string> = {
+    long:        'bg-bleu-fonce',
+    interactive: 'bg-teal-600',
+    manual:      'bg-creme/70',
   }
+
+  // Chantier 158 : l'en-tête n'est plus collant. Quand la carte de l'orateur
+  // sort de l'écran (on descend vers les présents ou les temps de parole), un
+  // rappel se fixe en haut : nom, chrono et « Terminer ».
+  const heroRef = useRef<HTMLDivElement>(null)
+  const [heroVisible, setHeroVisible] = useState(true)
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const obs = new IntersectionObserver(([e]) => setHeroVisible(e.isIntersecting))
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   const currentTurn = speakingTurns.find(t => t.ended_at === null) ?? null
 
@@ -452,76 +470,109 @@ export default function ModeratorView() {
     safe(() => grantFloor(id, 'manual'))
   }
 
+  const titre = session?.title ?? sessionDocs?.title ?? null
+  const boutonVerre = `btn-verre rounded-[8px] inline-flex h-10 items-center px-3 text-xs font-semibold text-creme whitespace-nowrap sm:px-4
+    focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
+  // Libellés des colonnes de l'en-tête (surtitre du site, sur marine).
+  const libelleEnTete = 'text-[10.5px] font-bold uppercase tracking-[0.2em] text-bleu-clair/80'
+  const auMicro = !!(speaker && table.current_turn_started_at)
+
   return (
     <div className="min-h-screen bg-grain bg-slate-900 text-creme">
 
-      {/* ── Header ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 bg-slate-950/95 border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-
-          {/* Left: session title + join code + live mini-speaker */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {sessionDocs?.title && (
-              <span className="hidden sm:block font-serif text-base font-medium text-slate-300 truncate max-w-[200px]"
-                title={sessionDocs.title}>
-                {titreSeance(sessionDocs.title)}
-              </span>
+      {/* ── En-tête : bandeau marine quadrillé, comme la vue participant ── */}
+      {/* Ni z-index ni isolation ici (voir FondQuadrille) : Documentation, Outils
+          Modo et l'indicateur d'étape y ouvrent des fenêtres fixed. L'en-tête
+          n'est plus collant : c'est le rappel de l'orateur, plus bas, qui se fixe
+          en haut de l'écran quand on fait défiler la page. */}
+      <header className="relative overflow-hidden border-b border-white/10 bg-bleu-fonce">
+        <FondQuadrille
+          cases={6}
+          bande={32}
+          fondu="linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 55%, #000 88%)"
+        />
+        <div className="relative mx-auto w-full max-w-6xl px-4 pb-6 pt-3 sm:px-6 sm:pt-4 md:pb-8">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Emblème d'Ecclesia, sauf dans une séance d'association (chantier 135).
+                Masqué sous 360 px : les trois boutons prennent toute la ligne. */}
+            {!session?.organization_id && (
+              <img
+                src={ecclesiaLogo}
+                alt=""
+                aria-hidden="true"
+                className="-ml-1 hidden h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)] min-[360px]:block"
+              />
             )}
-            <span className="font-mono text-lg sm:text-xl font-bold text-bleu-clair shrink-0 tracking-[0.2em]">
-              {table.join_code}
-            </span>
-            {speaker && table.current_turn_started_at && (
-              <>
-                <span className="text-white/20 shrink-0 hidden sm:inline">|</span>
-                <span className="flex items-center gap-2 text-sm min-w-0 basis-full sm:basis-auto order-1 sm:order-none">
-                  <span className="text-slate-200 truncate">{speaker.pseudo}</span>
-                  <SpeakerTimer
-                    startedAt={table.current_turn_started_at}
-                    offsetMs={timerOffset}
-                    className="text-bleu-clair shrink-0 font-mono tabular-nums"
-                  />
-                </span>
-              </>
-            )}
+            <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+              <DocumentationButton
+                session={sessionDocs}
+                currentTableJoinCode={table.join_code}
+                sessionId={table.session_id}
+                className={boutonVerre}
+              />
+              <ModeratorToolsButton onError={setErr} className={boutonVerre} />
+              <button onClick={leaveTable} className={boutonVerre}>
+                Quitter
+              </button>
+            </div>
           </div>
 
-          {/* Right: moderator badge + actions */}
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0 flex-wrap justify-end">
-            <DocumentationButton
-              session={sessionDocs}
-              currentTableJoinCode={table.join_code}
-              sessionId={table.session_id}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 whitespace-nowrap"
-            />
-            <ModeratorToolsButton
-              onError={setErr}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 flex items-center gap-1.5 whitespace-nowrap"
-            />
-            <div className="hidden md:flex items-center gap-2 text-sm text-slate-200">
-              <span className="truncate max-w-[120px]">{myParticipant.pseudo}</span>
-              <span className="bg-bleu-clair/10 text-bleu-clair text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-1
-                border border-bleu-clair/30 whitespace-nowrap">
-                Modérateur
-              </span>
+          <div className="mt-5 animate-montee md:mt-6 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-10">
+            <div className="min-w-0">
+              {session && (
+                <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
+              )}
+              <h1 className={`break-words font-sans font-bold text-creme ${session ? 'mt-3' : ''} ${
+                titre
+                  ? 'text-2xl leading-[1.15] tracking-[-0.02em] sm:text-3xl md:text-[2.25rem]'
+                  : 'text-2xl tracking-[0.16em] sm:text-3xl'
+              }`}>
+                {titre ? titreSeance(titre) : table.join_code}
+              </h1>
             </div>
-            <span
-              className="md:hidden text-slate-400 shrink-0"
-              title={`${myParticipant.pseudo} · Modérateur`}
-              aria-label={`${myParticipant.pseudo} · Modérateur`}
-            >
-              🔑
-            </span>
 
-            <button
-              onClick={leaveTable}
-              className="text-[11px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 border border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 whitespace-nowrap shrink-0"
-            >
-              Quitter
-            </button>
-
+            {/* Sur téléphone, sous un filet ; sur md+, à droite du titre. */}
+            <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-6 border-t border-white/10 pt-3 sm:gap-x-8 md:mt-0 md:min-w-[22rem]">
+              <div className="min-w-0">
+                <dt className={libelleEnTete}>Vous</dt>
+                <dd className="mt-1.5 truncate text-[15px] font-semibold leading-tight text-creme">{myParticipant.pseudo}</dd>
+              </div>
+              <div>
+                <dt className={libelleEnTete}>Rôle</dt>
+                <dd className="mt-1.5 text-[15px] font-semibold leading-tight text-creme">Modérateur</dd>
+              </div>
+              {titre && (
+                <div>
+                  <dt className={libelleEnTete}>Table</dt>
+                  <dd className="mt-1.5 text-[15px] font-semibold leading-tight tracking-[0.08em] text-creme">{table.join_code}</dd>
+                </div>
+              )}
+            </dl>
           </div>
         </div>
       </header>
+
+      {/* ── Rappel de l'orateur, fixé en haut quand sa carte sort de l'écran ── */}
+      {auMicro && !heroVisible && (
+        <div className="fixed inset-x-0 top-0 z-30 border-b border-amber-300/30 bg-amber-600 shadow-[0_14px_30px_-18px_rgba(0,0,0,0.6)] animate-montee">
+          <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2 sm:px-6">
+            <BarresParole />
+            <span className="min-w-0 truncate text-sm font-semibold text-creme">{speaker!.pseudo}</span>
+            <SpeakerTimer
+              startedAt={table.current_turn_started_at!}
+              offsetMs={timerOffset}
+              className="shrink-0 text-sm font-bold tabular-nums text-creme"
+            />
+            <button
+              onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
+              className="ml-auto inline-flex h-9 shrink-0 items-center rounded-[8px] bg-creme px-3.5 text-xs font-bold text-amber-800 transition-colors hover:bg-white
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-creme focus-visible:ring-offset-2 focus-visible:ring-offset-amber-600"
+            >
+              Terminer
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Body ──────────────────────────────────────────────── */}
       <DndContext
@@ -532,152 +583,157 @@ export default function ModeratorView() {
         onDragEnd={handleMasterDragEnd}
         onDragCancel={handleDragCancel}
       >
-      <main className="relative max-w-6xl mx-auto p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-start">
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col items-stretch gap-4 px-4 pb-12 pt-5 sm:px-6 lg:flex-row lg:items-start">
 
         {/* ── Colonne principale ─────────────────────────────── */}
         <div className="w-full flex-1 min-w-0 space-y-4">
 
         {err && (
-          <div className="p-3 bg-red-900/30 border border-red-400/50 text-sm text-red-200">
+          <div className="rounded-[8px] border border-red-400/50 bg-red-900/30 p-3 text-sm text-red-200">
             {err}
           </div>
         )}
 
-        {/* ── Hero : orateur en cours ────────────────────────── */}
-
-        {/* Pause state */}
+        {/* ── Carte de l'orateur : ocre au micro, comme « Vous avez la parole ! » ── */}
+        <div ref={heroRef}>
         {pausedSpeakerId && !speaker ? (
-          <div className="border bg-amber-900/20 border-amber-500/40 p-6 flex flex-col items-center gap-4 text-center animate-entree">
-            <div className="flex items-center gap-2">
-              <PauseIcon className="w-5 h-5 text-amber-400" />
-              <span className="text-amber-300 font-bold text-sm uppercase tracking-[0.2em]">Pause</span>
+          <div className="relative overflow-hidden rounded-[12px] border border-amber-400/40 bg-slate-800/70 animate-montee">
+            <FondQuadrille cases={3} grain={false} />
+            <div className="relative flex flex-col items-center gap-4 px-5 py-7 text-center">
+              <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-300">
+                <PauseIcon className="h-4 w-4" />
+                Pause
+              </p>
+              <p className="break-words font-sans text-4xl font-bold leading-tight tracking-[-0.02em] text-creme">{pausedName}</p>
+              <p className="-mt-2 text-sm text-slate-300">Le micro est en pause</p>
+              <div className="flex flex-col items-center gap-1.5">
+                <SessionTimerDisplay
+                  speakingTurns={speakingTurns}
+                  className="font-sans text-4xl font-bold leading-none tracking-[-0.02em] tabular-nums text-slate-200"
+                />
+                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">Durée de séance</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={handleResume}
+                  className="inline-flex h-12 items-center rounded-[8px] bg-amber-600 px-7 text-base font-semibold text-creme transition-colors hover:bg-amber-500
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+                >
+                  Reprendre la parole
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="btn-verre inline-flex h-12 items-center rounded-[8px] px-6 text-base font-semibold text-creme
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+                >
+                  Passer au suivant
+                </button>
+              </div>
             </div>
-            <p className="font-serif text-4xl font-semibold text-creme">{pausedName}</p>
-            <p className="text-sm text-slate-300">Le micro est en pause</p>
-            <SessionTimerDisplay
-              speakingTurns={speakingTurns}
-              className="font-serif text-4xl font-medium tabular-nums text-slate-300 leading-none"
-            />
-            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 -mt-2">durée de séance</p>
-            <div className="flex items-center gap-3 flex-wrap justify-center">
-              <button
-                onClick={handleResume}
-                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white
-                  text-base font-semibold transition-colors focus:outline-none
-                  focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-              >
-                Reprendre la parole
-              </button>
-              <button
-                onClick={handleSkip}
-                className="btn-verre px-6 py-3 text-creme
-                  text-base font-semibold focus:outline-none
-                  focus-visible:ring-2 focus-visible:ring-bleu-clair/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-              >
-                Passer au suivant
-              </button>
+          </div>
+        ) : auMicro ? (
+          <div
+            key={speaker!.id}
+            className="relative overflow-hidden rounded-[12px] bg-amber-600 text-creme shadow-[0_30px_60px_-28px_rgba(154,99,18,0.9)] animate-montee"
+          >
+            <FondQuadrille cases={4} grain={false} traits={0.12} />
+            <div className="relative flex flex-col items-center gap-3 px-5 py-7 text-center sm:py-8">
+              <div className="flex items-center gap-3">
+                <BarresParole />
+                <span className="inline-flex items-center gap-2 rounded-[6px] bg-amber-800/45 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-creme">
+                  <span aria-hidden="true" className={`h-2 w-2 ${sourceRepere[currentTurn?.source ?? 'manual']}`} />
+                  {sourceLabel[currentTurn?.source ?? 'manual']}
+                </span>
+              </div>
+              <p className="max-w-full break-words font-sans text-4xl font-bold leading-tight tracking-[-0.02em] sm:text-5xl">
+                {speaker!.pseudo}
+              </p>
+              <div className="flex flex-wrap items-end justify-center gap-x-10 gap-y-3">
+                <SpeakerTimer
+                  startedAt={table.current_turn_started_at!}
+                  offsetMs={timerOffset}
+                  className="font-sans text-7xl font-bold leading-none tracking-[-0.03em] tabular-nums sm:text-8xl"
+                />
+                <div className="flex flex-col items-center gap-1.5 pb-1">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-creme">Séance</span>
+                  <SessionTimerDisplay
+                    speakingTurns={speakingTurns}
+                    className="font-sans text-4xl font-bold leading-none tracking-[-0.02em] tabular-nums text-creme/90 sm:text-5xl"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={handlePause}
+                  className="inline-flex h-12 items-center gap-2 rounded-[8px] border border-creme/45 bg-creme/10 px-5 text-sm font-semibold text-creme transition-colors hover:bg-creme/20
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-creme focus-visible:ring-offset-2 focus-visible:ring-offset-amber-600"
+                >
+                  <PauseIcon className="h-4 w-4" />
+                  Pause
+                </button>
+                <button
+                  onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
+                  className="inline-flex h-12 items-center rounded-[8px] bg-creme px-7 text-base font-bold text-amber-800 transition-colors hover:bg-white
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-creme focus-visible:ring-offset-2 focus-visible:ring-offset-amber-600"
+                >
+                  Terminer la prise de parole
+                </button>
+              </div>
             </div>
           </div>
         ) : (
-          <div className={`border transition-all duration-300 ${
-            speaker
-              ? 'bg-slate-800/70 border-bleu-clair/30 shadow-2xl'
-              : 'bg-slate-800/40 border-white/10'
-          }`}>
-            {speaker && table.current_turn_started_at ? (
-              <div className="p-6 flex flex-col items-center text-center gap-3">
-                <div className="flex items-center gap-3">
-                  <span className={`text-[11px] px-2.5 py-1 border font-bold uppercase tracking-[0.14em]
-                    ${sourceBadge[currentTurn?.source ?? 'manual']}`}>
-                    {sourceLabel[currentTurn?.source ?? 'manual']}
-                  </span>
-                </div>
-                <p className="font-serif text-5xl font-semibold text-creme animate-speaking leading-tight">
-                  {speaker.pseudo}
-                </p>
-                <div className="flex items-center justify-center gap-8 flex-wrap">
-                  <SpeakerTimer
-                    startedAt={table.current_turn_started_at}
-                    offsetMs={timerOffset}
-                    className="font-serif text-8xl font-medium tabular-nums text-bleu-clair leading-none"
-                  />
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-[11px] text-slate-400 uppercase tracking-[0.2em]">Séance</span>
-                    <SessionTimerDisplay
-                      speakingTurns={speakingTurns}
-                      className="font-serif text-5xl font-medium tabular-nums text-slate-300 leading-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 mt-2">
-                  <button
-                    onClick={handlePause}
-                    className="h-12 px-5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200
-                      border border-amber-400/50 text-sm font-semibold transition-colors
-                      focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2
-                      focus-visible:ring-offset-slate-800 flex items-center gap-2"
-                  >
-                    <PauseIcon className="w-4 h-4" />
-                    Pause
-                  </button>
-                  <button
-                    onClick={() => { setTimerOffset(0); clearPauseStorage(); safe(endTurnAndAdvance) }}
-                    className="btn-verre btn-verre-primaire inline-flex h-12 items-center px-8 text-creme
-                      text-base font-semibold focus:outline-none
-                      focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2
-                      focus-visible:ring-offset-slate-800"
-                  >
-                    Terminer la prise de parole
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="py-10 text-center">
-                {isGranting ? (
-                  <p className="text-lg text-slate-400">Attribution en cours…</p>
-                ) : (
-                  <>
-                    <p className="font-serif text-4xl font-semibold text-slate-300">Micro libre</p>
-                    <p className="mt-1 text-sm text-slate-400">Aucun orateur en cours</p>
-                  </>
-                )}
-                <SessionTimerDisplay
-                  speakingTurns={speakingTurns}
-                  className="font-serif text-5xl font-medium tabular-nums text-slate-400 mt-4 leading-none block"
-                />
-                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 mt-1.5">durée de séance</p>
-              </div>
-            )}
+          <div className="relative overflow-hidden rounded-[12px] border border-white/10 bg-slate-800/50 animate-montee">
+            <FondQuadrille cases={3} grain={false} />
+            <div className="relative px-5 py-9 text-center">
+              {isGranting ? (
+                <p className="text-lg text-slate-300">Attribution en cours…</p>
+              ) : (
+                <>
+                  <p className="font-sans text-3xl font-bold tracking-[-0.02em] text-slate-200 sm:text-4xl">Micro libre</p>
+                  <p className="mt-1 text-sm text-slate-300">Aucun orateur en cours</p>
+                </>
+              )}
+              <SessionTimerDisplay
+                speakingTurns={speakingTurns}
+                className="mt-5 block font-sans text-5xl font-bold leading-none tracking-[-0.02em] tabular-nums text-slate-300"
+              />
+              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">Durée de séance</p>
+            </div>
           </div>
         )}
+        </div>
 
         {/* ── Files côte-à-côte ──────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <QueuePanel
-            title="File d'attente : prendre la parole sur un autre sujet"
-            entries={localLong}
-            queueType="long"
-            participants={participants}
-            variant="dark"
-            accent="indigo"
-            droppableId="queue-long"
-            ghostId={GHOST_ID}
-          />
-          <QueuePanel
-            title="Demander la parole sur le sujet actuel"
-            subtitle="Pour répondre à ce qui est dit actuellement uniquement"
-            entries={localInteractive}
-            queueType="interactive"
-            participants={participants}
-            variant="dark"
-            accent="teal"
-            droppableId="queue-interactive"
-            ghostId={GHOST_ID}
-          />
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+          <div className="animate-montee [animation-delay:80ms]">
+            <QueuePanel
+              title="File d'attente : prendre la parole sur un autre sujet"
+              entries={localLong}
+              queueType="long"
+              participants={participants}
+              accent="indigo"
+              droppableId="queue-long"
+              ghostId={GHOST_ID}
+            />
+          </div>
+          <div className="animate-montee [animation-delay:140ms]">
+            <QueuePanel
+              title="Demander la parole sur le sujet actuel"
+              subtitle="Pour répondre à ce qui est dit actuellement uniquement"
+              entries={localInteractive}
+              queueType="interactive"
+              participants={participants}
+              accent="teal"
+              droppableId="queue-interactive"
+              ghostId={GHOST_ID}
+            />
+          </div>
         </div>
 
         {/* ── Sujet suivant (chantier 131) ───────────────────── */}
-        <NextTopicPanel />
+        <div className="animate-montee [animation-delay:200ms]">
+          <NextTopicPanel />
+        </div>
 
         {/* ── Temps de parole par camp idéologique (chantier 94) ── */}
         {table.session_id && (
@@ -685,7 +741,9 @@ export default function ModeratorView() {
         )}
 
         {/* ── Participants stats ─────────────────────────────── */}
-        <ParticipantsTable />
+        <div className="animate-montee [animation-delay:260ms]">
+          <ParticipantsTable />
+        </div>
 
         </div>{/* end colonne principale */}
 
@@ -704,7 +762,7 @@ export default function ModeratorView() {
       {/* ── DragOverlay : bulle qui suit le curseur pendant le drag ── */}
       <DragOverlay dropAnimation={null}>
         {activeDragPseudo && (
-          <div className="px-4 py-2 bg-slate-700 text-creme shadow-xl
+          <div className="rounded-[8px] px-4 py-2 bg-slate-700 text-creme shadow-xl
             text-sm font-semibold border border-bleu-clair/40 opacity-95 cursor-grabbing
             pointer-events-none select-none whitespace-nowrap">
             {activeDragPseudo}
@@ -717,32 +775,35 @@ export default function ModeratorView() {
       {/* H23 — panorama d'accueil modérateur, affiché une seule fois par table */}
       {showModWelcome && (
         <div className="fixed inset-0 bg-bleu-fonce/60 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden text-gray-900">
-            <div className="bg-bleu-fonce px-6 py-5 text-center">
-              <p className="text-2xl mb-1">🧑‍⚖️</p>
-              <h2 className="font-serif text-xl font-semibold text-creme">Bienvenue, modérateur</h2>
-            <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+          <div className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] text-gray-900 ring-1 ring-white/10 animate-entree">
+            <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
+              <FondQuadrille cases={3} />
+              <div className="relative">
+                <p className="text-2xl mb-1">🧑‍⚖️</p>
+                <h2 className="font-sans text-xl font-bold tracking-[-0.01em] text-creme">Bienvenue, modérateur</h2>
+                <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+              </div>
             </div>
-            <div className="px-6 py-5 space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto">
+            <div className="px-6 py-5 space-y-4 text-sm text-anthracite/80 max-h-[60vh] overflow-y-auto">
               <div className="flex items-start gap-3">
-                <span className="w-7 shrink-0 text-center text-xl">🖐️</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-indigo-50 text-lg">🖐️</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Glisser-déposer</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Fais glisser un participant dans une file pour lui donner la parole, ou réordonne les files en glissant les lignes.</p>
+                  <p className="font-semibold text-anthracite">Glisser-déposer</p>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Fais glisser un participant dans une file pour lui donner la parole, ou réordonne les files en glissant les lignes.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-7 shrink-0 text-center text-xl">▶️</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-amber-50 text-lg">▶️</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Donner/retirer la parole</p>
-                  <p className="text-gray-500 text-xs mt-0.5">Les files "Prendre la parole sur un autre sujet" et "Demander la parole sur le sujet actuel" gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
+                  <p className="font-semibold text-anthracite">Donner/retirer la parole</p>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">Les files « Prendre la parole sur un autre sujet » et « Demander la parole sur le sujet actuel » gèrent l'ordre. La parole passe automatiquement à la fin d'un tour.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="w-7 shrink-0 text-center text-xl">🔧</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-sable text-lg">🔧</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Outils Modo</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{orgName
+                  <p className="font-semibold text-anthracite">Outils Modo</p>
+                  <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">{orgName
                     ? "QR code de la table, ajout d'une personne sans téléphone, codes participants, historique et notes. Seule la documentation reste accessible depuis un bouton séparé du header."
                     : 'Camps (composition idéologique de ta table et assertions représentatives des différents avis), assertions votées, QR code de la table, historique, forçage du questionnaire, notes et questionnaire post-débat. Seule la documentation reste accessible depuis un bouton séparé du header.'}</p>
                 </div>
@@ -754,7 +815,7 @@ export default function ModeratorView() {
                   localStorage.setItem('mod_welcome_' + table.id, '1')
                   setShowModWelcome(false)
                 }}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+                className="w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 C'est parti !
               </button>
@@ -765,36 +826,59 @@ export default function ModeratorView() {
 
       {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini).
           Chantier 112 — masqué tant que le questionnaire forcé est actif, sinon il
-          recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir. */}
+          recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir.
+          Chantier 158 : plein écran marine quadrillé, comme la vue participant. */}
       {(session?.phase === 'closed' || session?.phase === 'post_voting') &&
         !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now()) && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-creme gap-4 px-6 text-center">
-          <p className="font-serif text-3xl font-semibold tracking-tight text-bleu-fonce">La séance est terminée</p>
-          <span aria-hidden="true" className="filet-spectre block w-14" />
-          <p className="text-gray-600">La séance a été clôturée par le superadmin.</p>
-          {session.join_code && (
-            <button
-              onClick={() => {
-                window.location.hash = `#session/${session.join_code}`
-                leaveTable()
-              }}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
-                text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
-            >
-              Voir les résultats
-            </button>
-          )}
-          <button
-            onClick={leaveTable}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-bleu-fonce/20 hover:border-bleu-fonce/40
-              hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Retour au menu
-          </button>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-bleu-fonce px-6 text-center text-creme">
+          <FondQuadrille cases={14} />
+          <div className="relative flex flex-col items-center gap-5 animate-montee">
+            <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
+            <p className="font-sans text-4xl font-bold tracking-[-0.02em] leading-[1.05] sm:text-5xl">La séance est terminée</p>
+            <span aria-hidden="true" className="filet-spectre block w-16" />
+            <p className="text-base text-creme/75">La séance a été clôturée par le superadmin.</p>
+            <div className="mt-3 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+              {session.join_code && (
+                <button
+                  onClick={() => {
+                    window.location.hash = `#session/${session.join_code}`
+                    leaveTable()
+                  }}
+                  className="btn-verre btn-verre-primaire rounded-[8px] inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+                >
+                  Voir les résultats
+                </button>
+              )}
+              <button
+                onClick={leaveTable}
+                className="btn-verre rounded-[8px] inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+              >
+                Retour au menu
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
     </div>
+  )
+}
+
+// ── Barres « au micro » (les mêmes que « Vous avez la parole ! ») ──
+
+function BarresParole() {
+  return (
+    <span aria-hidden="true" className="flex h-5 shrink-0 items-end gap-[3px]">
+      {[11, 18, 14, 20].map((h, i) => (
+        <span
+          key={i}
+          className="block w-[3px] origin-bottom bg-creme animate-onde"
+          style={{ height: h, animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
+    </span>
   )
 }
 

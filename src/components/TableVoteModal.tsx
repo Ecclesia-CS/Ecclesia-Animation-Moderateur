@@ -84,7 +84,7 @@ export default function TableVoteModal({ voteId, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] animate-entree"
+        className="bg-white w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
         onClick={e => e.stopPropagation()}
       >
         <div className="relative flex items-start justify-between overflow-hidden bg-bleu-fonce px-6 pt-5 pb-4 flex-shrink-0">

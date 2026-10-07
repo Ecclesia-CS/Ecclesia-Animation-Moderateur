@@ -20,7 +20,7 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
     return (
       <div className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4" onClick={onCancel}>
         <div
-          className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] animate-entree"
+          className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
           onClick={e => e.stopPropagation()}
         >
           <div className="relative overflow-hidden bg-bleu-fonce px-6 py-4">
@@ -48,7 +48,7 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
       onClick={onCancel}
     >
       <div
-        className="bg-white w-full max-w-sm shadow-2xl animate-entree"
+        className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
@@ -70,7 +70,7 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
           <div className="mt-6 flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 py-2.5 text-sm font-semibold bg-white border border-bleu-fonce/20
+              className="flex-1 rounded-[8px] py-2.5 text-sm font-semibold bg-white border border-bleu-fonce/20
                 text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors focus:outline-none
                 focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
@@ -78,7 +78,7 @@ export default function ConfirmModal({ title, body, confirmLabel, onConfirm, onC
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 py-2.5 text-sm font-semibold bg-red-600 text-white
+              className="flex-1 rounded-[8px] py-2.5 text-sm font-semibold bg-red-600 text-white
                 hover:bg-red-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-red-400 focus-visible:ring-offset-2"
             >

@@ -26,7 +26,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
       className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white shadow-2xl flex flex-col max-w-xs w-full overflow-hidden rounded-[12px] animate-entree">
+      <div className="bg-white shadow-2xl flex flex-col max-w-xs w-full overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
         <div className="relative overflow-hidden bg-bleu-fonce px-6 py-4 text-center">
           <FondQuadrille cases={2} />
           <h2 className="relative font-sans text-xl font-bold tracking-[-0.01em] text-creme">{title}</h2>

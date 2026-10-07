@@ -54,19 +54,19 @@ export default function CampSpeakingTimes({ tableId, isModerator }: Props) {
   if (!isModerator || !camps || camps.length === 0) return null
 
   return (
-    <div className="bg-slate-800/60 border border-white/10 px-4 py-3">
-      <p className="text-[11px] font-bold text-bleu-clair uppercase tracking-[0.16em] mb-2">
-        Temps de parole par camp
-      </p>
-      <p className="text-[11px] leading-relaxed text-slate-400 mb-2.5">
-        Mis à jour toutes les 5 minutes. Camps affichés seulement à partir de 2 personnes à la table et d'un temps cumulé suffisant.
-      </p>
-      <ul className="space-y-1.5">
+    <div className="overflow-hidden rounded-[12px] border border-white/10 bg-slate-800/60">
+      <div className="border-b border-white/10 bg-white/[0.05] px-4 py-3">
+        <p className="text-sm font-semibold text-creme">Temps de parole par camp</p>
+        <p className="mt-0.5 text-xs leading-snug text-slate-300">
+          Mis à jour toutes les 5 minutes. Camps affichés seulement à partir de 2 personnes à la table et d'un temps cumulé suffisant.
+        </p>
+      </div>
+      <ul className="divide-y divide-white/[0.06]">
         {camps.map(c => (
-          <li key={c.group_id} className="flex items-center gap-2 text-sm">
+          <li key={c.group_id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: campColor(c.group_id) }} />
             <span className="text-slate-200">{c.name ?? `Camp ${c.group_id + 1}`}</span>
-            <span className="ml-auto font-mono tabular-nums text-slate-200">
+            <span className="ml-auto font-semibold tabular-nums text-creme">
               {formatDuration(c.seconds * 1000)}
             </span>
           </li>

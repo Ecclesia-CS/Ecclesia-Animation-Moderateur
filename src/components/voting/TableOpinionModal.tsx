@@ -5,6 +5,7 @@ import type { TableOpinionSummary } from '../../lib/types'
 import { campColor } from './TableDiagnosticsList'
 import VoteResultsList from './VoteResultsList'
 import { extractErr } from '../../lib/utils'
+import EnTeteFenetre from '../EnTeteFenetre'
 
 interface Props {
   isOpen: boolean
@@ -40,24 +41,12 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
       className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white w-full sm:max-w-md shadow-2xl flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
-          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Composition idéologique de la table</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-            aria-label="Fermer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      <div className="bg-white w-full sm:max-w-md shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+        <EnTeteFenetre titre="Composition idéologique de la table" onClose={onClose} />
         <div className="overflow-y-auto px-5 py-4 space-y-5">
           {loading && <p className="text-sm text-gray-500 py-2">Chargement…</p>}
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
+            <p className="rounded-[8px] text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
           )}
           {!loading && !error && summary && (
             <>

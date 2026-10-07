@@ -84,7 +84,7 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] animate-entree"
+            className="bg-white w-full max-w-sm shadow-2xl flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
             onClick={e => e.stopPropagation()}
           >
             <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">

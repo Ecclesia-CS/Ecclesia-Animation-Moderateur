@@ -7,6 +7,7 @@ import {
   listTableVotes,
 } from '../lib/tableVote'
 import type { TableVote, TableVoteOption, TableVoteResult, TableVoteHistoryEntry } from '../lib/types'
+import EnTeteFenetre from './EnTeteFenetre'
 
 const POLL_MS = 4000
 
@@ -123,24 +124,12 @@ export default function ModeratorVoteModal({ onClose }: Props) {
       className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 p-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white w-full sm:max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
-          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">🗳️ Proposer un vote</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-            aria-label="Fermer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      <div className="bg-white w-full sm:max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
+        <EnTeteFenetre titre="🗳️ Proposer un vote" onClose={onClose} />
 
         <div className="overflow-y-auto px-5 py-4 space-y-4">
           {err && (
-            <p className="text-sm text-red-600 bg-red-50 px-4 py-2 border border-red-200">{err}</p>
+            <p className="rounded-[8px] text-sm text-red-700 bg-red-50 px-4 py-2.5 border border-red-200">{err}</p>
           )}
 
           {loading ? (
@@ -149,10 +138,10 @@ export default function ModeratorVoteModal({ onClose }: Props) {
             <>
               {/* Vote en cours ou dernier vote clôturé */}
               {vote && (
-                <div className="border border-bleu-fonce/10 p-4 space-y-3">
+                <div className="rounded-[12px] border border-bleu-fonce/10 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-gray-900 leading-snug">{vote.question}</p>
-                    <span className={`text-xs font-medium px-2 py-0.5 shrink-0 ${
+                    <span className={`rounded-[6px] text-xs font-semibold px-2 py-0.5 shrink-0 ${
                       vote.status === 'active'
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'bg-gray-100 text-gray-600'
@@ -186,8 +175,8 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                     <button
                       onClick={handleClose}
                       disabled={closing}
-                      className="w-full py-2.5 text-sm font-semibold bg-gray-800 text-white
-                        hover:bg-gray-900 transition-colors disabled:opacity-50"
+                      className="w-full rounded-[8px] py-2.5 text-sm font-semibold bg-bleu-fonce text-creme
+                        hover:bg-indigo-700 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                     >
                       {closing ? 'Clôture…' : 'Clôturer le vote'}
                     </button>
@@ -206,7 +195,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                     onChange={e => setQuestion(e.target.value)}
                     placeholder="Question à poser à la table…"
                     rows={2}
-                    className="w-full border border-bleu-fonce/20 px-3 py-2.5 text-sm text-gray-900
+                    className="w-full rounded-[8px] border border-bleu-fonce/20 px-3 py-2.5 text-sm text-gray-900
                       placeholder:text-anthracite/40 resize-none focus:outline-none focus:ring-2
                       focus:ring-bleu-clair/40 focus:border-bleu-fonce"
                   />
@@ -218,14 +207,14 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                           value={opt}
                           onChange={e => updateOption(i, e.target.value)}
                           placeholder={`Option ${i + 1}`}
-                          className="flex-1 border border-bleu-fonce/20 px-3 py-2 text-sm text-gray-900
+                          className="flex-1 rounded-[8px] border border-bleu-fonce/20 px-3 py-2.5 text-sm text-gray-900
                             placeholder:text-anthracite/40 focus:outline-none focus:ring-2
                             focus:ring-bleu-clair/40 focus:border-bleu-fonce"
                         />
                         {options.length > 2 && (
                           <button
                             onClick={() => removeOption(i)}
-                            className="text-gray-500 hover:text-red-500 p-1"
+                            className="flex h-9 w-9 items-center justify-center rounded-[8px] text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                             aria-label="Retirer cette option"
                           >
                             ✕
@@ -243,7 +232,7 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                   <button
                     onClick={handleCreate}
                     disabled={!canSubmit || creating}
-                    className="w-full py-2.5 text-sm font-semibold bg-indigo-600 text-white
+                    className="w-full rounded-[8px] py-3 text-sm font-semibold bg-indigo-600 text-white
                       hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
                     {creating ? 'Lancement…' : 'Lancer le vote'}
@@ -271,10 +260,10 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                   <p className="text-sm text-gray-500">Aucun vote pour l'instant.</p>
                 ) : (
                   history.map(h => (
-                    <div key={h.id} className="bg-gray-50 border border-bleu-fonce/10 p-3 space-y-1.5">
+                    <div key={h.id} className="rounded-[8px] bg-gray-50 border border-bleu-fonce/10 p-3 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-gray-800">{h.question}</p>
-                        <span className={`text-xs px-2 py-0.5 shrink-0 ${
+                        <span className={`rounded-[6px] text-xs font-semibold px-2 py-0.5 shrink-0 ${
                           h.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'
                         }`}>
                           {h.status === 'active' ? 'En cours' : 'Clôturé'}

@@ -16,23 +16,37 @@ interface Props {
   entries: QueueEntry[]
   queueType: 'long' | 'interactive'
   participants: Participant[]
-  variant?: 'dark' | 'light'
   accent?: 'indigo' | 'teal'
   droppableId: string
   ghostId?: string
 }
 
+// Chantier 158 : même construction que les files de la vue participant
+// (ReadOnlyQueuePanel), sur le fond nuit de la vue modérateur. Carte arrondie,
+// ligne de titre teintée de la couleur de la file, et une colonne de gauche
+// (w-14) où tombent le repère de couleur et les numéros.
+const TONS = {
+  indigo: {
+    titre:   'border-b-bleu-clair/20 bg-bleu-clair/[0.12]',
+    repere:  'bg-bleu-clair',
+    premier: 'bg-bleu-clair text-bleu-fonce',
+    anneau:  'ring-bleu-clair/70',
+  },
+  teal: {
+    titre:   'border-b-teal-300/20 bg-teal-400/[0.16]',
+    repere:  'bg-teal-300',
+    premier: 'bg-teal-300 text-bleu-fonce',
+    anneau:  'ring-teal-300/70',
+  },
+} as const
+
 export default function QueuePanel({
   title, subtitle, entries, queueType, participants,
-  variant = 'light', accent = 'indigo', droppableId, ghostId,
+  accent = 'indigo', droppableId, ghostId,
 }: Props) {
   const { removeFromQueue } = useTable()
   const [err, setErr] = useState<string | null>(null)
-
-  const dark = variant === 'dark'
-  const accentBorder = accent === 'teal' ? 'border-l-teal-400' : 'border-l-bleu-clair'
-  const accentText   = accent === 'teal' ? 'text-teal-300'  : 'text-bleu-clair'
-  const ringColor    = accent === 'teal' ? 'ring-teal-400/60' : 'ring-bleu-clair/60'
+  const t = TONS[accent]
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: droppableId,
@@ -49,38 +63,30 @@ export default function QueuePanel({
   }
 
   return (
-    <div
+    <section
       ref={setDropRef}
-      className={`overflow-hidden border transition-all ${
-        dark ? 'bg-slate-800/60 border-white/10' : 'bg-white border-bleu-fonce/10'
-      } ${isOver ? `ring-2 ${ringColor}` : ''}`}
+      className={`overflow-hidden rounded-[12px] border border-white/10 bg-slate-800/60 transition-shadow ${
+        isOver ? `ring-2 ${t.anneau}` : ''
+      }`}
     >
-      {/* Header */}
-      <div className={`px-4 py-3 border-b border-l-4 ${accentBorder} ${
-        dark ? 'bg-white/[0.03] border-b-white/10' : 'bg-gray-50 border-b-bleu-fonce/10'
-      }`}>
-        <div className="flex items-center justify-between gap-3">
-          <span className={`font-semibold text-sm ${dark ? 'text-creme' : 'text-anthracite'}`}>
-            {title}
-          </span>
-          <span className={`text-xs font-medium tabular-nums whitespace-nowrap shrink-0 ${accentText}`}>
-            {visibleCount} {visibleCount !== 1 ? 'personnes' : 'personne'}
+      <div className={`flex items-stretch border-b ${t.titre}`}>
+        <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center">
+          <span className={`h-2.5 w-2.5 ${t.repere}`} />
+        </span>
+        <div className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-snug text-creme">{title}</p>
+            {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-300">{subtitle}</p>}
+          </div>
+          <span className="shrink-0 whitespace-nowrap rounded-[6px] bg-white/10 px-2 py-1 text-xs font-semibold tabular-nums text-creme">
+            {visibleCount}<span className="sr-only"> {visibleCount !== 1 ? 'personnes' : 'personne'}</span>
           </span>
         </div>
-        {subtitle && (
-          <p className={`text-xs mt-0.5 ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
-            {subtitle}
-          </p>
-        )}
       </div>
 
       {entries.length === 0 ? (
-        <p className={`px-4 py-4 text-sm italic transition-colors ${
-          isOver
-            ? dark ? 'text-creme' : 'text-gray-700'
-            : dark ? 'text-slate-400' : 'text-gray-500'
-        }`}>
-          {isOver ? '↓ Déposer ici' : 'File vide'}
+        <p className={`py-3.5 pl-14 pr-4 text-sm italic transition-colors ${isOver ? 'text-creme' : 'text-slate-400'}`}>
+          {isOver ? 'Déposer ici' : 'File vide'}
         </p>
       ) : (
         <SortableContext items={entries.map(e => e.id)} strategy={verticalListSortingStrategy}>
@@ -92,8 +98,7 @@ export default function QueuePanel({
                   entry={e}
                   index={i}
                   pseudo={getP(e.participant_id)?.pseudo ?? '-'}
-                  dark={dark}
-                  accentText={accentText}
+                  premier={t.premier}
                   isGhost={e.id === ghostId}
                   onRemove={() => safe(() => removeFromQueue(e.id))}
                 />
@@ -103,23 +108,21 @@ export default function QueuePanel({
         </SortableContext>
       )}
 
-      {err && (
-        <p className={`px-4 pb-3 text-xs ${dark ? 'text-red-300' : 'text-red-600'}`}>{err}</p>
-      )}
-    </div>
+      {err && <p className="px-4 pb-3 text-xs text-red-300">{err}</p>}
+    </section>
   )
 }
 
 // ── Sortable row ───────────────────────────────────────────────
 
 function SortableRow({
-  entry, index, pseudo, dark, accentText, isGhost = false, onRemove,
+  entry, index, pseudo, premier, isGhost = false, onRemove,
 }: {
   entry: QueueEntry
   index: number
   pseudo: string
-  dark: boolean
-  accentText: string
+  /** Couleurs de la pastille du premier de la file. */
+  premier: string
   isGhost?: boolean
   onRemove(): void
 }) {
@@ -132,24 +135,20 @@ function SortableRow({
     opacity: isGhost ? 0.45 : isDragging ? 0.5 : 1,
   }
 
+  const numero = (classes: string) => (
+    <td className="w-14 py-2.5">
+      <span className={`mx-auto flex h-6 w-6 items-center justify-center text-xs font-bold tabular-nums ${classes}`}>
+        {index + 1}
+      </span>
+    </td>
+  )
+
   if (isGhost) {
     return (
-      <tr
-        ref={setNodeRef}
-        style={style}
-        className={`border-b border-dashed last:border-0 ${
-          dark ? 'border-white/25' : 'border-bleu-fonce/20'
-        }`}
-      >
-        <td className={`px-4 py-2.5 w-8 tabular-nums font-mono text-sm ${
-          dark ? 'text-slate-400' : 'text-gray-500'
-        }`}>
-          {index + 1}
-        </td>
-        <td className={`px-4 py-2.5 font-medium italic ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
-          {pseudo}
-        </td>
-        <td className="px-4 py-2.5" />
+      <tr ref={setNodeRef} style={style} className="border-b border-dashed border-white/25 last:border-0">
+        {numero('border border-dashed border-white/30 text-slate-300')}
+        <td className="py-2.5 pr-4 font-medium italic text-slate-300">{pseudo}</td>
+        <td className="py-2.5 pr-3" />
       </tr>
     )
   }
@@ -158,45 +157,29 @@ function SortableRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b last:border-0 transition-colors ${
-        dark
-          ? 'border-white/[0.06] hover:bg-white/[0.04]'
-          : 'border-bleu-fonce/[0.06] hover:bg-gray-50'
-      }`}
+      className="border-b border-white/[0.06] transition-colors last:border-0 hover:bg-white/[0.04]"
     >
-      {/* Position */}
-      <td className={`px-4 py-2.5 w-8 tabular-nums font-mono text-sm ${
-        index === 0
-          ? `font-bold ${accentText}`
-          : dark ? 'text-slate-400' : 'text-gray-500'
-      }`}>
-        {index + 1}
+      {numero(index === 0 ? premier : 'bg-white/[0.07] text-slate-300')}
+
+      <td className="py-2.5 pr-4">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-medium text-creme">{pseudo}</span>
+          {entry.topic_tag && (
+            <span className="rounded-[6px] bg-white/10 px-1.5 py-0.5 text-xs text-slate-200">{entry.topic_tag}</span>
+          )}
+        </span>
       </td>
 
-      {/* Pseudo */}
-      <td className={`px-4 py-2.5 font-medium ${dark ? 'text-creme' : 'text-anthracite'}`}>
-        {pseudo}
-        {entry.topic_tag && (
-          <span className={`ml-2 text-xs font-normal italic ${dark ? 'text-slate-300' : 'text-gray-500'}`}>
-            · {entry.topic_tag}
-          </span>
-        )}
-      </td>
-
-      {/* Actions */}
-      <td className="px-4 py-2.5 text-right">
+      <td className="py-2 pr-3 text-right">
         <div className="flex items-center justify-end gap-1">
           <button
             {...attributes}
             {...listeners}
             aria-label="Déplacer"
             title="Glisser pour réordonner"
-            className={`p-1.5 border cursor-grab active:cursor-grabbing
-              transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
-              dark
-                ? 'border-white/15 text-slate-300 hover:bg-white/10 hover:text-creme focus-visible:ring-bleu-clair/60 focus-visible:ring-offset-slate-800'
-                : 'border-bleu-fonce/15 text-gray-500 hover:bg-gray-100 focus-visible:ring-bleu-clair'
-            }`}
+            className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-white/15 text-slate-300
+              cursor-grab active:cursor-grabbing transition-colors hover:bg-white/10 hover:text-creme
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair/60"
           >
             <DragHandleIcon />
           </button>
@@ -205,12 +188,9 @@ function SortableRow({
             onClick={onRemove}
             aria-label="Retirer de la file"
             title="Retirer de la file"
-            className={`p-1.5 border transition-colors focus:outline-none
-              focus-visible:ring-2 focus-visible:ring-offset-1 ${
-              dark
-                ? 'border-red-400/30 text-red-300 hover:bg-red-500/15 hover:border-red-400/60 focus-visible:ring-red-400 focus-visible:ring-offset-slate-800'
-                : 'border-red-200 text-red-600 hover:bg-red-50 focus-visible:ring-red-300'
-            }`}
+            className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-red-400/30 text-red-300
+              transition-colors hover:border-red-400/60 hover:bg-red-500/15
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             <XIcon />
           </button>

@@ -13,6 +13,7 @@ import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorVoteModal from './ModeratorVoteModal'
+import EnTeteFenetre from './EnTeteFenetre'
 
 interface Props {
   className?: string
@@ -159,20 +160,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
-          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Outils Modo</h2>
-              <button
-                onClick={() => setPanelOpen(false)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-                aria-label="Fermer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+            <EnTeteFenetre titre="Outils Modo" onClose={() => setPanelOpen(false)} />
 
             {/* ── Camps & assertions — vue d'ensemble de l'idéologie de la table, en premier ── */}
             {table.session_id && !orgName && (
@@ -316,20 +305,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 p-4"
           onMouseDown={e => { if (e.target === e.currentTarget) { setAddPersonOpen(false); setAddPersonCode(null) } }}
         >
-          <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden animate-entree">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Ajouter une personne sans téléphone</h2>
-              <button
-                onClick={() => { setAddPersonOpen(false); setAddPersonCode(null) }}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-                aria-label="Fermer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
+            <EnTeteFenetre titre="Ajouter une personne sans téléphone" onClose={() => { setAddPersonOpen(false); setAddPersonCode(null) }} />
             {addPersonCode ? (
               <div className="px-5 py-4 space-y-3">
                 <p className="text-xs text-gray-500 leading-relaxed">
@@ -338,14 +315,14 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   de retrouver son profil (questionnaire, résultats) depuis son propre appareil,
                   en saisissant son nom et ce code.
                 </p>
-                <div className="bg-amber-50 border border-amber-200 p-4 text-center">
+                <div className="rounded-[12px] bg-amber-50 border border-amber-200 p-4 text-center">
                   <p className="text-[11px] font-bold text-amber-800 uppercase tracking-[0.16em] mb-1.5">Code de rappel</p>
-                  <p className="text-2xl font-mono font-bold tracking-widest text-amber-600">{addPersonCode.code}</p>
+                  <p className="text-3xl font-bold tabular-nums tracking-[0.2em] text-amber-700">{addPersonCode.code}</p>
                 </div>
                 <button
                   onClick={() => { setAddPersonCode(null); setAddPersonOpen(false) }}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold
-                    transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  className="w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold
+                    transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   C'est noté
                 </button>
@@ -365,22 +342,22 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                     value={addPersonName}
                     onChange={e => setAddPersonName(e.target.value)}
                     placeholder="Prénom Nom"
-                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-bleu-fonce/20
+                    className="w-full rounded-[8px] px-3 py-3 text-sm text-gray-900 bg-white border border-bleu-fonce/20
                       focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
                       placeholder:text-anthracite/40 transition-shadow"
                   />
                 </div>
                 {addPersonError && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+                  <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                     {addPersonError}
                   </div>
                 )}
                 <button
                   type="submit"
                   disabled={addPersonLoading}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                  className="w-full rounded-[8px] py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-semibold transition-colors focus:outline-none
-                    focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                    focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {addPersonLoading ? 'Ajout…' : 'Ajouter'}
                 </button>
@@ -414,20 +391,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setAssertionsOpen(false) }}
         >
-          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] border-t-2 border-bleu-fonce sm:border-t-0 animate-entree">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-bleu-fonce/10 shrink-0">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Assertions votées</h2>
-              <button
-                onClick={() => setAssertionsOpen(false)}
-                className="text-gray-500 hover:text-bleu-fonce transition-colors -m-1.5 p-2
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-                aria-label="Fermer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+            <EnTeteFenetre titre="Assertions votées" onClose={() => setAssertionsOpen(false)} />
             <div className="overflow-y-auto px-5 py-4">
               <VoteResultsList results={voteResults} loading={voteResultsLoading} />
             </div>

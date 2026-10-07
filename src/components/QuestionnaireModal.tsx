@@ -90,7 +90,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
       onClick={!forced ? onClose : undefined}
     >
       <div
-        className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] animate-entree"
+        className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}

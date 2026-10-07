@@ -74,7 +74,7 @@ export default function RenamePseudoModal({
       className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 px-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white w-full sm:max-w-sm shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px]">
+      <div className="bg-white w-full sm:max-w-sm shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10">
         <div className="relative overflow-hidden bg-bleu-fonce px-5 py-4">
           <FondQuadrille cases={2} />
           <h2 className="relative font-sans text-lg font-bold tracking-[-0.01em] text-creme">Nom et code de rappel</h2>
