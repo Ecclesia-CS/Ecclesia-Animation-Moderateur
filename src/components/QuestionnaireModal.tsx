@@ -3,6 +3,7 @@ import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { extractErr, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import type { QuestionnaireResponse } from '../lib/types'
+import FondQuadrille from './FondQuadrille'
 
 const THEMES_INITIAL = 5
 
@@ -93,14 +94,15 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}
-        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">
-          <div>
-            <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Questionnaire post-débat</h2>
-            <p className="text-sm text-gray-500 mt-0.5 leading-snug">
+        <div className="relative flex items-start justify-between overflow-hidden bg-bleu-fonce px-6 pt-5 pb-4 flex-shrink-0">
+          <FondQuadrille cases={2} />
+          <div className="relative">
+            <h2 className="font-serif text-xl font-semibold text-creme">Questionnaire post-débat</h2>
+            <p className="text-sm text-creme/75 mt-0.5 leading-snug">
               Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
             </p>
             {savedResponse && (
-              <p className="text-xs text-amber-700 mt-1.5">
+              <p className="text-xs text-amber-200 mt-1.5">
                 Certaines réponses sont déjà enregistrées et ne peuvent plus être modifiées.
               </p>
             )}
@@ -108,7 +110,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
           {!forced && (
             <button
               onClick={onClose}
-              className="ml-4 flex-shrink-0 text-gray-500 hover:text-bleu-fonce transition-colors
+              className="relative ml-4 flex-shrink-0 text-creme/70 hover:text-creme transition-colors
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair -m-1.5 p-2"
               aria-label="Fermer"
             >

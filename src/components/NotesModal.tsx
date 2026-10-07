@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { extractErr } from '../lib/utils'
+import FondQuadrille from './FondQuadrille'
 
 interface Props {
   tableId?: string
@@ -149,15 +150,16 @@ export default function NotesModal({ tableId, sessionId, onClose }: Props) {
       <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden rounded-[12px] animate-entree">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-bleu-fonce/10 flex-shrink-0">
-          <div className="flex items-baseline gap-3">
-            <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Mes notes</h2>
-            {saving && <span className="text-xs text-gray-500">Enregistrement…</span>}
-            {saveErr && <span className="text-xs text-red-600">Erreur : {saveErr}</span>}
+        <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-6 py-4 flex-shrink-0">
+          <FondQuadrille cases={2} />
+          <div className="relative flex items-baseline gap-3">
+            <h2 className="font-serif text-xl font-semibold text-creme">Mes notes</h2>
+            {saving && <span className="text-xs text-creme/70">Enregistrement…</span>}
+            {saveErr && <span className="text-xs text-red-200">Erreur : {saveErr}</span>}
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-500 hover:text-bleu-fonce transition-colors focus:outline-none
+            className="relative text-creme/70 hover:text-creme transition-colors focus:outline-none
               focus-visible:ring-2 focus-visible:ring-bleu-clair -m-1.5 p-2"
             aria-label="Fermer"
           >

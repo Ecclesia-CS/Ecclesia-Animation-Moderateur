@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { tableStore } from '../../lib/storage'
 import { extractErr } from '../../lib/utils'
 import { assertSeated } from '../../lib/voting'
+import FondQuadrille from '../FondQuadrille'
 
 /**
  * Chantier 115 — remplace le mécanisme de rattachement par binôme en débat
@@ -51,11 +52,15 @@ export default function ChangeTableModal({
 
   return (
     <div className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="w-full max-w-sm bg-white shadow-lg border border-bleu-fonce/10 p-6 rounded-[12px]" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm bg-white shadow-2xl overflow-hidden rounded-[12px]" onClick={e => e.stopPropagation()}>
+        <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
+          <FondQuadrille cases={3} />
+          <p className="relative text-2xl mb-1">🔀</p>
+          <h2 className="relative font-serif text-xl font-semibold text-creme">Changer de table</h2>
+        </div>
+        <div className="p-6">
         <div className="text-center mb-4">
-          <div className="text-4xl mb-3">🔀</div>
-          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Changer de table</h2>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-gray-500">
             Demande le code à la table que tu veux rejoindre, et saisis-le ici.
           </p>
         </div>
@@ -71,14 +76,14 @@ export default function ChangeTableModal({
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase())}
             placeholder="A1B2C3"
-            className="flex-1 px-3 py-2.5 text-sm border border-bleu-fonce/20
+            className="flex-1 px-3 py-2.5 rounded-[8px] text-sm border border-bleu-fonce/20
               focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
               placeholder:text-anthracite/40"
           />
           <button
             onClick={join}
             disabled={joining || code.trim().length === 0}
-            className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+            className="py-2.5 px-4 rounded-[8px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
               text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {joining ? 'Changement…' : 'Rejoindre'}
@@ -92,6 +97,7 @@ export default function ChangeTableModal({
         >
           Annuler
         </button>
+        </div>
       </div>
     </div>
   )

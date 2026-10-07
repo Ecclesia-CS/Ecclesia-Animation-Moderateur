@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
+import FondQuadrille from './FondQuadrille'
 
 interface Props {
   value: string
@@ -25,8 +26,12 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
       className="fixed inset-0 bg-bleu-fonce/60 flex items-center justify-center z-50 p-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white shadow-2xl p-6 flex flex-col items-center gap-4 max-w-xs w-full rounded-[12px] animate-entree">
-        <h2 className="font-serif text-xl font-semibold text-bleu-fonce text-center">{title}</h2>
+      <div className="bg-white shadow-2xl flex flex-col max-w-xs w-full overflow-hidden rounded-[12px] animate-entree">
+        <div className="relative overflow-hidden bg-bleu-fonce px-6 py-4 text-center">
+          <FondQuadrille cases={2} />
+          <h2 className="relative font-serif text-xl font-semibold text-creme">{title}</h2>
+        </div>
+        <div className="p-6 flex flex-col items-center gap-4">
         {svg ? (
           <div className="w-56 h-56 p-2 border border-bleu-fonce/10 [&_svg]:w-full [&_svg]:h-full" dangerouslySetInnerHTML={{ __html: svg }} />
         ) : (
@@ -43,6 +48,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
         >
           Fermer
         </button>
+        </div>
       </div>
     </div>
   )

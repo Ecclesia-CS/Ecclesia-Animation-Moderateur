@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { renameSessionMember, regenerateReclaimCodeSelf, PSEUDO_PUBLIC_NOTICE, PSEUDO_POLL_NOTICE } from '../../lib/voting'
+import FondQuadrille from '../FondQuadrille'
 
 interface RenamePseudoModalProps {
   sessionId: string
@@ -73,8 +74,12 @@ export default function RenamePseudoModal({
       className="fixed inset-0 bg-bleu-fonce/50 flex items-end sm:items-center justify-center z-50 px-4"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white w-full sm:max-w-sm shadow-2xl p-5 space-y-4 rounded-t-[12px] sm:rounded-[12px]">
-        <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Nom et code de rappel</h2>
+      <div className="bg-white w-full sm:max-w-sm shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px]">
+        <div className="relative overflow-hidden bg-bleu-fonce px-5 py-4">
+          <FondQuadrille cases={2} />
+          <h2 className="relative font-serif text-lg font-semibold text-creme">Nom et code de rappel</h2>
+        </div>
+        <div className="p-5 space-y-4">
 
         {done ? (
           <>
@@ -84,7 +89,7 @@ export default function RenamePseudoModal({
             </p>
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="w-full py-3 px-4 rounded-[8px] bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -99,7 +104,7 @@ export default function RenamePseudoModal({
                 onChange={e => setValue(e.target.value)}
                 maxLength={40}
                 autoFocus
-                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+                className="w-full px-4 py-3 rounded-[8px] bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
               <p className="text-xs text-gray-500 mt-1.5">{isPoll ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE}</p>
             </div>
@@ -114,7 +119,7 @@ export default function RenamePseudoModal({
               <button
                 type="submit"
                 disabled={loading || !value.trim() || value.trim() === currentPseudo}
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+                className="w-full py-3 px-4 rounded-[8px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 {loading ? 'Enregistrement…' : 'Enregistrer'}
               </button>
@@ -152,12 +157,13 @@ export default function RenamePseudoModal({
                 type="button"
                 onClick={handleRegenerateCode}
                 disabled={codeLoading}
-                className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 text-sm font-medium transition-colors"
+                className="w-full py-2.5 px-4 rounded-[8px] bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 text-sm font-medium transition-colors"
               >
                 {codeLoading ? 'Génération…' : 'Faire réapparaître mon code'}
               </button>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>
