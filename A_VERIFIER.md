@@ -249,3 +249,13 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [x] **Côté association (`#asso`) — vérifié au navigateur sur dev le 2026-10-05** (association de test « QA Asso 156 » créée depuis le menu superadmin, connexion `#asso`, puis association et séances supprimées) : sondage d'association → section « Réglages » réduite au verrou et à ses deux règles (ni « Visible sur l'accueil », ni onboarding, ni résultats publics) ; verrou, « voter d'abord » et plafond écrits en base avec le jeton `org_…` ; les mêmes contrôles sont dans « En direct » ; carte de la liste sans pastille. Débat simple d'association → plus aucune section « Réglages ». Au passage, les textes parlaient de « superadmin » (visible par l'association) : remplacé par « l'administration de la séance ».
 - [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).
 
+
+## Chantier 158 (2026-10-07) — Code de connexion montré à chaque nouvelle inscription
+
+**Vérifié au navigateur sur dev** (identité anonyme vierge à chaque parcours, détails dans `docs/chantiers.md`) : sondage, débat simple, débat simple d'association, séance complète en vote présentiel, retardataire en débat (« Assignez-moi une table », code de table, lien `#table/<code>`) → le code de rappel s'affiche à chaque nouvelle inscription. Cas « inscription supprimée puis appareil rouvert » (`App.tsx`) rejoué : l'écran « Note ton code de rappel » s'affiche avant l'entrée à la table.
+
+**Reste à vérifier**
+- [ ] **Inscription avec « Je suis modérateur » (nécessite le vrai Code Ecclesia)** : sur `#vote/<code>` d'une séance en pré-vote (ou en vote présentiel), saisir un nom neuf, cocher « Je suis modérateur », saisir le Code Ecclesia → l'écran « Note ton code de rappel » doit s'afficher (avant le correctif, il était sauté). Couvert par test unitaire (`src/lib/votingClaimCode.test.ts`) mais pas rejoué à l'écran : le secret n'était pas disponible en session.
+- [ ] **Sondage d'association** : aucune séance ouverte sur dev pour le jouer ; même formulaire (`PseudoForm`) que le sondage interne, à confirmer à l'occasion d'un vrai sondage d'association.
+- [ ] **Résiduel connu, non corrigé** : `release_table_moderation` (« Libérer la modération », superadmin) peut créer à la volée la ligne de membre d'un ancien modérateur physique (lignes antérieures au chantier 119 seulement) et renvoie un code que l'écran jette. Le 🔑 de l'onglet Tables en émet un nouveau. À corriger seulement si ce cas se présente sur prod (aucun cas connu).
+- [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).

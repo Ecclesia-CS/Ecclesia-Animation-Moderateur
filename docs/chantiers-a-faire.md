@@ -4,12 +4,12 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-10-05** (ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
+Dernière mise à jour : **2026-10-07** (le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
 
 ## Chantiers en cours
 
 ### 158 — Code de connexion montré à chaque nouvelle inscription (parcours simulés)
-**Branche** : `claude/chantier-158-8c2ef4` · **Depuis** : 2026-10-07 · **Fichiers touchés** : à compléter (probables : `SessionRouterScreen.tsx`, `AllocatingScreen.tsx`, `TableChangeModal.tsx`, `ChangeTableModal.tsx`, `ModeratorToolsButton.tsx`, `CollabDocScreen.tsx`, `VoteScreen.tsx`) ; migration éventuelle. Les 159 et 160 touchent `VoteScreen`/`SuperadminScreen` : les lancer après.
+**Branche** : `claude/chantier-158-8c2ef4` · **Depuis** : 2026-10-07 · **Fait, pas encore mergé dans `dev`** (voir `docs/chantiers.md`) · **Fichiers touchés** : `src/App.tsx`, `src/lib/voting.ts`, `src/components/voting/PseudoForm.tsx`, `src/screens/VoteScreen.tsx` (une ligne, `VotingEntryForm`), `src/lib/votingClaimCode.test.ts` (nouveau). Front seul, aucune migration. **Le 159 et le 160 peuvent partir une fois cette branche mergée** (ils touchent `VoteScreen`/`SuperadminScreen`). Entrée à retirer au merge.
 
 > **Le 2026-10-02, le chantier 151 est fait** (activité à trois niveaux passif / intermédiaire / actif à l'onboarding ; l'intermédiaire compte comme actif dans l'allocation) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 151. Migration `20261002_chantier151_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** 72_2. Entrée « en cours » retirée.
 
@@ -189,7 +189,7 @@ Fichier : `src/components/DocumentationButton.tsx` (reçoit `sessionId` : en dé
 >
 > **Ordre / conflits** : 158, 159 et 160 touchent tous `VoteScreen.tsx` ou `SuperadminScreen.tsx` → **les faire l'un après l'autre : 158, puis 159, puis 160**. 161 et 162 sont des **conceptions** (aucun fichier de `src/` touché) : elles peuvent tourner en parallèle de tout le reste. La réalisation du 161 est un chantier à part, à numéroter une fois la conception arbitrée.
 
-#### 158 — Vérifier qu'on donne le code de connexion à chaque nouvelle inscription, par parcours simulés
+#### 158 — ✅ FAIT le 2026-10-07, voir `docs/chantiers.md` (branche `claude/chantier-158-8c2ef4`, pas encore mergée) — Vérifier qu'on donne le code de connexion à chaque nouvelle inscription, par parcours simulés
 > **Consigne de Jules** : « Vérifier qu’on te donne bien ton code de connexion à chaque fois que tu te connectes ! Pour cela, il faut simuler des parcours participants, pour vérifier qu’il n’y a pas d’oubli. »
 
 **Précisions (réponses de Jules)** : « à chaque nouvelle inscription, le code doit être montré » (un retour par nom + code n'en reçoit pas de nouveau : la personne le connaît). **Corriger les oublis trouvés dans le même chantier.** Pas de bouton « Copier » ni de case « J'ai noté mon code » : « Pas l'extra, il existe déja. » Les anciens membres sans code : « sur les bases actuelles, c'est ok » → **les compter d'abord (SELECT en lecture seule, dev et prod)**, puis décider avec Jules quoi en faire.
