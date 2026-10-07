@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { extractErr, isSafeUrl, titreSeance } from '../lib/utils'
+import { extractErr, isSafeUrl } from '../lib/utils'
 import {
   getCollabIdentity,
   claimCollabIdentity,
@@ -10,10 +10,14 @@ import {
   deleteCollabSource,
   listSessionSources,
 } from '../lib/sessions'
-import type { CollabSource } from '../lib/types'
+import type { CollabSource, Session } from '../lib/types'
 import type { CollabIdentity } from '../lib/sessions'
 import ConfirmModal from '../components/ConfirmModal'
 import ReclaimCodeAccordion from '../components/ReclaimCodeAccordion'
+import PageParcours, { BOUTON_VERRE_PARCOURS, CARTE_PARCOURS } from '../components/PageParcours'
+import EcranChargement from '../components/EcranChargement'
+import FondQuadrille from '../components/FondQuadrille'
+import EnTeteFenetre from '../components/EnTeteFenetre'
 
 interface Props {
   sessionJoinCode: string
@@ -238,23 +242,21 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   // ── Render ─────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-sm text-gray-500">Chargement…</p>
-      </div>
-    )
+    return <EcranChargement texte="Chargement des sources…" />
   }
 
-  if (notFound) {
+  if (notFound || !session) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 p-4">
-        <p className="text-sm text-gray-500">Séance introuvable ou lien invalide.</p>
-        <button
-          onClick={() => { window.location.hash = '' }}
-          className="inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-        >
-          Retour à l'accueil
-        </button>
+      <div className="relative min-h-screen overflow-hidden bg-bleu-fonce text-creme flex flex-col items-center justify-center px-6 text-center">
+        <FondQuadrille cases={10} />
+        <div className="relative flex max-w-sm flex-col items-center gap-4 animate-montee">
+          <div className="text-5xl" aria-hidden="true">😕</div>
+          <h1 className="font-sans text-3xl font-bold tracking-[-0.02em]">Séance introuvable</h1>
+          <p className="text-sm text-creme/75">{error ?? 'Séance introuvable ou lien invalide.'}</p>
+          <button onClick={() => { window.location.hash = '' }} className={`mt-2 ${BOUTON_VERRE_PARCOURS}`}>
+            Retour à l'accueil
+          </button>
+        </div>
       </div>
     )
   }
@@ -263,57 +265,47 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   const grouped = groupByTable(sources)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ── Header ───────────────────────────────────────────── */}
-      <header className="bg-white border-b border-bleu-fonce/10 px-4 py-4 sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <button
-            onClick={() => { window.location.hash = returnHash || '' }}
-            className="shrink-0 border border-bleu-fonce/20 px-2.5 py-1.5 text-xs font-medium text-bleu-fonce/80 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-            title="Retour"
-          >
-            Retour
+    <PageParcours
+      session={{ title: session.title, phase: session.phase as Session['phase'], organization_id: null }}
+      sansEtape
+      sansMenu
+      largeur="large"
+      sousTitre={myIdentity
+        ? <>Sources collaboratives · <span className="font-semibold text-creme">{myIdentity.pseudo}</span></>
+        : 'Sources collaboratives'}
+      actions={<>
+        <button onClick={() => { window.location.hash = returnHash || '' }} className={BOUTON_VERRE_PARCOURS}>
+          Retour
+        </button>
+        {myIdentity && (
+          <button onClick={openAdd} className={`${BOUTON_VERRE_PARCOURS} btn-verre-primaire`}>
+            <span className="sm:hidden">Ajouter</span><span className="hidden sm:inline">Ajouter une source</span>
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-serif text-lg font-semibold leading-tight text-bleu-fonce truncate">
-              Sources collaboratives
-            </h1>
-            {session && (
-              <p className="text-xs text-gray-500 truncate">{titreSeance(session.title)}</p>
-            )}
-          </div>
-          {myIdentity && (
-            <div className="shrink-0 flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-600">{myIdentity.pseudo}</span>
-              <button
-                onClick={openAdd}
-                className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white
-                  text-xs font-semibold transition-colors focus:outline-none
-                  focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-              >
-                + Ajouter
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto p-4 space-y-6">
+        )}
+      </>}
+    >
+      <div className="space-y-5">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
+          <div role="alert" className="rounded-[12px] p-3 bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between gap-2">
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 shrink-0">✕</button>
+            <button
+              onClick={() => setError(null)}
+              aria-label="Fermer"
+              className="rounded-[8px] shrink-0 p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              <IconeFermer />
+            </button>
           </div>
         )}
 
         {/* ── Registration panel ────────────────────────────── */}
         {!myIdentity && (
-          <section className="bg-white border border-indigo-200 px-5 py-5 space-y-4">
+          <section className={`${CARTE_PARCOURS} space-y-4`}>
             <div>
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce mb-1">
+              <h2 className="font-sans text-lg font-bold tracking-[-0.01em] text-bleu-fonce mb-1">
                 Ajouter vos sources
               </h2>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-sm text-gray-600 leading-relaxed">
                 Pour contribuer, identifiez-vous avec le nom et le code de rappel de votre
                 inscription à cette séance. Vous pourrez ensuite ajouter, modifier et
                 supprimer vos propres sources.
@@ -327,16 +319,14 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   value={registerPseudo}
                   onChange={e => setRegisterPseudo(e.target.value)}
                   placeholder="Nom prénom"
-                  className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-bleu-fonce/20
-                    focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
-                    placeholder:text-anthracite/40 transition-shadow"
+                  className={`flex-1 min-w-0 ${CHAMP}`}
                 />
                 <button
                   type="submit"
                   disabled={registering || !registerPseudo.trim()}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                  className="rounded-[8px] px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-semibold transition-colors focus:outline-none
-                    focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 flex items-center gap-2 shrink-0"
+                    focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 flex items-center gap-2 shrink-0"
                 >
                   {registering && <SmallSpinner />}
                   {registering ? 'Connexion…' : 'Me connecter'}
@@ -353,10 +343,10 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             {registerErr && (
               <p className="text-xs text-red-600">{registerErr}</p>
             )}
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-600">
               Vous pouvez parcourir les sources sans vous identifier.
               {' '}Pas encore inscrit ?{' '}
-              <a href={`#session/${sessionJoinCode}`} className="font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors">
+              <a href={`#session/${sessionJoinCode}`} className="font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair">
                 Rejoindre la séance
               </a>
             </p>
@@ -365,30 +355,36 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
 
         {/* ── Source list ───────────────────────────────────── */}
         {sources.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <p className="text-sm text-gray-500">Aucune source partagée pour l'instant.</p>
+          <div className="flex flex-col items-center gap-3 rounded-[12px] border border-bleu-fonce/10 bg-white px-6 py-10 text-center shadow-sm animate-montee">
+            <div className="text-4xl" aria-hidden="true">📚</div>
+            <p className="text-sm font-semibold text-bleu-fonce">Aucune source partagée pour l'instant.</p>
             {myIdentity && (
               <button
                 onClick={openAdd}
-                className="inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                className="rounded-[8px] mt-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
               >
                 Ajouter la première source
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {grouped.map(group => (
-              <section key={group.tableJoinCode ?? '__none__'}>
+              <section key={group.tableJoinCode ?? '__none__'} className="animate-montee">
                 {/* Group header */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] px-2">
-                    {group.tableJoinCode
-                      ? `Table ${group.tableJoinCode}`
-                      : 'Non assigné à une table'}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
+                    {group.tableJoinCode ? 'Table' : 'Non assigné à une table'}
                   </span>
-                  <div className="h-px flex-1 bg-gray-200" />
+                  {group.tableJoinCode && (
+                    <span className="rounded-[6px] bg-indigo-50 px-2 py-0.5 text-xs font-bold tabular-nums tracking-[0.12em] text-bleu-fonce">
+                      {group.tableJoinCode}
+                    </span>
+                  )}
+                  <span className="h-px flex-1 bg-bleu-fonce/10" />
+                  <span className="text-xs font-semibold tabular-nums text-gray-600">
+                    {group.sources.length} source{group.sources.length > 1 ? 's' : ''}
+                  </span>
                 </div>
 
                 {/* Sources in this group */}
@@ -408,7 +404,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* ── Add / Edit modal ──────────────────────────────────── */}
       {showAddForm && (
@@ -417,27 +413,18 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
           onClick={() => setShowAddForm(false)}
         >
           <div
-            className="bg-white w-full max-w-md shadow-2xl"
+            className="bg-white w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 pt-5 pb-0">
-              <h2 className="font-serif text-lg font-semibold text-bleu-fonce">
-                {editingSource ? 'Modifier la source' : 'Ajouter une source'}
-              </h2>
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="text-gray-500 hover:text-gray-600 p-1"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleFormSubmit} className="p-5 space-y-4">
+            <EnTeteFenetre
+              titre={editingSource ? 'Modifier la source' : 'Ajouter une source'}
+              sousTitre="Visible par tous les participants de la séance."
+              onClose={() => setShowAddForm(false)}
+            />
+            <form onSubmit={handleFormSubmit} className="overflow-y-auto p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
-                  Titre <span className="text-red-500">*</span>
+                  Titre <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -445,37 +432,31 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                   value={formTitle}
                   onChange={e => setFormTitle(e.target.value)}
                   placeholder="Ex : Rapport sur le thème X"
-                  className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
-                    focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
-                    placeholder:text-anthracite/40 transition-shadow"
+                  className={CHAMP}
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
-                  Lien <span className="text-gray-500 font-normal">(optionnel)</span>
+                  Lien <span className="text-gray-600 font-normal">(optionnel)</span>
                 </label>
                 <input
                   type="url"
                   value={formUrl}
                   onChange={e => setFormUrl(e.target.value)}
                   placeholder="https://…"
-                  className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
-                    focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
-                    placeholder:text-anthracite/40 transition-shadow"
+                  className={CHAMP}
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
-                  Notes <span className="text-gray-500 font-normal">(optionnel)</span>
+                  Notes <span className="text-gray-600 font-normal">(optionnel)</span>
                 </label>
                 <textarea
                   value={formContent}
                   onChange={e => setFormContent(e.target.value)}
                   rows={3}
                   placeholder="Résumé, extraits pertinents, commentaire…"
-                  className="w-full px-3 py-2.5 text-sm border border-bleu-fonce/20 resize-none
-                    focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
-                    placeholder:text-anthracite/40 transition-shadow"
+                  className={`${CHAMP} resize-none`}
                 />
               </div>
               {formErr && (
@@ -485,15 +466,16 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-2.5 text-sm border border-bleu-fonce/20
-                    text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+                  className="rounded-[8px] flex-1 py-2.5 text-sm font-semibold border border-bleu-fonce/20
+                    text-bleu-fonce hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                  className="rounded-[8px] flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-semibold transition-colors
                     flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
@@ -510,13 +492,26 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       {deleteConfirm && (
         <ConfirmModal
           title="Supprimer la source"
-          body={`Supprimer définitivement "${deleteConfirm.title}" ? Cette action est irréversible.`}
+          body={`Supprimer définitivement « ${deleteConfirm.title} » ? Cette action est irréversible.`}
           confirmLabel="Supprimer"
           onConfirm={handleDelete}
           onCancel={() => setDeleteConfirm(null)}
         />
       )}
-    </div>
+    </PageParcours>
+  )
+}
+
+const CHAMP = `rounded-[8px] w-full px-3 py-2.5 text-sm border border-bleu-fonce/20
+  focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+  placeholder:text-anthracite/40 transition-shadow`
+
+function IconeFermer() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
   )
 }
 
@@ -536,25 +531,26 @@ function SourceCard({
   })
 
   return (
-    <div className={`bg-white border px-4 py-3.5 space-y-2 transition-colors ${
-      isOwn ? 'border-indigo-200' : 'border-bleu-fonce/10'
+    <div className={`rounded-[12px] bg-white border px-4 py-3.5 space-y-2 shadow-sm transition-colors ${
+      isOwn ? 'border-indigo-300 ring-1 ring-indigo-100' : 'border-bleu-fonce/10'
     }`}>
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-indigo-600">{source.pseudo}</span>
-            <span className="text-xs text-gray-500">·</span>
-            <span className="text-xs text-gray-500">{date}</span>
+            <span className="text-xs font-semibold text-bleu-fonce">{source.pseudo}</span>
+            <span className="whitespace-nowrap text-xs text-gray-600">· {date}</span>
+            {isOwn && <span className="rounded-[6px] bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-bleu-fonce">Ta source</span>}
           </div>
-          <p className="text-sm font-medium text-gray-900 mt-0.5 leading-snug">{source.title}</p>
+          <p className="text-[15px] font-semibold text-gray-900 mt-1 leading-snug">{source.title}</p>
         </div>
         {isOwn && (
           <div className="shrink-0 flex items-center gap-1">
             <button
               onClick={onEdit}
               title="Modifier"
-              className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              aria-label="Modifier"
+              className="rounded-[8px] p-2 text-gray-500 hover:text-bleu-fonce hover:bg-indigo-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -566,8 +562,9 @@ function SourceCard({
               onClick={onDelete}
               disabled={deleting}
               title="Supprimer"
-              className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50
-                transition-colors disabled:opacity-40"
+              aria-label="Supprimer"
+              className="rounded-[8px] p-2 text-gray-500 hover:text-red-600 hover:bg-red-50
+                transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
             >
               {deleting ? (
                 <SmallSpinner className="text-red-400" />
@@ -592,17 +589,17 @@ function SourceCard({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-bleu-fonce underline decoration-bleu-fonce/30 underline-offset-2 hover:decoration-bleu-clair truncate"
+            className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-bleu-fonce underline decoration-bleu-fonce/30 underline-offset-2 hover:decoration-bleu-clair focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="shrink-0" aria-hidden="true"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
               <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
-            {source.url}
+            <span className="truncate">{source.url}</span>
           </a>
         ) : (
-          <p className="text-xs text-red-500 truncate" title={source.url}>
+          <p className="text-xs text-red-600 truncate" title={source.url}>
             ⚠ Lien non affiché (schéma non autorisé)
           </p>
         )
@@ -610,7 +607,7 @@ function SourceCard({
 
       {/* Content */}
       {source.content && (
-        <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+        <p className="rounded-[8px] bg-gray-100 px-3 py-2 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
           {source.content}
         </p>
       )}
