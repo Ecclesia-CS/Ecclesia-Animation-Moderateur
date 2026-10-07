@@ -193,7 +193,7 @@ export default function ParticipantView() {
   // à défaut de la lecture propre à cet écran, pour ne pas voir le code de
   // table s'afficher en grand puis céder la place au titre.
   const titre = session?.title ?? sessionTitle
-  const boutonVerre = `btn-verre inline-flex h-10 items-center px-4 text-xs font-semibold text-creme
+  const boutonVerre = `btn-verre rounded-[8px] inline-flex h-10 items-center px-4 text-xs font-semibold text-creme
     focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
   // Libellés des deux colonnes de l'en-tête (surtitre du site, sur marine).
   const libelleEnTete = 'text-[10.5px] font-bold uppercase tracking-[0.2em] text-bleu-clair/80'
@@ -211,7 +211,7 @@ export default function ParticipantView() {
       <header className="relative overflow-hidden bg-bleu-fonce text-creme">
         <FondQuadrille
           cases={7}
-          bande={56}
+          bande={36}
           fondu="linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.45) 55%, #000 88%)"
         />
         <svg
@@ -219,12 +219,12 @@ export default function ParticipantView() {
           aria-hidden="true"
           viewBox="0 0 800 40"
           preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-5 w-full sm:h-8"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-3 w-full sm:h-4"
         >
           <path d="M0 0 Q400 80 800 0 V40 H0 Z" className="fill-creme" />
         </svg>
 
-        <div className="relative mx-auto w-full max-w-5xl px-4 pb-14 pt-3 sm:px-6 sm:pt-4 md:pb-20">
+        <div className="relative mx-auto w-full max-w-5xl px-4 pb-8 pt-3 sm:px-6 sm:pt-4 md:pb-12">
           <div className="flex items-center gap-2">
             {/* Emblème d'Ecclesia, sauf dans une séance d'association (chantier 135). */}
             {!session?.organization_id && (
@@ -248,7 +248,7 @@ export default function ParticipantView() {
             </div>
           </div>
 
-          <div className="mt-8 animate-montee md:mt-10 md:grid md:grid-cols-[minmax(0,1fr)_16.5rem] md:items-end md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="mt-5 animate-montee md:mt-7 md:grid md:grid-cols-[minmax(0,1fr)_16.5rem] md:items-end md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div className="min-w-0">
               {session && (
                 <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
@@ -264,7 +264,7 @@ export default function ParticipantView() {
             </div>
 
             {/* Sur téléphone, sous un filet ; sur md+, dans la colonne de « Présents ». */}
-            <dl className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] gap-x-8 border-t border-white/10 pt-4 md:mt-0">
+            <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-8 border-t border-white/10 pt-3 md:mt-0">
               <div className="min-w-0">
                 <dt className={libelleEnTete}>Vous</dt>
                 <dd className="mt-1.5 truncate text-[15px] font-semibold leading-tight text-creme">{myParticipant.pseudo}</dd>
@@ -281,7 +281,7 @@ export default function ParticipantView() {
           {table.leaderless && (
             <button
               onClick={() => setShowAskAdminModal(true)}
-              className="mt-5 inline-flex h-10 items-center gap-2 border border-amber-300/50 bg-amber-300/10 px-4
+              className="mt-5 inline-flex h-10 items-center gap-2 rounded-[8px] border border-amber-300/50 bg-amber-300/10 px-4
                 text-sm font-semibold text-amber-100 transition-colors hover:border-amber-300/80 hover:bg-amber-300/20
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
             >
@@ -293,14 +293,14 @@ export default function ParticipantView() {
 
       {/* ── Corps : actions, files, présents (colonne de droite sur md+) ── */}
       <div className="flex-1 bg-gradient-to-b from-creme to-sable">
-        <div className="mx-auto grid w-full max-w-5xl items-start gap-6 px-4 pb-12 pt-1 sm:px-6
+        <div className="mx-auto grid w-full max-w-5xl items-start gap-6 px-4 pb-12 pt-4 sm:px-6 sm:pt-6
           md:grid-cols-[minmax(0,1fr)_16.5rem] md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
 
           <div className="flex min-w-0 flex-col gap-3">
 
             {/* ── « Vous avez la parole ! » ─────────────────────────── */}
             {iAmSpeaking && (
-              <div className="relative flex items-stretch overflow-hidden bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee">
+              <div className="relative flex items-stretch overflow-hidden rounded-[12px] bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee">
                 <FondQuadrille cases={3} grain={false} traits={0.12} />
                 <span aria-hidden="true" className="relative flex w-14 shrink-0 items-center justify-center bg-amber-700/70">
                   <span className="flex h-6 items-end gap-[3px]">
@@ -318,7 +318,7 @@ export default function ParticipantView() {
                   {table.leaderless && (
                     <button
                       onClick={() => endTurnAndAdvance().catch(() => {})}
-                      className="inline-flex h-10 items-center bg-creme px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-white
+                      className="inline-flex h-10 items-center rounded-[8px] bg-creme px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-white
                         focus:outline-none focus-visible:ring-2 focus-visible:ring-creme focus-visible:ring-offset-2 focus-visible:ring-offset-amber-600"
                     >
                       J'ai fini de parler
@@ -332,7 +332,7 @@ export default function ParticipantView() {
             {table.active_vote_id && !voteModalOpen && (
               <button
                 onClick={() => setVoteModalOpen(true)}
-                className="relative flex w-full items-stretch overflow-hidden bg-bleu-fonce text-left text-creme
+                className="relative flex w-full items-stretch overflow-hidden rounded-[12px] bg-bleu-fonce text-left text-creme
                   shadow-[0_20px_44px_-24px_rgba(21,35,63,0.9)] transition-shadow hover:shadow-[0_26px_52px_-22px_rgba(21,35,63,0.95)] animate-montee
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
               >
@@ -407,7 +407,7 @@ export default function ParticipantView() {
             <button
               onClick={handleToggleNextTopic}
               disabled={pendingNextTopic}
-              className={`group flex w-full items-stretch overflow-hidden border text-left transition-colors duration-300
+              className={`group flex w-full items-stretch overflow-hidden rounded-[12px] border text-left transition-colors duration-300
                 animate-montee [animation-delay:180ms] disabled:cursor-not-allowed disabled:opacity-60
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400 ${
                 myParticipant.wants_next_topic
@@ -606,7 +606,7 @@ export default function ParticipantView() {
                     window.location.hash = `#session/${session.join_code}`
                     leaveTable()
                   }}
-                  className="btn-verre btn-verre-primaire inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
+                  className="btn-verre btn-verre-primaire rounded-[8px] inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
                 >
                   Voir vos résultats
@@ -614,7 +614,7 @@ export default function ParticipantView() {
               )}
               <button
                 onClick={leaveTable}
-                className="btn-verre inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
+                className="btn-verre rounded-[8px] inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
               >
                 Retour au menu
@@ -708,7 +708,7 @@ function QueueToggle({
   const t = TONS[color]
 
   return (
-    <div className={`overflow-hidden border transition-[background-color,border-color,box-shadow] duration-300 ${
+    <div className={`overflow-hidden rounded-[12px] border transition-[background-color,border-color,box-shadow] duration-300 ${
       active ? t.actif : t.repos
     } ${className}`}>
       <button
