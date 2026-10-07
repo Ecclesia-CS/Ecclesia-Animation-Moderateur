@@ -51,8 +51,8 @@ export default function ReadOnlyQueuePanel({
             const moi = !!selfId && e.participant_id === selfId
             return (
               <li key={e.id} className={`flex items-center animate-montee ${moi ? 'bg-bleu-clair/20' : ''}`}>
-                <span className="flex w-14 shrink-0 justify-center py-2.5">
-                  <span className={`flex h-6 w-6 items-center justify-center text-xs font-bold tabular-nums ${
+                <span className="flex w-14 shrink-0 justify-center py-2">
+                  <span className={`flex h-7 w-7 items-center rounded-full justify-center text-xs font-bold tabular-nums ${
                     i === 0
                       ? teal ? 'bg-teal-600 text-white' : 'bg-bleu-fonce text-creme'
                       : 'bg-bleu-fonce/[0.06] text-bleu-fonce/70'

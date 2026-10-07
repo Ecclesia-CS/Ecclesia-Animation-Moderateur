@@ -136,8 +136,8 @@ function SortableRow({
   }
 
   const numero = (classes: string) => (
-    <td className="w-14 py-2.5">
-      <span className={`mx-auto flex h-6 w-6 items-center justify-center text-xs font-bold tabular-nums ${classes}`}>
+    <td className="w-14 py-2">
+      <span className={`mx-auto flex h-7 w-7 items-center rounded-full justify-center text-xs font-bold tabular-nums ${classes}`}>
         {index + 1}
       </span>
     </td>
