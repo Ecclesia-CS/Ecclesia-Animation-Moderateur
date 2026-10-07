@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { extractErr, QUESTIONNAIRE_THEMES } from '../../lib/utils'
 import PhaseIndicator from '../PhaseIndicator'
 import type { SessionType } from '../../lib/types'
+import FondQuadrille from '../FondQuadrille'
 
 const THEMES_INITIAL = 5
 
@@ -61,16 +62,19 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
   return (
     <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4">
       <div
-        className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col"
+        className="bg-white w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-bleu-fonce/10 flex-shrink-0 space-y-2">
-          <PhaseIndicator phase={sessionType === 'debate' ? 'closed' : 'post_voting'} sessionType={sessionType} />
-          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">Questionnaire post-débat</h2>
-          <p className="text-sm text-gray-500 mt-0.5 leading-snug">
-            Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
-          </p>
+        <div className="relative overflow-hidden bg-bleu-fonce px-6 pt-5 pb-5 flex-shrink-0">
+          <FondQuadrille cases={2} />
+          <div className="relative space-y-2">
+            <PhaseIndicator phase={sessionType === 'debate' ? 'closed' : 'post_voting'} sessionType={sessionType} tone="marine" />
+            <h2 className="font-sans text-xl font-bold text-creme tracking-[-0.01em]">Questionnaire post-débat</h2>
+            <p className="text-sm text-creme/75 leading-snug">
+              Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
+            </p>
+          </div>
         </div>
 
         {/* Body */}
@@ -95,7 +99,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
                     <button
                       key={n}
                       onClick={() => setDebateRating(debateRating === n ? null : n)}
-                      className={`flex-1 py-2.5 border text-sm font-semibold tabular-nums transition-colors
+                      className={`rounded-[8px] flex-1 py-2.5 border text-sm font-semibold tabular-nums transition-colors
                         focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1 ${
                         debateRating === n
                           ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
@@ -185,7 +189,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full py-3 text-sm font-semibold bg-indigo-600 text-white
+              className="rounded-[8px] w-full py-3 text-sm font-semibold bg-indigo-600 text-white
                 hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2
                 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -222,7 +226,7 @@ function ThemeRow({ theme, value, onChange }: {
           <button
             key={n}
             onClick={() => onChange(value === n ? null : n)}
-            className={`w-8 h-8 border text-sm font-medium tabular-nums transition-colors
+            className={`rounded-[8px] w-8 h-8 border text-sm font-medium tabular-nums transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-1 ${
               value === n
                 ? 'bg-indigo-600 border-indigo-600 text-white'

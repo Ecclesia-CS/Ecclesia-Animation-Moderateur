@@ -99,7 +99,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
 
   if (pairingDone) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center px-4 py-8">
+      <div className="flex flex-col">
         <div className="max-w-md mx-auto w-full space-y-4">
           <h2 className="text-xl font-semibold text-bleu-fonce">🔗 Être avec un ami (facultatif)</h2>
           <PairingResultsList results={pairingDone.results} />
@@ -107,7 +107,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           <p className="text-xs text-gray-500">Tu peux les modifier à tout moment dans « Outils », rubrique « Être avec un ami ».</p>
           <button
             onClick={() => onSuccess(pairingDone.response)}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Continuer vers le vote
           </button>
@@ -117,9 +117,9 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="flex flex-col">
       {/* Progress bar */}
-      <div className="px-4 pt-14 pb-4 bg-white border-b border-bleu-fonce/10">
+      <div className="rounded-[12px] border border-bleu-fonce/10 bg-white px-4 py-4 shadow-sm">
         {/* Chantier 150 — « facultatif » en toute première ligne de l'écran. */}
         {currentQ === 3 && !editing && (
           <p className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 mb-3 leading-snug">
@@ -132,16 +132,16 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           </span>
           <span className="text-xs text-indigo-600 font-medium">{member.pseudo}</span>
         </div>
-        <div className="w-full bg-gray-200 h-1.5">
+        <div className="w-full bg-bleu-fonce/10 h-1.5 overflow-hidden">
           <div
-            className="bg-indigo-600 h-1.5 transition-all duration-300"
+            className="bg-gradient-to-r from-bleu-fonce to-bleu-clair h-1.5 transition-all duration-300"
             style={{ width: `${pct}%` }}
           />
         </div>
       </div>
 
       {/* Question */}
-      <div className="flex-1 flex flex-col justify-center px-4 py-8">
+      <div className="flex-1 flex flex-col pt-6 animate-montee">
         {currentQ === 0 && (
           <QuestionConsent
             value={answers.consentTranscript}
@@ -180,14 +180,14 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
       {/* Navigation */}
       <div className="px-4 pb-8 space-y-3">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+          <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
             {error}
           </div>
         )}
         {editing && onCancel && (
           <button
             onClick={onCancel}
-            className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 underline"
+            className="rounded-[8px] w-full py-2 text-sm text-gray-500 hover:text-gray-700 underline"
           >
             Annuler, ne rien changer
           </button>
@@ -196,7 +196,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
           {currentQ > 0 && (
             <button
               onClick={() => setCurrentQ(q => q - 1)}
-              className="flex-1 py-3 px-4 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+              className="rounded-[8px] flex-1 py-3 px-4 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
             >
               Précédent
             </button>
@@ -205,7 +205,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
             <button
               onClick={() => setCurrentQ(q => q + 1)}
               disabled={!isCurrentAnswered()}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Suivant
             </button>
@@ -213,7 +213,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
             <button
               onClick={handleValidate}
               disabled={loading || !isCurrentAnswered()}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {loading ? 'Enregistrement…' : editing ? 'Enregistrer mes réponses ✓' : 'Valider et voter ✓'}
             </button>
@@ -310,7 +310,7 @@ function ChoiceButton({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1 py-4 px-3 border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
+      className={`rounded-[8px] flex flex-col items-center justify-center gap-1 py-4 px-3 border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 ${
         selected
           ? 'border-indigo-600 ring-1 ring-inset ring-indigo-600 bg-indigo-50 text-bleu-fonce'
           : 'border-bleu-fonce/15 bg-white hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.03] text-anthracite'

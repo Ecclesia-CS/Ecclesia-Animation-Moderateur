@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getMyPairings, setMyPairings, type PairingResult } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
+import EnTeteFenetre from '../EnTeteFenetre'
 
 // Chantier 92 — appairage entre participants. Saisie partagée entre la
 // question d'onboarding et la modale « Être avec un ami » des Outils du vote
@@ -12,7 +13,7 @@ export const PAIRING_EXPLANATION =
 /** Chantier 92 — la réciprocité doit sauter aux yeux, à la proposition comme après l'enregistrement. */
 export function ReciprocityNotice() {
   return (
-    <div className="text-sm text-indigo-900 bg-indigo-50 border border-indigo-200 px-3 py-2.5 leading-snug">
+    <div className="rounded-[8px] text-sm text-indigo-900 bg-indigo-50 border border-indigo-200 px-3 py-2.5 leading-snug">
       <p className="font-semibold">⚠️ Ça ne marche que dans les deux sens</p>
       <p className="mt-0.5">
         Vous ne serez à la même table que si <strong>cette personne te cite aussi</strong> de son côté.
@@ -42,7 +43,7 @@ export function PairingFields({
             onChange(next)
           }}
           placeholder={i === 0 ? 'Prénom Nom (facultatif)' : 'Une deuxième personne (facultatif)'}
-          className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+          className="rounded-[8px] w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
           maxLength={80}
         />
       ))}
@@ -113,14 +114,14 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
 
   return (
     <div className="fixed inset-0 z-50 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-md bg-white p-5 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md bg-white shadow-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree" onClick={e => e.stopPropagation()}>
+        <EnTeteFenetre titre="🔗 Être avec un ami" sousTitre="Avec qui aimerais-tu être à table ? (2 personnes au plus)" onClose={onClose} />
+        <div className="overflow-y-auto p-5 space-y-4">
         <div>
           {/* Chantier 150 — « facultatif » en première ligne, comme à l'onboarding. */}
-          <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 mb-2 leading-snug">
+          <p className="rounded-[8px] text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 leading-snug">
             Facultatif : tu peux le remplir ou le modifier à tout moment pendant le vote.
           </p>
-          <h2 className="font-serif text-xl font-semibold text-bleu-fonce">🔗 Être avec un ami</h2>
-          <p className="text-sm text-gray-600 mt-1">Avec qui aimerais-tu être à table ? (2 personnes au plus)</p>
           <p className="text-xs text-gray-500 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
         </div>
         <ReciprocityNotice />
@@ -141,17 +142,18 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
+            className="rounded-[8px] flex-1 py-3 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]"
           >
             Fermer
           </button>
           <button
             onClick={handleSave}
             disabled={loading || saving}
-            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="rounded-[8px] flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>
+        </div>
         </div>
       </div>
     </div>

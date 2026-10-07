@@ -3,6 +3,7 @@ import { claimModeratorStatus } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
 import type { SessionMember } from '../../lib/types'
 import PasswordInput from '../PasswordInput'
+import FondQuadrille from '../FondQuadrille'
 
 interface Props {
   sessionId: string
@@ -47,12 +48,12 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
   if (done) {
     return (
       <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
-        <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden p-6 text-center space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="bg-white w-full max-w-sm shadow-2xl p-6 text-center space-y-4 overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree" onClick={e => e.stopPropagation()}>
           <p className="text-3xl">✅</p>
           <p className="text-sm text-gray-700">Tu es marqué·e modérateur pour cette séance.</p>
           <button
             onClick={onClose}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Fermer
           </button>
@@ -63,11 +64,14 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
 
   return (
     <div className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-[110] p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="bg-bleu-fonce px-6 py-5 text-center">
+      <div className="bg-white w-full max-w-sm shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree" onClick={e => e.stopPropagation()}>
+        <div className="relative overflow-hidden bg-bleu-fonce px-6 py-5 text-center">
+          <FondQuadrille cases={3} />
+          <div className="relative">
           <p className="text-2xl mb-1">🎙️</p>
-          <h2 className="font-serif text-xl font-semibold text-creme">Me déclarer modérateur</h2>
+          <h2 className="font-sans text-xl font-bold text-creme tracking-[-0.01em]">Me déclarer modérateur</h2>
         <span aria-hidden="true" className="filet-spectre mx-auto mt-3 block w-12" />
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <p className="text-xs text-gray-500">
@@ -85,20 +89,20 @@ export default function ModeratorClaimModal({ sessionId, pseudo, alreadyModerato
             />
           </div>
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
+            <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
           )}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 text-bleu-fonce text-sm font-semibold border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
+              className="rounded-[8px] flex-1 py-3 px-4 text-bleu-fonce text-sm font-semibold border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {loading ? 'Vérification…' : 'Confirmer'}
             </button>

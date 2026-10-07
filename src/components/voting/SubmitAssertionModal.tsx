@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { submitAssertion } from '../../lib/voting'
 import type { Session } from '../../lib/types'
+import EnTeteFenetre from '../EnTeteFenetre'
 
 interface SubmitAssertionModalProps {
   session: Session
@@ -40,17 +41,9 @@ export default function SubmitAssertionModal({
       className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full max-w-md bg-white shadow-xl p-6 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-lg font-semibold text-bleu-fonce">Proposer une assertion</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
+      <div className="w-full max-w-md bg-white shadow-2xl overflow-hidden rounded-[12px] ring-1 ring-white/10 animate-entree">
+        <EnTeteFenetre titre="Proposer une assertion" onClose={onClose} />
+        <div className="p-6 space-y-4">
 
         {session.assertions_locked ? (
           <div className="py-4 text-center space-y-3">
@@ -63,7 +56,7 @@ export default function SubmitAssertionModal({
             </p>
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -85,7 +78,7 @@ export default function SubmitAssertionModal({
             )}
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
@@ -104,13 +97,13 @@ export default function SubmitAssertionModal({
                 maxLength={500}
                 required
                 autoFocus
-                className="w-full px-4 py-3 resize-none bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+                className="rounded-[8px] w-full px-4 py-3 resize-none bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
               <p className="text-right text-xs text-gray-500 mt-0.5">{content.length}/500</p>
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {error}
               </div>
             )}
@@ -124,12 +117,13 @@ export default function SubmitAssertionModal({
             <button
               type="submit"
               disabled={loading || !content.trim()}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {loading ? 'Envoi…' : 'Soumettre'}
             </button>
           </form>
         )}
+        </div>
       </div>
     </div>
   )

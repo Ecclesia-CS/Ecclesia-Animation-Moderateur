@@ -1005,7 +1005,7 @@ function SessionCard({
         onClick={onClick}
         tabIndex={-1}
         aria-hidden="true"
-        className={`flex w-14 shrink-0 items-start justify-center pt-5 transition-colors ${ton.bloc}`}
+        className={`rounded-[8px] flex w-14 shrink-0 items-start justify-center pt-5 transition-colors ${ton.bloc}`}
       >
         <IconeTypeSeance type={type} className="h-5 w-5" />
       </button>
@@ -1124,7 +1124,7 @@ function SessionCard({
 
         {/* ── Tables de la séance ── */}
         {expanded && (
-          <div className="border-t border-bleu-fonce/[0.07] bg-gray-50/70 px-4 py-2">
+          <div className="rounded-[8px] border-t border-bleu-fonce/[0.07] bg-gray-50/70 px-4 py-2">
             {tablesLoading && (
               <p className="text-xs text-gray-500 py-2">Chargement…</p>
             )}
@@ -4030,7 +4030,7 @@ function SessionDetail({
 
                             {/* ── Pied : gestes sur la table ── */}
                             {(g.table_id || !isOrg) && (
-                            <div className="flex flex-wrap items-center gap-2 border-t border-bleu-fonce/[0.07] bg-gray-50/70 px-4 py-2.5">
+                            <div className="rounded-[8px] flex flex-wrap items-center gap-2 border-t border-bleu-fonce/[0.07] bg-gray-50/70 px-4 py-2.5">
                               {/* Chantier 72 (défaut A du bug 1) — filet quand la table
                                   reste bloquée : un modérateur « physique »
                                   (tables.created_by, posé par « Devenir modérateur » ou

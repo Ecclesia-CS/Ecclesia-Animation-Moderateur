@@ -36,7 +36,7 @@ export default function DocNudge({ session }: DocNudgeProps) {
   const linkClass = 'flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors'
 
   return (
-    <div className="bg-indigo-50 border border-indigo-100 p-4">
+    <div className="rounded-[8px] bg-indigo-50 border border-indigo-100 p-4">
       <p className="text-xs font-semibold text-indigo-700 mb-2">📄 Profites-en pour lire la documentation</p>
       <div className="space-y-1.5">
         {infoUrl && (

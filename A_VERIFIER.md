@@ -285,6 +285,17 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 158, lot 9 (2026-10-07) — Vote refait
+
+**Vérifié au navigateur sur dev** à 375 et 800 px (séance « Audit charte 158 (sondage) ») : formulaire d'inscription, introduction de la séance, écran « Tu as tout voté ! », fenêtre « Changer mon vote » (nouvelle carte de vote), sans voter ni s'inscrire.
+
+**Reste à voir à l'œil**
+- [ ] Vote sur une assertion pas encore votée (carte, enchaînement en fondu, points de navigation), et fenêtre « Proposer une assertion ».
+- [ ] Code de rappel après inscription, questionnaire d'entrée (quatre questions), « Être avec un ami ».
+- [ ] Vote présentiel : formulaire nom ou code, confirmation de présence (deux modes), bandeau ocre pendant l'allocation.
+- [ ] États « En attente de l'organisateur », « Séance pas encore ouverte », « Phase de vote terminée », rattrapage en débat, « Séance introuvable », questionnaire de fin par-dessus la page.
+- [ ] Outils du vote et ses fenêtres (notes, se déclarer modérateur, changer de nom, modifier le questionnaire d'entrée).
+
 ## Chantier 158, lot 9 (2026-10-07) — Accueil refait
 
 **Vérifié au navigateur sur dev** à 375 et 800 px : en-tête quadrillé, cinq séances en cours (vote à distance, deux débats, formation des groupes), fenêtre « Anciennes séances ».

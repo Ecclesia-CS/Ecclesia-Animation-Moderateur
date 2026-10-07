@@ -156,7 +156,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   const codeField = locked ? (
     <div className="text-center">
       <p className="text-xs text-gray-500">Code de table</p>
-      <p className="font-mono text-xl font-bold tracking-widest text-indigo-600">{joinCode}</p>
+      <p className=" text-xl font-bold tracking-widest text-indigo-600 tabular-nums">{joinCode}</p>
     </div>
   ) : (
     <div>
@@ -167,7 +167,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
         value={joinCode}
         onChange={e => setJoinCode(e.target.value.toUpperCase())}
         placeholder="A1B2C3"
-        className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
+        className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20
           focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
           placeholder:text-anthracite/40 transition-shadow"
       />
@@ -175,7 +175,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
   )
 
   const errorBox = error && (
-    <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+    <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
       {error}
     </div>
   )
@@ -197,7 +197,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
             if (reclaimAutoOpened.current) { reclaimAutoOpened.current = false; setReclaimOpen(false); setReclaimCode('') }
           }}
           placeholder="Prénom Nom"
-          className="w-full px-3 py-3 text-sm border border-bleu-fonce/20
+          className="rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20
             focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
             placeholder:text-anthracite/40 transition-shadow"
         />
@@ -216,7 +216,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
             type="button"
             onClick={handleAutoAssign}
             disabled={loading}
-            className="w-full py-3 px-4 bg-white border border-indigo-300 hover:bg-indigo-50
+            className="rounded-[8px] w-full py-3 px-4 bg-white border border-indigo-300 hover:bg-indigo-50
               disabled:opacity-60 text-indigo-700 text-sm font-semibold transition-colors"
           >
             {loading ? 'Placement…' : 'Assignez-moi une table'}
@@ -248,7 +248,7 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
       <button
         type="submit"
         disabled={loading || (reclaimOpen && !reclaimCode.trim())}
-        className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+        className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
           text-white text-sm font-semibold transition-colors focus:outline-none
           focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >

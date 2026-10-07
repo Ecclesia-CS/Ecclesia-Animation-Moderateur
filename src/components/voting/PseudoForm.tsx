@@ -11,7 +11,6 @@ import { lastNameStore } from '../../lib/storage'
 import ModeratorDeclareField from './ModeratorDeclareField'
 import { sessionTypeOf } from '../../lib/phaseLabels'
 import type { Session, SessionMember } from '../../lib/types'
-import { titreSeance } from '../../lib/utils'
 
 interface PseudoFormProps {
   session: Session
@@ -115,20 +114,20 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
 
   if (pendingMember) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm text-center space-y-5">
+      <div className="flex flex-col items-center">
+        <div className="w-full rounded-[12px] border border-bleu-fonce/10 bg-white p-6 shadow-sm animate-montee text-center space-y-5">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100">
             <span className="text-3xl">⚠️</span>
           </div>
           <div>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Bienvenue {pendingMember.pseudo} !</h1>
+            <h1 className="font-sans text-2xl font-bold tracking-tight text-bleu-fonce">Bienvenue {pendingMember.pseudo} !</h1>
             <p className="mt-2 text-sm text-gray-500">
               {pendingIsReclaim ? 'Tes votes ont bien été récupérés' : 'Ton inscription est bien enregistrée'}, mais la déclaration modérateur a échoué : {moderatorError}
             </p>
           </div>
           <button
             onClick={() => (pendingIsReclaim ? onReclaimSuccess(pendingMember) : onSuccess(pendingMember))}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             Continuer
           </button>
@@ -139,13 +138,13 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
 
   if (showReclaim) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm space-y-6">
+      <div className="flex flex-col items-center">
+        <div className="w-full rounded-[12px] border border-bleu-fonce/10 bg-white p-6 shadow-sm animate-montee space-y-6">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-50 border border-amber-200 mb-4">
               <span className="text-2xl">🔑</span>
             </div>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Ce nom est déjà utilisé</h1>
+            <h1 className="font-sans text-2xl font-bold tracking-tight text-bleu-fonce">Ce nom est déjà utilisé</h1>
             <p className="mt-2 text-sm text-gray-500">{PSEUDO_TAKEN_MESSAGE}</p>
           </div>
 
@@ -159,7 +158,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
                 value={pseudo}
                 onChange={e => setPseudo(e.target.value)}
                 maxLength={40}
-                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+                className="rounded-[8px] w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
               />
             </div>
 
@@ -175,7 +174,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
                 onChange={e => setReclaimCodeInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="_ _ _ _"
                 autoFocus
-                className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-lg font-mono font-bold text-bleu-fonce text-center tracking-[0.5em] placeholder:text-anthracite/30 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+                className="rounded-[8px] w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-lg font-bold text-bleu-fonce text-center tracking-[0.5em] placeholder:text-anthracite/30 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40 tabular-nums"
               />
               <p className="text-xs text-gray-500 mt-1.5">
                 Le code à 4 chiffres affiché lors de ta première inscription à cette séance.
@@ -184,7 +183,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             </div>
 
             {reclaimError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                 {reclaimError}
               </div>
             )}
@@ -192,14 +191,14 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
             <button
               type="submit"
               disabled={reclaimLoading || !pseudo.trim() || reclaimCodeInput.trim().length === 0}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {reclaimLoading ? 'Récupération…' : 'Récupérer mes votes'}
             </button>
             <button
               type="button"
               onClick={() => { setShowReclaim(false); setReclaimError(null) }}
-              className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="rounded-[8px] w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               Ce n'est pas moi, choisir un autre nom
             </button>
@@ -210,14 +209,14 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="flex flex-col items-center">
+      <div className="w-full rounded-[12px] border border-bleu-fonce/10 bg-white p-6 shadow-sm animate-montee">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 border border-indigo-200 mb-4">
             <span className="text-2xl">🗣️</span>
           </div>
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{titreSeance(session.title)}</h1>
+          <h1 className="font-sans text-2xl font-bold tracking-tight text-bleu-fonce">Rejoindre la séance</h1>
           {session.description && (
             <p className="mt-1 text-sm text-gray-500">{session.description}</p>
           )}
@@ -225,7 +224,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
 
         {/* Contexte vote présentiel */}
         {session.phase === 'voting' && (
-          <div className="p-3 bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
+          <div className="rounded-[8px] p-3 bg-indigo-50 border border-indigo-200 text-sm text-indigo-800 text-left">
             <strong>Vote présentiel ouvert.</strong>{' '}
             Tu as voté à distance avant le débat ? <strong>Entre le même nom et prénom</strong> pour retrouver tes votes et confirmer ta présence.
           </div>
@@ -245,7 +244,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
               maxLength={40}
               required
               autoFocus
-              className="w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+              className="rounded-[8px] w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
             />
             <p className="text-xs text-gray-500 mt-1.5">
               {sessionTypeOf(session) === 'poll' ? PSEUDO_POLL_NOTICE : PSEUDO_PUBLIC_NOTICE} Tu pourras le changer plus tard.
@@ -253,7 +252,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
@@ -270,7 +269,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           <button
             type="submit"
             disabled={loading || !pseudo.trim()}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Continuer'}
           </button>
@@ -280,7 +279,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
           <button
             type="button"
             onClick={() => { setReclaimError(null); setShowReclaim(true) }}
-            className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            className="rounded-[8px] w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
             J'ai déjà un code de rappel
           </button>
