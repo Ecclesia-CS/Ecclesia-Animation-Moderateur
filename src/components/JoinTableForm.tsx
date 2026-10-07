@@ -155,8 +155,8 @@ export default function JoinTableForm({ initialJoinCode = '', sessionId, onJoine
 
   const codeField = locked ? (
     <div className="text-center">
-      <p className="text-xs text-gray-500">Code de table</p>
-      <p className=" text-xl font-bold tracking-widest text-indigo-600 tabular-nums">{joinCode}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-fonce/70">Code de table</p>
+      <p className="mx-auto mt-1.5 w-fit rounded-[8px] bg-indigo-50 px-4 py-1.5 text-2xl font-bold tracking-[0.2em] text-bleu-fonce tabular-nums">{joinCode}</p>
     </div>
   ) : (
     <div>

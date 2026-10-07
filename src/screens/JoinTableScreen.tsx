@@ -1,5 +1,5 @@
 import JoinTableForm from '../components/JoinTableForm'
-import QuitLink from '../components/QuitLink'
+import PageParcours from '../components/PageParcours'
 
 interface Props {
   tableJoinCode: string
@@ -9,21 +9,18 @@ interface Props {
 /** Écran atteint via un lien #table/<join_code> partagé par un ami déjà en débat (D8). */
 export default function JoinTableScreen({ tableJoinCode, onTableJoined }: Props) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <QuitLink />
-      <div className="w-full max-w-md bg-white shadow-sm border border-bleu-fonce/10 overflow-hidden">
-        <div className="px-6 pt-7 pb-2 text-center">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Un ami t'invite à le rejoindre</h1>
-          <p className="text-xs text-gray-500 mt-1">Entre ton nom pour rejoindre sa table de débat.</p>
-        </div>
-        <div className="p-6">
-          <JoinTableForm
-            initialJoinCode={tableJoinCode}
-            onJoined={onTableJoined}
-            submitLabel="Rejoindre la table"
-          />
-        </div>
+    <PageParcours
+      session={{ title: "Un ami t'invite à le rejoindre", phase: 'debating', organization_id: null }}
+      sansEtape
+      sousTitre="Entre ton nom pour rejoindre sa table de débat."
+    >
+      <div className="w-full rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm p-6 animate-montee">
+        <JoinTableForm
+          initialJoinCode={tableJoinCode}
+          onJoined={onTableJoined}
+          submitLabel="Rejoindre la table"
+        />
       </div>
-    </div>
+    </PageParcours>
   )
 }

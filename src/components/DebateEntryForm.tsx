@@ -1,16 +1,19 @@
 import { useRef, useState } from 'react'
 import { confirmAttendance, joinSimpleDebate, PSEUDO_TAKEN_MESSAGE } from '../lib/voting'
 import { tableStore, lastNameStore } from '../lib/storage'
-import { extractErr, titreSeance } from '../lib/utils'
+import { extractErr } from '../lib/utils'
 import ReclaimCodeDisplay from './voting/ReclaimCodeDisplay'
 import PasswordInput from './PasswordInput'
 import { useSessionOrganizationName, orgCodeError } from '../lib/organizations'
+import PageParcours from './PageParcours'
+import type { Session } from '../lib/types'
 
 type JoinResult = Awaited<ReturnType<typeof joinSimpleDebate>>
 
 interface Props {
   sessionId: string
-  sessionTitle: string | null
+  /** Séance du débat, pour l'en-tête de la page. */
+  session: Pick<Session, 'title' | 'phase' | 'organization_id' | 'session_type'>
   onJoined(tableId: string, participantId: string, isModerator: boolean): void
 }
 
@@ -27,7 +30,7 @@ interface Props {
  *   - « J'ai déjà un code de rappel » : reconnexion depuis un autre appareil
  *     (`confirm_attendance`, pseudo + code), puis retour à sa table.
  */
-export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: Props) {
+export default function DebateEntryForm({ sessionId, session, onJoined }: Props) {
   // Chantier 135 — débat d'une association : son mot de passe tient lieu de
   // Code Ecclesia pour prendre l'animation (check_moderator_code).
   const orgName = useSessionOrganizationName(sessionId)
@@ -93,18 +96,16 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
     )
   }
 
-  const inputCls = `w-full px-3 py-3 text-sm border border-bleu-fonce/20
+  const inputCls = `rounded-[8px] w-full px-3 py-3 text-sm border border-bleu-fonce/20
     focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
     placeholder:text-anthracite/40 transition-shadow`
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8">
+    <PageParcours session={session} sousTitre={orgName ? <>Organisé par {orgName}</> : undefined}>
+      <div className="w-full rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm p-6 animate-montee">
         <div className="text-center mb-5">
-          <div className="text-5xl mb-4">🗣️</div>
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Rejoindre le débat</h1>
-          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>}
-          {orgName && <p className="text-xs text-gray-500 mt-1">Organisé par {orgName}</p>}
+          <div className="text-5xl mb-4" aria-hidden="true">🗣️</div>
+          <h2 className="font-sans text-2xl font-bold tracking-[-0.01em] text-bleu-fonce">Rejoindre le débat</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -120,12 +121,12 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
             />
           </div>
 
-          <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={asModerator}
               onChange={e => { setAsModerator(e.target.checked); setError(null) }}
-              className="border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
+              className="w-4 h-4 border-bleu-fonce/20 text-indigo-600 focus:border-bleu-fonce focus:ring-bleu-clair/40"
             />
             Je suis le modérateur
           </label>
@@ -137,11 +138,12 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
             />
           )}
 
-          <div className="border border-bleu-fonce/10">
+          <div className="rounded-[8px] border border-bleu-fonce/10">
             <button
               type="button"
               onClick={() => { setReclaimOpen(o => !o); setError(null) }}
-              className="w-full px-3 py-2 text-left text-xs text-gray-500 hover:text-gray-700 flex items-center justify-between"
+              aria-expanded={reclaimOpen}
+              className="rounded-[8px] w-full px-3 py-2.5 text-left text-xs font-semibold text-gray-600 hover:text-bleu-fonce flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               J'ai déjà un code de rappel
               <span aria-hidden="true" className={`text-base leading-none text-bleu-fonce/60 transition-transform ${reclaimOpen ? 'rotate-45' : ''}`}>+</span>
@@ -167,20 +169,13 @@ export default function DebateEntryForm({ sessionId, sessionTitle, onJoined }: P
           <button
             type="submit"
             disabled={loading || !pseudo.trim() || (asModerator && !creationCode) || (reclaimOpen && !reclaimCode.trim())}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+            className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
               text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
             {loading ? 'Connexion…' : 'Rejoindre le débat'}
           </button>
         </form>
-
-        <button
-          onClick={() => { window.location.hash = '' }}
-          className="mx-auto mt-4 block w-fit pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-        >
-          Retour à l'accueil
-        </button>
       </div>
-    </div>
+    </PageParcours>
   )
 }

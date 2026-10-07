@@ -10,7 +10,9 @@ import { hasQuestionnaireResponse, joinSimpleDebate } from '../lib/voting'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import DebateEntryForm from '../components/DebateEntryForm'
 import { tableStore } from '../lib/storage'
-import { titreSeance } from '../lib/utils'
+import PageParcours, { BOUTON_VERRE_PARCOURS, CarteMessage } from '../components/PageParcours'
+import EcranChargement from '../components/EcranChargement'
+import FondQuadrille from '../components/FondQuadrille'
 
 interface SessionRouterScreenProps {
   sessionJoinCode: string
@@ -32,7 +34,6 @@ type Status =
 
 export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: SessionRouterScreenProps) {
   const [status,       setStatus]       = useState<Status>('loading')
-  const [sessionTitle, setSessionTitle] = useState<string | null>(null)
   const [sessionId,    setSessionId]    = useState<string | null>(null)
   const [fullSession,  setFullSession]  = useState<Session | null>(null)
   const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
@@ -55,7 +56,6 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       }
 
       const s = session
-      setSessionTitle(s.title)
       setSessionId(s.id)
       setFullSession(s)
       const isSimpleDebate = sessionTypeOf(s) === 'debate'
@@ -195,19 +195,21 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   // ── Render ────────────────────────────────────────────────────
   if (status === 'questionnaire' && fullSession) {
     return (
-      <SessionQuestionnaireForm
-        sessionId={fullSession.id}
-        sessionType={sessionTypeOf(fullSession)}
-        onDone={() => setStatus(sessionTypeOf(fullSession) === 'debate' ? 'closed' : 'results_map')}
-      />
+      <PageParcours session={fullSession}>
+        <SessionQuestionnaireForm
+          sessionId={fullSession.id}
+          sessionType={sessionTypeOf(fullSession)}
+          onDone={() => setStatus(sessionTypeOf(fullSession) === 'debate' ? 'closed' : 'results_map')}
+        />
+      </PageParcours>
     )
   }
 
-  if (status === 'debate_entry' && sessionId) {
+  if (status === 'debate_entry' && sessionId && fullSession) {
     return (
       <DebateEntryForm
         sessionId={sessionId}
-        sessionTitle={sessionTitle}
+        session={fullSession}
         onJoined={(tableId, participantId, isModerator) => {
           if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
         }}
@@ -224,14 +226,21 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   }
 
   if (status === 'loading' || status === 'redirecting') {
+    return <EcranChargement texte="Chargement…" />
+  }
+
+  // Séance introuvable : plein écran marine, comme dans le vote.
+  if (status === 'not_found' || !fullSession) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-          <p className="text-sm text-gray-500">Chargement…</p>
+      <div className="relative min-h-screen overflow-hidden bg-bleu-fonce text-creme flex flex-col items-center justify-center px-6 text-center">
+        <FondQuadrille cases={10} />
+        <div className="relative flex max-w-sm flex-col items-center gap-4 animate-montee">
+          <div className="text-5xl" aria-hidden="true">😕</div>
+          <h1 className="font-sans text-3xl font-bold tracking-[-0.02em]">Séance introuvable</h1>
+          <p className="text-sm text-creme/75">Vérifie le lien ou scanne à nouveau le QR code.</p>
+          <a href="#" onClick={() => (window.location.hash = '')} className={`mt-2 ${BOUTON_VERRE_PARCOURS}`}>
+            Retour à l'accueil
+          </a>
         </div>
       </div>
     )
@@ -241,13 +250,12 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   // formulaire de rattrapage : rejoindre directement la table avec le code affiché en salle.
   if (status === 'debating_no_member') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8">
+      <PageParcours session={fullSession}>
+        <div className="w-full rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm p-6 animate-montee">
           <div className="text-center mb-4">
-            <div className="text-5xl mb-4">🗣️</div>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Débat en cours</h1>
-            {sessionTitle && <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>}
-            <p className="text-sm text-gray-500 mt-3">
+            <div className="text-5xl mb-4" aria-hidden="true">🗣️</div>
+            <h2 className="font-sans text-2xl font-bold tracking-[-0.01em] text-bleu-fonce">Débat en cours</h2>
+            <p className="text-sm text-gray-600 mt-3 leading-relaxed">
               Le vote est terminé, mais tu peux rejoindre une table directement avec le code affiché à la table que l'administrateur t'assignera, ou que tu choisiras. Si ce n'est pas évident, le modérateur te fournira le code.
             </p>
           </div>
@@ -261,80 +269,38 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
               if (onTableJoined) onTableJoined(tableId, participantId, isModerator)
             }}
           />
-          <button
-            onClick={() => { window.location.hash = '' }}
-            className="mx-auto mt-4 block w-fit pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Retour à l'accueil
-          </button>
         </div>
-      </div>
+      </PageParcours>
     )
-  }
-
-  const CONFIG: Record<Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'debate_entry' | 'post_voting_no_member' | 'questionnaire'>, {
-    icon: string
-    title: string
-    subtitle: string
-  }> = {
-    not_found: {
-      icon: '❓',
-      title: 'Séance introuvable',
-      subtitle: 'Vérifie le lien ou scanne à nouveau le QR code.',
-    },
-    not_open: {
-      icon: '🔒',
-      title: 'Séance pas encore ouverte',
-      subtitle: "Cette séance est encore en préparation. Reviens un peu plus tard, ou contacte l'organisateur si tu penses que c'est une erreur.",
-    },
-    closed: {
-      icon: '✅',
-      title: 'Séance terminée',
-      subtitle: 'Merci pour ta participation.',
-    },
   }
 
   // Visiteur non inscrit pendant 'post_voting' : pas de compte à créer a posteriori,
   // et le résumé public n'existe qu'à partir de 'closed' (votes encore mouvants).
   if (status === 'post_voting_no_member') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
-          <div className="text-5xl mb-4">🗳️</div>
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Le débat vient de se terminer</h1>
-          {sessionTitle && <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>}
-          <p className="text-sm text-gray-500 mt-3">
-            Les résultats publics seront disponibles une fois la séance clôturée par l'organisateur.
-          </p>
-          <button
-            onClick={() => { window.location.hash = '' }}
-            className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-          >
-            Retour à l'accueil
-          </button>
-        </div>
-      </div>
+      <PageParcours session={fullSession}>
+        <CarteMessage icone="🗳️" titre="Le débat vient de se terminer">
+          Les résultats publics seront disponibles une fois la séance clôturée par l'organisateur.
+        </CarteMessage>
+      </PageParcours>
     )
   }
 
-  const cfg = CONFIG[status as Exclude<Status, 'loading' | 'redirecting' | 'results_map' | 'public_results' | 'debating_no_member' | 'debate_entry' | 'post_voting_no_member' | 'questionnaire'>]
+  if (status === 'not_open') {
+    return (
+      <PageParcours session={fullSession}>
+        <CarteMessage icone="🔒" titre="Séance pas encore ouverte">
+          Cette séance est encore en préparation. Reviens un peu plus tard, ou contacte l'organisateur si tu penses que c'est une erreur.
+        </CarteMessage>
+      </PageParcours>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
-        <div className="text-5xl mb-4">{cfg.icon}</div>
-        <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{cfg.title}</h1>
-        {sessionTitle && (
-          <p className="text-sm text-gray-500 mt-1">{titreSeance(sessionTitle)}</p>
-        )}
-        <p className="text-sm text-gray-500 mt-3">{cfg.subtitle}</p>
-        <button
-          onClick={() => { window.location.hash = '' }}
-          className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-        >
-          Retour à l'accueil
-        </button>
-      </div>
-    </div>
+    <PageParcours session={fullSession}>
+      <CarteMessage icone="✅" titre="Séance terminée">
+        Merci pour ta participation.
+      </CarteMessage>
+    </PageParcours>
   )
 }

@@ -1,3 +1,6 @@
+import FondQuadrille from '../components/FondQuadrille'
+import { BOUTON_VERRE_PARCOURS } from '../components/PageParcours'
+
 interface Props {
   title?: string
   subtitle?: string
@@ -11,15 +14,13 @@ export default function NotFoundScreen({
   subtitle = "Ce lien n'est plus valide, ou la page que tu cherches n'existe pas.",
 }: Props) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white border border-bleu-fonce/10 shadow-sm p-8 text-center">
-        <div className="text-5xl mb-4">🧭</div>
-        <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">{title}</h1>
-        <p className="text-sm text-gray-500 mt-3">{subtitle}</p>
-        <button
-          onClick={() => { window.location.hash = '' }}
-          className="mt-6 inline-block pb-0.5 text-sm font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-        >
+    <div className="relative min-h-screen overflow-hidden bg-bleu-fonce text-creme flex flex-col items-center justify-center px-6 text-center">
+      <FondQuadrille cases={10} />
+      <div className="relative flex max-w-sm flex-col items-center gap-4 animate-montee">
+        <div className="text-5xl" aria-hidden="true">🧭</div>
+        <h1 className="font-sans text-3xl font-bold tracking-[-0.02em]">{title}</h1>
+        <p className="text-sm text-creme/75">{subtitle}</p>
+        <button onClick={() => { window.location.hash = '' }} className={`mt-2 ${BOUTON_VERRE_PARCOURS}`}>
           Retour à l'accueil
         </button>
       </div>
