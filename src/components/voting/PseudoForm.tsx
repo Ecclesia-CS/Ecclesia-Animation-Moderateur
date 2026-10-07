@@ -54,7 +54,7 @@ export default function PseudoForm({ session, onSuccess, onReclaimSuccess }: Pse
       const member = await registerSessionMember(session.id, trimmed)
       lastNameStore.set(trimmed)
       if (asModerator && moderatorPassword.trim()) {
-        const { member: updated, error: modErr } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
+        const { member: updated, error: modErr } = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo, member)
         if (updated) {
           onSuccess(updated)
         } else {

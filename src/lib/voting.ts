@@ -782,14 +782,22 @@ export async function claimModeratorStatus(
  * formulaires d'inscription (PseudoForm, VotingEntryForm, AttendanceConfirmScreen) :
  * un mot de passe invalide ne doit jamais faire échouer l'inscription elle-même,
  * seulement la déclaration modérateur qui la suit.
+ *
+ * Chantier 158 — `previous` : le membre qui vient d'être inscrit juste avant.
+ * `claim_moderator_status` ne génère un code que s'il CRÉE le profil ; sur un
+ * profil existant il renvoie `new_reclaim_code: null`. Sans ce report, le
+ * membre renvoyé remplaçait celui de l'inscription et le code de rappel,
+ * lisible une seule fois, n'était jamais montré.
  */
 export async function tryClaimModeratorStatus(
   sessionId: string,
   creationCode: string,
-  pseudo: string
+  pseudo: string,
+  previous?: SessionMember | null
 ): Promise<{ member: SessionMember | null; error: string | null }> {
   try {
-    const member = await claimModeratorStatus(sessionId, creationCode, pseudo)
+    const claimed = await claimModeratorStatus(sessionId, creationCode, pseudo)
+    const member = { ...claimed, new_reclaim_code: claimed.new_reclaim_code ?? previous?.new_reclaim_code ?? null }
     return { member, error: null }
   } catch (err) {
     return { member: null, error: err instanceof Error ? err.message : 'Erreur inattendue' }

@@ -1926,7 +1926,7 @@ function VotingEntryForm({ session, onNewMember, onConfirmed }: VotingEntryFormP
 
       let modErr: string | null = null
       if (asModerator && moderatorPassword.trim()) {
-        const result = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo)
+        const result = await tryClaimModeratorStatus(session.id, moderatorPassword.trim(), member.pseudo, member)
         if (result.member) member = result.member
         else modErr = result.error
       }
