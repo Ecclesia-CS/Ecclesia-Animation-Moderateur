@@ -40,7 +40,7 @@ export default function QrCodeModal({ value, title, onClose }: Props) {
         <p className="text-xs text-gray-600 text-center leading-relaxed">
           Les autres participants peuvent scanner ce QR code avec leur téléphone pour rejoindre directement cette table.
         </p>
-        <p className="text-[11px] font-mono text-gray-500 text-center break-all">{value}</p>
+        <p className="text-xs text-gray-500 text-center break-all">{value}</p>
         <button
           onClick={onClose}
           className="pb-0.5 text-xs font-semibold text-bleu-fonce border-b border-bleu-fonce/40 hover:border-bleu-clair transition-colors
