@@ -8,6 +8,9 @@ Dernière mise à jour : **2026-10-05** (ajout des chantiers 158 à 162, liste d
 
 ## Chantiers en cours
 
+### 158 — Code de connexion montré à chaque nouvelle inscription (parcours simulés)
+**Branche** : `claude/chantier-158-8c2ef4` · **Depuis** : 2026-10-07 · **Fichiers touchés** : à compléter (probables : `SessionRouterScreen.tsx`, `AllocatingScreen.tsx`, `TableChangeModal.tsx`, `ChangeTableModal.tsx`, `ModeratorToolsButton.tsx`, `CollabDocScreen.tsx`, `VoteScreen.tsx`) ; migration éventuelle. Les 159 et 160 touchent `VoteScreen`/`SuperadminScreen` : les lancer après.
+
 > **Le 2026-10-02, le chantier 151 est fait** (activité à trois niveaux passif / intermédiaire / actif à l'onboarding ; l'intermédiaire compte comme actif dans l'allocation) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 151. Migration `20261002_chantier151_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après** 72_2. Entrée « en cours » retirée.
 
 > **Le 2026-10-02, le chantier 153 est fait** (propositions : « voter d'abord » et plafond par personne, réglables en séance par le superadmin ou l'association) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 153. Branche `claude/chantier-153-e2c0a0`, **mergée dans `dev`**. Migration `20261002_chantier153_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Écran superadmin vérifié au navigateur ; seul le côté association (`#asso`) reste à rejouer. Entrée « en cours » retirée.
