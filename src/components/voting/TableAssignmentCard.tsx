@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { TableAssignment } from '../../lib/types'
 import type { Session } from '../../lib/types'
 import PasswordInput from '../PasswordInput'
+import FondQuadrille from '../FondQuadrille'
 
 export interface AssignmentWithTable extends TableAssignment {
   tables: { join_code: string } | null
@@ -103,19 +104,20 @@ export default function TableAssignmentCard({
   }
 
   const waitingSpinner = (
-    <div className="bg-white border border-bleu-fonce/10 p-6 flex flex-col items-center justify-center gap-3 min-h-[140px]">
-      <svg className="w-6 h-6 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-      </svg>
-      <p className="text-sm text-gray-500 text-center">Formation des groupes en cours…</p>
+    <div className="rounded-[12px] bg-white border border-bleu-fonce/10 shadow-sm p-6 flex flex-col items-center justify-center gap-3 min-h-[140px] animate-montee">
+      <span aria-hidden="true" className="flex gap-1.5">
+        {[0, 1, 2].map(i => (
+          <span key={i} className="block h-2.5 w-2.5 bg-amber-600 animate-speaking" style={{ animationDelay: `${i * 0.25}s` }} />
+        ))}
+      </span>
+      <p role="status" className="text-sm font-semibold text-anthracite text-center">Formation des groupes en cours…</p>
       <p className="text-xs text-gray-500 text-center max-w-[240px]">
         L'organisateur répartit tous les participants en groupes aux avis variés à partir des votes.
         Tu seras notifié(e) dès que ton groupe est prêt.
       </p>
       <p className="text-xs text-gray-500 text-center pt-1">
         Ça ne bouge pas ?{' '}
-        <button onClick={() => window.location.reload()} className="font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors">
+        <button onClick={() => window.location.reload()} className="rounded-[8px] font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors">
           Recharge la page
         </button>
       </p>
@@ -130,7 +132,7 @@ export default function TableAssignmentCard({
     // Chantier 62 — sortie de secours : phase de débat sans aucune affectation.
     if (phase === 'debating') {
       return (
-        <div className="bg-white border border-bleu-fonce/10 p-6 space-y-3">
+        <div className="rounded-[12px] bg-white border border-bleu-fonce/10 shadow-sm p-6 space-y-3">
           <p className="text-sm text-gray-700 text-center font-medium">
             Le débat a commencé, mais tu n'as pas encore de table.
           </p>
@@ -146,7 +148,7 @@ export default function TableAssignmentCard({
               <button
                 onClick={onAssignLeastFilled}
                 disabled={assignLoading}
-                className="w-full py-2.5 px-3 bg-white border border-indigo-300 hover:bg-indigo-50
+                className="rounded-[8px] w-full py-2.5 px-3 bg-white border border-indigo-300 hover:bg-indigo-50
                   disabled:opacity-60 text-indigo-700 text-sm font-semibold transition-colors"
               >
                 {assignLoading ? 'Placement…' : 'Assignez-moi une table'}
@@ -164,9 +166,9 @@ export default function TableAssignmentCard({
               onChange={e => { setSwitchCode(e.target.value.toUpperCase()); setLocalSwitchError(null) }}
               placeholder="A1B2C3"
               maxLength={6}
-              className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 font-mono
+              className="rounded-[8px] w-full px-3 py-2 text-sm border border-bleu-fonce/20
                 tracking-widest text-center focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40
-                placeholder:text-anthracite/40"
+                placeholder:text-anthracite/40 font-semibold tabular-nums"
             />
             {/* Chantier 108 (C3) — un modérateur en retard, sans affectation,
                 doit pouvoir se déclarer ici : c'est exactement son profil. */}
@@ -201,7 +203,7 @@ export default function TableAssignmentCard({
             <button
               onClick={handleRescueSubmit}
               disabled={switchLoading || switchCode.trim().length === 0}
-              className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+              className="rounded-[8px] w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                 text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {switchLoading ? 'Connexion…' : asModerator ? 'Reprendre cette table' : 'Rejoindre cette table'}
@@ -216,7 +218,7 @@ export default function TableAssignmentCard({
     // d'AllocatingScreen prend le relais juste en dessous).
     if (phase === 'closed' || phase === 'post_voting') {
       return (
-        <div className="bg-white border border-bleu-fonce/10 p-6 flex flex-col items-center justify-center gap-2 min-h-[140px]">
+        <div className="rounded-[12px] bg-white border border-bleu-fonce/10 shadow-sm p-6 flex flex-col items-center justify-center gap-2 min-h-[140px]">
           <p className="text-sm text-gray-500 text-center">Le débat est terminé.</p>
           <p className="text-xs text-gray-500 text-center max-w-[240px]">
             Tu n'as rejoint aucune table pendant cette séance.
@@ -253,11 +255,12 @@ export default function TableAssignmentCard({
   }
 
   return (
-    <div className="bg-white border border-bleu-fonce/10 shadow-lg overflow-hidden animate-entree">
+    <div className="overflow-hidden rounded-[12px] bg-white shadow-[0_26px_54px_-26px_rgba(21,35,63,0.75)] animate-montee">
       {/* Table number */}
-      <div className="bg-grain bg-bleu-fonce px-6 pt-6 pb-7 text-center">
+      <div className="relative overflow-hidden bg-bleu-fonce px-6 pt-7 pb-8 text-center">
+        <FondQuadrille cases={4} />
         <p className="relative text-bleu-clair text-[11px] font-bold uppercase tracking-[0.2em] mb-2">Tu es à la</p>
-        <p className="relative font-serif text-creme text-5xl font-semibold tracking-tight">
+        <p className="relative font-sans text-creme text-6xl font-bold leading-none tracking-[-0.03em]">
           Table {assignment.table_number}
         </p>
       </div>
@@ -276,7 +279,7 @@ export default function TableAssignmentCard({
         {joinCode ? (
           <div className="text-center space-y-1">
             <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.2em]">Code de ta table</p>
-            <p className="text-3xl font-mono font-bold text-bleu-fonce tracking-[0.2em]">{joinCode}</p>
+            <p className="mx-auto mt-1 w-fit rounded-[8px] bg-indigo-50 px-4 py-2 text-3xl font-bold tabular-nums text-bleu-fonce tracking-[0.2em]">{joinCode}</p>
           </div>
         ) : !isDebating ? (
           <p className="text-sm text-gray-500 text-center">
@@ -292,7 +295,7 @@ export default function TableAssignmentCard({
                 <button
                   onClick={onJoin}
                   disabled={joinLoading}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                  className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {joinLoading ? (
@@ -310,14 +313,14 @@ export default function TableAssignmentCard({
                 )}
               </>
             ) : (
-              <div className="bg-amber-50 border border-amber-200 px-4 py-3 space-y-1">
+              <div className="rounded-[8px] bg-amber-50 border border-amber-200 px-4 py-3 space-y-1">
                 <p className="text-sm text-amber-700 text-center">
                   Ta table n'est pas encore créée.<br />
                   Rends-toi à la <strong>Table {assignment.table_number}</strong> en salle.
                 </p>
                 <p className="text-xs text-amber-600 text-center">
                   Le code apparaît ici automatiquement, mais tu peux aussi{' '}
-                  <button onClick={() => window.location.reload()} className="underline hover:text-amber-800">
+                  <button onClick={() => window.location.reload()} className="rounded-[8px] underline hover:text-amber-800">
                     recharger la page
                   </button>.
                 </p>
@@ -332,12 +335,12 @@ export default function TableAssignmentCard({
             {!showSwitchForm ? (
               <button
                 onClick={() => { setShowSwitchForm(true); setLocalSwitchError(null) }}
-                className="text-xs text-gray-500 hover:text-indigo-600 underline"
+                className="rounded-[8px] text-xs text-gray-500 hover:text-indigo-600 underline"
               >
                 Je veux rejoindre une autre table
               </button>
             ) : (
-              <div className="mt-1 p-3 bg-gray-50 border border-bleu-fonce/10 text-left space-y-2">
+              <div className="rounded-[8px] mt-1 p-3 bg-gray-50 border border-bleu-fonce/10 text-left space-y-2">
                 <p className="text-xs text-gray-500">
                   Demande le code à 6 caractères de la table visée à un ami déjà installé
                   là-bas, ou à son modérateur.
@@ -348,9 +351,9 @@ export default function TableAssignmentCard({
                   onChange={e => { setSwitchCode(e.target.value.toUpperCase()); setLocalSwitchError(null) }}
                   placeholder="A1B2C3"
                   maxLength={6}
-                  className="w-full px-3 py-2 text-sm border border-bleu-fonce/20 font-mono
+                  className="rounded-[8px] w-full px-3 py-2 text-sm border border-bleu-fonce/20
                     tracking-widest text-center focus:outline-none focus:ring-2 focus:border-bleu-fonce focus:ring-bleu-clair/40
-                    placeholder:text-anthracite/40"
+                    placeholder:text-anthracite/40 font-semibold tabular-nums"
                 />
                 {/* Chantier 95 — reprise d'une table précise en modérateur. */}
                 {onSwitchAsModerator && (
@@ -385,7 +388,7 @@ export default function TableAssignmentCard({
                   <button
                     onClick={handleSwitchSubmit}
                     disabled={switchLoading || switchCode.trim().length === 0}
-                    className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                    className="rounded-[8px] flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                       text-white text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                   >
                     {switchLoading
@@ -395,7 +398,7 @@ export default function TableAssignmentCard({
                   <button
                     onClick={() => { setShowSwitchForm(false); setSwitchCode(''); setLocalSwitchError(null) }}
                     disabled={switchLoading}
-                    className="py-2 px-3 text-xs text-gray-500 hover:text-gray-700"
+                    className="rounded-[8px] py-2 px-3 text-xs text-gray-500 hover:text-gray-700"
                   >
                     Annuler
                   </button>

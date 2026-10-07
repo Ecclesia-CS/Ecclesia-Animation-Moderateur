@@ -285,6 +285,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 158, lot 9 (2026-10-07) — Allocation refaite
+
+**Vérifié au navigateur** sur une page d'aperçu temporaire (données fictives, rien écrit en base) : carte de la table en allocation et en débat, attente de la formation des groupes.
+
+**Reste à voir à l'œil**
+- [ ] Sur une vraie séance en allocation : binôme, déclaration modérateur, synthèse des votes, passage automatique en débat.
+- [ ] Débat sans table attribuée (« Assignez-moi une table » ou code), séance close sans table, questionnaire de fin par-dessus la page.
+
 ## Chantier 158, lot 9 (2026-10-07) — Vote refait
 
 **Vérifié au navigateur sur dev** à 375 et 800 px (séance « Audit charte 158 (sondage) ») : formulaire d'inscription, introduction de la séance, écran « Tu as tout voté ! », fenêtre « Changer mon vote » (nouvelle carte de vote), sans voter ni s'inscrire.

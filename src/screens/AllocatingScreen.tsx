@@ -4,7 +4,7 @@ import { privateChannel } from '../lib/realtime'
 import { getVoteResults, getMyTableAssignment, claimTableAsModerator, tryClaimModeratorStatus, assignLeastFilledTable, getMyPairings } from '../lib/voting'
 import { getSessionById } from '../lib/sessions'
 import { tableStore } from '../lib/storage'
-import { extractErr, titreSeance } from '../lib/utils'
+import { extractErr } from '../lib/utils'
 import type { Session, SessionMember, VoteResult } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import VoteResultsList from '../components/voting/VoteResultsList'
@@ -15,9 +15,8 @@ import ModeratorDeclareField from '../components/voting/ModeratorDeclareField'
 import { PairingResultsList } from '../components/voting/PairingModal'
 import type { PairingResult } from '../lib/voting'
 import DocNudge from '../components/voting/DocNudge'
-import QuitLink from '../components/QuitLink'
-import PhaseIndicator from '../components/PhaseIndicator'
 import { hasQuestionnaireResponse, assertSeated } from '../lib/voting'
+import PageParcours from '../components/PageParcours'
 
 interface AllocatingScreenProps {
   session: Session
@@ -340,8 +339,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
   if (showQuestionnaire) {
     return (
-      <>
-        <QuitLink />
+      <PageParcours session={currentSession}>
         <SessionQuestionnaireForm
           sessionId={currentSession.id}
           // Route vers #session/<code> (SessionRouterScreen) qui enchaîne sur
@@ -358,29 +356,18 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             }
           }}
         />
-      </>
+      </PageParcours>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <QuitLink />
-      <PhaseIndicator phase={currentSession.phase} floating />
-      {/* Header */}
-      <header className="bg-white border-b border-bleu-fonce/10 px-4 pt-14 pb-5 text-center">
-        <div className="text-3xl mb-1">🎉</div>
-        <h1 className="font-serif text-2xl font-semibold tracking-tight text-bleu-fonce">Vote terminé !</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{titreSeance(session.title)}</p>
-        <p className="text-xs text-gray-500 mt-1">
-          Connecté en tant que <span className="font-medium text-gray-600">{member.pseudo}</span>
-        </p>
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 max-w-lg mx-auto w-full p-4 space-y-4 pb-8">
+    <PageParcours session={currentSession} sousTitre={<>Connecté en tant que <span className="font-semibold text-creme">{member.pseudo}</span></>}>
+      <div className="space-y-5">
         {/* Table assignment */}
         <div>
-          <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Ton groupe</p>
+          <p className="mb-2 flex items-center gap-2 text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
+            <span aria-hidden="true">🎉</span> Vote terminé · Ton groupe
+          </p>
           <TableAssignmentCard
             assignment={assignment}
             loading={assignmentLoading}
@@ -403,7 +390,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
         {pairings.length > 0 && (
           <div>
             <p className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Ton binôme</p>
-            <div className="bg-white border border-bleu-fonce/10 p-4">
+            <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-4 shadow-sm">
               <PairingResultsList results={pairings} />
             </div>
           </div>
@@ -422,7 +409,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
               Tu es modérateur·rice. Tu seras placé·e à une table au démarrage du débat.
             </p>
           ) : (
-            <form onSubmit={handleDeclareModerator} className="bg-white border border-bleu-fonce/10 p-4 space-y-3">
+            <form onSubmit={handleDeclareModerator} className="rounded-[12px] bg-white border border-bleu-fonce/10 p-4 space-y-3 shadow-sm">
               <ModeratorDeclareField
                 checked={asModerator}
                 onCheckedChange={setAsModerator}
@@ -438,7 +425,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
                 <button
                   type="submit"
                   disabled={moderatorDeclareBusy || !moderatorPassword.trim()}
-                  className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
+                  className="w-full rounded-[8px] py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40
                     text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
                 >
                   {moderatorDeclareBusy ? 'Déclaration…' : 'Me déclarer modérateur·rice'}
@@ -450,7 +437,7 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
 
         {/* Bannière clôture — affichée en-dessous de la carte */}
         {sessionClosed && (
-          <div className="bg-gray-100 px-4 py-3 text-center text-sm text-gray-500">
+          <div className="rounded-[12px] bg-gray-100 px-4 py-3 text-center text-sm text-gray-600">
             🔒 Cette séance est maintenant clôturée. Merci pour ta participation !
           </div>
         )}
@@ -463,21 +450,26 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
             <div className="mt-3">
               <button
                 onClick={() => setShowAllResults(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-white border border-bleu-fonce/10
-                  text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="w-full rounded-[8px] flex items-center justify-between px-4 py-2.5 bg-white border border-bleu-fonce/10 shadow-sm
+                  text-sm font-semibold text-bleu-fonce hover:border-bleu-fonce/30 transition-colors
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                aria-expanded={showAllResults}
               >
                 <span>Voir toutes les assertions ({voteResults.length})</span>
-                <span className="text-gray-500">{showAllResults ? '▲' : '▼'}</span>
+                <svg className={`h-4 w-4 text-gray-500 transition-transform ${showAllResults ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
               {showAllResults && (
-                <div className="mt-2 bg-white border border-bleu-fonce/10 p-4">
+                <div className="mt-2 rounded-[12px] bg-white border border-bleu-fonce/10 p-4 shadow-sm">
                   <VoteResultsList results={voteResults} loading={false} />
                 </div>
               )}
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </PageParcours>
   )
 }
