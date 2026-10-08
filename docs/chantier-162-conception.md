@@ -1,6 +1,6 @@
 # Chantier 162 — Partager des sources avec sa table (lien, image, écran) : note de conception (2026-10-08)
 
-> Conception menée **en discussion avec Jules** (session Opus dédiée). Rien n'est codé ni appliqué en base. **Conception arbitrée le 2026-10-08** (§ 9) : réalisation en **162a** (fil de partage + liens) puis **162b** (images) ; **162c (écran en direct) en pause**.
+> Conception menée **en discussion avec Jules** (session Opus dédiée). Rien n'est codé ni appliqué en base. **Conception arbitrée le 2026-10-08** (§ 9) : réalisation en **162a** (fil de partage + liens) puis **162b** (images) . Le partage d'écran en direct n'est **pas retenu comme chantier** (étude conservée au § 3).
 
 ## 1. Consigne et arbitrages
 
@@ -21,9 +21,9 @@ Arbitrages de Jules pendant la discussion (2026-10-08) :
 
 Arbitrages du second tour (2026-10-08), après lecture de l'étude du partage d'écran :
 
-- « Partons plutôt sur des partages d'images, de captures d'écran, qu'on peut trouver dans son appareil ou copier directement à partir du presse-papiers. » → **le partage d'écran en direct est mis en pause** (§ 3 conservé pour mémoire, chantier 162c).
+- « Partons plutôt sur des partages d'images, de captures d'écran, qu'on peut trouver dans son appareil ou copier directement à partir du presse-papiers. » → **le partage d'écran en direct n'est pas retenu** (§ 3 conservé pour mémoire).
 - **Tables sans modérateur** : on ne propose pas le partage.
-- **Découpage** 162a / 162b / 162c : validé.
+- **Découpage** 162a / 162b : validé. Pas de chantier pour l'écran en direct (Jules : « ne mets pas le chantier 162c »).
 - **Associations** : « oui, on leur ouvre cette possibilité ».
 - **Effacement des images** : « dès qu'on met la séance en closed ».
 
@@ -34,9 +34,9 @@ Arbitrages du second tour (2026-10-08), après lecture de l'étude du partage d'
 - **Pas de document collaboratif dans une séance d'association** (chantier 135) — le partage « à la volée » (lien, image, écran) n'en dépend pas.
 - **Le chantier 132 (« proposer un vote ») est le modèle le plus proche** : table dédiée (`table_votes`), colonne piggyback `tables.active_vote_id`, gardes `is_table_moderator` / `is_table_participant` dans chaque RPC, propagation par le broadcast `tables` du canal `table:<table_id>` (déjà privé, chantier 59) + polling 5 s. Aucun nouveau topic Realtime nécessaire pour l'état du partage.
 
-## 3. Le partage d'écran (version « lourde ») — faisable, sur ordinateur uniquement — ⏸️ EN PAUSE (162c)
+## 3. Le partage d'écran (version « lourde ») — faisable, sur ordinateur uniquement — non retenu
 
-> **Mis en pause par Jules le 2026-10-08** au profit des captures d'écran (§ 5). Cette section reste comme étude de faisabilité, à reprendre telle quelle si le besoin revient. Le fil de partage (§ 4) est conçu pour accueillir un type `screen` plus tard sans refonte.
+> **Non retenu par Jules le 2026-10-08** au profit des captures d'écran (§ 5). Cette section reste comme étude de faisabilité, à reprendre telle quelle si le besoin revient. Le fil de partage (§ 4) est conçu pour accueillir un type `screen` plus tard sans refonte.
 
 ### 3.1 Ce que permet le navigateur
 
@@ -96,7 +96,7 @@ Un seul mécanisme porte les trois formes de partage. Chaque élément du fil es
 | `collab_source` | une de **ses** sources du document collaboratif | téléphone ou ordinateur |
 | `link` | un lien collé + un titre court | téléphone ou ordinateur |
 | `image` | une capture d'écran (coller, glisser, ou choisir dans la galerie) + un titre court | téléphone ou ordinateur |
-| ~~`screen`~~ | un partage d'écran en direct — **en pause (162c)**, pas dans la contrainte `kind` de 162a/162b | ordinateur seulement |
+| ~~`screen`~~ | un partage d'écran en direct — **non retenu**, pas dans la contrainte `kind` de 162a/162b | ordinateur seulement |
 
 **Pas de texte libre** au-delà d'un titre court (≈ 80 caractères) : c'est ce qui empêche le fil de devenir un chat et d'ouvrir des débats parallèles.
 
@@ -157,14 +157,14 @@ Pour les associations, rien de spécifique côté serveur : les gardes sont `is_
 
 Le Browser pane joue un participant et un modérateur dans deux onglets (fil, accepter/refuser, carte, purge à la clôture). Il ne sait pas jouer : le collage d'une image depuis le presse-papiers d'un vrai téléphone, le choix dans la galerie sur iPhone/Android, le navigateur intégré de Messenger → `A_VERIFIER.md`.
 
-(Pour 162c, s'il est repris : partage d'écran ordinateur → téléphone sur le Wi-Fi d'un lieu réel, réception iPhone Safari/Messenger, réception en 4G, deux tables qui partagent en même temps.)
+(Si le partage d'écran est un jour repris : partage d'écran ordinateur → téléphone sur le Wi-Fi d'un lieu réel, réception iPhone Safari/Messenger, réception en 4G, deux tables qui partagent en même temps.)
 
 ## 9. Décisions (2026-10-08) et réalisation
 
 | Question | Décision de Jules |
 |---|---|
-| Version lourde (écran en direct) | étudiée (§ 3), **mise en pause** au profit des captures d'écran |
-| Découpage | **162a** puis **162b** ; **162c** en pause |
+| Version lourde (écran en direct) | étudiée (§ 3), **non retenue** au profit des captures d'écran |
+| Découpage | **162a** puis **162b** ; pas de chantier pour l'écran en direct |
 | Tables sans modérateur | pas de partage |
 | Associations | ouvert (liens et images) |
 | Effacement des images | à la clôture (`closed`) |
@@ -175,7 +175,7 @@ Le Browser pane joue un participant et un modérateur dans deux onglets (fil, ac
 
 **162b — Captures d'écran.** Bucket privé `table-shares` + politiques de stockage, réduction de l'image dans le navigateur, collage / glisser / galerie, aperçu chez le modérateur, Edge Function `purge-share-images` appelée à la clôture. Dépend de 162a.
 
-**162c — Écran en direct.** En pause. Si repris : compte Cloudflare à ouvrir par Jules (relais TURN), Edge Function d'identifiants TURN, architecture A du § 3.3.
+**Écran en direct** — pas de chantier ouvert. Si un jour repris : compte Cloudflare à ouvrir par Jules (relais TURN), Edge Function d'identifiants TURN, architecture A du § 3.3.
 
 ## Sources
 
