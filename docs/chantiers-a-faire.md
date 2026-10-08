@@ -8,10 +8,10 @@ Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b/162
 
 ## Chantiers en cours
 
-### 161a — Tables désolidarisées : socle serveur (réalisation)
-**Branche** : `claude/chantier-161-913a43` · **Depuis** : 2026-10-08 · **Fichiers touchés** : `supabase/migrations/20261008_chantier161a_*.sql` (nouveau) ; RPC réécrites : `cast_vote`, `get_all_votes_for_analysis`, `set_session_phase`, `get_results_map`, `get_my_table_assignment`, `assign_least_filled_table`, `join_table`, `force_session_questionnaire` ; docs. Le 161b (écrans `App.tsx`, `VoteScreen`, `SessionRouterScreen`, `ResultsMapScreen`, `ParticipantView`, `ModeratorView`, `AllocatingScreen`, `SuperadminScreen`…) suivra.
+### 161b — Tables désolidarisées : écrans (réalisation)
+**Branche** : `claude/chantier-161-913a43` · **Depuis** : 2026-10-08 · **Fichiers touchés** : `src/lib/phaseLabels.ts`, `src/lib/supabase.ts`, `src/lib/sessions.ts`, `src/lib/voting.ts`, `src/context/TableContext.tsx`, `src/components/ModeratorToolsButton.tsx`, `src/screens/{ParticipantView,ModeratorView,SessionRouterScreen,VoteScreen,AllocatingScreen,ResultsMapScreen,SuperadminScreen}.tsx`, `src/components/voting/TableAssignmentCard.tsx`, `src/App.tsx`. Le **161a** (migration) est mergé dans `dev` le 2026-10-08. ⚠️ Le 162 (partage de sources) touchera aussi `ParticipantView`/`ModeratorView`/`TableContext` : le lancer après le merge du 161b.
 
-> **Le 2026-10-08, la conception du chantier 161 est livrée** (`docs/chantier-161-conception.md`, aucun fichier de `src/` ni migration) — **6 questions en attente d'arbitrage de Jules** avant la réalisation (161a socle serveur, 161b parcours). Entrée « en cours » retirée.
+> **Le 2026-10-08, le chantier 161a est mergé dans `dev`** (socle serveur des tables désolidarisées — conception `docs/chantier-161-conception.md`, arbitrée le même jour). Migration `20261008_chantier161a_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 160**.
 
 > **Le 2026-10-08, la conception du chantier 162 est arbitrée** (partage de sources avec sa table) — voir `docs/chantier-162-conception.md` et `docs/chantiers.md`. Docs seules, aucune migration. Réalisation découpée en **162a**, **162b** et **162c (en pause)** ci-dessous. Entrée « en cours » retirée.
 
