@@ -4,7 +4,7 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b/162c ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
+Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
 
 ## Chantiers en cours
 
@@ -13,7 +13,7 @@ Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b/162
 
 > **Le 2026-10-08, le chantier 161a est mergé dans `dev`** (socle serveur des tables désolidarisées — conception `docs/chantier-161-conception.md`, arbitrée le même jour). Migration `20261008_chantier161a_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 160**.
 
-> **Le 2026-10-08, la conception du chantier 162 est arbitrée** (partage de sources avec sa table) — voir `docs/chantier-162-conception.md` et `docs/chantiers.md`. Docs seules, aucune migration. Réalisation découpée en **162a**, **162b** et **162c (en pause)** ci-dessous. Entrée « en cours » retirée.
+> **Le 2026-10-08, la conception du chantier 162 est arbitrée** (partage de sources avec sa table) — voir `docs/chantier-162-conception.md` et `docs/chantiers.md`. Docs seules, aucune migration. Réalisation découpée en **162a** et **162b** ci-dessous (le partage d'écran en direct n'est pas retenu comme chantier — étude conservée dans la note, § 3). Entrée « en cours » retirée.
 
 > **Le 2026-10-07, le chantier 160 est mergé dans `dev`** (sondage en mode « vote par consentement », vocabulaire « option » compris) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 160. Migration `20261007_chantier160_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après les 134/135**. Entrée « en cours » retirée au merge.
 
@@ -247,9 +247,6 @@ Un participant demande à montrer une de ses sources collaboratives ou un lien c
 > Issu de la conception 162, **lire `docs/chantier-162-conception.md` § 5**.
 
 Image choisie dans l'appareil, glissée ou collée depuis le presse-papiers ; réduite dans le navigateur (1600 px, WebP) ; bucket Storage **privé** `table-shares` (en attente : auteur + modérateur ; acceptée : la table) ; **effacée à la clôture de la séance** par une Edge Function `purge-share-images` (le SQL ne peut pas supprimer de fichier Storage : trigger `protect_objects_delete`), avec filet de sécurité sur les séances déjà closes. Ouvert aux associations (`check_session_admin` pour la purge).
-
-#### 162c — Partage d'écran en direct (ordinateur) — ⏸️ **EN PAUSE** (Jules, 2026-10-08)
-Étude de faisabilité complète dans `docs/chantier-162-conception.md` § 3 (WebRTC maillé, relais TURN Cloudflare — compte à ouvrir par Jules). Ne pas lancer sans nouvelle décision de Jules.
 
 ### 121, 122, 123 — Retours de Jules du 2026-09-22 (7 points), en 3 chantiers
 
