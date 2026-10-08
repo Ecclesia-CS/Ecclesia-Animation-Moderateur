@@ -212,8 +212,23 @@ export default function App() {
   }, [])
 
   function handleTableJoined(tableId: string, participantId: string, isModerator: boolean) {
-    const userId = phase.type !== 'loading' ? (phase as { userId: string }).userId : ''
-    setPhase({ type: 'table', tableId, participantId, userId, isModerator })
+    // Chantier 161 — mise à jour fonctionnelle : SessionRouterScreen appelle ce
+    // callback depuis un effet lancé à son premier rendu, quand `phase` (capturée
+    // par la fermeture) valait encore 'loading'. Le userId était alors '', et
+    // TableContext interrogeait `session_members … user_id=eq.` (400) : un
+    // modérateur de débat simple revenu par le QR retombait en écran participant
+    // jusqu'au rechargement suivant.
+    setPhase(prev => ({
+      type: 'table', tableId, participantId, isModerator,
+      userId: prev.type !== 'loading' ? (prev as { userId: string }).userId : '',
+    }))
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id
+      if (!uid) return
+      setPhase(prev => (prev.type === 'table' && prev.tableId === tableId && !prev.userId)
+        ? { ...prev, userId: uid }
+        : prev)
+    })
     // Nettoyer le hash sans déclencher hashchange (history.replaceState n'émet pas d'événement)
     history.replaceState(null, '', window.location.pathname + window.location.search)
     // Chantier 145 — `replaceState` n'émet pas `hashchange` : sans cette ligne

@@ -269,6 +269,9 @@ L'autorisation est décrite par `can_join_realtime_topic(topic)` (migration `202
 
 ## Règles critiques
 
+### Phase effective d'une table (chantier 161)
+Une table peut terminer son débat avant les autres (`tables.debate_ended_at`, bouton modérateur « Terminer le débat de ma table ») : sa phase devient `post_voting` (séance complète) ou `closed` (débat simple) tant que la séance est en `debating`. **Côté participant/table, ne jamais tester `session.phase` pour décider « débat fini / revote ouvert »** : utiliser `effectiveTablePhase(session, table|assignment)` (`lib/phaseLabels.ts`), `useTable().effectivePhase`, ou côté SQL `table_effective_phase`/`member_effective_phase` — les deux règles doivent rester identiques. `cast_vote` refuse tout vote hors `pre_voting`/`voting`/`allocating`/`post_voting` effectif. Détail : [`docs/chantier-161-conception.md`](./docs/chantier-161-conception.md).
+
 ### Chrono
 Toujours `Date.now() - new Date(table.current_turn_started_at).getTime()`. Timestamps posés par `now()` PostgreSQL uniquement (sauf `correct_turn`).
 

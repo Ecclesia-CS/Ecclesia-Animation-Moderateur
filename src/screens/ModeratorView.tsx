@@ -24,6 +24,7 @@ import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import DocumentationButton from '../components/DocumentationButton'
 import { useSessionOrganizationName } from '../lib/organizations'
+import { sessionTypeOf } from '../lib/phaseLabels'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
@@ -795,7 +796,8 @@ export default function ModeratorView() {
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
                 text-white text-sm font-semibold rounded-xl transition-colors"
             >
-              Voir les résultats →
+              {/* Débat simple : pas de résultats, le routeur mène au questionnaire puis à l'écran de fin. */}
+              {sessionTypeOf(session) === 'debate' ? 'Continuer →' : 'Voir les résultats →'}
             </button>
           )}
           <button

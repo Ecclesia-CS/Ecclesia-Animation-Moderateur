@@ -502,7 +502,7 @@ export default function ParticipantView() {
               className="inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700
                 text-white text-sm font-semibold rounded-xl transition-colors"
             >
-              Voir vos résultats →
+              {sessionTypeOf(session) === 'debate' ? 'Continuer →' : 'Voir vos résultats →'}
             </button>
           )}
           <button

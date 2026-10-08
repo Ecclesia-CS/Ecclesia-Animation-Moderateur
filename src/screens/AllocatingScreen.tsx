@@ -161,6 +161,18 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     }
   }, [currentSession, assignment, session.join_code])
 
+  // Le polling ci-dessous s'arrête dès que le code de table est connu, et la fin
+  // de débat d'une table ne touche pas `table_assignments` (pas d'événement
+  // Realtime ici) : relecture lente tant que la séance débat.
+  useEffect(() => {
+    if (currentSession.phase !== 'debating' || !assignment?.tables?.join_code) return
+    const interval = setInterval(async () => {
+      const data = await getMyTableAssignment(session.id).catch(() => null)
+      if (data?.debate_ended_at) setAssignment(data as AssignmentWithTable)
+    }, 10_000)
+    return () => clearInterval(interval)
+  }, [currentSession.phase, assignment?.tables?.join_code, session.id])
+
   // ── Polling de secours — allocating ou debating sans join_code/assignment ──
   useEffect(() => {
     const phase = currentSession.phase

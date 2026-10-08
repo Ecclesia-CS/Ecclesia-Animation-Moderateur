@@ -27,11 +27,13 @@ interface Props {
   tableId: string | null
   /** Débat de la table terminé au chargement de l'écran. */
   initiallyEnded: boolean
+  /** Appelé quand le polling voit le débat de la table reprendre (ou se terminer de nouveau). */
+  onEndedChange?: (ended: boolean) => void
 }
 
 const POLL_MS = 10_000
 
-export default function TableDebateEndedPanel({ session, tableId, initiallyEnded }: Props) {
+export default function TableDebateEndedPanel({ session, tableId, initiallyEnded, onEndedChange }: Props) {
   const [sessionPhase, setSessionPhase] = useState(session.phase)
   const [ended,        setEnded]        = useState(initiallyEnded)
   const [isModerator,  setIsModerator]  = useState(false)
@@ -60,6 +62,8 @@ export default function TableDebateEndedPanel({ session, tableId, initiallyEnded
     }, POLL_MS)
     return () => clearInterval(id)
   }, [watching, session.id])
+
+  useEffect(() => { onEndedChange?.(ended) }, [ended, onEndedChange])
 
   if (!watching) return null
 

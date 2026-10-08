@@ -213,6 +213,8 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
   const [error,       setError]       = useState<string | null>(null)
   // Chantier 69 — écran de revote, atteint depuis cette page uniquement.
   const [showPostVote, setShowPostVote] = useState(false)
+  // Chantier 161 — débat de la table rouvert depuis l'ouverture de l'écran.
+  const [tableReopened, setTableReopened] = useState(false)
   // Chantier 134 — sondage : aucune table, le camp se montre sans affectation.
   const isPoll = sessionTypeOf(session) === 'poll'
 
@@ -287,8 +289,12 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
 
   // Chantier 161 — phase de la table du membre : post-vote dès que son
   // modérateur a terminé le débat, même si la séance débat encore.
-  const phase = effectiveTablePhase(session, assignment ?? null) ?? session.phase
   const ownTableEnded = tableDebateEnded(session, assignment ?? null)
+  // Le débat de la table a repris pendant que cet écran était ouvert (polling
+  // de TableDebateEndedPanel) : plus de revote, que le serveur refuserait.
+  const phase = ownTableEnded && tableReopened
+    ? 'debating'
+    : effectiveTablePhase(session, assignment ?? null) ?? session.phase
 
   if (showPostVote) {
     return (
@@ -323,7 +329,7 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
             passée en 'closed', le superadmin a fermé la fenêtre de revote.
             Chantier 161 — phase effective : aussi à une table qui a terminé avant les autres. */}
         {ownTableEnded && (
-          <TableDebateEndedPanel session={session} tableId={assignment?.table_id ?? null} initiallyEnded />
+          <TableDebateEndedPanel session={session} tableId={assignment?.table_id ?? null} initiallyEnded onEndedChange={ended => setTableReopened(!ended)} />
         )}
 
         {phase === 'post_voting' && (
