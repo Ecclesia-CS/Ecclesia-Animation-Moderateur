@@ -1,6 +1,6 @@
 # Chantier 162 — Partager des sources avec sa table (lien, image, écran) : note de conception (2026-10-08)
 
-> Conception menée **en discussion avec Jules** (session Opus dédiée). Rien n'est codé ni appliqué en base. Les points encore ouverts sont en fin de note (§ 9).
+> Conception menée **en discussion avec Jules** (session Opus dédiée). Rien n'est codé ni appliqué en base. **Conception arbitrée le 2026-10-08** (§ 9) : réalisation en **162a** (fil de partage + liens) puis **162b** (images) ; **162c (écran en direct) en pause**.
 
 ## 1. Consigne et arbitrages
 
@@ -19,6 +19,14 @@ Arbitrages de Jules pendant la discussion (2026-10-08) :
 - **Types de séance** : oui (séance complète et débat simple ; le sondage n'a pas de table).
 - **Après la séance** : garder la **liste des liens**, **pas les images** (place), et les redonner notamment avec les sources collaboratives.
 
+Arbitrages du second tour (2026-10-08), après lecture de l'étude du partage d'écran :
+
+- « Partons plutôt sur des partages d'images, de captures d'écran, qu'on peut trouver dans son appareil ou copier directement à partir du presse-papiers. » → **le partage d'écran en direct est mis en pause** (§ 3 conservé pour mémoire, chantier 162c).
+- **Tables sans modérateur** : on ne propose pas le partage.
+- **Découpage** 162a / 162b / 162c : validé.
+- **Associations** : « oui, on leur ouvre cette possibilité ».
+- **Effacement des images** : « dès qu'on met la séance en closed ».
+
 ## 2. Ce qui existe déjà (vérifié dans le code et sur la base dev)
 
 - **Une source du document collaboratif = `title` + `url` (facultatif) + `content` (texte, facultatif)** (`session_sources`). Aucune image, aucun stockage de fichier : l'app n'utilise pas Supabase Storage, et aucun écran n'affiche d'image venue d'un lien.
@@ -26,7 +34,9 @@ Arbitrages de Jules pendant la discussion (2026-10-08) :
 - **Pas de document collaboratif dans une séance d'association** (chantier 135) — le partage « à la volée » (lien, image, écran) n'en dépend pas.
 - **Le chantier 132 (« proposer un vote ») est le modèle le plus proche** : table dédiée (`table_votes`), colonne piggyback `tables.active_vote_id`, gardes `is_table_moderator` / `is_table_participant` dans chaque RPC, propagation par le broadcast `tables` du canal `table:<table_id>` (déjà privé, chantier 59) + polling 5 s. Aucun nouveau topic Realtime nécessaire pour l'état du partage.
 
-## 3. Le partage d'écran (version « lourde ») — faisable, sur ordinateur uniquement
+## 3. Le partage d'écran (version « lourde ») — faisable, sur ordinateur uniquement — ⏸️ EN PAUSE (162c)
+
+> **Mis en pause par Jules le 2026-10-08** au profit des captures d'écran (§ 5). Cette section reste comme étude de faisabilité, à reprendre telle quelle si le besoin revient. Le fil de partage (§ 4) est conçu pour accueillir un type `screen` plus tard sans refonte.
 
 ### 3.1 Ce que permet le navigateur
 
@@ -86,7 +96,7 @@ Un seul mécanisme porte les trois formes de partage. Chaque élément du fil es
 | `collab_source` | une de **ses** sources du document collaboratif | téléphone ou ordinateur |
 | `link` | un lien collé + un titre court | téléphone ou ordinateur |
 | `image` | une capture d'écran (coller, glisser, ou choisir dans la galerie) + un titre court | téléphone ou ordinateur |
-| `screen` | un partage d'écran en direct | ordinateur seulement |
+| ~~`screen`~~ | un partage d'écran en direct — **en pause (162c)**, pas dans la contrainte `kind` de 162a/162b | ordinateur seulement |
 
 **Pas de texte libre** au-delà d'un titre court (≈ 80 caractères) : c'est ce qui empêche le fil de devenir un chat et d'ouvrir des débats parallèles.
 
@@ -114,7 +124,14 @@ Un seul mécanisme porte les trois formes de partage. Chaque élément du fil es
 
 **Alternative écartée** : faire transiter l'image par le broadcast Realtime (≤ 256 Ko sur le plan gratuit). Tous les clients de la table la recevraient avant l'accord du modérateur, et un arrivant tardif ne la verrait jamais.
 
-**Effacement des images** (consigne : ne pas les garder) : le fichier est supprimé à la fin du débat. La ligne `table_shares` reste, marquée « image non conservée ». Le moment exact et le mécanisme sont à arbitrer (§ 9, question 3).
+**Effacement des images — à la clôture de la séance (`closed`), arbitré par Jules.** La ligne `table_shares` reste, marquée « image non conservée » (`image_path` remis à NULL, `image_purged_at` posé).
+
+Mécanisme (vérifié sur la base dev le 2026-10-08) : **un fichier de Storage ne peut pas être supprimé par SQL** — `storage.objects` porte le trigger `protect_objects_delete` (`storage.protect_delete()`), qui refuse tout `DELETE` direct. La suppression passe donc par l'API de stockage, avec la clé `service_role`, côté serveur :
+- nouvelle Edge Function `purge-share-images`, appelée par `SuperadminScreen` juste après un passage réussi en `closed` (superadmin **et** association : elle vérifie `check_session_admin(p_password, session_id)` et `phase = 'closed'`) ;
+- **filet de sécurité** : à chaque appel, la fonction purge aussi les images de **toutes** les séances déjà closes qui en auraient encore (appel raté, onglet fermé trop tôt, séance close par une autre voie). La purge se rattrape donc à la clôture suivante, n'importe laquelle ;
+- `set_session_phase` refuse déjà de revenir en arrière depuis `closed` ? **À vérifier en 162b** (chantier 127, remise en phase antérieure) : si une séance close peut être rouverte, ses images sont perdues — c'est le comportement voulu, à dire dans la confirmation de clôture si le superadmin l'a déjà.
+
+Conséquence assumée : une séance qui n'est **jamais** clôturée garde ses images. Le plan gratuit (1 Go) laisse une large marge ; l'onglet séances du superadmin pourra signaler les séances anciennes non closes si ça devient un sujet.
 
 ## 6. Après la séance
 
@@ -125,29 +142,40 @@ Un seul mécanisme porte les trois formes de partage. Chaque élément du fil es
 
 ## 7. Types de séance et associations
 
-| | Fil de liens / images | Écran | Restitution après séance |
+| | Fil de liens / images | Écran (en pause) | Restitution après séance |
 |---|---|---|---|
-| Séance complète (`full`) | oui | oui | dans le document collaboratif |
-| Débat simple (`debate`) | oui | oui | dans le document collaboratif |
-| Sondage (`poll`) | non (pas de table) | non | — |
-| Association | **à trancher** (§ 9, question 2) | idem | pas de document collaboratif |
+| Séance complète (`full`) | oui | — | dans le document collaboratif |
+| Débat simple (`debate`) | oui | — | dans le document collaboratif |
+| Sondage (`poll`) | non (pas de table) | — | — |
+| Association | **oui** (Jules, 2026-10-08) — liens et images, pas de type `collab_source` | — | pas de document collaboratif : les liens restent en base, sans écran de restitution pour l'instant |
 
-**Table sans modérateur (`leaderless`)** : personne ne peut accepter. Proposition, conforme à la règle du chantier 152 : le bouton « Partager une source » n'apparaît pas tant que la table n'a pas de modérateur.
+Pour les associations, rien de spécifique côté serveur : les gardes sont `is_table_participant` / `is_table_moderator`, qui valent pour toute table, et la purge passe par `check_session_admin` (accepte le jeton `org_…` pour ses séances). Côté écran, seul le choix « Une de mes sources collaboratives » est masqué (`useSessionOrganizationName`, comme le reste du document collaboratif).
+
+**Table sans modérateur (`leaderless`)** — arbitré : **pas de partage**. Le bouton « Partager une source » n'apparaît pas tant que la table n'a pas de modérateur (règle du chantier 152), et `request_table_share` refuse côté serveur (`table_has_moderator`).
 
 ## 8. Ce qui devra être vérifié sur appareils réels
 
-Le Browser pane ne sait pas jouer deux appareils ni un sélecteur d'écran natif. Il faudra mettre dans `A_VERIFIER.md` :
-- partage d'écran ordinateur → téléphone sur le Wi-Fi d'un lieu réel ;
-- réception sur iPhone (Safari et Messenger) ;
-- réception en 4G ;
-- deux tables qui partagent en même temps.
+Le Browser pane joue un participant et un modérateur dans deux onglets (fil, accepter/refuser, carte, purge à la clôture). Il ne sait pas jouer : le collage d'une image depuis le presse-papiers d'un vrai téléphone, le choix dans la galerie sur iPhone/Android, le navigateur intégré de Messenger → `A_VERIFIER.md`.
 
-## 9. Questions encore ouvertes
+(Pour 162c, s'il est repris : partage d'écran ordinateur → téléphone sur le Wi-Fi d'un lieu réel, réception iPhone Safari/Messenger, réception en 4G, deux tables qui partagent en même temps.)
 
-1. **Découpage de la réalisation.** Proposition : **162a** fil de partage + liens + sources collaboratives + restitution ; **162b** images ; **162c** partage d'écran.
-2. **Associations** : le fil de partage (liens, images, écran) leur est-il ouvert ? Par défaut, la règle est « non » (fail-closed).
-3. **Effacement des images** : à quel moment ? (a) quand la séance quitte `debating` ; (b) quand le modérateur retire l'image de l'écran ; (c) au bout de 24 h. Côté technique, la suppression d'un fichier de Storage passe par l'API de stockage (pas par une simple requête SQL) : on la déclencherait depuis le navigateur du superadmin au changement de phase, avec un filet de sécurité.
-4. **Compte Cloudflare** (pour le relais du partage d'écran) : d'accord pour en ouvrir un ? Gratuit jusqu'à 1 000 Go/mois, une carte bancaire peut être demandée à l'inscription.
+## 9. Décisions (2026-10-08) et réalisation
+
+| Question | Décision de Jules |
+|---|---|
+| Version lourde (écran en direct) | étudiée (§ 3), **mise en pause** au profit des captures d'écran |
+| Découpage | **162a** puis **162b** ; **162c** en pause |
+| Tables sans modérateur | pas de partage |
+| Associations | ouvert (liens et images) |
+| Effacement des images | à la clôture (`closed`) |
+| Moment | à tout moment du débat |
+| Types de séance | séance complète et débat simple ; pas le sondage |
+
+**162a — Fil de partage de la table : liens et sources collaboratives.** Migration : `table_shares` (sans `image_path` ou avec, inutilisé), `tables.active_share_id`, RPC `request_table_share` / `decide_table_share` / `end_table_share` / `list_table_shares`, broadcast `tables` + `table_shares` sur le canal de table. Écrans : `ParticipantToolsButton` (« Partager une source »), fenêtre de partage (choix d'une de ses sources collaboratives ou lien collé + titre), carte et fil dans `ParticipantView`, demandes en attente dans `ModeratorView` / `ModeratorToolsButton`, état dans `TableContext`. Restitution « Montrées pendant les débats » dans `CollabDocScreen`. URL validée par `isSafeUrl` côté client **et** contrainte SQL (comme le chantier 52).
+
+**162b — Captures d'écran.** Bucket privé `table-shares` + politiques de stockage, réduction de l'image dans le navigateur, collage / glisser / galerie, aperçu chez le modérateur, Edge Function `purge-share-images` appelée à la clôture. Dépend de 162a.
+
+**162c — Écran en direct.** En pause. Si repris : compte Cloudflare à ouvrir par Jules (relais TURN), Edge Function d'identifiants TURN, architecture A du § 3.3.
 
 ## Sources
 
