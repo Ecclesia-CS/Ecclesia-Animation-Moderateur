@@ -1126,6 +1126,8 @@ export async function getMyTableAssignment(
     table_id: string | null
     join_code: string | null
     created_at: string
+    debate_ended_at?: string | null
+    effective_phase?: string | null
   }
   return {
     id:           raw.id,
@@ -1135,6 +1137,7 @@ export async function getMyTableAssignment(
     table_id:     raw.table_id,
     created_at:   raw.created_at,
     tables:       raw.join_code ? { join_code: raw.join_code } : null,
+    debate_ended_at: raw.debate_ended_at ?? null,
   }
 }
 
@@ -1146,6 +1149,35 @@ export interface AssignmentWithJoinCode {
   table_id: string | null
   created_at: string
   tables: { join_code: string } | null
+  /**
+   * Chantier 161 — fin du débat de la table de ce membre (NULL : elle débat,
+   * ou RPC d'avant le 161a). La phase effective se calcule côté front avec
+   * effectiveTablePhase(session, assignment) — même règle que le SQL.
+   */
+  debate_ended_at: string | null
+}
+
+/** Chantier 161 — le modérateur titulaire termine le débat de sa table. */
+export async function endTableDebate(tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('end_table_debate', { p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
+}
+
+/** Chantier 161 — le modérateur titulaire rouvre le débat de sa table (séance encore en débat). */
+export async function reopenTableDebate(tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('reopen_table_debate', { p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
+}
+
+/** Chantier 161 — même chose côté administration (onglet Tables). */
+export async function endTableDebateAdmin(password: string, tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('end_table_debate_admin', { p_password: password, p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function reopenTableDebateAdmin(password: string, tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('reopen_table_debate_admin', { p_password: password, p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
 }
 
 export async function moveMemberToGroup(

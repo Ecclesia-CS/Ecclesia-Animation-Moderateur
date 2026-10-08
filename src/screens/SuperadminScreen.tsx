@@ -42,6 +42,8 @@ import {
   regenerateReclaimCodeAdmin,
   deleteSessionMemberAdmin,
   assignPendingModerators,
+  endTableDebateAdmin,
+  reopenTableDebateAdmin,
 } from '../lib/voting'
 import type { DeleteMemberResult, AssertionAdmin,SessionVotingStats, SessionMemberAdmin, AllocationInputs, AssignPendingModeratorsResult } from '../lib/voting'
 import type { VoteResult } from '../lib/types'
@@ -1891,6 +1893,9 @@ function SessionDetail({
   // supprimés : la création de table vit désormais dans la vue Groupes, et
   // plus rien ne produit de table hors séance à rattacher.
   const [attachedTables,  setAttachedTables]  = useState<SessionTableRow[]>([])
+  // Chantier 161 — terminer / rouvrir le débat d'une table depuis l'onglet Tables
+  // (modérateur parti, téléphone mort). Mêmes règles serveur que côté modérateur.
+  const [tableDebateConfirm, setTableDebateConfirm] = useState<{ tableId: string; tableNumber: number; action: 'end' | 'reopen' } | null>(null)
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
@@ -3703,6 +3708,21 @@ function SessionDetail({
                         <button onClick={() => setAssignError(null)} className="text-red-400 hover:text-red-600">✕</button>
                       </div>
                     )}
+                    {/* Chantier 161 — avancement du débat, information seule : la
+                        séance n'avance jamais toute seule (arbitrage de Jules). */}
+                    {currentSession.phase === 'debating' && !isOrg && attachedTables.length > 0 && (() => {
+                      const endedCount = attachedTables.filter(t => t.debate_ended_at).length
+                      const allEnded = endedCount === attachedTables.length
+                      return (
+                        <div className={`p-3 rounded-xl text-sm border ${allEnded
+                          ? 'bg-green-50 border-green-200 text-green-800'
+                          : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+                          {allEnded
+                            ? `✓ Toutes les tables ont terminé leur débat — vous pouvez ${sessionType === 'debate' ? 'clôturer la séance' : 'passer en Post-vote'}.`
+                            : `${endedCount} / ${attachedTables.length} table${attachedTables.length > 1 ? 's ont' : ' a'} terminé ${attachedTables.length > 1 ? 'leur' : 'son'} débat`}
+                        </div>
+                      )
+                    })()}
                     {groups.length > 0 && <MemberBadgeLegend />}
                     {groups.length === 0 && !groupsLoading ? (
                       <p className="text-sm text-gray-400 py-4 text-center">Aucun groupe créé</p>
@@ -3746,6 +3766,33 @@ function SessionDetail({
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-sm font-bold text-indigo-700">Table N°{g.table_number}</span>
                               <span className="text-xs text-gray-400">({g.members.length} membre{g.members.length !== 1 ? 's' : ''})</span>
+                              {/* Chantier 161 — état du débat de cette table */}
+                              {currentSession.phase === 'debating' && !isOrg && g.table_id && (() => {
+                                const endedAt = attachedTables.find(t => t.id === g.table_id)?.debate_ended_at ?? null
+                                return endedAt ? (
+                                  <>
+                                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded shrink-0">
+                                      ✓ débat terminé à {new Date(endedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <button
+                                      onClick={() => setTableDebateConfirm({ tableId: g.table_id!, tableNumber: g.table_number, action: 'reopen' })}
+                                      className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                                    >
+                                      ↺ Rouvrir
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded shrink-0">● en débat</span>
+                                    <button
+                                      onClick={() => setTableDebateConfirm({ tableId: g.table_id!, tableNumber: g.table_number, action: 'end' })}
+                                      className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+                                    >
+                                      🏁 Terminer
+                                    </button>
+                                  </>
+                                )
+                              })()}
                               {/* Chantier 121 — nombre d'actifs, ce qui guide les choix du superadmin (seuils du chantier 91) */}
                               {(() => {
                                 const withProfile = g.members.filter(m => m.member_id && memberProfiles.has(m.member_id))
@@ -4620,6 +4667,32 @@ function SessionDetail({
           confirmLabel="Supprimer"
           onConfirm={handleDeleteSource}
           onCancel={() => setDeleteSourceConfirm(null)}
+        />
+      )}
+
+      {tableDebateConfirm && (
+        <ConfirmModal
+          title={tableDebateConfirm.action === 'end'
+            ? `Terminer le débat de la table N°${tableDebateConfirm.tableNumber} ?`
+            : `Rouvrir le débat de la table N°${tableDebateConfirm.tableNumber} ?`}
+          body={tableDebateConfirm.action === 'end'
+            ? (sessionType === 'debate'
+                ? 'Toute la table, modérateur compris, quitte le débat et remplit le questionnaire de fin. Les autres tables continuent.'
+                : 'Toute la table, modérateur compris, quitte le débat : questionnaire, puis résultats et revote. Les autres tables continuent.')
+            : 'La table revient en débat ; chacun voit un bandeau pour y revenir. Les revotes faits entre-temps sont conservés.'}
+          confirmLabel={tableDebateConfirm.action === 'end' ? 'Terminer le débat' : 'Rouvrir'}
+          onCancel={() => setTableDebateConfirm(null)}
+          onConfirm={async () => {
+            const c = tableDebateConfirm
+            setTableDebateConfirm(null)
+            try {
+              if (c.action === 'end') await endTableDebateAdmin(getPwd()!, c.tableId)
+              else await reopenTableDebateAdmin(getPwd()!, c.tableId)
+              await load()
+            } catch (e) {
+              setAssignError(extractErr(e))
+            }
+          }}
         />
       )}
 

@@ -12,7 +12,8 @@ import type { AssignmentWithJoinCode } from '../lib/voting'
 import PhaseIndicator from '../components/PhaseIndicator'
 import PostVoteScreen from './PostVoteScreen'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
-import { isConsentPoll, sessionTypeOf } from '../lib/phaseLabels'
+import { effectiveTablePhase, isConsentPoll, sessionTypeOf, tableDebateEnded } from '../lib/phaseLabels'
+import TableDebateEndedPanel from '../components/voting/TableDebateEndedPanel'
 import ConsentResultsScreen from './ConsentResultsScreen'
 
 // ── Constantes ────────────────────────────────────────────────
@@ -284,6 +285,11 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
 
   const consensus = data?.consensus ?? []
 
+  // Chantier 161 — phase de la table du membre : post-vote dès que son
+  // modérateur a terminé le débat, même si la séance débat encore.
+  const phase = effectiveTablePhase(session, assignment ?? null) ?? session.phase
+  const ownTableEnded = tableDebateEnded(session, assignment ?? null)
+
   if (showPostVote) {
     return (
       <PostVoteScreen
@@ -299,7 +305,7 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
 
         <div>
-          <div className="mb-2"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
+          <div className="mb-2"><PhaseIndicator phase={phase} sessionType={sessionTypeOf(session)} /></div>
           <h1 className="text-xl font-bold text-gray-900">
             {sessionTypeOf(session) === 'poll' ? 'Votre position dans le sondage' : 'Votre position dans le débat'}
           </h1>
@@ -314,8 +320,13 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
 
         {/* Chantier 69 — le débat a peut-être fait bouger les positions : proposer de revoter.
             Chantier 89 — n'a de sens que pendant la phase 'post_voting' : une fois la séance
-            passée en 'closed', le superadmin a fermé la fenêtre de revote. */}
-        {session.phase === 'post_voting' && (
+            passée en 'closed', le superadmin a fermé la fenêtre de revote.
+            Chantier 161 — phase effective : aussi à une table qui a terminé avant les autres. */}
+        {ownTableEnded && (
+          <TableDebateEndedPanel session={session} tableId={assignment?.table_id ?? null} initiallyEnded />
+        )}
+
+        {phase === 'post_voting' && (
           <section className="bg-indigo-600 rounded-2xl px-5 py-5 text-center space-y-2">
             <p className="text-white text-sm font-semibold">Le débat a peut-être changé ton avis.</p>
             <p className="text-indigo-100 text-xs">
@@ -349,6 +360,13 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
 
         {!loading && (
           <>
+            {/* Chantier 161 — analyse figée tant que d'autres tables débattent :
+                ces camps sont ceux d'avant le débat. */}
+            {ownTableEnded && selfGroupId !== null && (
+              <p className="text-xs text-gray-400 text-center -mb-2">
+                Camps calculés avant le débat — ils pourront être recalculés à la fin de la séance.
+              </p>
+            )}
             {/* ── Carte de groupe personnelle ─────────────────────
                 N'affiche la carte que si le participant appartient réellement à un camp
                 d'opinion (selfGroupId !== null, càd ≥1 vote pris en compte par l'analyse PCA).

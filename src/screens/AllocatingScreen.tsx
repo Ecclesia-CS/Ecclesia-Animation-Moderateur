@@ -18,6 +18,7 @@ import DocNudge from '../components/voting/DocNudge'
 import QuitLink from '../components/QuitLink'
 import PhaseIndicator from '../components/PhaseIndicator'
 import { hasQuestionnaireResponse, assertSeated } from '../lib/voting'
+import { tableDebateEnded } from '../lib/phaseLabels'
 
 interface AllocatingScreenProps {
   session: Session
@@ -148,6 +149,17 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       .then(data => { if (data) setAssignment(data as AssignmentWithTable) })
       .catch(() => { /* ignore */ })
   }, [currentSession.phase, session.id])
+
+  // ── Chantier 161 — la table du membre a terminé son débat ─────────
+  // La séance débat encore, mais sa table est passée au questionnaire puis aux
+  // résultats : le routeur #session/ sait déjà enchaîner les deux (et propose
+  // la réouverture au modérateur). Pas de bouton « Rejoindre » vers une table
+  // que le serveur refuserait de toute façon (trigger participants_guard_ended_table).
+  useEffect(() => {
+    if (tableDebateEnded(currentSession, assignment)) {
+      window.location.hash = '#session/' + session.join_code
+    }
+  }, [currentSession, assignment, session.join_code])
 
   // ── Polling de secours — allocating ou debating sans join_code/assignment ──
   useEffect(() => {

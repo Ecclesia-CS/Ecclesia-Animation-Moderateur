@@ -101,6 +101,11 @@ export interface Table {
   // exclu, totalement séparé). Jamais remis à NULL à la clôture : pointe toujours
   // le dernier vote, actif ou clôturé, tant qu'aucun nouveau n'a été créé.
   active_vote_id: string | null
+  // Chantier 161 — le modérateur a terminé le débat de cette table avant les
+  // autres (NULL = la table débat). Lire via effectiveTablePhase, jamais brut.
+  // Optionnel : un objet table construit avant ce chantier (RPC de jointure)
+  // n'a pas la colonne.
+  debate_ended_at?: string | null
 }
 
 // Chantier 132 — outil "proposer un vote" côté modérateur (table-scoped, séparé

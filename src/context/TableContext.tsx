@@ -11,6 +11,8 @@ import {
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
+import { effectiveTablePhase } from '../lib/phaseLabels'
+import { endTableDebate as endTableDebateRpc } from '../lib/voting'
 import { privateChannel } from '../lib/realtime'
 import { useToast } from './ToastContext'
 import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
@@ -26,6 +28,13 @@ export interface CorrectTurnParams {
 interface TableCtxValue {
   table: Table
   session: Session | null
+  /**
+   * Chantier 161 — phase vue par cette table : celle de la séance, sauf si le
+   * modérateur a terminé le débat de la table (post_voting en séance complète,
+   * closed en débat simple). Tout test de fin de débat lit celle-ci, pas
+   * `session.phase`. NULL hors séance.
+   */
+  effectivePhase: Session['phase'] | null
   participants: Participant[]
   queueLong: QueueEntry[]
   queueInteractive: QueueEntry[]
@@ -52,6 +61,8 @@ interface TableCtxValue {
   resetNextTopicVotes(): Promise<void>
   openTableVote(question: string, options: string[]): Promise<string>
   closeActiveTableVote(voteId: string): Promise<void>
+  /** Chantier 161 — le modérateur titulaire termine le débat de sa table. */
+  endTableDebate(): Promise<void>
 }
 
 type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
@@ -633,6 +644,21 @@ export function TableProvider({
     broadcast(['tables'])
   }, [broadcast])
 
+  // Chantier 161 — garde serveur is_table_moderator (end_table_debate). Le
+  // questionnaire de la table est forcé dans la même transaction ; la mise à
+  // jour locale évite d'attendre l'UPDATE Realtime pour basculer l'écran.
+  const endTableDebate = useCallback(async () => {
+    await endTableDebateRpc(tableId)
+    const now = new Date().toISOString()
+    setTable(prev => prev ? { ...prev, debate_ended_at: now, questionnaire_forced_at: now } : prev)
+    broadcast(['tables'])
+  }, [tableId, broadcast])
+
+  const effectivePhase = useMemo(
+    () => effectiveTablePhase(session, table),
+    [session, table],
+  )
+
   // ── Render ────────────────────────────────────────────────────
 
   const myParticipant = useMemo(
@@ -669,6 +695,7 @@ export function TableProvider({
       value={{
         table: table!,
         session,
+        effectivePhase,
         participants,
         queueLong,
         queueInteractive,
@@ -694,6 +721,7 @@ export function TableProvider({
         resetNextTopicVotes,
         openTableVote,
         closeActiveTableVote,
+        endTableDebate,
       }}
     >
       {children}

@@ -45,6 +45,7 @@ export default function ModeratorView() {
     reorderQueueEntry,
     changeQueueType,
     leaveTable,
+    effectivePhase,
   } = useTable()
 
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -770,11 +771,21 @@ export default function ModeratorView() {
       {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini).
           Chantier 112 — masqué tant que le questionnaire forcé est actif, sinon il
           recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir. */}
-      {(session?.phase === 'closed' || session?.phase === 'post_voting') &&
-        !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now()) && (
+      {/* Chantier 161 — fin de la table seule (« Terminer le débat de ma table ») :
+          le modérateur sort avec les autres, tout de suite — le masquage du 112 ne
+          vaut que pour la fin de séance, où il peut encore devoir annuler le forçage. */}
+      {session && (effectivePhase === 'closed' || effectivePhase === 'post_voting') &&
+        (session.phase === 'debating' ||
+          !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now())) && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
-          <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
-          <p className="text-gray-500">La séance a été clôturée par le superadmin.</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {session.phase === 'debating' ? 'Le débat de votre table est terminé' : 'La séance est terminée'}
+          </p>
+          <p className="text-gray-500">
+            {session.phase === 'debating'
+              ? "Tant que la séance est en débat, vous pourrez le rouvrir depuis l'écran suivant."
+              : 'La séance a été clôturée par le superadmin.'}
+          </p>
           {session.join_code && (
             <button
               onClick={() => {

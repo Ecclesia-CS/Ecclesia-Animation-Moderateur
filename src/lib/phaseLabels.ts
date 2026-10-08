@@ -92,3 +92,35 @@ export function participantPhaseStep(phase: Session['phase'] | null | undefined,
   if (!phase) return null
   return PARTICIPANT_STEPS_BY_TYPE[type].find(s => s.phase === phase) ?? null
 }
+
+/**
+ * Chantier 161 — phase effective d'une table (et donc de ceux qui y sont
+ * affectés). Une table peut terminer son débat avant les autres
+ * (`tables.debate_ended_at`, posé par le modérateur) : tant que la séance est
+ * en `debating`, sa phase devient `post_voting` (séance complète :
+ * questionnaire, résultats, revote) ou `closed` (débat simple : questionnaire
+ * puis écran de fin). Dès que la séance avance, c'est elle qui l'emporte.
+ *
+ * Miroir exact de `table_effective_phase` (SQL, migration
+ * 20261008_chantier161a_tables_desolidarisees.sql), qui fonde les gardes
+ * serveur (`cast_vote`, `get_results_map`) : modifier l'un sans l'autre fait
+ * afficher un écran que le serveur refuse.
+ */
+export function effectiveTablePhase(
+  session: { phase: Session['phase']; session_type?: SessionType | null } | null | undefined,
+  table: { debate_ended_at?: string | null } | null | undefined,
+): Session['phase'] | null {
+  if (!session) return null
+  if (session.phase === 'debating' && table?.debate_ended_at) {
+    return sessionTypeOf(session) === 'debate' ? 'closed' : 'post_voting'
+  }
+  return session.phase
+}
+
+/** Chantier 161 — vrai si la table a terminé son débat alors que la séance débat encore. */
+export function tableDebateEnded(
+  session: { phase: Session['phase'] } | null | undefined,
+  table: { debate_ended_at?: string | null } | null | undefined,
+): boolean {
+  return session?.phase === 'debating' && !!table?.debate_ended_at
+}

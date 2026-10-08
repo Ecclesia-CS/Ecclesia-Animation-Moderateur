@@ -13,6 +13,8 @@ import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorVoteModal from './ModeratorVoteModal'
+import ConfirmModal from './ConfirmModal'
+import { sessionTypeOf } from '../lib/phaseLabels'
 
 interface Props {
   className?: string
@@ -44,7 +46,7 @@ function isQuestionnaireComplete(r: QuestionnaireResponse | null): boolean {
 // juste par un canal différent) plutôt que Camps & assertions (analyse, pas
 // gestion de présence) ou Personnel (outils individuels du modérateur).
 export default function ModeratorToolsButton({ className = '', onError }: Props) {
-  const { table, forceQuestionnaire, cancelForceQuestionnaire } = useTable()
+  const { table, session, forceQuestionnaire, cancelForceQuestionnaire, endTableDebate } = useTable()
   const [panelOpen,     setPanelOpen]     = useState(false)
   const [campsOpen,     setCampsOpen]     = useState(false)
   const [assertionsOpen, setAssertionsOpen] = useState(false)
@@ -55,6 +57,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
   const [codesOpen,     setCodesOpen]     = useState(false)
   const [voteToolOpen,  setVoteToolOpen]  = useState(false)
+  const [endDebateConfirm, setEndDebateConfirm] = useState(false)
   // Chantier 135 — débat d'une association : ni camps, ni assertions, ni
   // questionnaire Ecclesia.
   const orgName = useSessionOrganizationName(table.session_id)
@@ -143,6 +146,13 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   }
 
   const questionnaireDone = checkDone && isQuestionnaireComplete(savedResponse)
+
+  const sessionType = sessionTypeOf(session)
+  const isSimpleDebate = sessionType === 'debate'
+  const canEndTableDebate =
+    !!table.session_id && !orgName && !session?.organization_id &&
+    session?.phase === 'debating' && !table.debate_ended_at &&
+    (sessionType === 'full' || sessionType === 'debate')
 
   const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors'
   const sectionLabelClass = 'pt-3 pb-1 px-5 text-xs font-semibold text-gray-400 uppercase tracking-wide'
@@ -266,6 +276,19 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 ? 'Annuler forçage questionnaire'
                 : 'Forcer questionnaire'}
             </button>
+            )}
+
+            {/* Chantier 161 — la table termine son débat sans attendre les autres.
+                Séance complète ou débat simple en débat, hors association ;
+                garde serveur is_table_moderator (end_table_debate). */}
+            {canEndTableDebate && (
+              <button
+                onClick={() => { setPanelOpen(false); setEndDebateConfirm(true) }}
+                className={linkClass}
+              >
+                <span className="w-4 text-center text-gray-400 shrink-0">🏁</span>
+                Terminer le débat de ma table
+              </button>
             )}
 
             <div className={dividerClass} />
@@ -397,6 +420,21 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       {codesOpen && <ParticipantCodesModal onClose={() => setCodesOpen(false)} />}
 
       {correctOpen && <CorrectTurnModal onClose={() => setCorrectOpen(false)} />}
+
+      {endDebateConfirm && (
+        <ConfirmModal
+          title="Terminer le débat de ma table ?"
+          body={isSimpleDebate
+            ? "Toute la table, vous compris, quitte le débat : chacun remplit le questionnaire de fin. Les autres tables continuent. Vous pourrez rouvrir le débat de votre table tant que la séance est en débat."
+            : "Toute la table, vous compris, quitte le débat : chacun remplit le questionnaire, puis voit ses résultats et peut revoter. Les autres tables continuent. Vous pourrez rouvrir le débat de votre table tant que la séance est en débat."}
+          confirmLabel="Terminer le débat"
+          onCancel={() => setEndDebateConfirm(false)}
+          onConfirm={() => {
+            setEndDebateConfirm(false)
+            endTableDebate().catch(handleError)
+          }}
+        />
+      )}
 
       {notesOpen && (
         <NotesModal tableId={table.id} onClose={() => setNotesOpen(false)} />

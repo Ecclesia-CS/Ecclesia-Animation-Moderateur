@@ -29,6 +29,7 @@ export default function ParticipantView() {
     endTurnAndAdvance,
     claimFloor,
     setNextTopicVote,
+    effectivePhase,
   } = useTable()
 
   const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
@@ -483,10 +484,14 @@ export default function ParticipantView() {
           devient vraie (chantier 39, déplacée en post_voting au chantier 89), et les
           deux overlays sont en z-50 superposés. 'post_voting' redirige déjà vers les
           résultats (avec revote possible) ; 'closed' n'en est que la suite définitive. */}
-      {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
+      {/* Chantier 161 — phase effective : la fin peut venir de la table seule
+          (le modérateur a terminé son débat) pendant que la séance débat encore. */}
+      {session && (effectivePhase === 'closed' || effectivePhase === 'post_voting') && !forcedQOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
-          <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} />
-          <p className="text-2xl font-bold text-gray-800">La séance est terminée</p>
+          <PhaseIndicator phase={effectivePhase} sessionType={sessionTypeOf(session)} />
+          <p className="text-2xl font-bold text-gray-800">
+            {session.phase === 'debating' ? 'Le débat de votre table est terminé' : 'La séance est terminée'}
+          </p>
           <p className="text-gray-500">Merci pour votre participation.</p>
           {session.join_code && (
             <button

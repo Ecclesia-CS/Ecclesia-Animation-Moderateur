@@ -13,6 +13,8 @@ export type SessionTableRow = {
   leaderless?: boolean
   /** Chantier 95 — numéro de table au sein de la séance, NULL hors séance. */
   table_number?: number | null
+  /** Chantier 161 — fin du débat de cette table, NULL si elle débat. */
+  debate_ended_at?: string | null
 }
 
 export type TableParticipantRow = {

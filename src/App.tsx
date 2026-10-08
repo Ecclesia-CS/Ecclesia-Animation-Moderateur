@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { tableStore } from './lib/storage'
 import type { TableResult } from './lib/supabase'
+import { effectiveTablePhase } from './lib/phaseLabels'
 import { getSessionById } from './lib/sessions'
 import { TableProvider } from './context/TableContext'
 import { useToast } from './context/ToastContext'
@@ -154,13 +155,17 @@ export default function App() {
           // (table hors Bloc C) — dans ce cas, aucune séance à revérifier.
           const { data: tblRow } = await supabase
             .from('tables')
-            .select('session_id')
+            .select('session_id, debate_ended_at')
             .eq('id', stored.tableId)
             .maybeSingle()
-          const sessionId = (tblRow as { session_id: string | null } | null)?.session_id ?? null
+          const tbl = tblRow as { session_id: string | null; debate_ended_at?: string | null } | null
+          const sessionId = tbl?.session_id ?? null
           const sess = sessionId ? await getSessionById(sessionId).catch(() => null) : null
+          // Chantier 161 — phase de LA TABLE : une table dont le modérateur a
+          // terminé le débat sort de TableView même si la séance débat encore.
+          const tablePhase = effectiveTablePhase(sess, tbl)
 
-          if (sessionId === null || sess?.phase === 'debating') {
+          if (sessionId === null || tablePhase === 'debating') {
             // Même auth.uid → restauration directe sans RPC
             setPhase({ type: 'table', tableId: stored.tableId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
             return
@@ -172,7 +177,7 @@ export default function App() {
           // celui de `sess`, pas celui du tableStore.
           // Chantier 145 — débat fini (post_voting/closed) : on renvoie vers les
           // résultats de la séance (routeur #session/), pas vers le vote.
-          if (sess?.join_code && (sess.phase === 'post_voting' || sess.phase === 'closed')) {
+          if (sess?.join_code && (tablePhase === 'post_voting' || tablePhase === 'closed')) {
             window.location.hash = '#session/' + sess.join_code
             setPhase({ type: 'entry', userId })
             return
