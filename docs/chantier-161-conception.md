@@ -8,6 +8,23 @@
 
 Arbitrages déjà rendus : **voie A** (bouton « Terminer le débat de ma table », la séance reste `debating` pour les autres) ; la voie B (phase propre à chaque table, phase de séance dérivée) seulement plus tard et si utile ; réouverture possible tant que la séance n'est pas close (mécanisme à proposer) ; superadmin **informé** quand toutes les tables ont fini, sans avancée automatique ; **analyse globale figée** ; séances complètes seulement par défaut.
 
+## Arbitrages de Jules (2026-10-08) — **font foi sur le reste de la note**
+
+| # | Question | Réponse | Conséquence |
+|---|---|---|---|
+| 1 | Modes de fin | **Un seul mode : post-vote** | Pas de colonne `debate_end_mode` : seule `tables.debate_ended_at`. En débat simple (pas de post-vote), la fin de table mène au questionnaire puis à l'écran de fin — phase effective `closed` |
+| — | Débat simple | « en séance débat simple on peut faire ça aussi, pourquoi pas » | **Inclus** (séances `full` et `debate`). Associations : **exclues** (fail-closed, règle du 135 ; une seule table et pas de questionnaire) — la RPC refuse `organization_id IS NOT NULL` |
+| — | Superadmin | « sur l'onglet Tables, même accordéon Groupes, on voit l'état d'avancement des tables » | **Pas de nouvel accordéon** : l'état de chaque table (en débat / terminée à HH:MM, bouton Rouvrir) s'affiche dans l'accordéon Groupes existant, avec le compteur « N / M tables ont terminé » en tête |
+| 2 | Revotes d'une table terminée | Oui : écrits tout de suite, exclus de l'analyse « avant post-vote » | Comme proposé (§ Analyse) |
+| 3 | Réouverture | Le modérateur peut revenir au débat **tant que la séance est en Débat** ; séance en Post-vote ou close → **aucun pouvoir** | Comme proposé : `reopen_table_debate` refuse si `sessions.phase <> 'debating'` |
+| 4 | Carte des résultats | **Oui, aussi en post-vote de séance** | `get_results_map` ouvert en `post_voting` de séance **et** pour un membre dont la table est terminée |
+| — | Limites du post-vote | « mêmes limitations que pour les votes présentiels et distanciels » (verrou des propositions, « voter d'abord », plafond) | **Déjà le cas**, vérifié le 2026-10-08 : `PostVoteScreen` appelle `canProposeAssertion` (chantier 153) et `submit_assertion` applique les trois règles côté serveur sans condition de phase. Rien à ajouter ; à rejouer au navigateur pour une table terminée |
+| 5 | Droit `UPDATE` sur `tables` | « dev est introuvable » ; découpage laissé à mon choix | **Vérifié sur prod le 2026-10-08 : prod n'a pas le trou** — seul `questionnaire_forced_at` y est modifiable par `anon`/`authenticated`. C'est **dev qui a dérivé** (droits larges sur les 13 colonnes). Réalignement de dev sur prod inclus dans la migration 161a (sans effet sur prod) |
+| 6 | Bug `pre_closure` | « il est vraiment important de séparer les votes avant et après » | Corrigé dans le 161a (il réécrit déjà `cast_vote`) |
+| — | Garde de phase sur `cast_vote` | « d'accord » | Phases admises : `pre_voting`, `voting`, `allocating` (l'écran d'allocation dit « tu peux encore voter »), `post_voting` de séance, et `debating` **seulement** pour un membre dont la table est terminée. Refus en `draft`, en débat à une table qui débat, et en `closed` (« la clôture coupe le revote »). **Généralisation proposée à Jules** : même garde sur `submit_assertion` |
+
+**Découpage retenu** : deux étapes, chacune commitée et vérifiée avant la suivante — **161a** (migration : colonne, RPC, gardes, correctif `pre_closure`, réalignement des droits de dev) puis **161b** (écrans participant, modérateur, superadmin). Le 161a seul ne change que deux choses visibles, toutes deux voulues : la carte des résultats s'affiche dès le post-vote de séance, et un vote envoyé hors des phases admises est refusé (aucun écran actuel n'en envoie). Il peut donc être mergé dans `dev` sans attendre le 161b.
+
 ## Verdict
 
 **Pertinent et faisable sans nouvelle phase de séance**, en ~1 migration et une dizaine d'écrans touchés, à condition d'introduire **une seule notion** : la *phase effective* d'une table, calculée au même endroit côté SQL et côté front (comme `session_type_allows_phase` / `phaseSequenceFor`). Tout ce qui teste aujourd'hui `session.phase === 'post_voting'` pour un participant assis à une table doit tester cette phase effective à la place — c'est là qu'est le travail, pas dans le bouton.
