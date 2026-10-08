@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-07** (le 158 est fait ; ajout des chantiers 1
 
 ## Chantiers en cours
 
+> **EN COURS depuis le 2026-10-08 — chantier 162** (conception : partage de sources avec sa table), branche `claude/chantier-162-f7dcb4`. Fichier touché : `docs/chantier-162-conception.md` (nouveau) uniquement — **aucun fichier de `src/`, aucune migration**. Discussion interactive avec Jules en cours.
+
 > **Le 2026-10-07, le chantier 160 est mergé dans `dev`** (sondage en mode « vote par consentement », vocabulaire « option » compris) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 160. Migration `20261007_chantier160_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après les 134/135**. Entrée « en cours » retirée au merge.
 
 > **Le 2026-10-07, le chantier 159 est mergé dans `dev`** (accordéon « Participants inscrits » en débat simple — haut de l'onglet Tables — et en sondage — bas de « En direct ») — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 159. Front seul, **aucune migration**. **Le 160 peut démarrer.** Entrée « en cours » retirée au merge.
