@@ -4,7 +4,7 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-10-07** (le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
+Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b/162c ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
 
 ## Chantiers en cours
 
@@ -12,6 +12,8 @@ Dernière mise à jour : **2026-10-07** (le 158 est fait ; ajout des chantiers 1
 **Branche** : `claude/chantier-161-913a43` · **Depuis** : 2026-10-08 · **Fichiers touchés** : `supabase/migrations/20261008_chantier161a_*.sql` (nouveau) ; RPC réécrites : `cast_vote`, `get_all_votes_for_analysis`, `set_session_phase`, `get_results_map`, `get_my_table_assignment`, `assign_least_filled_table`, `join_table`, `force_session_questionnaire` ; docs. Le 161b (écrans `App.tsx`, `VoteScreen`, `SessionRouterScreen`, `ResultsMapScreen`, `ParticipantView`, `ModeratorView`, `AllocatingScreen`, `SuperadminScreen`…) suivra.
 
 > **Le 2026-10-08, la conception du chantier 161 est livrée** (`docs/chantier-161-conception.md`, aucun fichier de `src/` ni migration) — **6 questions en attente d'arbitrage de Jules** avant la réalisation (161a socle serveur, 161b parcours). Entrée « en cours » retirée.
+
+> **Le 2026-10-08, la conception du chantier 162 est arbitrée** (partage de sources avec sa table) — voir `docs/chantier-162-conception.md` et `docs/chantiers.md`. Docs seules, aucune migration. Réalisation découpée en **162a**, **162b** et **162c (en pause)** ci-dessous. Entrée « en cours » retirée.
 
 > **Le 2026-10-07, le chantier 160 est mergé dans `dev`** (sondage en mode « vote par consentement », vocabulaire « option » compris) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 160. Migration `20261007_chantier160_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après les 134/135**. Entrée « en cours » retirée au merge.
 
@@ -227,12 +229,27 @@ Points d'attention : ajouter `poll_mode` au `GRANT SELECT` restreint d'`anon` su
 
 À instruire dans la note `docs/chantier-161-conception.md` (même format que `chantier-134-conception.md` / `chantier-135-conception.md`) : (1) ce qui existe déjà — `tables.questionnaire_forced_at` + bouton « Forcer questionnaire » des Outils modérateur (déjà par table) ; (2) tout ce qui suit la phase de **séance** et devrait suivre la table : `App.tsx` (ne restaure la table que si `sess.phase === 'debating'`), `SessionRouterScreen`, `PostVoteScreen`/revote, `get_results_map` (carte ouverte en `closed` seulement — constat du 134 non corrigé), `get_public_results`, la purge des `reclaim_code` à la clôture (chantier 49) ; (3) interaction avec `set_session_phase` et la remise en phase antérieure (chantier 127) ; (4) retardataires et « Assignez-moi une table » sur une table déjà terminée ; (5) lecture d'un seul écran modérateur par table (chantier 148) quand la table est en post-vote ; (6) **garde serveur**, pas seulement un bouton caché : le passage de table doit être refusé à qui n'est pas `is_table_moderator` de cette table.
 
-#### 162 — Discussion Opus : partage de sources avec sa table (et partage d'écran) — **conception**
+#### 162 — ✅ CONCEPTION ARBITRÉE le 2026-10-08, voir `docs/chantier-162-conception.md` — Discussion Opus : partage de sources avec sa table (et partage d'écran)
 > **Consigne de Jules** : « Faire une discussion Opus sur ce sujet, pour savoir ce qu’il existe comme outil implémentable, à quel point c’est compliqué, qu’est ce que ça impliquerait, etc. : Partager son écran : on peut utiliser un outil annexe, mais ce serait de manière générale intéressante pour montrer des graphiques par exemple. Ou alors : Demander de source : pouvoir projeter ses sources aux autres, en utilisant le lien de sources individuelles. »
 
 **Précisions (réponses de Jules)** : la discussion est « à mener directement dans la discussion » (**de manière interactive avec Jules**, dans une session Opus dédiée ; Jules, 2026-10-05 : « Ensuite, la discu pourra utiliser un sous agent si elle veut » → la session peut elle-même déléguer des recherches à un sous-agent, mais la discussion reste menée avec lui). **Contexte** : débats **en présentiel**, partage **seulement avec sa table**. « Demander de source » = « juste pour dire qu'on peut partager sa source, notamment son image source collaborative, avec les autres » (la source individuelle du document collaboratif, `#collab`). **Le modérateur doit toujours accepter ou refuser les demandes de partage.** « Je pencherai pour un léger » : un partage **léger** — un participant demande à montrer sa source, le modérateur accepte ou non, la source s'affiche chez les membres de la table — plutôt qu'un vrai partage vidéo d'écran. Livrable : `docs/chantier-162-conception.md`.
 
 À instruire : (1) un partage léger (diffuser un lien ou une image sur le canal Realtime de la table `table:<table_id>`, déjà privé — chantier 59, avec une branche à ajouter dans `can_join_realtime_topic` si un nouveau topic est nécessaire, fail-closed) ; (2) l'équivalent d'une demande de partage côté participant → file ou notification chez le modérateur, avec accepter/refuser ; (3) quoi afficher chez les autres (aperçu de l'image source, lien du document collaboratif) et ce que permet l'identité du chantier 142 ; (4) pour mémoire seulement, le partage d'écran vidéo (WebRTC, serveur de signalisation et de relais, coûts, plan gratuit Supabase) afin de documenter pourquoi on ne le retient pas, ou à quelles conditions ; (5) **présentiel** : un partage d'écran entre téléphones d'une même table a-t-il un sens, ou la projection en salle suffit-elle ? À poser à Jules pendant la discussion. Question de généralisation à examiner : le partage est-il utile en débat simple et en débat d'association (tables modérées) ? Fichiers probables si réalisation : `ParticipantView.tsx`, `ModeratorView.tsx`, `ModeratorToolsButton.tsx`, `CollabDocScreen.tsx`, `TableContext.tsx`.
+
+#### 162a — Fil de partage de la table : liens et sources collaboratives — **à faire**
+> Issu de la conception 162 (2026-10-08), **lire `docs/chantier-162-conception.md` §§ 4, 6, 7, 9 avant de coder**.
+>
+> ⚠️ **Conflit avec le 161b** (tables désolidarisées, en cours le 2026-10-08) : il touche aussi `ParticipantView`, `ModeratorView` et `TableContext`, et la table en post-vote du 161 change le cycle de vie d'une table. **Lancer 162a après le merge du 161b dans `dev`**, et vérifier alors ce que devient le fil d'une table passée en post-vote.
+
+Un participant demande à montrer une de ses sources collaboratives ou un lien collé (titre court, **pas de texte libre**) ; le modérateur voit le contenu **avant** la table, accepte ou refuse ; la source acceptée s'affiche en grande carte chez toute la table, avec le fil des sources déjà montrées. À tout moment du débat. **Pas proposé sur une table sans modérateur** (bouton absent + refus serveur). Séance complète et débat simple ; **associations : oui** (sans le choix « source collaborative », qu'elles n'ont pas). Liens conservés et restitués dans le document collaboratif (« Montrées pendant les débats »). Modèle : chantier 132 (`table_shares`, `tables.active_share_id`, RPC gardées par `is_table_participant` / `is_table_moderator`, broadcast `tables` + `table_shares`). Fichiers probables : migration, `lib/types.ts`, nouveau `lib/tableShare.ts`, `TableContext.tsx`, `ParticipantToolsButton.tsx`, `ParticipantView.tsx`, `ModeratorView.tsx` / `ModeratorToolsButton.tsx`, `CollabDocScreen.tsx`.
+
+#### 162b — Partage de captures d'écran (images) — **à faire, après 162a**
+> Issu de la conception 162, **lire `docs/chantier-162-conception.md` § 5**.
+
+Image choisie dans l'appareil, glissée ou collée depuis le presse-papiers ; réduite dans le navigateur (1600 px, WebP) ; bucket Storage **privé** `table-shares` (en attente : auteur + modérateur ; acceptée : la table) ; **effacée à la clôture de la séance** par une Edge Function `purge-share-images` (le SQL ne peut pas supprimer de fichier Storage : trigger `protect_objects_delete`), avec filet de sécurité sur les séances déjà closes. Ouvert aux associations (`check_session_admin` pour la purge).
+
+#### 162c — Partage d'écran en direct (ordinateur) — ⏸️ **EN PAUSE** (Jules, 2026-10-08)
+Étude de faisabilité complète dans `docs/chantier-162-conception.md` § 3 (WebRTC maillé, relais TURN Cloudflare — compte à ouvrir par Jules). Ne pas lancer sans nouvelle décision de Jules.
 
 ### 121, 122, 123 — Retours de Jules du 2026-09-22 (7 points), en 3 chantiers
 
