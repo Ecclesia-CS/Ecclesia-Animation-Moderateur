@@ -142,7 +142,7 @@ describe('normalizeLoadedAnalysis — analyse issue des RPC héritées', () => {
   })
 })
 
-describe('normalizeVoteChanges (chantier 166)', () => {
+describe('normalizeVoteChanges (chantier 167)', () => {
   it('lit une réponse complète de get_vote_changes_admin', () => {
     const r = normalizeVoteChanges({
       members_before: 4, members_changed: 1, pairs_total: 7, pairs_changed: 1,

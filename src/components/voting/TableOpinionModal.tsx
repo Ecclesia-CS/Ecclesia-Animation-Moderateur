@@ -110,7 +110,7 @@ export default function TableOpinionModal({ isOpen, onClose }: Props) {
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                     Assertions clivantes / consensuelles dans cette table
                   </h3>
-                  <VoteResultsList results={summary.votes} loading={false} />
+                  <VoteResultsList results={summary.votes} loading={false} variant="table" />
                 </div>
               )}
             </>

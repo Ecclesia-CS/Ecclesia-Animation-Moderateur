@@ -548,12 +548,12 @@ export async function loadAnalysisById(
   return normalizeLoadedAnalysis(data)
 }
 
-// ── Qui a changé d'avis (chantier 166) ───────────────────────
+// ── Qui a changé d'avis (chantier 167) ───────────────────────
 //
 // Lecture directe de l'historique des votes (assertion_vote_history), sans
 // passer par les analyses : "avant" = vote en vigueur juste avant le premier
 // revote fait en post-vote, "après" = vote courant. Voir la migration
-// 20261009_chantier166_*.sql. Ne dépend donc pas du moment où l'animateur a
+// 20261009_chantier166_resume_changements_de_vote.sql. Ne dépend donc pas du moment où l'animateur a
 // lancé ses analyses.
 
 export type VoteValue = 'agree' | 'disagree' | 'pass'

@@ -658,7 +658,7 @@ export default function AnalysisPanel({
 // Infrastructure posée par le chantier 70 (assertion_vote_history,
 // vote_scope, list_session_analyses, get_analysis_by_id).
 //
-// Chantier 166 — en tête, « Qui a changé d'avis » : mesure directe lue dans
+// Chantier 167 — en tête, « Qui a changé d'avis » : mesure directe lue dans
 // l'historique des votes (get_vote_changes_admin), indépendante des analyses.
 //
 // ⚠️ Piège central (voir pairGroups dans lib/analysis.ts) : deux analyses
@@ -825,7 +825,7 @@ export function AnalysisComparisonPanel({
     if (open && loadStatus === 'idle') loadSummaries()
   }, [open, loadStatus, loadSummaries])
 
-  // ── Chargement du résumé « qui a changé d'avis » (chantier 166) ──
+  // ── Chargement du résumé « qui a changé d'avis » (chantier 167) ──
   const loadChanges = useCallback(async () => {
     setChangesStatus('loading')
     setChangesError(null)
@@ -927,7 +927,7 @@ export function AnalysisComparisonPanel({
             </div>
           )}
 
-          {/* Chantier 166 — mesure directe, lue dans l'historique des votes */}
+          {/* Chantier 167 — mesure directe, lue dans l'historique des votes */}
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">

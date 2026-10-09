@@ -1,4 +1,4 @@
--- Chantier 166 — scénarios SQL du résumé « qui a changé d'avis ».
+-- Chantier 167 — scénarios SQL du résumé « qui a changé d'avis ».
 -- À exécuter sur la base DEV (execute_sql). Le bloc crée sa propre séance
 -- jetable, fait voter 4 membres par de VRAIS appels à cast_vote (l'identité est
 -- simulée par request.jwt.claims), puis se termine par une exception volontaire
@@ -15,16 +15,16 @@ DECLARE
   n int := 0;
   fx jsonb;
 BEGIN
-  INSERT INTO sessions (title, phase) VALUES ('T166 jetable', 'voting') RETURNING id INTO s;
+  INSERT INTO sessions (title, phase) VALUES ('T167 jetable', 'voting') RETURNING id INTO s;
   INSERT INTO session_members (session_id, user_id, pseudo, attending_in_person) VALUES
-    (s, u_a, 'T166 A', true), (s, u_b, 'T166 B', true), (s, u_c, 'T166 C', true), (s, u_d, 'T166 D', false);
+    (s, u_a, 'T167 A', true), (s, u_b, 'T167 B', true), (s, u_c, 'T167 C', true), (s, u_d, 'T167 D', false);
   SELECT id INTO m_a FROM session_members WHERE session_id = s AND user_id = u_a;
   SELECT id INTO m_b FROM session_members WHERE session_id = s AND user_id = u_b;
   SELECT id INTO m_c FROM session_members WHERE session_id = s AND user_id = u_c;
   SELECT id INTO m_d FROM session_members WHERE session_id = s AND user_id = u_d;
-  INSERT INTO assertions (session_id, content, status) VALUES (s, 'T166 X', 'approved') RETURNING id INTO x;
-  INSERT INTO assertions (session_id, content, status) VALUES (s, 'T166 Y', 'approved') RETURNING id INTO y;
-  INSERT INTO assertions (session_id, content, status) VALUES (s, 'T166 Z', 'approved') RETURNING id INTO z;
+  INSERT INTO assertions (session_id, content, status) VALUES (s, 'T167 X', 'approved') RETURNING id INTO x;
+  INSERT INTO assertions (session_id, content, status) VALUES (s, 'T167 Y', 'approved') RETURNING id INTO y;
+  INSERT INTO assertions (session_id, content, status) VALUES (s, 'T167 Z', 'approved') RETURNING id INTO z;
 
   -- Avant le débat (phase voting).
   PERFORM set_config('request.jwt.claims', json_build_object('sub', u_a, 'role', 'authenticated')::text, true);

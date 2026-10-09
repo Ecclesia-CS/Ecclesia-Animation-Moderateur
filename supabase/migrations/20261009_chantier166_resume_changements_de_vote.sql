@@ -1,5 +1,7 @@
 -- =============================================================
--- Chantier 166 — Comparaison avant / après débat : « combien de personnes
+-- Chantier 167 (fichier nommé « 166 » : appliqué sur dev sous ce nom avant que
+-- le numéro 166 soit pris par un autre chantier — ne pas renommer) —
+-- Comparaison avant / après débat : « combien de personnes
 -- ont changé d'avis »
 --
 -- Contexte : le chantier 70 garde l'ancien vote dans assertion_vote_history
