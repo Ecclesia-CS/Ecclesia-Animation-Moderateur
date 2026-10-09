@@ -114,7 +114,8 @@ export interface Table {
 
 // Chantier 162a — fil de partage de la table (liens et sources collaboratives).
 // Reçu de `list_table_shares` ; les champs nullables le sont en base.
-export type TableShareKind = 'collab_source' | 'link'
+// Chantier 162b : 'image' = capture d'écran (fichier du bucket privé `table-shares`).
+export type TableShareKind = 'collab_source' | 'link' | 'image'
 export type TableShareStatus = 'pending' | 'accepted' | 'refused'
 
 export interface TableShare {
@@ -129,6 +130,10 @@ export interface TableShare {
   is_active: boolean
   created_at: string
   decided_at: string | null
+  /** Chemin dans le bucket tant que l'image existe (NULL pour les autres types et après la purge). */
+  image_path: string | null
+  /** L'image a été effacée à la clôture de la séance. */
+  image_purged: boolean
 }
 
 // Chantier 162a — restitution dans le document collaboratif (`list_session_shares`).

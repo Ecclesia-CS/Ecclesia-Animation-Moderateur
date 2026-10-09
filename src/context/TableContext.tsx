@@ -702,10 +702,10 @@ export function TableProvider({
   }, [tableId, refetch, broadcast])
 
   const withdrawShare = useCallback(async (shareId: string) => {
-    await withdrawTableShareRpc(shareId)
+    await withdrawTableShareRpc(shareId, shares.find(x => x.id === shareId)?.image_path)
     setShares(prev => prev.filter(x => x.id !== shareId))
     broadcast(['table_shares'])
-  }, [broadcast])
+  }, [broadcast, shares])
 
   const effectivePhase = useMemo(
     () => effectiveTablePhase(session, table),

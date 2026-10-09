@@ -5,7 +5,7 @@ import type { SessionShare, TableShare, TableShareKind, TableShareStatus } from 
 /** Longueur maximale du titre d'un lien (miroir de request_table_share). */
 export const SHARE_TITLE_MAX = 80
 
-const KINDS: TableShareKind[] = ['collab_source', 'link']
+const KINDS: TableShareKind[] = ['collab_source', 'link', 'image']
 const STATUSES: TableShareStatus[] = ['pending', 'accepted', 'refused']
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object'
@@ -32,6 +32,8 @@ export function normalizeTableShares(data: unknown): TableShare[] {
       is_active: r.is_active === true,
       created_at: typeof r.created_at === 'string' ? r.created_at : '',
       decided_at: strOrNull(r.decided_at),
+      image_path: strOrNull(r.image_path),
+      image_purged: r.image_purged === true,
     })
   }
   return out

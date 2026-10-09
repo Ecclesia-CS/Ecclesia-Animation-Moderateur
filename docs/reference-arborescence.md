@@ -67,6 +67,7 @@ src/
     ├── TableVoteModal.tsx        **Chantier 132** — popup participant du vote ci-dessus, auto-déclenché dans `ParticipantView.tsx` sur changement de `table.active_vote_id`. Dismissible (contrairement au questionnaire forcé) ; formulaire oui/non par option tant qu'actif, résultats agrégés une fois clôturé
     ├── TableShareCard.tsx        **Chantier 162a** — fil de partage de la table : source acceptée en grande carte (`tables.active_share_id`), « Sources déjà montrées (n) » ; `dark` pour l'écran modérateur ; exporte `ShareLink`/`skinFor`. Données : `useTable().shares` (`lib/tableShare.ts` ; parties pures dans `tableShareFormat.ts`)
     ├── ModeratorShareRequests.tsx **Chantier 162a** — demandes en attente chez le modérateur (lien, extrait) : « Montrer à la table » / « Refuser »
+    ├── ShareImage.tsx            **Chantier 162b** — affiche une capture partagée (URL signée à la demande, clic = plein écran, « non conservée » après la purge) ; `lib/shareImage.ts` : réduction (≤ 1600 px, WebP/JPEG < 1 Mo) et validation du fichier
     ├── MyShareRequests.tsx       **Chantier 162a** — l'état de SES demandes chez le participant (en attente → retirable, non retenue → masquable)
     ├── TableShareModal.tsx       **Chantier 162a** — « Partager une source » (Outils participant) / « Montrer une source » (Outils Modo) : lien + titre ≤ 80, ou une de ses sources collaboratives (jamais en association)
     ├── DocumentationButton.tsx   Dropdown 3 liens ; masqué si aucune URL

@@ -424,7 +424,7 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
           <section className="mt-10 space-y-5">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Montrées pendant les débats</h2>
-              <p className="text-xs text-gray-400">Les liens et sources partagés avec leur table.</p>
+              <p className="text-xs text-gray-400">Les liens, sources et captures partagés avec leur table.</p>
             </div>
             {groupShownByTable(shown).map(group => (
               <div key={group.joinCode} className="space-y-2">
@@ -443,6 +443,10 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
                         >
                           {s.url}
                         </a>
+                      )}
+                      {/* Chantier 162b — une capture n'est pas conservée après la séance */}
+                      {s.kind === 'image' && (
+                        <p className="text-xs text-gray-400">Capture d'écran, non conservée</p>
                       )}
                     </li>
                   ))}

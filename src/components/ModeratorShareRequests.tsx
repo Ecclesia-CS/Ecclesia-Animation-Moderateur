@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTable } from '../context/TableContext'
 import { extractErr } from '../lib/utils'
 import { ShareLink, skinFor } from './TableShareCard'
+import ShareImage from './ShareImage'
 
 // Chantier 162a — côté modérateur : les demandes de partage en attente, avec leur
 // contenu COMPLET (lien cliquable, extrait de la source) pour juger de sa
@@ -34,9 +35,13 @@ export default function ModeratorShareRequests() {
               <p className={`text-xs ${skin.meta}`}>
                 Proposée par <span className="font-semibold">{s.author_pseudo}</span>
                 {s.kind === 'collab_source' && ' · source du document collaboratif'}
+                {s.kind === 'image' && ' · capture d’écran'}
               </p>
               <p className={`text-sm font-semibold break-words ${skin.title}`}>{s.title}</p>
             </div>
+            {s.kind === 'image' && (
+              <ShareImage path={s.image_path} purged={s.image_purged} alt={s.title} dark />
+            )}
             {s.url && <ShareLink url={s.url} skin={skin} />}
             {s.content && (
               <p className={`text-xs leading-relaxed whitespace-pre-wrap break-words max-h-32 overflow-y-auto ${skin.body}`}>

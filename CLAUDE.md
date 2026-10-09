@@ -306,7 +306,7 @@ Les 4 couches sont **inchangées par le chantier 59** — elles sont ce qui rend
 `addToQueue`/`removeFromQueue`/`moveQueueEntry`/`reorderQueueEntry`/`changeQueueType` → `queue_entries`
 `kickParticipant` → `tables, participants, queue_entries, speaking_turns`
 `openTableVote`/`closeActiveTableVote` (chantier 132) → `tables` (`active_vote_id`/statut piggyback sur `tables`, jamais de broadcast des réponses individuelles — anonymat)
-`requestShare`/`decideShare`/`endShare` (chantier 162a) → `tables, table_shares` ; `withdrawShare` → `table_shares`. `table_shares` n'a aucune policy : pas de `postgres_changes`, le fil ne se met à jour que par ce broadcast + le `load()` toutes les 5 s
+`requestShare`/`decideShare`/`endShare` (chantier 162a) → `tables, table_shares` ; `withdrawShare` → `table_shares`. `table_shares` n'a aucune policy : pas de `postgres_changes`, le fil ne se met à jour que par ce broadcast + le `load()` toutes les 5 s. **Chantier 162b** : les captures partagées vivent dans le bucket Storage **privé** `table-shares` (jamais d'URL publique : `signShareImageUrl`) et sont effacées à la clôture par l'Edge Function `purge-share-images` — un fichier de Storage ne se supprime pas en SQL
 
 ### DnD (ModeratorView)
 - Stratégie `pointerWithin` **sans** fallback `closestCenter` — drop hors panel ignoré, sinon insertion en dernière position

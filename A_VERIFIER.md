@@ -100,6 +100,17 @@ Puis, sur une séance de test **de prod** :
 - [ ] **Après la fin de débat d'une table (161)** : le fil n'est plus affiché (la table voit l'écran de fin), puis **réapparaît à la réouverture** du débat — cette interaction n'a été vérifiée qu'en lecture du code et par la garde serveur.
 - [ ] **Prod** : la migration `20261009_chantier162a_table_shares.sql` est à appliquer sur prod au merge, **après** la 161a/161b/161c (elle appelle `table_effective_phase`).
 
+## Chantier 162b — captures d'écran partagées avec la table (2026-10-09) — reste à jouer
+
+**Joué au navigateur sur dev (Browser pane), puis données de test supprimées** : second utilisateur anonyme créé dans la page, table de test hors séance ; demande d'image → aperçu chez le modérateur → acceptation → carte ; collage Ctrl+V (événement simulé) → onglet « Une image » s'ouvre, aperçu, titre obligatoire, envoi, carte + fil ; politiques de stockage en SQL (identités simulées) ; Edge Function `purge-share-images` (mauvais mot de passe, séance non close, séance close, idempotence) ; **clôture réelle depuis `#asso`** avec un jeton d'association de test → fichier supprimé.
+
+- [ ] **Téléphone réel** : « Choisir une image » ouvre la galerie sur iPhone (Safari) et Android (Chrome) ; l'image part, le modérateur la voit. Le collage depuis le presse-papiers d'un téléphone n'a pas été joué (marche sur certains seulement).
+- [ ] **Vraie capture d'écran d'ordinateur** : Ctrl+V (touche « Impr. écran » ou Win+Maj+S) dans « Partager une source › Une image », et glisser-déposer d'un fichier — seuls des événements simulés ont été joués.
+- [ ] **Navigateur de Messenger** : l'envoi et l'affichage d'une image (URL signée) y fonctionnent-ils ?
+- [ ] **Superadmin (mot de passe Ecclesia)** : clôturer une séance qui a des captures → fichiers supprimés (`SELECT count(*) FROM storage.objects WHERE bucket_id='table-shares'` → 0). Seule la voie association a été jouée (même code).
+- [ ] **Deux appareils** : l'image acceptée par le modérateur apparaît chez la table en quelques secondes sans recharger.
+- [ ] **Prod, au merge** : appliquer `20261009_chantier162b_table_share_images.sql` puis `20261009_chantier162b2_purge_authorized.sql` (après la 162a) **et déployer l'Edge Function `purge-share-images`** (`verify_jwt: true`) sur le projet prod ; vérifier `list_edge_functions` et le bucket `table-shares` (privé, 1 Mo). Les alertes de sécurité `can_*_share_image` exécutables par `authenticated` sont voulues (le moteur de stockage évalue les politiques en tant que l'appelant ; elles ne renvoient qu'un booléen).
+
 ## 6. Non joués par la passe 141 (faisables, à décider)
 
 Pas impossibles à automatiser : ils ont été laissés de côté faute de marge dans les conversations, ou parce que le même code est déjà couvert par un cas joué. À rejouer avec les mots de passe de Jules si l'on veut fermer ces points.
