@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **Le 2026-10-09, la phase 1 du chantier 164 est faite sur `dev`** (allocation : un modérateur n'est plus laissé de côté quand une table reste sans animateur) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 164. Front seul, **aucune migration**, un seul fichier de code touché (`src/lib/allocation.ts`). **La phase 2 (politique « tous les modérateurs animent ») reste en attente**, optionnelle, jamais par défaut — elle est décrite plus bas. Entrée « en cours » retirée.
+
 > **Le 2026-10-09, le chantier 165 est mergé dans `dev`** (binômes / trios : notification « on t'a choisi·e », noms à venir, modérateurs liés, trio plein refusé) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 165. Migrations `20261009_chantier165_*` puis `…165b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main` (la 165 change la clé primaire de `member_pairings` : contrôle préalable sur prod). Entrée « en cours » retirée.
 
 > **Le 2026-10-09, le chantier 162b est fait** (captures d'écran partagées avec la table, effacées à la clôture) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 162b. Migrations `20261009_chantier162b_table_share_images.sql` et `20261009_chantier162b2_purge_authorized.sql` + Edge Function `purge-share-images` appliquées/déployées sur **dev uniquement** ; à appliquer sur **prod** au merge vers `main`, **après la 162a**, **et** déployer l'Edge Function sur le projet prod (`verify_jwt: true`). Entrée « en cours » retirée.
@@ -113,9 +115,6 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > ```
 
 
-### 164 — Allocation : modérateur laissé de côté alors qu'une table reste sans animateur
-**Branche** : `dev` (phase de plan, **aucun code encore**) · **Depuis** : 2026-10-09 · **Fichiers touchés (prévus)** : `src/lib/allocation.ts`, `src/lib/allocation.test.ts`, `bench/`, docs. Détail dans « À faire, dans l'ordre » ci-dessous. (Le numéro 163 est pris par la branche non mergée `claude/onboarding-mode-switch-visibility-3bfe48`.)
-
 Le 126 (diagnostic et nettoyage du GitHub) a été livré sur `claude/chantier-126-a39daf` le 2026-09-25 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
 Le 125 (accordéon « J'ai déjà un code de rappel » sur les écrans d'entrée, demande directe de Jules hors file d'attente) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
@@ -128,7 +127,7 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 
 ## À faire, dans l'ordre
 
-### 164 — Allocation : modérateur laissé de côté alors qu'une table reste sans animateur (diagnostic du 2026-10-09, **plan en cours de discussion avec Jules, ne pas coder avant son accord**)
+### 164 — Allocation : modérateur laissé de côté alors qu'une table reste sans animateur — ✅ **phase 1 faite sur `dev` le 2026-10-09** (voir `docs/chantiers.md`) ; **phase 2 en attente**, à ne lancer que sur demande de Jules
 
 > **Origine** : séance prod « Comment assurer la sécurité de tous en France ? » (08/10/2026, 14 actifs + 1 auditeur + 2 modérateurs). L'allocation n'a produit qu'une seule table (Jules avait coché « interdire les tables sans modérateur ») ; il a recréé une table et réparti 7+7 à la main, découpage qui respectait toutes les règles.
 >
