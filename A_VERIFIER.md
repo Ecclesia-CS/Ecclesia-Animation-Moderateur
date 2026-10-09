@@ -8,6 +8,32 @@
 
 ---
 
+## ⚠️ EN PREMIER — Chantier 163 (2026-10-09) : participants qui ne voient pas l'onboarding à la bascule distanciel → présentiel — **cause NON trouvée**
+
+**Symptôme (Jules, 09/10)** : à la bascule « vote à distance » → « vote en séance », beaucoup de participants restent sur leur écran de vote, **même au bout de 10 minutes**, et ne voient jamais « Es-tu présent(e) au débat aujourd'hui ? » ni l'onboarding ; seul un rechargement le fait apparaître. Ceux qui ne rechargent pas (la plupart) restent « à distance » (`attending_in_person = false`).
+
+**Diagnostic mené par la session 163 — n'a PAS reproduit le blocage.** Joué au navigateur sur dev, séance de test créée en base puis supprimée :
+- écran de vote avec le Realtime réel : la question de présence apparaît en **≈ 15 ms**, puis onboarding après « Oui » ;
+- même chose avec **tout voté** (« Tu as tout voté ! ») ;
+- WebSocket coupé (faux WebSocket qui n'ouvre jamais) : **≈ 10 s**, par le polling ;
+- le Realtime livre bien la **ligne `sessions` complète** (dont `onboarding_enabled`) — l'hypothèse « ligne incomplète à cause des droits de colonne (chantier 58) » est écartée ;
+- aucun service worker (pas de vieille version en cache) ; `set_session_phase` n'a aucun effet de bord sur les membres ; routeur `#session` et `App.tsx` sans anomalie ;
+- l'onglet du panneau était `hidden` pendant les tests et le minuteur tournait quand même → un simple onglet en arrière-plan sur ordinateur n'explique pas non plus.
+
+**Trous réels trouvés et corrigés en route** (`VoteScreen.tsx`, voir `docs/chantiers.md` ligne 163) : phase relue aussi depuis « Séance pas encore ouverte », le formulaire de nom et l'écran du code de rappel ; relecture au retour de l'onglet, à la reconnexion et avant chaque vote ; inscription qui relit la phase avant de router (elle sautait l'onboarding avec une phase locale périmée). **Rien ne prouve que l'un d'eux soit la cause de ce que Jules a vu.**
+
+**Données prod (agrégats, lecture seule)** : séances récentes — « sécurité » (8/10) : 5 des 7 pré-votants sont devenus présents, 2 restés à distance ; « héritage » : 11/11 ; « énergie » : 4/4 ; aucun « présent sans onboarding » sur ces trois. Seule « Multiculturalisme » (juin, ancien code) montre 21 pré-votants sur 28 restés à distance et 5 présents sans onboarding. Donc les chiffres ne montrent pas un blocage massif récent — ils ne disent pas non plus combien ont rechargé.
+
+**À faire à la prochaine séance, pour trancher** — noter, pour 2-3 participants bloqués :
+- [ ] **appareil et navigateur** : iPhone/Android ; Safari/Chrome, ou navigateur intégré (Messenger, WhatsApp, Instagram) ;
+- [ ] **écran verrouillé entre-temps ?** page ouverte depuis la pré-vote ou rouverte via le QR ?
+- [ ] **ce qu'ils voient exactement** (photo d'écran) : « Étape 1 · Distanciel » toujours affiché ? l'écran de vote ou « Tu as tout voté ! » ? un écran blanc ?
+- [ ] **si possible, la console** (ordinateur branché au téléphone, ou onglet d'un ordinateur resté ouvert) : erreurs `CHANNEL_ERROR`/`TIMED_OUT`, requêtes `get_session_by_id` en échec.
+- [ ] **Vrai téléphone, écran verrouillé 1-2 minutes** puis bascule puis déverrouillage → la question doit apparaître en quelques secondes (relecture au retour de l'onglet, ajoutée par le 163).
+- [ ] **Résiduel non traité** : en `allocating`, un pré-votant resté à distance n'est pas relancé en direct (seulement à l'arrivée, chantier 61). À décider avec Jules.
+
+---
+
 ## 1. Glisser-déposer à la souris (dnd-kit ignore le pointeur synthétique du navigateur automatisé)
 
 Sur une séance de test, avec la souris.
@@ -80,15 +106,6 @@ Puis, sur une séance de test **de prod** :
 - [ ] **143** — contrôle visuel de l'écran « Débat en cours » d'un retardataire (un seul champ nom).
 - [ ] **106, 109, 117, 118** — onglet Groupes (badge « en surplus », modérateur physique, « Retirer », « Libérer la modération », modale « Ouvrir le débat »).
 - [ ] **91, 92** — recette d'allocation sur une séance de test (déterminisme, actifs/public par table, grappes de binômes).
-
-## Chantier 163 (2026-10-09) — Bascule distanciel → présentiel vue sans recharger
-
-Front seul (`src/screens/VoteScreen.tsx`), aucune migration. **Vérifié au navigateur sur dev** (voir `docs/chantiers.md`) : bascule depuis l'écran de vote WebSocket coupé, formulaire de nom, écran du code de rappel, écran « pas encore ouverte ». Reste ce que le navigateur de session ne sait pas jouer :
-
-- [ ] **Vrai téléphone, écran verrouillé** : un participant en pré-vote verrouille son téléphone 1-2 minutes, le superadmin passe la séance en « Vote en présentiel », le participant déverrouille → l'écran « Es-tu présent(e) au débat aujourd'hui ? » doit apparaître dans les secondes qui suivent, sans recharger (relecture au retour de l'onglet). Idem dans le navigateur intégré de Messenger.
-- [ ] **Avant chaque vote** : participant resté à l'écran de vote sans que le minuteur ait tourné, qui touche « D'accord » après la bascule → l'écran de confirmation de présence apparaît (le vote posé reste enregistré en pré-vote).
-- [ ] **Résiduel non traité** : en `allocating`, un pré-votant resté à distance n'est pas relancé en direct (seulement à l'arrivée, chantier 61). À décider avec Jules.
-- [ ] Sur prod après merge : rien de particulier (front seul).
 
 ## Chantier 161 — tables désolidarisées (2026-10-08) — reste à jouer
 
