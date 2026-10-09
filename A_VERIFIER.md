@@ -123,7 +123,7 @@ Puis, sur une séance de test **de prod** :
 
 ## Chantier 166 — votes de la table pour le modérateur (2026-10-09) — reste à jouer
 
-`tsc`, `vite build` verts. **Joué au navigateur sur dev le 2026-10-09, côté participant** (séance « QA Vérifs — Complète », table 2437F8, participant « Testeur Chantier166 » créé pour l'occasion) : onglets Toute la séance / Ma table, tri et badges corrects, décomptes recoupés en SQL. Le même composant sert côté modérateur (Outils Modo → Assertions votées) et la modale Camps (tri par dissensus) ; **le passage par le menu modérateur reste à confirmer** — se déclarer modérateur demande le code Ecclesia.
+`tsc`, `vite build` verts. **Joué au navigateur sur dev le 2026-10-09, côté participant** (séance « QA Vérifs — Complète », table 2437F8, participant « Testeur Chantier166 » créé pour l'occasion) : onglets Toute la séance / Ma table, tri et badges corrects, décomptes recoupés en SQL. Le même composant sert côté modérateur (Outils Modo → Assertions votées) et la modale Camps (tri par dissensus) ; **côté modérateur, confirmé par Jules à l'écran le 2026-10-09** (Outils Modo → Assertions votées : les deux fenêtres Séance / Ma table sont là). Reste non joué : la modale Camps en tri par dissensus, la table hors allocation, le revote en post-débat.
 
 - [ ] **Outils Modo → Assertions votées** : l'onglet « Toute la séance » s'ouvre par défaut et affiche la même liste qu'avant ; l'onglet « Ma table » ne compte que les votes des personnes de la table (comparer un total à celui de l'onglet Séance), les plus partagées en tête (badge « Clivant » en haut, « Aucun vote » en bas).
 - [ ] **Revote en post-débat** : rouvrir la modale après un revote → les chiffres de « Ma table » ont bougé (relus à chaque ouverture).
