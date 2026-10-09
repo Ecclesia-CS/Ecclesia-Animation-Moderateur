@@ -14,6 +14,7 @@ import ParticipantCodesModal from './ParticipantCodesModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorVoteModal from './ModeratorVoteModal'
 import ConfirmModal from './ConfirmModal'
+import TableShareModal from './TableShareModal'
 import { sessionTypeOf } from '../lib/phaseLabels'
 
 interface Props {
@@ -46,7 +47,7 @@ function isQuestionnaireComplete(r: QuestionnaireResponse | null): boolean {
 // juste par un canal différent) plutôt que Camps & assertions (analyse, pas
 // gestion de présence) ou Personnel (outils individuels du modérateur).
 export default function ModeratorToolsButton({ className = '', onError }: Props) {
-  const { table, session, forceQuestionnaire, cancelForceQuestionnaire, endTableDebate } = useTable()
+  const { table, session, forceQuestionnaire, cancelForceQuestionnaire, endTableDebate, effectivePhase } = useTable()
   const [panelOpen,     setPanelOpen]     = useState(false)
   const [campsOpen,     setCampsOpen]     = useState(false)
   const [assertionsOpen, setAssertionsOpen] = useState(false)
@@ -57,6 +58,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
   const [codesOpen,     setCodesOpen]     = useState(false)
   const [voteToolOpen,  setVoteToolOpen]  = useState(false)
+  const [shareOpen,     setShareOpen]     = useState(false)
   const [endDebateConfirm, setEndDebateConfirm] = useState(false)
   // Chantier 135 — débat d'une association : ni camps, ni assertions, ni
   // questionnaire Ecclesia.
@@ -257,6 +259,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
             </button>
 
+            {/* Chantier 162a — le modérateur affiche lui-même une source : pas de
+                demande à valider, elle est montrée à la table directement. */}
+            {(!table.session_id || effectivePhase === 'debating') && (
+              <button onClick={() => { setPanelOpen(false); setShareOpen(true) }} className={linkClass}>
+                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+                Montrer une source
+              </button>
+            )}
+
             {!orgName && (
             <button
               onClick={() => {
@@ -414,6 +425,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
       )}
 
       {voteToolOpen && <ModeratorVoteModal onClose={() => setVoteToolOpen(false)} />}
+
+      {shareOpen && <TableShareModal onClose={() => setShareOpen(false)} />}
 
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
 

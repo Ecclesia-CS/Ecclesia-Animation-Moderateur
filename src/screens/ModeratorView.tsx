@@ -28,6 +28,8 @@ import { sessionTypeOf } from '../lib/phaseLabels'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
+import ModeratorShareRequests from '../components/ModeratorShareRequests'
+import TableShareCard from '../components/TableShareCard'
 
 export default function ModeratorView() {
   const {
@@ -549,6 +551,11 @@ export default function ModeratorView() {
             {err}
           </div>
         )}
+
+        {/* Chantier 162a — sources proposées par la table : à valider avant que
+            la table ne les voie, puis la carte actuellement montrée */}
+        <ModeratorShareRequests />
+        <TableShareCard dark />
 
         {/* ── Hero : orateur en cours ────────────────────────── */}
 

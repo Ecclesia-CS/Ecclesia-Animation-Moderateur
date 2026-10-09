@@ -29,6 +29,13 @@ Outil "proposer un vote" côté modérateur, table-scoped, **totalement séparé
 
 **RLS et anonymat** : `table_votes`/`table_vote_options` sont lisibles par tout participant ou modérateur de la table (`is_table_participant`/`is_table_moderator`). `table_vote_responses` n'a **qu'une seule policy**, `SELECT USING (user_id = auth.uid())` — un participant ne voit que ses propres réponses (état "déjà répondu"), et **personne, pas même le modérateur, n'a de policy pour lire les réponses d'autrui**. Le seul moyen de connaître un décompte est la RPC `get_table_vote_results` (agrégats uniquement). Écriture exclusivement via RPC SECURITY DEFINER (`create_table_vote`, `close_table_vote`, `submit_table_vote_response`) — aucune policy INSERT/UPDATE/DELETE sur les trois tables.
 
+### `table_shares` — chantier 162a
+Fil de partage de la table (liens et sources collaboratives) : un participant demande à montrer une source, le modérateur accepte ou refuse.
+
+- Colonnes : `id`, `table_id` (CASCADE), `session_id?` (CASCADE, NULL hors séance), `user_id` (auth.uid() de l'auteur), `author_pseudo` (copie du pseudo à la demande), `kind` (`'collab_source'`|`'link'`), `title` (1-200 ; 1-80 imposé pour un lien), `url?` (http/https, ≤ 2000 ; **obligatoire** pour un lien), `content?` (extrait d'une source collaborative, ≤ 1500), `source_id?` (FK→`session_sources` ON DELETE SET NULL — le titre/lien/extrait sont **copiés** à la demande, la source peut ensuite changer ou disparaître), `status` (`'pending'`|`'accepted'`|`'refused'`), `created_at`, `decided_at?`.
+- `tables.active_share_id?` (FK→`table_shares` ON DELETE SET NULL) : la source acceptée **actuellement affichée** (carte). Remise à NULL par « Retirer » ; les acceptées précédentes restent dans le fil (`status = 'accepted'`).
+- **Aucune policy, aucun droit direct** sur `table_shares` (`REVOKE ALL` à `anon`/`authenticated`) : une demande en attente ne doit être vue que de son auteur et du modérateur. Tout passe par les RPC (voir `reference-fonctions-sql.md`).
+
 ### `participants`
 `id`, `table_id` (CASCADE), `user_id`, `pseudo`, `created_at`
 Contrainte : `UNIQUE(table_id, pseudo)`. **Un même `user_id` peut avoir plusieurs lignes** (pseudos différents). Tout `WHERE user_id = auth.uid()` doit utiliser `LIMIT 1` ou JOIN via `current_speaker_id`.

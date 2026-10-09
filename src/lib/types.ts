@@ -106,6 +106,42 @@ export interface Table {
   // Optionnel : un objet table construit avant ce chantier (RPC de jointure)
   // n'a pas la colonne.
   debate_ended_at?: string | null
+  // Chantier 162a — source acceptée actuellement affichée à la table (carte),
+  // NULL si aucune ou retirée par le modérateur. Optionnel pour la même raison
+  // que debate_ended_at.
+  active_share_id?: string | null
+}
+
+// Chantier 162a — fil de partage de la table (liens et sources collaboratives).
+// Reçu de `list_table_shares` ; les champs nullables le sont en base.
+export type TableShareKind = 'collab_source' | 'link'
+export type TableShareStatus = 'pending' | 'accepted' | 'refused'
+
+export interface TableShare {
+  id: string
+  kind: TableShareKind
+  title: string
+  url: string | null
+  content: string | null
+  status: TableShareStatus
+  author_pseudo: string
+  is_mine: boolean
+  is_active: boolean
+  created_at: string
+  decided_at: string | null
+}
+
+// Chantier 162a — restitution dans le document collaboratif (`list_session_shares`).
+export interface SessionShare {
+  id: string
+  table_id: string
+  join_code: string
+  table_number: number | null
+  kind: TableShareKind
+  title: string
+  url: string | null
+  author_pseudo: string
+  decided_at: string | null
 }
 
 // Chantier 132 — outil "proposer un vote" côté modérateur (table-scoped, séparé

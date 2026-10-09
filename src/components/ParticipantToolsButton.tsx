@@ -12,6 +12,7 @@ import ModeratorActionModal from './voting/ModeratorActionModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ChangeTableModal from './voting/ChangeTableModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
+import TableShareModal from './TableShareModal'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 
@@ -42,7 +43,7 @@ function isComplete(r: QuestionnaireResponse | null): boolean {
 }
 
 export default function ParticipantToolsButton({ session, userPseudo, className = '' }: Props) {
-  const { table, isModerator } = useTable()
+  const { table, isModerator, effectivePhase } = useTable()
   const [panelOpen,          setPanelOpen]          = useState(false)
   const [notesOpen,          setNotesOpen]          = useState(false)
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
@@ -58,7 +59,9 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const [changeTableOpen,    setChangeTableOpen]    = useState(false)
   // Chantier 93 — changer son nom en cours de séance.
   const [renameOpen,         setRenameOpen]         = useState(false)
-  const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
+  // Chantier 162a — partager une source avec sa table.
+  const [shareOpen,          setShareOpen]          = useState(false)
+  const [voteResults,       setVoteResults]        = useState<VoteResult[]>([])
   const [voteResultsLoading, setVoteResultsLoading] = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
   const [checkDone,          setCheckDone]          = useState(false)
@@ -108,6 +111,10 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   // Chantier 135 — pas de document collaboratif dans une séance d'association.
   const hasCollab  = !orgName && (!!session_join_code || !!doc_collab_url)
   const showPedagogy = showPedagogyDocs(sessionTypeOf(session))
+  // Chantier 162a — le partage suppose un modérateur à qui le demander (règle du
+  // chantier 152 : pas d'entrée pour ce qu'on ne peut pas faire) et un débat en
+  // cours pour cette table. Le serveur refuse dans les mêmes cas.
+  const canShare = !table.leaderless && (!table.session_id || effectivePhase === 'debating')
 
   function handleCollabClick() {
     setPanelOpen(false)
@@ -287,6 +294,17 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               QR code de la table
             </button>
 
+            {/* Chantier 162a — partager une source (lien ou source collaborative) */}
+            {canShare && (
+              <button
+                onClick={() => { setPanelOpen(false); setShareOpen(true) }}
+                className={linkClass}
+              >
+                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+                Partager une source
+              </button>
+            )}
+
             {/* Notes */}
             <button
               onClick={() => { setPanelOpen(false); setNotesOpen(true) }}
@@ -372,6 +390,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           onClose={() => setRenameOpen(false)}
         />
       )}
+
+      {shareOpen && <TableShareModal onClose={() => setShareOpen(false)} />}
 
       {changeTableOpen && (
         <ChangeTableModal pseudo={userPseudo} onClose={() => setChangeTableOpen(false)} />

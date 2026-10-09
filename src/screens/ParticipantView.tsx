@@ -14,6 +14,8 @@ import PhaseIndicator from '../components/PhaseIndicator'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import TableChangeModal from '../components/TableChangeModal'
 import TableVoteModal from '../components/TableVoteModal'
+import TableShareCard from '../components/TableShareCard'
+import MyShareRequests from '../components/MyShareRequests'
 
 export default function ParticipantView() {
   const {
@@ -262,6 +264,11 @@ export default function ParticipantView() {
             🗳️ Voir le vote en cours
           </button>
         )}
+
+        {/* Chantier 162a — source montrée par un participant (acceptée par le
+            modérateur), fil des sources déjà montrées, et l'état de mes demandes */}
+        <TableShareCard />
+        <MyShareRequests />
 
         {/* ── Queue buttons ────────────────────────────────────── */}
         <div className="w-full space-y-3">

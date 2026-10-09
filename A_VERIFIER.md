@@ -91,6 +91,15 @@ Puis, sur une séance de test **de prod** :
 - [ ] **Deux appareils** (le navigateur intégré n'a qu'une identité) : modérateur et participant de la même table en même temps — le participant reçoit-il le questionnaire puis l'écran de fin **sans recharger**, dans un navigateur in-app (Messenger) ?
 - [ ] **Analyse « avant post-vote »** (`pre_closure`) sur une séance où une table a revoté pendant le débat : les revotes de cette table ne doivent pas compter dans le terme « avant ». Aucun bouton superadmin ne lance encore ce calcul (constat du chantier 79) : à faire en SQL ou à décider.
 
+## Chantier 162a — fil de partage de la table (2026-10-09) — reste à jouer
+
+**Joué au navigateur sur dev (Browser pane), puis données de test supprimées** : table de « QA Vérifs — Débat » côté participant (Outils › « Partager une source » : lien « www.… » complété en `https://`, onglet « Une de mes sources », « En attente du modérateur », carte reçue par le polling de 5 s après l'acceptation) et table de test hors séance côté modérateur (deux demandes en attente, « Montrer à la table », « Refuser », « Retirer », « Montrer une source » par le modérateur lui-même, refus d'un `javascript:` côté client) ; restitution « Montrées pendant les débats » dans `#collab/<code>` (séance mise temporairement en `post_voting`, puis remise en `debating`). Les décisions du modérateur ont été prises par la RPC avec une identité simulée (un seul navigateur, une seule identité).
+
+- [ ] **Deux appareils** : un participant sur un téléphone, le modérateur sur un autre, sur une vraie table — la demande arrive-t-elle chez le modérateur en quelques secondes, et la carte chez la table, **sans recharger**, y compris dans le navigateur de Messenger ?
+- [ ] **Association** (`#asso`) : un débat d'association — « Partager une source » présent, **sans** l'onglet « Une de mes sources » (garde serveur testée en SQL, écran non rejoué).
+- [ ] **Après la fin de débat d'une table (161)** : le fil n'est plus affiché (la table voit l'écran de fin), puis **réapparaît à la réouverture** du débat — cette interaction n'a été vérifiée qu'en lecture du code et par la garde serveur.
+- [ ] **Prod** : la migration `20261009_chantier162a_table_shares.sql` est à appliquer sur prod au merge, **après** la 161a/161b/161c (elle appelle `table_effective_phase`).
+
 ## 6. Non joués par la passe 141 (faisables, à décider)
 
 Pas impossibles à automatiser : ils ont été laissés de côté faute de marge dans les conversations, ou parce que le même code est déjà couvert par un cas joué. À rejouer avec les mots de passe de Jules si l'on veut fermer ces points.

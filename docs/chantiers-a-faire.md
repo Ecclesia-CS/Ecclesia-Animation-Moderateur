@@ -4,9 +4,11 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
+Dernière mise à jour : **2026-10-09** (le 162a est fait ; conception 162 arbitrée, 162a/162b ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
 
 ## Chantiers en cours
+
+> **Le 2026-10-09, le chantier 162a est fait** (fil de partage de la table : liens et sources collaboratives) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 162a. Migration `20261009_chantier162a_table_shares.sql` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 161c** (elle utilise `table_effective_phase`, créée par la 161a). **Le 162b peut démarrer.** Entrée « en cours » retirée.
 
 > **Le 2026-10-08, le chantier 161 (a + b) est mergé dans `dev`** (tables désolidarisées de la séance dès le débat) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 161. Migrations `20261008_chantier161a_*`, `…161b_*` puis `20261009_chantier161c_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 160**. Le 162 (partage de sources) peut démarrer : il touche les mêmes écrans de table. Entrée « en cours » retirée.
 
@@ -233,15 +235,17 @@ Points d'attention : ajouter `poll_mode` au `GRANT SELECT` restreint d'`anon` su
 
 À instruire : (1) un partage léger (diffuser un lien ou une image sur le canal Realtime de la table `table:<table_id>`, déjà privé — chantier 59, avec une branche à ajouter dans `can_join_realtime_topic` si un nouveau topic est nécessaire, fail-closed) ; (2) l'équivalent d'une demande de partage côté participant → file ou notification chez le modérateur, avec accepter/refuser ; (3) quoi afficher chez les autres (aperçu de l'image source, lien du document collaboratif) et ce que permet l'identité du chantier 142 ; (4) pour mémoire seulement, le partage d'écran vidéo (WebRTC, serveur de signalisation et de relais, coûts, plan gratuit Supabase) afin de documenter pourquoi on ne le retient pas, ou à quelles conditions ; (5) **présentiel** : un partage d'écran entre téléphones d'une même table a-t-il un sens, ou la projection en salle suffit-elle ? À poser à Jules pendant la discussion. Question de généralisation à examiner : le partage est-il utile en débat simple et en débat d'association (tables modérées) ? Fichiers probables si réalisation : `ParticipantView.tsx`, `ModeratorView.tsx`, `ModeratorToolsButton.tsx`, `CollabDocScreen.tsx`, `TableContext.tsx`.
 
-#### 162a — Fil de partage de la table : liens et sources collaboratives — **à faire**
+#### 162a — ✅ FAIT le 2026-10-09 (voir `docs/chantiers.md`) — Fil de partage de la table : liens et sources collaboratives
 > Issu de la conception 162 (2026-10-08), **lire `docs/chantier-162-conception.md` §§ 4, 6, 7, 9 avant de coder**.
 >
 > ✅ **Le 161b est mergé dans `dev` le 2026-10-08** — la contrainte ci-dessous est levée, reste la vérification demandée. Pour mémoire : le 161b touche aussi `ParticipantView`, `ModeratorView` et `TableContext`, et la table en post-vote du 161 change le cycle de vie d'une table. **Lancer 162a après le merge du 161b dans `dev`**, et vérifier alors ce que devient le fil d'une table passée en post-vote.
 
 Un participant demande à montrer une de ses sources collaboratives ou un lien collé (titre court, **pas de texte libre**) ; le modérateur voit le contenu **avant** la table, accepte ou refuse ; la source acceptée s'affiche en grande carte chez toute la table, avec le fil des sources déjà montrées. À tout moment du débat. **Pas proposé sur une table sans modérateur** (bouton absent + refus serveur). Séance complète et débat simple ; **associations : oui** (sans le choix « source collaborative », qu'elles n'ont pas). Liens conservés et restitués dans le document collaboratif (« Montrées pendant les débats »). Modèle : chantier 132 (`table_shares`, `tables.active_share_id`, RPC gardées par `is_table_participant` / `is_table_moderator`, broadcast `tables` + `table_shares`). Fichiers probables : migration, `lib/types.ts`, nouveau `lib/tableShare.ts`, `TableContext.tsx`, `ParticipantToolsButton.tsx`, `ParticipantView.tsx`, `ModeratorView.tsx` / `ModeratorToolsButton.tsx`, `CollabDocScreen.tsx`.
 
-#### 162b — Partage de captures d'écran (images) — **à faire, après 162a**
+#### 162b — Partage de captures d'écran (images) — **à faire (le 162a est fait)**
 > Issu de la conception 162, **lire `docs/chantier-162-conception.md` § 5**.
+>
+> **Ce que le 162a laisse en place pour le 162b** : `table_shares` n'a pas de colonne `image_path` ni de valeur `image` dans `CHECK (kind IN ('collab_source','link'))` — à ajouter par migration (+ `image_purged_at`, et relâcher `table_shares_link_needs_url` si besoin). `request_table_share` refuse tout `kind` inconnu : y ajouter la branche `image`. `list_table_shares` / `normalizeTableShares` (`lib/tableShareFormat.ts`) ignorent une ligne de `kind` inconnu : y ajouter `image` dans `KINDS`. Côté écran, `TableShareCard`, `ModeratorShareRequests` et `TableShareModal` sont les trois points d'extension. Le fil se vide de lui-même quand une table termine son débat (161) : l'image d'une table en post-vote reste en Storage jusqu'à la clôture de la séance.
 
 Image choisie dans l'appareil, glissée ou collée depuis le presse-papiers ; réduite dans le navigateur (1600 px, WebP) ; bucket Storage **privé** `table-shares` (en attente : auteur + modérateur ; acceptée : la table) ; **effacée à la clôture de la séance** par une Edge Function `purge-share-images` (le SQL ne peut pas supprimer de fichier Storage : trigger `protect_objects_delete`), avec filet de sécurité sur les séances déjà closes. Ouvert aux associations (`check_session_admin` pour la purge).
 

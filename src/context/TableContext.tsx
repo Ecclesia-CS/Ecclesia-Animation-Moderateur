@@ -15,7 +15,15 @@ import { effectiveTablePhase } from '../lib/phaseLabels'
 import { endTableDebate as endTableDebateRpc } from '../lib/voting'
 import { privateChannel } from '../lib/realtime'
 import { useToast } from './ToastContext'
-import type { Participant, QueueEntry, Table, SpeakingTurn, Session } from '../lib/types'
+import {
+  listTableShares,
+  requestTableShare as requestTableShareRpc,
+  decideTableShare as decideTableShareRpc,
+  endTableShare as endTableShareRpc,
+  withdrawTableShare as withdrawTableShareRpc,
+  type ShareRequest,
+} from '../lib/tableShare'
+import type { Participant, QueueEntry, Table, SpeakingTurn, Session, TableShare } from '../lib/types'
 
 // ── Public types ───────────────────────────────────────────────
 
@@ -63,9 +71,19 @@ interface TableCtxValue {
   closeActiveTableVote(voteId: string): Promise<void>
   /** Chantier 161 — le modérateur titulaire termine le débat de sa table. */
   endTableDebate(): Promise<void>
+  /**
+   * Chantier 162a — fil de partage de la table (liens et sources collaboratives).
+   * Le modérateur reçoit les demandes en attente et les acceptées ; un participant
+   * reçoit les acceptées et SES demandes, jamais le refus d'autrui.
+   */
+  shares: TableShare[]
+  requestShare(req: ShareRequest): Promise<void>
+  decideShare(shareId: string, accept: boolean): Promise<void>
+  endShare(): Promise<void>
+  withdrawShare(shareId: string): Promise<void>
 }
 
-type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns'
+type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns' | 'table_shares'
 
 // Chantier 53 — le canal Realtime `table:<id>` est ouvert (ni privé ni signé,
 // audit A1) : n'importe quel porteur de la clé anon publique peut y émettre.
@@ -110,6 +128,7 @@ export function TableProvider({
   const [participants, setParticipants] = useState<Participant[]>([])
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
+  const [shares, setShares] = useState<TableShare[]>([])
   const [ready, setReady] = useState(false)
   // Contrôle physique de la table (tables.created_by === userId, tables leaderless
   // exclues) — indépendant de la séance. `designate_moderator` (auto-désignation
@@ -181,11 +200,13 @@ export function TableProvider({
 
   // ── Load (stable, reused for initial load, polling, reconnect) ──
   const load = useCallback(async () => {
-    const [s, p, q, t] = await Promise.all([
+    const [s, p, q, t, sh] = await Promise.all([
       supabase.from('tables').select('*').eq('id', tableId).single(),
       supabase.from('participants').select('*').eq('table_id', tableId),
       supabase.from('queue_entries').select('*').eq('table_id', tableId),
       supabase.from('speaking_turns').select('*').eq('table_id', tableId),
+      // Chantier 162a — un échec (RPC absente, droits) ne doit jamais vider la table.
+      listTableShares(tableId).catch(() => null),
     ])
     if (!s.data) { showToast('Cette table n\'existe plus.', 'error'); handleEnd(); return }
     const tbl = s.data as Table
@@ -203,6 +224,7 @@ export function TableProvider({
     setParticipants((p.data ?? []) as Participant[])
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
+    if (sh) setShares(sh)
     if (tbl.session_id) {
       const sess = await getSessionById(tbl.session_id).catch(() => null)
       setSession(sess)
@@ -242,6 +264,9 @@ export function TableProvider({
       } else if (tbl === 'speaking_turns') {
         const { data } = await supabase.from('speaking_turns').select('*').eq('table_id', tableId)
         setSpeakingTurns((data ?? []) as SpeakingTurn[])
+      } else if (tbl === 'table_shares') {
+        const rows = await listTableShares(tableId).catch(() => null)
+        if (rows) setShares(rows)
       }
     }))
   }, [tableId])
@@ -654,6 +679,34 @@ export function TableProvider({
     broadcast(['tables'])
   }, [tableId, broadcast])
 
+  // Chantier 162a — fil de partage. Garde serveur dans chaque RPC
+  // (is_table_participant / is_table_moderator) ; le refetch local évite
+  // d'attendre le rebond du broadcast, le broadcast prévient les autres clients.
+  const requestShare = useCallback(async (req: ShareRequest) => {
+    await requestTableShareRpc(tableId, req)
+    refetch(['tables', 'table_shares'])
+    broadcast(['tables', 'table_shares'])
+  }, [tableId, refetch, broadcast])
+
+  const decideShare = useCallback(async (shareId: string, accept: boolean) => {
+    await decideTableShareRpc(shareId, accept)
+    refetch(['tables', 'table_shares'])
+    broadcast(['tables', 'table_shares'])
+  }, [refetch, broadcast])
+
+  const endShare = useCallback(async () => {
+    await endTableShareRpc(tableId)
+    setTable(prev => prev ? { ...prev, active_share_id: null } : prev)
+    refetch(['table_shares'])
+    broadcast(['tables', 'table_shares'])
+  }, [tableId, refetch, broadcast])
+
+  const withdrawShare = useCallback(async (shareId: string) => {
+    await withdrawTableShareRpc(shareId)
+    setShares(prev => prev.filter(x => x.id !== shareId))
+    broadcast(['table_shares'])
+  }, [broadcast])
+
   const effectivePhase = useMemo(
     () => effectiveTablePhase(session, table),
     [session, table],
@@ -722,6 +775,11 @@ export function TableProvider({
         openTableVote,
         closeActiveTableVote,
         endTableDebate,
+        shares,
+        requestShare,
+        decideShare,
+        endShare,
+        withdrawShare,
       }}
     >
       {children}
