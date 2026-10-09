@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-10-08** (conception 162 arbitrée, 162a/162b ajo
 
 ## Chantiers en cours
 
-> **Le 2026-10-08, le chantier 161 (a + b) est mergé dans `dev`** (tables désolidarisées de la séance dès le débat) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 161. Migrations `20261008_chantier161a_*` puis `…161b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 160**. Le 162 (partage de sources) peut démarrer : il touche les mêmes écrans de table. Entrée « en cours » retirée.
+> **Le 2026-10-08, le chantier 161 (a + b) est mergé dans `dev`** (tables désolidarisées de la séance dès le débat) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 161. Migrations `20261008_chantier161a_*`, `…161b_*` puis `20261009_chantier161c_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 160**. Le 162 (partage de sources) peut démarrer : il touche les mêmes écrans de table. Entrée « en cours » retirée.
 
 > **Le 2026-10-08, la conception du chantier 162 est arbitrée** (partage de sources avec sa table) — voir `docs/chantier-162-conception.md` et `docs/chantiers.md`. Docs seules, aucune migration. Réalisation découpée en **162a** et **162b** ci-dessous (le partage d'écran en direct n'est pas retenu comme chantier — étude conservée dans la note, § 3). Entrée « en cours » retirée.
 
