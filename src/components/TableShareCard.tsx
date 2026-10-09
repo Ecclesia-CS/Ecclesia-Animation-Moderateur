@@ -3,6 +3,7 @@ import { useTable } from '../context/TableContext'
 import { extractErr, isSafeUrl } from '../lib/utils'
 import { hostOf } from '../lib/tableShare'
 import type { TableShare } from '../lib/types'
+import ShareImage from './ShareImage'
 
 // Chantier 162a — ce que la table voit du fil de partage : la source acceptée en
 // dernier en grande carte, puis le fil des sources déjà montrées pendant ce débat.
@@ -116,6 +117,9 @@ export default function TableShareCard({ dark = false }: Props) {
               </button>
             )}
           </div>
+          {active.kind === 'image' && (
+            <ShareImage path={active.image_path} purged={active.image_purged} alt={active.title} dark={dark} />
+          )}
           {active.url && <ShareLink url={active.url} skin={skin} />}
           {active.content && (
             <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${skin.body}`}>{active.content}</p>
@@ -134,6 +138,11 @@ export default function TableShareCard({ dark = false }: Props) {
               <li key={s.id} className={`border-t pt-2 first:border-t-0 first:pt-0 ${skin.row}`}>
                 <p className={`text-sm font-medium break-words ${skin.title}`}>{s.title}</p>
                 <p className={`text-xs ${skin.meta}`}>{s.author_pseudo}</p>
+                {s.kind === 'image' && (
+                  <div className="mt-1">
+                    <ShareImage path={s.image_path} purged={s.image_purged} alt={s.title} compact dark={dark} />
+                  </div>
+                )}
                 {s.url && <ShareLink url={s.url} skin={skin} />}
               </li>
             ))}

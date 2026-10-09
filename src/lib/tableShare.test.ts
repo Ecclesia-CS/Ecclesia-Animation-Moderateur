@@ -35,8 +35,18 @@ describe('normalizeTableShares', () => {
     expect(normalizeTableShares([ok])).toHaveLength(1)
   })
   it('ignore les lignes illisibles au lieu de planter', () => {
-    expect(normalizeTableShares([null, 3, { ...ok, kind: 'image' }, { ...ok, status: 'x' }, { ...ok, title: 4 }])).toEqual([])
+    expect(normalizeTableShares([null, 3, { ...ok, kind: 'ecran' }, { ...ok, status: 'x' }, { ...ok, title: 4 }])).toEqual([])
     expect(normalizeTableShares(null)).toEqual([])
+  })
+  it('lit une image (chemin) et une image effacée', () => {
+    const [a, b] = normalizeTableShares([
+      { ...ok, kind: 'image', url: null, image_path: 't/s' },
+      { ...ok, id: 'b', kind: 'image', url: null, image_path: null, image_purged: true },
+    ])
+    expect(a.image_path).toBe('t/s')
+    expect(a.image_purged).toBe(false)
+    expect(b.image_path).toBeNull()
+    expect(b.image_purged).toBe(true)
   })
   it('tolère les champs nullables absents', () => {
     const [r] = normalizeTableShares([{ ...ok, url: undefined, content: undefined, decided_at: undefined }])

@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { supabase } from '../lib/supabase'
 import PasswordInput from '../components/PasswordInput'
+import { purgeShareImages } from '../lib/tableShare'
 import { extractErr, fromDateTimeLocal, generateQuestionnaireCSV, isSafeUrl, QUESTIONNAIRE_THEMES } from '../lib/utils'
 import {
   verifyPassword, createSession, closeSession, deleteSession, setSessionResultsPublic,
@@ -2017,6 +2018,10 @@ function SessionDetail({
       }
       const updated = await setSessionPhase(password, currentSession.id, targetPhase)
       setCurrentSession(prev => ({ ...prev, phase: updated.phase }))
+      // Chantier 162b — à la clôture, les captures d'écran partagées aux tables sont
+      // effacées du stockage (et celles de toute autre séance déjà close : filet de
+      // sécurité). Jamais bloquant : un échec est journalisé, la clôture suivante rattrape.
+      if (targetPhase === 'closed') void purgeShareImages(password, currentSession.id)
       // Chantier 39 — la phase 'questionnaire' a disparu de la machine à
       // états : le questionnaire post-débat se déclenche désormais tout
       // seul, au moment précis où le débat se termine (debating → post_voting),
