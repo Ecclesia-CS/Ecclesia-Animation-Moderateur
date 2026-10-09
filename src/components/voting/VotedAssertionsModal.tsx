@@ -7,18 +7,20 @@ import VoteResultsList from './VoteResultsList'
 interface Props {
   sessionId: string
   tableId: string
+  /** Titre de la modale (« Assertions votées » côté modérateur, « Résultats du vote » côté participant). */
+  title?: string
   onClose(): void
 }
 
 type Scope = 'session' | 'table'
 
-// Vue modérateur — « Assertions votées » : le résumé des votes de toute la
+// Vue modérateur et participant — « Assertions votées » / « Résultats du vote » : le résumé des votes de toute la
 // séance (consensus décroissant, comme avant) et, au choix, les mêmes
 // assertions restreintes aux votes des membres de SA table, triées par
 // dissensus pour repérer là où la table est partagée.
 // Les deux jeux de données sont relus à chaque ouverture : les votes bougent
 // jusqu'en post-débat (revote), un cache de montage serait périmé.
-export default function VotedAssertionsModal({ sessionId, tableId, onClose }: Props) {
+export default function VotedAssertionsModal({ sessionId, tableId, title = 'Assertions votées', onClose }: Props) {
   const [scope, setScope] = useState<Scope>('session')
 
   const [sessionResults, setSessionResults] = useState<VoteResult[]>([])
@@ -62,7 +64,7 @@ export default function VotedAssertionsModal({ sessionId, tableId, onClose }: Pr
     >
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900">Assertions votées</h2>
+          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
@@ -96,7 +98,7 @@ export default function VotedAssertionsModal({ sessionId, tableId, onClose }: Pr
           </div>
           {scope === 'table' && (
             <p className="text-xs text-gray-400 leading-snug pt-2">
-              Votes des personnes de ta table uniquement, les assertions les plus clivantes en premier.
+              Votes des personnes de ta table uniquement, les assertions les plus partagées en premier.
             </p>
           )}
         </div>
