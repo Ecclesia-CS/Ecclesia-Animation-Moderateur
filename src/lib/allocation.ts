@@ -36,20 +36,36 @@
 // table par ailleurs bien mélangée et bien pourvue en anciens — décision de
 // Jules : la qualité du débat (règles 2 et 3) prime sur l'enregistrement.
 //
-// Contraintes dures : 5 à 14 actifs par table animée, 6 à 7 par table sans
+// Contraintes dures : 7 à 11 actifs par table animée, 6 à 7 par table sans
 // modérateur, 30 personnes au plus par table public compris. L'algorithme ne
 // peut jamais échouer : tout le reste dégrade (règle 4 sacrifiée en premier).
 // =============================================================
 
 // ── Constantes ───────────────────────────────────────────────
 
-/** Nombre minimal d'actifs d'une table quand il y a allocation. */
-export const TABLE_MIN = 5
+/**
+ * Nombre minimal d'actifs d'une table animée. Chantier 93 (2026-09-18,
+ * Jules) : remonté de 5 à 7 — était aussi le plancher générique utilisé pour
+ * `SINGLE_TABLE_MAX`/le repli en table unique, ça reste vrai.
+ */
+export const TABLE_MIN = 7
 /**
  * Nombre maximal d'**actifs** d'une table animée (chantier 91 — était
- * `TABLE_MAX = 12` personnes, passifs compris).
+ * `TABLE_MAX = 12` personnes, passifs compris ; ramené de 14 à 11 au
+ * chantier 93, 2026-09-18, Jules — tables sans modérateur inchangées, 6-7).
+ *
+ * ⚠️ **Trou connu, non corrigé (chantier 93)** : `SINGLE_TABLE_MAX` (10) est
+ * un raccourci qui court-circuite `enumerateShapes` pour tout total d'actifs
+ * ≤ 10, quel que soit `moderatorCapacity`. Juste au-dessus, pour un total qui
+ * ne peut ni tenir dans une table (`> TABLE_MAX_ACTIVE`) ni se découper en
+ * deux (`< 2 × TABLE_MIN`), aucune forme n'existe : repli sur `single()`, qui
+ * ne vérifie pas `TABLE_MAX_ACTIVE`. Mesuré : **11 actifs avec 2 modérateurs**
+ * et **12 actifs avec 1 modérateur** produisent une table unique de 12,
+ * au-delà de la limite. Scanné sur 1-8 modérateurs × 11-60 actifs : seuls ces
+ * deux cas violent la borne. Jules (18/09) : documenter, ne pas corriger —
+ * fenêtre trop étroite pour justifier la complexité d'un correctif.
  */
-export const TABLE_MAX_ACTIVE = 14
+export const TABLE_MAX_ACTIVE = 11
 /**
  * Limite physique d'une table, public compris (chantier 91, Jules : « une
  * sorte de limite physique pour placer les gens »). Le public qui ne tient

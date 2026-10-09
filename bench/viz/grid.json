@@ -1,15 +1,117 @@
 [
  {
   "id": "p1",
-  "label": "Petite salle · 18 part. · 80% actifs · 1 modé.",
+  "label": "Petite salle · 20 part. · 80% actifs",
   "sizeCat": "petite",
   "activeCat": "forte",
-  "modCat": "1",
+  "modCat": "2-3",
   "note": null,
+  "roomTotal": 22,
+  "unmoderatedOk": true,
   "input": {
-   "n": 18,
+   "n": 20,
    "vetRatio": 0.45,
    "activeRatio": 0.8,
+   "consentRatio": 0.9,
+   "camps": [
+    1,
+    1,
+    1
+   ],
+   "moderators": 2,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 10,
+     "audience_count": 2,
+     "diag": {
+      "table_number": 1,
+      "size": 10,
+      "moderated": true,
+      "actives": 8,
+      "audience": 2,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 2,
+      "veterans_threshold": 4,
+      "veterans_ok": false,
+      "newcomers": 6,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 3,
+       "1": 2,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 10,
+     "audience_count": 2,
+     "diag": {
+      "table_number": 2,
+      "size": 10,
+      "moderated": true,
+      "actives": 8,
+      "audience": 2,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 2,
+       "1": 3,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
+     }
+    }
+   ],
+   "warnings": [
+    "38 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
+   ],
+   "singleTable": false,
+   "moderatorCapacity": 2,
+   "animatingModerators": 2,
+   "seatedModerators": 0,
+   "recorderTarget": 1
+  },
+  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "p2",
+  "label": "Petite salle · 22 part. · 50% actifs",
+  "sizeCat": "petite",
+  "activeCat": "moitié",
+  "modCat": "1",
+  "note": null,
+  "roomTotal": 23,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 22,
+   "vetRatio": 0.4,
+   "activeRatio": 0.5,
    "consentRatio": 0.9,
    "camps": [
     1,
@@ -26,31 +128,31 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 18,
-     "audience_count": 4,
+     "member_count": 22,
+     "audience_count": 11,
      "diag": {
       "table_number": 1,
-      "size": 18,
+      "size": 22,
       "moderated": true,
-      "actives": 14,
-      "audience": 4,
+      "actives": 11,
+      "audience": 11,
       "audience_ok": true,
       "over_capacity": false,
       "veterans": 6,
-      "veterans_threshold": 6,
+      "veterans_threshold": 5,
       "veterans_ok": true,
-      "newcomers": 8,
+      "newcomers": 5,
       "non_consenting": 2,
       "recordable": false,
       "camp_counts": {
-       "0": 5,
-       "1": 5,
-       "2": 4
+       "0": 4,
+       "1": 4,
+       "2": 3
       },
       "neutral_count": 0,
-      "majority_share": 0.35714285714285715,
+      "majority_share": 0.36363636363636365,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6428571428571428
+      "heterogeneity_degree": 0.6363636363636364
      }
     }
    ],
@@ -62,115 +164,19 @@
    "recorderTarget": 1
   },
   "explanation": "1 table(s), dont 1 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 14
- },
- {
-  "id": "p2",
-  "label": "Petite salle · 20 part. · 50% actifs · 2 modé.",
-  "sizeCat": "petite",
-  "activeCat": "moitié",
-  "modCat": "2-3",
-  "note": null,
-  "input": {
-   "n": 20,
-   "vetRatio": 0.4,
-   "activeRatio": 0.5,
-   "consentRatio": 0.9,
-   "camps": [
-    1,
-    1,
-    1
-   ],
-   "moderators": 2,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 1,
-      "size": 15,
-      "moderated": true,
-      "actives": 5,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 2,
-      "veterans_threshold": 2,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 1,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 2,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 4,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 2,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 1,
-       "1": 2,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    }
-   ],
-   "warnings": [
-    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 2,
-   "animatingModerators": 1,
-   "seatedModerators": 1,
-   "recorderTarget": 1
-  },
-  "explanation": "2 table(s), dont 1 animée(s) et 1 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 3
+  "ms": 0
  },
  {
   "id": "p3",
-  "label": "Petite salle · 22 part. · 40% actifs · 2 modé.",
+  "label": "Petite salle · 24 part. · 40% actifs (table unique)",
   "sizeCat": "petite",
   "activeCat": "faible",
-  "modCat": "2-3",
-  "note": null,
+  "modCat": "1",
+  "note": "Actifs ≤ 10 : table unique, quel que soit le nombre de modérateurs.",
+  "roomTotal": 25,
+  "unmoderatedOk": true,
   "input": {
-   "n": 22,
+   "n": 24,
    "vetRatio": 0.4,
    "activeRatio": 0.4,
    "consentRatio": 0.9,
@@ -179,7 +185,7 @@
     1,
     1
    ],
-   "moderators": 2,
+   "moderators": 1,
    "recorders": 1,
    "opinions": true
   },
@@ -189,26 +195,26 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 23,
-     "audience_count": 13,
+     "member_count": 24,
+     "audience_count": 14,
      "diag": {
       "table_number": 1,
-      "size": 23,
+      "size": 24,
       "moderated": true,
       "actives": 10,
-      "audience": 13,
+      "audience": 14,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 5,
+      "veterans": 7,
       "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 5,
+      "newcomers": 3,
       "non_consenting": 2,
       "recordable": false,
       "camp_counts": {
-       "0": 2,
+       "0": 3,
        "1": 5,
-       "2": 3
+       "2": 2
       },
       "neutral_count": 0,
       "majority_share": 0.5,
@@ -218,27 +224,28 @@
     }
    ],
    "warnings": [
-    "10 participants actifs (≤ 10) : une table unique, pas d'allocation.",
-    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+    "10 participants actifs (≤ 10) : une table unique, pas d'allocation."
    ],
    "singleTable": true,
-   "moderatorCapacity": 2,
+   "moderatorCapacity": 1,
    "animatingModerators": 1,
-   "seatedModerators": 1,
+   "seatedModerators": 0,
    "recorderTarget": 1
   },
-  "explanation": "Une seule table : 10 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
+  "explanation": "Une seule table : 10 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
   "ms": 0
  },
  {
   "id": "p4",
-  "label": "Petite salle · 24 part. · 20% actifs · 3 modé.",
+  "label": "Petite salle · 25 part. · 20% actifs (table unique)",
   "sizeCat": "petite",
   "activeCat": "très faible",
-  "modCat": "2-3",
-  "note": null,
+  "modCat": "1",
+  "note": "Peu d’actifs : une seule table, le reste en public.",
+  "roomTotal": 26,
+  "unmoderatedOk": true,
   "input": {
-   "n": 24,
+   "n": 25,
    "vetRatio": 0.4,
    "activeRatio": 0.2,
    "consentRatio": 0.9,
@@ -247,7 +254,7 @@
     1,
     1
    ],
-   "moderators": 3,
+   "moderators": 1,
    "recorders": 1,
    "opinions": true
   },
@@ -257,56 +264,57 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 26,
-     "audience_count": 19,
+     "member_count": 25,
+     "audience_count": 20,
      "diag": {
       "table_number": 1,
-      "size": 26,
+      "size": 25,
       "moderated": true,
-      "actives": 7,
-      "audience": 19,
+      "actives": 5,
+      "audience": 20,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
-      "veterans_threshold": 3,
+      "veterans": 2,
+      "veterans_threshold": 2,
       "veterans_ok": true,
       "newcomers": 3,
       "non_consenting": 2,
       "recordable": false,
       "camp_counts": {
        "0": 2,
-       "1": 1,
-       "2": 4
+       "1": 2,
+       "2": 1
       },
       "neutral_count": 0,
-      "majority_share": 0.5714285714285714,
+      "majority_share": 0.4,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.4285714285714286
+      "heterogeneity_degree": 0.6
      }
     }
    ],
    "warnings": [
-    "7 participants actifs (≤ 10) : une table unique, pas d'allocation.",
-    "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+    "Seulement 5 participant(s) actif(s) : une table unique, tout le monde y est placé."
    ],
    "singleTable": true,
-   "moderatorCapacity": 3,
+   "moderatorCapacity": 1,
    "animatingModerators": 1,
-   "seatedModerators": 2,
+   "seatedModerators": 0,
    "recorderTarget": 1
   },
-  "explanation": "Une seule table : 7 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
+  "explanation": "Une seule table : 5 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
   "ms": 0
  },
  {
   "id": "p5",
-  "label": "Petite salle · 15 part. · 100% actifs · 1 modé. (table unique)",
+  "label": "Petite salle · 18 part. · 100% actifs",
   "sizeCat": "petite",
   "activeCat": "forte",
-  "modCat": "1",
-  "note": "Sous ou proche du seuil de table unique (≤10 actifs).",
+  "modCat": "2-3",
+  "note": null,
+  "roomTotal": 20,
+  "unmoderatedOk": true,
   "input": {
-   "n": 15,
+   "n": 18,
    "vetRatio": 0.4,
    "activeRatio": 1,
    "consentRatio": 0.9,
@@ -315,7 +323,7 @@
     1,
     1
    ],
-   "moderators": 1,
+   "moderators": 2,
    "recorders": 1,
    "opinions": true
   },
@@ -335,83 +343,87 @@
       "audience": 0,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 3,
+      "veterans": 4,
       "veterans_threshold": 4,
-      "veterans_ok": false,
-      "newcomers": 6,
-      "non_consenting": 1,
-      "recordable": false,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
       "camp_counts": {
        "0": 3,
-       "1": 2,
-       "2": 4
+       "1": 3,
+       "2": 3
       },
       "neutral_count": 0,
-      "majority_share": 0.4444444444444444,
+      "majority_share": 0.3333333333333333,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5555555555555556
+      "heterogeneity_degree": 0.6666666666666667
      }
     },
     {
      "table_number": 2,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 9,
      "audience_count": 0,
      "diag": {
       "table_number": 2,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
+      "size": 9,
+      "moderated": true,
+      "actives": 9,
       "audience": 0,
       "audience_ok": true,
       "over_capacity": false,
       "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
+      "veterans_threshold": 4,
+      "veterans_ok": false,
+      "newcomers": 6,
+      "non_consenting": 2,
+      "recordable": false,
       "camp_counts": {
-       "0": 2,
+       "0": 3,
        "1": 3,
-       "2": 1
+       "2": 3
       },
       "neutral_count": 0,
-      "majority_share": 0.5,
+      "majority_share": 0.3333333333333333,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
+      "heterogeneity_degree": 0.6666666666666667
      }
     }
    ],
-   "warnings": [],
+   "warnings": [
+    "39 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
+   ],
    "singleTable": false,
-   "moderatorCapacity": 1,
-   "animatingModerators": 1,
+   "moderatorCapacity": 2,
+   "animatingModerators": 2,
    "seatedModerators": 0,
    "recorderTarget": 1
   },
-  "explanation": "2 table(s), dont 1 animée(s) et 1 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 2
+  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
  },
  {
   "id": "p6",
-  "label": "Petite salle · 25 part. · 24% actifs · 4 modé. (surplus)",
+  "label": "Petite salle · 20 part. · 20% actifs · modérateurs en surplus",
   "sizeCat": "petite",
   "activeCat": "très faible",
-  "modCat": "surplus",
-  "note": "Plus de modérateurs que de tables possibles : surplus attendu.",
+  "modCat": "4-6",
+  "note": "Peu d’actifs mais 6 modérateurs déclarés : la plupart siègent comme participants actifs.",
+  "roomTotal": 26,
+  "unmoderatedOk": true,
   "input": {
-   "n": 25,
+   "n": 20,
    "vetRatio": 0.4,
-   "activeRatio": 0.24,
+   "activeRatio": 0.2,
    "consentRatio": 0.9,
    "camps": [
     1,
     1,
     1
    ],
-   "moderators": 4,
+   "moderators": 6,
    "recorders": 1,
    "opinions": true
   },
@@ -421,56 +433,58 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 28,
-     "audience_count": 19,
+     "member_count": 25,
+     "audience_count": 16,
      "diag": {
       "table_number": 1,
-      "size": 28,
+      "size": 25,
       "moderated": true,
       "actives": 9,
-      "audience": 19,
+      "audience": 16,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
+      "veterans": 6,
       "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 5,
+      "newcomers": 3,
       "non_consenting": 2,
       "recordable": false,
       "camp_counts": {
-       "0": 3,
-       "1": 5,
-       "2": 1
+       "0": 2,
+       "1": 3,
+       "2": 4
       },
       "neutral_count": 0,
-      "majority_share": 0.5555555555555556,
+      "majority_share": 0.4444444444444444,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.4444444444444444
+      "heterogeneity_degree": 0.5555555555555556
      }
     }
    ],
    "warnings": [
     "9 participants actifs (≤ 10) : une table unique, pas d'allocation.",
-    "3 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+    "5 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
    ],
    "singleTable": true,
-   "moderatorCapacity": 4,
+   "moderatorCapacity": 6,
    "animatingModerators": 1,
-   "seatedModerators": 3,
+   "seatedModerators": 5,
    "recorderTarget": 1
   },
-  "explanation": "Une seule table : 9 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. 3 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
+  "explanation": "Une seule table : 9 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. 5 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
   "ms": 0
  },
  {
   "id": "m1",
-  "label": "Salle moyenne · 30 part. · 20% actifs · 3 modé.",
+  "label": "Salle moyenne · 40 part. · 20% actifs (table unique) · modérateurs en surplus",
   "sizeCat": "moyenne",
   "activeCat": "très faible",
   "modCat": "2-3",
-  "note": "Cas cité au chantier 91 : une table unique, mais modérateurs en surplus → dépassement de 30.",
+  "note": null,
+  "roomTotal": 43,
+  "unmoderatedOk": true,
   "input": {
-   "n": 30,
+   "n": 40,
    "vetRatio": 0.4,
    "activeRatio": 0.2,
    "consentRatio": 0.9,
@@ -489,36 +503,36 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 32,
-     "audience_count": 24,
+     "member_count": 42,
+     "audience_count": 32,
      "diag": {
       "table_number": 1,
-      "size": 32,
+      "size": 42,
       "moderated": true,
-      "actives": 8,
-      "audience": 24,
+      "actives": 10,
+      "audience": 32,
       "audience_ok": true,
       "over_capacity": true,
-      "veterans": 4,
+      "veterans": 6,
       "veterans_threshold": 4,
       "veterans_ok": true,
       "newcomers": 4,
-      "non_consenting": 3,
+      "non_consenting": 4,
       "recordable": false,
       "camp_counts": {
        "0": 1,
-       "1": 5,
-       "2": 2
+       "1": 4,
+       "2": 5
       },
       "neutral_count": 0,
-      "majority_share": 0.625,
+      "majority_share": 0.5,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.375
+      "heterogeneity_degree": 0.5
      }
     }
    ],
    "warnings": [
-    "8 participants actifs (≤ 10) : une table unique, pas d'allocation.",
+    "10 participants actifs (≤ 10) : une table unique, pas d'allocation.",
     "Des tables dépassent 30 personnes : il n'y avait pas assez de place pour tout le public.",
     "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
    ],
@@ -528,18 +542,20 @@
    "seatedModerators": 2,
    "recorderTarget": 1
   },
-  "explanation": "Une seule table : 8 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 1 table(s) dépassent 30 personnes (limite physique).",
-  "ms": 1
+  "explanation": "Une seule table : 10 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 1 table(s) dépassent 30 personnes (limite physique).",
+  "ms": 0
  },
  {
   "id": "m2",
-  "label": "Salle moyenne · 40 part. · 40% actifs · 4 modé.",
+  "label": "Salle moyenne · 42 part. · 40% actifs",
   "sizeCat": "moyenne",
   "activeCat": "faible",
-  "modCat": "4-6",
+  "modCat": "2-3",
   "note": null,
+  "roomTotal": 44,
+  "unmoderatedOk": true,
   "input": {
-   "n": 40,
+   "n": 42,
    "vetRatio": 0.4,
    "activeRatio": 0.4,
    "consentRatio": 0.9,
@@ -547,6 +563,653 @@
     1,
     1,
     1
+   ],
+   "moderators": 2,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 22,
+     "audience_count": 13,
+     "diag": {
+      "table_number": 1,
+      "size": 22,
+      "moderated": true,
+      "actives": 9,
+      "audience": 13,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 3,
+      "veterans_threshold": 4,
+      "veterans_ok": false,
+      "newcomers": 6,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 4,
+       "1": 1,
+       "2": 4
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4444444444444444,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5555555555555556
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 20,
+     "audience_count": 12,
+     "diag": {
+      "table_number": 2,
+      "size": 20,
+      "moderated": true,
+      "actives": 8,
+      "audience": 12,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 4,
+      "recordable": false,
+      "camp_counts": {
+       "0": 2,
+       "1": 3,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
+     }
+    }
+   ],
+   "warnings": [],
+   "singleTable": false,
+   "moderatorCapacity": 2,
+   "animatingModerators": 2,
+   "seatedModerators": 0,
+   "recorderTarget": 1
+  },
+  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "m3",
+  "label": "Salle moyenne · 47 part. · 60% actifs",
+  "sizeCat": "moyenne",
+  "activeCat": "moitié",
+  "modCat": "2-3",
+  "note": null,
+  "roomTotal": 50,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 47,
+   "vetRatio": 0.4,
+   "activeRatio": 0.6,
+   "consentRatio": 0.9,
+   "camps": [
+    1,
+    1,
+    1
+   ],
+   "moderators": 3,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 17,
+     "audience_count": 7,
+     "diag": {
+      "table_number": 1,
+      "size": 17,
+      "moderated": true,
+      "actives": 10,
+      "audience": 7,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 3,
+      "recordable": false,
+      "camp_counts": {
+       "0": 3,
+       "1": 4,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.6
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 15,
+     "audience_count": 6,
+     "diag": {
+      "table_number": 2,
+      "size": 15,
+      "moderated": true,
+      "actives": 9,
+      "audience": 6,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 4,
+       "1": 2,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4444444444444444,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5555555555555556
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 15,
+     "audience_count": 6,
+     "diag": {
+      "table_number": 3,
+      "size": 15,
+      "moderated": true,
+      "actives": 9,
+      "audience": 6,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 5,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 4,
+       "1": 2,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4444444444444444,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5555555555555556
+     }
+    }
+   ],
+   "warnings": [],
+   "singleTable": false,
+   "moderatorCapacity": 3,
+   "animatingModerators": 3,
+   "seatedModerators": 0,
+   "recorderTarget": 1
+  },
+  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "m4",
+  "label": "Salle moyenne · 50 part. · 80% actifs",
+  "sizeCat": "moyenne",
+  "activeCat": "forte",
+  "modCat": "4-6",
+  "note": null,
+  "roomTotal": 54,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 50,
+   "vetRatio": 0.4,
+   "activeRatio": 0.8,
+   "consentRatio": 0.9,
+   "camps": [
+    0.5,
+    0.3,
+    0.2
+   ],
+   "moderators": 4,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 13,
+     "audience_count": 3,
+     "diag": {
+      "table_number": 1,
+      "size": 13,
+      "moderated": true,
+      "actives": 10,
+      "audience": 3,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 5,
+       "1": 2,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 13,
+     "audience_count": 3,
+     "diag": {
+      "table_number": 2,
+      "size": 13,
+      "moderated": true,
+      "actives": 10,
+      "audience": 3,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 5,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 12,
+     "audience_count": 2,
+     "diag": {
+      "table_number": 3,
+      "size": 12,
+      "moderated": true,
+      "actives": 10,
+      "audience": 2,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 5,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 4,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 12,
+     "audience_count": 2,
+     "diag": {
+      "table_number": 4,
+      "size": 12,
+      "moderated": true,
+      "actives": 10,
+      "audience": 2,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 1,
+      "recordable": false,
+      "camp_counts": {
+       "0": 6,
+       "1": 2,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.6,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.4
+     }
+    }
+   ],
+   "warnings": [],
+   "singleTable": false,
+   "moderatorCapacity": 4,
+   "animatingModerators": 4,
+   "seatedModerators": 0,
+   "recorderTarget": 1
+  },
+  "explanation": "4 table(s), dont 4 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "m5",
+  "label": "Salle moyenne · 50 part. · 50% actifs",
+  "sizeCat": "moyenne",
+  "activeCat": "moitié",
+  "modCat": "2-3",
+  "note": null,
+  "roomTotal": 53,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 50,
+   "vetRatio": 0.4,
+   "activeRatio": 0.5,
+   "consentRatio": 1,
+   "camps": [
+    1,
+    1,
+    1
+   ],
+   "moderators": 3,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 18,
+     "audience_count": 9,
+     "diag": {
+      "table_number": 1,
+      "size": 18,
+      "moderated": true,
+      "actives": 9,
+      "audience": 9,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 3,
+       "1": 2,
+       "2": 4
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4444444444444444,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5555555555555556
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 16,
+     "audience_count": 8,
+     "diag": {
+      "table_number": 2,
+      "size": 16,
+      "moderated": true,
+      "actives": 8,
+      "audience": 8,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 3,
+      "veterans_threshold": 4,
+      "veterans_ok": false,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 3,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 16,
+     "audience_count": 8,
+     "diag": {
+      "table_number": 3,
+      "size": 16,
+      "moderated": true,
+      "actives": 8,
+      "audience": 8,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 3,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
+     }
+    }
+   ],
+   "warnings": [],
+   "singleTable": false,
+   "moderatorCapacity": 3,
+   "animatingModerators": 3,
+   "seatedModerators": 0,
+   "recorderTarget": 1
+  },
+  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 3 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "m6",
+  "label": "Salle moyenne · 45 part. · 50% actifs · modérateurs en surplus",
+  "sizeCat": "moyenne",
+  "activeCat": "moitié",
+  "modCat": "4-6",
+  "note": null,
+  "roomTotal": 51,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 45,
+   "vetRatio": 0.4,
+   "activeRatio": 0.5,
+   "consentRatio": 0.9,
+   "camps": [
+    1,
+    1,
+    1
+   ],
+   "moderators": 6,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 17,
+     "audience_count": 8,
+     "diag": {
+      "table_number": 1,
+      "size": 17,
+      "moderated": true,
+      "actives": 9,
+      "audience": 8,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 3,
+       "1": 3,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.3333333333333333,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.6666666666666667
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 16,
+     "audience_count": 7,
+     "diag": {
+      "table_number": 2,
+      "size": 16,
+      "moderated": true,
+      "actives": 9,
+      "audience": 7,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 3,
+       "1": 3,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.3333333333333333,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.6666666666666667
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 15,
+     "audience_count": 7,
+     "diag": {
+      "table_number": 3,
+      "size": 15,
+      "moderated": true,
+      "actives": 8,
+      "audience": 7,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 3,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
+     }
+    }
+   ],
+   "warnings": [
+    "3 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+   ],
+   "singleTable": false,
+   "moderatorCapacity": 6,
+   "animatingModerators": 3,
+   "seatedModerators": 3,
+   "recorderTarget": 1
+  },
+  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. 3 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "g1",
+  "label": "Grande salle · 60 part. · 40% actifs",
+  "sizeCat": "grande",
+  "activeCat": "faible",
+  "modCat": "4-6",
+  "note": null,
+  "roomTotal": 64,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 60,
+   "vetRatio": 0.35,
+   "activeRatio": 0.4,
+   "consentRatio": 0.9,
+   "camps": [
+    0.4,
+    0.35,
+    0.25
    ],
    "moderators": 4,
    "recorders": 1,
@@ -568,11 +1231,11 @@
       "audience": 12,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
+      "veterans": 2,
       "veterans_threshold": 4,
-      "veterans_ok": true,
-      "newcomers": 5,
-      "non_consenting": 4,
+      "veterans_ok": false,
+      "newcomers": 7,
+      "non_consenting": 3,
       "recordable": false,
       "camp_counts": {
        "0": 3,
@@ -589,63 +1252,287 @@
      "table_number": 2,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 21,
+     "member_count": 20,
      "audience_count": 12,
      "diag": {
       "table_number": 2,
-      "size": 21,
+      "size": 20,
       "moderated": true,
-      "actives": 9,
+      "actives": 8,
       "audience": 12,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 2,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 3,
+      "recordable": false,
+      "camp_counts": {
+       "0": 4,
+       "1": 2,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 20,
+     "audience_count": 12,
+     "diag": {
+      "table_number": 3,
+      "size": 20,
+      "moderated": true,
+      "actives": 8,
+      "audience": 12,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 1,
       "veterans_threshold": 4,
       "veterans_ok": false,
       "newcomers": 7,
       "non_consenting": 0,
       "recordable": true,
       "camp_counts": {
-       "0": 2,
-       "1": 4,
-       "2": 3
+       "0": 3,
+       "1": 3,
+       "2": 2
       },
       "neutral_count": 0,
-      "majority_share": 0.4444444444444444,
+      "majority_share": 0.375,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5555555555555556
+      "heterogeneity_degree": 0.625
      }
     }
    ],
    "warnings": [
-    "33 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée.",
-    "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+    "28 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée.",
+    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
    ],
    "singleTable": false,
    "moderatorCapacity": 4,
-   "animatingModerators": 2,
-   "seatedModerators": 2,
+   "animatingModerators": 3,
+   "seatedModerators": 1,
    "recorderTarget": 1
   },
-  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 15
+  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 2 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
  },
  {
-  "id": "m3",
-  "label": "Salle moyenne · 47 part. · 60% actifs · 4 modé.",
-  "sizeCat": "moyenne",
+  "id": "g2",
+  "label": "Grande salle · 64 part. · 80% actifs",
+  "sizeCat": "grande",
+  "activeCat": "forte",
+  "modCat": "4-6",
+  "note": null,
+  "roomTotal": 69,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 64,
+   "vetRatio": 0.4,
+   "activeRatio": 0.8,
+   "consentRatio": 0.9,
+   "camps": [
+    0.45,
+    0.35,
+    0.2
+   ],
+   "moderators": 5,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 14,
+     "audience_count": 3,
+     "diag": {
+      "table_number": 1,
+      "size": 14,
+      "moderated": true,
+      "actives": 11,
+      "audience": 3,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 5,
+      "veterans_threshold": 5,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 5,
+       "1": 4,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.45454545454545453,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5454545454545454
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 13,
+     "audience_count": 3,
+     "diag": {
+      "table_number": 2,
+      "size": 13,
+      "moderated": true,
+      "actives": 10,
+      "audience": 3,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 5,
+       "1": 4,
+       "2": 1
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 13,
+     "audience_count": 3,
+     "diag": {
+      "table_number": 3,
+      "size": 13,
+      "moderated": true,
+      "actives": 10,
+      "audience": 3,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 1,
+      "recordable": false,
+      "camp_counts": {
+       "0": 5,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 4,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 12,
+     "audience_count": 2,
+     "diag": {
+      "table_number": 4,
+      "size": 12,
+      "moderated": true,
+      "actives": 10,
+      "audience": 2,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 6,
+      "non_consenting": 1,
+      "recordable": false,
+      "camp_counts": {
+       "0": 4,
+       "1": 4,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.6
+     }
+    },
+    {
+     "table_number": 5,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 12,
+     "audience_count": 2,
+     "diag": {
+      "table_number": 5,
+      "size": 12,
+      "moderated": true,
+      "actives": 10,
+      "audience": 2,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 6,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 4,
+       "1": 4,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.6
+     }
+    }
+   ],
+   "warnings": [],
+   "singleTable": false,
+   "moderatorCapacity": 5,
+   "animatingModerators": 5,
+   "seatedModerators": 0,
+   "recorderTarget": 1
+  },
+  "explanation": "5 table(s), dont 5 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
+ },
+ {
+  "id": "g3",
+  "label": "Grande salle · 64 part. · 60% actifs",
+  "sizeCat": "grande",
   "activeCat": "moitié",
   "modCat": "4-6",
   "note": null,
+  "roomTotal": 68,
+  "unmoderatedOk": true,
   "input": {
-   "n": 47,
-   "vetRatio": 0.4,
+   "n": 64,
+   "vetRatio": 0.35,
    "activeRatio": 0.6,
    "consentRatio": 0.9,
    "camps": [
-    1,
-    1,
-    1
+    0.4,
+    0.35,
+    0.25
    ],
    "moderators": 4,
    "recorders": 1,
@@ -671,8 +1558,8 @@
       "veterans_threshold": 4,
       "veterans_ok": true,
       "newcomers": 6,
-      "non_consenting": 0,
-      "recordable": true,
+      "non_consenting": 2,
+      "recordable": false,
       "camp_counts": {
        "0": 3,
        "1": 4,
@@ -688,26 +1575,26 @@
      "table_number": 2,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 6,
+     "member_count": 17,
+     "audience_count": 7,
      "diag": {
       "table_number": 2,
-      "size": 16,
+      "size": 17,
       "moderated": true,
       "actives": 10,
-      "audience": 6,
+      "audience": 7,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 5,
+      "veterans": 4,
       "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 5,
-      "non_consenting": 4,
+      "newcomers": 6,
+      "non_consenting": 3,
       "recordable": false,
       "camp_counts": {
-       "0": 3,
+       "0": 4,
        "1": 3,
-       "2": 4
+       "2": 3
       },
       "neutral_count": 0,
       "majority_share": 0.4,
@@ -729,10 +1616,10 @@
       "audience": 6,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
+      "veterans": 5,
       "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 5,
+      "newcomers": 4,
       "non_consenting": 1,
       "recordable": false,
       "camp_counts": {
@@ -745,38 +1632,69 @@
       "heterogeneity_ok": true,
       "heterogeneity_degree": 0.5555555555555556
      }
+    },
+    {
+     "table_number": 4,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 15,
+     "audience_count": 6,
+     "diag": {
+      "table_number": 4,
+      "size": 15,
+      "moderated": true,
+      "actives": 9,
+      "audience": 6,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 4,
+       "1": 2,
+       "2": 3
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4444444444444444,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5555555555555556
+     }
     }
    ],
-   "warnings": [
-    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
-   ],
+   "warnings": [],
    "singleTable": false,
    "moderatorCapacity": 4,
-   "animatingModerators": 3,
-   "seatedModerators": 1,
+   "animatingModerators": 4,
+   "seatedModerators": 0,
    "recorderTarget": 1
   },
-  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 18
+  "explanation": "4 table(s), dont 4 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
  },
  {
-  "id": "m4",
-  "label": "Salle moyenne · 50 part. · 80% actifs · 3 modé.",
-  "sizeCat": "moyenne",
-  "activeCat": "forte",
-  "modCat": "2-3",
-  "note": null,
+  "id": "g4",
+  "label": "Grande salle · 64 part. · 20% actifs · modérateurs en surplus",
+  "sizeCat": "grande",
+  "activeCat": "très faible",
+  "modCat": "4-6",
+  "note": "Salle proche du plafond de 70 mais peu d’actifs : test de la limite haute avec 6 modérateurs.",
+  "roomTotal": 70,
+  "unmoderatedOk": true,
   "input": {
-   "n": 50,
+   "n": 64,
    "vetRatio": 0.4,
-   "activeRatio": 0.8,
+   "activeRatio": 0.2,
    "consentRatio": 0.9,
    "camps": [
-    0.5,
-    0.3,
-    0.2
+    1,
+    1,
+    1
    ],
-   "moderators": 3,
+   "moderators": 6,
    "recorders": 1,
    "opinions": true
   },
@@ -786,62 +1704,163 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 18,
-     "audience_count": 4,
+     "member_count": 35,
+     "audience_count": 26,
      "diag": {
       "table_number": 1,
-      "size": 18,
+      "size": 35,
       "moderated": true,
-      "actives": 14,
-      "audience": 4,
+      "actives": 9,
+      "audience": 26,
       "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 6,
-      "veterans_threshold": 6,
+      "over_capacity": true,
+      "veterans": 4,
+      "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 8,
-      "non_consenting": 3,
+      "newcomers": 5,
+      "non_consenting": 6,
       "recordable": false,
       "camp_counts": {
-       "0": 7,
-       "1": 4,
+       "0": 3,
+       "1": 3,
        "2": 3
       },
       "neutral_count": 0,
-      "majority_share": 0.5,
+      "majority_share": 0.3333333333333333,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
+      "heterogeneity_degree": 0.6666666666666667
      }
     },
     {
      "table_number": 2,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 3,
+     "member_count": 33,
+     "audience_count": 25,
      "diag": {
       "table_number": 2,
-      "size": 16,
+      "size": 33,
       "moderated": true,
-      "actives": 13,
-      "audience": 3,
+      "actives": 8,
+      "audience": 25,
       "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 6,
-      "veterans_threshold": 6,
+      "over_capacity": true,
+      "veterans": 7,
+      "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 7,
+      "newcomers": 1,
       "non_consenting": 0,
       "recordable": true,
       "camp_counts": {
-       "0": 7,
+       "0": 2,
+       "1": 2,
+       "2": 4
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5
+     }
+    }
+   ],
+   "warnings": [
+    "Des tables dépassent 30 personnes : il n'y avait pas assez de place pour tout le public.",
+    "4 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+   ],
+   "singleTable": false,
+   "moderatorCapacity": 6,
+   "animatingModerators": 2,
+   "seatedModerators": 4,
+   "recorderTarget": 1
+  },
+  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 4 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 2 table(s) dépassent 30 personnes (limite physique).",
+  "ms": 0
+ },
+ {
+  "id": "g5",
+  "label": "Grande salle · 64 part. · 50% actifs · plafond des deux limites",
+  "sizeCat": "grande",
+  "activeCat": "moitié",
+  "modCat": "4-6",
+  "note": "64 + 6 modérateurs = 70 : les deux plafonds opérationnels atteints en même temps.",
+  "roomTotal": 70,
+  "unmoderatedOk": true,
+  "input": {
+   "n": 64,
+   "vetRatio": 0.4,
+   "activeRatio": 0.5,
+   "consentRatio": 0.9,
+   "camps": [
+    1,
+    1,
+    1
+   ],
+   "moderators": 6,
+   "recorders": 1,
+   "opinions": true
+  },
+  "result": {
+   "tables": [
+    {
+     "table_number": 1,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 17,
+     "audience_count": 8,
+     "diag": {
+      "table_number": 1,
+      "size": 17,
+      "moderated": true,
+      "actives": 9,
+      "audience": 8,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 3,
+       "1": 4,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.4444444444444444,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.5555555555555556
+     }
+    },
+    {
+     "table_number": 2,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 17,
+     "audience_count": 8,
+     "diag": {
+      "table_number": 2,
+      "size": 17,
+      "moderated": true,
+      "actives": 9,
+      "audience": 8,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 4,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 5,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 3,
        "1": 3,
        "2": 3
       },
       "neutral_count": 0,
-      "majority_share": 0.5384615384615384,
+      "majority_share": 0.3333333333333333,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.46153846153846156
+      "heterogeneity_degree": 0.6666666666666667
      }
     },
     {
@@ -849,59 +1868,94 @@
      "moderated": true,
      "moderator_count": 1,
      "member_count": 16,
-     "audience_count": 3,
+     "audience_count": 8,
      "diag": {
       "table_number": 3,
       "size": 16,
       "moderated": true,
-      "actives": 13,
-      "audience": 3,
+      "actives": 8,
+      "audience": 8,
       "audience_ok": true,
       "over_capacity": false,
       "veterans": 6,
-      "veterans_threshold": 6,
+      "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 7,
+      "newcomers": 2,
       "non_consenting": 2,
       "recordable": false,
       "camp_counts": {
-       "0": 6,
-       "1": 4,
-       "2": 3
+       "0": 3,
+       "1": 3,
+       "2": 2
       },
       "neutral_count": 0,
-      "majority_share": 0.46153846153846156,
+      "majority_share": 0.375,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5384615384615384
+      "heterogeneity_degree": 0.625
+     }
+    },
+    {
+     "table_number": 4,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 16,
+     "audience_count": 8,
+     "diag": {
+      "table_number": 4,
+      "size": 16,
+      "moderated": true,
+      "actives": 8,
+      "audience": 8,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 5,
+      "veterans_threshold": 4,
+      "veterans_ok": true,
+      "newcomers": 3,
+      "non_consenting": 2,
+      "recordable": false,
+      "camp_counts": {
+       "0": 3,
+       "1": 3,
+       "2": 2
+      },
+      "neutral_count": 0,
+      "majority_share": 0.375,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.625
      }
     }
    ],
-   "warnings": [],
+   "warnings": [
+    "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+   ],
    "singleTable": false,
-   "moderatorCapacity": 3,
-   "animatingModerators": 3,
-   "seatedModerators": 0,
+   "moderatorCapacity": 6,
+   "animatingModerators": 4,
+   "seatedModerators": 2,
    "recorderTarget": 1
   },
-  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 19
+  "explanation": "4 table(s), dont 4 animée(s) et 0 sans modérateur. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
  },
  {
-  "id": "m5",
-  "label": "Salle moyenne · 60 part. · 50% actifs · 4 modé.",
-  "sizeCat": "moyenne",
-  "activeCat": "moitié",
+  "id": "g6",
+  "label": "Grande salle · 64 part. · 30% actifs",
+  "sizeCat": "grande",
+  "activeCat": "faible",
   "modCat": "4-6",
   "note": null,
+  "roomTotal": 68,
+  "unmoderatedOk": true,
   "input": {
-   "n": 60,
-   "vetRatio": 0.4,
-   "activeRatio": 0.5,
-   "consentRatio": 1,
+   "n": 64,
+   "vetRatio": 0.35,
+   "activeRatio": 0.3,
+   "consentRatio": 0.9,
    "camps": [
-    1,
-    1,
-    1
+    0.4,
+    0.35,
+    0.25
    ],
    "moderators": 4,
    "recorders": 1,
@@ -913,26 +1967,26 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 21,
-     "audience_count": 10,
+     "member_count": 34,
+     "audience_count": 23,
      "diag": {
       "table_number": 1,
-      "size": 21,
+      "size": 34,
       "moderated": true,
       "actives": 11,
-      "audience": 10,
+      "audience": 23,
       "audience_ok": true,
-      "over_capacity": false,
+      "over_capacity": true,
       "veterans": 5,
       "veterans_threshold": 5,
       "veterans_ok": true,
       "newcomers": 6,
-      "non_consenting": 0,
-      "recordable": true,
+      "non_consenting": 6,
+      "recordable": false,
       "camp_counts": {
-       "0": 3,
+       "0": 4,
        "1": 4,
-       "2": 4
+       "2": 3
       },
       "neutral_count": 0,
       "majority_share": 0.36363636363636365,
@@ -944,47 +1998,16 @@
      "table_number": 2,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 10,
+     "member_count": 32,
+     "audience_count": 22,
      "diag": {
       "table_number": 2,
-      "size": 20,
+      "size": 32,
       "moderated": true,
       "actives": 10,
-      "audience": 10,
+      "audience": 22,
       "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 4,
-      "veterans_ok": true,
-      "newcomers": 5,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 3,
-       "1": 4,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 3,
-      "size": 20,
-      "moderated": true,
-      "actives": 10,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
+      "over_capacity": true,
       "veterans": 4,
       "veterans_threshold": 4,
       "veterans_ok": true,
@@ -992,2007 +2015,39 @@
       "non_consenting": 0,
       "recordable": true,
       "camp_counts": {
-       "0": 4,
-       "1": 4,
+       "0": 6,
+       "1": 2,
        "2": 2
       },
       "neutral_count": 0,
-      "majority_share": 0.4,
+      "majority_share": 0.6,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6
+      "heterogeneity_degree": 0.4
      }
     }
    ],
    "warnings": [
-    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+    "Des tables dépassent 30 personnes : il n'y avait pas assez de place pour tout le public.",
+    "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
    ],
    "singleTable": false,
    "moderatorCapacity": 4,
-   "animatingModerators": 3,
-   "seatedModerators": 1,
-   "recorderTarget": 1
-  },
-  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 3 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 9
- },
- {
-  "id": "m6",
-  "label": "Salle moyenne · 60 part. · 80% actifs · 4 modé.",
-  "sizeCat": "moyenne",
-  "activeCat": "forte",
-  "modCat": "4-6",
-  "note": null,
-  "input": {
-   "n": 60,
-   "vetRatio": 0.4,
-   "activeRatio": 0.8,
-   "consentRatio": 0.9,
-   "camps": [
-    0.45,
-    0.35,
-    0.2
-   ],
-   "moderators": 4,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 3,
-     "diag": {
-      "table_number": 1,
-      "size": 15,
-      "moderated": true,
-      "actives": 12,
-      "audience": 3,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 9,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 5,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 3,
-     "diag": {
-      "table_number": 2,
-      "size": 15,
-      "moderated": true,
-      "actives": 12,
-      "audience": 3,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 7,
-       "1": 4,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5833333333333334,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.41666666666666663
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 3,
-     "diag": {
-      "table_number": 3,
-      "size": 15,
-      "moderated": true,
-      "actives": 12,
-      "audience": 3,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 6,
-       "1": 4,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    },
-    {
-     "table_number": 4,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 3,
-     "diag": {
-      "table_number": 4,
-      "size": 15,
-      "moderated": true,
-      "actives": 12,
-      "audience": 3,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 6,
-       "1": 4,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    }
-   ],
-   "warnings": [
-    "38 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 4,
-   "animatingModerators": 4,
-   "seatedModerators": 0,
-   "recorderTarget": 1
-  },
-  "explanation": "4 table(s), dont 4 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 31
- },
- {
-  "id": "m7",
-  "label": "Salle moyenne · 60 part. · 40% actifs · 2 modé.",
-  "sizeCat": "moyenne",
-  "activeCat": "faible",
-  "modCat": "1",
-  "note": null,
-  "input": {
-   "n": 60,
-   "vetRatio": 0.3,
-   "activeRatio": 0.4,
-   "consentRatio": 0.9,
-   "camps": [
-    0.45,
-    0.35,
-    0.2
-   ],
-   "moderators": 2,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 30,
-     "audience_count": 18,
-     "diag": {
-      "table_number": 1,
-      "size": 30,
-      "moderated": true,
-      "actives": 12,
-      "audience": 18,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 2,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 10,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 7,
-       "1": 3,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5833333333333334,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.41666666666666663
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 30,
-     "audience_count": 18,
-     "diag": {
-      "table_number": 2,
-      "size": 30,
-      "moderated": true,
-      "actives": 12,
-      "audience": 18,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 2,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 10,
-      "non_consenting": 6,
-      "recordable": false,
-      "camp_counts": {
-       "0": 8,
-       "1": 3,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    }
-   ],
-   "warnings": [
-    "17 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 2,
    "animatingModerators": 2,
-   "seatedModerators": 0,
+   "seatedModerators": 2,
    "recorderTarget": 1
   },
-  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 2 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 3
- },
- {
-  "id": "m8",
-  "label": "Salle moyenne · 38 part. · 60% actifs · 0 modé. (leaderless)",
-  "sizeCat": "moyenne",
-  "activeCat": "moitié",
-  "modCat": "0",
-  "note": "Cas non représentatif (Jules, 18/09 : il y a toujours au moins 1-2 modérateurs) — conservé pour illustrer le trou du plancher à 6 sans modérateur du tout, voir le commentaire sur UNMODERATED_TABLE_MIN.",
-  "input": {
-   "n": 38,
-   "vetRatio": 0.35,
-   "activeRatio": 0.6,
-   "consentRatio": 0.9,
-   "camps": [
-    1,
-    1,
-    1
-   ],
-   "moderators": 0,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 38,
-     "audience_count": 15,
-     "diag": {
-      "table_number": 1,
-      "size": 38,
-      "moderated": false,
-      "actives": 23,
-      "audience": 15,
-      "audience_ok": false,
-      "over_capacity": true,
-      "veterans": 10,
-      "veterans_threshold": 10,
-      "veterans_ok": true,
-      "newcomers": 13,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 9,
-       "1": 8,
-       "2": 6
-      },
-      "neutral_count": 0,
-      "majority_share": 0.391304347826087,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6086956521739131
-     }
-    }
-   ],
-   "warnings": [
-    "Aucun modérateur identifié : toutes les tables seront sans animateur (leaderless).",
-    "Aucune répartition valide trouvée — repli sur une table unique.",
-    "15 participant(s) passif(s) placé(s) en public à des tables sans modérateur, faute de table animée.",
-    "Des tables dépassent 30 personnes : il n'y avait pas assez de place pour tout le public."
-   ],
-   "singleTable": true,
-   "moderatorCapacity": 0,
-   "animatingModerators": 0,
-   "seatedModerators": 0,
-   "recorderTarget": 1
-  },
-  "explanation": "Une seule table : 23 actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 1 table(s) dépassent 30 personnes (limite physique).",
+  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 2 table(s) dépassent 30 personnes (limite physique).",
   "ms": 0
  },
  {
-  "id": "m9",
-  "label": "Salle moyenne · 45 part. · 50% actifs · 6 modé. (surplus)",
-  "sizeCat": "moyenne",
-  "activeCat": "moitié",
-  "modCat": "surplus",
-  "note": null,
-  "input": {
-   "n": 45,
-   "vetRatio": 0.4,
-   "activeRatio": 0.5,
-   "consentRatio": 0.9,
-   "camps": [
-    1,
-    1,
-    1
-   ],
-   "moderators": 6,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 25,
-     "audience_count": 11,
-     "diag": {
-      "table_number": 1,
-      "size": 25,
-      "moderated": true,
-      "actives": 14,
-      "audience": 11,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 6,
-      "veterans_threshold": 6,
-      "veterans_ok": true,
-      "newcomers": 8,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 5
-      },
-      "neutral_count": 0,
-      "majority_share": 0.35714285714285715,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6428571428571428
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 24,
-     "audience_count": 11,
-     "diag": {
-      "table_number": 2,
-      "size": 24,
-      "moderated": true,
-      "actives": 13,
-      "audience": 11,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 7,
-      "veterans_threshold": 6,
-      "veterans_ok": true,
-      "newcomers": 6,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 5,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.38461538461538464,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6153846153846154
-     }
-    }
-   ],
-   "warnings": [
-    "4 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 6,
-   "animatingModerators": 2,
-   "seatedModerators": 4,
-   "recorderTarget": 1
-  },
-  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 4 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 15
- },
- {
-  "id": "g1",
-  "label": "Grande salle · 90 part. · 40% actifs · 5 modé.",
-  "sizeCat": "grande",
-  "activeCat": "faible",
-  "modCat": "4-6",
-  "note": null,
-  "input": {
-   "n": 90,
-   "vetRatio": 0.35,
-   "activeRatio": 0.4,
-   "consentRatio": 0.9,
-   "camps": [
-    0.4,
-    0.35,
-    0.25
-   ],
-   "moderators": 5,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 31,
-     "audience_count": 18,
-     "diag": {
-      "table_number": 1,
-      "size": 31,
-      "moderated": true,
-      "actives": 13,
-      "audience": 18,
-      "audience_ok": true,
-      "over_capacity": true,
-      "veterans": 6,
-      "veterans_threshold": 6,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.38461538461538464,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6153846153846154
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 31,
-     "audience_count": 18,
-     "diag": {
-      "table_number": 2,
-      "size": 31,
-      "moderated": true,
-      "actives": 13,
-      "audience": 18,
-      "audience_ok": true,
-      "over_capacity": true,
-      "veterans": 2,
-      "veterans_threshold": 6,
-      "veterans_ok": false,
-      "newcomers": 11,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.38461538461538464,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6153846153846154
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 30,
-     "audience_count": 18,
-     "diag": {
-      "table_number": 3,
-      "size": 30,
-      "moderated": true,
-      "actives": 12,
-      "audience": 18,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 5,
-      "recordable": false,
-      "camp_counts": {
-       "0": 7,
-       "1": 4,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5833333333333334,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.41666666666666663
-     }
-    }
-   ],
-   "warnings": [
-    "34 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée.",
-    "Des tables dépassent 30 personnes : il n'y avait pas assez de place pour tout le public.",
-    "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 5,
-   "animatingModerators": 3,
-   "seatedModerators": 2,
-   "recorderTarget": 1
-  },
-  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 2 table(s) dépassent 30 personnes (limite physique).",
-  "ms": 34
- },
- {
-  "id": "g2",
-  "label": "Grande salle · 120 part. · 60% actifs · 6 modé.",
-  "sizeCat": "grande",
-  "activeCat": "moitié",
-  "modCat": "4-6",
-  "note": null,
-  "input": {
-   "n": 120,
-   "vetRatio": 0.3,
-   "activeRatio": 0.6,
-   "consentRatio": 0.9,
-   "camps": [
-    0.4,
-    0.35,
-    0.25
-   ],
-   "moderators": 6,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 8,
-     "diag": {
-      "table_number": 1,
-      "size": 20,
-      "moderated": true,
-      "actives": 12,
-      "audience": 8,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 8,
-     "diag": {
-      "table_number": 2,
-      "size": 20,
-      "moderated": true,
-      "actives": 12,
-      "audience": 8,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 8,
-     "diag": {
-      "table_number": 3,
-      "size": 20,
-      "moderated": true,
-      "actives": 12,
-      "audience": 8,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 4,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 8,
-     "diag": {
-      "table_number": 4,
-      "size": 20,
-      "moderated": true,
-      "actives": 12,
-      "audience": 8,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 5,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 5,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 8,
-     "diag": {
-      "table_number": 5,
-      "size": 20,
-      "moderated": true,
-      "actives": 12,
-      "audience": 8,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 2,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 10,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 6,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    },
-    {
-     "table_number": 6,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 20,
-     "audience_count": 8,
-     "diag": {
-      "table_number": 6,
-      "size": 20,
-      "moderated": true,
-      "actives": 12,
-      "audience": 8,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 2,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 10,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 6,
-       "1": 6
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    }
-   ],
-   "warnings": [
-    "33 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 6,
-   "animatingModerators": 6,
-   "seatedModerators": 0,
-   "recorderTarget": 1
-  },
-  "explanation": "6 table(s), dont 6 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 2 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 2 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 155
- },
- {
-  "id": "g3",
-  "label": "Grande salle · 120 part. · 20% actifs · 4 modé.",
-  "sizeCat": "grande",
-  "activeCat": "très faible",
-  "modCat": "4-6",
-  "note": "Beaucoup de public à répartir sur peu de tables animées.",
-  "input": {
-   "n": 120,
-   "vetRatio": 0.4,
-   "activeRatio": 0.2,
-   "consentRatio": 0.9,
-   "camps": [
-    1,
-    1,
-    1
-   ],
-   "moderators": 4,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 46,
-     "audience_count": 36,
-     "diag": {
-      "table_number": 1,
-      "size": 46,
-      "moderated": true,
-      "actives": 10,
-      "audience": 36,
-      "audience_ok": true,
-      "over_capacity": true,
-      "veterans": 4,
-      "veterans_threshold": 4,
-      "veterans_ok": true,
-      "newcomers": 6,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 3,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 46,
-     "audience_count": 36,
-     "diag": {
-      "table_number": 2,
-      "size": 46,
-      "moderated": true,
-      "actives": 10,
-      "audience": 36,
-      "audience_ok": true,
-      "over_capacity": true,
-      "veterans": 2,
-      "veterans_threshold": 4,
-      "veterans_ok": false,
-      "newcomers": 8,
-      "non_consenting": 12,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 3,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 30,
-     "audience_count": 24,
-     "diag": {
-      "table_number": 3,
-      "size": 30,
-      "moderated": false,
-      "actives": 6,
-      "audience": 24,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    }
-   ],
-   "warnings": [
-    "35 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée.",
-    "Les tables animées sont pleines (30 personnes) : une partie du public a été placée à des tables sans modérateur.",
-    "Des tables dépassent 30 personnes : il n'y avait pas assez de place pour tout le public.",
-    "2 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 4,
-   "animatingModerators": 2,
-   "seatedModerators": 2,
-   "recorderTarget": 1
-  },
-  "explanation": "3 table(s), dont 2 animée(s) et 1 sans modérateur. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 2 table(s) enregistrable(s) sur un objectif de 1. ⚠️ 2 table(s) dépassent 30 personnes (limite physique).",
-  "ms": 10
- },
- {
-  "id": "g4",
-  "label": "Grande salle · 150 part. · 80% actifs · 8 modé.",
-  "sizeCat": "grande",
-  "activeCat": "forte",
-  "modCat": "4-6",
-  "note": null,
-  "input": {
-   "n": 150,
-   "vetRatio": 0.4,
-   "activeRatio": 0.8,
-   "consentRatio": 0.9,
-   "camps": [
-    0.45,
-    0.35,
-    0.2
-   ],
-   "moderators": 8,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 4,
-     "diag": {
-      "table_number": 1,
-      "size": 16,
-      "moderated": true,
-      "actives": 12,
-      "audience": 4,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 6,
-       "1": 4,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 4,
-     "diag": {
-      "table_number": 2,
-      "size": 16,
-      "moderated": true,
-      "actives": 12,
-      "audience": 4,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 4,
-     "diag": {
-      "table_number": 3,
-      "size": 16,
-      "moderated": true,
-      "actives": 12,
-      "audience": 4,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 4,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 4,
-     "diag": {
-      "table_number": 4,
-      "size": 16,
-      "moderated": true,
-      "actives": 12,
-      "audience": 4,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 5,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 4,
-     "diag": {
-      "table_number": 5,
-      "size": 16,
-      "moderated": true,
-      "actives": 12,
-      "audience": 4,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 6,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 4,
-     "diag": {
-      "table_number": 6,
-      "size": 16,
-      "moderated": true,
-      "actives": 12,
-      "audience": 4,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 7,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 3,
-     "diag": {
-      "table_number": 7,
-      "size": 15,
-      "moderated": true,
-      "actives": 12,
-      "audience": 3,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 0,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 12,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 6,
-       "1": 5,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    },
-    {
-     "table_number": 8,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 15,
-     "audience_count": 3,
-     "diag": {
-      "table_number": 8,
-      "size": 15,
-      "moderated": true,
-      "actives": 12,
-      "audience": 3,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 1,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 11,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 7,
-       "1": 4,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5833333333333334,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.41666666666666663
-     }
-    },
-    {
-     "table_number": 9,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 9,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 3,
-       "1": 2,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    },
-    {
-     "table_number": 10,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 10,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 3,
-       "1": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.5,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5
-     }
-    },
-    {
-     "table_number": 11,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 11,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    },
-    {
-     "table_number": 12,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 12,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    }
-   ],
-   "warnings": [
-    "36 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 8,
-   "animatingModerators": 8,
-   "seatedModerators": 0,
-   "recorderTarget": 1
-  },
-  "explanation": "12 table(s), dont 8 animée(s) et 4 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 2 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 6 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 528
- },
- {
-  "id": "g5",
-  "label": "Grande salle · 200 part. · 60% actifs · 8 modé.",
-  "sizeCat": "grande",
-  "activeCat": "moitié",
-  "modCat": "4-6",
-  "note": null,
-  "input": {
-   "n": 200,
-   "vetRatio": 0.35,
-   "activeRatio": 0.6,
-   "consentRatio": 0.9,
-   "camps": [
-    0.4,
-    0.35,
-    0.25
-   ],
-   "moderators": 8,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 1,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 2,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 1,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 11,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 3,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 1,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 11,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 4,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 4,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 4,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 2,
-      "veterans_threshold": 5,
-      "veterans_ok": false,
-      "newcomers": 10,
-      "non_consenting": 3,
-      "recordable": false,
-      "camp_counts": {
-       "0": 5,
-       "1": 2,
-       "2": 5
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 5,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 5,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 6,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 6,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 5,
-       "2": 3
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
-     }
-    },
-    {
-     "table_number": 7,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 7,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 8,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 22,
-     "audience_count": 10,
-     "diag": {
-      "table_number": 8,
-      "size": 22,
-      "moderated": true,
-      "actives": 12,
-      "audience": 10,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
-      "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 2,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 9,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 9,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    },
-    {
-     "table_number": 10,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 10,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    },
-    {
-     "table_number": 11,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 11,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    },
-    {
-     "table_number": 12,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 12,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
-     }
-    }
-   ],
-   "warnings": [
-    "34 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 8,
-   "animatingModerators": 8,
-   "seatedModerators": 0,
-   "recorderTarget": 1
-  },
-  "explanation": "12 table(s), dont 8 animée(s) et 4 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 3 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 4 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 610
- },
- {
-  "id": "g6",
-  "label": "Grande salle · 100 part. · 50% actifs · 1 modé.",
-  "sizeCat": "grande",
-  "activeCat": "moitié",
-  "modCat": "1",
-  "note": null,
-  "input": {
-   "n": 100,
-   "vetRatio": 0.4,
-   "activeRatio": 0.5,
-   "consentRatio": 0.9,
-   "camps": [
-    1,
-    1,
-    1
-   ],
-   "moderators": 1,
-   "recorders": 1,
-   "opinions": true
-  },
-  "result": {
-   "tables": [
-    {
-     "table_number": 1,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 30,
-     "audience_count": 16,
-     "diag": {
-      "table_number": 1,
-      "size": 30,
-      "moderated": true,
-      "actives": 14,
-      "audience": 16,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 4,
-      "veterans_threshold": 6,
-      "veterans_ok": false,
-      "newcomers": 10,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 5,
-       "2": 5
-      },
-      "neutral_count": 0,
-      "majority_share": 0.35714285714285715,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6428571428571428
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 12,
-     "audience_count": 6,
-     "diag": {
-      "table_number": 2,
-      "size": 12,
-      "moderated": false,
-      "actives": 6,
-      "audience": 6,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 3,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 12,
-     "audience_count": 6,
-     "diag": {
-      "table_number": 3,
-      "size": 12,
-      "moderated": false,
-      "actives": 6,
-      "audience": 6,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 4,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 12,
-     "audience_count": 6,
-     "diag": {
-      "table_number": 4,
-      "size": 12,
-      "moderated": false,
-      "actives": 6,
-      "audience": 6,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 5,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 12,
-     "audience_count": 6,
-     "diag": {
-      "table_number": 5,
-      "size": 12,
-      "moderated": false,
-      "actives": 6,
-      "audience": 6,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 6,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 11,
-     "audience_count": 5,
-     "diag": {
-      "table_number": 6,
-      "size": 11,
-      "moderated": false,
-      "actives": 6,
-      "audience": 5,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 1,
-      "recordable": false,
-      "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    },
-    {
-     "table_number": 7,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 11,
-     "audience_count": 5,
-     "diag": {
-      "table_number": 7,
-      "size": 11,
-      "moderated": false,
-      "actives": 6,
-      "audience": 5,
-      "audience_ok": false,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.3333333333333333,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6666666666666667
-     }
-    }
-   ],
-   "warnings": [
-    "Les tables animées sont pleines (30 personnes) : une partie du public a été placée à des tables sans modérateur."
-   ],
-   "singleTable": false,
-   "moderatorCapacity": 1,
-   "animatingModerators": 1,
-   "seatedModerators": 0,
-   "recorderTarget": 1
-  },
-  "explanation": "7 table(s), dont 1 animée(s) et 6 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 3 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 73
- },
- {
   "id": "s1",
-  "label": "Peu d'anciens · 40 part. · 10% anciens · 4 modé.",
+  "label": "Peu d’anciens · 40 part. · 10% anciens · 50% actifs",
   "sizeCat": "moyenne",
   "activeCat": "moitié",
   "modCat": "4-6",
   "note": "Règle 3 (anciens) structurellement insatisfaisable — dégradation attendue.",
+  "roomTotal": 44,
+  "unmoderatedOk": true,
   "input": {
    "n": 40,
    "vetRatio": 0.1,
@@ -3083,15 +2138,17 @@
    "recorderTarget": 1
   },
   "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 2 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 2 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 13
+  "ms": 0
  },
  {
   "id": "s2",
-  "label": "Camp dominant · 35 part. · camps 80/15/5 · 3 modé.",
+  "label": "Camp dominant · 35 part. · camps 80/15/5",
   "sizeCat": "petite",
   "activeCat": "moitié",
   "modCat": "2-3",
   "note": "Règle 2 (hétérogénéité) difficilement atteignable.",
+  "roomTotal": 38,
+  "unmoderatedOk": true,
   "input": {
    "n": 35,
    "vetRatio": 0.4,
@@ -3180,15 +2237,17 @@
    "recorderTarget": 1
   },
   "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) non tenue sur 1 table(s) — camp trop dominant dans la population. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 2
+  "ms": 0
  },
  {
   "id": "s3",
-  "label": "Beaucoup de non-consentants · 33 part. · 60% consentants · 3 modé.",
+  "label": "Beaucoup de non-consentants · 33 part. · 60% consentants",
   "sizeCat": "petite",
   "activeCat": "moitié",
   "modCat": "2-3",
   "note": "Règle 1 (table enregistrable) sous tension.",
+  "roomTotal": 36,
+  "unmoderatedOk": true,
   "input": {
    "n": 33,
    "vetRatio": 0.4,
@@ -3278,15 +2337,17 @@
    "recorderTarget": 1
   },
   "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 3
+  "ms": 0
  },
  {
   "id": "s4",
-  "label": "2 enregistreurs demandés · 45 part. · 3 modé.",
+  "label": "2 enregistreurs demandés · 45 part.",
   "sizeCat": "moyenne",
   "activeCat": "moitié",
   "modCat": "2-3",
   "note": null,
+  "roomTotal": 48,
+  "unmoderatedOk": true,
   "input": {
    "n": 45,
    "vetRatio": 0.4,
@@ -3307,87 +2368,118 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 23,
-     "audience_count": 11,
+     "member_count": 16,
+     "audience_count": 8,
      "diag": {
       "table_number": 1,
-      "size": 23,
+      "size": 16,
       "moderated": true,
-      "actives": 12,
-      "audience": 11,
+      "actives": 8,
+      "audience": 8,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 5,
-      "veterans_threshold": 5,
+      "veterans": 4,
+      "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 7,
-      "non_consenting": 0,
-      "recordable": true,
+      "newcomers": 4,
+      "non_consenting": 7,
+      "recordable": false,
       "camp_counts": {
-       "0": 4,
-       "1": 5,
-       "2": 3
+       "0": 2,
+       "1": 2,
+       "2": 4
       },
       "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
+      "majority_share": 0.5,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
+      "heterogeneity_degree": 0.5
      }
     },
     {
      "table_number": 2,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 23,
-     "audience_count": 11,
+     "member_count": 15,
+     "audience_count": 7,
      "diag": {
       "table_number": 2,
-      "size": 23,
+      "size": 15,
       "moderated": true,
-      "actives": 12,
-      "audience": 11,
+      "actives": 8,
+      "audience": 7,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
-      "veterans_threshold": 5,
+      "veterans": 1,
+      "veterans_threshold": 4,
       "veterans_ok": false,
-      "newcomers": 8,
-      "non_consenting": 7,
-      "recordable": false,
+      "newcomers": 7,
+      "non_consenting": 0,
+      "recordable": true,
       "camp_counts": {
-       "0": 3,
-       "1": 5,
-       "2": 4
+       "0": 2,
+       "1": 4,
+       "2": 2
       },
       "neutral_count": 0,
-      "majority_share": 0.4166666666666667,
+      "majority_share": 0.5,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5833333333333333
+      "heterogeneity_degree": 0.5
+     }
+    },
+    {
+     "table_number": 3,
+     "moderated": true,
+     "moderator_count": 1,
+     "member_count": 14,
+     "audience_count": 7,
+     "diag": {
+      "table_number": 3,
+      "size": 14,
+      "moderated": true,
+      "actives": 7,
+      "audience": 7,
+      "audience_ok": true,
+      "over_capacity": false,
+      "veterans": 3,
+      "veterans_threshold": 3,
+      "veterans_ok": true,
+      "newcomers": 4,
+      "non_consenting": 0,
+      "recordable": true,
+      "camp_counts": {
+       "0": 3,
+       "1": 4
+      },
+      "neutral_count": 0,
+      "majority_share": 0.5714285714285714,
+      "heterogeneity_ok": true,
+      "heterogeneity_degree": 0.4285714285714286
      }
     }
    ],
    "warnings": [
-    "38 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée.",
-    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
+    "35 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
    ],
    "singleTable": false,
    "moderatorCapacity": 3,
-   "animatingModerators": 2,
-   "seatedModerators": 1,
+   "animatingModerators": 3,
+   "seatedModerators": 0,
    "recorderTarget": 2
   },
-  "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 2.",
-  "ms": 11
+  "explanation": "3 table(s), dont 3 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 2 table(s) enregistrable(s) sur un objectif de 2.",
+  "ms": 0
  },
  {
   "id": "s5",
-  "label": "3 enregistreurs demandés · 90 part. · 60% actifs · 5 modé.",
+  "label": "3 enregistreurs demandés · 64 part. · 60% actifs",
   "sizeCat": "grande",
   "activeCat": "moitié",
   "modCat": "4-6",
   "note": null,
+  "roomTotal": 69,
+  "unmoderatedOk": true,
   "input": {
-   "n": 90,
+   "n": 64,
    "vetRatio": 0.4,
    "activeRatio": 0.6,
    "consentRatio": 0.85,
@@ -3406,26 +2498,26 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 18,
-     "audience_count": 8,
+     "member_count": 17,
+     "audience_count": 7,
      "diag": {
       "table_number": 1,
-      "size": 18,
+      "size": 17,
       "moderated": true,
       "actives": 10,
-      "audience": 8,
+      "audience": 7,
       "audience_ok": true,
       "over_capacity": false,
       "veterans": 4,
       "veterans_threshold": 4,
       "veterans_ok": true,
       "newcomers": 6,
-      "non_consenting": 6,
+      "non_consenting": 10,
       "recordable": false,
       "camp_counts": {
        "0": 4,
-       "1": 3,
-       "2": 3
+       "1": 4,
+       "2": 2
       },
       "neutral_count": 0,
       "majority_share": 0.4,
@@ -3451,12 +2543,12 @@
       "veterans_threshold": 4,
       "veterans_ok": true,
       "newcomers": 6,
-      "non_consenting": 3,
-      "recordable": false,
+      "non_consenting": 0,
+      "recordable": true,
       "camp_counts": {
        "0": 4,
-       "1": 3,
-       "2": 3
+       "1": 4,
+       "2": 2
       },
       "neutral_count": 0,
       "majority_share": 0.4,
@@ -3468,26 +2560,26 @@
      "table_number": 3,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 17,
-     "audience_count": 7,
+     "member_count": 16,
+     "audience_count": 6,
      "diag": {
       "table_number": 3,
-      "size": 17,
+      "size": 16,
       "moderated": true,
       "actives": 10,
-      "audience": 7,
+      "audience": 6,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
+      "veterans": 5,
       "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 6,
+      "newcomers": 5,
       "non_consenting": 0,
       "recordable": true,
       "camp_counts": {
        "0": 4,
-       "1": 3,
-       "2": 3
+       "1": 4,
+       "2": 2
       },
       "neutral_count": 0,
       "majority_share": 0.4,
@@ -3499,114 +2591,54 @@
      "table_number": 4,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 7,
+     "member_count": 15,
+     "audience_count": 6,
      "diag": {
       "table_number": 4,
-      "size": 16,
+      "size": 15,
       "moderated": true,
       "actives": 9,
-      "audience": 7,
+      "audience": 6,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 4,
+      "veterans": 5,
       "veterans_threshold": 4,
       "veterans_ok": true,
-      "newcomers": 5,
+      "newcomers": 4,
       "non_consenting": 0,
       "recordable": true,
       "camp_counts": {
-       "0": 4,
-       "1": 3,
-       "2": 2
+       "0": 5,
+       "1": 4
       },
       "neutral_count": 0,
-      "majority_share": 0.4444444444444444,
+      "majority_share": 0.5555555555555556,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5555555555555556
-     }
-    },
-    {
-     "table_number": 5,
-     "moderated": true,
-     "moderator_count": 1,
-     "member_count": 16,
-     "audience_count": 7,
-     "diag": {
-      "table_number": 5,
-      "size": 16,
-      "moderated": true,
-      "actives": 9,
-      "audience": 7,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 4,
-      "veterans_threshold": 4,
-      "veterans_ok": true,
-      "newcomers": 5,
-      "non_consenting": 4,
-      "recordable": false,
-      "camp_counts": {
-       "0": 4,
-       "1": 4,
-       "2": 1
-      },
-      "neutral_count": 0,
-      "majority_share": 0.4444444444444444,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.5555555555555556
-     }
-    },
-    {
-     "table_number": 6,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 6,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "0": 4,
-       "1": 2
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
+      "heterogeneity_degree": 0.4444444444444444
      }
     }
    ],
    "warnings": [
-    "Objectif de 3 tables enregistrables (règle 1, prioritaire sur le dimensionnement) : il a fallu 6 tables, dont 1 sans animateur. Avec moins d'enregistreurs, l'algorithme ferait des tables plus grosses et toutes animées."
+    "1 modérateur(s) de plus que de tables animées : ils ont été répartis comme des participants actifs, en tenant compte de leurs réponses d'onboarding et de leur camp (ils comptent donc dans les seuils de leur table). S'ils ne viennent pas, décoche-les dans la liste des modérateurs avant de relancer le calcul."
    ],
    "singleTable": false,
    "moderatorCapacity": 5,
-   "animatingModerators": 5,
-   "seatedModerators": 0,
+   "animatingModerators": 4,
+   "seatedModerators": 1,
    "recorderTarget": 3
   },
-  "explanation": "6 table(s), dont 5 animée(s) et 1 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 3 table(s) enregistrable(s) sur un objectif de 3.",
-  "ms": 130
+  "explanation": "4 table(s), dont 4 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 3 table(s) enregistrable(s) sur un objectif de 3.",
+  "ms": 0
  },
  {
   "id": "s6",
-  "label": "Analyse des camps indisponible · 34 part. · 3 modé.",
+  "label": "Analyse des camps indisponible · 34 part.",
   "sizeCat": "moyenne",
   "activeCat": "moitié",
   "modCat": "2-3",
-  "note": "Pas de vote préalable : règle 2 désactivée.",
+  "note": null,
+  "roomTotal": 37,
+  "unmoderatedOk": true,
   "input": {
    "n": 34,
    "vetRatio": 0.4,
@@ -3691,19 +2723,21 @@
    "recorderTarget": 1
   },
   "explanation": "2 table(s), dont 2 animée(s) et 0 sans modérateur. 1 modérateur(s) en surplus assis comme participants actifs (aucune table à animer pour eux). Règle 2 (hétérogénéité) non tenue sur 2 table(s) — camp trop dominant dans la population. Règle 3 (anciens) tenue partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 2
+  "ms": 0
  },
  {
   "id": "s7",
-  "label": "Juste au-dessus du seuil de table unique · 25 part. · 44% actifs · 1 modé.",
+  "label": "Juste au-dessus du seuil de table unique · 22 part.",
   "sizeCat": "petite",
-  "activeCat": "faible",
+  "activeCat": "moitié",
   "modCat": "1",
   "note": null,
+  "roomTotal": 23,
+  "unmoderatedOk": true,
   "input": {
-   "n": 25,
+   "n": 22,
    "vetRatio": 0.36,
-   "activeRatio": 0.44,
+   "activeRatio": 0.5,
    "consentRatio": 0.9,
    "camps": [
     1,
@@ -3720,74 +2754,42 @@
      "table_number": 1,
      "moderated": true,
      "moderator_count": 1,
-     "member_count": 19,
-     "audience_count": 14,
+     "member_count": 22,
+     "audience_count": 11,
      "diag": {
       "table_number": 1,
-      "size": 19,
+      "size": 22,
       "moderated": true,
-      "actives": 5,
-      "audience": 14,
+      "actives": 11,
+      "audience": 11,
       "audience_ok": true,
       "over_capacity": false,
-      "veterans": 1,
-      "veterans_threshold": 2,
-      "veterans_ok": false,
-      "newcomers": 4,
+      "veterans": 5,
+      "veterans_threshold": 5,
+      "veterans_ok": true,
+      "newcomers": 6,
       "non_consenting": 2,
       "recordable": false,
       "camp_counts": {
-       "0": 2,
-       "1": 2,
-       "2": 1
+       "0": 4,
+       "1": 4,
+       "2": 3
       },
       "neutral_count": 0,
-      "majority_share": 0.4,
+      "majority_share": 0.36363636363636365,
       "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.6
-     }
-    },
-    {
-     "table_number": 2,
-     "moderated": false,
-     "moderator_count": 0,
-     "member_count": 6,
-     "audience_count": 0,
-     "diag": {
-      "table_number": 2,
-      "size": 6,
-      "moderated": false,
-      "actives": 6,
-      "audience": 0,
-      "audience_ok": true,
-      "over_capacity": false,
-      "veterans": 3,
-      "veterans_threshold": 3,
-      "veterans_ok": true,
-      "newcomers": 3,
-      "non_consenting": 0,
-      "recordable": true,
-      "camp_counts": {
-       "1": 2,
-       "2": 4
-      },
-      "neutral_count": 0,
-      "majority_share": 0.6666666666666666,
-      "heterogeneity_ok": true,
-      "heterogeneity_degree": 0.33333333333333337
+      "heterogeneity_degree": 0.6363636363636364
      }
     }
    ],
-   "warnings": [
-    "36 % d'anciens parmi les actifs (< 40 %) : la règle 3 sera partiellement dégradée."
-   ],
+   "warnings": [],
    "singleTable": false,
    "moderatorCapacity": 1,
    "animatingModerators": 1,
    "seatedModerators": 0,
    "recorderTarget": 1
   },
-  "explanation": "2 table(s), dont 1 animée(s) et 1 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) non tenue sur 1 table(s) — pas assez d'anciens dans la salle pour la satisfaire partout. 1 table(s) enregistrable(s) sur un objectif de 1.",
-  "ms": 1
+  "explanation": "1 table(s), dont 1 animée(s) et 0 sans modérateur. Règle 2 (hétérogénéité) tenue sur toutes les tables. Règle 3 (anciens) tenue partout. 0 table(s) enregistrable(s) sur un objectif de 1.",
+  "ms": 0
  }
 ]

@@ -1,13 +1,25 @@
 // =============================================================
-// Outil d'exploration — chantier 91 (allocation v2, passifs)
+// Outil d'exploration — chantier 93 (allocation v2, bornes 7-11)
 //
 // Précalcule une grille de scénarios avec le VRAI runAllocation (aucune
 // réimplémentation) et écrit un JSON consommé par l'artefact HTML.
 // Usage : npx vite-node bench/viz/generate-grid.ts > bench/viz/grid.json
+//
+// Contraintes opérationnelles (Jules, 21/09) :
+//  - au plus 6 modérateurs par séance ;
+//  - au plus 70 participants au total, modérateurs compris ;
+//  - jamais de table sans modérateur — chaque scénario est vérifié après
+//    coup contre le vrai résultat, et le nombre de modérateurs est augmenté
+//    (jusqu'à 6) si le premier essai laisse une table ∅. Un scénario qui n'y
+//    arrive toujours pas à 6 modérateurs est conservé mais marqué comme tel,
+//    plutôt que masqué.
 // =============================================================
 
 import { runAllocation, TABLE_TOTAL_MAX } from '../../src/lib/allocation'
 import { buildPopulation, buildModerators, type ConfigSpec } from '../allocation-bench'
+
+const MAX_MODERATORS = 6
+const MAX_ROOM = 70
 
 interface Scenario extends ConfigSpec {
   id: string
@@ -17,65 +29,83 @@ interface Scenario extends ConfigSpec {
   note?: string
 }
 
-// ── Grille curatée (pas de produit cartésien complet) ─────────
-const scenarios: Scenario[] = []
+// ── Recherche du nombre de modérateurs minimal qui évite les tables ∅ ──
+// Part de `startMods`, monte jusqu'à MAX_MODERATORS. Si aucun palier ne
+// marche, retourne le dernier essai (6 modérateurs) avec `ok = false`.
+function solveNoUnmoderated(cfg: Omit<ConfigSpec, 'moderators'>, startMods: number) {
+  let last: ReturnType<typeof runAllocation> | null = null
+  let usedMods = startMods
+  for (let m = startMods; m <= MAX_MODERATORS; m++) {
+    const full: ConfigSpec = { ...cfg, moderators: m }
+    const members = buildPopulation(full)
+    const mods = buildModerators(full)
+    const r = runAllocation({
+      members, moderatorIds: mods.ids, moderatorProfiles: mods.profiles,
+      opinionsAvailable: full.opinions ?? true, recorderCount: full.recorders ?? 1,
+    })
+    last = r
+    usedMods = m
+    if (r.tables.every(t => t.moderated)) return { r, moderators: m, ok: true }
+  }
+  return { r: last!, moderators: usedMods, ok: false }
+}
 
-function add(s: Scenario) { scenarios.push(s) }
+// ── Grille curatée, bornée à 70 participants et 6 modérateurs ────────
 
-// -- Petites salles (15-25), en variant part d'actifs et modérateurs --
-add({ id: 'p1', label: 'Petite salle · 18 part. · 80% actifs · 1 modé.', n: 18, vetRatio: 0.45, activeRatio: 0.8, consentRatio: 0.9, camps: [1, 1, 1], moderators: 1, sizeCat: 'petite', activeCat: 'forte', modCat: '1' })
-add({ id: 'p2', label: 'Petite salle · 20 part. · 50% actifs · 2 modé.', n: 20, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], moderators: 2, sizeCat: 'petite', activeCat: 'moitié', modCat: '2-3' })
-add({ id: 'p3', label: 'Petite salle · 22 part. · 40% actifs · 2 modé.', n: 22, vetRatio: 0.4, activeRatio: 0.4, consentRatio: 0.9, camps: [1, 1, 1], moderators: 2, sizeCat: 'petite', activeCat: 'faible', modCat: '2-3' })
-add({ id: 'p4', label: 'Petite salle · 24 part. · 20% actifs · 3 modé.', n: 24, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], moderators: 3, sizeCat: 'petite', activeCat: 'très faible', modCat: '2-3' })
-add({ id: 'p5', label: 'Petite salle · 15 part. · 100% actifs · 1 modé. (table unique)', n: 15, vetRatio: 0.4, activeRatio: 1, consentRatio: 0.9, camps: [1, 1, 1], moderators: 1, sizeCat: 'petite', activeCat: 'forte', modCat: '1', note: 'Sous ou proche du seuil de table unique (≤10 actifs).' })
-add({ id: 'p6', label: 'Petite salle · 25 part. · 24% actifs · 4 modé. (surplus)', n: 25, vetRatio: 0.4, activeRatio: 0.24, consentRatio: 0.9, camps: [1, 1, 1], moderators: 4, sizeCat: 'petite', activeCat: 'très faible', modCat: 'surplus', note: 'Plus de modérateurs que de tables possibles : surplus attendu.' })
+const specs: (Omit<Scenario, 'moderators'> & { startMods: number })[] = []
+function add(s: Omit<Scenario, 'moderators'> & { startMods: number }) { specs.push(s) }
 
-// -- Salles moyennes (30-60) --
-add({ id: 'm1', label: 'Salle moyenne · 30 part. · 20% actifs · 3 modé.', n: 30, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], moderators: 3, sizeCat: 'moyenne', activeCat: 'très faible', modCat: '2-3', note: 'Cas cité au chantier 91 : une table unique, mais modérateurs en surplus → dépassement de 30.' })
-add({ id: 'm2', label: 'Salle moyenne · 40 part. · 40% actifs · 4 modé.', n: 40, vetRatio: 0.4, activeRatio: 0.4, consentRatio: 0.9, camps: [1, 1, 1], moderators: 4, sizeCat: 'moyenne', activeCat: 'faible', modCat: '4-6' })
-add({ id: 'm3', label: 'Salle moyenne · 47 part. · 60% actifs · 4 modé.', n: 47, vetRatio: 0.4, activeRatio: 0.6, consentRatio: 0.9, camps: [1, 1, 1], moderators: 4, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '4-6' })
-add({ id: 'm4', label: 'Salle moyenne · 50 part. · 80% actifs · 3 modé.', n: 50, vetRatio: 0.4, activeRatio: 0.8, consentRatio: 0.9, camps: [0.5, 0.3, 0.2], moderators: 3, sizeCat: 'moyenne', activeCat: 'forte', modCat: '2-3' })
-add({ id: 'm5', label: 'Salle moyenne · 60 part. · 50% actifs · 4 modé.', n: 60, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 1, camps: [1, 1, 1], moderators: 4, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '4-6' })
-add({ id: 'm6', label: 'Salle moyenne · 60 part. · 80% actifs · 4 modé.', n: 60, vetRatio: 0.4, activeRatio: 0.8, consentRatio: 0.9, camps: [0.45, 0.35, 0.2], moderators: 4, sizeCat: 'moyenne', activeCat: 'forte', modCat: '4-6' })
-add({ id: 'm7', label: 'Salle moyenne · 60 part. · 40% actifs · 2 modé.', n: 60, vetRatio: 0.3, activeRatio: 0.4, consentRatio: 0.9, camps: [0.45, 0.35, 0.2], moderators: 2, sizeCat: 'moyenne', activeCat: 'faible', modCat: '1' })
-add({ id: 'm8', label: 'Salle moyenne · 38 part. · 60% actifs · 0 modé. (leaderless)', n: 38, vetRatio: 0.35, activeRatio: 0.6, consentRatio: 0.9, camps: [1, 1, 1], moderators: 0, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '0', note: "Cas non représentatif (Jules, 18/09 : il y a toujours au moins 1-2 modérateurs) — conservé pour illustrer le trou du plancher à 6 sans modérateur du tout, voir le commentaire sur UNMODERATED_TABLE_MIN." })
-add({ id: 'm9', label: 'Salle moyenne · 45 part. · 50% actifs · 6 modé. (surplus)', n: 45, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], moderators: 6, sizeCat: 'moyenne', activeCat: 'moitié', modCat: 'surplus' })
+// -- Petites salles (15-25 participants hors modérateurs) --
+add({ id: 'p1', label: 'Petite salle · 20 part. · 80% actifs', n: 20, vetRatio: 0.45, activeRatio: 0.8, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'forte', modCat: '', startMods: 2 })
+add({ id: 'p2', label: 'Petite salle · 22 part. · 50% actifs', n: 22, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'moitié', modCat: '', startMods: 1 })
+add({ id: 'p3', label: 'Petite salle · 24 part. · 40% actifs (table unique)', n: 24, vetRatio: 0.4, activeRatio: 0.4, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'faible', modCat: '', startMods: 1, note: 'Actifs ≤ 10 : table unique, quel que soit le nombre de modérateurs.' })
+add({ id: 'p4', label: 'Petite salle · 25 part. · 20% actifs (table unique)', n: 25, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'très faible', modCat: '', startMods: 1, note: 'Peu d’actifs : une seule table, le reste en public.' })
+add({ id: 'p5', label: 'Petite salle · 18 part. · 100% actifs', n: 18, vetRatio: 0.4, activeRatio: 1, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'forte', modCat: '', startMods: 2 })
+add({ id: 'p6', label: 'Petite salle · 20 part. · 20% actifs · modérateurs en surplus', n: 20, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'très faible', modCat: '', startMods: 6, note: 'Peu d’actifs mais 6 modérateurs déclarés : la plupart siègent comme participants actifs.' })
 
-// -- Grandes salles (80-150) --
-add({ id: 'g1', label: 'Grande salle · 90 part. · 40% actifs · 5 modé.', n: 90, vetRatio: 0.35, activeRatio: 0.4, consentRatio: 0.9, camps: [0.4, 0.35, 0.25], moderators: 5, sizeCat: 'grande', activeCat: 'faible', modCat: '4-6' })
-add({ id: 'g2', label: 'Grande salle · 120 part. · 60% actifs · 6 modé.', n: 120, vetRatio: 0.3, activeRatio: 0.6, consentRatio: 0.9, camps: [0.4, 0.35, 0.25], moderators: 6, sizeCat: 'grande', activeCat: 'moitié', modCat: '4-6' })
-add({ id: 'g3', label: 'Grande salle · 120 part. · 20% actifs · 4 modé.', n: 120, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], moderators: 4, sizeCat: 'grande', activeCat: 'très faible', modCat: '4-6', note: 'Beaucoup de public à répartir sur peu de tables animées.' })
-add({ id: 'g4', label: 'Grande salle · 150 part. · 80% actifs · 8 modé.', n: 150, vetRatio: 0.4, activeRatio: 0.8, consentRatio: 0.9, camps: [0.45, 0.35, 0.2], moderators: 8, sizeCat: 'grande', activeCat: 'forte', modCat: '4-6' })
-add({ id: 'g5', label: 'Grande salle · 200 part. · 60% actifs · 8 modé.', n: 200, vetRatio: 0.35, activeRatio: 0.6, consentRatio: 0.9, camps: [0.4, 0.35, 0.25], moderators: 8, sizeCat: 'grande', activeCat: 'moitié', modCat: '4-6' })
-add({ id: 'g6', label: 'Grande salle · 100 part. · 50% actifs · 1 modé.', n: 100, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], moderators: 1, sizeCat: 'grande', activeCat: 'moitié', modCat: '1' })
+// -- Salles moyennes (30-50) --
+add({ id: 'm1', label: 'Salle moyenne · 40 part. · 20% actifs (table unique) · modérateurs en surplus', n: 40, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'moyenne', activeCat: 'très faible', modCat: '', startMods: 3 })
+add({ id: 'm2', label: 'Salle moyenne · 42 part. · 40% actifs', n: 42, vetRatio: 0.4, activeRatio: 0.4, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'moyenne', activeCat: 'faible', modCat: '', startMods: 2 })
+add({ id: 'm3', label: 'Salle moyenne · 47 part. · 60% actifs', n: 47, vetRatio: 0.4, activeRatio: 0.6, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'moyenne', activeCat: 'moitié', modCat: '', startMods: 3 })
+add({ id: 'm4', label: 'Salle moyenne · 50 part. · 80% actifs', n: 50, vetRatio: 0.4, activeRatio: 0.8, consentRatio: 0.9, camps: [0.5, 0.3, 0.2], sizeCat: 'moyenne', activeCat: 'forte', modCat: '', startMods: 4 })
+add({ id: 'm5', label: 'Salle moyenne · 50 part. · 50% actifs', n: 50, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 1, camps: [1, 1, 1], sizeCat: 'moyenne', activeCat: 'moitié', modCat: '', startMods: 3 })
+add({ id: 'm6', label: 'Salle moyenne · 45 part. · 50% actifs · modérateurs en surplus', n: 45, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'moyenne', activeCat: 'moitié', modCat: '', startMods: 6 })
+
+// -- Grandes salles (55-70, plafond opérationnel) --
+add({ id: 'g1', label: 'Grande salle · 60 part. · 40% actifs', n: 60, vetRatio: 0.35, activeRatio: 0.4, consentRatio: 0.9, camps: [0.4, 0.35, 0.25], sizeCat: 'grande', activeCat: 'faible', modCat: '', startMods: 4 })
+add({ id: 'g2', label: 'Grande salle · 64 part. · 80% actifs', n: 64, vetRatio: 0.4, activeRatio: 0.8, consentRatio: 0.9, camps: [0.45, 0.35, 0.2], sizeCat: 'grande', activeCat: 'forte', modCat: '', startMods: 5 })
+add({ id: 'g3', label: 'Grande salle · 64 part. · 60% actifs', n: 64, vetRatio: 0.35, activeRatio: 0.6, consentRatio: 0.9, camps: [0.4, 0.35, 0.25], sizeCat: 'grande', activeCat: 'moitié', modCat: '', startMods: 4 })
+add({ id: 'g4', label: 'Grande salle · 64 part. · 20% actifs · modérateurs en surplus', n: 64, vetRatio: 0.4, activeRatio: 0.2, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'grande', activeCat: 'très faible', modCat: '', startMods: 6, note: 'Salle proche du plafond de 70 mais peu d’actifs : test de la limite haute avec 6 modérateurs.' })
+add({ id: 'g5', label: 'Grande salle · 64 part. · 50% actifs · plafond des deux limites', n: 64, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'grande', activeCat: 'moitié', modCat: '', startMods: 6, note: '64 + 6 modérateurs = 70 : les deux plafonds opérationnels atteints en même temps.' })
+add({ id: 'g6', label: 'Grande salle · 64 part. · 30% actifs', n: 64, vetRatio: 0.35, activeRatio: 0.3, consentRatio: 0.9, camps: [0.4, 0.35, 0.25], sizeCat: 'grande', activeCat: 'faible', modCat: '', startMods: 4 })
 
 // -- Variations secondaires --
-add({ id: 's1', label: 'Peu d\'anciens · 40 part. · 10% anciens · 4 modé.', n: 40, vetRatio: 0.1, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], moderators: 4, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '4-6', note: 'Règle 3 (anciens) structurellement insatisfaisable — dégradation attendue.' })
-add({ id: 's2', label: 'Camp dominant · 35 part. · camps 80/15/5 · 3 modé.', n: 35, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [0.8, 0.15, 0.05], moderators: 3, sizeCat: 'petite', activeCat: 'moitié', modCat: '2-3', note: 'Règle 2 (hétérogénéité) difficilement atteignable.' })
-add({ id: 's3', label: 'Beaucoup de non-consentants · 33 part. · 60% consentants · 3 modé.', n: 33, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.6, camps: [1, 1, 1], moderators: 3, sizeCat: 'petite', activeCat: 'moitié', modCat: '2-3', note: 'Règle 1 (table enregistrable) sous tension.' })
-add({ id: 's4', label: '2 enregistreurs demandés · 45 part. · 3 modé.', n: 45, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.85, camps: [1, 1, 1], moderators: 3, recorders: 2, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '2-3' })
-add({ id: 's5', label: '3 enregistreurs demandés · 90 part. · 60% actifs · 5 modé.', n: 90, vetRatio: 0.4, activeRatio: 0.6, consentRatio: 0.85, camps: [0.45, 0.35, 0.2], moderators: 5, recorders: 3, sizeCat: 'grande', activeCat: 'moitié', modCat: '4-6' })
-add({ id: 's6', label: 'Analyse des camps indisponible · 34 part. · 3 modé.', n: 34, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1], moderators: 3, opinions: false, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '2-3', note: 'Pas de vote préalable : règle 2 désactivée.' })
-add({ id: 's7', label: 'Juste au-dessus du seuil de table unique · 25 part. · 44% actifs · 1 modé.', n: 25, vetRatio: 0.36, activeRatio: 0.44, consentRatio: 0.9, camps: [1, 1, 1], moderators: 1, sizeCat: 'petite', activeCat: 'faible', modCat: '1' })
+add({ id: 's1', label: 'Peu d’anciens · 40 part. · 10% anciens · 50% actifs', n: 40, vetRatio: 0.1, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'moyenne', activeCat: 'moitié', modCat: '', startMods: 4, note: 'Règle 3 (anciens) structurellement insatisfaisable — dégradation attendue.' })
+add({ id: 's2', label: 'Camp dominant · 35 part. · camps 80/15/5', n: 35, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [0.8, 0.15, 0.05], sizeCat: 'petite', activeCat: 'moitié', modCat: '', startMods: 3, note: 'Règle 2 (hétérogénéité) difficilement atteignable.' })
+add({ id: 's3', label: 'Beaucoup de non-consentants · 33 part. · 60% consentants', n: 33, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.6, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'moitié', modCat: '', startMods: 3, note: 'Règle 1 (table enregistrable) sous tension.' })
+add({ id: 's4', label: '2 enregistreurs demandés · 45 part.', n: 45, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.85, camps: [1, 1, 1], recorders: 2, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '', startMods: 3 })
+add({ id: 's5', label: '3 enregistreurs demandés · 64 part. · 60% actifs', n: 64, vetRatio: 0.4, activeRatio: 0.6, consentRatio: 0.85, camps: [0.45, 0.35, 0.2], recorders: 3, sizeCat: 'grande', activeCat: 'moitié', modCat: '', startMods: 5 })
+add({ id: 's6', label: 'Analyse des camps indisponible · 34 part.', n: 34, vetRatio: 0.4, activeRatio: 0.5, consentRatio: 0.9, camps: [1], opinions: false, sizeCat: 'moyenne', activeCat: 'moitié', modCat: '', startMods: 3 })
+add({ id: 's7', label: 'Juste au-dessus du seuil de table unique · 22 part.', n: 22, vetRatio: 0.36, activeRatio: 0.5, consentRatio: 0.9, camps: [1, 1, 1], sizeCat: 'petite', activeCat: 'moitié', modCat: '', startMods: 1 })
+
+// ── Résolution : trouve le nombre de modérateurs (≤ 6) qui évite les
+// tables sans modérateur, en partant de `startMods` ────────────────────
+
+for (const s of specs) {
+  if (s.n + MAX_MODERATORS > MAX_ROOM) {
+    throw new Error(`${s.id} : ${s.n} participants + ${MAX_MODERATORS} modérateurs dépasserait ${MAX_ROOM} au palier maximal.`)
+  }
+}
+
+function modCatOf(m: number): string {
+  if (m <= 1) return '1'
+  if (m <= 3) return '2-3'
+  return '4-6'
+}
 
 // ── Calcul ─────────────────────────────────────────────────────
 
-function run(cfg: ConfigSpec) {
-  const members = buildPopulation(cfg)
-  const mods = buildModerators(cfg)
-  const t0 = performance.now()
-  const r = runAllocation({
-    members,
-    moderatorIds: mods.ids,
-    moderatorProfiles: mods.profiles,
-    opinionsAvailable: cfg.opinions ?? true,
-    recorderCount: cfg.recorders ?? 1,
-  })
-  const ms = Math.round(performance.now() - t0)
-  return { r, ms, members, mods }
-}
-
-function explain(cfg: Scenario, r: ReturnType<typeof run>['r']): string {
+function explain(r: ReturnType<typeof runAllocation>): string {
   const bits: string[] = []
   if (r.singleTable) {
     bits.push(`Une seule table : ${r.diagnostics[0]?.actives ?? 0} actif(s) au total, sous ou proche du seuil de 10 qui déclenche l'allocation.`)
@@ -108,19 +138,26 @@ function explain(cfg: Scenario, r: ReturnType<typeof run>['r']): string {
   return bits.join(' ')
 }
 
-const out = scenarios.map(cfg => {
-  const { r, ms } = run(cfg)
+const out = specs.map(spec => {
+  const { n, startMods, id, label, sizeCat, activeCat, note, ...cfgRest } = spec
+  const { r, moderators, ok } = solveNoUnmoderated({ n, ...cfgRest, label }, startMods)
+  const finalNote = ok
+    ? note ?? null
+    : [note, `⚠️ Aucun nombre de modérateurs jusqu'à ${MAX_MODERATORS} n'a permis d'éviter une table sans modérateur sur ce scénario — contrainte non tenable dans cette limite.`]
+      .filter(Boolean).join(' ')
   return {
-    id: cfg.id,
-    label: cfg.label,
-    sizeCat: cfg.sizeCat,
-    activeCat: cfg.activeCat,
-    modCat: cfg.modCat,
-    note: cfg.note ?? null,
+    id,
+    label,
+    sizeCat,
+    activeCat,
+    modCat: modCatOf(moderators),
+    note: finalNote,
+    roomTotal: n + moderators,
+    unmoderatedOk: ok,
     input: {
-      n: cfg.n, vetRatio: cfg.vetRatio, activeRatio: cfg.activeRatio,
-      consentRatio: cfg.consentRatio, camps: cfg.camps, moderators: cfg.moderators,
-      recorders: cfg.recorders ?? 1, opinions: cfg.opinions ?? true,
+      n, vetRatio: cfgRest.vetRatio, activeRatio: cfgRest.activeRatio,
+      consentRatio: cfgRest.consentRatio, camps: cfgRest.camps, moderators,
+      recorders: cfgRest.recorders ?? 1, opinions: cfgRest.opinions ?? true,
     },
     result: {
       tables: r.tables.map((t, i) => ({
@@ -138,9 +175,14 @@ const out = scenarios.map(cfg => {
       seatedModerators: r.seatedModeratorIds.length,
       recorderTarget: r.recorderTarget,
     },
-    explanation: explain(cfg, r),
-    ms,
+    explanation: explain(r),
+    ms: 0,
   }
 })
+
+const failures = out.filter(s => !s.unmoderatedOk)
+if (failures.length > 0) {
+  process.stderr.write(`⚠️ ${failures.length} scénario(s) n'atteignent pas "zéro table sans modérateur" même à ${MAX_MODERATORS} modérateurs : ${failures.map(s => s.id).join(', ')}\n`)
+}
 
 process.stdout.write(JSON.stringify(out, null, 1))

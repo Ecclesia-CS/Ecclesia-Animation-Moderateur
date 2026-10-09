@@ -154,7 +154,9 @@ describe('chantier 91 — les passifs sont placés en public', () => {
 
   it('un passif non consentant rejoint de préférence une table déjà non enregistrable', () => {
     const ids = ['mo-1', 'mo-2']
-    const actives = mix(24, 0)
+    // 20 actifs → exactement 2 tables animées de 10 (bornes 7-11, chantier 93) ;
+    // au-delà de 22 une 3e table sans modérateur apparaîtrait et changerait le scénario.
+    const actives = mix(20, 0)
     actives[0] = { ...actives[0], consents: false }
     const audience = [
       ...make(1, { active: false, consent: false, camp: null }, 'nc'),
@@ -273,9 +275,13 @@ describe('politique de dimensionnement', () => {
   it('chantier 91 — maximin d’hétérogénéité plafonné : une grande salle ne se fragmente pas en tables de 5', () => {
     // Mesuré avant le plafonnement : 120 part. / 6 modé. → 11 tables dont 5
     // sans modérateur, et deux tables de 14 avec 0 et 1 ancien sur 6 requis.
+    // Seuil relevé de 7 à 8 au chantier 93 (TABLE_MAX_ACTIVE 14 → 11) : avec
+    // 72 actifs et 6 modérateurs, 6 tables de 11 ne suffisent plus (66 < 72),
+    // 2 tables sans modérateur de 6 absorbent le reliquat — toujours pas de
+    // fragmentation en tables de 5.
     const ids = ['mo-1', 'mo-2', 'mo-3', 'mo-4', 'mo-5', 'mo-6']
     const r = runAllocation({ members: mix(72, 48), moderatorIds: ids, moderatorProfiles: modProfiles(ids), opinionsAvailable: true })
-    expect(r.tables.length).toBeLessThanOrEqual(7)
+    expect(r.tables.length).toBeLessThanOrEqual(8)
     expect(r.animatingModerators).toBe(6)
   })
 
