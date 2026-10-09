@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { extractErr, QUESTIONNAIRE_THEMES } from '../lib/utils'
-import { getVoteResults } from '../lib/voting'
-import type { QuestionnaireResponse, VoteResult } from '../lib/types'
+import type { QuestionnaireResponse } from '../lib/types'
 import QrCodeModal from './QrCodeModal'
 import CorrectTurnModal from './CorrectTurnModal'
 import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
-import VoteResultsList from './voting/VoteResultsList'
+import VotedAssertionsModal from './voting/VotedAssertionsModal'
 import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
 import { useSessionOrganizationName } from '../lib/organizations'
@@ -73,9 +72,6 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   // confirm_attendance (pseudo + code) depuis son propre appareil.
   const [addPersonCode,    setAddPersonCode]    = useState<{ pseudo: string; code: string } | null>(null)
 
-  const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
-  const [voteResultsLoading, setVoteResultsLoading] = useState(false)
-
   const [savedResponse, setSavedResponse] = useState<QuestionnaireResponse | null>(null)
   const [checkDone,     setCheckDone]     = useState(false)
 
@@ -102,17 +98,6 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
   function handleError(e: unknown) {
     onError?.(extractErr(e))
-  }
-
-  function openAssertions() {
-    setPanelOpen(false)
-    setAssertionsOpen(true)
-    if (voteResults.length > 0 || voteResultsLoading || !table.session_id) return
-    setVoteResultsLoading(true)
-    getVoteResults(table.session_id)
-      .then(setVoteResults)
-      .catch(() => {})
-      .finally(() => setVoteResultsLoading(false))
   }
 
   // Chantier 44 — reprend le même schéma de collision que join_table (INSERT
@@ -199,7 +184,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   Camps
                 </button>
 
-                <button onClick={openAssertions} className={linkClass}>
+                <button onClick={() => { setPanelOpen(false); setAssertionsOpen(true) }} className={linkClass}>
                   <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -460,30 +445,12 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
         />
       )}
 
-      {assertionsOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
-          onMouseDown={e => { if (e.target === e.currentTarget) setAssertionsOpen(false) }}
-        >
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-              <h2 className="text-sm font-semibold text-gray-900">Assertions votées</h2>
-              <button
-                onClick={() => setAssertionsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-gray-300"
-                aria-label="Fermer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="overflow-y-auto px-5 py-4">
-              <VoteResultsList results={voteResults} loading={voteResultsLoading} />
-            </div>
-          </div>
-        </div>
+      {assertionsOpen && table.session_id && (
+        <VotedAssertionsModal
+          sessionId={table.session_id}
+          tableId={table.id}
+          onClose={() => setAssertionsOpen(false)}
+        />
       )}
     </>
   )

@@ -121,6 +121,15 @@ Puis, sur une séance de test **de prod** :
 - [ ] **Deux appareils** : l'image acceptée par le modérateur apparaît chez la table en quelques secondes sans recharger.
 - [ ] **Prod, au merge** : appliquer `20261009_chantier162b_table_share_images.sql` puis `20261009_chantier162b2_purge_authorized.sql` (après la 162a) **et déployer l'Edge Function `purge-share-images`** (`verify_jwt: true`) sur le projet prod ; vérifier `list_edge_functions` et le bucket `table-shares` (privé, 1 Mo). Les alertes de sécurité `can_*_share_image` exécutables par `authenticated` sont voulues (le moteur de stockage évalue les politiques en tant que l'appelant ; elles ne renvoient qu'un booléen).
 
+## Chantier 166 — votes de la table pour le modérateur (2026-10-09) — reste à jouer
+
+`tsc`, `vite build` verts. **Non joué au navigateur** : le `.env` du dépôt pointe sur la base **prod** et rien n'a été créé sur dev ; il faut un modérateur assis à une table de séance ayant des votes.
+
+- [ ] **Outils Modo → Assertions votées** : l'onglet « Toute la séance » s'ouvre par défaut et affiche la même liste qu'avant ; l'onglet « Ma table » ne compte que les votes des personnes de la table (comparer un total à celui de l'onglet Séance), les plus partagées en tête (badge « Clivant » en haut, « Aucun vote » en bas).
+- [ ] **Revote en post-débat** : rouvrir la modale après un revote → les chiffres de « Ma table » ont bougé (relus à chaque ouverture).
+- [ ] **Table hors allocation** (créée à la main) : onglet « Ma table » → message « n'est pas issue de l'allocation », pas de page blanche.
+- [ ] **Confidentialité** : sur une table de 3-4 personnes, les décomptes par assertion permettent de deviner un vote individuel. Même exposition que la modale Camps (RPC ouverte à tout participant de la table) ; à confirmer que c'est voulu pour le modérateur.
+
 ## 6. Non joués par la passe 141 (faisables, à décider)
 
 Pas impossibles à automatiser : ils ont été laissés de côté faute de marge dans les conversations, ou parce que le même code est déjà couvert par un cas joué. À rejouer avec les mots de passe de Jules si l'on veut fermer ces points.
