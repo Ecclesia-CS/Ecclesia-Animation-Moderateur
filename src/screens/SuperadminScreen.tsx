@@ -52,7 +52,8 @@ import TableDiagnosticsList, { CampCompositionBar, campColor } from '../componen
 import { diagnoseAllocation, buildClusters, countBrokenClusters, type AllocationMember, type TableDiagnostics } from '../lib/allocation'
 import ConfirmModal from '../components/ConfirmModal'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
-import { LinkedMemberFrames } from '../components/voting/LinkedMemberFrames'
+import { LinkedMemberFrames, ModeratorLinkBadge } from '../components/voting/LinkedMemberFrames'
+import { planLinkedMove, isEmptyPlan } from '../lib/pairingMoves'
 import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPanel'
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
@@ -2253,13 +2254,19 @@ function SessionDetail({
 
     // Chantier 92 — une grappe d'appairage se déplace entière. Les seuils
     // cassés éventuels s'affichent dans les diagnostics recalculés.
-    const seated = new Set(groups.flatMap(g => g.members.map(m => m.member_id)))
-    const moving = (clusterOf.get(memberId) ?? [memberId]).filter(id => seated.has(id))
+    // Chantier 165 — le modérateur lié suit lui aussi, et anime la table
+    // d'arrivée : on demande confirmation avant de remplacer l'animateur en place.
+    const plan = planLinkedMove(groups, clusterOf, memberId, targetTableNumber, 'drop')
+    if (isEmptyPlan(plan)) return
+    if (plan.animatorId) {
+      askLinkedMoveConfirmation(plan, memberId)
+      return
+    }
 
     const password = getPwd()!
     setMovingMember(true)
     try {
-      await moveMembersToGroup(password, currentSession.id, moving.length > 0 ? moving : [memberId], targetTableNumber)
+      await moveMembersToGroup(password, currentSession.id, plan.moveIds, targetTableNumber)
       await loadGroups()
     } catch (e) {
       const msg = extractErr(e)
@@ -2516,17 +2523,34 @@ function SessionDetail({
     }
   }, [session.id])
 
+  // Chantier 92 — grappes d'appairage (liens réciproques, 3 personnes max).
+  const clusters = React.useMemo(() => {
+    if (!allocInputs) return []
+    return buildClusters(allocInputs.pairs, [
+      ...allocInputs.members.map(m => m.member_id),
+      ...allocInputs.moderators.map(m => m.member_id),
+    ]).clusters
+  }, [allocInputs])
+  const clusterOf = React.useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const c of clusters) for (const id of c) map.set(id, c)
+    return map
+  }, [clusters])
   /**
    * Chantier 33 (point 2) — assigne un membre comme modérateur d'une table
    * précise (drag & drop ou saisie de nom). Réutilisable par les deux
    * entrées : `assign_moderator_to_table` pose `is_moderator` et (dé)place
    * la ligne `table_assignments` en une seule transaction.
    */
-  const doAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+  const doAssignTableModerator = useCallback(async (tableNumber: number, memberId: string, alsoMoveIds: string[] = []) => {
     const password = getPwd()!
     setMovingMember(true)
     try {
       await assignModeratorToTable(password, currentSession.id, tableNumber, memberId)
+      // Chantier 165 — ses binômes l'accompagnent à la table qu'il anime.
+      if (alsoMoveIds.length > 0) {
+        await moveMembersToGroup(password, currentSession.id, alsoMoveIds, tableNumber)
+      }
       await loadGroups()
       await loadMembers()
       setAssignError(null)
@@ -2547,28 +2571,69 @@ function SessionDetail({
    * (jusque-là la zone de dépôt n'existait que sur les tables sans animateur, et
    * le RPC laissait le titulaire en place : X devenait « en surplus » sans écran
    * modérateur). Le titulaire perd l'écran pendant le débat, donc on confirme.
+   *
+   * Chantier 165 — la confirmation sert aussi quand un modérateur suit son
+   * binôme (`viaPseudo`), même sur une table sans animateur : la table qu'il
+   * quitte perd le sien, ce qui mérite d'être dit.
    */
   const [pendingReplacement, setPendingReplacement] = useState<{
     tableNumber: number
     memberId: string
     newPseudo: string
     currentPseudos: string[]
+    /** Chantier 165 — binômes qui viennent avec lui. */
+    moveIds: string[]
+    movePseudos: string[]
+    /** Chantier 165 — table qu'il quitte (qui se retrouve sans animateur), s'il est déjà assis ailleurs. */
+    fromTable: number | null
+    /** Chantier 165 — pseudo de la personne déplacée à la souris, quand c'est elle qui l'entraîne. */
+    viaPseudo: string | null
   } | null>(null)
 
+  const pseudoOfMember = useCallback((id: string): string =>
+    groups.flatMap(g => g.members).find(m => m.member_id === id)?.pseudo
+      ?? members.find(m => m.id === id)?.pseudo
+      ?? 'ce participant',
+  [groups, members])
+
+  /** Chantier 165 — monte la fenêtre de confirmation d'un déplacement qui entraîne un modérateur. */
+  const askLinkedMoveConfirmation = useCallback((
+    plan: ReturnType<typeof planLinkedMove>,
+    draggedId: string | null,
+  ) => {
+    if (!plan.animatorId) return
+    setPendingReplacement({
+      tableNumber: plan.targetTable,
+      memberId: plan.animatorId,
+      newPseudo: pseudoOfMember(plan.animatorId),
+      currentPseudos: plan.replacedIds.map(pseudoOfMember),
+      moveIds: plan.moveIds,
+      movePseudos: plan.moveIds.map(pseudoOfMember),
+      fromTable: plan.animatorFromTable,
+      viaPseudo: draggedId && draggedId !== plan.animatorId ? pseudoOfMember(draggedId) : null,
+    })
+  }, [pseudoOfMember])
+
   const handleAssignTableModerator = useCallback(async (tableNumber: number, memberId: string) => {
+    // Chantier 165 — le modérateur désigné amène ses binômes assis ailleurs.
+    const plan = planLinkedMove(groups, clusterOf, memberId, tableNumber, 'assign')
     const g = groups.find(x => x.table_number === tableNumber)
     const holders = (g?.members ?? []).filter(m => m.is_moderator && m.active && m.member_id !== memberId)
     if (holders.length === 0) {
-      await doAssignTableModerator(tableNumber, memberId)
+      await doAssignTableModerator(tableNumber, memberId, plan.moveIds)
       return
     }
-    const newPseudo = members.find(m => m.id === memberId)?.pseudo
-      ?? g?.members.find(m => m.member_id === memberId)?.pseudo
-      ?? 'ce participant'
     setPendingReplacement({
-      tableNumber, memberId, newPseudo, currentPseudos: holders.map(h => h.pseudo),
+      tableNumber,
+      memberId,
+      newPseudo: pseudoOfMember(memberId),
+      currentPseudos: holders.map(h => h.pseudo),
+      moveIds: plan.moveIds,
+      movePseudos: plan.moveIds.map(pseudoOfMember),
+      fromTable: null,
+      viaPseudo: null,
     })
-  }, [groups, members, doAssignTableModerator])
+  }, [groups, clusterOf, pseudoOfMember, doAssignTableModerator])
 
   /**
    * Chantier 33 (point 2) — « retirer » un modérateur d'une table : il
@@ -2743,19 +2808,6 @@ function SessionDetail({
     return [...groups, ...extra]
   }, [groups, attachedTables, currentSession.phase])
 
-  // Chantier 92 — grappes d'appairage (liens réciproques, 3 personnes max).
-  const clusters = React.useMemo(() => {
-    if (!allocInputs) return []
-    return buildClusters(allocInputs.pairs, [
-      ...allocInputs.members.map(m => m.member_id),
-      ...allocInputs.moderators.map(m => m.member_id),
-    ]).clusters
-  }, [allocInputs])
-  const clusterOf = React.useMemo(() => {
-    const map = new Map<string, string[]>()
-    for (const c of clusters) for (const id of c) map.set(id, c)
-    return map
-  }, [clusters])
   const brokenGroupClusters = React.useMemo(
     () => countBrokenClusters(
       groups.map(g => ({ member_ids: g.members.map(m => m.member_id).filter((id): id is string => id !== null) })),
@@ -3868,6 +3920,9 @@ function SessionDetail({
                                         <span key={mod.member_id ?? `physical-${g.table_id}`}
                                           className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg border border-indigo-100 inline-flex items-center gap-1">
                                           🎙️ Modérateur : <strong>{mod.pseudo}</strong>
+                                          {/* Chantier 165 — avec qui il est lié : sans ça, rien ne montrait
+                                              qu'un participant de la table est son binôme. */}
+                                          <ModeratorLinkBadge memberId={mod.member_id} clusterOf={clusterOf} pseudoOf={pseudoOfMember} />
                                           {/* Chantier 117 — modérateur « physique » (rejoint par
                                               Code Ecclesia, aucune ligne session_members) : pas de
                                               flag à retirer, seule la libération de la table a un
@@ -3898,6 +3953,7 @@ function SessionDetail({
                                           className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-100 inline-flex items-center gap-1"
                                           title="Garde son drapeau modérateur mais n'anime pas cette table (chantier 25b) — ne voit pas l'écran modérateur ici.">
                                           🎙️ Modérateur en surplus : <strong>{mod.pseudo}</strong>
+                                          <ModeratorLinkBadge memberId={mod.member_id} clusterOf={clusterOf} pseudoOf={pseudoOfMember} />
                                           {/* Chantier 123 — Jules : « il faut juste qu'il
                                               puisse passer en principal ». `assign_moderator_to_table`
                                               (corrigée par ce chantier) écrase désormais un
@@ -4022,6 +4078,9 @@ function SessionDetail({
                                 idOf={m => m.member_id}
                                 pseudoOf={m => m.pseudo}
                                 clusterOf={clusterOf}
+                                outside={new Map(g.members
+                                  .filter(m => m.is_moderator && m.member_id)
+                                  .map(m => [m.member_id!, m.pseudo]))}
                                 renderItem={m => (
                                   <DraggableMemberChip
                                     key={m.member_id}
@@ -4780,29 +4839,53 @@ function SessionDetail({
 
       {pendingReplacement && (
         <ConfirmModal
-          title={`Remplacer le modérateur de la table N°${pendingReplacement.tableNumber} ?`}
+          title={pendingReplacement.currentPseudos.length > 0
+            ? `Remplacer le modérateur de la table N°${pendingReplacement.tableNumber} ?`
+            : `Déplacer un modérateur à la table N°${pendingReplacement.tableNumber} ?`}
           body={
             <div className="space-y-2 text-left">
               <p>
                 <strong>{pendingReplacement.newPseudo}</strong> devient le modérateur de cette
                 table, tout de suite.
               </p>
-              <p>
-                <strong>{pendingReplacement.currentPseudos.join(', ')}</strong> perd l'écran
-                modérateur et reste assis·e à la table (drapeau modérateur conservé :
-                « modérateur en surplus »).
-              </p>
+              {pendingReplacement.viaPseudo && (
+                <p>
+                  🔗 Il·elle est lié·e à <strong>{pendingReplacement.viaPseudo}</strong> : ils se déplacent ensemble.
+                </p>
+              )}
+              {pendingReplacement.movePseudos.length > 0 && !pendingReplacement.viaPseudo && (
+                <p>
+                  🔗 Ses binômes, <strong>{pendingReplacement.movePseudos.join(', ')}</strong>, viennent à cette table avec lui·elle.
+                </p>
+              )}
+              {pendingReplacement.viaPseudo && pendingReplacement.movePseudos.length > 0 && (
+                <p>
+                  Se déplacent à cette table : <strong>{pendingReplacement.movePseudos.join(', ')}</strong>.
+                </p>
+              )}
+              {pendingReplacement.currentPseudos.length > 0 && (
+                <p>
+                  <strong>{pendingReplacement.currentPseudos.join(', ')}</strong> perd l'écran
+                  modérateur et reste assis·e à la table (drapeau modérateur conservé :
+                  « modérateur en surplus »).
+                </p>
+              )}
+              {pendingReplacement.fromTable !== null && (
+                <p>
+                  La table N°{pendingReplacement.fromTable}, qu'il·elle quitte, se retrouve sans modérateur.
+                </p>
+              )}
               <p className="text-xs text-amber-700">
                 Pendant le débat, la personne concernée voit son écran changer dans les
                 secondes qui suivent.
               </p>
             </div>
           }
-          confirmLabel="Remplacer"
+          confirmLabel={pendingReplacement.currentPseudos.length > 0 ? 'Remplacer' : 'Déplacer'}
           onConfirm={() => {
             const p = pendingReplacement
             setPendingReplacement(null)
-            void doAssignTableModerator(p.tableNumber, p.memberId)
+            void doAssignTableModerator(p.tableNumber, p.memberId, p.moveIds)
           }}
           onCancel={() => setPendingReplacement(null)}
         />
@@ -5323,12 +5406,22 @@ function TableOverviewCard({
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
             {activeMods.map(m => (
               <span key={m.member_id ?? `physical-${g.table_id}`} className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-100">
-                🎙️ Modérateur : <strong>{m.pseudo}</strong>
+                🎙️ Modérateur : <strong>{m.pseudo}</strong>{' '}
+                <ModeratorLinkBadge
+                  memberId={m.member_id}
+                  clusterOf={clusterOf}
+                  pseudoOf={id => memberProfiles.get(id)?.pseudo ?? '?'}
+                />
               </span>
             ))}
             {surplusMods.map(m => (
               <span key={m.member_id} className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-100">
-                🎙️ En surplus : <strong>{m.pseudo}</strong>
+                🎙️ En surplus : <strong>{m.pseudo}</strong>{' '}
+                <ModeratorLinkBadge
+                  memberId={m.member_id}
+                  clusterOf={clusterOf}
+                  pseudoOf={id => memberProfiles.get(id)?.pseudo ?? '?'}
+                />
               </span>
             ))}
             {activeMods.length === 0 && (
@@ -5344,6 +5437,9 @@ function TableOverviewCard({
             idOf={m => m.member_id}
             pseudoOf={m => m.pseudo}
             clusterOf={clusterOf}
+            outside={new Map(g.members
+              .filter(m => m.is_moderator && m.member_id)
+              .map(m => [m.member_id!, m.pseudo]))}
             renderItem={m => {
             const profile = m.member_id ? memberProfiles.get(m.member_id) : undefined
             const color = profile && profile.group_id !== null ? campColor(profile.group_id) : null

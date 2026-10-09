@@ -15,6 +15,7 @@ import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import PseudoForm from '../components/voting/PseudoForm'
 import OnboardingForm from '../components/voting/OnboardingForm'
 import PairingModal from '../components/voting/PairingModal'
+import PairingRequestsNotice from '../components/voting/PairingRequestsNotice'
 import AssertionCard from '../components/voting/AssertionCard'
 import VoteProgress from '../components/voting/VoteProgress'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
@@ -1054,6 +1055,10 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
             </p>
           </div>
         )}
+
+        {/* Chantier 165 — quelqu'un m'a cité comme binôme : le lui rendre en un geste.
+            Phase de vote présentiel seulement (les binômes ne se déclarent pas ailleurs). */}
+        {session.phase === 'voting' && <PairingRequestsNotice sessionId={session.id} />}
 
         {/* Progress */}
         <VoteProgress

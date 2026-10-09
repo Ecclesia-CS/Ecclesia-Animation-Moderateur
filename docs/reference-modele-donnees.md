@@ -79,9 +79,10 @@ Zéro policy RLS — accès exclusivement via `apply_assertion_merge` / `revert_
 `id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `table_number` (int), `table_id?` (FK→tables ON DELETE SET NULL), `created_at`
 Contrainte : `UNIQUE(session_id, member_id)`.
 
-### `member_pairings` — Bloc C (chantier 92)
-`session_id` (CASCADE), `member_id` (CASCADE→session_members), `target_member_id` (CASCADE→session_members), `created_at`
-PK `(member_id, target_member_id)`, `CHECK member_id <> target_member_id`. RLS : lecture self-only (`is_own_session_member(member_id)`), aucune écriture directe — tout passe par `set_my_pairings`. Seuls les liens **réciproques** comptent pour l'allocation (grappes de 3 max, `src/lib/allocation.ts`).
+### `member_pairings` — Bloc C (chantier 92, étendue au chantier 165)
+`id` (PK), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `target_member_id` (**nullable** depuis le 165, CASCADE→session_members), `target_pseudo` (NOT NULL — le nom tel que saisi, ou le pseudo de la personne visée), `created_at`
+Unicité : `(member_id, target_member_id)` quand la cible est connue ; `(member_id, pairing_norm(target_pseudo))` pour les noms à venir (`target_member_id IS NULL`). `CHECK target_member_id IS NULL OR member_id <> target_member_id`. RLS : lecture self-only (`is_own_session_member(member_id)`), aucune écriture directe — tout passe par `set_my_pairings`.
+Une ligne à cible NULL est un **nom à venir** : elle se lie (trigger sur `session_members`, à l'`INSERT` ou au changement de `pseudo`) quand quelqu'un porte ce nom. Elle ne produit **jamais** de lien par elle-même : seuls les liens **réciproques** comptent pour l'allocation (grappes de 3 max, `src/lib/allocation.ts`) — la personne arrivée doit citer à son tour, et `set_my_pairings` contrôle alors la taille du groupe.
 
 ### `private_notes`
 `id`, `user_id` (NOT NULL), `content` (text), `updated_at`, `table_id?` (FK→tables ON DELETE CASCADE), `session_id?` (FK→sessions ON DELETE CASCADE)

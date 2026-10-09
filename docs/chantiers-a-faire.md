@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **Le 2026-10-09, le chantier 165 est mergé dans `dev`** (binômes / trios : notification « on t'a choisi·e », noms à venir, modérateurs liés, trio plein refusé) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 165. Migrations `20261009_chantier165_*` puis `…165b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main` (la 165 change la clé primaire de `member_pairings` : contrôle préalable sur prod). Entrée « en cours » retirée.
+
 > **Le 2026-10-09, le chantier 162a est fait** (fil de partage de la table : liens et sources collaboratives) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 162a. Migration `20261009_chantier162a_table_shares.sql` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 161c** (elle utilise `table_effective_phase`, créée par la 161a). **Le 162b peut démarrer.** Entrée « en cours » retirée.
 
 > **Le 2026-10-08, le chantier 161 (a + b) est mergé dans `dev`** (tables désolidarisées de la séance dès le débat) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 161. Migrations `20261008_chantier161a_*`, `…161b_*` puis `20261009_chantier161c_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 160**. Le 162 (partage de sources) peut démarrer : il touche les mêmes écrans de table. Entrée « en cours » retirée.

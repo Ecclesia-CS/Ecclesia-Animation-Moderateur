@@ -7,7 +7,13 @@ import { extractErr } from '../../lib/utils'
 // (chantier 115 — restreinte à la phase voting, plus d'usage en débat).
 
 export const PAIRING_EXPLANATION =
-  "Écris le prénom et le nom exacts, tels que la personne les a saisis."
+  "Écris le prénom et le nom exacts, tels que la personne les a saisis. " +
+  "Cette personne n'est pas encore inscrite ? Écris quand même son nom : on le garde, et vous serez liés dès qu'une personne s'inscrira avec ce nom et te citera à son tour."
+
+/** Chantier 165 — rappel affiché à la saisie : on peut tout faire plus tard. */
+export const PAIRING_LATER_NOTE =
+  "Tu peux le faire plus tard : « Outils » → « Être avec un ami ». Si le nom de la personne n'existe pas encore, " +
+  "ou si tu ne sais pas comment elle s'est inscrite, reviens simplement plus tard."
 
 /** Chantier 92 — la réciprocité doit sauter aux yeux, à la proposition comme après l'enregistrement. */
 export function ReciprocityNotice() {
@@ -17,6 +23,11 @@ export function ReciprocityNotice() {
       <p className="mt-0.5">
         Vous ne serez à la même table que si <strong>cette personne te cite aussi</strong> de son côté.
         Pense à la prévenir !
+      </p>
+      {/* Chantier 165 — la règle du trio, dite d'avance pour ne pas surprendre. */}
+      <p className="mt-1.5 text-xs text-indigo-800">
+        Un groupe compte au plus <strong>3 personnes</strong> : si tu es lié·e à deux personnes, vous formez un trio,
+        et plus personne ne peut s'y ajouter.
       </p>
     </div>
   )
@@ -50,9 +61,48 @@ export function PairingFields({
   )
 }
 
+/** Chantier 165 — une ligne de résultat par choix : introuvable (gardé), refusé, en attente, lié. */
+function PairingResultLine({ r }: { r: PairingResult }) {
+  if (r.refused === 'self') {
+    return <span className="text-red-700">❌ « {r.pseudo} » : c'est ton propre nom.</span>
+  }
+  if (r.refused === 'target_full') {
+    return (
+      <span className="text-red-700">
+        ❌ {r.pseudo} fait déjà partie d'un trio complet : on ne peut pas s'y ajouter. Choisis quelqu'un d'autre.
+      </span>
+    )
+  }
+  if (r.refused === 'too_big') {
+    return (
+      <span className="text-red-700">
+        ❌ {r.pseudo} : vous seriez plus de 3 en vous liant (l'un de vous deux a déjà un binôme). Un groupe compte au plus 3 personnes.
+      </span>
+    )
+  }
+  if (!r.found) {
+    return (
+      <span className="text-amber-700">
+        ⚠️ « {r.pseudo} » : personne ne porte ce nom dans la séance pour l'instant. On le garde : si quelqu'un s'inscrit avec
+        exactement ce nom et te cite aussi, vous serez liés. Sinon, ça ne te lie à personne.
+      </span>
+    )
+  }
+  if (r.blocked) {
+    return (
+      <span className="text-red-700">
+        ❌ {r.pseudo} : ce lien n'est plus possible (un groupe compte au plus 3 personnes). Choisis quelqu'un d'autre.
+      </span>
+    )
+  }
+  return r.reciprocal
+    ? <span className="text-green-700">🔗 {r.pseudo} : vous vous êtes cités tous les deux, vous serez ensemble.</span>
+    : <span className="text-amber-700">⏳ {r.pseudo} : en attente que cette personne te cite aussi.</span>
+}
+
 export function PairingResultsList({ results }: { results: PairingResult[] }) {
   if (results.length === 0) return null
-  const waiting = results.some(r => r.found && !r.reciprocal)
+  const waiting = results.some(r => r.found && !r.reciprocal && !r.refused && !r.blocked)
   return (
     <div className="space-y-2">
     {waiting && (
@@ -64,11 +114,7 @@ export function PairingResultsList({ results }: { results: PairingResult[] }) {
     <ul className="space-y-1.5">
       {results.map(r => (
         <li key={r.pseudo} className="text-sm leading-snug">
-          {!r.found
-            ? <span className="text-red-700">❌ « {r.pseudo} » : personne introuvable dans la séance.</span>
-            : r.reciprocal
-              ? <span className="text-green-700">🔗 {r.pseudo} : vous vous êtes cités tous les deux, vous serez ensemble.</span>
-              : <span className="text-amber-700">⏳ {r.pseudo} : en attente que cette personne te cite aussi.</span>}
+          <PairingResultLine r={r} />
         </li>
       ))}
     </ul>
@@ -90,7 +136,7 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
       .then(list => {
         if (cancelled) return
         setValues([list[0]?.pseudo ?? '', list[1]?.pseudo ?? ''])
-        setResults(list.map(p => ({ pseudo: p.pseudo, found: true, reciprocal: p.reciprocal })))
+        setResults(list)
       })
       .catch(e => { if (!cancelled) setError(extractErr(e)) })
       .finally(() => { if (!cancelled) setLoading(false) })

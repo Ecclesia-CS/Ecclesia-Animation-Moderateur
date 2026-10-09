@@ -77,7 +77,11 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     load()
 
     getMyPairings(session.id)
-      .then(list => setPairings(list.map(p => ({ pseudo: p.pseudo, found: true, reciprocal: p.reciprocal }))))
+      .then(list => setPairings(
+        // Chantier 165 — à ce stade rien ne peut plus changer : on ne montre que
+        // les liens possibles, pas un nom resté sans personne ni un lien devenu impossible.
+        list.filter(p => p.found && !p.blocked),
+      ))
       .catch(() => { /* pas de binôme à afficher, écran non bloquant */ })
   }, [session.id])
 

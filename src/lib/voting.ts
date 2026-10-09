@@ -588,18 +588,33 @@ export async function loadAllocationInputs(
 
 // ── Chantier 92 — appairage entre participants ──────────────
 
+/** Chantier 165 — pourquoi un choix n'a pas été enregistré. */
+export type PairingRefusal = 'self' | 'target_full' | 'too_big'
+
 export interface PairingResult {
   pseudo: string
-  /** Un membre de la séance porte ce pseudo. */
+  /** Un membre de la séance porte ce pseudo (faux = nom à venir, gardé en attente). */
   found: boolean
   /** La personne citée m'a cité aussi — seul un lien réciproque compte pour l'allocation. */
   reciprocal: boolean
+  /** Chantier 165 — le choix est enregistré. Faux s'il a été refusé. Absent = enregistré. */
+  saved?: boolean
+  /** Chantier 165 — motif du refus : soi-même, trio déjà complet, ou groupe qui dépasserait 3. */
+  refused?: PairingRefusal | null
+  /** Chantier 165 — lien impossible tant que les groupes restent ce qu'ils sont (relecture). */
+  blocked?: boolean
+}
+
+/** Chantier 165 — quelqu'un m'a cité et je ne l'ai pas encore cité en retour. */
+export interface PairingRequest {
+  member_id: string
+  pseudo: string
 }
 
 /**
- * Remplace mes binômes (0 à 2 pseudos). Si l'allocation est déjà faite et que
- * je n'ai pas de table, je suis rattaché à celle d'une personne citée
- * réciproquement (`placedTableNumber`).
+ * Remplace mes binômes (0 à 2 pseudos). Chantier 165 : un nom qui n'existe pas
+ * encore est gardé (`found: false`) et se lie tout seul à l'arrivée de la
+ * personne ; un choix qui ferait dépasser 3 personnes est refusé (`refused`).
  */
 export async function setMyPairings(
   sessionId: string,
@@ -614,10 +629,24 @@ export async function setMyPairings(
   return { results: raw.results ?? [], placedTableNumber: raw.placed_table_number ?? null }
 }
 
-export async function getMyPairings(sessionId: string): Promise<{ pseudo: string; reciprocal: boolean }[]> {
+/** Mes choix actuels, y compris les noms à venir (`found: false`). */
+export async function getMyPairings(sessionId: string): Promise<PairingResult[]> {
   const { data, error } = await supabase.rpc('get_my_pairings', { p_session_id: sessionId })
   if (error) throw new Error(extractErr(error))
-  return (data ?? []) as { pseudo: string; reciprocal: boolean }[]
+  return ((data ?? []) as Partial<PairingResult>[]).map(p => ({
+    pseudo:     p.pseudo ?? '',
+    found:      p.found ?? true,
+    reciprocal: p.reciprocal ?? false,
+    blocked:    p.blocked ?? false,
+  }))
+}
+
+/** Chantier 165 — les personnes qui m'ont cité et que je peux encore rejoindre. */
+export async function getPairingRequests(sessionId: string): Promise<PairingRequest[]> {
+  const { data, error } = await supabase.rpc('get_pairing_requests', { p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  return ((data ?? []) as Partial<PairingRequest>[])
+    .filter((r): r is PairingRequest => typeof r.member_id === 'string' && typeof r.pseudo === 'string')
 }
 
 export async function getSessionPairingsAdmin(password: string, sessionId: string): Promise<[string, string][]> {
