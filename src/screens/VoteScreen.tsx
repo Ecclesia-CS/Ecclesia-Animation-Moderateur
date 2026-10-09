@@ -41,6 +41,12 @@ interface VoteScreenProps {
 
 type Step = 'loading' | 'error' | 'pseudo' | 'reclaim_code' | 'confirm_attendance' | 'onboarding' | 'waiting' | 'vote' | 'allocating' | 'questionnaire' | 'closed' | 'ended' | 'not_open'
 
+/**
+ * Étapes d'avant-débat où la phase de la séance est relue (chantier 163) : celles où
+ * un changement de phase doit faire avancer le participant sans qu'il recharge la page.
+ */
+const PHASE_WATCHED_STEPS: Step[] = ['not_open', 'pseudo', 'reclaim_code', 'confirm_attendance', 'onboarding', 'waiting', 'vote']
+
 /** Fisher-Yates shuffle — immutable */
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -150,6 +156,19 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   // Garde memberRef synchronisé pour les closures Realtime
   useEffect(() => { memberRef.current = member }, [member])
+
+  // Chantier 163 — l'observateur de phase (plus bas) relit l'état *après* un appel
+  // réseau : il lui faut l'étape et la séance courantes, pas celles de son rendu.
+  const stepRef = useRef<Step>('loading')
+  const sessionRef = useRef<Session | null>(null)
+  useEffect(() => { stepRef.current = step }, [step])
+  useEffect(() => { sessionRef.current = session }, [session])
+  // Le participant a répondu « je continue à voter à distance » : ne plus le
+  // relancer à chaque relecture de phase (le rechargement de la page le redemande,
+  // comme avant).
+  const declinedPresenceRef = useRef(false)
+  const lastPhaseCheckRef = useRef(0)
+  const phaseCheckRef = useRef<() => Promise<void>>(async () => {})
 
   // ── Chantier 35 — statut modérateur en direct ──────────────────────────────
   // Le superadmin peut poser/retirer `is_moderator` (onglet Membres ou Tables)
@@ -496,66 +515,104 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     return () => clearInterval(interval)
   }, [step, session])
 
-  // ── Polling de secours phase (fallback Realtime — Messenger / WebSocket indisponible) ──
-  useEffect(() => {
-    if (step !== 'waiting' && step !== 'vote') return
-    if (!session || !member) return
-
-    const sessionId  = session.id
-    const knownPhase = session.phase
-    const m = member
-
-    const interval = setInterval(async () => {
-      const s = await getSessionById(sessionId).catch(() => null)
-      if (!s) return
-      // Chantier 153 — réglages de proposition modifiés en cours de séance : le
-      // Realtime peut être coupé (Messenger), on les rattrape ici sans toucher au reste.
-      setSession(prev => (
-        prev && (
-          prev.assertions_locked !== s.assertions_locked ||
-          prev.assertions_vote_first !== s.assertions_vote_first ||
-          prev.max_assertions_per_member !== s.max_assertions_per_member
-        )
-          ? {
-              ...prev,
-              assertions_locked: s.assertions_locked,
-              assertions_vote_first: s.assertions_vote_first,
-              max_assertions_per_member: s.max_assertions_per_member,
-            }
-          : prev
-      ))
-      if (s.phase === knownPhase) return
-
-      setSession(s)
-      if (s.phase === 'pre_voting' || s.phase === 'allocating') {
-        if (step === 'waiting') loadVoteData(s, m)
-      } else if (s.phase === 'voting') {
-        if (step === 'waiting') {
-          // Transition pré-vote → vote : vérifier si confirmation présentielle requise
-          if (!m.attending_in_person) {
-            setConfirmPseudo(m.pseudo)
-            setConfirmMode('known_user')
-            setStep('confirm_attendance')
-          } else {
-            loadVoteData(s, m)
+  // ── Observateur de phase (fallback Realtime — Messenger / WebSocket indisponible) ──
+  // Chantier 163 — la bascule distanciel → présentiel (`pre_voting` → `voting`) n'était
+  // vue que depuis `waiting`/`vote`, par un minuteur seul : un onglet resté en arrière-plan
+  // (minuteurs gelés par le navigateur du téléphone), l'écran « pas encore ouverte », le
+  // formulaire de nom ou l'écran du code de rappel ne la voyaient jamais sans rechargement.
+  // La relecture est donc déclenchée aussi au retour de l'onglet, à la reconnexion réseau et
+  // après chaque vote, et couvre toutes les étapes d'avant-débat.
+  phaseCheckRef.current = async () => {
+    const before = sessionRef.current
+    if (!before || !PHASE_WATCHED_STEPS.includes(stepRef.current)) return
+    lastPhaseCheckRef.current = Date.now()
+    const s = await getSessionById(before.id).catch(() => null)
+    if (!s) return
+    // Chantier 153 — réglages de proposition modifiés en cours de séance : le
+    // Realtime peut être coupé (Messenger), on les rattrape ici sans toucher au reste.
+    setSession(prev => (
+      prev && (
+        prev.assertions_locked !== s.assertions_locked ||
+        prev.assertions_vote_first !== s.assertions_vote_first ||
+        prev.max_assertions_per_member !== s.max_assertions_per_member
+      )
+        ? {
+            ...prev,
+            assertions_locked: s.assertions_locked,
+            assertions_vote_first: s.assertions_vote_first,
+            max_assertions_per_member: s.max_assertions_per_member,
           }
-        } else if (step === 'vote' && !m.attending_in_person) {
-          // Déjà en train de voter mais attending = false → demander confirmation
-          setConfirmPseudo(m.pseudo)
-          setConfirmMode('known_user')
-          setStep('confirm_attendance')
-        }
-      } else if (s.phase === 'debating') {
-        setStep('allocating')
-      } else if (s.phase === 'closed' || s.phase === 'post_voting') {
-        // Chantier 39 — plus de phase 'questionnaire' dédiée
-        const answered = await hasQuestionnaireResponse(s.id)
-        setStep(answered ? 'closed' : 'questionnaire')
-      }
-    }, 10_000)
+        : prev
+    ))
 
-    return () => clearInterval(interval)
-  }, [step, session?.id, session?.phase, member?.id])
+    // L'appel réseau a pu durer : repartir de l'état *courant*, pas de celui du départ.
+    const st = stepRef.current
+    const m = memberRef.current
+    if (!PHASE_WATCHED_STEPS.includes(st)) return
+    const knownPhase = sessionRef.current?.phase ?? before.phase
+
+    // Transition pré-vote → vote, ou arrivée en vote : la confirmation de présence est
+    // due tant que le membre n'a pas répondu. Test d'état et non de transition, pour que
+    // la phase déjà connue (mise à jour par Realtime sans reroutage) ne fasse pas rater
+    // la question.
+    const presenceDue = !!m && !m.attending_in_person && !declinedPresenceRef.current
+      && s.phase === 'voting' && sessionTypeOf(s) === 'full'
+    const promptPresence = (who: SessionMember) => {
+      setConfirmPseudo(who.pseudo)
+      setConfirmMode('known_user')
+      setStep('confirm_attendance')
+    }
+
+    if (s.phase === knownPhase) {
+      if (st === 'vote' && presenceDue && m) promptPresence(m)
+      return
+    }
+
+    setSession(s)
+    if (s.phase === 'draft') return
+    if (s.phase === 'pre_voting' || s.phase === 'voting' || s.phase === 'allocating') {
+      if (!m) {
+        // Séance ouverte pendant que le visiteur attendait sur « pas encore ouverte ».
+        if (st === 'not_open') setStep('pseudo')
+        // Formulaire de nom : la séance est remplacée, le rendu bascule tout seul sur
+        // le bon formulaire (PseudoForm ↔ VotingEntryForm).
+        return
+      }
+      if (st === 'waiting') {
+        if (presenceDue) promptPresence(m)
+        else loadVoteData(s, m)
+      } else if (st === 'vote' && presenceDue) {
+        promptPresence(m)
+      }
+      return
+    }
+    if (!m) return
+    if (s.phase === 'debating') {
+      setStep('allocating')
+    } else if (s.phase === 'closed' || s.phase === 'post_voting') {
+      // Chantier 39 — plus de phase 'questionnaire' dédiée
+      const answered = await hasQuestionnaireResponse(s.id)
+      setStep(answered ? 'closed' : 'questionnaire')
+    }
+  }
+
+  useEffect(() => {
+    if (!session?.id || !PHASE_WATCHED_STEPS.includes(step)) return
+    const run = () => { void phaseCheckRef.current() }
+    const onVisible = () => { if (document.visibilityState === 'visible') run() }
+    const interval = setInterval(run, 10_000)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', run)
+    window.addEventListener('online', run)
+    window.addEventListener('pageshow', run)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', run)
+      window.removeEventListener('online', run)
+      window.removeEventListener('pageshow', run)
+    }
+  }, [step, session?.id])
 
   // Chantier 153 — verrou, « voter d'abord » et plafond par personne, en un
   // seul prédicat (voir lib/voting.ts). Sert aux boutons et au nudge ci-dessous.
@@ -603,6 +660,9 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
   // ── Vote handler ──────────────────────────────────────────────────────────
   async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
+    // Chantier 163 — un participant qui vote est actif, donc l'onglet tourne : c'est le
+    // moment le plus sûr pour relire la phase, même si les minuteurs ont été gelés.
+    if (Date.now() - lastPhaseCheckRef.current > 3000) void phaseCheckRef.current()
     const voteRow = await castVote(assertionId, vote)
     // Add vote to map — the assertion disappears from unvotedAssertions automatically,
     // so the next unvoted one slides into view without needing to advance the index.
@@ -630,8 +690,20 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   /** Suite du parcours une fois le code de rappel montré (ou s'il n'y en a pas). */
   async function continueAfterRegistration(m: SessionMember) {
     if (!session) return
-    if (session.phase === 'pre_voting' || !session.onboarding_enabled) {
-      await loadVoteData(session, m)
+    // Chantier 163 — la phase locale peut être périmée (formulaire ou code de rappel
+    // laissés ouverts pendant la bascule distanciel → présentiel) : le serveur, lui,
+    // a inscrit le membre selon la phase réelle. Sans cette relecture, un inscrit en
+    // `voting` sautait l'onboarding (phase locale encore `pre_voting`).
+    const fresh = await getSessionById(session.id).catch(() => null)
+    const current = fresh ?? session
+    if (fresh) setSession(fresh)
+    if (current.phase === 'voting' && !m.attending_in_person && sessionTypeOf(current) === 'full') {
+      // Inscrit à distance avant la bascule : la présence se redemande.
+      setConfirmPseudo(m.pseudo)
+      setConfirmMode('known_user')
+      setStep('confirm_attendance')
+    } else if (current.phase === 'pre_voting' || !current.onboarding_enabled) {
+      await loadVoteData(current, m)
     } else {
       setStep('onboarding')
     }
@@ -645,7 +717,18 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   async function handlePseudoReclaimSuccess(m: SessionMember) {
     if (!session) return
     setMember(m)
-    await loadVoteData(session, m)
+    // Chantier 163 — même relecture que continueAfterRegistration : le formulaire peut
+    // avoir été ouvert avant la bascule en présentiel.
+    const fresh = await getSessionById(session.id).catch(() => null)
+    const current = fresh ?? session
+    if (fresh) setSession(fresh)
+    if (current.phase === 'voting' && !m.attending_in_person && sessionTypeOf(current) === 'full') {
+      setConfirmPseudo(m.pseudo)
+      setConfirmMode('known_user')
+      setStep('confirm_attendance')
+      return
+    }
+    await loadVoteData(current, m)
   }
 
   async function handleConfirmAttendanceSuccess(m: SessionMember) {
@@ -678,6 +761,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   // pré-vote n'en a pas et ce membre le reste tant qu'il ne confirme pas.
   async function handleContinueRemote() {
     if (!session || !member) return
+    declinedPresenceRef.current = true
     await loadVoteData(session, member)
   }
 

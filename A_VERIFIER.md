@@ -81,6 +81,15 @@ Puis, sur une séance de test **de prod** :
 - [ ] **106, 109, 117, 118** — onglet Groupes (badge « en surplus », modérateur physique, « Retirer », « Libérer la modération », modale « Ouvrir le débat »).
 - [ ] **91, 92** — recette d'allocation sur une séance de test (déterminisme, actifs/public par table, grappes de binômes).
 
+## Chantier 163 (2026-10-09) — Bascule distanciel → présentiel vue sans recharger
+
+Front seul (`src/screens/VoteScreen.tsx`), aucune migration. **Vérifié au navigateur sur dev** (voir `docs/chantiers.md`) : bascule depuis l'écran de vote WebSocket coupé, formulaire de nom, écran du code de rappel, écran « pas encore ouverte ». Reste ce que le navigateur de session ne sait pas jouer :
+
+- [ ] **Vrai téléphone, écran verrouillé** : un participant en pré-vote verrouille son téléphone 1-2 minutes, le superadmin passe la séance en « Vote en présentiel », le participant déverrouille → l'écran « Es-tu présent(e) au débat aujourd'hui ? » doit apparaître dans les secondes qui suivent, sans recharger (relecture au retour de l'onglet). Idem dans le navigateur intégré de Messenger.
+- [ ] **Avant chaque vote** : participant resté à l'écran de vote sans que le minuteur ait tourné, qui touche « D'accord » après la bascule → l'écran de confirmation de présence apparaît (le vote posé reste enregistré en pré-vote).
+- [ ] **Résiduel non traité** : en `allocating`, un pré-votant resté à distance n'est pas relancé en direct (seulement à l'arrivée, chantier 61). À décider avec Jules.
+- [ ] Sur prod après merge : rien de particulier (front seul).
+
 ## Chantier 161 — tables désolidarisées (2026-10-08) — reste à jouer
 
 **Joué au navigateur sur dev (Browser pane), puis données remises en état** : séance complète « QA Vérifs — Complète », table 2 — modérateur : Outils → « Terminer le débat de ma table » → confirmation → sortie immédiate (« Le débat de votre table est terminé ») ; rechargement → questionnaire « Étape 5 · Post-débat » alors que la séance débat → résultats avec carte, « ↻ Revoter » et « Rouvrir » ; revote accepté et tagué `post_voting` en base ; « Rouvrir » → « Accéder à la table » → écran modérateur. Participant : fin de table venue d'ailleurs → questionnaire forcé puis écran de fin « Étape 5 » ; résultats sans « Rouvrir » ; réouverture → bandeau « Le débat de votre table a repris » (et « Revoter » qui disparaît) → retour à la table ; un membre resté sur « Accéder à la table » est redirigé vers ses résultats. Débat simple « QA Vérifs — Débat » : texte de confirmation propre, questionnaire « Étape 2 · Terminé », écran de fin de table avec « Rouvrir », réouverture → écran modérateur (après correction du bug `userId` vide, voir `docs/chantiers.md`).
