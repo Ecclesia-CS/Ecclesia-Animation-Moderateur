@@ -15,6 +15,12 @@ Dernière mise à jour : **2026-09-16**.
 
 > **2026-10-09** — `dev` mergé dans `main` (chantiers 160 à 167, 48 commits, fast-forward) et **10 migrations appliquées sur prod** (160, 161a, 161b, 161c, 162a, 162b, 162b2, 165, 165b, 166), avant le push. Edge Function `purge-share-images` déployée sur prod (`verify_jwt: true`). Tag de retour arrière `pre-merge-dev-20261009` (code seulement). Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
 
+> **2026-10-09** — quatre branches sauvegardées sur `origin` avant un changement de machine de Jules, **volontairement non mergées** (aucune n'est un oubli, aucune n'est validée) :
+> - `chantier-67-quatre-correctifs` — 1 commit : `claim_moderator_status` ne doit pas écraser le chantier 64. Ancien correctif, à vérifier contre `main` avant tout merge : probablement déjà couvert par les chantiers 106 / 148 sur le modérateur unique.
+> - `claude/allocation-viz-tool-86c4bb` — outil de visualisation de l'allocation (`bench/viz/`) et **chantier 93** (plancher sans modérateur à 6, règle 1 dépriorisée) dans `src/lib/allocation.ts` + tests. Le dernier commit (`wip: …`) est du travail jamais commité jusque-là : à relire, les tests d'allocation doivent repasser. Rappel : l'allocation v2 est déterministe et ne doit jamais lever d'exception.
+> - `claude/onboarding-mode-switch-visibility-3bfe48` — **chantier 163** : la bascule distanciel → présentiel est vue sans recharger la page. Le second commit consigne que la cause du blocage n'a **pas été trouvée** (diagnostic en tête de `A_VERIFIER.md`) : chantier inachevé.
+> - `claude/task-list-3-chantiers-d6ad86` — documentation seule : chantiers 158 à 162 (liste de tâches 4 du 2026-10-05) et décisions de Jules (placement de l'accordéon, sous-agent). À rapprocher de `docs/chantiers-a-faire.md` avant de merger, pour ne pas créer de doublon.
+
 ---
 
 ## 1. Gel du parcours de vote — jusqu'au 2026-09-10 inclus
