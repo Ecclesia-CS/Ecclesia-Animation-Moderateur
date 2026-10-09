@@ -13,11 +13,14 @@ import {
   AnalysisError,
   listSessionAnalyses,
   loadAnalysisById,
+  loadVoteChanges,
   pairGroups,
   computeMemberMovements,
   computeConsensusMovements,
 } from '../lib/analysis'
-import type { LoadedAnalysis, AnalysisResult, SessionAnalysisSummary } from '../lib/analysis'
+import type {
+  LoadedAnalysis, AnalysisResult, SessionAnalysisSummary, VoteChangesSummary, VoteValue,
+} from '../lib/analysis'
 import type { AssertionAdmin } from '../lib/voting'
 import type { GroupNameResult } from '../lib/types'
 
@@ -646,11 +649,17 @@ export default function AnalysisPanel({
 
 // =============================================================
 // AnalysisComparisonPanel — chantier 79
-// Compare deux analyses d'une même séance (typiquement une 'pre_closure'
-// et une 'current') pour voir comment les positions ont bougé après le
-// débat. Infrastructure posée par le chantier 70 (assertion_vote_history,
-// vote_scope, list_session_analyses, get_analysis_by_id) — cet écran est
-// la première consommation de ces données.
+// Compare deux analyses d'une même séance pour voir comment les positions ont
+// bougé après le débat. Les deux listes proposent TOUTES les analyses
+// terminées : l'usage courant est « l'analyse lancée avant le débat » contre
+// « l'analyse relancée après le post-vote » (deux analyses 'current') ; une
+// analyse 'pre_closure' reconstitue en plus l'état exact d'avant le premier
+// revote, quel que soit le moment où l'animateur a lancé la sienne.
+// Infrastructure posée par le chantier 70 (assertion_vote_history,
+// vote_scope, list_session_analyses, get_analysis_by_id).
+//
+// Chantier 166 — en tête, « Qui a changé d'avis » : mesure directe lue dans
+// l'historique des votes (get_vote_changes_admin), indépendante des analyses.
 //
 // ⚠️ Piège central (voir pairGroups dans lib/analysis.ts) : deux analyses
 // ne numérotent pas leurs camps pareil. Tout ce qui est affiché ici passe
@@ -665,6 +674,90 @@ interface AnalysisComparisonPanelProps {
 }
 
 const CONSENSUS_MOVE_MIN_DELTA = 0.15
+const VOTE_CHANGES_TOP = 8
+
+const VOTE_LABEL: Record<VoteValue, string> = {
+  agree:    "d'accord",
+  disagree: "pas d'accord",
+  pass:     'passer',
+}
+
+function plural(n: number, one: string, many: string): string {
+  return n > 1 ? many : one
+}
+
+function VoteChangesView({
+  changes,
+  assertionMap,
+}: {
+  changes:      VoteChangesSummary
+  assertionMap: Map<string, string>
+}) {
+  if (changes.membersBefore === 0 && changes.newVotes === 0) {
+    return <p className="text-sm text-gray-400">Aucun vote enregistré pour l'instant.</p>
+  }
+  const pct = changes.membersBefore > 0
+    ? Math.round((changes.membersChanged / changes.membersBefore) * 100)
+    : 0
+  const top = changes.assertions.slice(0, VOTE_CHANGES_TOP)
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-gray-700">
+        <strong>{changes.membersChanged}</strong> {plural(changes.membersChanged, 'membre', 'membres')} sur{' '}
+        <strong>{changes.membersBefore}</strong> {plural(changes.membersChanged, 'a', 'ont')} changé d'avis
+        sur au moins une assertion{changes.membersBefore > 0 && <> ({pct} %)</>}.
+        <span className="text-gray-400">
+          {' '}{changes.pairsChanged} vote{plural(changes.pairsChanged, '', 's')} modifié{plural(changes.pairsChanged, '', 's')} sur {changes.pairsTotal}.
+        </span>
+      </p>
+
+      {changes.transitions.length > 0 && (
+        <ul className="flex flex-wrap gap-2 text-xs">
+          {changes.transitions.map(t => (
+            <li key={`${t.from}-${t.to}`} className="px-2 py-1 rounded-lg bg-gray-100 text-gray-700">
+              {VOTE_LABEL[t.from]} → {VOTE_LABEL[t.to]} : <strong>{t.count}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {changes.newVotes > 0 && (
+        <p className="text-xs text-gray-400">
+          {changes.newVoters} {plural(changes.newVoters, 'personne a', 'personnes ont')} aussi voté pour la
+          première fois en post-vote ({changes.newVotes} vote{plural(changes.newVotes, '', 's')}) — ces votes
+          n'ont pas d'« avant » et ne sont pas comptés ci-dessus.
+        </p>
+      )}
+
+      {top.length > 0 && (
+        <ul className="space-y-1.5">
+          {top.map(a => (
+            <li key={a.assertionId} className="text-sm text-gray-700">
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 mr-2">
+                {a.changed} {plural(a.changed, 'changement', 'changements')}
+              </span>
+              {assertionMap.get(a.assertionId) ?? '(assertion supprimée)'}
+              <span className="block text-xs text-gray-400 mt-0.5">
+                d'accord {a.beforeAgree} → {a.afterAgree} · pas d'accord {a.beforeDisagree} → {a.afterDisagree}
+                {' '}· passer {a.beforePass} → {a.afterPass}
+              </span>
+            </li>
+          ))}
+          {changes.assertions.length > top.length && (
+            <li className="text-xs text-gray-400">
+              … et {changes.assertions.length - top.length} autre{plural(changes.assertions.length - top.length, '', 's')} assertion{plural(changes.assertions.length - top.length, '', 's')}.
+            </li>
+          )}
+        </ul>
+      )}
+
+      {changes.pairsChanged === 0 && (
+        <p className="text-xs text-gray-400">Personne n'a modifié un vote depuis la fin du débat.</p>
+      )}
+    </div>
+  )
+}
 
 export function AnalysisComparisonPanel({
   sessionId,
@@ -682,6 +775,10 @@ export function AnalysisComparisonPanel({
   const [before, setBefore]     = useState<LoadedAnalysis | null>(null)
   const [after, setAfter]       = useState<LoadedAnalysis | null>(null)
   const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+
+  const [changes, setChanges] = useState<VoteChangesSummary | null>(null)
+  const [changesStatus, setChangesStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle')
+  const [changesError, setChangesError] = useState<string | null>(null)
 
   const assertionMap = new Map<string, string>(assertions.map(a => [a.id, a.content]))
 
@@ -703,15 +800,22 @@ export function AnalysisComparisonPanel({
       setSummaries(data)
       setLoadStatus('loaded')
 
-      // Sélection par défaut : la plus récente 'pre_closure' comme "avant",
-      // la plus récente 'current' comme "après" — c'est le cas d'usage visé
-      // par le chantier 70 (« voir comment les positions ont bougé après le
-      // débat »). Laissé vide si l'une des deux n'existe pas encore, plutôt
-      // que de deviner une paire non pertinente.
-      const latestPreClosure = data.find(s => s.vote_scope === 'pre_closure' && s.status === 'done')
-      const latestCurrent    = data.find(s => s.vote_scope === 'current' && s.status === 'done')
-      if (latestPreClosure) setBeforeId(prev => prev || latestPreClosure.id)
-      if (latestCurrent)    setAfterId(prev => prev || latestCurrent.id)
+      // Sélection par défaut. Avec une analyse 'pre_closure' : elle sert
+      // d'« avant » (état exact d'avant le premier revote) et la plus récente
+      // 'current' d'« après ». Sans : les deux dernières analyses terminées
+      // (l'avant-dernière = « avant », la dernière = « après »), qui est le
+      // cas d'une animatrice qui relance simplement l'analyse après le post-vote.
+      // Laissé vide s'il y en a moins de deux, plutôt que de deviner une paire.
+      const done = data.filter(s => s.status === 'done')   // déjà triées de la plus récente à la plus ancienne
+      const latestPreClosure = done.find(s => s.vote_scope === 'pre_closure')
+      const latestCurrent    = done.find(s => s.vote_scope === 'current')
+      if (latestPreClosure && latestCurrent) {
+        setBeforeId(prev => prev || latestPreClosure.id)
+        setAfterId(prev => prev || latestCurrent.id)
+      } else if (done.length >= 2) {
+        setBeforeId(prev => prev || done[1].id)
+        setAfterId(prev => prev || done[0].id)
+      }
     } catch (e) {
       handleAuthOrError(e, msg => { setErrorMsg(msg); setLoadStatus('error') })
     }
@@ -720,6 +824,22 @@ export function AnalysisComparisonPanel({
   useEffect(() => {
     if (open && loadStatus === 'idle') loadSummaries()
   }, [open, loadStatus, loadSummaries])
+
+  // ── Chargement du résumé « qui a changé d'avis » (chantier 166) ──
+  const loadChanges = useCallback(async () => {
+    setChangesStatus('loading')
+    setChangesError(null)
+    try {
+      setChanges(await loadVoteChanges(supabase, password, sessionId))
+      setChangesStatus('loaded')
+    } catch (e) {
+      handleAuthOrError(e, msg => { setChangesError(msg); setChangesStatus('error') })
+    }
+  }, [password, sessionId])
+
+  useEffect(() => {
+    if (open && changesStatus === 'idle') loadChanges()
+  }, [open, changesStatus, loadChanges])
 
   // ── Chargement des deux analyses sélectionnées ─────────────
   useEffect(() => {
@@ -807,15 +927,38 @@ export function AnalysisComparisonPanel({
             </div>
           )}
 
+          {/* Chantier 166 — mesure directe, lue dans l'historique des votes */}
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Qui a changé d'avis
+              </h4>
+              <button
+                onClick={loadChanges}
+                disabled={changesStatus === 'loading'}
+                className="text-xs text-indigo-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+              >
+                Actualiser
+              </button>
+            </div>
+            {changesStatus === 'loading' && !changes && (
+              <p className="text-sm text-gray-400">Lecture de l'historique des votes…</p>
+            )}
+            {changesStatus === 'error' && changesError && (
+              <p className="text-sm text-red-600">{changesError}</p>
+            )}
+            {changes && <VoteChangesView changes={changes} assertionMap={assertionMap} />}
+          </div>
+
           {loadStatus === 'loading' && (
             <p className="text-sm text-gray-400">Chargement des analyses disponibles…</p>
           )}
 
           {loadStatus === 'loaded' && summaries.filter(s => s.status === 'done').length < 2 && (
             <p className="text-sm text-gray-400">
-              Il faut au moins deux analyses terminées (une "avant débat" reconstituée depuis
-              l'historique des votes, une "courante") pour comparer. Relancez l'analyse depuis
-              "Analyse des camps" pour en obtenir une nouvelle si besoin.
+              Il faut au moins deux analyses terminées pour comparer les camps : par exemple celle
+              lancée avant le débat et une nouvelle, relancée depuis "Analyse des camps" une fois
+              le post-vote terminé.
             </p>
           )}
 

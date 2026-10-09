@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pairGroups, computeMemberMovements, computeConsensusMovements, normalizeLoadedAnalysis } from './analysis'
+import { pairGroups, computeMemberMovements, computeConsensusMovements, normalizeLoadedAnalysis, normalizeVoteChanges } from './analysis'
 import type { LoadedAnalysis } from './analysis'
 
 function analysis(
@@ -139,5 +139,37 @@ describe('normalizeLoadedAnalysis — analyse issue des RPC héritées', () => {
   it('tolère un tableau de membres absent', () => {
     const a = normalizeLoadedAnalysis({ ...legacyRow, members: null })
     expect(a.members).toEqual([])
+  })
+})
+
+describe('normalizeVoteChanges (chantier 166)', () => {
+  it('lit une réponse complète de get_vote_changes_admin', () => {
+    const r = normalizeVoteChanges({
+      members_before: 4, members_changed: 1, pairs_total: 7, pairs_changed: 1,
+      new_votes: 1, new_voters: 1,
+      transitions: [{ from: 'agree', to: 'disagree', count: 1 }],
+      assertions: [{
+        assertion_id: 'x', changed: 1,
+        before_agree: 3, before_disagree: 1, before_pass: 0,
+        after_agree: 2, after_disagree: 2, after_pass: 0,
+      }],
+    })
+    expect(r.membersChanged).toBe(1)
+    expect(r.transitions).toEqual([{ from: 'agree', to: 'disagree', count: 1 }])
+    expect(r.assertions[0]).toMatchObject({ assertionId: 'x', beforeAgree: 3, afterDisagree: 2 })
+  })
+
+  it('ne plante pas sur null, un objet vide ou des champs mal typés', () => {
+    for (const bad of [null, undefined, {}, 'x', { transitions: 'oops', assertions: [null, { assertion_id: 3 }] }]) {
+      const r = normalizeVoteChanges(bad)
+      expect(r.membersBefore).toBe(0)
+      expect(r.transitions).toEqual([])
+      expect(r.assertions).toEqual([])
+    }
+  })
+
+  it('écarte une transition avec une valeur de vote inconnue', () => {
+    const r = normalizeVoteChanges({ transitions: [{ from: 'agree', to: 'maybe', count: 2 }] })
+    expect(r.transitions).toEqual([])
   })
 })

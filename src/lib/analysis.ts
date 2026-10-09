@@ -342,8 +342,10 @@ export function runOpinionAnalysis(
 /**
  * Chantier 70 — quels votes ont nourri l'analyse : 'current' = tels qu'ils
  * sont au moment du calcul (comportement historique, avant ce chantier) ;
- * 'pre_closure' = reconstitués juste avant la clôture (via assertion_vote_history),
- * pour comparer l'opinion avant/après débat une fois le postvote utilisé.
+ * 'pre_closure' = reconstitués juste avant le premier revote du post-vote
+ * (phases 'post_voting' et 'closed', via assertion_vote_history), pour comparer
+ * l'opinion avant/après débat. Une analyse 'current' lancée avant le débat est
+ * aussi un « avant » valable — l'écran de comparaison accepte n'importe quelle paire.
  */
 export type VoteScope = 'current' | 'pre_closure'
 
@@ -410,7 +412,7 @@ export interface ResultsMapData {
  *
  * Chantier 70 — `voteScope`: 'current' (défaut, comportement historique) lit
  * les votes tels qu'ils sont maintenant ; 'pre_closure' les reconstitue tels
- * qu'ils étaient juste avant que la séance passe 'closed' (via
+ * qu'ils étaient juste avant le premier revote du post-vote (via
  * assertion_vote_history côté serveur) — permet de relancer l'analyse sur
  * l'état d'avant-débat pour la comparer à l'état courant.
  */
@@ -544,6 +546,112 @@ export async function loadAnalysisById(
   if (error) throw new Error(extractErr(error))
   if (!data) return null
   return normalizeLoadedAnalysis(data)
+}
+
+// ── Qui a changé d'avis (chantier 166) ───────────────────────
+//
+// Lecture directe de l'historique des votes (assertion_vote_history), sans
+// passer par les analyses : "avant" = vote en vigueur juste avant le premier
+// revote fait en post-vote, "après" = vote courant. Voir la migration
+// 20261009_chantier166_*.sql. Ne dépend donc pas du moment où l'animateur a
+// lancé ses analyses.
+
+export type VoteValue = 'agree' | 'disagree' | 'pass'
+
+export interface VoteTransition {
+  from:  VoteValue
+  to:    VoteValue
+  count: number
+}
+
+export interface AssertionVoteChange {
+  assertionId:    string
+  changed:        number
+  beforeAgree:    number
+  beforeDisagree: number
+  beforePass:     number
+  afterAgree:     number
+  afterDisagree:  number
+  afterPass:      number
+}
+
+export interface VoteChangesSummary {
+  /** Membres ayant au moins un vote d'avant-débat. */
+  membersBefore:  number
+  /** Dont ceux qui ont changé au moins un vote. */
+  membersChanged: number
+  pairsTotal:     number
+  pairsChanged:   number
+  /** Votes posés pour la première fois en post-vote (pas d'« avant »). */
+  newVotes:       number
+  newVoters:      number
+  transitions:    VoteTransition[]
+  /** Uniquement les assertions dont au moins un vote a changé, les plus bougées d'abord. */
+  assertions:     AssertionVoteChange[]
+}
+
+const VOTE_VALUES: readonly string[] = ['agree', 'disagree', 'pass']
+
+function asCount(v: unknown): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0
+}
+
+/**
+ * Remet à la forme attendue la réponse de `get_vote_changes_admin` — un champ
+ * absent ou mal typé devient 0 / [] plutôt qu'un plantage de rendu.
+ */
+export function normalizeVoteChanges(data: unknown): VoteChangesSummary {
+  const d = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>
+  const transitions: VoteTransition[] = []
+  if (Array.isArray(d.transitions)) {
+    for (const t of d.transitions as Record<string, unknown>[]) {
+      if (t && VOTE_VALUES.includes(String(t.from)) && VOTE_VALUES.includes(String(t.to))) {
+        transitions.push({ from: t.from as VoteValue, to: t.to as VoteValue, count: asCount(t.count) })
+      }
+    }
+  }
+  const assertions: AssertionVoteChange[] = []
+  if (Array.isArray(d.assertions)) {
+    for (const a of d.assertions as Record<string, unknown>[]) {
+      if (a && typeof a.assertion_id === 'string') {
+        assertions.push({
+          assertionId:    a.assertion_id,
+          changed:        asCount(a.changed),
+          beforeAgree:    asCount(a.before_agree),
+          beforeDisagree: asCount(a.before_disagree),
+          beforePass:     asCount(a.before_pass),
+          afterAgree:     asCount(a.after_agree),
+          afterDisagree:  asCount(a.after_disagree),
+          afterPass:      asCount(a.after_pass),
+        })
+      }
+    }
+  }
+  return {
+    membersBefore:  asCount(d.members_before),
+    membersChanged: asCount(d.members_changed),
+    pairsTotal:     asCount(d.pairs_total),
+    pairsChanged:   asCount(d.pairs_changed),
+    newVotes:       asCount(d.new_votes),
+    newVoters:      asCount(d.new_voters),
+    transitions,
+    assertions,
+  }
+}
+
+export async function loadVoteChanges(
+  supabase:      SupabaseClient,
+  password:      string,
+  sessionId:     string,
+  attendingOnly: boolean = false,
+): Promise<VoteChangesSummary> {
+  const { data, error } = await supabase.rpc('get_vote_changes_admin', {
+    p_password:       password,
+    p_session_id:     sessionId,
+    p_attending_only: attendingOnly,
+  })
+  if (error) throw new Error(extractErr(error))
+  return normalizeVoteChanges(data)
 }
 
 // ── Comparaison avant / après débat (chantier 79) ────────────

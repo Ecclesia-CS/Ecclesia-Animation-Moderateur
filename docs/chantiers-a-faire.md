@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **Le 2026-10-09, le chantier 166 est fait** (comparaison avant / après débat : résumé « combien de personnes ont changé d'avis », lu dans l'historique des votes) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 166. Migration `20261009_chantier166_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 161a**. Entrée « en cours » retirée.
+
 > **Le 2026-10-09, le chantier 165 est mergé dans `dev`** (binômes / trios : notification « on t'a choisi·e », noms à venir, modérateurs liés, trio plein refusé) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 165. Migrations `20261009_chantier165_*` puis `…165b_*` appliquées sur **dev uniquement**, à appliquer sur **prod** au merge vers `main` (la 165 change la clé primaire de `member_pairings` : contrôle préalable sur prod). Entrée « en cours » retirée.
 
 > **Le 2026-10-09, le chantier 162b est fait** (captures d'écran partagées avec la table, effacées à la clôture) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 162b. Migrations `20261009_chantier162b_table_share_images.sql` et `20261009_chantier162b2_purge_authorized.sql` + Edge Function `purge-share-images` appliquées/déployées sur **dev uniquement** ; à appliquer sur **prod** au merge vers `main`, **après la 162a**, **et** déployer l'Edge Function sur le projet prod (`verify_jwt: true`). Entrée « en cours » retirée.

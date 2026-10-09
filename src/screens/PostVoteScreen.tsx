@@ -7,17 +7,19 @@
 // trois n'est obligatoire — un participant qui revient directement en
 // arrière (onBack) n'a rien à valider.
 //
-// castVote/submitAssertion n'ont aucun garde de phase côté serveur (vérifié
-// dans 20260528_voting_app.sql) : voter et proposer après la clôture
-// fonctionne déjà sans changement SQL. La modération d'une assertion
-// proposée ici suit exactement le même circuit qu'en vote/prévote —
-// SubmitAssertionModal est réutilisé tel quel, sans branche postvote.
+// La modération d'une assertion proposée ici suit exactement le même circuit
+// qu'en vote/prévote — SubmitAssertionModal est réutilisé tel quel, sans
+// branche postvote.
 //
-// ⚠️ cast_vote fait un UPSERT (ON CONFLICT DO UPDATE) sur (assertion_id,
-// member_id) : revoter ÉCRASE le vote initial, sans trace de l'ancienne
-// valeur ni d'horodatage de la modification. La comparaison avant/après
-// débat n'est donc pas mesurable en base avec le schéma actuel — signalé à
-// Jules, pas corrigé ici (décision produit).
+// Revoter ne perd pas l'ancien vote : cast_vote fait bien un UPSERT sur
+// (assertion_id, member_id) — `assertion_votes` ne garde que le vote COURANT —
+// mais copie d'abord l'ancienne valeur dans `assertion_vote_history`, avec la
+// phase et l'heure du changement (chantier 70). Le vote d'avant-débat est la
+// valeur du plus ancien écrasement fait en 'post_voting' ou 'closed' ; un vote
+// posé pour la première fois ici n'a pas d'« avant » (`first_cast_phase`).
+// Côté superadmin, `get_vote_changes_admin` (chantier 166) en tire le nombre de
+// personnes qui ont changé d'avis, et l'écran « Comparaison avant / après
+// débat » compare deux analyses par camps.
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
