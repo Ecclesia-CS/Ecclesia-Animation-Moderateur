@@ -4,7 +4,7 @@
 >
 > **Pour une session à qui on demande « lance le chantier suivant »** : prends le **premier chantier de la section « À faire, dans l'ordre »** qui n'est pas marqué bloqué, exécute-le, et **mets ce fichier à jour** avant de finir — déplace l'entrée vers `docs/chantiers.md` avec son statut. Si tu n'y touches pas, la session suivante refera le même.
 
-Dernière mise à jour : **2026-10-09** (le 162a est fait ; conception 162 arbitrée, 162a/162b ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
+Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation : modérateur laissé de côté, plan en discussion ; le 162a est fait ; conception 162 arbitrée, 162a/162b ajoutés ; le 158 est fait ; ajout des chantiers 158 à 162, liste de tâches 4 ; les 154 à 157 sont faits).
 
 ## Chantiers en cours
 
@@ -111,6 +111,9 @@ Et toujours : `DROP FUNCTION IF EXISTS <signature exacte>` avant tout changement
 > ```
 
 
+### 164 — Allocation : modérateur laissé de côté alors qu'une table reste sans animateur
+**Branche** : `dev` (phase de plan, **aucun code encore**) · **Depuis** : 2026-10-09 · **Fichiers touchés (prévus)** : `src/lib/allocation.ts`, `src/lib/allocation.test.ts`, `bench/`, docs. Détail dans « À faire, dans l'ordre » ci-dessous. (Le numéro 163 est pris par la branche non mergée `claude/onboarding-mode-switch-visibility-3bfe48`.)
+
 Le 126 (diagnostic et nettoyage du GitHub) a été livré sur `claude/chantier-126-a39daf` le 2026-09-25 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
 
 Le 125 (accordéon « J'ai déjà un code de rappel » sur les écrans d'entrée, demande directe de Jules hors file d'attente) a été mergé sur `main` le 2026-09-22 — voir `docs/chantiers.md` ; entrée retirée à la livraison.
@@ -122,6 +125,22 @@ Chantiers livrés le 2026-09-21 : le 108 (harmoniser la déclaration modérateur
 ---
 
 ## À faire, dans l'ordre
+
+### 164 — Allocation : modérateur laissé de côté alors qu'une table reste sans animateur (diagnostic du 2026-10-09, **plan en cours de discussion avec Jules, ne pas coder avant son accord**)
+
+> **Origine** : séance prod « Comment assurer la sécurité de tous en France ? » (08/10/2026, 14 actifs + 1 auditeur + 2 modérateurs). L'allocation n'a produit qu'une seule table (Jules avait coché « interdire les tables sans modérateur ») ; il a recréé une table et réparti 7+7 à la main, découpage qui respectait toutes les règles.
+>
+> **Cause (reproduite avec `runAllocation` sur les données de prod)** : à égalité sur les règles 1 à 4, `shapePreference` ([allocation.ts:600](../src/lib/allocation.ts)) choisit « peu de tables » (1×14). La boucle de cohérence `k ≤ T` ([allocation.ts:1479](../src/lib/allocation.ts)) voit alors qu'une table ne peut pas animer 2 modérateurs, **abaisse `k` et assoit le modérateur en participant** — elle ne retente jamais « k modérateurs, T ≥ k tables ». Sans l'option : `10M/5u` (une table **sans** modérateur pendant qu'un modérateur est assis en participant). Avec l'option : plus aucune forme valide après l'abaissement de `k` → **repli sur une table unique** (jusqu'à 30 personnes sur la grille de mesure). Le §4 de la spec (`docs/chantier-5-allocation-v2-spec.md`) vise « tables ≤ modérateurs, toutes animées » ; le plafond à 14 actifs (chantier 91) a rendu le cas possible.
+>
+> **Mesure du périmètre** (grille synthétique 10-30 actifs × 1-4 modérateurs, un tirage par case, à refaire sur le banc `bench/`) : le défaut franc (table sans animateur **et** modérateur assis) touche ~6 % des cases (ex. 14 actifs/2 modos, 13/3, 12/4, 28/3, 27/4). Avec l'option « interdire », le repli sur table unique géante touche en plus les cas 27/4, 28/3, 29/2, 30/2. En revanche ~la moitié des cases ont un modérateur assis **sans** table non animée (ex. 20 actifs/3 modos → `11M/10M`, 1 modo assis) : c'est conforme à la lettre du §4, **c'est une décision de politique à arbitrer par Jules, pas un bug**.
+>
+> **Plan proposé (à valider)** :
+> 1. **Phase 1, étroite** — invariant : *aucune table sans animateur tant qu'un modérateur est assis*, et *l'option « interdire » ne retombe plus sur une table unique si des tables toutes animées existent*. Mise en œuvre : au lieu d'abaisser `k` après coup, tenter `k` avec `minTables = k` (le modérateur anime) et ne retenir ce résultat que s'il n'est **pas pire sur les règles 1 à 4** (comparaison lexicographique des scores) ; sinon garder le résultat actuel. Hors de la zone défectueuse, la sortie doit rester **identique octet pour octet**.
+> 2. **Phase 2, optionnelle** — politique « utiliser tous les modérateurs » (3×7 plutôt que 2×10 + 1 assis). Aucun changement par défaut ; au mieux une case dans `AllocationPanel` (comme « interdire les tables sans modérateur », chantier 98), après un tableau comparatif sur de vraies séances.
+>
+> **Garde-fous** : pas de `Math.random()`, aucune exception levée, déterminisme (§6), tests existants (`allocation.test.ts`, `bench/strategy-sanity.test.ts`) inchangés et verts, **non-régression exigée** : sur la grille du banc et sur les séances réelles de prod, seules les cases du défaut changent. Règle de Jules : pas de merge sur `main` sans son accord, tableau comparatif d'abord. Séances d'effectif attendu régulier ≈ 20 personnes (Jules, 2026-10-09) : à surveiller en priorité dans le banc.
+>
+> **Hors périmètre de ce chantier, repérés dans la même enquête** (à ouvrir séparément si Jules les veut) : (a) binômes — seuls 2 liens enregistrés dans la séance, aucun réciproque ; saisie exacte du pseudo exigée, déclaration limitée à `voting`, chaque enregistrement efface le précédent ; (b) vue modérateur — « Assertions votées » appelle `get_vote_results(session_id)` (toutes les tables, sans contrôle d'accès) alors que « Camps » est déjà borné à la table via `get_table_opinion_summary`.
 
 ### 145 à 153 — Liste de tâches 2 (dictée par Jules le 2026-10-02), en 9 chantiers
 
