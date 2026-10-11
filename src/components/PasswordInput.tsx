@@ -41,7 +41,7 @@ export default function PasswordInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={className ?? `w-full px-3 py-3 pr-10 text-sm border border-bleu-fonce/20
+        className={className ?? `rounded-[8px] w-full px-3 py-3 pr-10 text-sm text-anthracite bg-white border border-bleu-fonce/20
           focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
           placeholder:text-anthracite/40 transition-shadow`}
       />
@@ -49,7 +49,8 @@ export default function PasswordInput({
         type="button"
         onClick={() => setShowPwd(v => !v)}
         tabIndex={-1}
-        className="rounded-[8px] absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
+        aria-label={showPwd ? 'Masquer la saisie' : 'Afficher la saisie'}
+        className="rounded-[8px] absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-bleu-fonce transition-colors"
       >
         {showPwd ? <EyeOff /> : <Eye />}
       </button>

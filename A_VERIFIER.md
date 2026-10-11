@@ -363,6 +363,13 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, champ du code Ecclesia lisible et arrondi (2026-10-11)
+
+Retour d'Antoine : dans « Reprendre la modération » (vue participant), le champ du code était rectangulaire et son texte crème sur fond blanc, donc illisible (le champ héritait la couleur du bloc parent). `PasswordInput` pose maintenant lui-même coins arrondis, fond blanc et texte foncé ; l'œil a un libellé et un contraste corrigé. **Vérifié au navigateur** sur une page d'aperçu au parent à texte crème (texte rgb 32,36,43 sur blanc, rayon 8 px).
+
+**Reste à voir à l'œil**
+- [ ] Dans « Outils », puis « Modérateur », puis « Reprendre l'animation » : le champ avec un vrai code. Même champ dans « Rejoindre une table », « Je suis modérateur » et la connexion superadmin.
+
 ## Chantier 168, superadmin vu en direct après la fusion avec dev (2026-10-11)
 
 **Vérifié au navigateur sur dev** (connecté par Antoine, lecture seule, rien créé ni modifié) : liste des séances (cartes colorées, séances closes grises) ; séance « Test charte 154 · Débat » : encadré « 0 / 2 tables ont terminé leur débat », « En débat » + « Terminer » sur chaque table, modérateurs avec « Retirer » ; onglet Analyse d'un débat simple ; séance « QA Vérifs · Complète » en débat : « Qui a changé d'avis » avec de vraies données (0 membre sur 13, 104 votes, 1 nouveau votant) ; fenêtre de création : choix « Mode du sondage » (Camps d'opinion / Consentement) cohérent avec les cartes de type, annulée sans créer.

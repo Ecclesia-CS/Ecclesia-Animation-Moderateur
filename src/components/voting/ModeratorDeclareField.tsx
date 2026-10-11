@@ -37,7 +37,7 @@ export default function ModeratorDeclareField({
             value={password}
             onChange={onPasswordChange}
             placeholder="••••••••"
-            className="w-full px-4 py-3 pr-10 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+            className="rounded-[8px] w-full px-4 py-3 pr-10 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
           />
         </div>
       )}
