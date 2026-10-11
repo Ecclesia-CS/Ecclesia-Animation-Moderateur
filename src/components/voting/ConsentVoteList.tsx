@@ -36,42 +36,42 @@ export default function ConsentVoteList({ assertions, myVotes, onVote }: Consent
   }
 
   return (
-    <div className="px-4 pb-6 space-y-3">
+    <div className="pb-6 space-y-3">
       {error && (
-        <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+        <p role="alert" className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-[8px] px-3 py-2">{error}</p>
       )}
       {assertions.map(a => {
         const current = myVotes.get(a.id)?.vote ?? null
         const busy = pendingIds.has(a.id)
         return (
-          <div key={a.id} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-            <p className="text-sm font-medium text-gray-900 leading-snug">{a.content}</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div key={a.id} className="overflow-hidden rounded-[12px] bg-white border border-bleu-fonce/10 shadow-sm animate-montee">
+            <p className="px-4 py-4 text-[15px] font-semibold text-gray-900 leading-snug">{a.content}</p>
+            <div className="grid grid-cols-2 divide-x divide-bleu-fonce/10 border-t border-bleu-fonce/10">
               <button
                 type="button"
                 disabled={busy}
                 aria-pressed={current === 'agree'}
                 onClick={() => handle(a.id, 'agree')}
-                className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all disabled:opacity-50 ${
+                className={`min-h-[52px] text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bleu-clair ${
                   current === 'agree'
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'bg-white border-green-200 text-green-700 hover:bg-green-50'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white text-emerald-800 hover:bg-emerald-50'
                 }`}
               >
-                ✅ D'accord
+                <span aria-hidden="true">✅</span> D'accord
               </button>
               <button
                 type="button"
                 disabled={busy}
                 aria-pressed={current === 'disagree'}
                 onClick={() => handle(a.id, 'disagree')}
-                className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-all disabled:opacity-50 ${
+                className={`min-h-[52px] text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bleu-clair ${
                   current === 'disagree'
-                    ? 'bg-red-500 border-red-500 text-white'
-                    : 'bg-white border-red-200 text-red-700 hover:bg-red-50'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-white text-red-800 hover:bg-red-50'
                 }`}
               >
-                ❌ Pas d'accord
+                <span aria-hidden="true">❌</span> Pas d'accord
               </button>
             </div>
           </div>

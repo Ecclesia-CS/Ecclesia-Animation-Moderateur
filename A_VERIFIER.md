@@ -363,6 +363,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, reprise du sondage par consentement (2026-10-11)
+
+**Vérifié au navigateur** sur une page d'aperçu aux données fictives : écran de résultats et liste de vote, à 375 px. Aucun sondage par consentement n'existe sur dev.
+
+**Reste à voir à l'œil**
+- [ ] Créer un sondage « Consentement » (superadmin) et le parcourir en vrai : introduction, vote d'une option (changer de réponse), « Proposer une option », résultats en direct, page publique après clôture.
+- [ ] Vocabulaire « option » partout (fenêtre de proposition, progression « options avec ton avis »).
+
 ## Chantier 168, reprise de la modale « Assertions votées » (2026-10-11)
 
 **Vérifié au navigateur** sur une page d'aperçu aux données fictives : onglet « Toute la séance » (liste, barres, pastilles, compteurs).

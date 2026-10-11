@@ -24,18 +24,18 @@ function sortByAgreement<T extends ConsentCount>(results: T[]): T[] {
 export default function ConsentResultsList({ results, loading = false }: ConsentResultsListProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Résultats du vote</h2>
-        <p className="text-sm text-gray-400">Chargement…</p>
+      <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 shadow-sm">
+        <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Résultats du vote</h2>
+        <p className="text-sm text-gray-600" role="status">Chargement…</p>
       </div>
     )
   }
 
   if (results.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Résultats du vote</h2>
-        <p className="text-sm text-gray-400">Aucune option pour l'instant.</p>
+      <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 shadow-sm">
+        <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-2">Résultats du vote</h2>
+        <p className="text-sm text-gray-600">Aucune option pour l'instant.</p>
       </div>
     )
   }
@@ -44,28 +44,28 @@ export default function ConsentResultsList({ results, loading = false }: Consent
   const totalVotes = results.reduce((sum, r) => sum + r.agree_count + r.disagree_count, 0)
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+    <div className="rounded-[12px] bg-white border border-bleu-fonce/10 p-5 space-y-4 shadow-sm animate-montee">
       <div>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Résultats du vote</h2>
-        <p className="text-xs text-gray-400 mt-1">Classées par nombre d'accords.</p>
+        <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">Résultats du vote</h2>
+        <p className="text-xs text-gray-600 mt-1">Classées par nombre d'accords.</p>
       </div>
-      <div className="space-y-4">
+      <div className="divide-y divide-bleu-fonce/10">
         {sorted.map((r, i) => {
           const total = r.agree_count + r.disagree_count
           const agreePct = total > 0 ? (r.agree_count / total) * 100 : 0
           const disagreePct = total > 0 ? (r.disagree_count / total) * 100 : 0
           return (
-            <div key={i} className="space-y-2">
+            <div key={i} className="space-y-2 py-4 first:pt-0 last:pb-0">
               <p className="text-sm text-gray-800 leading-snug">{r.content}</p>
-              <div className="flex rounded-full h-1.5 overflow-hidden bg-gray-100">
+              <div className="flex h-2 overflow-hidden bg-gray-100">
                 {agreePct > 0 && <div className="bg-green-400 h-full" style={{ width: `${agreePct}%` }} />}
                 {disagreePct > 0 && <div className="bg-red-400 h-full" style={{ width: `${disagreePct}%` }} />}
               </div>
-              <div className="flex gap-4 text-xs">
-                <span className="text-green-600 font-medium">
+              <div className="flex gap-4 text-xs font-semibold tabular-nums">
+                <span className="text-green-700">
                   {r.agree_count} d'accord
                 </span>
-                <span className="text-red-500 font-medium">
+                <span className="text-red-700">
                   {r.disagree_count} pas d'accord
                 </span>
               </div>
@@ -73,7 +73,7 @@ export default function ConsentResultsList({ results, loading = false }: Consent
           )
         })}
       </div>
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-gray-600 text-center">
         {results.length} option{results.length > 1 ? 's' : ''} · {totalVotes} vote{totalVotes > 1 ? 's' : ''} au total
       </p>
     </div>

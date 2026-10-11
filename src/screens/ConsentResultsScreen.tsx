@@ -9,14 +9,13 @@
 import { useEffect, useState } from 'react'
 import { getVoteResults } from '../lib/voting'
 import { extractErr } from '../lib/utils'
-import { sessionTypeOf } from '../lib/phaseLabels'
 import type { Session, VoteResult } from '../lib/types'
-import PhaseIndicator from '../components/PhaseIndicator'
+import PageParcours, { BOUTON_VERRE_PARCOURS, ChargementParcours, ErreurParcours } from '../components/PageParcours'
 import ConsentResultsList from '../components/voting/ConsentResultsList'
 
 interface ConsentResultsScreenProps {
   session: Session
-  /** Présent quand l'écran est ouvert depuis le vote : « ← Retour au vote ». */
+  /** Présent quand l'écran est ouvert depuis le vote : « Retour au vote ». */
   onBack?: () => void
 }
 
@@ -35,28 +34,19 @@ export default function ConsentResultsScreen({ session, onBack }: ConsentResults
   }, [session.id])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
-        <div>
-          <div className="mb-2"><PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} /></div>
-          <h1 className="text-xl font-bold text-gray-900">Résultats du sondage</h1>
-          <p className="text-sm text-gray-500 mt-1">{session.title}</p>
-          <button
-            onClick={() => { if (onBack) onBack(); else window.location.hash = '' }}
-            className="mt-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
-          >
-            {onBack ? '← Retour au vote' : '← Retour au menu'}
-          </button>
-        </div>
+    <PageParcours
+      session={session}
+      sousTitre="Résultats du sondage"
+      sansMenu={!!onBack}
+      actions={onBack && <button onClick={onBack} className={BOUTON_VERRE_PARCOURS}>Retour au vote</button>}
+    >
+      <div className="space-y-5">
+        {error && <ErreurParcours>{error}</ErreurParcours>}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {!error && loading && <ChargementParcours texte="Chargement des résultats…" />}
 
-        {!error && <ConsentResultsList results={results} loading={loading} />}
+        {!error && !loading && <ConsentResultsList results={results} loading={false} />}
       </div>
-    </div>
+    </PageParcours>
   )
 }
