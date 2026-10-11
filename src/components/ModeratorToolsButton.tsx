@@ -157,8 +157,10 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
           className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
           onMouseDown={e => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
-          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl flex max-h-[92dvh] flex-col overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
             <EnTeteFenetre titre="Outils Modo" onClose={() => setPanelOpen(false)} />
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
 
             {/* ── Camps & assertions — vue d'ensemble de l'idéologie de la table, en premier ── */}
             {table.session_id && !orgName && (
@@ -309,6 +311,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
             )}
 
             <div className="pb-2" />
+            </div>
           </div>
         </div>
       )}

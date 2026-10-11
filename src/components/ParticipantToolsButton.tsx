@@ -128,7 +128,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
           className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setPanelOpen(false) }}
         >
-          <div className="bg-white w-full sm:max-w-xs shadow-2xl overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+          <div className="bg-white w-full sm:max-w-xs shadow-2xl flex max-h-[92dvh] flex-col overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
 
             {/* Header : bandeau marine quadrillé, comme les autres fenêtres de la page (chantier 168) */}
             <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-5 py-4">
@@ -145,6 +145,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
                 </svg>
               </button>
             </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
 
             {/* Documentation */}
             <>
@@ -370,6 +372,7 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
             )}
 
             <div className="pb-2" />
+            </div>
           </div>
         </div>
       )}

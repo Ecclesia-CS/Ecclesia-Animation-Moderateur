@@ -384,10 +384,12 @@ export default function ParticipantView() {
             </div>
 
             {/* ── Deux colonnes : chaque bouton de parole au-dessus de sa file ── */}
-            {/* Une seule grille à deux rangées : les deux boutons sont dans la même rangée,
+            {/* Une seule grille à trois rangées : les deux boutons sont dans la même rangée,
                 donc toujours de la même hauteur (celle du plus haut), au repos comme une
-                fois dans la file ; les deux files partagent la rangée du dessous. */}
-            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-2.5 lg:gap-x-4">
+                fois dans la file. Chaque file occupe les deux rangées du dessous en
+                sous-grille : les deux titres partagent la rangée du milieu, donc les deux
+                listes commencent au même endroit même si un titre est plus long. */}
+            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-[auto_auto_minmax(0,1fr)] gap-x-2.5 gap-y-2.5 lg:gap-x-4">
 
               <QueueToggle
                 label="Prendre la parole sur un autre sujet"
@@ -449,7 +451,7 @@ export default function ParticipantView() {
                 participants={participants}
                 accent="indigo"
                 selfId={myParticipant.id}
-                className="min-h-0 animate-montee [animation-delay:90ms]"
+                className="row-span-2 grid min-h-0 grid-rows-subgrid gap-y-0 animate-montee [animation-delay:90ms]"
               />
 
               <ReadOnlyQueuePanel
@@ -459,7 +461,7 @@ export default function ParticipantView() {
                 participants={participants}
                 accent="teal"
                 selfId={myParticipant.id}
-                className="min-h-0 animate-montee [animation-delay:150ms]"
+                className="row-span-2 grid min-h-0 grid-rows-subgrid gap-y-0 animate-montee [animation-delay:150ms]"
               />
             </div>
 

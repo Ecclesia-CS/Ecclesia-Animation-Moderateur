@@ -363,6 +363,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, feuille Outils coupée sur téléphone + files alignées (2026-10-11)
+
+Retours d'Antoine : (1) sur téléphone, « Outils Modo » : le bandeau bleu était coupé (la feuille qui monte du bas était plus haute que l'écran et dépassait en haut) ; (2) en vue participant, les deux files ne commençaient pas au même endroit (le titre de la file bleue est plus long). Corrections : (1) les feuilles Outils Modo et Outils (participant) sont bornées à 92 % de la hauteur de l'écran, bandeau fixe, liste qui défile ; (2) les deux files sont en sous-grille (`grid-rows-subgrid`) : leurs titres partagent la même rangée, donc les listes commencent au même niveau. **Vérifié au navigateur** sur la page d'aperçu au contexte simulé : à 360×600 le panneau commence à 48 px du haut, titre visible, liste défilante (651 > 495) ; files : titres de 77 px des deux côtés et premières lignes au même niveau (375×667), 98 px et même niveau (1280×720), page sans défilement.
+
+**Reste à voir à l'œil**
+- [ ] Sur un vrai téléphone : « Outils Modo » et « Outils » s'ouvrent avec le bandeau visible, la liste défile, la croix ferme.
+- [ ] Autres fenêtres du même type sans plafond de hauteur (à proposer à Antoine) : règles du débat, Documentation, « Ajouter une personne sans téléphone », fenêtres d'accueil et d'introduction, reprise de la modération, changement de nom.
+
 ## Chantier 168, deux boutons de parole de même taille (2026-10-11)
 
 Retour d'Antoine : le bouton bleu était plus grand que le vert, et l'inverse une fois cliqué (le bleu porte en plus la ligne « Sujet », qui disparaît dans la file). Les deux boutons sont maintenant dans une même rangée de grille : même hauteur toujours, celle du plus haut, au repos comme dans la file. **Vérifié au navigateur** sur la page d'aperçu au contexte simulé : 167×155 / 167×155 au repos, 167×170 / 167×170 dans la file « autre sujet » avec un sujet indiqué, 167×156 / 167×156 dans la file « sujet actuel » (375 px) ; 324×170 / 324×170 et 324×125 / 324×125 à 1280 px.
