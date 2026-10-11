@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { getSessionById } from '../lib/sessions'
@@ -36,6 +36,19 @@ export default function ParticipantView() {
     setNextTopicVote,
     effectivePhase,
   } = useTable()
+
+  // Chantier 168 : hauteur de l'en-tête, pour caler la zone des boutons et des files sur l'écran.
+  const enteteRef = useRef<HTMLElement>(null)
+  const [hauteurEntete, setHauteurEntete] = useState(0)
+  useLayoutEffect(() => {
+    const el = enteteRef.current
+    if (!el) return
+    const mesure = () => setHauteurEntete(el.offsetHeight)
+    mesure()
+    const obs = new ResizeObserver(mesure)
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
   const [showWelcome,        setShowWelcome]        = useState(() => !localStorage.getItem('debate_welcome_' + table.id))
@@ -197,22 +210,22 @@ export default function ParticipantView() {
   // à défaut de la lecture propre à cet écran, pour ne pas voir le code de
   // table s'afficher en grand puis céder la place au titre.
   const titre = session?.title ?? sessionTitle
-  const boutonVerre = `btn-verre rounded-[8px] inline-flex h-10 items-center px-4 text-xs font-semibold text-creme
+  const boutonVerre = `btn-verre rounded-[8px] inline-flex h-9 items-center px-3 text-xs font-semibold text-creme sm:px-4
     focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
   // Libellés des deux colonnes de l'en-tête (surtitre du site, sur marine).
   const libelleEnTete = 'text-[10.5px] font-bold uppercase tracking-[0.2em] text-bleu-clair/80'
 
   return (
-    <div className="min-h-screen bg-creme flex flex-col">
+    <div className="min-h-[100dvh] bg-creme flex flex-col">
 
       {/* ── En-tête : bandeau marine quadrillé du site, bord inférieur en vague ── */}
       {/* Ni z-index ni isolation ici (voir FondQuadrille) : Outils et l'indicateur
           d'étape y ouvrent des fenêtres fixed qui doivent couvrir toute la page.
-          Composition : barre du haut, surtitre d'étape, titre, puis un filet et
-          deux colonnes « Vous » / « Table ». La trame reste discrète derrière les
-          textes et ne se montre franchement que dans la bande du bas, où ses
-          cases s'allument, avant la vague. */}
-      <header className="relative overflow-hidden bg-bleu-fonce text-creme">
+          Chantier 168 : en-tête resserré (demande d'Antoine) pour que les deux
+          boutons de parole et leurs deux files tiennent sur un écran sans défiler :
+          barre du haut, puce d'étape, titre, puis une seule ligne « Vous / Table ».
+          Rien n'est retiré : seuls les espaces et la taille du titre changent. */}
+      <header ref={enteteRef} className="relative overflow-hidden bg-bleu-fonce text-creme">
         <FondQuadrille
           cases={7}
           bande={36}
@@ -228,7 +241,7 @@ export default function ParticipantView() {
           <path d="M0 0 Q400 80 800 0 V40 H0 Z" className="fill-creme" />
         </svg>
 
-        <div className="relative mx-auto w-full max-w-5xl px-4 pb-8 pt-3 sm:px-6 sm:pt-4 md:pb-12">
+        <div className="relative mx-auto w-full max-w-5xl px-4 pb-6 pt-2.5 sm:px-6 sm:pt-3">
           <div className="flex items-center gap-2">
             {/* Emblème d'Ecclesia, sauf dans une séance d'association (chantier 135). */}
             {!session?.organization_id && (
@@ -237,8 +250,13 @@ export default function ParticipantView() {
                 alt=""
                 aria-hidden="true"
                 // -ml-1 : le disque de l'emblème (marge transparente de 4 px) s'aligne sur les textes
-                className="-ml-1 h-10 w-10 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)]"
+                className="-ml-1 h-9 w-9 drop-shadow-[0_8px_22px_rgba(155,187,226,0.35)]"
               />
+            )}
+            {session && (
+              <div className="hidden min-w-0 sm:block">
+                <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
+              </div>
             )}
             <div className="ml-auto flex items-center gap-2">
               <ParticipantToolsButton
@@ -252,40 +270,39 @@ export default function ParticipantView() {
             </div>
           </div>
 
-          <div className="mt-5 animate-montee md:mt-7 md:grid md:grid-cols-[minmax(0,1fr)_16.5rem] md:items-end md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="min-w-0">
-              {session && (
+          <div className="mt-2.5 animate-montee">
+            {/* Téléphone : la puce passe sous la barre du haut, faute de place à côté des boutons. */}
+            {session && (
+              <div className="mb-2 sm:hidden">
                 <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
-              )}
-              <h1 className={`break-words text-creme ${session ? 'mt-3' : ''} ${
-                // Archivo, comme tout l'en-tête (demande d'Antoine : pas de serif ici).
-                titre
-                  ? 'font-sans text-[1.625rem] font-bold leading-[1.15] tracking-[-0.02em] sm:text-4xl md:text-[2.5rem]'
-                  : 'font-sans text-2xl font-bold tracking-[0.16em] sm:text-3xl'
-              }`}>
-                {titre ? titreSeance(titre) : table.join_code}
-              </h1>
-            </div>
-
-            {/* Sur téléphone, sous un filet ; sur md+, dans la colonne de « Présents ». */}
-            <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-8 border-t border-white/10 pt-3 md:mt-0">
-              <div className="min-w-0">
-                <dt className={libelleEnTete}>Vous</dt>
-                <dd className="mt-1.5 truncate text-[15px] font-semibold leading-tight text-creme">{myParticipant.pseudo}</dd>
               </div>
+            )}
+            <h1 className={`break-words text-creme ${
+              // Archivo, comme tout l'en-tête (demande d'Antoine : pas de serif ici).
+              titre
+                ? 'font-sans text-xl font-bold leading-[1.15] tracking-[-0.02em] sm:text-2xl md:text-3xl'
+                : 'font-sans text-xl font-bold tracking-[0.16em] sm:text-2xl'
+            }`}>
+              {titre ? titreSeance(titre) : table.join_code}
+            </h1>
+            <p className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-0.5 text-[13px] text-creme/75">
+              <span className="min-w-0">
+                <span className={libelleEnTete}>Vous</span>{' '}
+                <span className="font-semibold text-creme">{myParticipant.pseudo}</span>
+              </span>
               {titre && (
-                <div>
-                  <dt className={libelleEnTete}>Table</dt>
-                  <dd className="mt-1.5 text-[15px] font-semibold leading-tight tracking-[0.08em] text-creme">{table.join_code}</dd>
-                </div>
+                <span>
+                  <span className={libelleEnTete}>Table</span>{' '}
+                  <span className="font-semibold tracking-[0.08em] text-creme">{table.join_code}</span>
+                </span>
               )}
-            </dl>
+            </p>
           </div>
 
           {table.leaderless && (
             <button
               onClick={() => setShowAskAdminModal(true)}
-              className="mt-5 inline-flex h-10 items-center gap-2 rounded-[8px] border border-amber-300/50 bg-amber-300/10 px-4
+              className="mt-3 inline-flex h-9 items-center gap-2 rounded-[8px] border border-amber-300/50 bg-amber-300/10 px-3
                 text-sm font-semibold text-amber-100 transition-colors hover:border-amber-300/80 hover:bg-amber-300/20
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
             >
@@ -296,19 +313,24 @@ export default function ParticipantView() {
       </header>
 
       {/* ── Corps : actions, files, présents (colonne de droite sur md+) ── */}
+      {/* La zone de gauche a la hauteur de l'écran moins l'en-tête : les deux boutons
+          et les deux files y sont toujours visibles ; une file longue défile dans sa
+          propre carte, pas dans la page. Sous le seuil de 26 rem (téléphone couché),
+          la page défile normalement. Présents vient dessous sur téléphone. */}
       <div className="flex-1 bg-gradient-to-b from-creme to-sable">
-        <div className="mx-auto grid w-full max-w-5xl items-start gap-6 px-4 pb-12 pt-4 sm:px-6 sm:pt-6
-          md:grid-cols-[minmax(0,1fr)_16.5rem] md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div
+          style={{ '--zone': `max(26rem, calc(100dvh - ${hauteurEntete}px - 2.5rem))` } as CSSProperties}
+          className="mx-auto grid w-full max-w-5xl items-start gap-4 px-4 pb-6 pt-4 sm:px-6
+            md:grid-cols-[minmax(0,1fr)_16.5rem] md:gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]"
+        >
 
-          {/* Téléphone : les deux boutons ensemble, le « sujet suivant » détaché, puis les files.
-              lg+ : deux colonnes, chaque bouton au-dessus de sa file, « sujet suivant » en bas. */}
-          <div className="grid min-w-0 grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
+          <div className="flex h-[var(--zone)] min-w-0 flex-col gap-2.5">
 
             {/* ── « Vous avez la parole ! » ─────────────────────────── */}
             {iAmSpeaking && (
-              <div className="relative flex items-stretch overflow-hidden rounded-[12px] bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee lg:col-span-2">
+              <div className="relative flex shrink-0 items-stretch overflow-hidden rounded-[12px] bg-amber-600 text-creme shadow-[0_26px_54px_-22px_rgba(154,99,18,0.95)] animate-montee">
                 <FondQuadrille cases={3} grain={false} traits={0.12} />
-                <span aria-hidden="true" className="relative flex w-14 shrink-0 items-center justify-center bg-amber-700/70">
+                <span aria-hidden="true" className="relative flex w-10 shrink-0 items-center justify-center bg-amber-700/70 sm:w-14">
                   <span className="flex h-6 items-end gap-[3px]">
                     {[14, 22, 17, 24].map((h, i) => (
                       <span
@@ -319,12 +341,12 @@ export default function ParticipantView() {
                     ))}
                   </span>
                 </span>
-                <div className="relative flex flex-1 flex-col items-start gap-3 px-4 py-5">
-                  <p className="font-sans text-[1.7rem] font-bold tracking-[-0.01em] leading-tight text-creme">Vous avez la parole !</p>
+                <div className="relative flex flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <p className="font-sans text-xl font-bold tracking-[-0.01em] leading-tight text-creme">Vous avez la parole !</p>
                   {table.leaderless && (
                     <button
                       onClick={() => endTurnAndAdvance().catch(() => {})}
-                      className="inline-flex h-10 items-center rounded-[8px] bg-creme px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-white
+                      className="inline-flex h-9 items-center rounded-[8px] bg-creme px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-white
                         focus:outline-none focus-visible:ring-2 focus-visible:ring-creme focus-visible:ring-offset-2 focus-visible:ring-offset-amber-600"
                     >
                       J'ai fini de parler
@@ -338,13 +360,13 @@ export default function ParticipantView() {
             {table.active_vote_id && !voteModalOpen && (
               <button
                 onClick={() => setVoteModalOpen(true)}
-                className="relative flex w-full items-stretch overflow-hidden rounded-[12px] bg-bleu-fonce text-left text-creme
-                  shadow-[0_20px_44px_-24px_rgba(21,35,63,0.9)] transition-shadow hover:shadow-[0_26px_52px_-22px_rgba(21,35,63,0.95)] animate-montee lg:col-span-2
+                className="relative flex w-full shrink-0 items-stretch overflow-hidden rounded-[12px] bg-bleu-fonce text-left text-creme
+                  shadow-[0_20px_44px_-24px_rgba(21,35,63,0.9)] transition-shadow hover:shadow-[0_26px_52px_-22px_rgba(21,35,63,0.95)] animate-montee
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme"
               >
                 <FondQuadrille cases={2} />
-                <span aria-hidden="true" className="relative flex w-14 shrink-0 items-center justify-center bg-bleu-clair/15 text-xl">🗳️</span>
-                <span className="relative flex flex-1 items-center gap-3 px-4 py-3.5">
+                <span aria-hidden="true" className="relative flex w-10 shrink-0 items-center justify-center bg-bleu-clair/15 text-lg sm:w-14 sm:text-xl">🗳️</span>
+                <span className="relative flex flex-1 items-center gap-3 px-4 py-2.5">
                   <span className="flex-1 text-sm font-semibold">Voir le vote en cours</span>
                   <span aria-hidden="true" className="relative flex h-2 w-2 shrink-0">
                     <span className="absolute inset-0 rounded-full bg-bleu-clair animate-pouls" />
@@ -356,73 +378,97 @@ export default function ParticipantView() {
 
             {/* Chantier 162a — source montrée par un participant (acceptée par le
                 modérateur), fil des sources déjà montrées, et l'état de mes demandes */}
-            <div className="space-y-3 lg:col-span-2 empty:hidden">
+            <div className="shrink-0 space-y-2.5 empty:hidden">
               <TableShareCard />
               <MyShareRequests />
             </div>
 
-            {/* ── Boutons de file ──────────────────────────────────── */}
-            <QueueToggle
-              label="Prendre la parole sur un autre sujet"
-              sub="Introduire un nouveau point ou des informations complémentaires"
-              color="indigo"
-              icone={<IconeAutreSujet className="h-6 w-6" />}
-              active={pendingLong || !!myLong}
-              position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
-              total={queueLong.length}
-              pending={pendingLong}
-              disabled={iAmSpeaking}
-              onClick={() => toggle('long', myLong)}
-              className="animate-montee [animation-delay:60ms] lg:order-1"
-            >
-              {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
-              {!myLong && !pendingLong ? (
-                <label className="flex items-stretch border-t border-bleu-fonce/10 transition-colors
-                  focus-within:bg-indigo-50/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-bleu-clair/60">
-                  <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-fonce/45">
-                    <IconeSujet className="h-4 w-4" />
-                  </span>
-                  <input
-                    type="text"
-                    value={topicTag}
-                    onChange={e => setTopicTag(e.target.value.slice(0, 60))}
-                    placeholder="Sujet ou thème (optionnel)"
-                    className="min-w-0 flex-1 bg-transparent py-3 pr-4 text-sm text-anthracite placeholder:text-anthracite/45 focus:outline-none"
-                  />
-                </label>
-              ) : myLong?.topic_tag ? (
-                <p className="flex items-stretch border-t border-white/10">
-                  <span aria-hidden="true" className="flex w-14 shrink-0 items-center justify-center text-bleu-clair">
-                    <IconeSujet className="h-4 w-4" />
-                  </span>
-                  <span className="py-2.5 pr-4 text-xs text-white/75">
-                    Sujet indiqué : <span className="font-semibold text-white">{myLong.topic_tag}</span>
-                  </span>
-                </p>
-              ) : null}
-            </QueueToggle>
+            {/* ── Deux colonnes : chaque bouton de parole au-dessus de sa file ── */}
+            <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5 lg:gap-4">
 
-            <QueueToggle
-              label="Demander la parole sur le sujet actuel"
-              sub="Pour répondre à ce qui est dit actuellement uniquement"
-              color="teal"
-              icone={<IconeSujetActuel className="h-6 w-6" />}
-              active={pendingInteractive || !!myInteractive}
-              position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
-              total={queueInteractive.length}
-              pending={pendingInteractive}
-              disabled={iAmSpeaking}
-              onClick={() => toggle('interactive', myInteractive)}
-              className="animate-montee [animation-delay:120ms] lg:order-2"
-            />
+              <div className="flex min-h-0 min-w-0 flex-col gap-2.5 animate-montee [animation-delay:60ms]">
+                <QueueToggle
+                  label="Prendre la parole sur un autre sujet"
+                  sub="Introduire un nouveau point ou des informations complémentaires"
+                  color="indigo"
+                  icone={<IconeAutreSujet className="h-5 w-5 lg:h-6 lg:w-6" />}
+                  active={pendingLong || !!myLong}
+                  position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
+                  total={queueLong.length}
+                  pending={pendingLong}
+                  disabled={iAmSpeaking}
+                  onClick={() => toggle('long', myLong)}
+                  className="shrink-0"
+                >
+                  {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
+                  {!myLong && !pendingLong ? (
+                    <label className="flex items-stretch border-t border-bleu-fonce/10 transition-colors
+                      focus-within:bg-indigo-50/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-bleu-clair/60">
+                      <span aria-hidden="true" className="flex w-9 shrink-0 items-center justify-center text-bleu-fonce/45 lg:w-14">
+                        <IconeSujet className="h-4 w-4" />
+                      </span>
+                      <input
+                        type="text"
+                        value={topicTag}
+                        onChange={e => setTopicTag(e.target.value.slice(0, 60))}
+                        placeholder="Sujet (optionnel)"
+                        className="min-w-0 flex-1 bg-transparent py-2.5 pr-2.5 text-xs text-anthracite placeholder:text-anthracite/45 focus:outline-none lg:py-3 lg:pr-4 lg:text-sm"
+                      />
+                    </label>
+                  ) : myLong?.topic_tag ? (
+                    <p className="flex items-stretch border-t border-white/10">
+                      <span aria-hidden="true" className="flex w-9 shrink-0 items-center justify-center text-bleu-clair lg:w-14">
+                        <IconeSujet className="h-4 w-4" />
+                      </span>
+                      <span className="py-2 pr-2.5 text-xs text-white/75 lg:py-2.5 lg:pr-4">
+                        Sujet indiqué : <span className="font-semibold text-white">{myLong.topic_tag}</span>
+                      </span>
+                    </p>
+                  ) : null}
+                </QueueToggle>
+
+                <ReadOnlyQueuePanel
+                  title="File d'attente : prendre la parole sur un autre sujet"
+                  entries={queueLong}
+                  participants={participants}
+                  accent="indigo"
+                  selfId={myParticipant.id}
+                  className="min-h-0 flex-1"
+                />
+              </div>
+
+              <div className="flex min-h-0 min-w-0 flex-col gap-2.5 animate-montee [animation-delay:120ms]">
+                <QueueToggle
+                  label="Demander la parole sur le sujet actuel"
+                  sub="Pour répondre à ce qui est dit actuellement uniquement"
+                  color="teal"
+                  icone={<IconeSujetActuel className="h-5 w-5 lg:h-6 lg:w-6" />}
+                  active={pendingInteractive || !!myInteractive}
+                  position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
+                  total={queueInteractive.length}
+                  pending={pendingInteractive}
+                  disabled={iAmSpeaking}
+                  onClick={() => toggle('interactive', myInteractive)}
+                  className="shrink-0"
+                />
+
+                <ReadOnlyQueuePanel
+                  title="Demander la parole sur le sujet actuel"
+                  subtitle="Pour répondre à ce qui est dit actuellement uniquement"
+                  entries={queueInteractive}
+                  participants={participants}
+                  accent="teal"
+                  selfId={myParticipant.id}
+                  className="min-h-0 flex-1"
+                />
+              </div>
+            </div>
 
             {/* Chantier 131 — "sujet suivant", détaché des deux boutons de parole */}
-            <div className="mt-3 animate-montee [animation-delay:180ms] lg:order-5 lg:col-span-2">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-800">Sujet suivant</p>
             <button
               onClick={handleToggleNextTopic}
               disabled={pendingNextTopic}
-              className={`group flex w-full items-stretch overflow-hidden rounded-[12px] border text-left transition-colors duration-300
+              className={`group flex w-full shrink-0 items-stretch overflow-hidden rounded-[12px] border text-left transition-colors duration-300 animate-montee [animation-delay:180ms]
                 disabled:cursor-not-allowed disabled:opacity-60
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400 ${
                 myParticipant.wants_next_topic
@@ -430,7 +476,7 @@ export default function ParticipantView() {
                   : 'border-emerald-600/25 bg-white text-emerald-800 hover:border-emerald-600/50 hover:bg-emerald-50/70'
               }`}
             >
-              <span aria-hidden="true" className={`flex w-14 shrink-0 items-center justify-center text-lg transition-colors duration-300 ${
+              <span aria-hidden="true" className={`flex w-10 shrink-0 items-center justify-center text-lg transition-colors duration-300 sm:w-14 ${
                 myParticipant.wants_next_topic ? 'bg-white/15' : 'bg-emerald-50'
               }`}>
                 {pendingNextTopic ? (
@@ -439,50 +485,28 @@ export default function ParticipantView() {
                   <span className="transition-transform duration-300 group-hover:scale-110">👍</span>
                 )}
               </span>
-              <span className="flex flex-1 items-center px-4 py-3.5 text-sm font-semibold leading-snug">
+              <span className="flex flex-1 items-center px-3 py-2.5 text-[13px] font-semibold leading-snug sm:px-4 sm:text-sm">
                 {myParticipant.wants_next_topic
                   ? 'Vous souhaitez passer au sujet suivant (appuyer pour annuler)'
                   : 'Je souhaite passer au sujet suivant'}
               </span>
             </button>
-            </div>
 
             {err && (
-              <p className="rounded-[8px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 lg:order-6 lg:col-span-2">
+              <p className="shrink-0 rounded-[8px] border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
                 {err}
               </p>
             )}
-
-            {/* ── Files en lecture seule ────────────────────────────── */}
-            <div className="mt-5 animate-montee [animation-delay:240ms] lg:order-3 lg:mt-0">
-              <ReadOnlyQueuePanel
-                title="File d'attente : prendre la parole sur un autre sujet"
-                entries={queueLong}
-                participants={participants}
-                accent="indigo"
-                selfId={myParticipant.id}
-              />
-            </div>
-            <div className="animate-montee [animation-delay:280ms] lg:order-4">
-              <ReadOnlyQueuePanel
-                title="Demander la parole sur le sujet actuel"
-                subtitle="Pour répondre à ce qui est dit actuellement uniquement"
-                entries={queueInteractive}
-                participants={participants}
-                accent="teal"
-                selfId={myParticipant.id}
-              />
-            </div>
           </div>{/* end colonne principale */}
 
-          {/* Présents : sous les files sur téléphone, en colonne de droite sur md+ */}
+          {/* Présents : sous la zone sur téléphone, en colonne de droite (même hauteur, défilante) sur md+ */}
           <ParticipantsSidebar
             participants={participants}
             currentSpeakerId={table.current_speaker_id}
             queueLong={queueLong}
             queueInteractive={queueInteractive}
             variant="light"
-            className="animate-montee [animation-delay:300ms]"
+            className="animate-montee [animation-delay:300ms] md:h-[var(--zone)] md:overflow-y-auto"
           />
         </div>
       </div>
@@ -715,22 +739,22 @@ function QueueToggle({
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`group relative flex min-h-[88px] w-full items-stretch text-left transition-colors duration-200
+        className={`group relative flex min-h-[64px] w-full items-stretch text-left transition-colors duration-200 lg:min-h-[88px]
           focus:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.anneau}
           disabled:cursor-not-allowed disabled:opacity-50 ${active ? '' : t.survol}`}
       >
         {active && <FondQuadrille cases={0} grain={false} traits={0.07} />}
-        <span aria-hidden="true" className={`relative flex w-14 shrink-0 items-center justify-center transition-colors duration-300 ${
+        <span aria-hidden="true" className={`relative flex w-9 shrink-0 items-center justify-center transition-colors duration-300 lg:w-14 ${
           active ? t.blocActif : t.blocRepos
         }`}>
           <span className="transition-transform duration-300 group-hover:scale-110 group-active:scale-95">{icone}</span>
         </span>
-        <span className="relative flex min-w-0 flex-1 items-center gap-3 px-4 py-4">
+        <span className="relative flex min-w-0 flex-1 flex-col items-start gap-1.5 px-2.5 py-2.5 lg:flex-row lg:items-center lg:gap-3 lg:px-4 lg:py-4">
           <span className="min-w-0 flex-1">
-            <span className={`block text-[17px] font-semibold leading-snug ${active ? 'text-white' : t.titre}`}>
+            <span className={`block text-[13px] font-semibold leading-tight lg:text-[17px] lg:leading-snug ${active ? 'text-white' : t.titre}`}>
               {label}
             </span>
-            <span className={`mt-1 block text-sm leading-snug ${active ? 'text-white/80' : 'text-gray-500'}`}>
+            <span className={`mt-1 block text-[11px] leading-snug lg:text-sm ${active ? 'text-white/80' : 'text-gray-600'}`}>
               {active
                 ? 'Appuyer pour se retirer de la file'
                 : sub}
@@ -743,7 +767,7 @@ function QueueToggle({
           {/* Position — seulement quand confirmée par le serveur */}
           {active && position !== null && !pending && (
             <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-white animate-pop">
-              <span className="text-3xl font-bold leading-none">{position}</span>
+              <span className="text-2xl font-bold leading-none lg:text-3xl">{position}</span>
               <span className="text-sm font-semibold text-white/70"> / {total}</span>
             </span>
           )}

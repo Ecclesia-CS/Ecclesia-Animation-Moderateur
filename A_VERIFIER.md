@@ -363,6 +363,16 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, vue participant en débat sur un seul écran + retours de Jules (2026-10-11)
+
+**Vérifié au navigateur** sur une page d'aperçu au contexte de table simulé : à 375×667, 820×1000 et 1280×720, les deux boutons de parole, leurs deux files et « Sujet suivant » tiennent sans défiler (file longue : défilement dans sa carte ; « Vous avez la parole » compact). Écran de vote à 360×740 : tout tient. Puce d'étape en puce de verre avec chevron.
+
+**Reste à voir à l'œil**
+- [ ] Sur un vrai téléphone, en débat : tient-il vraiment sur un écran (barre d'adresse du navigateur comprise) ? Avec la barre du clavier ouverte pour saisir un sujet ?
+- [ ] Avec une source montrée à la table (carte plus haute) : les files restent-elles lisibles ?
+- [ ] Retour de Jules sur l'écran de vote : le « petit vide vers le bas » a-t-il disparu ? (interprétation : marges du bas de page et carte plus haute que nécessaire, resserrées ; à confirmer avec lui).
+- [ ] Écran de chargement qui reste longtemps : l'indice et « Recharger la page » apparaissent-ils au bout de 8 s sur son réseau ?
+
 ## Chantier 168, champ du code Ecclesia lisible et arrondi (2026-10-11)
 
 Retour d'Antoine : dans « Reprendre la modération » (vue participant), le champ du code était rectangulaire et son texte crème sur fond blanc, donc illisible (le champ héritait la couleur du bloc parent). `PasswordInput` pose maintenant lui-même coins arrondis, fond blanc et texte foncé ; l'œil a un libellé et un contraste corrigé. **Vérifié au navigateur** sur une page d'aperçu au parent à texte crème (texte rgb 32,36,43 sur blanc, rayon 8 px).
