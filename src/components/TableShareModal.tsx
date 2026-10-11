@@ -6,6 +6,11 @@ import { SHARE_TITLE_MAX, withHttps } from '../lib/tableShare'
 import { checkImageFile, compressShareImage } from '../lib/shareImage'
 import { extractErr, isSafeUrl } from '../lib/utils'
 import type { CollabSource } from '../lib/types'
+import EnTeteFenetre from './EnTeteFenetre'
+
+const CHAMP = `rounded-[8px] w-full px-3 py-3 text-sm text-gray-900 bg-white border border-bleu-fonce/20
+  focus:outline-none focus:ring-2 focus:ring-bleu-clair/40 focus:border-bleu-fonce
+  placeholder:text-anthracite/40 transition-shadow`
 
 // Chantier 162a — fenêtre « Partager une source » : un lien collé avec un titre
 // court, ou une de SES sources du document collaboratif. Pas de texte libre
@@ -129,53 +134,42 @@ export default function TableShareModal({ onClose }: Props) {
   }
 
   const tabClass = (m: Mode) =>
-    `flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
-      activeMode === m ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+    `flex-1 py-2 text-sm font-semibold rounded-[6px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair ${
+      activeMode === m ? 'bg-white text-bleu-fonce shadow-sm' : 'text-gray-600 hover:text-bleu-fonce'
     }`
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+      className="fixed inset-0 bg-bleu-fonce/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
       onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900">Partager une source</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-gray-300"
-            aria-label="Fermer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[90vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
+        <EnTeteFenetre titre="Partager une source" onClose={onClose} />
 
         {done ? (
           <div className="px-5 py-6 space-y-4 text-center">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm font-semibold text-bleu-fonce">
               {isModerator
                 ? 'La source est affichée à la table.'
                 : 'Envoyé au modérateur : il décidera de la montrer à la table.'}
             </p>
             <button
               onClick={onClose}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+              className="rounded-[8px] w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               Fermer
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 overflow-y-auto">
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               {isModerator
                 ? 'Affiche une source à toute ta table.'
                 : 'Le modérateur voit ta source avant tout le monde, puis choisit de la montrer à la table.'}
             </p>
 
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-[8px]">
               <button type="button" className={tabClass('link')} onClick={() => setMode('link')}>Un lien</button>
               <button type="button" className={tabClass('image')} onClick={() => setMode('image')}>Une image</button>
               {canUseSources && (
@@ -186,18 +180,16 @@ export default function TableShareModal({ onClose }: Props) {
             {activeMode === 'image' ? (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Titre</label>
+                  <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Titre</label>
                   <input
                     type="text"
                     value={title}
                     onChange={e => setTitle(e.target.value.slice(0, SHARE_TITLE_MAX))}
                     maxLength={SHARE_TITLE_MAX}
                     placeholder="Ce que montre cette image"
-                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                      placeholder:text-gray-300"
+                    className={CHAMP}
                   />
-                  <p className="mt-1 text-[11px] text-gray-400 text-right">{title.length}/{SHARE_TITLE_MAX}</p>
+                  <p className="mt-1 text-[11px] text-gray-600 text-right tabular-nums">{title.length}/{SHARE_TITLE_MAX}</p>
                 </div>
                 <div
                   onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -208,23 +200,24 @@ export default function TableShareModal({ onClose }: Props) {
                     const f = e.dataTransfer.files?.[0]
                     if (f) void prepareImage(f)
                   }}
-                  className={`rounded-xl border-2 border-dashed p-4 text-center space-y-3 transition-colors ${
-                    dragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'
+                  className={`rounded-[8px] border-2 border-dashed p-4 text-center space-y-3 transition-colors ${
+                    dragOver ? 'border-bleu-fonce bg-indigo-50' : 'border-bleu-fonce/25'
                   }`}
                 >
                   {preparing ? (
-                    <p className="text-sm text-gray-500">Préparation de l'image…</p>
+                    <p className="text-sm text-gray-600" role="status">Préparation de l'image…</p>
                   ) : imagePreview ? (
-                    <img src={imagePreview} alt="Aperçu de la capture" className="mx-auto max-h-48 w-auto rounded-lg border border-gray-200" />
+                    <img src={imagePreview} alt="Aperçu de la capture" className="mx-auto max-h-48 w-auto rounded-[8px] border border-bleu-fonce/10" />
                   ) : (
-                    <p className="text-xs text-gray-500 leading-relaxed">
+                    <p className="text-xs text-gray-600 leading-relaxed">
                       Colle une capture (Ctrl+V), glisse une image ici, ou choisis-la dans ton appareil.
                     </p>
                   )}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                    className="rounded-[8px] px-3 py-2 text-sm font-semibold text-bleu-fonce border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] transition-colors
+                      focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
                   >
                     {imagePreview ? 'Choisir une autre image' : 'Choisir une image'}
                   </button>
@@ -244,21 +237,19 @@ export default function TableShareModal({ onClose }: Props) {
             ) : activeMode === 'link' ? (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Titre</label>
+                  <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Titre</label>
                   <input
                     type="text"
                     value={title}
                     onChange={e => setTitle(e.target.value.slice(0, SHARE_TITLE_MAX))}
                     maxLength={SHARE_TITLE_MAX}
                     placeholder="Ce que montre ce lien"
-                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                      placeholder:text-gray-300"
+                    className={CHAMP}
                   />
-                  <p className="mt-1 text-[11px] text-gray-400 text-right">{title.length}/{SHARE_TITLE_MAX}</p>
+                  <p className="mt-1 text-[11px] text-gray-600 text-right tabular-nums">{title.length}/{SHARE_TITLE_MAX}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Lien</label>
+                  <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">Lien</label>
                   <input
                     type="text"
                     inputMode="url"
@@ -267,9 +258,7 @@ export default function TableShareModal({ onClose }: Props) {
                     value={url}
                     onChange={e => setUrl(e.target.value)}
                     placeholder="https://…"
-                    className="w-full px-3 py-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                      placeholder:text-gray-300"
+                    className={CHAMP}
                   />
                 </div>
               </>
@@ -277,19 +266,19 @@ export default function TableShareModal({ onClose }: Props) {
               <ul className="space-y-2 max-h-64 overflow-y-auto">
                 {mySources.map(s => (
                   <li key={s.id}>
-                    <label className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${
-                      sourceId === s.id ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
+                    <label className={`flex items-start gap-3 rounded-[8px] border px-3 py-2.5 cursor-pointer transition-colors ${
+                      sourceId === s.id ? 'border-bleu-fonce bg-indigo-50' : 'border-bleu-fonce/15 hover:bg-gray-50'
                     }`}>
                       <input
                         type="radio"
                         name="share-source"
                         checked={sourceId === s.id}
                         onChange={() => setSourceId(s.id)}
-                        className="mt-1"
+                        className="mt-1 text-indigo-600 focus:ring-bleu-clair/40"
                       />
                       <span className="min-w-0">
-                        <span className="block text-sm font-medium text-gray-900 break-words">{s.title}</span>
-                        {s.url && <span className="block text-xs text-gray-400 truncate">{s.url}</span>}
+                        <span className="block text-sm font-semibold text-gray-900 break-words">{s.title}</span>
+                        {s.url && <span className="block text-xs text-gray-600 truncate">{s.url}</span>}
                       </span>
                     </label>
                   </li>
@@ -298,15 +287,15 @@ export default function TableShareModal({ onClose }: Props) {
             )}
 
             {err && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{err}</div>
+              <div role="alert" className="p-3 rounded-[8px] bg-red-50 border border-red-200 text-sm text-red-700">{err}</div>
             )}
 
             <button
               type="submit"
               disabled={busy || preparing}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white
-                text-sm font-medium rounded-xl transition-colors focus:outline-none focus:ring-2
-                focus:ring-indigo-500 focus:ring-offset-2"
+              className="rounded-[8px] w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white
+                text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2
+                focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
             >
               {busy ? 'Envoi…' : isModerator ? 'Montrer à la table' : 'Envoyer au modérateur'}
             </button>

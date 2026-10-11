@@ -32,7 +32,7 @@ export default function ShareImage({ path, purged, alt, compact = false, dark = 
     return () => { cancelled = true }
   }, [path])
 
-  const muted = dark ? 'text-slate-400' : 'text-gray-400'
+  const muted = dark ? 'text-slate-300' : 'text-gray-600'
 
   if (purged || !path) {
     return <p className={`text-xs ${muted}`}>Capture d'écran non conservée.</p>
@@ -41,7 +41,7 @@ export default function ShareImage({ path, purged, alt, compact = false, dark = 
     return <p className={`text-xs ${muted}`}>Capture d'écran indisponible.</p>
   }
   if (!url) {
-    return <div className={`rounded-xl animate-pulse ${dark ? 'bg-slate-700' : 'bg-gray-100'} ${compact ? 'h-20 w-32' : 'h-48 w-full'}`} />
+    return <div className={`rounded-[8px] animate-pulse ${dark ? 'bg-white/10' : 'bg-gray-100'} ${compact ? 'h-20 w-32' : 'h-48 w-full'}`} />
   }
 
   return (
@@ -49,30 +49,31 @@ export default function ShareImage({ path, purged, alt, compact = false, dark = 
       <button
         type="button"
         onClick={() => setZoom(true)}
-        className="block focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-xl"
+        className="block rounded-[8px] focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
         aria-label={`Agrandir la capture : ${alt}`}
       >
         <img
           src={url}
           alt={alt}
           onError={() => setFailed(true)}
-          className={`rounded-xl border object-contain ${dark ? 'border-slate-600 bg-slate-900' : 'border-gray-200 bg-gray-50'} ${
+          className={`rounded-[8px] border object-contain ${dark ? 'border-white/15 bg-bleu-fonce' : 'border-bleu-fonce/10 bg-gray-100'} ${
             compact ? 'max-h-24 w-auto' : 'max-h-80 w-full'
           }`}
         />
       </button>
       {zoom && (
         <div
-          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-3"
+          className="fixed inset-0 z-[60] bg-bleu-fonce/90 backdrop-blur-[2px] flex items-center justify-center p-3"
           onClick={() => setZoom(false)}
           role="dialog"
           aria-label="Capture d'écran en grand"
         >
-          <img src={url} alt={alt} className="max-h-full max-w-full object-contain rounded-lg" />
+          <img src={url} alt={alt} className="max-h-full max-w-full object-contain rounded-[8px]" />
           <button
             type="button"
             onClick={() => setZoom(false)}
-            className="absolute top-3 right-3 px-3 py-1.5 text-sm bg-white/90 text-gray-800 rounded-lg"
+            className="btn-verre absolute top-3 right-3 rounded-[8px] inline-flex h-9 items-center px-3 text-sm font-semibold text-creme
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
             Fermer
           </button>

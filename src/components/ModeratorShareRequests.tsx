@@ -8,6 +8,8 @@ import ShareImage from './ShareImage'
 // contenu COMPLET (lien cliquable, extrait de la source) pour juger de sa
 // pertinence avant que la table ne le voie. Accepter remplace la carte de la
 // table ; refuser ne laisse aucune trace chez les autres participants.
+// Chantier 168 — ocre de la nuit modérateur : c'est une demande qui attend, comme
+// la parole en cours.
 export default function ModeratorShareRequests() {
   const { shares, decideShare } = useTable()
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -24,16 +26,20 @@ export default function ModeratorShareRequests() {
   }
 
   return (
-    <section className="rounded-2xl border border-amber-600/50 bg-amber-900/20 p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-amber-300">
+    <section className="rounded-[12px] border border-amber-500/40 bg-amber-500/10 p-4 space-y-3 animate-montee">
+      <h2 className="flex items-center gap-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-amber-300">
+        <span aria-hidden="true" className="relative flex h-2 w-2 shrink-0">
+          <span className="absolute inset-0 rounded-full bg-amber-400 animate-pouls" />
+          <span className="relative h-2 w-2 rounded-full bg-amber-400" />
+        </span>
         {pending.length === 1 ? 'Une source à valider' : `${pending.length} sources à valider`}
       </h2>
       <ul className="space-y-3">
         {pending.map(s => (
-          <li key={s.id} className="rounded-xl bg-slate-800 border border-slate-700 p-3 space-y-2">
+          <li key={s.id} className="rounded-[8px] bg-white/5 ring-1 ring-white/10 p-3 space-y-2">
             <div>
               <p className={`text-xs ${skin.meta}`}>
-                Proposée par <span className="font-semibold">{s.author_pseudo}</span>
+                Proposée par <span className="font-semibold text-creme">{s.author_pseudo}</span>
                 {s.kind === 'collab_source' && ' · source du document collaboratif'}
                 {s.kind === 'image' && ' · capture d’écran'}
               </p>
@@ -52,16 +58,16 @@ export default function ModeratorShareRequests() {
               <button
                 onClick={() => decide(s.id, true)}
                 disabled={busyId === s.id}
-                className="flex-1 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl
-                  transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="rounded-[8px] flex-1 h-10 text-sm font-bold bg-creme hover:bg-white text-bleu-fonce transition-colors disabled:opacity-50
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
                 Montrer à la table
               </button>
               <button
                 onClick={() => decide(s.id, false)}
                 disabled={busyId === s.id}
-                className="flex-1 py-2 text-sm font-medium border border-slate-600 text-slate-300 hover:bg-slate-700
-                  rounded-xl transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                className="btn-verre rounded-[8px] flex-1 h-10 text-sm font-semibold text-creme disabled:opacity-50
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
                 Refuser
               </button>
@@ -69,7 +75,7 @@ export default function ModeratorShareRequests() {
           </li>
         ))}
       </ul>
-      {err && <p className="text-xs text-red-400">{err}</p>}
+      {err && <p className="text-xs text-red-300">{err}</p>}
     </section>
   )
 }

@@ -363,6 +363,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, reprise du partage de sources (2026-10-11)
+
+**Vérifié au navigateur** sur une page d'aperçu aux données fictives : cartes du participant et du modérateur, fenêtre « Partager une source », à 375 px.
+
+**Reste à voir à l'œil**
+- [ ] Sur une vraie table : demander à partager un lien, une image collée et une source du document, côté participant ; valider et refuser côté modérateur ; arrivée en direct de la carte chez les autres participants.
+- [ ] Image réelle : vignette, agrandissement au clic, message après la purge à la clôture.
+
 ## Chantier 168, lot 9 (2026-10-07) — Document collaboratif refait
 
 **Vérifié au navigateur** : identification et liste vide (dev), cartes de sources et fenêtre d'ajout (aperçu aux données fictives).
