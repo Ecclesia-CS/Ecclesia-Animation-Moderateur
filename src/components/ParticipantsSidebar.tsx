@@ -114,7 +114,7 @@ export default function ParticipantsSidebar({
     )
   }
 
-  // Chantier 158 : version claire (vue participant), pastilles d'initiales
+  // Chantier 168 : version claire (vue participant), pastilles d'initiales
   // et orateur en ocre. Même colonne de gauche (w-14) que les files et les
   // boutons de ParticipantView : pastilles et textes tombent sur leurs axes.
   if (!dark) {

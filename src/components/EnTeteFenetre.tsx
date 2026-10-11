@@ -9,7 +9,7 @@ interface Props {
 }
 
 /**
- * Bandeau marine quadrillé des petites fenêtres (chantier 158) : titre en
+ * Bandeau marine quadrillé des petites fenêtres (chantier 168) : titre en
  * Archivo gras, croix de fermeture à droite. La fenêtre qui l'accueille porte
  * `overflow-hidden rounded-[12px]` (ou `rounded-t-[12px] sm:rounded-[12px]`
  * pour une feuille qui monte du bas sur téléphone).

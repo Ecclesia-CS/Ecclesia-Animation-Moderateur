@@ -267,7 +267,7 @@ L'autorisation est décrite par `can_join_realtime_topic(topic)` (migration `202
 
 ---
 
-## Charte graphique (chantier 158)
+## Charte graphique (chantier 168)
 
 L'appli reprend la charte du site Ecclesia. **Les couleurs vivent dans `tailwind.config.js`, pas dans les composants** : les palettes existantes y sont remappées (`indigo` = bleu marine, `gray` = neutres chauds, `slate` = nuit bleue de la vue modérateur…) et cinq jetons s'y ajoutent : `bleu-fonce` (#15233f), `anthracite`, `bleu-clair` (#9bbbe2), `creme`, `sable`. Polices auto-hébergées (`@fontsource-variable`, aucune requête vers Google) : Newsreader pour les titres (`font-serif` ; h1 à h3 le sont d'office, `src/index.css`), Archivo pour le texte. Classes maison dans `src/index.css` : `filet-spectre`, `texte-spectre`, `accent-rect`, `btn-verre` (+ `btn-verre-primaire`), `bg-grain`.
 

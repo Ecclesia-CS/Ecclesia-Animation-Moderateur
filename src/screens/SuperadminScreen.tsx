@@ -113,7 +113,7 @@ const PHASE_LABEL: Record<string, string> = {
 
 // Chantier 134 — dans un sondage, `pre_voting` est l'unique phase de vote
 // (rien ne suit, pas de présentiel) : « Pré-vote » y serait trompeur.
-// ── Chantier 158 : en-têtes marine quadrillés, comme les vues participant et modérateur ──
+// ── Chantier 168 : en-têtes marine quadrillés, comme les vues participant et modérateur ──
 
 const BOUTON_VERRE = `btn-verre rounded-[8px] inline-flex h-10 shrink-0 items-center px-3 text-xs font-semibold text-creme whitespace-nowrap sm:px-4
   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce`
@@ -404,7 +404,7 @@ export default function SuperadminScreen({ mode = 'superadmin' }: { mode?: Admin
 
   if (!authed) {
     return (
-      // Chantier 158 : plein écran marine quadrillé (comme le chargement et la fin
+      // Chantier 168 : plein écran marine quadrillé (comme le chargement et la fin
       // de séance), la carte de connexion au centre.
       <div className="relative min-h-screen overflow-hidden bg-bleu-fonce flex items-center justify-center p-4">
         <FondQuadrille cases={10} />
@@ -1179,7 +1179,7 @@ function SessionCard({
   )
 }
 
-// ── Couleur et icône de chaque type de séance (chantier 158) ─────
+// ── Couleur et icône de chaque type de séance (chantier 168) ─────
 
 const TON_TYPE: Record<SessionType | 'closed', { bloc: string; surtitre: string }> = {
   full:   { bloc: 'bg-bleu-fonce text-bleu-clair hover:bg-indigo-700', surtitre: 'text-bleu-fonce' },

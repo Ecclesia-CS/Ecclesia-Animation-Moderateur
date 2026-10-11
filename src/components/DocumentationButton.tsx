@@ -22,7 +22,7 @@ interface Props {
   sessionId?: string | null
 }
 
-// Chantier 158 : petite fenêtre (bandeau marine quadrillé), comme « Outils Modo »,
+// Chantier 168 : petite fenêtre (bandeau marine quadrillé), comme « Outils Modo »,
 // et non plus un menu déroulant : l'en-tête quadrillé de la vue modérateur est en
 // `overflow-hidden`, qui couperait un menu accroché sous le bouton.
 export default function DocumentationButton({ session, className, currentTableJoinCode, sessionId }: Props) {

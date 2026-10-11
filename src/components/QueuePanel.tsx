@@ -22,7 +22,7 @@ interface Props {
   ghostId?: string
 }
 
-// Chantier 158 : même construction que les files de la vue participant
+// Chantier 168 : même construction que les files de la vue participant
 // (ReadOnlyQueuePanel), sur le fond nuit de la vue modérateur. Carte arrondie,
 // ligne de titre teintée de la couleur de la file, et une colonne de gauche
 // (w-14) où tombent le repère de couleur et les numéros.

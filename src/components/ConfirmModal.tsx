@@ -8,7 +8,7 @@ interface Props {
   onConfirm(): void
   onCancel(): void
   /**
-   * Chantier 158 : `info` pour un simple message (un seul bouton). `danger`
+   * Chantier 168 : `info` pour un simple message (un seul bouton). `danger`
    * (défaut) pour une action irréversible à confirmer : même bandeau marine
    * quadrillé que les autres fenêtres, le rouge est réservé à l'avertissement
    * et au bouton de confirmation.

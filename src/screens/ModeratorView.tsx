@@ -210,7 +210,7 @@ export default function ModeratorView() {
     interactive: <IconeSujetActuel className="h-3.5 w-3.5" />,
   }
 
-  // Chantier 158 : l'en-tête n'est plus collant. Quand la carte de l'orateur
+  // Chantier 168 : l'en-tête n'est plus collant. Quand la carte de l'orateur
   // sort de l'écran (on descend vers les présents ou les temps de parole), un
   // rappel se fixe en haut : nom, chrono et « Terminer ».
   const heroRef = useRef<HTMLDivElement>(null)
@@ -846,7 +846,7 @@ export default function ModeratorView() {
       {/* Séance terminée (chantier 89 : dès post_voting, le débat est fini).
           Chantier 112 — masqué tant que le questionnaire forcé est actif, sinon il
           recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir.
-          Chantier 158 : plein écran marine quadrillé, comme la vue participant. */}
+          Chantier 168 : plein écran marine quadrillé, comme la vue participant. */}
       {/* Chantier 161 — fin de la table seule (« Terminer le débat de ma table ») :
           le modérateur sort avec les autres, tout de suite ; le masquage du 112 ne
           vaut que pour la fin de séance, où il peut encore devoir annuler le forçage. */}

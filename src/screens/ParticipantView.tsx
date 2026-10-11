@@ -193,7 +193,7 @@ export default function ParticipantView() {
     }
   }
 
-  // Chantier 158 : le titre vient du contexte (chargé avant le premier rendu),
+  // Chantier 168 : le titre vient du contexte (chargé avant le premier rendu),
   // à défaut de la lecture propre à cet écran, pour ne pas voir le code de
   // table s'afficher en grand puis céder la place au titre.
   const titre = session?.title ?? sessionTitle
@@ -609,7 +609,7 @@ export default function ParticipantView() {
           devient vraie (chantier 39, déplacée en post_voting au chantier 89), et les
           deux overlays sont en z-50 superposés. 'post_voting' redirige déjà vers les
           résultats (avec revote possible) ; 'closed' n'en est que la suite définitive.
-          Chantier 158 : plein écran marine quadrillé, comme le bandeau d'accueil du site. */}
+          Chantier 168 : plein écran marine quadrillé, comme le bandeau d'accueil du site. */}
       {/* Chantier 161 — phase effective : la fin peut venir de la table seule
           (le modérateur a terminé son débat) pendant que la séance débat encore. */}
       {session && (effectivePhase === 'closed' || effectivePhase === 'post_voting') && !forcedQOpen && (
@@ -663,7 +663,7 @@ function IconeSujet({ className = '' }: { className?: string }) {
 }
 
 // ── Queue toggle button ────────────────────────────────────────
-// Chantier 158 : bloc de couleur à gauche (w-14, même colonne que les files
+// Chantier 168 : bloc de couleur à gauche (w-14, même colonne que les files
 // et le bouton « sujet suivant »), titre en sans-serif (c'est un bouton), et
 // position en grand une fois dans la file. Au repos, le bloc donne déjà la
 // couleur de la file ; dans la file, tout le bouton prend cette couleur.

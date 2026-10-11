@@ -11,7 +11,7 @@ interface Props {
   selfId?: string
 }
 
-// Chantier 158 : la colonne de gauche (w-14) est celle des boutons de file de
+// Chantier 168 : la colonne de gauche (w-14) est celle des boutons de file de
 // ParticipantView, au-dessus. Icônes, numéros et pastilles tombent ainsi sur un
 // même axe vertical, et les textes commencent tous au même endroit.
 export default function ReadOnlyQueuePanel({

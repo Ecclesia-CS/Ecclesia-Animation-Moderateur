@@ -26,7 +26,7 @@ export default function NextTopicPanel() {
     }
   }
 
-  // Chantier 158 : même bloc que le bouton « sujet suivant » de la vue
+  // Chantier 168 : même bloc que le bouton « sujet suivant » de la vue
   // participant (colonne verte w-14 et pouce), avec la part de la table qui
   // le souhaite en jauge sous le texte.
   const part = total > 0 ? Math.round((votes / total) * 100) : 0

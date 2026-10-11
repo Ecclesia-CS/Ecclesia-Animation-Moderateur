@@ -205,7 +205,7 @@ const BOUTON_SECONDAIRE = `flex min-h-11 items-center justify-center rounded-[8p
   text-sm font-semibold text-bleu-fonce shadow-sm transition-colors hover:border-bleu-fonce/35 hover:bg-indigo-50/50
   focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-creme`
 
-// ── Couleur et icône de chaque moment de la séance (chantier 158) ──
+// ── Couleur et icône de chaque moment de la séance (chantier 168) ──
 // Vote : marine ; formation des groupes : ocre ; débat : sarcelle, comme les
 // colonnes de couleur des vues participant, modérateur et superadmin.
 

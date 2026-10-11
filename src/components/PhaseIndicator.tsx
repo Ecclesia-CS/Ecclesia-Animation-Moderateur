@@ -9,7 +9,7 @@ interface Props {
   floating?: boolean
   /** Chantier 134 — numérotation propre au mode de séance (défaut : séance complète). */
   sessionType?: SessionType
-  /** Chantier 158 : `marine`, puce de verre du site, pour un bandeau bleu marine. */
+  /** Chantier 168 : `marine`, puce de verre du site, pour un bandeau bleu marine. */
   tone?: 'clair' | 'marine'
 }
 

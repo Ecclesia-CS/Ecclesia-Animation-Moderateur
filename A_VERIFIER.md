@@ -328,7 +328,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Sur prod après merge : rien de particulier (front seul, aucune migration).
 
 
-## Chantier 158 (2026-10-06) — Charte graphique : l'appli aux couleurs du site (apparence seule)
+## Chantier 168 (2026-10-06) — Charte graphique : l'appli aux couleurs du site (apparence seule)
 
 **Vérifié au navigateur sur dev** (Browser pane et Chrome sans interface ; participant à 360, 375, 390 et 430 px, superadmin en largeur d'ordinateur ; audit de contraste automatique à chaque écran, 0 échec, aucun débordement horizontal) : accueil ; entrée par code ; vote à distance (code de rappel, fenêtres d'explication, assertions, « Tu as tout voté ») ; vote présentiel (confirmation de présence d'un pré-votant, nouvel arrivant, onboarding complet) ; allocation (calcul, application) ; affectation « Tu es à la Table N » et entrée à table ; vue participant sur table sans animateur (files avec et sans sujet, parole automatique, « J'ai fini de parler », sujet suivant puis annulation, outils) ; vue modérateur (orateur, chrono, pause, outils — lot 4) ; post-vote (questionnaire forcé, résultats, revote) ; clôture (résultats, page publique non publiée) ; superadmin (connexion, liste, création de séance, quatre onglets, barre de phases avancée jusqu'à la clôture). Séances de test : « Test charte 158 — Complète » (BB87C8) et « Test charte 154 — Débat » (153E51).
 
@@ -350,7 +350,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Les camps n'ont pas la même couleur partout (déjà le cas avant la charte) : le camp 2 est brique dans les résultats participant et ocre côté superadmin et modérateur (`GROUP_COLORS` et `CAMP_COLORS` rangés dans un ordre différent).
 - `ModeratorView` déborde horizontalement à 375 px (déjà noté, jamais tranché : pas touché).
 
-## Chantier 158, lot 8 (2026-10-06) — Textes sans tiret cadratin ni flèche, audit graphique
+## Chantier 168, lot 8 (2026-10-06) — Textes sans tiret cadratin ni flèche, audit graphique
 
 **Vérifié au navigateur sur dev** : recensement automatique de tous les textes de l'appli (plus aucun « — », « – » d'incise, « ← », « → », « ↗ », « ↻ », « ↩ », entités HTML comprises) ; audit automatique et capture de chaque écran participant à 375 px (accueil, entrées par séance et par table, vote d'un sondage, résultats en direct, table, outils, résultats, page publique, document collaboratif, page introuvable), de la vue modérateur et des onglets du superadmin. Séance de test ajoutée : « Audit charte 158 (sondage) » (790690, masquée de l'accueil).
 
@@ -363,7 +363,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
-## Chantier 158, lot 9 (2026-10-07) — Document collaboratif refait
+## Chantier 168, lot 9 (2026-10-07) — Document collaboratif refait
 
 **Vérifié au navigateur** : identification et liste vide (dev), cartes de sources et fenêtre d'ajout (aperçu aux données fictives).
 
@@ -371,7 +371,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Ajout, modification et suppression réels d'une source (fenêtre de confirmation comprise), et arrivée en direct d'une source ajoutée par quelqu'un d'autre.
 - [ ] « Retour » depuis une table (retour à la table, pas à l'accueil).
 
-## Chantier 158, lot 9 (2026-10-07) — Portes d'entrée refaites
+## Chantier 168, lot 9 (2026-10-07) — Portes d'entrée refaites
 
 **Vérifié au navigateur** à 375 px, sans rien soumettre : séance et page introuvables, lien d'un ami, entrée d'un débat simple, rattrapage en débat, reconnexion (aperçu).
 
@@ -379,7 +379,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] « Séance pas encore ouverte », « Le débat vient de se terminer », « Séance terminée » et questionnaire de fin depuis un lien `#session/` (mêmes cartes que dans le vote).
 - [ ] Reconnexion réelle après une coupure de session, et code de rappel affiché après l'entrée d'un débat simple.
 
-## Chantier 158, lot 9 (2026-10-07) — Résultats refaits
+## Chantier 168, lot 9 (2026-10-07) — Résultats refaits
 
 **Vérifié au navigateur** : résultats publics (deux anciennes séances de dev), résultats en direct d'un sondage, et sur une page d'aperçu aux données fictives : carte des camps, revote, fenêtre « Changer mon vote ».
 
@@ -387,7 +387,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Sur une vraie séance en post-débat : carte des camps avec une vraie analyse (nuage, noms Gemini), revote réel et proposition d'assertion depuis le revote.
 - [ ] Résultats publics d'une séance avec nuage de points (aucune des anciennes séances vues n'avait d'analyse publiée).
 
-## Chantier 158, lot 9 (2026-10-07) — Allocation refaite
+## Chantier 168, lot 9 (2026-10-07) — Allocation refaite
 
 **Vérifié au navigateur** sur une page d'aperçu temporaire (données fictives, rien écrit en base) : carte de la table en allocation et en débat, attente de la formation des groupes.
 
@@ -395,7 +395,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Sur une vraie séance en allocation : binôme, déclaration modérateur, synthèse des votes, passage automatique en débat.
 - [ ] Débat sans table attribuée (« Assignez-moi une table » ou code), séance close sans table, questionnaire de fin par-dessus la page.
 
-## Chantier 158, lot 9 (2026-10-07) — Vote refait
+## Chantier 168, lot 9 (2026-10-07) — Vote refait
 
 **Vérifié au navigateur sur dev** à 375 et 800 px (séance « Audit charte 158 (sondage) ») : formulaire d'inscription, introduction de la séance, écran « Tu as tout voté ! », fenêtre « Changer mon vote » (nouvelle carte de vote), sans voter ni s'inscrire.
 
@@ -406,7 +406,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] États « En attente de l'organisateur », « Séance pas encore ouverte », « Phase de vote terminée », rattrapage en débat, « Séance introuvable », questionnaire de fin par-dessus la page.
 - [ ] Outils du vote et ses fenêtres (notes, se déclarer modérateur, changer de nom, modifier le questionnaire d'entrée).
 
-## Chantier 158, lot 9 (2026-10-07) — Accueil refait
+## Chantier 168, lot 9 (2026-10-07) — Accueil refait
 
 **Vérifié au navigateur sur dev** à 375 et 800 px : en-tête quadrillé, cinq séances en cours (vote à distance, deux débats, formation des groupes), fenêtre « Anciennes séances ».
 
@@ -414,7 +414,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Accueil sans aucune séance en cours (encart en pointillés « Aucune séance en cours pour l'instant »).
 - [ ] Séance en vote présentiel (`voting`) : même couleur marine que le vote à distance.
 
-## Chantier 158, lot 9 (2026-10-07) — Superadmin refait
+## Chantier 168, lot 9 (2026-10-07) — Superadmin refait
 
 **Vérifié au navigateur sur dev** à 375 et 800 px : connexion (avant la refonte des cartes), liste des séances, détail d'un débat simple (Tables, Préparation, Analyse) et d'une séance complète close (En direct, Analyse, synthèse des votes), carte de table de « Réunion apprentissage modération 21/09 », fenêtres « Nouvelle séance » et « Fermer la séance » ouvertes puis annulées. Build OK, tests : 133 réussis, 4 ignorés.
 
@@ -425,7 +425,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Espace association (`#asso`) : connexion, en-tête au nom de l'association, une seule table.
 - [ ] Passe automatique des arrondis : un bouton ou une étiquette restés carrés dans une partie non vue.
 
-## Chantier 158, lot 9 (2026-10-07) — Page modérateur refaite
+## Chantier 168, lot 9 (2026-10-07) — Page modérateur refaite
 
 **Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », « Modo Démo »), à 320, 375 et 800 px : en-tête quadrillé, « Micro libre », parole donnée à « Modo Démo » (carte ocre, puis rappel fixé en haut en descendant), pause, reprise et fin ; fenêtres Documentation, Outils Modo, Historique, Code participant, Proposer un vote, Ajouter une personne sans téléphone ; accueil du modérateur ; tableau des participants sans débordement à 800 px (il défile dans sa carte sur téléphone). Build OK, tests : 133 réussis, 4 ignorés.
 
@@ -438,7 +438,7 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - [ ] Écran « La séance est terminée » côté modérateur, au passage en post-vote.
 - [ ] Séance d'association : emblème absent, Documentation sans document collaboratif.
 
-## Chantier 158, lot 9 (2026-10-06) — Page participant refaite (fond quadrillé du site)
+## Chantier 168, lot 9 (2026-10-06) — Page participant refaite (fond quadrillé du site)
 
 **Vérifié au navigateur sur dev** (table B8F10C de « Test charte 154 · Débat », participant fictif « Votant Trois »), à 320, 375 et 1 280 px : en-tête marine quadrillé (cases qui s'allument dans la bande du bas sans jamais passer derrière un texte, vague, emblème, surtitre d'étape avec sa progression, titre en Archivo sans tiret cadratin, colonnes « Vous » et « Table ») ; repos ; dans les deux files avec un sujet indiqué (position en grand, ligne surlignée dans les files, marques dans « Présents ») ; « sujet suivant » activé puis annulé ; menu Outils, fenêtre des étapes, accueil et règles du débat ; carte « Vous avez la parole ! » (vue chez « Participant Démo » quand il avait la parole, puis en maquette injectée). Audit automatique : aucun chevauchement, texte coupé ou décentré, aucun débordement, contrastes ≥ 4,5:1. Tests : 133 réussis, 4 ignorés (6 nouveaux, `src/lib/utils.test.ts`) ; build OK.
 

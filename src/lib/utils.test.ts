@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { initiales, titreSeance } from './utils'
 
-// Chantier 158 : aucun tiret cadratin à l'écran, même dans un titre saisi
+// Chantier 168 : aucun tiret cadratin à l'écran, même dans un titre saisi
 // avec (« QA Vérifs — Débat ») ; le titre en base reste tel quel.
 describe('titreSeance', () => {
   it('remplace le tiret cadratin par un point médian', () => {

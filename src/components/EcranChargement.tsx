@@ -1,7 +1,7 @@
 import FondQuadrille from './FondQuadrille'
 
 /**
- * Écran d'attente plein écran (chantier 158) : aplat marine quadrillé du
+ * Écran d'attente plein écran (chantier 168) : aplat marine quadrillé du
  * site, trois carrés qui s'allument tour à tour (le motif des cases de la
  * trame) et un libellé. Pas d'emblème : l'écran s'affiche avant de savoir si
  * la séance appartient à une association (chantier 135).

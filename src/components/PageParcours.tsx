@@ -28,7 +28,7 @@ interface Props {
 }
 
 /**
- * Page du parcours participant hors table (chantier 158) : vote, inscription,
+ * Page du parcours participant hors table (chantier 168) : vote, inscription,
  * questionnaire d'entrée, attente, allocation, résultats. Même en-tête que la
  * vue participant d'une table : bandeau marine quadrillé, étape en surtitre,
  * titre de la séance en Archivo, vague au bas ; le contenu vient dessous sur
