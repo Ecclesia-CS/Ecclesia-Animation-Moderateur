@@ -172,7 +172,7 @@ export function ModeratorLinkBadge({
     <span
       data-testid="moderator-link-badge"
       title={`Lié à ${others.join(', ')} : ils se déplacent ensemble (le modérateur anime la table où va son binôme).`}
-      className="inline-flex items-center gap-1 rounded-md border-2 px-1.5 py-0 text-[10px] font-semibold"
+      className="inline-flex items-center gap-1 rounded-[6px] border-2 px-1.5 py-0 text-[10px] font-semibold"
       style={{ borderColor: color, background: `${color}14`, color }}
     >
       🔗 lié à {others.join(', ')}

@@ -363,6 +363,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, reprise des binômes et trios (2026-10-11)
+
+**Vérifié au navigateur** sur une page d'aperçu aux données fictives : fenêtre « On t'a choisi·e », encadré, modale « Être avec un ami », à 375 px.
+
+**Reste à voir à l'œil**
+- [ ] Avec deux vrais participants en phase `voting` : se citer l'un l'autre, voir la fenêtre puis l'encadré chez le second, « Le/la choisir en retour », les cas refusés (trio complet, plus de 3).
+- [ ] Badge « lié à … » du modérateur dans l'onglet Groupes du superadmin.
+
 ## Chantier 168, reprise du partage de sources (2026-10-11)
 
 **Vérifié au navigateur** sur une page d'aperçu aux données fictives : cartes du participant et du modérateur, fenêtre « Partager une source », à 375 px.

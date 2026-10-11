@@ -13,7 +13,7 @@ export const PAIRING_EXPLANATION =
 
 /** Chantier 165 — rappel affiché à la saisie : on peut tout faire plus tard. */
 export const PAIRING_LATER_NOTE =
-  "Tu peux le faire plus tard : « Outils » → « Être avec un ami ». Si le nom de la personne n'existe pas encore, " +
+  "Tu peux le faire plus tard : « Outils », puis « Être avec un ami ». Si le nom de la personne n'existe pas encore, " +
   "ou si tu ne sais pas comment elle s'est inscrite, reviens simplement plus tard."
 
 /** Chantier 92 — la réciprocité doit sauter aux yeux, à la proposition comme après l'enregistrement. */
@@ -107,7 +107,7 @@ export function PairingResultsList({ results }: { results: PairingResult[] }) {
   return (
     <div className="space-y-2">
     {waiting && (
-      <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 leading-snug">
+      <p className="rounded-[8px] text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 px-3 py-2 leading-snug">
         ⏳ Enregistré, mais pas encore actif : tant que la personne ne t'a pas cité·e en retour,
         l'algorithme ne vous mettra pas forcément ensemble. Préviens-la !
       </p>
@@ -168,22 +168,22 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
           <p className="rounded-[8px] text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 leading-snug">
             Facultatif : tu peux le remplir ou le modifier à tout moment pendant le vote.
           </p>
-          <p className="text-xs text-gray-500 mt-1 leading-relaxed">{PAIRING_EXPLANATION}</p>
+          <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{PAIRING_EXPLANATION}</p>
         </div>
         <ReciprocityNotice />
         {loading ? (
-          <p className="text-sm text-gray-500">Chargement…</p>
+          <p className="text-sm text-gray-600" role="status">Chargement…</p>
         ) : (
           <PairingFields values={values} onChange={setValues} />
         )}
         <PairingResultsList results={results} />
         {placed !== null && (
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2">
+          <p className="rounded-[8px] text-sm text-green-800 bg-green-50 border border-green-200 px-3 py-2">
             ✅ Tu as été placé·e au groupe {placed}, avec la personne que tu as citée.
           </p>
         )}
         {error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
+          <p role="alert" className="rounded-[8px] text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
         )}
         <div className="flex gap-3">
           <button
