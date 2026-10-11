@@ -130,11 +130,11 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
   if (variant === 'dissensus') {
     badge = { label: 'Point de désaccord', className: 'bg-red-100 text-red-700' }
   } else if (variant === 'uncertain') {
-    badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-600' }
+    badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-700' }
   } else if (score != null && score >= 50) {
     badge = { label: 'Fort consensus', className: 'bg-green-100 text-green-700' }
   } else {
-    badge = { label: 'Consensus partiel', className: 'bg-yellow-100 text-yellow-700' }
+    badge = { label: 'Consensus partiel', className: 'bg-yellow-100 text-yellow-800' }
   }
 
   return (
@@ -146,7 +146,7 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
         </span>
       </div>
       {/* Vote bar */}
-      <div className="flex h-1.5 overflow-hidden bg-gray-100">
+      <div className="flex h-2 overflow-hidden bg-gray-100">
         {agreePct > 0 && (
           <div className="bg-green-400 h-full" style={{ width: `${agreePct}%` }} />
         )}
@@ -157,9 +157,9 @@ function ResultCard({ result, variant }: { result: VoteResult; variant: 'consens
           <div className="bg-gray-300 h-full" style={{ width: `${passPct}%` }} />
         )}
       </div>
-      <div className="flex gap-3 text-xs text-gray-500">
-        <span className="text-green-600">✓ {result.agree_count}</span>
-        <span className="text-red-500">✗ {result.disagree_count}</span>
+      <div className="flex gap-4 text-xs font-semibold tabular-nums text-gray-600">
+        <span className="text-green-700">✓ {result.agree_count}</span>
+        <span className="text-red-700">✗ {result.disagree_count}</span>
         <span>⏭ {result.pass_count}</span>
       </div>
     </div>

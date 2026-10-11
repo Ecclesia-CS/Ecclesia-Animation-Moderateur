@@ -25,11 +25,11 @@ function compareByDissensus(a: VoteResult, b: VoteResult): number {
 
 export default function VoteResultsList({ results, loading, variant = 'session' }: VoteResultsListProps) {
   if (loading) {
-    return <p className="text-sm text-gray-500 py-2">Chargement…</p>
+    return <p className="text-sm text-gray-600 py-2" role="status">Chargement…</p>
   }
 
   if (results.length === 0) {
-    return <p className="text-sm text-gray-500 py-2">Aucune assertion approuvée pour cette séance.</p>
+    return <p className="text-sm text-gray-600 py-2">Aucune assertion approuvée pour cette séance.</p>
   }
 
   const sorted = variant === 'table'
@@ -37,11 +37,11 @@ export default function VoteResultsList({ results, loading, variant = 'session' 
     : [...results].sort((a, b) => (b.consensus_score ?? -1) - (a.consensus_score ?? -1))
 
   return (
-    <div className="space-y-4">
+    <div className="divide-y divide-bleu-fonce/10">
       {sorted.map(r => (
         <AssertionRow key={r.id} result={r} variant={variant} />
       ))}
-      <p className="text-xs text-gray-500 text-center pt-1">
+      <p className="text-xs text-gray-600 text-center pt-3">
         {results.length} assertion{results.length > 1 ? 's' : ''} approuvée{results.length > 1 ? 's' : ''}
       </p>
     </div>
@@ -65,39 +65,39 @@ function AssertionRow({ result, variant }: { result: VoteResult; variant: 'sessi
     // Vue locale : le badge décrit le partage de la table, pas le consensus de la séance.
     const split = splitRatio(result)
     if (total === 0) {
-      badge = { label: 'Aucun vote', className: 'bg-gray-100 text-gray-500' }
+      badge = { label: 'Aucun vote', className: 'bg-gray-100 text-gray-700' }
     } else if (isUncertain) {
-      badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-600' }
+      badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-700' }
     } else if (split < 0) {
-      badge = { label: 'Que des passes', className: 'bg-gray-200 text-gray-600' }
+      badge = { label: 'Que des passes', className: 'bg-gray-200 text-gray-700' }
     } else if (split >= 0.35) {
       badge = { label: 'Clivant', className: 'bg-red-100 text-red-700' }
     } else if (split >= 0.15) {
-      badge = { label: 'Partagé', className: 'bg-yellow-100 text-yellow-700' }
+      badge = { label: 'Partagé', className: 'bg-yellow-100 text-yellow-800' }
     } else if (result.agree_count >= result.disagree_count) {
       badge = { label: 'D\'accord', className: 'bg-green-100 text-green-700' }
     } else {
-      badge = { label: 'Pas d\'accord', className: 'bg-orange-100 text-orange-700' }
+      badge = { label: 'Pas d\'accord', className: 'bg-orange-100 text-orange-800' }
     }
   } else if (isUncertain) {
-    badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-600' }
+    badge = { label: 'Beaucoup de passes', className: 'bg-gray-200 text-gray-700' }
   } else if (score != null && score >= 50) {
     badge = { label: 'Fort consensus', className: 'bg-green-100 text-green-700' }
   } else if (score != null && score >= 20) {
-    badge = { label: 'Consensus partiel', className: 'bg-yellow-100 text-yellow-700' }
+    badge = { label: 'Consensus partiel', className: 'bg-yellow-100 text-yellow-800' }
   } else {
     badge = { label: 'Divergent', className: 'bg-red-100 text-red-700' }
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 py-4 first:pt-0">
       <div className="flex items-start gap-2">
         <p className="flex-1 text-sm text-gray-800 leading-snug">{result.content}</p>
         <span className={`shrink-0 rounded-[6px] text-xs font-semibold px-2 py-0.5 ${badge.className}`}>
           {badge.label}
         </span>
       </div>
-      <div className="flex h-1.5 overflow-hidden bg-gray-100">
+      <div className="flex h-2 overflow-hidden bg-gray-100">
         {agreePct > 0 && (
           <div className="bg-green-400 h-full" style={{ width: `${agreePct}%` }} />
         )}
@@ -108,9 +108,9 @@ function AssertionRow({ result, variant }: { result: VoteResult; variant: 'sessi
           <div className="bg-gray-300 h-full" style={{ width: `${passPct}%` }} />
         )}
       </div>
-      <div className="flex gap-3 text-xs text-gray-500">
-        <span className="text-green-600">✓ {result.agree_count}</span>
-        <span className="text-red-500">✗ {result.disagree_count}</span>
+      <div className="flex gap-4 text-xs font-semibold tabular-nums text-gray-600">
+        <span className="text-green-700">✓ {result.agree_count}</span>
+        <span className="text-red-700">✗ {result.disagree_count}</span>
         <span>⏭ {result.pass_count}</span>
       </div>
     </div>

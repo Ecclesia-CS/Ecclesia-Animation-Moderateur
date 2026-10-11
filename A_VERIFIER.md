@@ -363,6 +363,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, reprise de la modale « Assertions votées » (2026-10-11)
+
+**Vérifié au navigateur** sur une page d'aperçu aux données fictives : onglet « Toute la séance » (liste, barres, pastilles, compteurs).
+
+**Reste à voir à l'œil**
+- [ ] Onglet « Ma table » avec de vraies données (tri par dissensus, pastilles « Clivant » et « Partagé »), depuis Outils Modo et depuis les Outils du participant (« Résultats du vote »).
+- [ ] Le même rendu dans l'onglet « Synthèse des votes » du superadmin et sur l'écran de résultats d'un sondage.
+
 ## Chantier 168, reprise de la fin de débat par table (2026-10-11)
 
 **Vérifié au navigateur** sur une page d'aperçu aux données fictives : carte « Rouvrir le débat de ma table » et carte « Le débat de votre table a repris », à 375 px.
