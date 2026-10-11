@@ -3878,11 +3878,11 @@ function SessionDetail({
                       const endedCount = attachedTables.filter(t => t.debate_ended_at).length
                       const allEnded = endedCount === attachedTables.length
                       return (
-                        <div className={`p-3 rounded-xl text-sm border ${allEnded
+                        <div className={`p-3 rounded-[8px] text-sm font-medium border ${allEnded
                           ? 'bg-green-50 border-green-200 text-green-800'
-                          : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+                          : 'bg-gray-100 border-bleu-fonce/10 text-gray-700'}`}>
                           {allEnded
-                            ? `✓ Toutes les tables ont terminé leur débat — vous pouvez ${sessionType === 'debate' ? 'clôturer la séance' : 'passer en Post-vote'}.`
+                            ? `✓ Toutes les tables ont terminé leur débat : vous pouvez ${sessionType === 'debate' ? 'clôturer la séance' : 'passer en Post-vote'}.`
                             : `${endedCount} / ${attachedTables.length} table${attachedTables.length > 1 ? 's ont' : ' a'} terminé ${attachedTables.length > 1 ? 'leur' : 'son'} débat`}
                         </div>
                       )

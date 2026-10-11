@@ -364,8 +364,8 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
             {/* Chantier 161 — analyse figée tant que d'autres tables débattent :
                 ces camps sont ceux d'avant le débat. */}
             {ownTableEnded && selfGroupId !== null && (
-              <p className="text-xs text-gray-400 text-center -mb-2">
-                Camps calculés avant le débat — ils pourront être recalculés à la fin de la séance.
+              <p className="rounded-[8px] bg-gray-100 px-3 py-2 text-xs text-gray-700 text-center">
+                Camps calculés avant le débat : ils pourront être recalculés à la fin de la séance.
               </p>
             )}
             {/* ── Carte de groupe personnelle ─────────────────────

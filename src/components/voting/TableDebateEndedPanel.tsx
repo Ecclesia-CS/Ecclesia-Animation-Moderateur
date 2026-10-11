@@ -91,14 +91,19 @@ export default function TableDebateEndedPanel({ session, tableId, initiallyEnded
 
   if (!ended) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center space-y-3">
-        <p className="text-sm font-semibold text-emerald-800">Le débat de votre table a repris</p>
-        <button
-          onClick={goBackToTable}
-          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Revenir à la table →
-        </button>
+      <div className="flex items-stretch overflow-hidden rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm animate-montee">
+        <span aria-hidden="true" className="flex w-14 shrink-0 items-start justify-center bg-teal-600 pt-4 text-lg">🗣️</span>
+        <div className="min-w-0 flex-1 space-y-3 px-4 py-3.5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-teal-700">Débat de votre table</p>
+          <p className="font-sans text-base font-bold leading-snug tracking-[-0.01em] text-bleu-fonce">Il a repris</p>
+          <button
+            onClick={goBackToTable}
+            className="w-full rounded-[8px] h-10 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+          >
+            Revenir à la table
+          </button>
+        </div>
       </div>
     )
   }
@@ -106,37 +111,43 @@ export default function TableDebateEndedPanel({ session, tableId, initiallyEnded
   if (!isModerator) return null
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
-      <p className="text-sm text-gray-600">
-        Votre table a terminé son débat. Tant que la séance est en débat, vous pouvez le rouvrir :
-        toute la table pourra y revenir.
-      </p>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      {confirming ? (
-        <div className="flex gap-2">
+    <div className="flex items-stretch overflow-hidden rounded-[12px] border border-bleu-fonce/10 bg-white shadow-sm animate-montee">
+      <span aria-hidden="true" className="flex w-14 shrink-0 items-start justify-center bg-bleu-fonce pt-4 text-lg">🏁</span>
+      <div className="min-w-0 flex-1 space-y-3 px-4 py-3.5">
+        <p className="text-sm leading-relaxed text-gray-700">
+          Votre table a terminé son débat. Tant que la séance est en débat, vous pouvez le rouvrir :
+          toute la table pourra y revenir.
+        </p>
+        {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
+        {confirming ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="flex-1 rounded-[8px] h-10 text-sm font-semibold border border-bleu-fonce/20 text-bleu-fonce transition-colors hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair disabled:opacity-50"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={reopen}
+              disabled={busy}
+              className="flex-1 rounded-[8px] h-10 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+            >
+              {busy ? '…' : 'Rouvrir'}
+            </button>
+          </div>
+        ) : (
           <button
-            onClick={() => setConfirming(false)}
-            disabled={busy}
-            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50"
+            onClick={() => setConfirming(true)}
+            className="w-full rounded-[8px] h-10 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold transition-colors hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04]
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
           >
-            Annuler
+            Rouvrir le débat de ma table
           </button>
-          <button
-            onClick={reopen}
-            disabled={busy}
-            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl"
-          >
-            {busy ? '…' : 'Rouvrir'}
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setConfirming(true)}
-          className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl transition-colors"
-        >
-          ↺ Rouvrir le débat de ma table
-        </button>
-      )}
+        )}
+      </div>
     </div>
   )
 }

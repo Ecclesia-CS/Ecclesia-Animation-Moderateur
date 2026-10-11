@@ -271,7 +271,9 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 onClick={() => { setPanelOpen(false); setEndDebateConfirm(true) }}
                 className={linkClass}
               >
-                <span className="w-4 text-center text-gray-400 shrink-0">🏁</span>
+                <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 21V4m0 0h13l-2.5 4L17 12H4" />
+                </svg>
                 Terminer le débat de ma table
               </button>
             )}

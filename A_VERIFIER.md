@@ -363,6 +363,14 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, reprise de la fin de débat par table (2026-10-11)
+
+**Vérifié au navigateur** sur une page d'aperçu aux données fictives : carte « Rouvrir le débat de ma table » et carte « Le débat de votre table a repris », à 375 px.
+
+**Reste à voir à l'œil**
+- [ ] Sur une vraie séance en débat : « Terminer le débat de ma table » (Outils Modo), écran de fin des participants, puis « Rouvrir » et retour à la table des autres participants.
+- [ ] Encadré d'avancement des tables et boutons « Terminer » / « Rouvrir » de l'onglet Groupes du superadmin, avec la fenêtre de confirmation.
+
 ## Chantier 168, reprise des binômes et trios (2026-10-11)
 
 **Vérifié au navigateur** sur une page d'aperçu aux données fictives : fenêtre « On t'a choisi·e », encadré, modale « Être avec un ami », à 375 px.

@@ -315,7 +315,7 @@ export default function App() {
       <ReclaimCodeDisplay
         pseudo={pseudo}
         code={code}
-        continueLabel="Rejoindre la table →"
+        continueLabel="Rejoindre la table"
         onContinue={() => setPhase({ type: 'table', tableId, participantId, userId, isModerator: false })}
       />
     )
