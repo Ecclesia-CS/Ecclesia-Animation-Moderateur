@@ -363,6 +363,15 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, superadmin vu en direct après la fusion avec dev (2026-10-11)
+
+**Vérifié au navigateur sur dev** (connecté par Antoine, lecture seule, rien créé ni modifié) : liste des séances (cartes colorées, séances closes grises) ; séance « Test charte 154 · Débat » : encadré « 0 / 2 tables ont terminé leur débat », « En débat » + « Terminer » sur chaque table, modérateurs avec « Retirer » ; onglet Analyse d'un débat simple ; séance « QA Vérifs · Complète » en débat : « Qui a changé d'avis » avec de vraies données (0 membre sur 13, 104 votes, 1 nouveau votant) ; fenêtre de création : choix « Mode du sondage » (Camps d'opinion / Consentement) cohérent avec les cartes de type, annulée sans créer.
+
+**Reste à voir à l'œil**
+- [ ] Cliquer « Terminer » puis « Rouvrir » sur une table (avec la fenêtre de confirmation), sur une séance de test.
+- [ ] Badge « lié à … » d'un modérateur dans l'onglet Groupes (nécessite un binôme avec un modérateur).
+- [ ] Création réelle d'un sondage « Consentement » pour parcourir ses écrans.
+
 ## Chantier 168, reprise de la comparaison avant / après débat (2026-10-11)
 
 **Vérifié au navigateur** sur une page d'aperçu aux données fictives : encadré, transitions et détail par assertion, à 375 px.
