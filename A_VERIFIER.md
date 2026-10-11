@@ -363,6 +363,13 @@ Fichier : `transcription-debat/backend/code python/transcribe_offline.py` (`impo
 - Après un changement de phase depuis le détail d'une séance, le bandeau du superadmin a une fois réaffiché l'ancienne phase (« PHASE 0 ») alors que la séance était bien en vote ; revenir à la liste a corrigé l'affichage. Non reproduit ensuite.
 - Pour un sondage, l'onglet Préparation propose « Onboarding activé / désactivé » alors que le questionnaire d'entrée n'existe pas pour ce type (la fenêtre de création, elle, masque la case).
 
+## Chantier 168, deux boutons de parole de même taille (2026-10-11)
+
+Retour d'Antoine : le bouton bleu était plus grand que le vert, et l'inverse une fois cliqué (le bleu porte en plus la ligne « Sujet », qui disparaît dans la file). Les deux boutons sont maintenant dans une même rangée de grille : même hauteur toujours, celle du plus haut, au repos comme dans la file. **Vérifié au navigateur** sur la page d'aperçu au contexte simulé : 167×155 / 167×155 au repos, 167×170 / 167×170 dans la file « autre sujet » avec un sujet indiqué, 167×156 / 167×156 dans la file « sujet actuel » (375 px) ; 324×170 / 324×170 et 324×125 / 324×125 à 1280 px.
+
+**Reste à voir à l'œil**
+- [ ] En vrai, en cliquant : la hauteur des deux boutons change ensemble (de quelques pixels) quand le champ « Sujet » apparaît ou disparaît, et les files du dessous suivent. Si ce léger saut gêne, on peut réserver la hauteur maximale.
+
 ## Chantier 168, vue participant en débat sur un seul écran + retours de Jules (2026-10-11)
 
 **Vérifié au navigateur** sur une page d'aperçu au contexte de table simulé : à 375×667, 820×1000 et 1280×720, les deux boutons de parole, leurs deux files et « Sujet suivant » tiennent sans défiler (file longue : défilement dans sa carte ; « Vous avez la parole » compact). Écran de vote à 360×740 : tout tient. Puce d'étape en puce de verre avec chevron.

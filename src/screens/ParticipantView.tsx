@@ -384,84 +384,83 @@ export default function ParticipantView() {
             </div>
 
             {/* ── Deux colonnes : chaque bouton de parole au-dessus de sa file ── */}
-            <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5 lg:gap-4">
+            {/* Une seule grille à deux rangées : les deux boutons sont dans la même rangée,
+                donc toujours de la même hauteur (celle du plus haut), au repos comme une
+                fois dans la file ; les deux files partagent la rangée du dessous. */}
+            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-2.5 lg:gap-x-4">
 
-              <div className="flex min-h-0 min-w-0 flex-col gap-2.5 animate-montee [animation-delay:60ms]">
-                <QueueToggle
-                  label="Prendre la parole sur un autre sujet"
-                  sub="Introduire un nouveau point ou des informations complémentaires"
-                  color="indigo"
-                  icone={<IconeAutreSujet className="h-5 w-5 lg:h-6 lg:w-6" />}
-                  active={pendingLong || !!myLong}
-                  position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
-                  total={queueLong.length}
-                  pending={pendingLong}
-                  disabled={iAmSpeaking}
-                  onClick={() => toggle('long', myLong)}
-                  className="shrink-0"
-                >
-                  {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
-                  {!myLong && !pendingLong ? (
-                    <label className="flex items-stretch border-t border-bleu-fonce/10 transition-colors
-                      focus-within:bg-indigo-50/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-bleu-clair/60">
-                      <span aria-hidden="true" className="flex w-9 shrink-0 items-center justify-center text-bleu-fonce/45 lg:w-14">
-                        <IconeSujet className="h-4 w-4" />
-                      </span>
-                      <input
-                        type="text"
-                        value={topicTag}
-                        onChange={e => setTopicTag(e.target.value.slice(0, 60))}
-                        placeholder="Sujet (optionnel)"
-                        className="min-w-0 flex-1 bg-transparent py-2.5 pr-2.5 text-xs text-anthracite placeholder:text-anthracite/45 focus:outline-none lg:py-3 lg:pr-4 lg:text-sm"
-                      />
-                    </label>
-                  ) : myLong?.topic_tag ? (
-                    <p className="flex items-stretch border-t border-white/10">
-                      <span aria-hidden="true" className="flex w-9 shrink-0 items-center justify-center text-bleu-clair lg:w-14">
-                        <IconeSujet className="h-4 w-4" />
-                      </span>
-                      <span className="py-2 pr-2.5 text-xs text-white/75 lg:py-2.5 lg:pr-4">
-                        Sujet indiqué : <span className="font-semibold text-white">{myLong.topic_tag}</span>
-                      </span>
-                    </p>
-                  ) : null}
-                </QueueToggle>
+              <QueueToggle
+                label="Prendre la parole sur un autre sujet"
+                sub="Introduire un nouveau point ou des informations complémentaires"
+                color="indigo"
+                icone={<IconeAutreSujet className="h-5 w-5 lg:h-6 lg:w-6" />}
+                active={pendingLong || !!myLong}
+                position={myLong ? queueLong.findIndex(e => e.id === myLong!.id) + 1 : null}
+                total={queueLong.length}
+                pending={pendingLong}
+                disabled={iAmSpeaking}
+                onClick={() => toggle('long', myLong)}
+                className="animate-montee [animation-delay:60ms]"
+              >
+                {/* Chantier 131 — tag de sujet optionnel, saisi avant de rejoindre la file */}
+                {!myLong && !pendingLong ? (
+                  <label className="flex items-stretch border-t border-bleu-fonce/10 transition-colors
+                    focus-within:bg-indigo-50/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-bleu-clair/60">
+                    <span aria-hidden="true" className="flex w-9 shrink-0 items-center justify-center text-bleu-fonce/45 lg:w-14">
+                      <IconeSujet className="h-4 w-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={topicTag}
+                      onChange={e => setTopicTag(e.target.value.slice(0, 60))}
+                      placeholder="Sujet (optionnel)"
+                      className="min-w-0 flex-1 bg-transparent py-2.5 pr-2.5 text-xs text-anthracite placeholder:text-anthracite/45 focus:outline-none lg:py-3 lg:pr-4 lg:text-sm"
+                    />
+                  </label>
+                ) : myLong?.topic_tag ? (
+                  <p className="flex items-stretch border-t border-white/10">
+                    <span aria-hidden="true" className="flex w-9 shrink-0 items-center justify-center text-bleu-clair lg:w-14">
+                      <IconeSujet className="h-4 w-4" />
+                    </span>
+                    <span className="py-2 pr-2.5 text-xs text-white/75 lg:py-2.5 lg:pr-4">
+                      Sujet indiqué : <span className="font-semibold text-white">{myLong.topic_tag}</span>
+                    </span>
+                  </p>
+                ) : null}
+              </QueueToggle>
 
-                <ReadOnlyQueuePanel
-                  title="File d'attente : prendre la parole sur un autre sujet"
-                  entries={queueLong}
-                  participants={participants}
-                  accent="indigo"
-                  selfId={myParticipant.id}
-                  className="min-h-0 flex-1"
-                />
-              </div>
+              <QueueToggle
+                label="Demander la parole sur le sujet actuel"
+                sub="Pour répondre à ce qui est dit actuellement uniquement"
+                color="teal"
+                icone={<IconeSujetActuel className="h-5 w-5 lg:h-6 lg:w-6" />}
+                active={pendingInteractive || !!myInteractive}
+                position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
+                total={queueInteractive.length}
+                pending={pendingInteractive}
+                disabled={iAmSpeaking}
+                onClick={() => toggle('interactive', myInteractive)}
+                className="animate-montee [animation-delay:120ms]"
+              />
 
-              <div className="flex min-h-0 min-w-0 flex-col gap-2.5 animate-montee [animation-delay:120ms]">
-                <QueueToggle
-                  label="Demander la parole sur le sujet actuel"
-                  sub="Pour répondre à ce qui est dit actuellement uniquement"
-                  color="teal"
-                  icone={<IconeSujetActuel className="h-5 w-5 lg:h-6 lg:w-6" />}
-                  active={pendingInteractive || !!myInteractive}
-                  position={myInteractive ? queueInteractive.findIndex(e => e.id === myInteractive!.id) + 1 : null}
-                  total={queueInteractive.length}
-                  pending={pendingInteractive}
-                  disabled={iAmSpeaking}
-                  onClick={() => toggle('interactive', myInteractive)}
-                  className="shrink-0"
-                />
+              <ReadOnlyQueuePanel
+                title="File d'attente : prendre la parole sur un autre sujet"
+                entries={queueLong}
+                participants={participants}
+                accent="indigo"
+                selfId={myParticipant.id}
+                className="min-h-0 animate-montee [animation-delay:90ms]"
+              />
 
-                <ReadOnlyQueuePanel
-                  title="Demander la parole sur le sujet actuel"
-                  subtitle="Pour répondre à ce qui est dit actuellement uniquement"
-                  entries={queueInteractive}
-                  participants={participants}
-                  accent="teal"
-                  selfId={myParticipant.id}
-                  className="min-h-0 flex-1"
-                />
-              </div>
+              <ReadOnlyQueuePanel
+                title="Demander la parole sur le sujet actuel"
+                subtitle="Pour répondre à ce qui est dit actuellement uniquement"
+                entries={queueInteractive}
+                participants={participants}
+                accent="teal"
+                selfId={myParticipant.id}
+                className="min-h-0 animate-montee [animation-delay:150ms]"
+              />
             </div>
 
             {/* Chantier 131 — "sujet suivant", détaché des deux boutons de parole */}
@@ -733,13 +732,13 @@ function QueueToggle({
   const t = TONS[color]
 
   return (
-    <div className={`overflow-hidden rounded-[12px] border transition-[background-color,border-color,box-shadow] duration-300 ${
+    <div className={`flex h-full flex-col overflow-hidden rounded-[12px] border transition-[background-color,border-color,box-shadow] duration-300 ${
       active ? t.actif : t.repos
     } ${className}`}>
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`group relative flex min-h-[64px] w-full items-stretch text-left transition-colors duration-200 lg:min-h-[88px]
+        className={`group relative flex min-h-[64px] w-full flex-1 items-stretch text-left transition-colors duration-200 lg:min-h-[88px]
           focus:outline-none focus-visible:ring-2 focus-visible:ring-inset ${t.anneau}
           disabled:cursor-not-allowed disabled:opacity-50 ${active ? '' : t.survol}`}
       >
