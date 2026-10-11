@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react'
 import FondQuadrille from './FondQuadrille'
+
+/** Au-delà de ce délai, l'écran dit que c'est long et propose de recharger. */
+const DELAI_INDICE_MS = 8000
 
 /**
  * Écran d'attente plein écran (chantier 168) : aplat marine quadrillé du
@@ -7,6 +11,13 @@ import FondQuadrille from './FondQuadrille'
  * la séance appartient à une association (chantier 135).
  */
 export default function EcranChargement({ texte }: { texte: string }) {
+  // Retour de Jules : sur un réseau lent, l'écran restait chargé sans rien dire.
+  const [long, setLong] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setLong(true), DELAI_INDICE_MS)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden bg-bleu-fonce text-creme">
       <FondQuadrille cases={10} />
@@ -20,6 +31,21 @@ export default function EcranChargement({ texte }: { texte: string }) {
         ))}
       </span>
       <p role="status" className="relative text-sm font-semibold tracking-[0.02em] text-creme/80">{texte}</p>
+      {long && (
+        <div className="relative flex max-w-xs flex-col items-center gap-3 px-6 text-center animate-montee">
+          <p className="text-sm leading-relaxed text-creme/75">
+            La connexion est plus lente que d'habitude. Si rien ne s'affiche dans quelques secondes, recharge la page.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="btn-verre rounded-[8px] inline-flex h-10 items-center px-4 text-xs font-semibold text-creme
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
+          >
+            Recharger la page
+          </button>
+        </div>
+      )}
     </div>
   )
 }

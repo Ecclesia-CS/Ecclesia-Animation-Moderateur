@@ -87,7 +87,7 @@ export default function PageParcours({ session, sousTitre, actions, basEnTete, s
       </header>
 
       <main className="flex-1 bg-gradient-to-b from-creme to-sable">
-        <div className={`mx-auto w-full ${conteneur} px-4 pb-12 pt-5`}>
+        <div className={`mx-auto w-full ${conteneur} px-4 pb-8 pt-4`}>
           {children}
         </div>
       </main>

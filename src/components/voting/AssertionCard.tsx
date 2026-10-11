@@ -40,8 +40,8 @@ export default function AssertionCard({
     >
       {/* Chantier 168 : l'assertion sur l'aplat marine quadrillé du site, les
           trois réponses en rangée attachée sous elle. */}
-      <div className="mt-4 overflow-hidden rounded-[12px] bg-white shadow-[0_26px_54px_-26px_rgba(21,35,63,0.75)] animate-montee">
-        <div className="relative flex min-h-[220px] flex-col justify-center overflow-hidden bg-bleu-fonce px-6 py-8 text-center">
+      <div className="mt-3 overflow-hidden rounded-[12px] bg-white shadow-[0_26px_54px_-26px_rgba(21,35,63,0.75)] animate-montee">
+        <div className="relative flex min-h-[150px] flex-col justify-center overflow-hidden bg-bleu-fonce px-6 py-6 text-center sm:min-h-[220px] sm:py-8">
           <FondQuadrille cases={3} />
           <p className="relative text-[11px] font-bold uppercase tracking-[0.2em] tabular-nums text-bleu-clair">
             Assertion {index + 1} sur {total}
@@ -58,7 +58,7 @@ export default function AssertionCard({
               </span>
             </div>
           )}
-          <p className="relative mt-4 font-sans text-xl font-bold leading-snug tracking-[-0.01em] text-creme sm:text-2xl">
+          <p className="relative mt-3 font-sans text-xl font-bold leading-snug tracking-[-0.01em] text-creme sm:text-2xl">
             {assertion.content}
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function AssertionCard({
         </div>
       </div>
       {index === 0 && (
-        <p className="mt-4 px-2 text-center text-xs leading-relaxed text-gray-600">
+        <p className="mt-3 px-2 text-center text-xs leading-relaxed text-gray-600">
           💡 « Passe » veut dire ni l'un ni l'autre, ou que la question n'est pas claire. C'est un vrai choix, compté dans les résultats, pas pareil que de ne jamais répondre.
         </p>
       )}
@@ -116,7 +116,7 @@ function VoteBtn({
   onClick: () => void
 }) {
   const base =
-    'group flex min-h-[84px] flex-col items-center justify-center gap-1.5 px-1 py-4 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bleu-clair'
+    'group flex min-h-[72px] flex-col items-center justify-center gap-1 px-1 py-3 text-sm sm:min-h-[84px] sm:gap-1.5 sm:py-4 font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bleu-clair'
 
   const colorMap = {
     green: active ? 'bg-emerald-600 text-white' : 'bg-white text-emerald-800 hover:bg-emerald-50',

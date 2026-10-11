@@ -33,15 +33,16 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
   if (!step) return null
 
   const pill = tone === 'marine' ? (
-    // Surtitre du site sur marine : la progression des étapes tient lieu de
-    // trait d'accent (barres de 3 px, l'étape en cours allongée, comme la
-    // pagination du carrousel du site), puis « Étape N · Libellé ». Sans
-    // cadre ni marge à gauche : il s'aligne sur le titre qu'il surmonte.
+    // Puce de verre du site sur marine, comme les boutons Outils et Menu à côté
+    // (retour de Jules : en simple surtitre, rien ne disait qu'on pouvait
+    // cliquer). La progression des étapes tient lieu de trait d'accent (barres
+    // de 3 px, l'étape en cours allongée, comme la pagination du carrousel du
+    // site), puis « Étape N · Libellé » et un chevron qui annonce la fenêtre.
     <button
       type="button"
       onClick={() => setOpen(true)}
-      // -my-3 py-3 : zone de toucher de 41 px sans décaler la mise en page
-      className="group -my-3 inline-flex items-center gap-3 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-bleu-clair whitespace-nowrap transition-colors hover:text-creme focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-4 focus-visible:ring-offset-bleu-fonce"
+      aria-haspopup="dialog"
+      className="btn-verre group rounded-[8px] inline-flex h-9 max-w-full items-center gap-3 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-bleu-clair whitespace-nowrap transition-colors hover:text-creme focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
     >
       <span aria-hidden="true" className="flex items-center gap-1">
         {participantPhaseSteps(sessionType).map(s => (
@@ -58,6 +59,10 @@ export default function PhaseIndicator({ phase, floating = false, sessionType = 
         ))}
       </span>
       Étape {step.number} · {step.label}
+      <svg className="h-3 w-3 shrink-0 text-bleu-clair/70 transition-colors group-hover:text-creme" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
     </button>
   ) : (
     <button

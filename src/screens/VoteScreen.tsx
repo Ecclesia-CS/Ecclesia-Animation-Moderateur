@@ -295,7 +295,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       await loadVoteData(s, m)
     }
 
-    init()
+    // Une coupure réseau pendant l'initialisation ne doit pas laisser l'écran de
+    // chargement tourner sans fin : on le dit, avec de quoi recharger.
+    init().catch(() => {
+      setErrorMsg('La connexion à la séance a échoué. Vérifie ton réseau, puis recharge la page.')
+      setStep('error')
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionJoinCode])
 
@@ -739,8 +744,15 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         <FondQuadrille cases={10} />
         <div className="relative flex max-w-sm flex-col items-center gap-4 animate-montee">
           <div className="text-5xl">😕</div>
-          <h1 className="font-sans text-3xl font-bold tracking-[-0.02em]">Séance introuvable</h1>
+          <h1 className="font-sans text-3xl font-bold tracking-[-0.02em]">
+            {errorMsg === 'Séance introuvable.' ? 'Séance introuvable' : 'Une erreur est survenue'}
+          </h1>
           <p className="text-sm text-creme/75">{errorMsg}</p>
+          {errorMsg !== 'Séance introuvable.' && (
+            <button type="button" onClick={() => window.location.reload()} className={BOUTON_VERRE_PARCOURS}>
+              Recharger la page
+            </button>
+          )}
           <a
             href="#"
             onClick={() => (window.location.hash = '')}
@@ -995,7 +1007,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
           <div className="mt-3">
             <button
               onClick={() => setShowLiveResults(true)}
-              className="w-full rounded-[8px] py-2.5 px-4 bg-white shadow-sm border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+              className="w-full rounded-[8px] py-2 px-4 bg-white shadow-sm border border-bleu-fonce/20 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] text-bleu-fonce text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
             >
               {consent ? '📊 Voir les résultats en direct' : '📊 Voir les résultats et les camps en direct'}
             </button>
@@ -1112,7 +1124,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
 
         {/* Navigation dots — only unvoted */}
         {!consent && unvotedAssertions.length > 1 && !allVoted && (
-          <div className="flex justify-center gap-1.5 pb-4 flex-wrap px-4">
+          <div className="flex justify-center gap-1.5 pb-3 flex-wrap px-4">
             {unvotedAssertions.map((a, i) => (
               <button
                 key={a.id}

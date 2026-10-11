@@ -10,8 +10,8 @@ export default function VoteProgress({ voted, total, proposed, label = 'assertio
   const pct = total === 0 ? 0 : Math.round((voted / total) * 100)
 
   return (
-    <div className="rounded-[12px] border border-bleu-fonce/10 bg-white px-4 py-3.5 shadow-sm animate-montee">
-      <div className="flex items-center justify-between gap-3 mb-2">
+    <div className="rounded-[12px] border border-bleu-fonce/10 bg-white px-4 py-3 shadow-sm animate-montee">
+      <div className="flex items-center justify-between gap-3 mb-1.5">
         <span className="text-sm font-semibold tabular-nums text-bleu-fonce">
           {voted}/{total} {label}
         </span>
