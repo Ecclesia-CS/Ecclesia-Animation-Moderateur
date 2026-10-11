@@ -686,6 +686,16 @@ function plural(n: number, one: string, many: string): string {
   return n > 1 ? many : one
 }
 
+/** Passage d'une valeur à une autre : chevron dessiné, jamais une flèche typographique. */
+function Vers() {
+  return (
+    <svg className="mx-1 inline h-3 w-3 shrink-0 align-[-1px] text-gray-500" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label="vers">
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
+  )
+}
+
 function VoteChangesView({
   changes,
   assertionMap,
@@ -694,7 +704,7 @@ function VoteChangesView({
   assertionMap: Map<string, string>
 }) {
   if (changes.membersBefore === 0 && changes.newVotes === 0) {
-    return <p className="text-sm text-gray-400">Aucun vote enregistré pour l'instant.</p>
+    return <p className="text-sm text-gray-600">Aucun vote enregistré pour l'instant.</p>
   }
   const pct = changes.membersBefore > 0
     ? Math.round((changes.membersChanged / changes.membersBefore) * 100)
@@ -703,49 +713,51 @@ function VoteChangesView({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-700">
+      <div className="rounded-[8px] border border-bleu-fonce/10 bg-indigo-50 px-4 py-3">
+      <p className="text-sm text-gray-800">
         <strong>{changes.membersChanged}</strong> {plural(changes.membersChanged, 'membre', 'membres')} sur{' '}
         <strong>{changes.membersBefore}</strong> {plural(changes.membersChanged, 'a', 'ont')} changé d'avis
         sur au moins une assertion{changes.membersBefore > 0 && <> ({pct} %)</>}.
-        <span className="text-gray-400">
-          {' '}{changes.pairsChanged} vote{plural(changes.pairsChanged, '', 's')} modifié{plural(changes.pairsChanged, '', 's')} sur {changes.pairsTotal}.
+        <span className="block text-xs text-gray-600 mt-1">
+          {changes.pairsChanged} vote{plural(changes.pairsChanged, '', 's')} modifié{plural(changes.pairsChanged, '', 's')} sur {changes.pairsTotal}.
         </span>
       </p>
+      </div>
 
       {changes.transitions.length > 0 && (
         <ul className="flex flex-wrap gap-2 text-xs">
           {changes.transitions.map(t => (
-            <li key={`${t.from}-${t.to}`} className="px-2 py-1 rounded-lg bg-gray-100 text-gray-700">
-              {VOTE_LABEL[t.from]} → {VOTE_LABEL[t.to]} : <strong>{t.count}</strong>
+            <li key={`${t.from}-${t.to}`} className="px-2 py-1 rounded-[6px] bg-gray-100 text-gray-700">
+              {VOTE_LABEL[t.from]}<Vers />{VOTE_LABEL[t.to]} : <strong className="tabular-nums">{t.count}</strong>
             </li>
           ))}
         </ul>
       )}
 
       {changes.newVotes > 0 && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-600">
           {changes.newVoters} {plural(changes.newVoters, 'personne a', 'personnes ont')} aussi voté pour la
-          première fois en post-vote ({changes.newVotes} vote{plural(changes.newVotes, '', 's')}) — ces votes
+          première fois en post-vote ({changes.newVotes} vote{plural(changes.newVotes, '', 's')}) : ces votes
           n'ont pas d'« avant » et ne sont pas comptés ci-dessus.
         </p>
       )}
 
       {top.length > 0 && (
-        <ul className="space-y-1.5">
+        <ul className="divide-y divide-bleu-fonce/10">
           {top.map(a => (
-            <li key={a.assertionId} className="text-sm text-gray-700">
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 mr-2">
+            <li key={a.assertionId} className="text-sm text-gray-700 py-2.5 first:pt-0">
+              <span className="text-xs font-bold tabular-nums px-1.5 py-0.5 rounded-[6px] bg-amber-50 text-amber-800 mr-2">
                 {a.changed} {plural(a.changed, 'changement', 'changements')}
               </span>
               {assertionMap.get(a.assertionId) ?? '(assertion supprimée)'}
-              <span className="block text-xs text-gray-400 mt-0.5">
-                d'accord {a.beforeAgree} → {a.afterAgree} · pas d'accord {a.beforeDisagree} → {a.afterDisagree}
-                {' '}· passer {a.beforePass} → {a.afterPass}
+              <span className="block text-xs text-gray-600 mt-1 tabular-nums">
+                d'accord {a.beforeAgree}<Vers />{a.afterAgree} · pas d'accord {a.beforeDisagree}<Vers />{a.afterDisagree}
+                {' '}· passer {a.beforePass}<Vers />{a.afterPass}
               </span>
             </li>
           ))}
           {changes.assertions.length > top.length && (
-            <li className="text-xs text-gray-400">
+            <li className="text-xs text-gray-600 pt-2.5">
               … et {changes.assertions.length - top.length} autre{plural(changes.assertions.length - top.length, '', 's')} assertion{plural(changes.assertions.length - top.length, '', 's')}.
             </li>
           )}
@@ -753,7 +765,7 @@ function VoteChangesView({
       )}
 
       {changes.pairsChanged === 0 && (
-        <p className="text-xs text-gray-400">Personne n'a modifié un vote depuis la fin du débat.</p>
+        <p className="text-xs text-gray-600">Personne n'a modifié un vote depuis la fin du débat.</p>
       )}
     </div>
   )
@@ -930,22 +942,23 @@ export function AnalysisComparisonPanel({
           {/* Chantier 167 — mesure directe, lue dans l'historique des votes */}
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <h4 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]">
                 Qui a changé d'avis
               </h4>
               <button
                 onClick={loadChanges}
                 disabled={changesStatus === 'loading'}
-                className="text-xs text-indigo-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                className="rounded-[8px] inline-flex h-8 items-center border border-bleu-fonce/20 px-3 text-xs font-semibold text-bleu-fonce transition-colors hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-50
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
               >
                 Actualiser
               </button>
             </div>
             {changesStatus === 'loading' && !changes && (
-              <p className="text-sm text-gray-400">Lecture de l'historique des votes…</p>
+              <p className="text-sm text-gray-600" role="status">Lecture de l'historique des votes…</p>
             )}
             {changesStatus === 'error' && changesError && (
-              <p className="text-sm text-red-600">{changesError}</p>
+              <p role="alert" className="text-sm text-red-700">{changesError}</p>
             )}
             {changes && <VoteChangesView changes={changes} assertionMap={assertionMap} />}
           </div>
