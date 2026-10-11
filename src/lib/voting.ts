@@ -588,18 +588,33 @@ export async function loadAllocationInputs(
 
 // ── Chantier 92 — appairage entre participants ──────────────
 
+/** Chantier 165 — pourquoi un choix n'a pas été enregistré. */
+export type PairingRefusal = 'self' | 'target_full' | 'too_big'
+
 export interface PairingResult {
   pseudo: string
-  /** Un membre de la séance porte ce pseudo. */
+  /** Un membre de la séance porte ce pseudo (faux = nom à venir, gardé en attente). */
   found: boolean
   /** La personne citée m'a cité aussi — seul un lien réciproque compte pour l'allocation. */
   reciprocal: boolean
+  /** Chantier 165 — le choix est enregistré. Faux s'il a été refusé. Absent = enregistré. */
+  saved?: boolean
+  /** Chantier 165 — motif du refus : soi-même, trio déjà complet, ou groupe qui dépasserait 3. */
+  refused?: PairingRefusal | null
+  /** Chantier 165 — lien impossible tant que les groupes restent ce qu'ils sont (relecture). */
+  blocked?: boolean
+}
+
+/** Chantier 165 — quelqu'un m'a cité et je ne l'ai pas encore cité en retour. */
+export interface PairingRequest {
+  member_id: string
+  pseudo: string
 }
 
 /**
- * Remplace mes binômes (0 à 2 pseudos). Si l'allocation est déjà faite et que
- * je n'ai pas de table, je suis rattaché à celle d'une personne citée
- * réciproquement (`placedTableNumber`).
+ * Remplace mes binômes (0 à 2 pseudos). Chantier 165 : un nom qui n'existe pas
+ * encore est gardé (`found: false`) et se lie tout seul à l'arrivée de la
+ * personne ; un choix qui ferait dépasser 3 personnes est refusé (`refused`).
  */
 export async function setMyPairings(
   sessionId: string,
@@ -614,10 +629,24 @@ export async function setMyPairings(
   return { results: raw.results ?? [], placedTableNumber: raw.placed_table_number ?? null }
 }
 
-export async function getMyPairings(sessionId: string): Promise<{ pseudo: string; reciprocal: boolean }[]> {
+/** Mes choix actuels, y compris les noms à venir (`found: false`). */
+export async function getMyPairings(sessionId: string): Promise<PairingResult[]> {
   const { data, error } = await supabase.rpc('get_my_pairings', { p_session_id: sessionId })
   if (error) throw new Error(extractErr(error))
-  return (data ?? []) as { pseudo: string; reciprocal: boolean }[]
+  return ((data ?? []) as Partial<PairingResult>[]).map(p => ({
+    pseudo:     p.pseudo ?? '',
+    found:      p.found ?? true,
+    reciprocal: p.reciprocal ?? false,
+    blocked:    p.blocked ?? false,
+  }))
+}
+
+/** Chantier 165 — les personnes qui m'ont cité et que je peux encore rejoindre. */
+export async function getPairingRequests(sessionId: string): Promise<PairingRequest[]> {
+  const { data, error } = await supabase.rpc('get_pairing_requests', { p_session_id: sessionId })
+  if (error) throw new Error(extractErr(error))
+  return ((data ?? []) as Partial<PairingRequest>[])
+    .filter((r): r is PairingRequest => typeof r.member_id === 'string' && typeof r.pseudo === 'string')
 }
 
 export async function getSessionPairingsAdmin(password: string, sessionId: string): Promise<[string, string][]> {
@@ -782,14 +811,22 @@ export async function claimModeratorStatus(
  * formulaires d'inscription (PseudoForm, VotingEntryForm, AttendanceConfirmScreen) :
  * un mot de passe invalide ne doit jamais faire échouer l'inscription elle-même,
  * seulement la déclaration modérateur qui la suit.
+ *
+ * Chantier 158 — `previous` : le membre qui vient d'être inscrit juste avant.
+ * `claim_moderator_status` ne génère un code que s'il CRÉE le profil ; sur un
+ * profil existant il renvoie `new_reclaim_code: null`. Sans ce report, le
+ * membre renvoyé remplaçait celui de l'inscription et le code de rappel,
+ * lisible une seule fois, n'était jamais montré.
  */
 export async function tryClaimModeratorStatus(
   sessionId: string,
   creationCode: string,
-  pseudo: string
+  pseudo: string,
+  previous?: SessionMember | null
 ): Promise<{ member: SessionMember | null; error: string | null }> {
   try {
-    const member = await claimModeratorStatus(sessionId, creationCode, pseudo)
+    const claimed = await claimModeratorStatus(sessionId, creationCode, pseudo)
+    const member = { ...claimed, new_reclaim_code: claimed.new_reclaim_code ?? previous?.new_reclaim_code ?? null }
     return { member, error: null }
   } catch (err) {
     return { member: null, error: err instanceof Error ? err.message : 'Erreur inattendue' }
@@ -1118,6 +1155,8 @@ export async function getMyTableAssignment(
     table_id: string | null
     join_code: string | null
     created_at: string
+    debate_ended_at?: string | null
+    effective_phase?: string | null
   }
   return {
     id:           raw.id,
@@ -1127,6 +1166,7 @@ export async function getMyTableAssignment(
     table_id:     raw.table_id,
     created_at:   raw.created_at,
     tables:       raw.join_code ? { join_code: raw.join_code } : null,
+    debate_ended_at: raw.debate_ended_at ?? null,
   }
 }
 
@@ -1138,6 +1178,35 @@ export interface AssignmentWithJoinCode {
   table_id: string | null
   created_at: string
   tables: { join_code: string } | null
+  /**
+   * Chantier 161 — fin du débat de la table de ce membre (NULL : elle débat,
+   * ou RPC d'avant le 161a). La phase effective se calcule côté front avec
+   * effectiveTablePhase(session, assignment) — même règle que le SQL.
+   */
+  debate_ended_at: string | null
+}
+
+/** Chantier 161 — le modérateur titulaire termine le débat de sa table. */
+export async function endTableDebate(tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('end_table_debate', { p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
+}
+
+/** Chantier 161 — le modérateur titulaire rouvre le débat de sa table (séance encore en débat). */
+export async function reopenTableDebate(tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('reopen_table_debate', { p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
+}
+
+/** Chantier 161 — même chose côté administration (onglet Tables). */
+export async function endTableDebateAdmin(password: string, tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('end_table_debate_admin', { p_password: password, p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
+}
+
+export async function reopenTableDebateAdmin(password: string, tableId: string): Promise<void> {
+  const { error } = await supabase.rpc('reopen_table_debate_admin', { p_password: password, p_table_id: tableId })
+  if (error) throw new Error(extractErr(error))
 }
 
 export async function moveMemberToGroup(

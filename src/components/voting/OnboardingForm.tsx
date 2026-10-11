@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { submitEntryResponse, setMyPairings } from '../../lib/voting'
-import { PairingFields, PairingResultsList, ReciprocityNotice, PAIRING_EXPLANATION } from './PairingModal'
+import { PairingFields, PairingResultsList, ReciprocityNotice, PAIRING_EXPLANATION, PAIRING_LATER_NOTE } from './PairingModal'
 import type { PairingResult } from '../../lib/voting'
 import type { EntryResponse, ParticipationStyle, SessionMember } from '../../lib/types'
 
@@ -173,6 +173,10 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
             </div>
             <ReciprocityNotice />
             <PairingFields values={answers.pairings} onChange={v => update('pairings', v)} />
+            {/* Chantier 165 — le cas fréquent : le nom de l'autre n'est pas encore inscrit. */}
+            <p className="text-xs text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2 leading-snug">
+              💡 {PAIRING_LATER_NOTE}
+            </p>
           </div>
         )}
       </div>

@@ -6,8 +6,9 @@ import ResultsMapScreen from './ResultsMapScreen'
 import PublicResultsScreen from './PublicResultsScreen'
 import JoinTableForm from '../components/JoinTableForm'
 import SessionQuestionnaireForm from '../components/voting/SessionQuestionnaireForm'
-import { hasQuestionnaireResponse, joinSimpleDebate } from '../lib/voting'
-import { sessionTypeOf } from '../lib/phaseLabels'
+import { getMyTableAssignment, hasQuestionnaireResponse, joinSimpleDebate } from '../lib/voting'
+import { effectiveTablePhase, sessionTypeOf } from '../lib/phaseLabels'
+import TableDebateEndedPanel from '../components/voting/TableDebateEndedPanel'
 import DebateEntryForm from '../components/DebateEntryForm'
 import { tableStore } from '../lib/storage'
 import PageParcours, { BOUTON_VERRE_PARCOURS, CarteMessage } from '../components/PageParcours'
@@ -37,6 +38,9 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
   const [sessionId,    setSessionId]    = useState<string | null>(null)
   const [fullSession,  setFullSession]  = useState<Session | null>(null)
   const [selfMemberId, setSelfMemberId] = useState<string | null>(null)
+  // Chantier 161 — table du membre dont le débat est terminé alors que la
+  // séance débat encore (null sinon) : écran de fin du débat simple.
+  const [endedTableId, setEndedTableId] = useState<string | null>(null)
   useEffect(() => {
     async function route() {
       // 1. Ensure anonymous auth
@@ -60,8 +64,19 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
       setFullSession(s)
       const isSimpleDebate = sessionTypeOf(s) === 'debate'
 
+      // Chantier 161 — un membre dont la table a terminé son débat suit la
+      // phase de SA table (post-vote ou fin), pas celle de la séance.
+      let phase: Session['phase'] = s.phase
+      if (s.phase === 'debating' && userId) {
+        const a = await getMyTableAssignment(s.id).catch(() => null)
+        if (a?.debate_ended_at) {
+          phase = effectiveTablePhase(s, a) ?? s.phase
+          setEndedTableId(a.table_id)
+        }
+      }
+
       // 3. Branch per phase
-      switch (s.phase) {
+      switch (phase) {
         case 'draft':
           // Chantier 65 — une séance en brouillon n'est pas encore ouverte :
           // pas de redirection vers #vote/, qui ne peut de toute façon aboutir
@@ -296,11 +311,20 @@ export default function SessionRouterScreen({ sessionJoinCode, onTableJoined }: 
     )
   }
 
+  // Chantier 161 — débat simple : c'est la table, pas la séance, qui a fini.
+  const tableEnded = status === 'closed' && !!endedTableId
+  const title = tableEnded ? 'Le débat de votre table est terminé' : 'Séance terminée'
+
   return (
     <PageParcours session={fullSession}>
-      <CarteMessage icone="✅" titre="Séance terminée">
-        Merci pour ta participation.
-      </CarteMessage>
+      <div className="space-y-4">
+        <CarteMessage icone="✅" titre={title}>
+          Merci pour ta participation.
+        </CarteMessage>
+        {tableEnded && (
+          <TableDebateEndedPanel session={fullSession} tableId={endedTableId} initiallyEnded />
+        )}
+      </div>
     </PageParcours>
   )
 }

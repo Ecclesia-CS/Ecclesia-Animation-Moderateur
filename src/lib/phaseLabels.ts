@@ -57,6 +57,29 @@ export function sessionTypeOf(session: { session_type?: SessionType | null } | n
   return t === 'debate' || t === 'poll' ? t : 'full'
 }
 
+/**
+ * Chantier 160 — sondage « vote par consentement » : d'accord / pas d'accord par
+ * option, décomptes seuls, jamais de camps. Frontière DB → front : tout ce qui
+ * n'est pas exactement un sondage en 'consent' (colonne absente, autre type)
+ * garde le comportement historique.
+ */
+export function isConsentPoll(
+  session: { session_type?: SessionType | null; poll_mode?: string | null } | null | undefined,
+): boolean {
+  return sessionTypeOf(session) === 'poll' && session?.poll_mode === 'consent'
+}
+
+/**
+ * Chantier 160 — le mot que l'interface emploie pour ce qu'on vote : « option »
+ * dans un sondage en consentement, « assertion » partout ailleurs (au pluriel,
+ * ajouter un « s »).
+ */
+export function itemNoun(
+  session: { session_type?: SessionType | null; poll_mode?: string | null } | null | undefined,
+): 'option' | 'assertion' {
+  return isConsentPoll(session) ? 'option' : 'assertion'
+}
+
 export function phaseSequenceFor(type: SessionType): Session['phase'][] {
   return PHASE_SEQUENCES[type]
 }
@@ -68,4 +91,36 @@ export function participantPhaseSteps(type: SessionType = 'full') {
 export function participantPhaseStep(phase: Session['phase'] | null | undefined, type: SessionType = 'full') {
   if (!phase) return null
   return PARTICIPANT_STEPS_BY_TYPE[type].find(s => s.phase === phase) ?? null
+}
+
+/**
+ * Chantier 161 — phase effective d'une table (et donc de ceux qui y sont
+ * affectés). Une table peut terminer son débat avant les autres
+ * (`tables.debate_ended_at`, posé par le modérateur) : tant que la séance est
+ * en `debating`, sa phase devient `post_voting` (séance complète :
+ * questionnaire, résultats, revote) ou `closed` (débat simple : questionnaire
+ * puis écran de fin). Dès que la séance avance, c'est elle qui l'emporte.
+ *
+ * Miroir exact de `table_effective_phase` (SQL, migration
+ * 20261008_chantier161a_tables_desolidarisees.sql), qui fonde les gardes
+ * serveur (`cast_vote`, `get_results_map`) : modifier l'un sans l'autre fait
+ * afficher un écran que le serveur refuse.
+ */
+export function effectiveTablePhase(
+  session: { phase: Session['phase']; session_type?: SessionType | null } | null | undefined,
+  table: { debate_ended_at?: string | null } | null | undefined,
+): Session['phase'] | null {
+  if (!session) return null
+  if (session.phase === 'debating' && table?.debate_ended_at) {
+    return sessionTypeOf(session) === 'debate' ? 'closed' : 'post_voting'
+  }
+  return session.phase
+}
+
+/** Chantier 161 — vrai si la table a terminé son débat alors que la séance débat encore. */
+export function tableDebateEnded(
+  session: { phase: Session['phase'] } | null | undefined,
+  table: { debate_ended_at?: string | null } | null | undefined,
+): boolean {
+  return session?.phase === 'debating' && !!table?.debate_ended_at
 }

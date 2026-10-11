@@ -6,6 +6,8 @@ import FondQuadrille from '../FondQuadrille'
 
 export interface AssignmentWithTable extends TableAssignment {
   tables: { join_code: string } | null
+  /** Chantier 161 — fin du débat de la table (get_my_table_assignment). */
+  debate_ended_at?: string | null
 }
 
 interface TableAssignmentCardProps {

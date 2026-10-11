@@ -24,14 +24,16 @@ import ParticipantsTable from '../components/ParticipantsTable'
 import ParticipantsSidebar from '../components/ParticipantsSidebar'
 import DocumentationButton from '../components/DocumentationButton'
 import { useSessionOrganizationName } from '../lib/organizations'
+import { sessionTypeOf } from '../lib/phaseLabels'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
 import FondQuadrille from '../components/FondQuadrille'
 import PhaseIndicator from '../components/PhaseIndicator'
-import { sessionTypeOf } from '../lib/phaseLabels'
 import ecclesiaLogo from '../assets/ecclesia-logo.webp'
 import { IconeAutreSujet, IconeSujetActuel } from '../components/IconesFiles'
+import ModeratorShareRequests from '../components/ModeratorShareRequests'
+import TableShareCard from '../components/TableShareCard'
 
 export default function ModeratorView() {
   const {
@@ -50,6 +52,7 @@ export default function ModeratorView() {
     reorderQueueEntry,
     changeQueueType,
     leaveTable,
+    effectivePhase,
   } = useTable()
 
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -604,6 +607,11 @@ export default function ModeratorView() {
           </div>
         )}
 
+        {/* Chantier 162a — sources proposées par la table : à valider avant que
+            la table ne les voie, puis la carte actuellement montrée */}
+        <ModeratorShareRequests />
+        <TableShareCard dark />
+
         {/* ── Carte de l'orateur : ocre au micro, comme « Vous avez la parole ! » ── */}
         <div ref={heroRef}>
         {pausedSpeakerId && !speaker ? (
@@ -839,15 +847,21 @@ export default function ModeratorView() {
           Chantier 112 — masqué tant que le questionnaire forcé est actif, sinon il
           recouvre "Outils Modo" (z-50 lui aussi) et le modérateur ne peut plus l'ouvrir.
           Chantier 158 : plein écran marine quadrillé, comme la vue participant. */}
-      {(session?.phase === 'closed' || session?.phase === 'post_voting') &&
-        !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now()) && (
+      {/* Chantier 161 — fin de la table seule (« Terminer le débat de ma table ») :
+          le modérateur sort avec les autres, tout de suite ; le masquage du 112 ne
+          vaut que pour la fin de séance, où il peut encore devoir annuler le forçage. */}
+      {session && (effectivePhase === 'closed' || effectivePhase === 'post_voting') &&
+        (session.phase === 'debating' ||
+          !(table.questionnaire_forced_at && new Date(table.questionnaire_forced_at).getTime() + 3600000 > Date.now())) && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-bleu-fonce px-6 text-center text-creme">
           <FondQuadrille cases={14} />
           <div className="relative flex flex-col items-center gap-5 animate-montee">
-            <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
-            <p className="font-sans text-4xl font-bold tracking-[-0.02em] leading-[1.05] sm:text-5xl">La séance est terminée</p>
+            <PhaseIndicator phase={effectivePhase} sessionType={sessionTypeOf(session)} tone="marine" />
+            <p className="font-sans text-4xl font-bold tracking-[-0.02em] leading-[1.05] sm:text-5xl">{session.phase === 'debating' ? 'Le débat de votre table est terminé' : 'La séance est terminée'}</p>
             <span aria-hidden="true" className="filet-spectre block w-16" />
-            <p className="text-base text-creme/75">La séance a été clôturée par le superadmin.</p>
+            <p className="text-base text-creme/75">{session.phase === 'debating'
+                ? "Tant que la séance est en débat, vous pourrez le rouvrir depuis l'écran suivant."
+                : 'La séance a été clôturée par le superadmin.'}</p>
             <div className="mt-3 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
               {session.join_code && (
                 <button
@@ -858,7 +872,8 @@ export default function ModeratorView() {
                   className="btn-verre btn-verre-primaire rounded-[8px] inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
                 >
-                  Voir les résultats
+                  {/* Débat simple : pas de résultats, le routeur mène au questionnaire puis à l'écran de fin. */}
+                  {sessionTypeOf(session) === 'debate' ? 'Continuer' : 'Voir les résultats'}
                 </button>
               )}
               <button

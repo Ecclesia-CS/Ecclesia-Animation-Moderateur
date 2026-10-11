@@ -17,6 +17,8 @@ import TableVoteModal from '../components/TableVoteModal'
 import FondQuadrille from '../components/FondQuadrille'
 import ecclesiaLogo from '../assets/ecclesia-logo.webp'
 import { IconeAutreSujet, IconeSujetActuel } from '../components/IconesFiles'
+import TableShareCard from '../components/TableShareCard'
+import MyShareRequests from '../components/MyShareRequests'
 
 export default function ParticipantView() {
   const {
@@ -32,6 +34,7 @@ export default function ParticipantView() {
     endTurnAndAdvance,
     claimFloor,
     setNextTopicVote,
+    effectivePhase,
   } = useTable()
 
   const [showRules,          setShowRules]          = useState(() => !localStorage.getItem('debate_rules_read_' + table.id))
@@ -351,6 +354,13 @@ export default function ParticipantView() {
               </button>
             )}
 
+            {/* Chantier 162a — source montrée par un participant (acceptée par le
+                modérateur), fil des sources déjà montrées, et l'état de mes demandes */}
+            <div className="space-y-3 lg:col-span-2 empty:hidden">
+              <TableShareCard />
+              <MyShareRequests />
+            </div>
+
             {/* ── Boutons de file ──────────────────────────────────── */}
             <QueueToggle
               label="Prendre la parole sur un autre sujet"
@@ -600,12 +610,14 @@ export default function ParticipantView() {
           deux overlays sont en z-50 superposés. 'post_voting' redirige déjà vers les
           résultats (avec revote possible) ; 'closed' n'en est que la suite définitive.
           Chantier 158 : plein écran marine quadrillé, comme le bandeau d'accueil du site. */}
-      {(session?.phase === 'closed' || session?.phase === 'post_voting') && !forcedQOpen && (
+      {/* Chantier 161 — phase effective : la fin peut venir de la table seule
+          (le modérateur a terminé son débat) pendant que la séance débat encore. */}
+      {session && (effectivePhase === 'closed' || effectivePhase === 'post_voting') && !forcedQOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-bleu-fonce px-6 text-center text-creme">
           <FondQuadrille cases={14} />
           <div className="relative flex flex-col items-center gap-5 animate-montee">
-            <PhaseIndicator phase={session.phase} sessionType={sessionTypeOf(session)} tone="marine" />
-            <p className="font-sans text-4xl font-bold tracking-[-0.02em] leading-[1.05] sm:text-5xl">La séance est terminée</p>
+            <PhaseIndicator phase={effectivePhase} sessionType={sessionTypeOf(session)} tone="marine" />
+            <p className="font-sans text-4xl font-bold tracking-[-0.02em] leading-[1.05] sm:text-5xl">{session.phase === 'debating' ? 'Le débat de votre table est terminé' : 'La séance est terminée'}</p>
             <span aria-hidden="true" className="filet-spectre block w-16" />
             <p className="text-base text-creme/75">Merci pour votre participation.</p>
             <div className="mt-3 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
@@ -618,7 +630,8 @@ export default function ParticipantView() {
                   className="btn-verre btn-verre-primaire rounded-[8px] inline-flex items-center justify-center px-7 py-3.5 text-sm font-bold tracking-tight text-creme
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2 focus-visible:ring-offset-bleu-fonce"
                 >
-                  Voir vos résultats
+                  {/* Débat simple : pas de résultats, le routeur mène au questionnaire puis à l'écran de fin. */}
+                  {sessionTypeOf(session) === 'debate' ? 'Continuer' : 'Voir vos résultats'}
                 </button>
               )}
               <button

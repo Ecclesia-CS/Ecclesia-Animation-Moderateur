@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { tableStore } from './lib/storage'
 import type { TableResult } from './lib/supabase'
+import { effectiveTablePhase } from './lib/phaseLabels'
 import { getSessionById } from './lib/sessions'
 import { TableProvider } from './context/TableContext'
 import { useToast } from './context/ToastContext'
@@ -16,6 +17,7 @@ import PublicResultsScreen from './screens/PublicResultsScreen'
 import NotFoundScreen from './screens/NotFoundScreen'
 import ReconnectPrompt from './components/ReconnectPrompt'
 import EcranChargement from './components/EcranChargement'
+import ReclaimCodeDisplay from './components/voting/ReclaimCodeDisplay'
 
 type AppPhase =
   | { type: 'loading' }
@@ -28,6 +30,12 @@ type AppPhase =
    * rappel avant de pouvoir rappeler `join_table`.
    */
   | { type: 'reconnect'; sessionId: string; pseudo: string; joinCode: string; userId: string }
+  /**
+   * Chantier 158 — `join_table` a dû RÉINSCRIRE la personne à la séance (son
+   * inscription avait été supprimée, chantier 137) et lui a généré un code de
+   * rappel neuf, retourné une seule fois. À montrer avant d'entrer à la table.
+   */
+  | { type: 'new_code'; pseudo: string; code: string; tableId: string; participantId: string; userId: string }
 
 // Chantier 129 — préfixes de hash qui expriment une intention de navigation
 // explicite (lien/QR code fraîchement scanné). Partagé entre `init()` (pour
@@ -82,10 +90,26 @@ export default function App() {
     // Chantier 140 — `r.pseudo` : pseudo du membre de séance (peut différer
     // du pseudo mémorisé, ex. après un renommage — chantier 93).
     tableStore.set({ tableId: r.id, participantId: r.participant_id, joinCode: r.join_code, isModerator: false, pseudo: r.pseudo ?? pseudo })
+    // Chantier 158 — réinscription silencieuse (inscription supprimée, puis
+    // rechargement) : le code neuf ne se réaffiche jamais, on le montre ici.
+    if (r.new_reclaim_code) {
+      setPhase({
+        type: 'new_code', pseudo: r.pseudo ?? pseudo, code: r.new_reclaim_code,
+        tableId: r.id, participantId: r.participant_id, userId,
+      })
+      return
+    }
     setPhase({ type: 'table', tableId: r.id, participantId: r.participant_id, userId, isModerator: false })
   }
 
+  // Chantier 158 — `init()` ne doit tourner qu'une fois : sous StrictMode (dev)
+  // la seconde passe retrouvait le participant que la première venait de
+  // recréer et écrasait l'écran « note ton code de rappel » par la table.
+  const initStarted = useRef(false)
+
   useEffect(() => {
+    if (initStarted.current) return
+    initStarted.current = true
     async function init() {
       // Ensure anonymous auth session
       let session = (await supabase.auth.getSession()).data.session
@@ -132,13 +156,17 @@ export default function App() {
           // (table hors Bloc C) — dans ce cas, aucune séance à revérifier.
           const { data: tblRow } = await supabase
             .from('tables')
-            .select('session_id')
+            .select('session_id, debate_ended_at')
             .eq('id', stored.tableId)
             .maybeSingle()
-          const sessionId = (tblRow as { session_id: string | null } | null)?.session_id ?? null
+          const tbl = tblRow as { session_id: string | null; debate_ended_at?: string | null } | null
+          const sessionId = tbl?.session_id ?? null
           const sess = sessionId ? await getSessionById(sessionId).catch(() => null) : null
+          // Chantier 161 — phase de LA TABLE : une table dont le modérateur a
+          // terminé le débat sort de TableView même si la séance débat encore.
+          const tablePhase = effectiveTablePhase(sess, tbl)
 
-          if (sessionId === null || sess?.phase === 'debating') {
+          if (sessionId === null || tablePhase === 'debating') {
             // Même auth.uid → restauration directe sans RPC
             setPhase({ type: 'table', tableId: stored.tableId, participantId: stored.participantId, userId, isModerator: stored.isModerator ?? false })
             return
@@ -150,7 +178,7 @@ export default function App() {
           // celui de `sess`, pas celui du tableStore.
           // Chantier 145 — débat fini (post_voting/closed) : on renvoie vers les
           // résultats de la séance (routeur #session/), pas vers le vote.
-          if (sess?.join_code && (sess.phase === 'post_voting' || sess.phase === 'closed')) {
+          if (sess?.join_code && (tablePhase === 'post_voting' || tablePhase === 'closed')) {
             window.location.hash = '#session/' + sess.join_code
             setPhase({ type: 'entry', userId })
             return
@@ -185,8 +213,23 @@ export default function App() {
   }, [])
 
   function handleTableJoined(tableId: string, participantId: string, isModerator: boolean) {
-    const userId = phase.type !== 'loading' ? (phase as { userId: string }).userId : ''
-    setPhase({ type: 'table', tableId, participantId, userId, isModerator })
+    // Chantier 161 — mise à jour fonctionnelle : SessionRouterScreen appelle ce
+    // callback depuis un effet lancé à son premier rendu, quand `phase` (capturée
+    // par la fermeture) valait encore 'loading'. Le userId était alors '', et
+    // TableContext interrogeait `session_members … user_id=eq.` (400) : un
+    // modérateur de débat simple revenu par le QR retombait en écran participant
+    // jusqu'au rechargement suivant.
+    setPhase(prev => ({
+      type: 'table', tableId, participantId, isModerator,
+      userId: prev.type !== 'loading' ? (prev as { userId: string }).userId : '',
+    }))
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id
+      if (!uid) return
+      setPhase(prev => (prev.type === 'table' && prev.tableId === tableId && !prev.userId)
+        ? { ...prev, userId: uid }
+        : prev)
+    })
     // Nettoyer le hash sans déclencher hashchange (history.replaceState n'émet pas d'événement)
     history.replaceState(null, '', window.location.pathname + window.location.search)
     // Chantier 145 — `replaceState` n'émet pas `hashchange` : sans cette ligne
@@ -264,6 +307,18 @@ export default function App() {
 
   if (phase.type === 'entry') {
     return <EntryScreen />
+  }
+
+  if (phase.type === 'new_code') {
+    const { pseudo, code, tableId, participantId, userId } = phase
+    return (
+      <ReclaimCodeDisplay
+        pseudo={pseudo}
+        code={code}
+        continueLabel="Rejoindre la table →"
+        onContinue={() => setPhase({ type: 'table', tableId, participantId, userId, isModerator: false })}
+      />
+    )
   }
 
   if (phase.type === 'reconnect') {

@@ -17,6 +17,7 @@ import type { PairingResult } from '../lib/voting'
 import DocNudge from '../components/voting/DocNudge'
 import { hasQuestionnaireResponse, assertSeated } from '../lib/voting'
 import PageParcours from '../components/PageParcours'
+import { tableDebateEnded } from '../lib/phaseLabels'
 
 interface AllocatingScreenProps {
   session: Session
@@ -75,7 +76,11 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
     load()
 
     getMyPairings(session.id)
-      .then(list => setPairings(list.map(p => ({ pseudo: p.pseudo, found: true, reciprocal: p.reciprocal }))))
+      .then(list => setPairings(
+        // Chantier 165 — à ce stade rien ne peut plus changer : on ne montre que
+        // les liens possibles, pas un nom resté sans personne ni un lien devenu impossible.
+        list.filter(p => p.found && !p.blocked),
+      ))
       .catch(() => { /* pas de binôme à afficher, écran non bloquant */ })
   }, [session.id])
 
@@ -147,6 +152,29 @@ export default function AllocatingScreen({ session, member, onTableJoined }: All
       .then(data => { if (data) setAssignment(data as AssignmentWithTable) })
       .catch(() => { /* ignore */ })
   }, [currentSession.phase, session.id])
+
+  // ── Chantier 161 — la table du membre a terminé son débat ─────────
+  // La séance débat encore, mais sa table est passée au questionnaire puis aux
+  // résultats : le routeur #session/ sait déjà enchaîner les deux (et propose
+  // la réouverture au modérateur). Pas de bouton « Rejoindre » vers une table
+  // que le serveur refuserait de toute façon (trigger participants_guard_ended_table).
+  useEffect(() => {
+    if (tableDebateEnded(currentSession, assignment)) {
+      window.location.hash = '#session/' + session.join_code
+    }
+  }, [currentSession, assignment, session.join_code])
+
+  // Le polling ci-dessous s'arrête dès que le code de table est connu, et la fin
+  // de débat d'une table ne touche pas `table_assignments` (pas d'événement
+  // Realtime ici) : relecture lente tant que la séance débat.
+  useEffect(() => {
+    if (currentSession.phase !== 'debating' || !assignment?.tables?.join_code) return
+    const interval = setInterval(async () => {
+      const data = await getMyTableAssignment(session.id).catch(() => null)
+      if (data?.debate_ended_at) setAssignment(data as AssignmentWithTable)
+    }, 10_000)
+    return () => clearInterval(interval)
+  }, [currentSession.phase, assignment?.tables?.join_code, session.id])
 
   // ── Polling de secours — allocating ou debating sans join_code/assignment ──
   useEffect(() => {

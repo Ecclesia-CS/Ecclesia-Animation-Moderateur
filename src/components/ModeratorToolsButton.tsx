@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react'
 import { useTable } from '../context/TableContext'
 import { supabase } from '../lib/supabase'
 import { extractErr, QUESTIONNAIRE_THEMES } from '../lib/utils'
-import { getVoteResults } from '../lib/voting'
-import type { QuestionnaireResponse, VoteResult } from '../lib/types'
+import type { QuestionnaireResponse } from '../lib/types'
 import QrCodeModal from './QrCodeModal'
 import CorrectTurnModal from './CorrectTurnModal'
 import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
-import VoteResultsList from './voting/VoteResultsList'
+import VotedAssertionsModal from './voting/VotedAssertionsModal'
 import TableOpinionModal from './voting/TableOpinionModal'
 import ParticipantCodesModal from './ParticipantCodesModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ModeratorVoteModal from './ModeratorVoteModal'
 import EnTeteFenetre from './EnTeteFenetre'
+import ConfirmModal from './ConfirmModal'
+import TableShareModal from './TableShareModal'
+import { sessionTypeOf } from '../lib/phaseLabels'
 
 interface Props {
   className?: string
@@ -45,7 +47,7 @@ function isQuestionnaireComplete(r: QuestionnaireResponse | null): boolean {
 // juste par un canal différent) plutôt que Camps & assertions (analyse, pas
 // gestion de présence) ou Personnel (outils individuels du modérateur).
 export default function ModeratorToolsButton({ className = '', onError }: Props) {
-  const { table, forceQuestionnaire, cancelForceQuestionnaire } = useTable()
+  const { table, session, forceQuestionnaire, cancelForceQuestionnaire, endTableDebate, effectivePhase } = useTable()
   const [panelOpen,     setPanelOpen]     = useState(false)
   const [campsOpen,     setCampsOpen]     = useState(false)
   const [assertionsOpen, setAssertionsOpen] = useState(false)
@@ -56,6 +58,8 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   const [questionnaireOpen, setQuestionnaireOpen] = useState(false)
   const [codesOpen,     setCodesOpen]     = useState(false)
   const [voteToolOpen,  setVoteToolOpen]  = useState(false)
+  const [shareOpen,     setShareOpen]     = useState(false)
+  const [endDebateConfirm, setEndDebateConfirm] = useState(false)
   // Chantier 135 — débat d'une association : ni camps, ni assertions, ni
   // questionnaire Ecclesia.
   const orgName = useSessionOrganizationName(table.session_id)
@@ -68,9 +72,6 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
   // puisse plus tard réclamer son profil (questionnaire, résultats) via
   // confirm_attendance (pseudo + code) depuis son propre appareil.
   const [addPersonCode,    setAddPersonCode]    = useState<{ pseudo: string; code: string } | null>(null)
-
-  const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
-  const [voteResultsLoading, setVoteResultsLoading] = useState(false)
 
   const [savedResponse, setSavedResponse] = useState<QuestionnaireResponse | null>(null)
   const [checkDone,     setCheckDone]     = useState(false)
@@ -98,17 +99,6 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
   function handleError(e: unknown) {
     onError?.(extractErr(e))
-  }
-
-  function openAssertions() {
-    setPanelOpen(false)
-    setAssertionsOpen(true)
-    if (voteResults.length > 0 || voteResultsLoading || !table.session_id) return
-    setVoteResultsLoading(true)
-    getVoteResults(table.session_id)
-      .then(setVoteResults)
-      .catch(() => {})
-      .finally(() => setVoteResultsLoading(false))
   }
 
   // Chantier 44 — reprend le même schéma de collision que join_table (INSERT
@@ -145,6 +135,13 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
   const questionnaireDone = checkDone && isQuestionnaireComplete(savedResponse)
 
+  const sessionType = sessionTypeOf(session)
+  const isSimpleDebate = sessionType === 'debate'
+  const canEndTableDebate =
+    !!table.session_id && !orgName && !session?.organization_id &&
+    session?.phase === 'debating' && !table.debate_ended_at &&
+    (sessionType === 'full' || sessionType === 'debate')
+
   const linkClass = 'flex items-center gap-3 px-5 py-3 w-full text-left text-sm text-anthracite hover:bg-indigo-50/70 hover:text-bleu-fonce transition-colors focus:outline-none focus:bg-indigo-50/70'
   const sectionLabelClass = 'pt-3 pb-1 px-5 text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em]'
   const dividerClass = 'mt-2 border-t border-bleu-fonce/10'
@@ -176,7 +173,7 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                   Camps
                 </button>
 
-                <button onClick={openAssertions} className={linkClass}>
+                <button onClick={() => { setPanelOpen(false); setAssertionsOpen(true) }} className={linkClass}>
                   <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -236,6 +233,15 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
               {table.active_vote_id ? 'Vote en cours' : 'Proposer un vote'}
             </button>
 
+            {/* Chantier 162a — le modérateur affiche lui-même une source : pas de
+                demande à valider, elle est montrée à la table directement. */}
+            {(!table.session_id || effectivePhase === 'debating') && (
+              <button onClick={() => { setPanelOpen(false); setShareOpen(true) }} className={linkClass}>
+                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+                Montrer une source
+              </button>
+            )}
+
             {!orgName && (
             <button
               onClick={() => {
@@ -255,6 +261,19 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
                 ? 'Annuler forçage questionnaire'
                 : 'Forcer questionnaire'}
             </button>
+            )}
+
+            {/* Chantier 161 — la table termine son débat sans attendre les autres.
+                Séance complète ou débat simple en débat, hors association ;
+                garde serveur is_table_moderator (end_table_debate). */}
+            {canEndTableDebate && (
+              <button
+                onClick={() => { setPanelOpen(false); setEndDebateConfirm(true) }}
+                className={linkClass}
+              >
+                <span className="w-4 text-center text-gray-400 shrink-0">🏁</span>
+                Terminer le débat de ma table
+              </button>
             )}
 
             <div className={dividerClass} />
@@ -369,11 +388,28 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
 
       {voteToolOpen && <ModeratorVoteModal onClose={() => setVoteToolOpen(false)} />}
 
+      {shareOpen && <TableShareModal onClose={() => setShareOpen(false)} />}
+
       <TableOpinionModal isOpen={campsOpen} onClose={() => setCampsOpen(false)} />
 
       {codesOpen && <ParticipantCodesModal onClose={() => setCodesOpen(false)} />}
 
       {correctOpen && <CorrectTurnModal onClose={() => setCorrectOpen(false)} />}
+
+      {endDebateConfirm && (
+        <ConfirmModal
+          title="Terminer le débat de ma table ?"
+          body={isSimpleDebate
+            ? "Toute la table, vous compris, quitte le débat : chacun remplit le questionnaire de fin. Les autres tables continuent. Vous pourrez rouvrir le débat de votre table tant que la séance est en débat."
+            : "Toute la table, vous compris, quitte le débat : chacun remplit le questionnaire, puis voit ses résultats et peut revoter. Les autres tables continuent. Vous pourrez rouvrir le débat de votre table tant que la séance est en débat."}
+          confirmLabel="Terminer le débat"
+          onCancel={() => setEndDebateConfirm(false)}
+          onConfirm={() => {
+            setEndDebateConfirm(false)
+            endTableDebate().catch(handleError)
+          }}
+        />
+      )}
 
       {notesOpen && (
         <NotesModal tableId={table.id} onClose={() => setNotesOpen(false)} />
@@ -386,18 +422,12 @@ export default function ModeratorToolsButton({ className = '', onError }: Props)
         />
       )}
 
-      {assertionsOpen && (
-        <div
-          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
-          onMouseDown={e => { if (e.target === e.currentTarget) setAssertionsOpen(false) }}
-        >
-          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
-            <EnTeteFenetre titre="Assertions votées" onClose={() => setAssertionsOpen(false)} />
-            <div className="overflow-y-auto px-5 py-4">
-              <VoteResultsList results={voteResults} loading={voteResultsLoading} />
-            </div>
-          </div>
-        </div>
+      {assertionsOpen && table.session_id && (
+        <VotedAssertionsModal
+          sessionId={table.session_id}
+          tableId={table.id}
+          onClose={() => setAssertionsOpen(false)}
+        />
       )}
     </>
   )

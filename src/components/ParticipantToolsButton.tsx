@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTable } from '../context/TableContext'
-import { getVoteResults } from '../lib/voting'
 import { QUESTIONNAIRE_THEMES } from '../lib/utils'
-import type { QuestionnaireResponse, SessionType, VoteResult } from '../lib/types'
+import type { QuestionnaireResponse, SessionType } from '../lib/types'
 import NotesModal from './NotesModal'
 import QuestionnaireModal from './QuestionnaireModal'
-import VoteResultsList from './voting/VoteResultsList'
+import VotedAssertionsModal from './voting/VotedAssertionsModal'
 import QrCodeModal from './QrCodeModal'
 import ModeratorActionModal from './voting/ModeratorActionModal'
 import { useSessionOrganizationName } from '../lib/organizations'
 import ChangeTableModal from './voting/ChangeTableModal'
 import RenamePseudoModal from './voting/RenamePseudoModal'
 import FondQuadrille from './FondQuadrille'
+import TableShareModal from './TableShareModal'
 import { sessionTypeOf } from '../lib/phaseLabels'
 import { DOC_BIAIS_URL, DOC_FALLACIES_URL, DOC_INFO_LABEL, DOC_SUMMARY_LABEL, showPedagogyDocs } from '../lib/docLinks'
 
@@ -43,7 +43,7 @@ function isComplete(r: QuestionnaireResponse | null): boolean {
 }
 
 export default function ParticipantToolsButton({ session, userPseudo, className = '' }: Props) {
-  const { table, isModerator } = useTable()
+  const { table, isModerator, effectivePhase } = useTable()
   const [panelOpen,          setPanelOpen]          = useState(false)
   const [notesOpen,          setNotesOpen]          = useState(false)
   const [questionnaireOpen,  setQuestionnaireOpen]  = useState(false)
@@ -59,8 +59,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   const [changeTableOpen,    setChangeTableOpen]    = useState(false)
   // Chantier 93 — changer son nom en cours de séance.
   const [renameOpen,         setRenameOpen]         = useState(false)
-  const [voteResults,        setVoteResults]        = useState<VoteResult[]>([])
-  const [voteResultsLoading, setVoteResultsLoading] = useState(false)
+  // Chantier 162a — partager une source avec sa table.
+  const [shareOpen,          setShareOpen]          = useState(false)
   const [savedResponse,      setSavedResponse]      = useState<QuestionnaireResponse | null>(null)
   const [checkDone,          setCheckDone]          = useState(false)
 
@@ -79,14 +79,6 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   function openVoteResults() {
     setPanelOpen(false)
     setVoteResultsOpen(true)
-    if (voteResults.length > 0 || voteResultsLoading) return
-    const sessionId = table.session_id
-    if (!sessionId) return
-    setVoteResultsLoading(true)
-    getVoteResults(sessionId)
-      .then(setVoteResults)
-      .catch(() => {})
-      .finally(() => setVoteResultsLoading(false))
   }
 
   function refetchQuestionnaire() {
@@ -109,6 +101,10 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
   // Chantier 135 — pas de document collaboratif dans une séance d'association.
   const hasCollab  = !orgName && (!!session_join_code || !!doc_collab_url)
   const showPedagogy = showPedagogyDocs(sessionTypeOf(session))
+  // Chantier 162a — le partage suppose un modérateur à qui le demander (règle du
+  // chantier 152 : pas d'entrée pour ce qu'on ne peut pas faire) et un débat en
+  // cours pour cette table. Le serveur refuse dans les mêmes cas.
+  const canShare = !table.leaderless && (!table.session_id || effectivePhase === 'debating')
 
   function handleCollabClick() {
     setPanelOpen(false)
@@ -289,6 +285,17 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
               QR code de la table
             </button>
 
+            {/* Chantier 162a — partager une source (lien ou source collaborative) */}
+            {canShare && (
+              <button
+                onClick={() => { setPanelOpen(false); setShareOpen(true) }}
+                className={linkClass}
+              >
+                <span className="w-4 text-center text-gray-400 shrink-0">🔗</span>
+                Partager une source
+              </button>
+            )}
+
             {/* Notes */}
             <button
               onClick={() => { setPanelOpen(false); setNotesOpen(true) }}
@@ -375,6 +382,8 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
         />
       )}
 
+      {shareOpen && <TableShareModal onClose={() => setShareOpen(false)} />}
+
       {changeTableOpen && (
         <ChangeTableModal pseudo={userPseudo} onClose={() => setChangeTableOpen(false)} />
       )}
@@ -412,31 +421,13 @@ export default function ParticipantToolsButton({ session, userPseudo, className 
         />
       )}
 
-      {voteResultsOpen && (
-        <div
-          className="fixed inset-0 bg-bleu-fonce/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center z-50"
-          onMouseDown={(e) => { if (e.target === e.currentTarget) setVoteResultsOpen(false) }}
-        >
-          <div className="bg-white w-full sm:max-w-sm shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-[12px] sm:rounded-[12px] ring-1 ring-white/10 animate-entree">
-            <div className="relative flex items-center justify-between overflow-hidden bg-bleu-fonce px-5 py-4 shrink-0">
-              <FondQuadrille cases={2} />
-              <h2 className="relative font-sans text-lg font-bold tracking-[-0.01em] text-creme">Résultats du vote</h2>
-              <button
-                onClick={() => setVoteResultsOpen(false)}
-                className="relative text-creme/70 hover:text-creme transition-colors -m-1.5 p-2
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
-                aria-label="Fermer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="overflow-y-auto px-5 py-4">
-              <VoteResultsList results={voteResults} loading={voteResultsLoading} />
-            </div>
-          </div>
-        </div>
+      {voteResultsOpen && table.session_id && (
+        <VotedAssertionsModal
+          title="Résultats du vote"
+          sessionId={table.session_id}
+          tableId={table.id}
+          onClose={() => setVoteResultsOpen(false)}
+        />
       )}
     </>
   )

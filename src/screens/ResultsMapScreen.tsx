@@ -11,7 +11,9 @@ import type { Session, GroupNameResult, VoteResult } from '../lib/types'
 import type { AssignmentWithJoinCode } from '../lib/voting'
 import PostVoteScreen from './PostVoteScreen'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
-import { sessionTypeOf } from '../lib/phaseLabels'
+import { effectiveTablePhase, isConsentPoll, sessionTypeOf, tableDebateEnded } from '../lib/phaseLabels'
+import TableDebateEndedPanel from '../components/voting/TableDebateEndedPanel'
+import ConsentResultsScreen from './ConsentResultsScreen'
 import PageParcours, { BOUTON_VERRE_PARCOURS, CARTE_PARCOURS, ChargementParcours, ErreurParcours } from '../components/PageParcours'
 import FondQuadrille from '../components/FondQuadrille'
 
@@ -204,7 +206,17 @@ function RepnessLegend() {
 }
 
 // ── Composant principal ───────────────────────────────────────
-export default function ResultsMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) {
+// Chantier 160 — un sondage en vote par consentement n'a ni analyse ni camps :
+// il a son propre écran de décomptes. Le reste (séance complète, sondage à camps)
+// garde la carte d'opinion historique.
+export default function ResultsMapScreen(props: ResultsMapScreenProps) {
+  if (isConsentPoll(props.session)) {
+    return <ConsentResultsScreen session={props.session} onBack={props.onBack} />
+  }
+  return <OpinionMapScreen {...props} />
+}
+
+function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) {
   const [data,        setData]        = useState<ResultsMapData | null>(null)
   const [assignment,  setAssignment]  = useState<AssignmentWithJoinCode | null | undefined>(undefined)
   const [voteResults, setVoteResults] = useState<VoteResult[]>([])
@@ -212,6 +224,8 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
   const [error,       setError]       = useState<string | null>(null)
   // Chantier 69 — écran de revote, atteint depuis cette page uniquement.
   const [showPostVote, setShowPostVote] = useState(false)
+  // Chantier 161 — débat de la table rouvert depuis l'ouverture de l'écran.
+  const [tableReopened, setTableReopened] = useState(false)
   // Chantier 134 — sondage : aucune table, le camp se montre sans affectation.
   const isPoll = sessionTypeOf(session) === 'poll'
 
@@ -284,6 +298,15 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
   const consensus = data?.consensus ?? []
 
+  // Chantier 161 — phase de la table du membre : post-vote dès que son
+  // modérateur a terminé le débat, même si la séance débat encore.
+  const ownTableEnded = tableDebateEnded(session, assignment ?? null)
+  // Le débat de la table a repris pendant que cet écran était ouvert (polling
+  // de TableDebateEndedPanel) : plus de revote, que le serveur refuserait.
+  const phase = ownTableEnded && tableReopened
+    ? 'debating'
+    : effectiveTablePhase(session, assignment ?? null) ?? session.phase
+
   if (showPostVote) {
     return (
       <PostVoteScreen
@@ -296,7 +319,7 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
   return (
     <PageParcours
-      session={session}
+      session={{ ...session, phase }}
       sousTitre={isPoll ? 'Votre position dans le sondage' : 'Votre position dans le débat'}
       sansMenu={!!onBack}
       actions={onBack && <button onClick={onBack} className={BOUTON_VERRE_PARCOURS}>Retour au vote</button>}
@@ -305,8 +328,13 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
         {/* Chantier 69 — le débat a peut-être fait bouger les positions : proposer de revoter.
             Chantier 89 — n'a de sens que pendant la phase 'post_voting' : une fois la séance
-            passée en 'closed', le superadmin a fermé la fenêtre de revote. */}
-        {session.phase === 'post_voting' && (
+            passée en 'closed', le superadmin a fermé la fenêtre de revote.
+            Chantier 161 — phase effective : aussi à une table qui a terminé avant les autres. */}
+        {ownTableEnded && (
+          <TableDebateEndedPanel session={session} tableId={assignment?.table_id ?? null} initiallyEnded onEndedChange={ended => setTableReopened(!ended)} />
+        )}
+
+        {phase === 'post_voting' && (
           <section className="relative overflow-hidden rounded-[12px] bg-bleu-fonce px-5 py-6 text-center shadow-[0_26px_54px_-26px_rgba(21,35,63,0.75)] animate-montee">
             <FondQuadrille cases={4} />
             <div className="relative space-y-2">
@@ -333,6 +361,13 @@ export default function ResultsMapScreen({ session, memberId, onBack }: ResultsM
 
         {!loading && (
           <>
+            {/* Chantier 161 — analyse figée tant que d'autres tables débattent :
+                ces camps sont ceux d'avant le débat. */}
+            {ownTableEnded && selfGroupId !== null && (
+              <p className="text-xs text-gray-400 text-center -mb-2">
+                Camps calculés avant le débat — ils pourront être recalculés à la fin de la séance.
+              </p>
+            )}
             {/* ── Carte de groupe personnelle ─────────────────────
                 N'affiche la carte que si le participant appartient réellement à un camp
                 d'opinion (selfGroupId !== null, càd ≥1 vote pris en compte par l'analyse PCA).

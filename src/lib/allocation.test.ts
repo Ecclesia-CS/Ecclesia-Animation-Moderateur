@@ -846,3 +846,126 @@ describe('chantier 98 — option « interdire les tables sans modérateur »', (
     }
   })
 })
+
+// ── Chantier 164 — un modérateur n'est pas laissé de côté quand une table reste sans animateur ──
+//
+// Séance prod du 08/10/2026 (« Comment assurer la sécurité de tous en France ? ») :
+// 14 actifs, 1 auditeur, 2 modérateurs. L'allocation a produit `10M/5u` avec un modérateur
+// assis (une table sans animateur pendant qu'un animateur est de réserve) ; avec l'option
+// « interdire les tables sans modérateur », une table unique de 16 personnes.
+
+describe('chantier 164 — séance du 08/10/2026 (données réelles de prod)', () => {
+  // [pseudo, ancien, camp d'opinion]
+  const ACTIVES: [string, boolean, number | null][] = [
+    ['Alexandre', true, 1], ['Antoine', true, 2], ['Lubin', true, 1], ['Maxence', true, 1],
+    ['Ilyes', true, 0], ['Solene', false, 1], ['Youssef', false, 0], ['Thomas', false, 2],
+    ['Marouane', true, 1], ['RaphaelR', true, 2], ['Anis', true, 2], ['Antonin', true, 1],
+    ['Violette', false, 1], ['Milos', false, null],
+  ]
+  const person = (id: string, veteran: boolean, camp: number | null, active = true): AllocationMember => ({
+    member_id: id, pseudo: id, is_active: active, consents: true, is_veteran: veteran, group_id: camp,
+  })
+  const members = [
+    ...ACTIVES.map(([id, v, c]) => person(id, v, c)),
+    person('RaphaelG', false, 1, false), // auditeur : en public
+  ]
+  const moderators = [person('Jules', true, 1), person('MarieYang', true, 2)]
+  const input = {
+    members, moderatorIds: moderators.map(m => m.member_id), moderatorProfiles: moderators, opinionsAvailable: true,
+  }
+
+  for (const forbid of [false, true]) {
+    it(`2 modérateurs${forbid ? ' + « interdire les tables sans modérateur »' : ''} → 2 tables, toutes animées, 7 actifs chacune`, () => {
+      const r = runAllocation({ ...input, forbidUnmoderatedTables: forbid })
+      expect(r.singleTable).toBe(false)
+      expect(r.tables).toHaveLength(2)
+      expect(r.tables.every(t => t.moderated)).toBe(true)
+      expect(r.tables.map(t => t.moderator_member_ids.length)).toEqual([1, 1])
+      expect(r.animatingModerators).toBe(2)
+      expect(r.seatedModeratorIds).toEqual([])
+      expect(r.diagnostics.map(d => d.actives)).toEqual([7, 7])
+      expect(r.diagnostics.reduce((s, d) => s + d.audience, 0)).toBe(1)
+      // Tout le monde est placé, modérateurs animants compris.
+      const placed = r.tables.flatMap(t => [...t.member_ids, ...t.moderator_member_ids])
+      expect(new Set(placed).size).toBe(17)
+    })
+  }
+})
+
+describe('chantier 164 — zone corrigée (mix de test)', () => {
+  const run = (n: number, m: number, forbid = false) => {
+    const ids = Array.from({ length: m }, (_, i) => `mo-${i + 1}`)
+    return runAllocation({
+      members: mix(n, 0), moderatorIds: ids, moderatorProfiles: modProfiles(ids),
+      opinionsAvailable: true, forbidUnmoderatedTables: forbid,
+    })
+  }
+  const actives = (r: ReturnType<typeof runAllocation>) => r.diagnostics.map(d => d.actives)
+
+  for (const [n, m, tables, reserve] of [[14, 2, 2, 0], [13, 3, 2, 1], [12, 4, 2, 2]] as const) {
+    for (const forbid of [false, true]) {
+      it(`${n} actifs, ${m} modérateurs${forbid ? ', option « interdire »' : ''} → ${tables} tables animées, ${reserve} de réserve`, () => {
+        const r = run(n, m, forbid)
+        expect(r.singleTable).toBe(false)
+        expect(r.tables).toHaveLength(tables)
+        expect(r.tables.every(t => t.moderated)).toBe(true)
+        expect(r.seatedModeratorIds).toHaveLength(reserve)
+        expect(Math.max(...actives(r))).toBeLessThanOrEqual(TABLE_MAX_ACTIVE)
+      })
+    }
+  }
+
+  it('28 actifs, 3 modérateurs : plus de table sans animateur, et l’option « interdire » ne replie plus sur 30 personnes', () => {
+    const free = run(28, 3)
+    expect(free.tables).toHaveLength(3)
+    expect(free.tables.every(t => t.moderated)).toBe(true)
+    expect(free.seatedModeratorIds).toEqual([])
+    const forbid = run(28, 3, true)
+    expect(forbid.singleTable).toBe(false)
+    expect(forbid.tables.every(t => t.moderated)).toBe(true)
+    expect(Math.max(...actives(forbid))).toBeLessThanOrEqual(TABLE_MAX_ACTIVE)
+  })
+
+  it('déterministe : deux calculs identiques', () => {
+    expect(JSON.stringify(run(14, 2, true))).toBe(JSON.stringify(run(14, 2, true)))
+  })
+})
+
+describe('chantier 164 — non-régression : le reste est inchangé, modérateur de réserve compris', () => {
+  const run = (n: number, m: number) => {
+    const ids = Array.from({ length: m }, (_, i) => `mo-${i + 1}`)
+    return runAllocation({
+      members: mix(n, 0), moderatorIds: ids, moderatorProfiles: modProfiles(ids), opinionsAvailable: true,
+    })
+  }
+  const shape = (r: ReturnType<typeof runAllocation>) =>
+    r.tables.map(t => `${t.member_ids.length - t.audience_member_ids.length}${t.moderated ? 'M' : 'u'}`).join('/')
+
+  it('Jules (09/10) : 20 actifs et 3 modérateurs → 2 tables animées et 1 modérateur de réserve, pas 3 tables de 7', () => {
+    const r = run(20, 3)
+    expect(shape(r)).toBe('11M/10M')
+    expect(r.seatedModeratorIds).toHaveLength(1)
+  })
+
+  it('le modérateur de réserve est un participant comme un autre : assis, jamais animateur, compté actif', () => {
+    const r = run(20, 3)
+    const [reserve] = r.seatedModeratorIds
+    const table = r.tables.find(t => t.member_ids.includes(reserve))
+    expect(table).toBeDefined()
+    expect(table!.moderator_member_ids).not.toContain(reserve)
+    expect(r.tables.flatMap(t => t.moderator_member_ids)).toHaveLength(2)
+    // 20 actifs + le modérateur de réserve = 21 actifs répartis (seuils, camps, tailles).
+    expect(r.diagnostics.reduce((s, d) => s + d.actives, 0)).toBe(21)
+    expect(totalSeats(r)).toBe(21)
+  })
+
+  it.each([
+    [20, 2, '10M/10M'],
+    [20, 1, '14M/6u'],
+    [16, 2, '8M/8M'],
+    [24, 3, '13M/12M'],
+    [20, 4, '11M/11M'],
+  ])('%i actifs, %i modérateur(s) → %s (inchangé)', (n, m, expected) => {
+    expect(shape(run(n, m))).toBe(expected)
+  })
+})

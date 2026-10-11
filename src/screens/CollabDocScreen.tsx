@@ -10,7 +10,8 @@ import {
   deleteCollabSource,
   listSessionSources,
 } from '../lib/sessions'
-import type { CollabSource, Session } from '../lib/types'
+import { listSessionShares } from '../lib/tableShare'
+import type { CollabSource, Session, SessionShare } from '../lib/types'
 import type { CollabIdentity } from '../lib/sessions'
 import ConfirmModal from '../components/ConfirmModal'
 import ReclaimCodeAccordion from '../components/ReclaimCodeAccordion'
@@ -36,7 +37,9 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
   const [myIdentity,       setMyIdentity]       = useState<CollabIdentity | null>(null)
   const [myTableJoinCode,  setMyTableJoinCode]  = useState<string | null>(null)
   const [sources,          setSources]          = useState<CollabSource[]>([])
-  const [loading,          setLoading]          = useState(true)
+  // Chantier 162a — liens et sources montrés aux tables pendant les débats.
+  const [shown,            setShown]            = useState<SessionShare[]>([])
+  const [loading,         setLoading]          = useState(true)
   const [error,            setError]            = useState<string | null>(null)
 
   // ── Registration state ─────────────────────────────────────────
@@ -114,6 +117,10 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
       } catch (e) {
         setError(extractErr(e))
       }
+
+      // Restitution du fil de partage des tables (vide avant la fin du débat,
+      // et pour une association) — non bloquant.
+      listSessionShares(sessData.id).then(setShown).catch(() => {})
 
       setLoading(false)
     }
@@ -404,6 +411,47 @@ export default function CollabDocScreen({ sessionJoinCode }: Props) {
             ))}
           </div>
         )}
+
+        {/* ── Chantier 162a : montrées pendant les débats ──────── */}
+        {shown.length > 0 && (
+          <section className="space-y-4 animate-montee">
+            <div>
+              <h2 className="font-sans text-lg font-bold tracking-[-0.01em] text-bleu-fonce">Montrées pendant les débats</h2>
+              <p className="text-xs text-gray-600">Les liens, sources et captures partagés avec leur table.</p>
+            </div>
+            {groupShownByTable(shown).map(group => (
+              <div key={group.joinCode} className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-bleu-fonce/70">Table</span>
+                  <span className="rounded-[6px] bg-indigo-50 px-2 py-0.5 text-xs font-bold tabular-nums tracking-[0.12em] text-bleu-fonce">{group.joinCode}</span>
+                  <span className="h-px flex-1 bg-bleu-fonce/10" />
+                </div>
+                <ul className="space-y-2">
+                  {group.items.map(s => (
+                    <li key={s.id} className="rounded-[12px] bg-white border border-bleu-fonce/10 px-4 py-3 shadow-sm space-y-1">
+                      <p className="text-[15px] font-semibold text-gray-900 break-words">{s.title}</p>
+                      <p className="text-xs font-semibold text-bleu-fonce">{s.author_pseudo}</p>
+                      {s.url && isSafeUrl(s.url) && (
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-xs font-medium text-bleu-fonce underline decoration-bleu-fonce/30 underline-offset-2 hover:decoration-bleu-clair truncate focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                        >
+                          {s.url}
+                        </a>
+                      )}
+                      {/* Chantier 162b : une capture n'est pas conservée après la séance */}
+                      {s.kind === 'image' && (
+                        <p className="text-xs text-gray-600">Capture d'écran, non conservée</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
       </div>
 
       {/* ── Add / Edit modal ──────────────────────────────────── */}
@@ -640,6 +688,18 @@ function groupByTable(sources: CollabSource[]): SourceGroup[] {
     tableJoinCode: key,
     sources: map.get(key ?? '__none__') ?? [],
   }))
+}
+
+// ── groupShownByTable (chantier 162a) ──────────────────────────────
+
+function groupShownByTable(rows: SessionShare[]): { joinCode: string; items: SessionShare[] }[] {
+  const map = new Map<string, SessionShare[]>()
+  for (const r of rows) {
+    const list = map.get(r.join_code) ?? []
+    list.push(r)
+    map.set(r.join_code, list)
+  }
+  return Array.from(map, ([joinCode, items]) => ({ joinCode, items }))
 }
 
 // ── SmallSpinner ───────────────────────────────────────────────────

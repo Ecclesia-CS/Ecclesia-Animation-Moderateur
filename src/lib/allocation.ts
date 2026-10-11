@@ -577,9 +577,10 @@ function enumerateShapes(
   moderatorCapacity: number,
   maxSize: number,
   forbidUnmoderated = false,
+  minTablesFloor = 1,
 ): Shape[] {
   const shapes: Shape[] = []
-  const minTables = Math.max(1, Math.ceil(n / maxSize))
+  const minTables = Math.max(1, minTablesFloor, Math.ceil(n / maxSize))
   const maxTables = maxTableCount(n, moderatorCapacity, forbidUnmoderated)
   for (let t = minTables; t <= maxTables; t++) {
     const s = buildShape(n, t, moderatorCapacity, maxSize)
@@ -949,6 +950,19 @@ function compareArraysDesc(a: number[], b: number[]): number {
   return 0
 }
 
+/**
+ * Chantier 164 — comparaison lexicographique des seules règles 1 à 3 : la
+ * dernière composante du score est la règle 4 (nouveaux encadrés), la moins
+ * prioritaire, volontairement ignorée. > 0 si `a` est meilleur.
+ */
+function compareRulesOneToThree(a: number[], b: number[]): number {
+  const len = Math.min(a.length, b.length) - 1
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i]
+  }
+  return 0
+}
+
 // ── Solution initiale ────────────────────────────────────────
 
 /** Distribution « serpentin » sur une liste triée. */
@@ -1181,6 +1195,7 @@ function solveFor(
   strategy: AllocationStrategy = STRATEGY_LEGACY,
   clusterOfId?: Map<string, number>,
   forbidUnmoderated = false,
+  minTablesFloor = 1,
 ): SolveOutcome {
   const prep = prepare(actives, clusterOfId)
   const n = prep.n
@@ -1206,7 +1221,7 @@ function solveFor(
   const baseOrder = sortedOrder(prep)
 
   let best: { shape: Shape; assign: Int32Array; evaluation: Evaluation } | null = null
-  const shapes = enumerateShapes(n, moderatorCapacity, TABLE_MAX_ACTIVE, forbidUnmoderated)
+  const shapes = enumerateShapes(n, moderatorCapacity, TABLE_MAX_ACTIVE, forbidUnmoderated, minTablesFloor)
   let shapesLeft = shapes.length
   for (const shape of shapes) {
     const remainingShapes = shapesLeft--
@@ -1472,15 +1487,59 @@ export function runAllocation(input: AllocationInput): AllocationResult {
   // k = 3 donnait 3 tables toutes animées.
   const forbidUnmoderated = input.forbidUnmoderatedTables ?? false
   const M = allModeratorIds.length
-  const solveWith = (kk: number) => solveFor(
+  const solveWith = (kk: number, minTablesFloor = 1) => solveFor(
     [...actives, ...allModeratorIds.slice(kk).map(seatProfile)],
     kk + extras, opinionsAvailable, recorderTarget, seed, strategy, clusterOfId, forbidUnmoderated,
+    minTablesFloor,
   )
   let k = M
   let solved = solveWith(k)
   while (k > 0 && solved.shape.sizes.length < k) {
     k--
     solved = solveWith(k)
+  }
+
+  // ── Chantier 164 — ne pas laisser un modérateur de côté quand une table reste
+  // sans animateur ──
+  // À égalité sur les règles, la préférence de forme retient « peu de tables »
+  // (`shapePreference`) : avec 14 actifs et 2 modérateurs, 1 table de 14 ex æquo
+  // avec 2 tables de 7. La boucle ci-dessus constate alors qu'une table ne peut
+  // pas animer 2 modérateurs et en assoit un, sans jamais retenter « k
+  // modérateurs, au moins k tables ». Résultat mesuré sur la séance du 08/10 :
+  // `10M/5u` avec un modérateur assis (une table sans animateur pendant qu'un
+  // animateur est de réserve) ; avec l'option « interdire les tables sans
+  // modérateur », repli sur une table unique.
+  //
+  // Correction étroite : seulement quand le résultat retenu laisse une table sans
+  // animateur (ou a replié sur la table unique) **alors qu'un modérateur est
+  // assis**, on retente avec plus de modérateurs animants et au moins autant de
+  // tables. Le candidat n'est retenu que s'il n'est pas pire sur les règles 1 à 3
+  // (la règle 4, la moins prioritaire, ne bloque pas : l'invariant visé est
+  // « aucune table sans animateur tant qu'un modérateur est de réserve »). Sinon
+  // le résultat historique est conservé tel quel : toute sortie qui ne tombe pas
+  // dans ce cas est inchangée, un modérateur de réserve compris — il reste un
+  // participant actif de sa table (`seatProfile`), voir plus bas.
+  const bareTableWhileSeated = (s: SolveOutcome, kk: number) =>
+    kk < M && (s.shape.sizes.length > s.shape.moderatedCount || s.note !== null)
+  if (bareTableWhileSeated(solved, k)) {
+    for (let kk = M; kk > k; kk--) {
+      // Chaque modérateur animant exige une table d'au moins TABLE_MIN actifs.
+      if (actives.length + (M - kk) < kk * TABLE_MIN) continue
+      const candidate = solveWith(kk, kk)
+      if (candidate.shape.sizes.length < kk || candidate.note !== null) continue
+      if (bareTableWhileSeated(candidate, kk)) continue
+      // Un repli sur table unique (`note`) est un dernier recours qui peut violer
+      // les contraintes dures (plus de 14 actifs, mesuré : 15 à 30) : tout
+      // candidat valide l'emporte, sans comparaison de règles — comme le veut le
+      // chantier 98 pour l'option « interdire » (« on laisse d'autres critères
+      // être brisés »). Face à une répartition ordinaire, les règles priment.
+      const fallback = solved.note !== null
+      if (fallback || compareRulesOneToThree(candidate.score, solved.score) >= 0) {
+        solved = candidate
+        k = kk
+        break
+      }
+    }
   }
 
   const { prep, shape, assign, score, singleTable, note } = solved

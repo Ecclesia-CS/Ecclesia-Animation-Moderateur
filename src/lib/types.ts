@@ -27,6 +27,13 @@ export interface GroupNameResult {
 // sessionTypeOf() (lib/phaseLabels.ts), qui retombe sur 'full' si absent.
 export type SessionType = 'full' | 'debate' | 'poll'
 
+// Chantier 160 — mode d'un sondage, fixé à la création (sessions.poll_mode,
+// NOT NULL DEFAULT 'camps', 'consent' réservé au sondage par CHECK). 'camps' =
+// vote d'accord / pas d'accord / passer + analyse en camps d'opinion ;
+// 'consent' = d'accord ou pas d'accord par option, décomptes seuls, aucun camp.
+// Lire via isConsentPoll() (lib/phaseLabels.ts).
+export type PollMode = 'camps' | 'consent'
+
 export interface Session {
   id: string
   title: string
@@ -71,6 +78,9 @@ export interface Session {
   // Chantier 154 — séance listée sur l'accueil (défaut true). Optionnel : absent
   // d'un blob relu d'avant ; absent = visible.
   visible_on_home?: boolean
+  // Chantier 160 — mode du sondage ('camps' par défaut). Optionnel : absent d'un
+  // blob relu d'avant ; absent = 'camps'. Toujours 'camps' hors sondage.
+  poll_mode?: PollMode
 }
 
 export interface Table {
@@ -91,6 +101,52 @@ export interface Table {
   // exclu, totalement séparé). Jamais remis à NULL à la clôture : pointe toujours
   // le dernier vote, actif ou clôturé, tant qu'aucun nouveau n'a été créé.
   active_vote_id: string | null
+  // Chantier 161 — le modérateur a terminé le débat de cette table avant les
+  // autres (NULL = la table débat). Lire via effectiveTablePhase, jamais brut.
+  // Optionnel : un objet table construit avant ce chantier (RPC de jointure)
+  // n'a pas la colonne.
+  debate_ended_at?: string | null
+  // Chantier 162a — source acceptée actuellement affichée à la table (carte),
+  // NULL si aucune ou retirée par le modérateur. Optionnel pour la même raison
+  // que debate_ended_at.
+  active_share_id?: string | null
+}
+
+// Chantier 162a — fil de partage de la table (liens et sources collaboratives).
+// Reçu de `list_table_shares` ; les champs nullables le sont en base.
+// Chantier 162b : 'image' = capture d'écran (fichier du bucket privé `table-shares`).
+export type TableShareKind = 'collab_source' | 'link' | 'image'
+export type TableShareStatus = 'pending' | 'accepted' | 'refused'
+
+export interface TableShare {
+  id: string
+  kind: TableShareKind
+  title: string
+  url: string | null
+  content: string | null
+  status: TableShareStatus
+  author_pseudo: string
+  is_mine: boolean
+  is_active: boolean
+  created_at: string
+  decided_at: string | null
+  /** Chemin dans le bucket tant que l'image existe (NULL pour les autres types et après la purge). */
+  image_path: string | null
+  /** L'image a été effacée à la clôture de la séance. */
+  image_purged: boolean
+}
+
+// Chantier 162a — restitution dans le document collaboratif (`list_session_shares`).
+export interface SessionShare {
+  id: string
+  table_id: string
+  join_code: string
+  table_number: number | null
+  kind: TableShareKind
+  title: string
+  url: string | null
+  author_pseudo: string
+  decided_at: string | null
 }
 
 // Chantier 132 — outil "proposer un vote" côté modérateur (table-scoped, séparé

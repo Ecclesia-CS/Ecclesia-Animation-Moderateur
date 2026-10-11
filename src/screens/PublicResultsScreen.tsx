@@ -14,6 +14,8 @@ import { getSessionById } from '../lib/sessions'
 import type { PublicResultsData } from '../lib/analysis'
 import type { Session } from '../lib/types'
 import PageParcours, { CARTE_PARCOURS, ChargementParcours, ErreurParcours } from '../components/PageParcours'
+import { isConsentPoll } from '../lib/phaseLabels'
+import ConsentResultsList from '../components/voting/ConsentResultsList'
 
 // ── Constantes ────────────────────────────────────────────────
 const GROUP_COLORS = ['#2b4a86', '#b04a3c', '#3f8462', '#c8742a', '#6b4c8a']
@@ -195,7 +197,12 @@ export default function PublicResultsScreen({ session: sessionProp, sessionId }:
           </div>
         )}
 
-        {!isLoading && !error && !sessionErr && data && session && (
+        {/* Chantier 160 — vote par consentement : décomptes par option, aucun camp. */}
+        {!isLoading && !error && !sessionErr && data && session && isConsentPoll(session) && (
+          <ConsentResultsList results={assertions} />
+        )}
+
+        {!isLoading && !error && !sessionErr && data && session && !isConsentPoll(session) && (
           <>
             {/* Placement idéologique */}
             {points.length > 0 && (

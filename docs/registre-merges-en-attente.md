@@ -13,6 +13,8 @@ Dernière mise à jour : **2026-09-16**.
 
 > **2026-10-05** — `dev` mergé dans `main` (chantiers 147 à 157, 60 commits, fast-forward) et **7 migrations appliquées sur prod** (147, 148, 148b, 150, 151, 153, 154), avant le push. Tag de retour arrière `pre-merge-dev-20261005` (code seulement : pas d'instantané de schéma cette fois). Le sous-projet `transcription-debat/` est supprimé de `main` à cette occasion, sur confirmation de Jules. Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
 
+> **2026-10-09** — `dev` mergé dans `main` (chantiers 160 à 167, 48 commits, fast-forward) et **10 migrations appliquées sur prod** (160, 161a, 161b, 161c, 162a, 162b, 162b2, 165, 165b, 166), avant le push. Edge Function `purge-share-images` déployée sur prod (`verify_jwt: true`). Tag de retour arrière `pre-merge-dev-20261009` (code seulement). Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
+
 ---
 
 ## 1. Gel du parcours de vote — jusqu'au 2026-09-10 inclus

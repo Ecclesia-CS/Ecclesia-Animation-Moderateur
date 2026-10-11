@@ -10,7 +10,7 @@
 `key` (PK) / `value` (bcrypt hash). Clés : `creation_code_hash`, `superadmin_code_hash`.
 
 ### `sessions`
-`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `session_type` (`full`|`debate`|`poll`, défaut `full`, NOT NULL, fixé à la création — chantier 134, voir `CLAUDE.md` § Types de séance), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
+`id`, `title`, `description?`, `scheduled_at?`, `join_code?` (6 hex unique parmi non-fermées), `phase` (`draft`|`pre_voting`|`voting`|`allocating`|`debating`|`closed`), `doc_info_url?`, `doc_summary_url?`, `doc_collab_url?`, `moderation_policy` (`open`|`closed`|`ai`, défaut `closed`), `session_type` (`full`|`debate`|`poll`, défaut `full`, NOT NULL, fixé à la création — chantier 134, voir `CLAUDE.md` § Types de séance), `poll_mode` (`camps`|`consent`, défaut `camps`, NOT NULL, fixé à la création, `consent` réservé à `session_type = 'poll'` par CHECK — chantier 160 ; en `consent` : vote d'accord / pas d'accord seulement, décomptes seuls, aucune analyse), `phase_changed_at?`, `group_names` (jsonb, défaut `[]`) — tableau `GroupNameResult[]` persisté en DB par `update_group_names` (superadmin) et lu par les participants via `select('*')`
 
 Phase order : `draft → pre_voting → voting → allocating → debating → closed`
 - `pre_voting` : vote ouvert à distance, `attending_in_person = false` par défaut. Pas d'onboarding.
@@ -28,6 +28,14 @@ Outil "proposer un vote" côté modérateur, table-scoped, **totalement séparé
 - `table_vote_responses` : `id`, `option_id` (CASCADE), `vote_id` (CASCADE, dénormalisé pour éviter un JOIN), `user_id` (auth.uid()), `answer` (boolean), `created_at`, `updated_at`. Contrainte `UNIQUE(option_id, user_id)` — un participant répond au plus une fois par option, upsert sur changement d'avis.
 
 **RLS et anonymat** : `table_votes`/`table_vote_options` sont lisibles par tout participant ou modérateur de la table (`is_table_participant`/`is_table_moderator`). `table_vote_responses` n'a **qu'une seule policy**, `SELECT USING (user_id = auth.uid())` — un participant ne voit que ses propres réponses (état "déjà répondu"), et **personne, pas même le modérateur, n'a de policy pour lire les réponses d'autrui**. Le seul moyen de connaître un décompte est la RPC `get_table_vote_results` (agrégats uniquement). Écriture exclusivement via RPC SECURITY DEFINER (`create_table_vote`, `close_table_vote`, `submit_table_vote_response`) — aucune policy INSERT/UPDATE/DELETE sur les trois tables.
+
+### `table_shares` — chantier 162a
+Fil de partage de la table (liens et sources collaboratives) : un participant demande à montrer une source, le modérateur accepte ou refuse.
+
+- Colonnes : `id`, `table_id` (CASCADE), `session_id?` (CASCADE, NULL hors séance), `user_id` (auth.uid() de l'auteur), `author_pseudo` (copie du pseudo à la demande), `kind` (`'collab_source'`|`'link'`), `title` (1-200 ; 1-80 imposé pour un lien), `url?` (http/https, ≤ 2000 ; **obligatoire** pour un lien), `content?` (extrait d'une source collaborative, ≤ 1500), `source_id?` (FK→`session_sources` ON DELETE SET NULL — le titre/lien/extrait sont **copiés** à la demande, la source peut ensuite changer ou disparaître), `status` (`'pending'`|`'accepted'`|`'refused'`), `created_at`, `decided_at?`.
+- `tables.active_share_id?` (FK→`table_shares` ON DELETE SET NULL) : la source acceptée **actuellement affichée** (carte). Remise à NULL par « Retirer » ; les acceptées précédentes restent dans le fil (`status = 'accepted'`).
+- **Aucune policy, aucun droit direct** sur `table_shares` (`REVOKE ALL` à `anon`/`authenticated`) : une demande en attente ne doit être vue que de son auteur et du modérateur. Tout passe par les RPC (voir `reference-fonctions-sql.md`).
+- **Chantier 162b — images** : `kind` accepte aussi `'image'` ; `image_path?` (`<table_id>/<share_id>` dans le bucket Storage **privé** `table-shares`, 1 Mo, `image/webp` et `image/jpeg` seulement ; `share_id` = `table_shares.id`) et `image_purged_at?` (posée quand le fichier a été effacé ; `image_path` repasse alors à NULL). Contrainte `table_shares_image_consistency` : une image a un chemin **ou** une date d'effacement, les autres types aucun des deux. **Politiques de stockage** (`storage.objects`, rôle `authenticated`, via les helpers `can_upload_share_image` / `can_read_share_image` / `can_delete_share_image`) : dépôt = assis à une table modérée en débat, ≤ 8 fichiers par personne et par table ; lecture = l'auteur, le modérateur d'une demande en attente, toute la table une fois acceptée ; suppression = son propre fichier tant qu'il n'est pas montré. **Un fichier de Storage ne se supprime pas en SQL** (trigger `protect_objects_delete`) : seule l'Edge Function `purge-share-images` (clé `service_role`, API de stockage) les efface, à la clôture de la séance et en filet de sécurité pour toute séance déjà close.
 
 ### `participants`
 `id`, `table_id` (CASCADE), `user_id`, `pseudo`, `created_at`
@@ -72,9 +80,10 @@ Zéro policy RLS — accès exclusivement via `apply_assertion_merge` / `revert_
 `id`, `session_id` (CASCADE), `member_id` (CASCADE→session_members), `table_number` (int), `table_id?` (FK→tables ON DELETE SET NULL), `created_at`
 Contrainte : `UNIQUE(session_id, member_id)`.
 
-### `member_pairings` — Bloc C (chantier 92)
-`session_id` (CASCADE), `member_id` (CASCADE→session_members), `target_member_id` (CASCADE→session_members), `created_at`
-PK `(member_id, target_member_id)`, `CHECK member_id <> target_member_id`. RLS : lecture self-only (`is_own_session_member(member_id)`), aucune écriture directe — tout passe par `set_my_pairings`. Seuls les liens **réciproques** comptent pour l'allocation (grappes de 3 max, `src/lib/allocation.ts`).
+### `member_pairings` — Bloc C (chantier 92, étendue au chantier 165)
+`id` (PK), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `target_member_id` (**nullable** depuis le 165, CASCADE→session_members), `target_pseudo` (NOT NULL — le nom tel que saisi, ou le pseudo de la personne visée), `created_at`
+Unicité : `(member_id, target_member_id)` quand la cible est connue ; `(member_id, pairing_norm(target_pseudo))` pour les noms à venir (`target_member_id IS NULL`). `CHECK target_member_id IS NULL OR member_id <> target_member_id`. RLS : lecture self-only (`is_own_session_member(member_id)`), aucune écriture directe — tout passe par `set_my_pairings`.
+Une ligne à cible NULL est un **nom à venir** : elle se lie (trigger sur `session_members`, à l'`INSERT` ou au changement de `pseudo`) quand quelqu'un porte ce nom. Elle ne produit **jamais** de lien par elle-même : seuls les liens **réciproques** comptent pour l'allocation (grappes de 3 max, `src/lib/allocation.ts`) — la personne arrivée doit citer à son tour, et `set_my_pairings` contrôle alors la taille du groupe.
 
 ### `private_notes`
 `id`, `user_id` (NOT NULL), `content` (text), `updated_at`, `table_id?` (FK→tables ON DELETE CASCADE), `session_id?` (FK→sessions ON DELETE CASCADE)
