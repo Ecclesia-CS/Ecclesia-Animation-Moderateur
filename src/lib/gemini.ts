@@ -7,7 +7,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { extractErr } from './utils'
 import { isPartialInclusion } from './mergeGuards'
-import type { ModerationResult, MergeResult, GroupNameResult } from './types'
+import type { ModerationResult, MergeResult, GroupNameResult, VoteValue } from './types'
 
 // ── Extraction des erreurs gemini-proxy (chantier 57) ──────────
 //
@@ -144,7 +144,7 @@ export async function nameIdeologicalGroups(payload: {
   session_description: string | null
   groups: { table_number: number; member_ids: string[] }[]
   assertions: { id: string; content: string }[]
-  votes: { member_id: string; assertion_id: string; vote: 'agree' | 'disagree' | 'pass' }[]
+  votes: { member_id: string; assertion_id: string; vote: VoteValue }[]
   divisive_assertions?: { id: string; content: string }[]
 }): Promise<GeminiResponse<GroupNameResult>> {
   const { session_title, session_description, groups, assertions, votes, divisive_assertions } = payload
@@ -197,7 +197,7 @@ export async function nameSingleGroup(payload: {
   target_table_number: number
   groups: { table_number: number; member_ids: string[] }[]
   assertions: { id: string; content: string }[]
-  votes: { member_id: string; assertion_id: string; vote: 'agree' | 'disagree' | 'pass' }[]
+  votes: { member_id: string; assertion_id: string; vote: VoteValue }[]
   divisive_assertions?: { id: string; content: string }[]
 }): Promise<{ result: GroupNameResult; tokens_used: number; usage: GeminiUsage }> {
   const { session_title, session_description, target_table_number, groups, assertions, votes, divisive_assertions } = payload

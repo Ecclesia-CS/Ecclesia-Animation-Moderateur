@@ -8,12 +8,15 @@ interface SubmitAssertionModalProps {
   session: Session
   onClose: () => void
   onSubmitted: () => void
+  /** Chantier 169 — ouvert juste après un vote blanc : propose de reformuler. */
+  afterBlank?: boolean
 }
 
 export default function SubmitAssertionModal({
   session,
   onClose,
   onSubmitted,
+  afterBlank = false,
 }: SubmitAssertionModalProps) {
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
@@ -89,6 +92,11 @@ export default function SubmitAssertionModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {afterBlank && (
+              <p className="rounded-[8px] text-xs text-slate-700 bg-slate-50 border border-slate-200 p-3">
+                ⬜ Tu as voté blanc. Si tu veux, propose une formulation plus claire : elle s'ajoutera aux autres {noun}s, sans remplacer celle-ci.
+              </p>
+            )}
             <div>
               <label className="block text-xs font-semibold text-anthracite/80 mb-1.5">
                 {noun === 'option' ? 'Formule une option que tu voudrais soumettre au vote' : 'Formule une affirmation que tu voudrais soumettre au vote'}

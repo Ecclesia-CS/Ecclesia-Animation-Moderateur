@@ -679,7 +679,8 @@ const VOTE_CHANGES_TOP = 8
 const VOTE_LABEL: Record<VoteValue, string> = {
   agree:    "d'accord",
   disagree: "pas d'accord",
-  pass:     'passer',
+  pass:     "s'abstenir",
+  blank:    'voter blanc',
 }
 
 function plural(n: number, one: string, many: string): string {

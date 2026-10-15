@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **Le 2026-10-15, le chantier 169 est fait sur sa branche** (vote blanc / abstention, proposition après un vote blanc) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 169. Migration `20261015_chantier169_*` appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`. Entrée « en cours » retirée.
+
 > **Le 2026-10-11, le chantier 168 est mergé dans `dev`** (charte graphique : l'appli aux couleurs du site Ecclesia, apparence seule, sans aucune fonctionnalité changée ; renuméroté depuis 158, pris par le code de rappel) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 168. Front seul, **aucune migration**, rien à appliquer sur prod. **Mergé dans `main` le 2026-10-14** (avance rapide de 58 commits, sans migration). Les écrans ajoutés par les chantiers 158 à 167 ont été repris dans la charte avant le merge. Entrée « en cours » retirée au merge.
 
 > **Le 2026-10-09, le chantier 167 est fait** (comparaison avant / après débat : résumé « combien de personnes ont changé d'avis », lu dans l'historique des votes) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 167. Migration `20261009_chantier166_*` (nom conservé : déjà appliqué sur dev sous ce nom) appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 161a**. Entrée « en cours » retirée.

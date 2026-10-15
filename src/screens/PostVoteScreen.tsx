@@ -23,9 +23,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { privateChannel } from '../lib/realtime'
-import { castVote, getMyAssertionIds, canProposeAssertion } from '../lib/voting'
+import { castVote, getMyAssertionIds, canProposeAssertion, countBlank } from '../lib/voting'
 import { extractErr } from '../lib/utils'
-import type { Assertion, AssertionVote, Session } from '../lib/types'
+import type { Assertion, AssertionVote, Session, VoteValue } from '../lib/types'
 import AssertionCard from '../components/voting/AssertionCard'
 import SubmitAssertionModal from '../components/voting/SubmitAssertionModal'
 import VoteProgress from '../components/voting/VoteProgress'
@@ -57,6 +57,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
 
   const [revoteAssertion, setRevoteAssertion] = useState<Assertion | null>(null)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [afterBlank, setAfterBlank] = useState(false)
   const [proposedJustNow, setProposedJustNow] = useState(0)
 
   async function load() {
@@ -115,13 +116,18 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
     return () => { supabase.removeChannel(channel) }
   }, [session.id, memberId])
 
-  async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
+  async function handleVote(assertionId: string, vote: VoteValue) {
     const voteRow = await castVote(assertionId, vote)
     setMyVotes(prev => {
       const next = new Map(prev)
       next.set(assertionId, voteRow)
       return next
     })
+    // Chantier 169 — après un vote blanc, proposer une formulation plus claire.
+    if (vote === 'blank' && canProposeAssertion(session, { unvotedCount: 0, proposedCount: myAssertionIds.length })) {
+      setAfterBlank(true)
+      setShowSubmitModal(true)
+    }
   }
 
   const myOwnAssertions = useMemo(
@@ -139,6 +145,7 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
   const canPropose = canProposeAssertion(session, {
     unvotedCount: unvotedAssertions.length,
     proposedCount: myAssertionIds.length,
+    blankCount: countBlank(myVotes),
   })
 
   return (
@@ -281,7 +288,8 @@ export default function PostVoteScreen({ session, memberId, onBack }: PostVoteSc
       {showSubmitModal && (
         <SubmitAssertionModal
           session={session}
-          onClose={() => { setShowSubmitModal(false); load() }}
+          afterBlank={afterBlank}
+          onClose={() => { setShowSubmitModal(false); setAfterBlank(false); load() }}
           onSubmitted={() => setProposedJustNow(c => c + 1)}
         />
       )}

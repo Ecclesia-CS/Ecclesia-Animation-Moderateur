@@ -14,7 +14,7 @@
 
 import { nameSingleGroup, GenericNameError } from './gemini'
 import { recordAiUsage } from './aiUsage'
-import type { GroupNameResult } from './types'
+import type { GroupNameResult, VoteValue } from './types'
 import type { AiUsageDetail } from './aiUsage'
 
 // ── Types ─────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ export function namingGroupsFromAnalysis(
 export interface NamingVote {
   member_id:    string
   assertion_id: string
-  vote:         'agree' | 'disagree' | 'pass'
+  vote:         VoteValue
 }
 
 export interface NamingAssertion {
@@ -141,7 +141,7 @@ export function deriveFallbackName(
 
 // ── Assertions discriminantes (H9) ────────────────────────────
 
-const VOTE_VALUE: Record<NamingVote['vote'], number> = { agree: 1, disagree: -1, pass: 0 }
+const VOTE_VALUE: Record<NamingVote['vote'], number> = { agree: 1, disagree: -1, pass: 0, blank: 0 }
 
 /**
  * Assertions sur lesquelles un camp se démarque le plus du reste de la
