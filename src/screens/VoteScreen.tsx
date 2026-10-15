@@ -4,13 +4,13 @@ import { privateChannel } from '../lib/realtime'
 import {
   castVote, getVoteResults, confirmAttendance, registerSessionMember,
   hasQuestionnaireResponse, getMyAssertionIds, tryClaimModeratorStatus,
-  canProposeAssertion, proposalsMentionable,
+  canProposeAssertion, proposalsMentionable, countBlank,
   PSEUDO_TAKEN_MESSAGE, PSEUDO_PUBLIC_NOTICE, getMyEntryResponse,
 } from '../lib/voting'
 import { extractErr, titreSeance } from '../lib/utils'
 import { getSessionById, getSessionByJoinCode } from '../lib/sessions'
 import { lastNameStore } from '../lib/storage'
-import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult } from '../lib/types'
+import type { Assertion, AssertionVote, EntryResponse, Session, SessionMember, VoteResult, VoteValue } from '../lib/types'
 import VoteResultsSummary from '../components/voting/VoteResultsSummary'
 import PseudoForm from '../components/voting/PseudoForm'
 import OnboardingForm from '../components/voting/OnboardingForm'
@@ -92,6 +92,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   const [myVotes, setMyVotes] = useState<Map<string, AssertionVote>>(new Map())
   const [assertionIndex, setAssertionIndex] = useState(0)
   const [showSubmitModal,    setShowSubmitModal]    = useState(false)
+  const [afterBlank,         setAfterBlank]         = useState(false)
   const [proposedCount,      setProposedCount]      = useState(0)
   const [showVoteIntro,      setShowVoteIntro]      = useState(false)
   const [showAllAssertions,  setShowAllAssertions]  = useState(false)
@@ -571,6 +572,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
     ? canProposeAssertion(session, {
         unvotedCount: assertions.filter(a => !myVotes.has(a.id)).length,
         proposedCount,
+        blankCount: countBlank(myVotes),
       })
     : false
 
@@ -610,7 +612,7 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
   }
 
   // ── Vote handler ──────────────────────────────────────────────────────────
-  async function handleVote(assertionId: string, vote: 'agree' | 'disagree' | 'pass') {
+  async function handleVote(assertionId: string, vote: VoteValue) {
     const voteRow = await castVote(assertionId, vote)
     // Add vote to map — the assertion disappears from unvotedAssertions automatically,
     // so the next unvoted one slides into view without needing to advance the index.
@@ -619,6 +621,12 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
       next.set(assertionId, voteRow)
       return next
     })
+    // Chantier 169 — après un vote blanc, proposer une formulation plus claire.
+    // Respecte verrou et plafond ; ne lève que « voter d'abord ».
+    if (vote === 'blank' && session && canProposeAssertion(session, { unvotedCount: 0, proposedCount })) {
+      setAfterBlank(true)
+      setShowSubmitModal(true)
+    }
   }
 
   // ── Callbacks from children ───────────────────────────────────────────────
@@ -1164,7 +1172,8 @@ export default function VoteScreen({ sessionJoinCode, onTableJoined }: VoteScree
         {showSubmitModal && (
           <SubmitAssertionModal
             session={session}
-            onClose={() => setShowSubmitModal(false)}
+            afterBlank={afterBlank}
+            onClose={() => { setShowSubmitModal(false); setAfterBlank(false) }}
             onSubmitted={handleAssertionSubmitted}
           />
         )}

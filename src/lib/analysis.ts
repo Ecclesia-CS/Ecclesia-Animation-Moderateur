@@ -8,6 +8,7 @@ import { PCA } from 'ml-pca'
 import { kmeans } from 'ml-kmeans'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractErr } from './utils'
+import type { VoteValue } from './types'
 
 // ── Constantes ajustables ────────────────────────────────────
 const MIN_VOTERS              = 6
@@ -30,7 +31,7 @@ export class AnalysisError extends Error {
 export interface VoteRow {
   member_id:           string
   assertion_id:        string
-  vote:                'agree' | 'disagree' | 'pass'
+  vote:                VoteValue
   attending_in_person?: boolean
 }
 
@@ -52,7 +53,14 @@ export interface AnalysisResult {
 // ── buildVoteMatrix ───────────────────────────────────────────
 /**
  * Construit la matrice membres × assertions.
- * Encodage : agree=+1, disagree=-1, pass=0, absent=0.
+ * Encodage : agree=+1, disagree=-1, pass (abstention)=0, absent=0.
+ *
+ * Chantier 169 — le VOTE BLANC (`blank`, « la question est mal formulée ») n'est
+ * pas une opinion : encodé 0 dans la matrice faute de mieux (même traitement que
+ * l'absence, ce que fait pol.is pour une valeur manquante), mais il NE COMPTE PAS
+ * comme vote réel dans les seuils de sparsité. Sinon quelqu'un qui n'a que voté
+ * blanc serait rangé dans un camp sans avoir exprimé la moindre position.
+ * L'abstention (`pass`) reste, elle, un vote réel. pol.is n'a pas de vote blanc.
  *
  * `pass` (ligne existante dans assertion_votes) et l'absence de vote (aucune ligne)
  * restent distincts en storage — voir VoteRow / assertion_votes — mais sont volontairement
@@ -84,6 +92,7 @@ export function buildVoteMatrix(
   // Comptage des votes réels par assertion (≠ absent, mais pass compte)
   const realVotesByAssertion = new Map<string, number>()
   for (const v of votes) {
+    if (v.vote === 'blank') continue
     realVotesByAssertion.set(
       v.assertion_id,
       (realVotesByAssertion.get(v.assertion_id) ?? 0) + 1,
@@ -98,6 +107,7 @@ export function buildVoteMatrix(
   // Comptage des votes réels par membre sur les assertions retenues
   const realVotesByMember = new Map<string, number>()
   for (const v of votes) {
+    if (v.vote === 'blank') continue
     if (!filteredAssertions.includes(v.assertion_id)) continue
     realVotesByMember.set(
       v.member_id,
@@ -556,7 +566,7 @@ export async function loadAnalysisById(
 // 20261009_chantier166_resume_changements_de_vote.sql. Ne dépend donc pas du moment où l'animateur a
 // lancé ses analyses.
 
-export type VoteValue = 'agree' | 'disagree' | 'pass'
+export type { VoteValue }
 
 export interface VoteTransition {
   from:  VoteValue

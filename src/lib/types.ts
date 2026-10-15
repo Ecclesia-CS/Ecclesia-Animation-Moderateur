@@ -326,7 +326,7 @@ export interface AssertionVote {
   assertion_id: string
   session_id: string
   member_id: string
-  vote: 'agree' | 'disagree' | 'pass'
+  vote: VoteValue
   created_at: string
 }
 
@@ -422,3 +422,11 @@ export interface QuestionnaireExportRow {
   staff_interest: string | null
   feedback: string | null
 }
+
+/**
+ * Chantier 169 — les quatre réponses possibles à une assertion.
+ * `pass` = ABSTENTION (« pas d'avis ») ; `blank` = VOTE BLANC (« la question
+ * est mal formulée »). Dans la matrice d'analyse, le blanc n'est pas une opinion
+ * (voir `buildVoteMatrix`).
+ */
+export type VoteValue = 'agree' | 'disagree' | 'pass' | 'blank'

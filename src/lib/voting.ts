@@ -14,6 +14,7 @@ import type {
   TableOpinionSummary,
   TableCampSpeakingTimes,
   TableMemberForModerator,
+  VoteValue,
 } from './types'
 import type { AllocationMember, AllocationResult } from './allocation'
 
@@ -334,6 +335,13 @@ export async function getMyAssertionIds(sessionId: string): Promise<string[]> {
 type ProposalRules = Pick<Session, 'assertions_locked'> &
   Partial<Pick<Session, 'assertions_vote_first' | 'max_assertions_per_member'>>
 
+/** Chantier 169 — nombre de votes blancs dans une map de votes personnels. */
+export function countBlank(votes: Map<string, AssertionVote>): number {
+  let n = 0
+  for (const v of votes.values()) if (v.vote === 'blank') n++
+  return n
+}
+
 export function proposalsMentionable(s: ProposalRules): boolean {
   // Un plafond ≥ 1 ne change rien ici : chacun peut encore proposer au début.
   return !s.assertions_locked && !s.assertions_vote_first
@@ -341,11 +349,13 @@ export function proposalsMentionable(s: ProposalRules): boolean {
 
 export function canProposeAssertion(
   s: ProposalRules,
-  state: { unvotedCount: number; proposedCount: number },
+  state: { unvotedCount: number; proposedCount: number; blankCount?: number },
 ): boolean {
   if (s.assertions_locked) return false
   if (s.max_assertions_per_member != null && state.proposedCount >= s.max_assertions_per_member) return false
-  if (s.assertions_vote_first && state.unvotedCount > 0) return false
+  // Chantier 169 — un vote blanc lève « voter d'abord » (et lui seul : le verrou
+  // et le plafond ci-dessus restent absolus). Miroir de `submit_assertion`.
+  if (s.assertions_vote_first && state.unvotedCount > 0 && !(state.blankCount && state.blankCount > 0)) return false
   return true
 }
 
@@ -364,7 +374,7 @@ export async function mergeAssertionVotes(
 
 export async function castVote(
   assertionId: string,
-  vote: 'agree' | 'disagree' | 'pass'
+  vote: VoteValue
 ): Promise<AssertionVote> {
   const { data, error } = await supabase.rpc('cast_vote', {
     p_assertion_id: assertionId,

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import type { Assertion, AssertionVote } from '../../lib/types'
+import type { Assertion, AssertionVote, VoteValue } from '../../lib/types'
 import FondQuadrille from '../FondQuadrille'
 
 interface AssertionCardProps {
   assertion: Assertion
   existingVote: AssertionVote | null
-  onVote: (vote: 'agree' | 'disagree' | 'pass') => Promise<void>
+  onVote: (vote: VoteValue) => Promise<void>
   index: number
   total: number
 }
@@ -20,7 +20,7 @@ export default function AssertionCard({
   const [voting, setVoting] = useState(false)
   const [fade, setFade] = useState(false)
 
-  async function handleVote(vote: 'agree' | 'disagree' | 'pass') {
+  async function handleVote(vote: VoteValue) {
     if (voting) return
     setVoting(true)
     setFade(true)
@@ -53,7 +53,9 @@ export default function AssertionCard({
                   ? '✅ Tu es d\'accord'
                   : currentVote === 'disagree'
                   ? '❌ Tu n\'es pas d\'accord'
-                  : '⏭️ Tu as passé'}
+                  : currentVote === 'blank'
+                  ? '⬜ Tu as voté blanc'
+                  : '⏭️ Tu t\'es abstenu'}
                 {' '}(changer ?)
               </span>
             </div>
@@ -74,7 +76,7 @@ export default function AssertionCard({
             onClick={() => handleVote('disagree')}
           />
           <VoteBtn
-            label="Passe"
+            label="Abstention"
             emoji="⏭️"
             color="gray"
             active={currentVote === 'pass'}
@@ -90,10 +92,21 @@ export default function AssertionCard({
             onClick={() => handleVote('agree')}
           />
         </div>
+        {/* Chantier 169 — vote blanc, distinct de l'abstention. */}
+        <button
+          onClick={() => handleVote('blank')}
+          disabled={voting}
+          className={`flex w-full items-center justify-center gap-2 border-t border-bleu-fonce/10 px-3 py-3 text-sm font-semibold transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bleu-clair ${
+            currentVote === 'blank' ? 'bg-slate-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <span className="text-lg">⬜</span>
+          <span>Vote blanc : la question est mal formulée</span>
+        </button>
       </div>
       {index === 0 && (
         <p className="mt-3 px-2 text-center text-xs leading-relaxed text-gray-600">
-          💡 « Passe » veut dire ni l'un ni l'autre, ou que la question n'est pas claire. C'est un vrai choix, compté dans les résultats, pas pareil que de ne jamais répondre.
+          💡 « Abstention » veut dire que tu n'as pas d'avis. « Vote blanc » veut dire que la phrase est mal formulée ou ambiguë : tu ne peux pas y répondre. Ce sont deux vrais choix, différents de ne jamais répondre.
         </p>
       )}
     </div>

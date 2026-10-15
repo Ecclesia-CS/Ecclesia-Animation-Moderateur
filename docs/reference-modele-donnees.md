@@ -68,7 +68,7 @@ Contrainte : `UNIQUE(session_id, member_id)`.
 `id`, `session_id` (CASCADE), `member_id?` (**nullable, SET NULL→session_members** depuis le chantier 137-D : une assertion survit à la suppression de son auteur par le superadmin, auteur détaché), `content`, `status` (`pending`|`approved`|`rejected`), `created_at`
 
 ### `assertion_votes` — Bloc C
-`id`, `assertion_id` (CASCADE), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `vote` (`agree`|`disagree`|`pass`), `created_at`
+`id`, `assertion_id` (CASCADE), `session_id` (CASCADE), `member_id` (CASCADE→session_members), `vote` (`agree`|`disagree`|`pass`=abstention|`blank`=vote blanc, chantier 169), `created_at`
 Contrainte : `UNIQUE(assertion_id, member_id)`.
 
 ### `assertion_merges` — Chantier 18 / F24
