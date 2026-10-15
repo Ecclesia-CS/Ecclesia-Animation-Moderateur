@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **Chantier 169 en cours (2026-10-15)** — vote blanc (« question mal formulée ») distinct de l'abstention (« pas d'avis »), puis proposition d'une assertion après un vote blanc (contourne seulement « voter avant de proposer »). Branche `claude/vote-blanc-abstention` (issue de `main`, sur demande de Jules). Fichiers : `AssertionCard.tsx`, `VoteScreen.tsx`, `PostVoteScreen.tsx`, `lib/voting.ts`, `lib/analysis.ts`, `lib/types.ts`, `lib/gemini.ts`, `lib/groupNaming.ts`, nouvelle migration (`assertion_votes.vote`, `submit_assertion`, RPC de comptage).
+
 > **Le 2026-10-11, le chantier 168 est mergé dans `dev`** (charte graphique : l'appli aux couleurs du site Ecclesia, apparence seule, sans aucune fonctionnalité changée ; renuméroté depuis 158, pris par le code de rappel) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 168. Front seul, **aucune migration**, rien à appliquer sur prod. **Mergé dans `main` le 2026-10-14** (avance rapide de 58 commits, sans migration). Les écrans ajoutés par les chantiers 158 à 167 ont été repris dans la charte avant le merge. Entrée « en cours » retirée au merge.
 
 > **Le 2026-10-09, le chantier 167 est fait** (comparaison avant / après débat : résumé « combien de personnes ont changé d'avis », lu dans l'historique des votes) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 167. Migration `20261009_chantier166_*` (nom conservé : déjà appliqué sur dev sous ce nom) appliquée sur **dev uniquement**, à appliquer sur **prod** au merge vers `main`, **après la 161a**. Entrée « en cours » retirée.
