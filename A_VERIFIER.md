@@ -572,11 +572,13 @@ Migration `supabase/migrations/20261007_chantier160_sondage_consentement.sql` �
 
 ## Chantier 169 (2026-10-15) — Vote blanc / abstention
 
-Migration `supabase/migrations/20261015_chantier169_vote_blanc.sql` — **appliquée sur dev uniquement** (contrainte `assertion_votes_vote_check` + `cast_vote` + `submit_assertion`, définitions de départ relues dans `pg_get_functiondef` dev). `pass` = abstention (inchangé en base), `blank` = vote blanc.
+Migration `supabase/migrations/20261015_chantier169_vote_blanc.sql` — **appliquée sur dev ET sur prod le 2026-10-15** (comparée avant à `pg_get_functiondef` prod : identique à la base de départ ; aucune ligne hors contrainte), code mergé dans `main` (tag `pre-merge-vote-blanc-20261015`) (contrainte `assertion_votes_vote_check` + `cast_vote` + `submit_assertion`, définitions de départ relues dans `pg_get_functiondef` dev). `pass` = abstention (inchangé en base), `blank` = vote blanc.
 
 - [x] **Écran de vote, vérifié au navigateur sur dev le 2026-10-15** (séance « Audit charte 158 (sondage) ») : quatre réponses visibles, vote blanc enregistré en base (`blank`), fenêtre « propose une formulation plus claire » ouverte. Données de test supprimées.
 - [ ] **Règle serveur « voter d'abord » levée par un blanc** : séance avec `assertions_vote_first` activé, voter blanc sur une assertion puis proposer sans avoir tout voté → accepté ; sans vote blanc → refusé. Non joué (nécessite le réglage superadmin). Vérifier aussi qu'un plafond atteint ou `assertions_locked` bloque toujours, blanc ou non.
 - [ ] **Revote (`PostVoteScreen`)** : mêmes quatre réponses et même fenêtre après un blanc. Non joué.
 - [ ] **Camps** : relancer l'analyse d'une séance avec des votes blancs et vérifier qu'un membre n'ayant voté que blanc n'apparaît dans aucun camp (couvert par test unitaire, pas joué en réel).
 - [ ] **Résultats** : les blancs entrent dans `total_votes` (donc dans le score de consensus) mais pas dans `pass_count`. À confirmer que c'est bien le souhait de Jules, sinon ajouter `blank_count`.
-- [ ] **Sur prod, au merge** : appliquer la migration après avoir comparé `cast_vote`/`submit_assertion` à leur définition prod (`pg_get_functiondef`).
+- [x] Prod : migration appliquée le 2026-10-15, avant le push.
+- [ ] **Branche `dev`** : elle ne contient pas encore le chantier 169 (mergé directement dans `main` sur demande de Jules) ; y rapatrier `main` avant le prochain chantier, sinon `dev` perd le vote blanc.
+- [ ] Rejouer sur prod le vote blanc et la fenêtre de proposition (une vérification sur dev ne vaut pas pour prod).
