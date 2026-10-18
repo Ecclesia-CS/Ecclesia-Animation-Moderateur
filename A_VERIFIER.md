@@ -582,3 +582,13 @@ Migration `supabase/migrations/20261015_chantier169_vote_blanc.sql` — **appliq
 - [x] Prod : migration appliquée le 2026-10-15, avant le push.
 - [ ] **Branche `dev`** : elle ne contient pas encore le chantier 169 (mergé directement dans `main` sur demande de Jules) ; y rapatrier `main` avant le prochain chantier, sinon `dev` perd le vote blanc.
 - [ ] Rejouer sur prod le vote blanc et la fenêtre de proposition (une vérification sur dev ne vaut pas pour prod).
+
+---
+
+## Visualisation croisée Héritage 0650D7 × 4999B8 (2026-10-02) — ⚠️ à relire par quelqu'un qui était aux deux débats
+
+Fichiers : `transcription-debat/backend/code python/build_cross_viz.py` (nouveau), `viz_template_croisee/index.html`, `tests/test_build_cross_viz.py`. Analyse (non versionnée) : `transcripts/Héritage/analyse_croisee.json`.
+
+- [ ] Les 15 positions sur la grille commune (±2,5 près) sont des **recalages** des positions par table : vérifier qu'aucune n'est injuste, en particulier A5 (refuse le plafond mais veut des mesures fortes, placé à 0) et les trois voix à +7,5 de la table B.
+- [ ] Les prises de position des énoncés communs (consensus et dissensus) s'appuient sur des attributions de voix qui peuvent être fausses, surtout à la table B (échanges rapides, 19 % d'audio non attribué).
+- [ ] Aucun changement d'avis n'a été relevé dans les deux débats : la carte n'affiche donc aucun déplacement durable.
