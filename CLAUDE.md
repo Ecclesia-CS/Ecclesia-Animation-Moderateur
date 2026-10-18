@@ -17,7 +17,9 @@ Voir [`docs/chantiers.md`](./docs/chantiers.md) pour l'état courant des chantie
 > - **Au merge/push sur `main`** : retirer cette entrée dans le **même** commit ou juste après — un chantier resté marqué « en cours » après son merge est une fausse alerte aussi trompeuse qu'un chantier en cours non déclaré.
 > Format et détail complet dans le fichier lui-même.
 
-Ce dépôt contient l'app web de modération (racine `src/`). Le sous-projet de transcription des débats (`transcription-debat/`) a été supprimé le 2026-10-02 : il n'existe plus dans l'application.
+Ce dépôt contient **deux projets** :
+1. **L'app web de modération** (racine `src/`) : le présent CLAUDE.md.
+2. **La transcription des débats** (`transcription-debat/`) : pipeline Python **offline** (Whisper + croisement log Ecclesia + anonymisation + correction Gemini), indépendant de l'app web. Supprimé le 2026-10-02 puis restauré le 2026-10-18 à la demande de l'utilisateur. Doc dédiée : [transcription-debat/CLAUDE.md](./transcription-debat/CLAUDE.md).
 
 ---
 
@@ -33,6 +35,7 @@ Ce fichier est réinjecté au démarrage de **chaque** session : il ne garde que
 | [`docs/reference-ia-gemini.md`](./docs/reference-ia-gemini.md) | Toucher à la modération/fusion IA, ou au nommage des camps |
 | [`docs/reference-parcours-participant.md`](./docs/reference-parcours-participant.md) | Détails d'écran du parcours participant |
 | [`docs/reference-tables-leaderless.md`](./docs/reference-tables-leaderless.md) | **Avant de toucher à `tables.leaderless`** |
+| [`docs/reference-transcription.md`](./docs/reference-transcription.md) | Sous-projet transcription (offline, indépendant) |
 
 Quatre fichiers de suivi, distincts et non redondants : [`docs/chantiers.md`](./docs/chantiers.md) (ce qui a été fait, chantier par chantier), [`docs/chantiers-a-faire.md`](./docs/chantiers-a-faire.md) (ce qui reste à faire, avec le détail complet de chaque chantier dicté — **à consulter avant de dire qu'un chantier n'existe pas**), [`docs/registre-merges-en-attente.md`](./docs/registre-merges-en-attente.md) (ce qui est retenu hors de `main`, et pourquoi), [`A_VERIFIER.md`](./A_VERIFIER.md) (ce qui reste à vérifier humainement).
 
