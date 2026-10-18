@@ -54,8 +54,13 @@ transcription-debat/
     │   ├── quality.py              indicateurs qualité sans référence + WER/WDER
     │   ├── evaluate.py             CLI : metrics · kit (extraits de référence à corriger à l'écoute) · score
     │   ├── analyze_debate.py        génère viz/ (index.html + d3 + data.js + <CODE>.json) par analyse Gemini étagée
+    │   ├── build_manual_viz.py      page par table à partir d'une analyse manuelle
+    │   ├── build_cross_viz.py       page croisée de plusieurs tables (grille commune)
+    │   ├── build_unified_viz.py     page unique en accordéons : pré-débat, synthèse flash, un menu par table
+    │   ├── viz_template_croisee/    gabarit de la page croisée
+    │   ├── viz_template_unifiee/    gabarit de la page unique + polices de l'appli (Newsreader, Archivo, OFL) + logo
     │   └── viz_template/            index.html (page unique pilotée par ?debat=<CODE> → <CODE>.json, sinon data.js ; sections conditionnelles) + d3.v7.min.js, logo_ecclesia.png, polices Playfair Display (+ licence OFL) : tout servi localement, pas de CDN ; charte graphique Ecclesia
-    ├── tests/                      204 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate)
+    ├── tests/                      272 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate, build_manual_viz, build_cross_viz, build_unified_viz)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
     ├── requirements.txt
@@ -186,6 +191,18 @@ Une page unique pour tous les participants de plusieurs tables : synthèse gén�
 ```
 Écrit `transcripts\<Thème>\viz_croisee\` (`index.html` + `data.js`, ouverture par double-clic). Refus si une voix manque, si une prise de position ne tombe pas sur un segment de sa voix (±3 s), si un texte contient des guillemets ou un prénom de `name_map.json`, ou si un thème n'est pas rattaché. Un changement d'avis déclaré dans une analyse par table doit être re-placé dans l'analyse croisée. Premier cas : Héritage (0650D7 × 4999B8).
 
+### Page unique de restitution, en menus accordéons (prototype du 18/10)
+Remplace, à terme, la page par table et la page croisée par **une seule page** de menus repliables : **01 Synthèse pré-débat** (consensus, dissensus et camps du questionnaire d'avant le débat — blocs à compléter tant que `pre_debate` est `null`, export pas encore disponible) · **02 Synthèse flash** (résumé très court de toutes les tables, 3 plus forts consensus et dissensus *communs* aux tables, carte 2D finale fixe — une couleur par table, taille = temps de parole —, camps de la transcription) · **un menu par table** (« Table A · `<code>` » : résumé, ses 3 consensus et 3 dissensus, temps par sujet, carte animée avec la **tension dans le panneau « ce qui vient d'être dit »**, camps de la table). Au moins trois menus, même pour une seule table.
+```powershell
+.venv\Scripts\python "code python\build_unified_viz.py" "transcripts\<Thème>\analyse_unifiee.json"
+```
+Spec : `{"cross": "<analyse_croisee.json>", "tables": {"<CODE>": "<CODE>/viz/<CODE>.json"}, "flash_summary": "...", "pre_debate": null}`. Écrit `transcripts\<Thème>\viz_unifiee\` (`index.html` + `data.js` + `unifiee.json` + polices et logo). S'ouvre par double-clic (la page lit `data.js`) ; sur un site, elle lit `unifiee.json`. Règles :
+- **Un seul plan 2D partout** : positions recalées de l'analyse croisée (`build_cross_viz.build`, recalculée à chaque génération), jamais les axes propres à chaque analyse par table. Des analyses par table on ne garde que le déroulé (prises de parole, reformulations, échanges, événements, tension, thèmes). Les labels `Interlocuteur N` y sont réécrits `A N` (`relabel`) pour qu'une voix ait le même nom dans toute la page.
+- **Classement calculé** (`rank_statements`) : consensus = ≥ 3 voix pour/contre et indice d'accord ≥ 0,5 (≥ 75 % du même côté ; adhésion **ou** rejet), classé par écart net ; dissensus = des voix des deux côtés et indice < 0,5, classé par taille du camp minoritaire. Énoncés à égalité avec le 3ᵉ signalés ; s'il y en a moins de 3, la page le dit au lieu d'en inventer (Héritage : 2 dissensus communs seulement).
+- **Temps par sujet sans hiérarchie** : familles renommées « La question posée » / « Questions liées » / « Sujets annexes » (`KIND_LABELS`) — jamais « cœur du sujet » ni « leviers et effets », jugés péjoratifs.
+- Charte de **l'appli** (chantier 168) : bleu marine `#15233F`, crème `#FBF9F4`, sable `#F1EBDD`, Newsreader + Archivo (copiées de `@fontsource-variable`, licences OFL à côté), angles quasi droits. Aucun CDN, aucune dépendance (pas de d3).
+- Seul texte écrit à la main : `flash_summary`, soumis aux garde-fous de l'analyse croisée (ni guillemets ni prénom réel).
+
 ### Publier la visualisation sur un site
 Un seul dossier sur l'hébergeur (GitHub Pages ou autre) pour **tous** les débats : `index.html`, `d3.v7.min.js`, `logo_ecclesia.png`, `playfair-display.woff2`, `playfair-display-italic.woff2` et `OFL-playfair-display.txt` (identiques pour chaque débat) + un `<CODE>.json` par débat. `data.js` est inutile en ligne. **Relire le JSON avant de le publier** (aucun prénom réel).
 
@@ -282,7 +299,7 @@ Depuis `backend/`, avec le **Python système** (pas le venv) :
 ```
 python -m pytest tests/ -v
 ```
-204 tests : `anonymize_log`, `transcribe_offline`, `voice`, `boundaries`, `correct_transcript`, `deduplicate`, `quality`, `evaluate`, `analyze_debate`. `conftest.py` (racine backend) ajoute `code python/` au `sys.path` ; `tests/conftest.py` neutralise `run_diarization` (les tests ne lancent jamais pyannote : ils passent par `--diarization-cache`).
+272 tests : `anonymize_log`, `transcribe_offline`, `voice`, `boundaries`, `correct_transcript`, `deduplicate`, `quality`, `evaluate`, `analyze_debate`, `build_manual_viz`, `build_cross_viz`, `build_unified_viz`. `conftest.py` (racine backend) ajoute `code python/` au `sys.path` ; `tests/conftest.py` neutralise `run_diarization` (les tests ne lancent jamais pyannote : ils passent par `--diarization-cache`).
 
 ---
 
