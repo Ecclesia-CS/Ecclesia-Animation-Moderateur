@@ -1,0 +1,9 @@
+{
+  "cross": "transcripts/Héritage/analyse_croisee.json",
+  "tables": {
+    "0650D7": "transcripts/Héritage/0650D7/viz/0650D7.json",
+    "4999B8": "transcripts/Héritage/4999B8/viz/4999B8.json"
+  },
+  "flash_summary": "Quinze participants, sur deux tables, ont débattu de la même question : faut-il plafonner l'héritage (12 millions étaient proposés) ou le taxer davantage ? Presque tous jugent qu'hériter ne donne ni mérite ni légitimité particulière, et personne n'a contesté que les plus riches échappent largement à l'impôt grâce à des montages. Le plafond lui-même divise (cinq pour, quatre contre, trois nuancés), tout comme la crainte de voir partir les riches. Les opinions s'étalent d'une redistribution quasi totale à la défense de la propriété privée, et personne n'a changé d'avis.",
+  "pre_debate": null
+}

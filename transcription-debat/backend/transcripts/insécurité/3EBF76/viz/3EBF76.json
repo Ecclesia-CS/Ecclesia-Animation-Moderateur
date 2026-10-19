@@ -1,0 +1,2120 @@
+{
+  "meta": {
+    "topic": "insécurité",
+    "code": "3EBF76",
+    "date": "2026-10-14",
+    "totalDurationMinutes": 109.2,
+    "totalRedactedMinutes": 0,
+    "method": {
+      "kind": "manual",
+      "mapTitle": "Positions des participants",
+      "caption": "Chaque point est la position d'un participant, établie à la lecture intégrale de la transcription. Un point ne se déplace durablement que si la personne change explicitement d'avis (flèche « change d'avis ») ; dans ce débat, personne ne l'a fait. Ce qui bouge, ce sont les échanges : une flèche relie celui qui parle à celui à qui il répond (verte = accord, rouge pointillée = désaccord). Cochez « Toutes les interactions » pour voir les alliances et les lignes de fracture accumulées. Un point apparaît à la première prise de parole et grossit quand la personne parle ; survolez-le pour le résumé de sa position.",
+      "footer": [
+        "⚠ Analyse faite à la main (lecture intégrale de la transcription par Claude), sans scoring automatique. Les positions sont interprétatives et volontairement grossières : ±2,5 = penchant exprimé, ±5 = position claire, ±7,5 = position centrale et répétée. Personne n'est placé aux extrêmes (±10).",
+        "⚠ Deux axes : horizontalement, sanctionner et faire respecter l'ordre ou prévenir et traiter les causes ; verticalement, faire confiance aux institutions pour réformer ou s'en défier (soit parce qu'elles servent l'ordre établi, soit parce que le monopole de l'État attire la corruption : ces deux raisons, opposées, se retrouvent du même côté de l'axe).",
+        "⚠ Tension = intensité du désaccord, pas de l'émotion (le débat est resté courtois) : ~20 cadrage ou tour de table, 35-45 questions et échanges d'informations, 50-60 désaccord argumenté, 65 confrontation de principes avec répliques directes. La courbe relie ces niveaux, elle n'est pas mesurée seconde par seconde.",
+        "⚠ Les résumés sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Les phrases d'animation (donner la parole, annoncer le tour de table, résumer) sont écartées, y compris quand la transcription les attribue par erreur à un participant.",
+        "⚠ Attribution de la transcription imparfaite : environ un neuvième de l'audio n'est attribué à personne, la fin de la discussion est parfois mélangée, et les toutes premières minutes sont confuses (l'animation y est rattachée à un participant). La voix la plus libérale s'est peu prononcée sur la prison et la drogue : sa position horizontale est donc laissée indéterminée (ligne pointillée)."
+      ]
+    }
+  },
+  "personas": [
+    {
+      "id": "i2",
+      "label": "Interlocuteur 2",
+      "camp": "Causes sociales, investissement public",
+      "color": "#D64545",
+      "weight": 0.507,
+      "entry": 0.04,
+      "note": "Voit un problème systémique de peines et de prisons plutôt qu'un problème d'immigration, veut traiter les causes par de grands travaux et des industries publiques offrant des emplois stables, accepte un encadrement étatique de la drogue et préfère l'indépendance financière des femmes à l'ingérence dans les familles.",
+      "speech": [
+        [
+          0.04,
+          0.94
+        ],
+        [
+          17.3,
+          19.28
+        ],
+        [
+          19.36,
+          19.39
+        ],
+        [
+          21.6,
+          21.67
+        ],
+        [
+          21.75,
+          21.83
+        ],
+        [
+          32.88,
+          34.72
+        ],
+        [
+          47.9,
+          48.77
+        ],
+        [
+          53.23,
+          53.27
+        ],
+        [
+          62.95,
+          63.86
+        ],
+        [
+          81.55,
+          82.67
+        ],
+        [
+          83.01,
+          83.07
+        ],
+        [
+          83.14,
+          83.14
+        ],
+        [
+          87.98,
+          88.37
+        ],
+        [
+          93.47,
+          93.6
+        ],
+        [
+          95.74,
+          95.81
+        ],
+        [
+          106.55,
+          106.73
+        ],
+        [
+          106.79,
+          107.02
+        ],
+        [
+          107.25,
+          107.41
+        ],
+        [
+          107.5,
+          107.59
+        ],
+        [
+          107.66,
+          107.66
+        ],
+        [
+          108.96,
+          109.06
+        ]
+      ],
+      "points": [
+        {
+          "t": 0.04,
+          "stance": "Reconnaît une part de réalité aux faits divers mais voit surtout un problème systémique de peines et de capacité des prisons, sans lien nécessaire avec l'immigration."
+        },
+        {
+          "t": 17.3,
+          "stance": "Juge la libération médicale des détenus âgés efficace mais à nuancer, et préfère revenir aux causes : grands travaux publics et industries souveraines offriraient des CDI solides, même avec un casier."
+        },
+        {
+          "t": 32.88,
+          "stance": "Voit dans les HLM une passerelle sociale utile mais fragile, qui peut faire fuir les élites ; rappelle que l'éducation et la santé sont aussi des infrastructures essentielles et que le budget des Jeux olympiques aurait pu servir à plus durable."
+        },
+        {
+          "t": 47.9,
+          "stance": "Soutient que mélanger les populations unifie la démocratie, à condition que l'accès aux HLM soit très encadré et sélectif pour éliminer la corruption et rassurer."
+        },
+        {
+          "t": 62.95,
+          "stance": "Voit dans l'encadrement de la consommation de drogue par l'État un compromis qui évite les produits non maîtrisés, tout en comprenant l'inquiétude des parents."
+        },
+        {
+          "t": 81.55,
+          "stance": "Pour les violences conjugales, préfère garantir l'indépendance financière des femmes et des logements d'urgence plutôt que laisser l'État s'ingérer dans les familles."
+        },
+        {
+          "t": 93.47,
+          "stance": "Doute de l'idée de mettre les justices en concurrence et demande qui choisirait le tribunal, l'agressé ou l'agresseur."
+        }
+      ],
+      "kf": [
+        [
+          0.04,
+          5.0,
+          -2.5
+        ],
+        [
+          109.2,
+          5.0,
+          -2.5
+        ]
+      ]
+    },
+    {
+      "id": "i1",
+      "label": "Interlocuteur 1",
+      "camp": "Prévenir, accompagner, mélanger",
+      "color": "#0F8A6A",
+      "weight": 0.945,
+      "entry": 0.94,
+      "note": "Voix la plus constante pour la prévention : juge que le bâton coûte plus cher que la carotte, veut un accompagnement personnalisé et de l'éducation dès le plus jeune âge, défend un quota de logements sociaux dans chaque immeuble et la légalisation d'une partie des drogues douces pour casser les réseaux.",
+      "speech": [
+        [
+          0.94,
+          0.95
+        ],
+        [
+          1.01,
+          1.47
+        ],
+        [
+          8.21,
+          8.51
+        ],
+        [
+          8.64,
+          9.85
+        ],
+        [
+          23.26,
+          24.67
+        ],
+        [
+          24.73,
+          24.76
+        ],
+        [
+          25.08,
+          25.71
+        ],
+        [
+          26.99,
+          27.24
+        ],
+        [
+          34.73,
+          37.24
+        ],
+        [
+          38.38,
+          38.47
+        ],
+        [
+          42.5,
+          43.04
+        ],
+        [
+          43.98,
+          44.36
+        ],
+        [
+          52.01,
+          52.74
+        ],
+        [
+          53.15,
+          53.22
+        ],
+        [
+          53.29,
+          53.34
+        ],
+        [
+          53.9,
+          53.91
+        ],
+        [
+          53.98,
+          54.07
+        ],
+        [
+          59.32,
+          60.15
+        ],
+        [
+          60.32,
+          60.37
+        ],
+        [
+          66.19,
+          66.86
+        ],
+        [
+          67.21,
+          67.68
+        ],
+        [
+          67.76,
+          68.2
+        ],
+        [
+          68.26,
+          68.32
+        ],
+        [
+          70.34,
+          70.38
+        ],
+        [
+          72.41,
+          72.7
+        ],
+        [
+          79.16,
+          81.02
+        ],
+        [
+          81.07,
+          81.55
+        ],
+        [
+          85.77,
+          86.87
+        ],
+        [
+          87.17,
+          87.81
+        ],
+        [
+          90.27,
+          90.37
+        ],
+        [
+          90.86,
+          92.24
+        ],
+        [
+          108.44,
+          108.44
+        ],
+        [
+          108.59,
+          108.63
+        ]
+      ],
+      "points": [
+        {
+          "t": 1.01,
+          "stance": "Estime que les réseaux sociaux et l'information continue font remarquer bien plus de faits divers qu'autrefois, ce qui donne l'impression d'une insécurité plus présente."
+        },
+        {
+          "t": 8.64,
+          "stance": "Pense que la prison n'est parfois pas la bonne réponse : un accompagnement personne par personne pour réinsérer par le travail coûterait moins cher que le bâton actuel, même si les fonds ne seront sans doute jamais débloqués."
+        },
+        {
+          "t": 23.26,
+          "stance": "Juge que ce n'est pas qu'une question d'argent : la différence entre quartiers tient surtout à la culture scolaire, au suivi après les cours et aux activités culturelles, plus qu'à un terrain de sport."
+        },
+        {
+          "t": 25.08,
+          "stance": "Doute que des quotas dans les lycées favorisés changent grand-chose : l'ouverture existe déjà pour quelques très bons élèves et profite surtout aux meilleurs lycées parisiens."
+        },
+        {
+          "t": 34.73,
+          "stance": "Défend un quota de logements sociaux dans chaque immeuble plutôt que des bâtiments pour pauvres ; les riverains n'ont pas à décider qui peut habiter près d'eux, et les promoteurs pourraient être compensés par l'impôt sur le revenu."
+        },
+        {
+          "t": 42.5,
+          "stance": "Illustre par l'anniversaire d'un enfant que la mixité rapproche les milieux et peut aider durablement les enfants défavorisés."
+        },
+        {
+          "t": 59.32,
+          "stance": "Distingue le consommateur du vendeur et pense que légaliser une partie des drogues douces pourrait toucher les grands trafiquants en tuant leur marché."
+        },
+        {
+          "t": 67.76,
+          "stance": "Accepte que la France devienne une plaque tournante de la drogue si cela réduit la criminalité et les nuisances pour la population."
+        },
+        {
+          "t": 79.16,
+          "stance": "Cherche pourquoi les violences domestiques viennent surtout d'hommes et place la cause dans l'éducation dès le plus jeune âge, avec une intervention auprès des parents."
+        },
+        {
+          "t": 85.77,
+          "stance": "Insiste pour agir en amont des violences conjugales plutôt qu'au dernier moment, quand une femme les subit depuis des années."
+        },
+        {
+          "t": 90.86,
+          "stance": "Juge injuste de traiter le viol comme un crime à part faute de moyens : tous les justiciables paient des impôts pour être protégés."
+        }
+      ],
+      "kf": [
+        [
+          0.94,
+          7.5,
+          -2.5
+        ],
+        [
+          109.2,
+          7.5,
+          -2.5
+        ]
+      ]
+    },
+    {
+      "id": "i3",
+      "label": "Interlocuteur 3",
+      "camp": "Prison pour les dangereux, causes d'abord",
+      "color": "#E09020",
+      "weight": 1.0,
+      "entry": 1.47,
+      "note": "Pense que le système judiciaire s'acharne sur les mêmes personnes sans les aider ; garde la prison pour les personnes dangereuses, veut libérer les détenus âgés ou malades, relie la drogue à la criminalité des cités et voit dans les violences sexuelles un sexisme systémique à traiter par la formation des jeunes.",
+      "speech": [
+        [
+          1.47,
+          2.77
+        ],
+        [
+          4.91,
+          5.14
+        ],
+        [
+          5.26,
+          7.14
+        ],
+        [
+          14.67,
+          14.83
+        ],
+        [
+          15.51,
+          17.29
+        ],
+        [
+          19.28,
+          19.36
+        ],
+        [
+          27.8,
+          29.74
+        ],
+        [
+          41.44,
+          42.1
+        ],
+        [
+          42.19,
+          42.43
+        ],
+        [
+          44.38,
+          44.39
+        ],
+        [
+          45.45,
+          45.59
+        ],
+        [
+          60.37,
+          61.4
+        ],
+        [
+          68.32,
+          69.61
+        ],
+        [
+          69.66,
+          69.72
+        ],
+        [
+          74.98,
+          75.01
+        ],
+        [
+          75.53,
+          79.1
+        ],
+        [
+          83.84,
+          85.77
+        ],
+        [
+          86.88,
+          87.17
+        ],
+        [
+          87.82,
+          87.98
+        ],
+        [
+          92.29,
+          92.32
+        ],
+        [
+          105.02,
+          106.45
+        ]
+      ],
+      "points": [
+        {
+          "t": 1.47,
+          "stance": "Partage l'avis sur le traitement médiatique : l'insécurité est exacerbée parce que des acteurs politiques ont intérêt à en faire le sujet central, la peur faisant gagner des élections, et que des plateformes d'extrême droite ont proliféré."
+        },
+        {
+          "t": 5.26,
+          "stance": "Trouve que le système judiciaire et carcéral vise toujours les mêmes personnes sans rien changer ; une amende de 500 euros à une personne sans domicile ne l'aide pas. La prison reste nécessaire pour les personnes dangereuses, comme en cas d'homicide ou de viol."
+        },
+        {
+          "t": 6.71,
+          "stance": "Pour le vol de nourriture, demande pourquoi on vole plutôt que de punir : ces personnes n'ont souvent pas le choix."
+        },
+        {
+          "t": 15.51,
+          "stance": "Cite une étude américaine : la population carcérale vieillit, les détenus de plus de soixante-cinq ans récidivent très peu et coûtent cher en santé ; propose une libération pour raisons médicales."
+        },
+        {
+          "t": 27.8,
+          "stance": "Rappelle que l'affectation scolaire à Paris est sectorielle et que les logements sociaux y sont nombreux et discrets ; la vraie question est ce qu'on fait pour les banlieues."
+        },
+        {
+          "t": 60.37,
+          "stance": "Relie le trafic de drogue à une grande part de la criminalité des cités : il fait sortir des jeunes de l'école vers un monde dont ils n'ont pas le contrôle et mène à la violence."
+        },
+        {
+          "t": 75.53,
+          "stance": "Voit dans les violences sexuelles un sexisme systémique : peur de ne pas être prise au sérieux, classements sans suite faute de preuves ; propose la formation des jeunes et de faire connaître le dispositif de la pharmacie."
+        },
+        {
+          "t": 83.84,
+          "stance": "Invite à regarder un film sur une maison qui prend en charge les femmes victimes de violences et évoque les excisions qui se pratiquent encore en France."
+        },
+        {
+          "t": 86.88,
+          "stance": "Précise que soutenir les victimes n'empêche pas d'agir en prévention auprès des jeunes."
+        }
+      ],
+      "kf": [
+        [
+          1.47,
+          5.0,
+          2.5
+        ],
+        [
+          109.2,
+          5.0,
+          2.5
+        ]
+      ]
+    },
+    {
+      "id": "i4",
+      "label": "Interlocuteur 4",
+      "camp": "Prison utile mais insuffisante",
+      "color": "#D85A30",
+      "weight": 0.425,
+      "entry": 2.79,
+      "note": "Raconte avoir vu des procès à Paris comme un échec, juge la prison nécessaire dans une certaine mesure mais pas la seule solution, soutient la mixité du logement malgré son coût pour l'État et veut punir plus les atteintes aux personnes et moins les délits de précarité.",
+      "speech": [
+        [
+          2.79,
+          4.0
+        ],
+        [
+          4.08,
+          4.88
+        ],
+        [
+          8.51,
+          8.6
+        ],
+        [
+          37.28,
+          37.29
+        ],
+        [
+          37.34,
+          37.46
+        ],
+        [
+          44.69,
+          45.45
+        ],
+        [
+          45.59,
+          46.6
+        ],
+        [
+          46.76,
+          47.9
+        ],
+        [
+          56.07,
+          56.19
+        ],
+        [
+          70.38,
+          71.5
+        ],
+        [
+          71.56,
+          72.37
+        ],
+        [
+          75.12,
+          75.12
+        ],
+        [
+          90.37,
+          90.48
+        ],
+        [
+          92.32,
+          92.36
+        ],
+        [
+          95.35,
+          95.35
+        ],
+        [
+          95.45,
+          95.6
+        ],
+        [
+          96.18,
+          96.39
+        ],
+        [
+          97.24,
+          97.26
+        ],
+        [
+          108.07,
+          108.07
+        ],
+        [
+          108.63,
+          108.65
+        ]
+      ],
+      "points": [
+        {
+          "t": 2.79,
+          "stance": "Raconte avoir assisté à des procès au tribunal de Paris et ressenti un échec : peines à la chaîne contre des multirécidivistes ou une personne sans domicile ; juge la prison nécessaire dans une certaine mesure mais pas la seule solution, sans avoir de solution."
+        },
+        {
+          "t": 44.69,
+          "stance": "Juge qu'imposer des logements sociaux dans des immeubles existants peut être bon mais coûterait à l'État la différence que payait le promoteur."
+        },
+        {
+          "t": 45.59,
+          "stance": "Admet que construire du neuf est négligeable face au stock et se demande si le problème est le logement social ou la corruption des fonctionnaires."
+        },
+        {
+          "t": 46.76,
+          "stance": "Soutient qu'à l'échelle nationale, marginaliser et communautariser les pauvres coûte beaucoup plus cher à l'État et nourrit le sentiment d'insécurité."
+        },
+        {
+          "t": 70.38,
+          "stance": "Place les violences sexuelles au cœur de l'insécurité : un taux de plainte de 5 % rendrait le problème énorme même s'il baissait de moitié ; veut savoir comment la société peut mieux écouter et réduire ces violences."
+        },
+        {
+          "t": 95.45,
+          "stance": "Voudrait punir plus lourdement les atteintes aux personnes, comme les violences sexuelles et les homicides, et moins les délits liés à la précarité comme les vols ou la drogue."
+        }
+      ],
+      "kf": [
+        [
+          2.79,
+          5.0,
+          2.5
+        ],
+        [
+          109.2,
+          5.0,
+          2.5
+        ]
+      ]
+    },
+    {
+      "id": "i6",
+      "label": "Interlocuteur 6",
+      "camp": "Réformer en mesurant l'efficacité",
+      "color": "#639922",
+      "weight": 0.988,
+      "entry": 5.14,
+      "note": "Issu d'une famille de magistrats, compare avec la Belgique et la Finlande pour dire que la prison coûte cher sans protéger davantage ; doute que l'argent des quartiers construise l'avenir, refuse la dépénalisation de la drogue et voit dans la défiance envers la justice une part de l'insécurité.",
+      "speech": [
+        [
+          5.14,
+          5.25
+        ],
+        [
+          9.85,
+          11.64
+        ],
+        [
+          12.45,
+          12.47
+        ],
+        [
+          15.04,
+          15.22
+        ],
+        [
+          19.43,
+          21.57
+        ],
+        [
+          21.87,
+          22.7
+        ],
+        [
+          25.71,
+          26.99
+        ],
+        [
+          27.24,
+          27.76
+        ],
+        [
+          37.46,
+          38.38
+        ],
+        [
+          38.47,
+          41.01
+        ],
+        [
+          41.06,
+          41.33
+        ],
+        [
+          41.38,
+          41.4
+        ],
+        [
+          55.35,
+          55.35
+        ],
+        [
+          59.19,
+          59.29
+        ],
+        [
+          63.89,
+          65.8
+        ],
+        [
+          65.86,
+          66.17
+        ],
+        [
+          66.89,
+          67.21
+        ],
+        [
+          69.61,
+          69.66
+        ],
+        [
+          70.04,
+          70.12
+        ],
+        [
+          82.7,
+          83.01
+        ],
+        [
+          83.08,
+          83.12
+        ],
+        [
+          88.3,
+          88.33
+        ],
+        [
+          88.42,
+          88.79
+        ],
+        [
+          88.85,
+          90.27
+        ],
+        [
+          93.7,
+          93.72
+        ],
+        [
+          95.86,
+          95.89
+        ],
+        [
+          96.83,
+          96.98
+        ],
+        [
+          102.92,
+          104.99
+        ],
+        [
+          107.12,
+          107.23
+        ],
+        [
+          108.25,
+          108.27
+        ]
+      ],
+      "points": [
+        {
+          "t": 9.85,
+          "stance": "Vient d'une famille de magistrats et cite la Belgique et la Finlande : avec un budget de justice comparable, elles emprisonnent deux fois moins, sans plus d'insécurité, en misant sur l'accompagnement."
+        },
+        {
+          "t": 10.89,
+          "stance": "Rappelle que la prison est nécessaire pour les personnes dangereuses, mais que les crimes ne sont qu'une petite partie des affaires ; envoyer des multirécidivistes un an en prison coûte cher et les met au contact d'une criminalité plus lourde."
+        },
+        {
+          "t": 20.7,
+          "stance": "Se demande si l'argent investi dans les quartiers construit l'avenir ou achète seulement la paix sociale, faute de mesure des effets."
+        },
+        {
+          "t": 21.87,
+          "stance": "Rappelle que les grands ensembles des années soixante-dix ont concentré le logement social et créé les cités d'aujourd'hui."
+        },
+        {
+          "t": 25.71,
+          "stance": "Juge la mixité imposée par un quota de logements sociaux une des meilleures solutions, tout en notant qu'une ville riche peut respecter le quota avec des logements de militaires."
+        },
+        {
+          "t": 37.46,
+          "stance": "Refuse d'imposer un logement social à l'intérieur d'un immeuble privé : il y voit une limite à ce que l'État peut faire, probablement illégale."
+        },
+        {
+          "t": 39.77,
+          "stance": "Pense qu'un habitat social voisin dérange à court terme mais ne fait pas baisser durablement le niveau culturel du quartier ; les gens monteront plutôt."
+        },
+        {
+          "t": 63.89,
+          "stance": "Refuse la dépénalisation de la drogue : les Pays-Bas sont devenus la plaque tournante et la France le deviendrait ; dénonce un biais médiatique qui lie criminalité et trafic alors que les viols sont bien plus nombreux."
+        },
+        {
+          "t": 88.42,
+          "stance": "Alerte sur le traitement des viols dans une cour criminelle départementale sans jury populaire, mise en place faute de moyens, et s'interroge sur ce que les autres en pensent."
+        },
+        {
+          "t": 103.99,
+          "stance": "Souligne que le sentiment de déclassement de la classe moyenne nourrit une grande part de l'insécurité et que la défiance envers la justice en fait partie."
+        }
+      ],
+      "kf": [
+        [
+          5.14,
+          2.5,
+          -5.0
+        ],
+        [
+          109.2,
+          2.5,
+          -5.0
+        ]
+      ]
+    },
+    {
+      "id": "i5",
+      "label": "Interlocuteur 5",
+      "camp": "Intégrer plutôt qu'exclure",
+      "color": "#8FBF4B",
+      "weight": 0.637,
+      "entry": 7.2,
+      "note": "Voit un système perçu comme fait pour punir, qui crée un nous contre eux ; veut intégrer par le travail, refuse de criminaliser toute consommation de drogue, mise sur l'éducation contre les violences conjugales et défend le monopole de l'État sur la police et la justice.",
+      "speech": [
+        [
+          7.2,
+          8.19
+        ],
+        [
+          12.47,
+          12.63
+        ],
+        [
+          43.08,
+          43.98
+        ],
+        [
+          51.89,
+          51.89
+        ],
+        [
+          54.34,
+          54.78
+        ],
+        [
+          56.75,
+          56.8
+        ],
+        [
+          56.88,
+          58.87
+        ],
+        [
+          61.42,
+          62.29
+        ],
+        [
+          62.47,
+          62.85
+        ],
+        [
+          72.37,
+          72.39
+        ],
+        [
+          72.82,
+          74.98
+        ],
+        [
+          93.96,
+          94.04
+        ],
+        [
+          94.83,
+          95.07
+        ],
+        [
+          99.11,
+          102.08
+        ],
+        [
+          102.5,
+          102.86
+        ],
+        [
+          108.39,
+          108.4
+        ]
+      ],
+      "points": [
+        {
+          "t": 7.2,
+          "stance": "Estime que le système est perçu comme fait pour punir, ce qui crée un nous contre eux ; les quartiers prioritaires ne le sont pas vraiment et l'intégration par le travail serait une voie."
+        },
+        {
+          "t": 12.47,
+          "stance": "Précise que le classement des quartiers prioritaires repose seulement sur le revenu par habitant."
+        },
+        {
+          "t": 43.08,
+          "stance": "Pense que vivre dans un logement social mixte, même avec un sentiment de marginalisation, vaut mieux que grandir au milieu de la criminalité et des dealers."
+        },
+        {
+          "t": 54.34,
+          "stance": "Craint qu'au-delà d'un certain pourcentage de ménages pauvres dans un quartier la mixité sature, comme une dilution."
+        },
+        {
+          "t": 56.88,
+          "stance": "Lie la drogue au manque d'emploi légal et aux addictions ; refuse de criminaliser toute consommation, car un casier pour un joint nuit à l'insertion et alimente corruption et injustice."
+        },
+        {
+          "t": 61.42,
+          "stance": "Prend l'exemple de la Tunisie, où criminaliser toute consommation détruit des jeunes sans l'enrayer, nourrit des circuits illégaux et des produits dangereux."
+        },
+        {
+          "t": 72.82,
+          "stance": "Cite l'exemple de l'Espagne pour faciliter le dépôt de plainte, voit dans les violences conjugales un sexisme intérieur et mise sur l'éducation et le dialogue."
+        },
+        {
+          "t": 99.11,
+          "stance": "S'oppose à la privatisation de la police et de la justice : des forces privées deviendraient des gangs et l'État doit garder le monopole pour que la justice soit acceptée."
+        }
+      ],
+      "kf": [
+        [
+          7.2,
+          5.0,
+          -2.5
+        ],
+        [
+          109.2,
+          5.0,
+          -2.5
+        ]
+      ]
+    },
+    {
+      "id": "i7",
+      "label": "Interlocuteur 7",
+      "camp": "Marché, concurrence, moins d'État",
+      "color": "#6E6D68",
+      "weight": 0.625,
+      "entry": 11.7,
+      "note": "Seule voix libérale de la table : juge le code du travail trop rigide, rejette les logements sociaux (électoralisme, corruption), voit dans tout monopole d'État une source de corruption et propose de mettre en concurrence plusieurs justices et polices.",
+      "speech": [
+        [
+          11.7,
+          12.45
+        ],
+        [
+          12.66,
+          14.33
+        ],
+        [
+          15.36,
+          15.51
+        ],
+        [
+          24.82,
+          24.82
+        ],
+        [
+          29.75,
+          32.86
+        ],
+        [
+          41.33,
+          41.37
+        ],
+        [
+          46.6,
+          46.71
+        ],
+        [
+          49.54,
+          49.93
+        ],
+        [
+          49.99,
+          51.19
+        ],
+        [
+          51.24,
+          51.74
+        ],
+        [
+          51.89,
+          52.01
+        ],
+        [
+          52.74,
+          53.15
+        ],
+        [
+          53.22,
+          53.23
+        ],
+        [
+          53.27,
+          53.29
+        ],
+        [
+          53.35,
+          53.68
+        ],
+        [
+          54.79,
+          54.99
+        ],
+        [
+          55.22,
+          55.31
+        ],
+        [
+          55.35,
+          55.39
+        ],
+        [
+          55.53,
+          55.65
+        ],
+        [
+          72.75,
+          72.82
+        ],
+        [
+          83.14,
+          83.78
+        ],
+        [
+          92.47,
+          92.53
+        ],
+        [
+          92.65,
+          92.76
+        ],
+        [
+          92.82,
+          93.44
+        ],
+        [
+          93.72,
+          93.91
+        ],
+        [
+          94.12,
+          94.38
+        ],
+        [
+          95.93,
+          96.04
+        ],
+        [
+          97.85,
+          97.86
+        ],
+        [
+          107.03,
+          107.06
+        ],
+        [
+          108.1,
+          108.15
+        ],
+        [
+          109.14,
+          109.14
+        ]
+      ],
+      "points": [
+        {
+          "t": 11.7,
+          "stance": "Pense que voler pour le plaisir existe, conteste que les quartiers prioritaires soient marginalisés vu leurs infrastructures, et juge le code du travail trop rigide : exiger un domicile et des justificatifs bloque l'accès au travail."
+        },
+        {
+          "t": 13.79,
+          "stance": "Soutient que faciliter le licenciement et l'expulsion fluidifierait l'accès au travail et au logement, car les barrières à la sortie provoquent des barrières à l'entrée."
+        },
+        {
+          "t": 29.75,
+          "stance": "Rejette les logements sociaux : ils serviraient à acheter des électeurs, seraient entachés de corruption, coûteraient plus cher aux autres locataires et feraient fuir les voisins."
+        },
+        {
+          "t": 31.27,
+          "stance": "Étaye la corruption par des enquêtes et rappelle qu'on garde un logement social même quand les ressources s'améliorent."
+        },
+        {
+          "t": 49.54,
+          "stance": "Soutient que la corruption vient de tout monopole d'État et pas des seuls logements sociaux : des fonctionnaires qui manipulent l'argent des autres sont faciles à corrompre."
+        },
+        {
+          "t": 49.99,
+          "stance": "Pense que les riches échapperont toujours à la mixité, qui ne touchera que la classe moyenne, exposée à l'insécurité sans pouvoir fuir."
+        },
+        {
+          "t": 92.65,
+          "stance": "Propose de mettre en concurrence plusieurs justices et polices privées : les moins bonnes perdraient leurs abonnés."
+        }
+      ],
+      "kf": [
+        [
+          11.7,
+          0.0,
+          7.5
+        ],
+        [
+          109.2,
+          0.0,
+          7.5
+        ]
+      ],
+      "uncertain": {
+        "x": "ses propositions relèvent du marché, il n'a pris position ni sur la prison ni sur la drogue"
+      }
+    }
+  ],
+  "refus": [],
+  "totalRedactedMinutes": 0,
+  "totalDurationMinutes": 109.2,
+  "axes": {
+    "x": {
+      "leftLabel": "Sanctionner et faire respecter l'ordre d'abord",
+      "rightLabel": "Prévenir et traiter les causes d'abord",
+      "anchors": {
+        "left": [
+          "Les personnes dangereuses doivent être enfermées et la sanction dissuade",
+          "Il faut plus de places, de gardiens et d'ordre dans les prisons",
+          "Interdire et punir le trafic comme la consommation de drogue"
+        ],
+        "right": [
+          "La prison produit de la récidive : accompagner, réinsérer et éduquer en amont",
+          "Les causes sont sociales : emploi, logement, éducation, inégalités",
+          "Dépénaliser ou encadrer la drogue plutôt qu'enfermer"
+        ]
+      }
+    },
+    "y": {
+      "bottomLabel": "Faire confiance aux institutions pour réformer",
+      "topLabel": "Défiance envers l'État et ses institutions",
+      "anchors": {
+        "bottom": [
+          "On peut améliorer les choses par les voies démocratiques : référendums, syndicats, lois",
+          "Il faut plus de moyens pour la justice, la police et les prisons, pas les remettre en cause",
+          "L'État doit garder le monopole de la justice pour qu'elle soit acceptée"
+        ],
+        "top": [
+          "La police et la justice protègent d'abord l'ordre établi, ou abusent d'un monopole d'État",
+          "Tout monopole public attire la corruption : il faut le concurrencer",
+          "Sans rapport de force, voire sans violence, rien ne change"
+        ]
+      }
+    },
+    "quadrants": {
+      "topLeft": "Se méfier de l'État, sanction et marché",
+      "topRight": "Prévenir, en se méfiant de l'ordre établi",
+      "bottomLeft": "Ordre et confiance dans les institutions",
+      "bottomRight": "Prévenir et réformer par les institutions"
+    }
+  },
+  "schools": [],
+  "events": [
+    {
+      "t": 1.0,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Ouverture sur la doxa",
+      "desc": "L'animation rappelle l'opinion commune qui lie délinquance, prisons saturées et immigration."
+    },
+    {
+      "t": 2.8,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Un retour d'expérience au tribunal",
+      "desc": "Un participant raconte des procès à Paris vus comme un échec."
+    },
+    {
+      "t": 5.1,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "La prison est jugée nécessaire",
+      "desc": "L'assertion sur la nécessité de la prison a recueilli un fort accord, qui surprend plusieurs participants."
+    },
+    {
+      "t": 9.8,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Belgique et Finlande emprisonnent deux fois moins",
+      "desc": "Même budget de justice, sans plus d'insécurité, grâce à l'accompagnement."
+    },
+    {
+      "t": 11.7,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Les quartiers prioritaires sont-ils marginalisés ?",
+      "desc": "Désaccord sur la marginalisation, les infrastructures et le classement des quartiers."
+    },
+    {
+      "t": 13.8,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Assouplir le code du travail ?",
+      "desc": "Faciliter licenciements et expulsions pour fluidifier l'accès au travail et au logement."
+    },
+    {
+      "t": 17.3,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Libération médicale et grands travaux",
+      "desc": "Détenus âgés peu récidivistes, puis emplois publics stables malgré le casier."
+    },
+    {
+      "t": 19.4,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Investir : bâtir l'avenir ou acheter la paix sociale ?",
+      "desc": "Doute sur l'efficacité de l'argent investi dans les quartiers."
+    },
+    {
+      "t": 25.7,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Imposer la mixité par des quotas de logements sociaux",
+      "desc": "Un quota est défendu, jugé limité, ou refusé dans les immeubles privés."
+    },
+    {
+      "t": 29.75,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Logement social : corruption et fuite des voisins",
+      "desc": "Une voix rejette les logements sociaux, les autres défendent la mixité."
+    },
+    {
+      "t": 44.7,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Coût pour l'État, corruption ou logement social ?",
+      "desc": "Qui paie la différence ; où se situe le vrai problème."
+    },
+    {
+      "t": 49.5,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "La corruption vient-elle du monopole de l'État ?",
+      "desc": "Débat sur l'origine de la corruption et sur l'effet réel de la mixité."
+    },
+    {
+      "t": 54.98,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Vote pour le sujet suivant",
+      "desc": "L'animation soumet trois sujets au vote : travail et logement, victimes, drogue."
+    },
+    {
+      "t": 59.3,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Légaliser ou dépénaliser en partie les drogues ?",
+      "desc": "Consommateurs, vendeurs, réseaux : deux visions de la légalisation."
+    },
+    {
+      "t": 63.9,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "La France, plaque tournante : un risque acceptable ?",
+      "desc": "Les Pays-Bas servent d'exemple, la réponse dépend du bilan sur la criminalité."
+    },
+    {
+      "t": 68.0,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Basculement vers les féminicides",
+      "desc": "Une digression sur les chiffres de meurtres mène à un vote de changement de sujet."
+    },
+    {
+      "t": 70.4,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "Les violences sexuelles au cœur de l'insécurité",
+      "desc": "Plusieurs voix s'accordent pour y voir l'insécurité la plus répandue."
+    },
+    {
+      "t": 75.5,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Sexisme systémique et dispositif de la pharmacie",
+      "desc": "Classements sans suite, éducation des jeunes et dispositifs d'alerte."
+    },
+    {
+      "t": 81.6,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Éduquer en famille ou garantir l'indépendance des femmes ?",
+      "desc": "Divergence sur la place de l'État dans la vie privée."
+    },
+    {
+      "t": 88.4,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Cour criminelle départementale et traitement des viols",
+      "desc": "Un jugement sans jury populaire pour désengorger les tribunaux."
+    },
+    {
+      "t": 90.5,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Tour de table de clôture",
+      "desc": "L'animation lance le retour sur le fond et la forme du débat."
+    },
+    {
+      "t": 92.6,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Mettre en concurrence police et justice ?",
+      "desc": "Une proposition libérale très minoritaire dans le vote rapporté par l'animation."
+    },
+    {
+      "t": 94.7,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "Réserver la prison aux atteintes aux personnes",
+      "desc": "Plus punir les atteintes aux personnes et moins les délits de précarité."
+    },
+    {
+      "t": 97.0,
+      "type": "meta",
+      "magnitude": 1,
+      "title": "Bilan du débat",
+      "desc": "Cadrage trop large ou juste milieu, changements de sujet organiques, absence d'immigration et de violences policières."
+    },
+    {
+      "t": 106.0,
+      "type": "meta",
+      "magnitude": 1,
+      "title": "Annonce du débat suivant",
+      "desc": "Écologie et capitalisme, la semaine suivante."
+    }
+  ],
+  "tension": [
+    [
+      0,
+      18
+    ],
+    [
+      1.0,
+      30
+    ],
+    [
+      2.8,
+      35
+    ],
+    [
+      5.1,
+      32
+    ],
+    [
+      9.8,
+      40
+    ],
+    [
+      11.7,
+      50
+    ],
+    [
+      13.8,
+      52
+    ],
+    [
+      17.3,
+      35
+    ],
+    [
+      19.4,
+      40
+    ],
+    [
+      25.7,
+      50
+    ],
+    [
+      29.75,
+      62
+    ],
+    [
+      37.4,
+      58
+    ],
+    [
+      44.7,
+      52
+    ],
+    [
+      49.5,
+      55
+    ],
+    [
+      55,
+      38
+    ],
+    [
+      59.3,
+      55
+    ],
+    [
+      63.9,
+      65
+    ],
+    [
+      68.0,
+      40
+    ],
+    [
+      75.5,
+      35
+    ],
+    [
+      81.6,
+      48
+    ],
+    [
+      90.5,
+      25
+    ],
+    [
+      92.6,
+      55
+    ],
+    [
+      94.7,
+      35
+    ],
+    [
+      97.0,
+      18
+    ],
+    [
+      109.0,
+      10
+    ]
+  ],
+  "polarization": {
+    "x": 3.8,
+    "y": 6.7,
+    "n": 6,
+    "nY": 7,
+    "method": "esteban_ray",
+    "alpha": 1.6
+  },
+  "interactions": [
+    {
+      "t": 5.26,
+      "from": "i3",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Approuve son constat que le système judiciaire et carcéral est peu optimal."
+    },
+    {
+      "t": 7.2,
+      "from": "i5",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Rebondit sur les personnes qui volent pour dire qu'elles ont été marginalisées."
+    },
+    {
+      "t": 8.21,
+      "from": "i1",
+      "to": "i4",
+      "type": "accord",
+      "desc": "S'appuie sur son récit du tribunal pour dire que les récidivistes reviennent sans cesse."
+    },
+    {
+      "t": 8.64,
+      "from": "i1",
+      "to": "i5",
+      "type": "accord",
+      "desc": "Approuve l'idée d'aider ces personnes par la réinsertion dans le travail."
+    },
+    {
+      "t": 11.7,
+      "from": "i7",
+      "to": "i3",
+      "type": "desaccord",
+      "desc": "Conteste qu'on ne vole que par nécessité : on vole aussi pour le plaisir."
+    },
+    {
+      "t": 11.7,
+      "from": "i7",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Conteste que les quartiers prioritaires soient marginalisés."
+    },
+    {
+      "t": 17.3,
+      "from": "i2",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Confirme l'intérêt de la libération médicale pour gérer l'incarcération."
+    },
+    {
+      "t": 19.43,
+      "from": "i6",
+      "to": "i3",
+      "type": "desaccord",
+      "desc": "Objecte qu'en France la peine maximale est limitée et que l'idée s'applique peu."
+    },
+    {
+      "t": 23.26,
+      "from": "i1",
+      "to": "i6",
+      "type": "desaccord",
+      "desc": "Pense que l'écart entre quartiers n'est pas qu'une question d'argent."
+    },
+    {
+      "t": 27.24,
+      "from": "i6",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Soutient que l'ouverture de deux lycées entretient les élites."
+    },
+    {
+      "t": 29.75,
+      "from": "i7",
+      "to": "i6",
+      "type": "desaccord",
+      "desc": "Rejette la mixité par le logement social, qu'il juge atroce."
+    },
+    {
+      "t": 32.88,
+      "from": "i2",
+      "to": "i7",
+      "type": "accord",
+      "desc": "Reconnaît le danger de fuite des élites qu'il a soulevé."
+    },
+    {
+      "t": 34.73,
+      "from": "i1",
+      "to": "i7",
+      "type": "desaccord",
+      "desc": "Répond que les riverains ne décident pas qui peut habiter près d'eux."
+    },
+    {
+      "t": 37.46,
+      "from": "i6",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Refuse d'imposer un logement social dans un immeuble privé."
+    },
+    {
+      "t": 41.44,
+      "from": "i3",
+      "to": "i6",
+      "type": "desaccord",
+      "desc": "Ne comprend pas pourquoi refuser des logements sociaux dans un même immeuble."
+    },
+    {
+      "t": 44.69,
+      "from": "i4",
+      "to": "i6",
+      "type": "desaccord",
+      "desc": "Pense que cette mixité pourrait être une bonne chose, malgré son coût."
+    },
+    {
+      "t": 45.59,
+      "from": "i4",
+      "to": "i7",
+      "type": "desaccord",
+      "desc": "Distingue le problème de corruption de celui du logement social."
+    },
+    {
+      "t": 46.76,
+      "from": "i4",
+      "to": "i7",
+      "type": "desaccord",
+      "desc": "Soutient que communautariser coûte plus cher à l'ensemble du pays."
+    },
+    {
+      "t": 49.54,
+      "from": "i7",
+      "to": "i4",
+      "type": "desaccord",
+      "desc": "Répond que la corruption tient au monopole de l'État."
+    },
+    {
+      "t": 52.01,
+      "from": "i1",
+      "to": "i7",
+      "type": "desaccord",
+      "desc": "Dit qu'il ne serait pas gêné d'avoir un voisin moins riche."
+    },
+    {
+      "t": 52.74,
+      "from": "i7",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Répond que seule la classe moyenne subira cette proximité."
+    },
+    {
+      "t": 54.34,
+      "from": "i5",
+      "to": "i7",
+      "type": "accord",
+      "desc": "Rejoint l'idée d'une saturation de la mixité dans certains quartiers."
+    },
+    {
+      "t": 59.32,
+      "from": "i1",
+      "to": "i5",
+      "type": "accord",
+      "desc": "Rejoint la volonté de ne pas tout criminaliser côté consommateurs."
+    },
+    {
+      "t": 60.37,
+      "from": "i3",
+      "to": "i1",
+      "type": "accord",
+      "desc": "Ajoute que la drogue pousse les jeunes hors de l'école."
+    },
+    {
+      "t": 62.95,
+      "from": "i2",
+      "to": "i1",
+      "type": "accord",
+      "desc": "Comprend le point de vue de l'encadrement par l'État."
+    },
+    {
+      "t": 63.89,
+      "from": "i6",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Refuse la dépénalisation de la drogue pour des raisons européennes."
+    },
+    {
+      "t": 67.76,
+      "from": "i1",
+      "to": "i6",
+      "type": "desaccord",
+      "desc": "Répond qu'une plaque tournante est acceptable si la criminalité baisse."
+    },
+    {
+      "t": 72.82,
+      "from": "i5",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Reprend les raisons déjà évoquées sur les violences sexuelles."
+    },
+    {
+      "t": 75.53,
+      "from": "i3",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Se dit tout à fait d'accord sur l'insécurité des femmes."
+    },
+    {
+      "t": 75.53,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Juge le problème plus large qu'un esprit sexiste individuel : il est systémique."
+    },
+    {
+      "t": 81.55,
+      "from": "i2",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Estime que l'État ne doit pas s'ingérer dans les familles."
+    },
+    {
+      "t": 86.88,
+      "from": "i3",
+      "to": "i1",
+      "type": "accord",
+      "desc": "Précise que l'aide aux victimes et la prévention ne s'opposent pas."
+    },
+    {
+      "t": 93.47,
+      "from": "i2",
+      "to": "i7",
+      "type": "desaccord",
+      "desc": "Doute d'une justice soumise à la concurrence."
+    },
+    {
+      "t": 99.11,
+      "from": "i5",
+      "to": "i7",
+      "type": "desaccord",
+      "desc": "Soutient que des forces privées deviendraient des gangs."
+    }
+  ],
+  "synthesis": {
+    "theme": "Comment assurer la sécurité de tous en France ?",
+    "summary": "Partie de la doxa qui lie délinquance, prisons pleines et immigration, la discussion a rapidement dérivé vers la prison et la réinsertion, puis vers le logement social et la mixité, la drogue, et enfin les violences sexuelles et les féminicides. Presque tous jugent la prison nécessaire pour les personnes dangereuses mais inefficace pour les autres, et préfèrent accompagner et réinsérer. Le principal désaccord oppose ceux qui défendent la mixité sociale par le logement à une voix libérale qui y voit corruption et électoralisme, puis la légalisation partielle des drogues, refusée par une seule voix. Une proposition de mettre la police et la justice en concurrence est restée isolée. Personne n'a explicitement changé d'avis.",
+    "groups": [
+      {
+        "label": "Prévenir, accompagner et mélanger",
+        "color": "#C0507A",
+        "members": [
+          "i1",
+          "i4",
+          "i5"
+        ],
+        "arguments": [
+          "Le bâton coûte plus cher que la carotte : accompagner et réinsérer vaut mieux qu'enfermer.",
+          "Marginaliser et regrouper les plus pauvres coûte plus cher à l'État et nourrit l'insécurité.",
+          "Ne pas criminaliser toute consommation de drogue, dont l'interdiction détruit des jeunes sans l'enrayer.",
+          "Agir en amont des violences, par l'éducation et le dialogue."
+        ]
+      },
+      {
+        "label": "Traiter les causes par l'investissement public",
+        "color": "#184795",
+        "members": [
+          "i2",
+          "i3"
+        ],
+        "arguments": [
+          "Grands travaux et industries publiques peuvent offrir des emplois stables, même avec un casier.",
+          "Le système judiciaire s'acharne sur les mêmes personnes ; la prison reste pour les personnes dangereuses.",
+          "Les violences sexuelles relèvent d'un sexisme systémique, à traiter par la formation des jeunes.",
+          "Libérer les détenus âgés ou malades réduit des coûts sans danger pour la société."
+        ]
+      },
+      {
+        "label": "Réformer en mesurant l'efficacité",
+        "color": "#27AE60",
+        "members": [
+          "i6"
+        ],
+        "arguments": [
+          "D'autres pays emprisonnent moins sans plus d'insécurité, pour le même budget.",
+          "On ne sait pas si l'argent des quartiers construit l'avenir ou n'achète que la paix sociale.",
+          "Refuse la dépénalisation de la drogue : la France deviendrait une plaque tournante.",
+          "Un quota de logements sociaux est une bonne idée, mais pas à l'intérieur d'un immeuble privé."
+        ]
+      },
+      {
+        "label": "Marché, concurrence et moins d'État",
+        "color": "#E67E22",
+        "members": [
+          "i7"
+        ],
+        "arguments": [
+          "Les logements sociaux achètent des électeurs et nourrissent la corruption.",
+          "Tout monopole d'État attire la corruption.",
+          "Assouplir licenciements et expulsions fluidifierait l'accès au travail et au logement.",
+          "Mettre plusieurs justices et polices en concurrence."
+        ]
+      }
+    ],
+    "kinds": {
+      "coeur": {
+        "label": "Cœur du sujet",
+        "desc": "Prison, réinsertion, quartiers, drogue, violences sexuelles."
+      },
+      "connexe": {
+        "label": "Perception de l'insécurité",
+        "desc": "Médias, réseaux sociaux et exploitation politique de la peur."
+      },
+      "annexe": {
+        "label": "Sujets annexes",
+        "desc": "Rôle de l'État, corruption, justice privée, bilan du débat."
+      }
+    },
+    "themes": [
+      {
+        "id": "medias",
+        "kind": "connexe",
+        "short": "Médias",
+        "color": "#8E44AD",
+        "label": "Médias et sentiment d'insécurité",
+        "desc": "Réseaux sociaux, information continue et exploitation politique de la peur."
+      },
+      {
+        "id": "prison",
+        "kind": "coeur",
+        "short": "Prison",
+        "color": "#184795",
+        "label": "Prison, peines et justice",
+        "desc": "Efficacité de la prison, coût, libération médicale, tribunaux, peines selon les délits."
+      },
+      {
+        "id": "travail",
+        "kind": "coeur",
+        "short": "Emploi",
+        "color": "#16A085",
+        "label": "Réinsertion, emploi et code du travail",
+        "desc": "Quartiers prioritaires, intégration par le travail, assouplissement du code du travail, grands travaux."
+      },
+      {
+        "id": "causes",
+        "kind": "coeur",
+        "short": "Causes",
+        "color": "#27AE60",
+        "label": "Causes sociales : investissement et éducation",
+        "desc": "Paix sociale ou avenir, cités des années soixante-dix, culture scolaire, lycées."
+      },
+      {
+        "id": "logement",
+        "kind": "coeur",
+        "short": "Logement",
+        "color": "#C0392B",
+        "label": "Logement social, mixité et quartiers",
+        "desc": "Quotas, mixité dans un immeuble, coût pour l'État, corruption, fuite des voisins."
+      },
+      {
+        "id": "etat",
+        "kind": "annexe",
+        "short": "État",
+        "color": "#34495E",
+        "label": "Rôle de l'État : monopole, corruption, justice privée",
+        "desc": "Monopole de l'État, corruption, mise en concurrence de la police et de la justice."
+      },
+      {
+        "id": "drogue",
+        "kind": "coeur",
+        "short": "Drogue",
+        "color": "#E67E22",
+        "label": "Drogue et trafic",
+        "desc": "Légalisation, dépénalisation, plaque tournante européenne, lien avec la criminalité."
+      },
+      {
+        "id": "violences",
+        "kind": "coeur",
+        "short": "Violences sexuelles",
+        "color": "#C0507A",
+        "label": "Violences sexuelles, féminicides et justice",
+        "desc": "Chiffres, éducation, plainte, dispositifs d'alerte, jugement des viols."
+      },
+      {
+        "id": "bilan",
+        "kind": "annexe",
+        "short": "Bilan",
+        "color": "#D4AC0D",
+        "label": "Bilan du débat",
+        "desc": "Cadrage, changements de sujet, modération, débat suivant."
+      }
+    ],
+    "timeline": [
+      [
+        0,
+        2.78,
+        "medias"
+      ],
+      [
+        2.78,
+        11.7,
+        "prison"
+      ],
+      [
+        11.7,
+        14.33,
+        "travail"
+      ],
+      [
+        14.33,
+        15.5,
+        null
+      ],
+      [
+        15.5,
+        17.28,
+        "prison"
+      ],
+      [
+        17.28,
+        19.4,
+        "travail"
+      ],
+      [
+        19.4,
+        25.7,
+        "causes"
+      ],
+      [
+        25.7,
+        48.78,
+        "logement"
+      ],
+      [
+        48.78,
+        49.55,
+        null
+      ],
+      [
+        49.55,
+        51.23,
+        "etat"
+      ],
+      [
+        51.23,
+        54.98,
+        "logement"
+      ],
+      [
+        54.98,
+        56.75,
+        null
+      ],
+      [
+        56.75,
+        68.0,
+        "drogue"
+      ],
+      [
+        68.0,
+        69.72,
+        "violences"
+      ],
+      [
+        69.72,
+        70.37,
+        null
+      ],
+      [
+        70.37,
+        90.47,
+        "violences"
+      ],
+      [
+        90.47,
+        92.47,
+        "bilan"
+      ],
+      [
+        92.47,
+        94.62,
+        "etat"
+      ],
+      [
+        94.62,
+        96.83,
+        "prison"
+      ],
+      [
+        96.83,
+        109.17,
+        "bilan"
+      ]
+    ],
+    "mentions": [],
+    "affirmations": [
+      {
+        "text": "Les médias et les réseaux exagèrent le sentiment d'insécurité",
+        "stances": [
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 1.01
+          },
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 1.47
+          },
+          {
+            "id": "i6",
+            "pos": "pour",
+            "t": 63.89
+          },
+          {
+            "id": "i2",
+            "pos": "nuance",
+            "t": 0.04,
+            "note": "reconnaît une part de réalité aux faits divers"
+          }
+        ]
+      },
+      {
+        "text": "La prison est nécessaire pour les personnes dangereuses",
+        "stances": [
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 5.26
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 2.79,
+            "note": "dans une certaine mesure"
+          },
+          {
+            "id": "i6",
+            "pos": "pour",
+            "t": 10.89
+          }
+        ]
+      },
+      {
+        "text": "Il faut accompagner et réinsérer plutôt que seulement enfermer",
+        "stances": [
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 8.64
+          },
+          {
+            "id": "i5",
+            "pos": "pour",
+            "t": 7.2
+          },
+          {
+            "id": "i6",
+            "pos": "pour",
+            "t": 9.85
+          },
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 5.26
+          },
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 17.3
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 2.79
+          }
+        ]
+      },
+      {
+        "text": "Imposer des logements sociaux dans les quartiers et immeubles aisés est une bonne idée",
+        "stances": [
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 34.73
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 44.69,
+            "note": "malgré son coût pour l'État"
+          },
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 47.9,
+            "note": "à condition d'un accès très encadré"
+          },
+          {
+            "id": "i6",
+            "pos": "nuance",
+            "t": 37.46,
+            "note": "bon principe, mais pas à l'intérieur d'un immeuble privé"
+          },
+          {
+            "id": "i5",
+            "pos": "nuance",
+            "t": 54.34,
+            "note": "au-delà d'un certain pourcentage, la mixité sature"
+          },
+          {
+            "id": "i3",
+            "pos": "nuance",
+            "t": 27.8,
+            "note": "le système existe, la question est ce qu'on fait pour les banlieues"
+          },
+          {
+            "id": "i7",
+            "pos": "contre",
+            "t": 29.75
+          }
+        ]
+      },
+      {
+        "text": "Il faut légaliser ou dépénaliser en partie les drogues",
+        "stances": [
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 59.32
+          },
+          {
+            "id": "i5",
+            "pos": "pour",
+            "t": 56.88
+          },
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 62.95,
+            "note": "sous forme d'encadrement par l'État"
+          },
+          {
+            "id": "i6",
+            "pos": "contre",
+            "t": 63.89
+          }
+        ]
+      },
+      {
+        "text": "Il faut mettre la police et la justice en concurrence",
+        "stances": [
+          {
+            "id": "i7",
+            "pos": "pour",
+            "t": 92.65
+          },
+          {
+            "id": "i5",
+            "pos": "contre",
+            "t": 99.11
+          },
+          {
+            "id": "i2",
+            "pos": "nuance",
+            "t": 93.47,
+            "note": "doute que cela puisse fonctionner"
+          }
+        ]
+      }
+    ]
+  }
+}

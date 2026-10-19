@@ -1,0 +1,210 @@
+{
+  "audio_start": "2026-10-08T15:58:47.026442+00:00",
+  "voix": {
+    "decalage_affine_sec": 0.0,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": "Interlocuteur 7",
+        "kind": "identifiee",
+        "best": "Interlocuteur 7",
+        "purity": 0.8905627372924002,
+        "support": 479.0048147499975
+      },
+      "SPEAKER_01": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.9619514690169159,
+        "support": 916.5826997500009
+      },
+      "SPEAKER_02": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.9896384965437719,
+        "support": 429.34553549999464
+      },
+      "SPEAKER_03": {
+        "label": null,
+        "kind": "fusionnee",
+        "best": "Interlocuteur 4",
+        "purity": 0.3802542216717894,
+        "support": 448.0063764999952
+      },
+      "SPEAKER_04": {
+        "label": "Interlocuteur 2",
+        "kind": "identifiee",
+        "best": "Interlocuteur 2",
+        "purity": 0.975461440078427,
+        "support": 430.92860924999957
+      },
+      "SPEAKER_05": {
+        "label": "Interlocuteur 6",
+        "kind": "identifiee",
+        "best": "Interlocuteur 6",
+        "purity": 0.8989241091793351,
+        "support": 831.7201270000069
+      },
+      "SPEAKER_06": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.9285260556095872,
+        "support": 873.7484167500029
+      },
+      "SPEAKER_07": {
+        "label": "Interlocuteur 4",
+        "kind": "identifiee",
+        "best": "Interlocuteur 4",
+        "purity": 0.9377801300878813,
+        "support": 222.10506899999925
+      },
+      "SPEAKER_08": {
+        "label": null,
+        "kind": "faible",
+        "best": "Interlocuteur 2",
+        "purity": 0.28389339513327766,
+        "support": 14.563125000000014
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.9372154548421082,
+      "coverage": 0.9004371445896028,
+      "evaluated_sec": 4183.435272
+    }
+  },
+  "frontieres": {
+    "tours": 68,
+    "fins_recalees": 50,
+    "decalage_median_sec": 1.5944449999999932
+  },
+  "metriques": {
+    "segments": 258,
+    "duration_sec": 6280.280000000005,
+    "by_source_sec": {
+      "aucune": 677.129999999999,
+      "log+voix": 4144.320000000001,
+      "log": 409.5100000000002,
+      "voix": 1040.200000000005,
+      "voix-comblee": 9.11999999999989
+    },
+    "unknown_ratio": 0.10781844121599649,
+    "speaker_changes": 157,
+    "mid_sentence_cuts": 123,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 1788
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 235,
+    "rejetees": 18,
+    "non_corrigees": 5,
+    "motifs_rejet": {
+      "négation modifiée": 17,
+      "masque sans prénom": 1
+    },
+    "suggestions_orateur": 60,
+    "noms_propres_a_verifier": [
+      [
+        "France",
+        23
+      ],
+      [
+        "Paris",
+        11
+      ],
+      [
+        "Versailles",
+        6
+      ],
+      [
+        "Belgique",
+        2
+      ],
+      [
+        "Portugal",
+        2
+      ],
+      [
+        "Roosevelt",
+        2
+      ],
+      [
+        "Accéder",
+        1
+      ],
+      [
+        "Afrique",
+        1
+      ],
+      [
+        "Charlotte",
+        1
+      ],
+      [
+        "Constitution",
+        1
+      ],
+      [
+        "Espagne",
+        1
+      ],
+      [
+        "Europe",
+        1
+      ],
+      [
+        "Finlande",
+        1
+      ],
+      [
+        "J'aurais",
+        1
+      ],
+      [
+        "Maroc",
+        1
+      ],
+      [
+        "Medical",
+        1
+      ],
+      [
+        "Merde",
+        1
+      ],
+      [
+        "Micode",
+        1
+      ],
+      [
+        "New",
+        1
+      ],
+      [
+        "Normalement",
+        1
+      ],
+      [
+        "Polariser",
+        1
+      ],
+      [
+        "Premièrement",
+        1
+      ],
+      [
+        "Singapour",
+        1
+      ],
+      [
+        "Téléphonique",
+        1
+      ],
+      [
+        "États",
+        1
+      ]
+    ]
+  }
+}

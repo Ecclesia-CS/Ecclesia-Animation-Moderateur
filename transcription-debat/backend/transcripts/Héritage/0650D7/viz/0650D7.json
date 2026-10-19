@@ -1,0 +1,1966 @@
+{
+  "meta": {
+    "topic": "Héritage",
+    "code": "0650D7",
+    "date": "2026-10-01",
+    "totalDurationMinutes": 108.1,
+    "totalRedactedMinutes": 0,
+    "method": {
+      "kind": "manual",
+      "mapTitle": "Positions des participants",
+      "caption": "Chaque point est la position d'un participant, établie à la lecture intégrale de la transcription. Un point ne se déplace durablement que si la personne change explicitement d'avis (flèche « change d'avis ») ; dans ce débat, personne ne l'a fait. Ce qui bouge, ce sont les échanges : une flèche relie celui qui parle à celui à qui il répond (verte = accord, rouge pointillée = désaccord), et une concession explicite fait pencher un instant le point vers l'autre avant qu'il revienne. Cochez « Toutes les interactions » pour voir les alliances et les lignes de fracture accumulées, « Tous les déplacements » pour les mouvements survenus. Un point apparaît à la première prise de parole et grossit quand la personne parle ; survolez-le pour le résumé de sa position.",
+      "footer": [
+        "⚠ Analyse faite à la main (lecture intégrale de la transcription par Claude), sans scoring automatique. Les positions sont interprétatives et volontairement grossières : ±2,5 = penchant exprimé, ±5 = position claire, ±7,5 = position centrale et répétée. Personne n'est placé aux extrêmes (±10).",
+        "⚠ Tension = intensité du désaccord, pas de l'émotion (le débat est resté courtois) : ~20 cadrage ou tour de table, 35-45 questions et échanges d'informations, 50-60 désaccord argumenté, 70 confrontation de principes avec répliques directes. La courbe relie ces niveaux, elle n'est pas mesurée seconde par seconde.",
+        "⚠ Les résumés sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Les phrases d'animation (donner la parole, annoncer le tour de table) sont écartées, y compris quand la transcription les attribue par erreur à un participant. Le temps de parole est mesuré sur la transcription : l'animateur n'étant pas dans le log, environ un dixième de l'audio n'est attribué à personne, et quelques frontières entre voix sont imprécises."
+      ]
+    }
+  },
+  "personas": [
+    {
+      "id": "i4",
+      "label": "Interlocuteur 4",
+      "camp": "Taxer les ultra-riches, sans plafond",
+      "color": "#D64545",
+      "weight": 1.0,
+      "entry": 0.24,
+      "note": "Veut une taxation nettement plus forte des ultra-riches et la fin des contournements, sans plafond rigide ; propose de dissocier gouvernance et argent. Très technique et pédagogue.",
+      "speech": [
+        [
+          0.24,
+          0.45
+        ],
+        [
+          3.53,
+          4.9
+        ],
+        [
+          7.81,
+          9.57
+        ],
+        [
+          14.79,
+          16.61
+        ],
+        [
+          30.65,
+          30.66
+        ],
+        [
+          35.36,
+          37.49
+        ],
+        [
+          42.9,
+          42.9
+        ],
+        [
+          44.6,
+          46.11
+        ],
+        [
+          46.33,
+          46.61
+        ],
+        [
+          53.68,
+          54.35
+        ],
+        [
+          54.53,
+          54.57
+        ],
+        [
+          60.64,
+          60.74
+        ],
+        [
+          61.57,
+          61.66
+        ],
+        [
+          61.78,
+          61.84
+        ],
+        [
+          63.06,
+          64.21
+        ],
+        [
+          70.06,
+          73.24
+        ],
+        [
+          73.39,
+          74.04
+        ],
+        [
+          76.23,
+          76.43
+        ],
+        [
+          85.77,
+          85.97
+        ],
+        [
+          86.02,
+          86.2
+        ],
+        [
+          86.28,
+          88.06
+        ],
+        [
+          92.17,
+          92.5
+        ],
+        [
+          92.61,
+          92.66
+        ],
+        [
+          92.88,
+          94.62
+        ],
+        [
+          95.05,
+          96.36
+        ],
+        [
+          96.42,
+          96.7
+        ],
+        [
+          96.78,
+          96.79
+        ],
+        [
+          96.92,
+          96.98
+        ],
+        [
+          98.39,
+          98.51
+        ],
+        [
+          98.57,
+          99.95
+        ],
+        [
+          100.0,
+          100.53
+        ],
+        [
+          103.37,
+          103.43
+        ],
+        [
+          105.14,
+          105.19
+        ],
+        [
+          108.04,
+          108.1
+        ]
+      ],
+      "points": [
+        {
+          "t": 3.53,
+          "stance": "Estime que l'héritage est presque pas taxé pour les très riches et que la peur de la fuite des capitaux est infondée : on est très loin de taxer assez pour les faire partir."
+        },
+        {
+          "t": 7.81,
+          "stance": "Répond que l'État peut gérer les actions d'un grand groupe via des fonds souverains, tout en reconnaissant que la réaction des marchés reste une question ouverte."
+        },
+        {
+          "t": 14.79,
+          "stance": "Accepte qu'un plafond à 12 millions freinerait la croissance, mais refuse aussi de ne pas toucher à l'héritage des ultra-riches ; propose de taxer davantage les entreprises de leur vivant."
+        },
+        {
+          "t": 16.07,
+          "stance": "Compare la reprise d'un groupe par un fils à celle d'une boucherie, à condition de payer ; veut une taxation plus forte des ultra-riches sans bloquer à 12 millions."
+        },
+        {
+          "t": 35.36,
+          "stance": "Propose de découpler pouvoir et argent : taxer fortement l'héritage en argent mais laisser aux enfants la gouvernance de l'entreprise, par exemple via les actions de vote."
+        },
+        {
+          "t": 70.06,
+          "stance": "Juge la maison de famille peu menacée : l'abattement sur la résidence principale et les donations limitent la taxe, et une maison à plusieurs millions doit être taxée."
+        },
+        {
+          "t": 72.7,
+          "stance": "Dénonce un discours populiste selon lequel l'État volerait les héritiers : 85 % des gens ne paient pas et les plus riches contournent."
+        },
+        {
+          "t": 86.28,
+          "stance": "Veut cibler les patrimoines au-dessus de 15 millions et les sociétés immobilières, sans toucher la classe moyenne, et ne voit pas l'intérêt d'un plafond dur."
+        },
+        {
+          "t": 95.05,
+          "stance": "Montre que les plus riches contournent la taxe (pacte Dutreil, sociétés immobilières, holdings, fondations) et qu'il faut s'attaquer à ces montages."
+        }
+      ],
+      "kf": [
+        [
+          0.24,
+          5.0,
+          2.5
+        ],
+        [
+          108.1,
+          5.0,
+          2.5
+        ]
+      ]
+    },
+    {
+      "id": "i3",
+      "label": "Interlocuteur 3",
+      "camp": "Réforme profonde de l'héritage",
+      "color": "#0F8A6A",
+      "weight": 0.343,
+      "entry": 0.88,
+      "note": "Voix la plus catégorique pour réformer : dénonce les dynasties, la ploutocratie et l'accumulation, et refuse de régler la politique sur la peur des marchés.",
+      "speech": [
+        [
+          0.88,
+          0.98
+        ],
+        [
+          2.45,
+          3.53
+        ],
+        [
+          12.93,
+          12.94
+        ],
+        [
+          12.99,
+          14.7
+        ],
+        [
+          23.74,
+          26.25
+        ],
+        [
+          31.07,
+          31.12
+        ],
+        [
+          37.61,
+          39.11
+        ],
+        [
+          39.24,
+          40.1
+        ],
+        [
+          46.11,
+          46.33
+        ]
+      ],
+      "points": [
+        {
+          "t": 2.45,
+          "stance": "Estime que la fuite des capitaux est l'argument des médias contre les réformes : les riches partent qu'on les taxe ou non, et une taxe extraterritoriale, comme aux États-Unis, est envisageable."
+        },
+        {
+          "t": 12.99,
+          "stance": "Voit dans le refus de taxer les dynasties une façon de vendre la République à des fortunes trop puissantes ; pour lui la richesse vient du travail, donc l'accumulation est le premier problème."
+        },
+        {
+          "t": 23.74,
+          "stance": "Conteste qu'Elon Musk mérite une telle fortune : les inventions tiennent au contexte et au hasard, et nul ne mérite plusieurs fois plus qu'un autre."
+        },
+        {
+          "t": 25.35,
+          "stance": "Rappelle qu'un tiers des Français n'héritent presque rien et que le système d'héritage et d'éducation pénalise déjà les plus pauvres."
+        },
+        {
+          "t": 37.61,
+          "stance": "Relève que les parts d'un grand actionnaire seraient divisées entre ses enfants, propose de repenser la transmission de la gouvernance et refuse de bâtir les politiques publiques sur les marchés financiers."
+        },
+        {
+          "t": 39.24,
+          "stance": "Pense qu'un pays de plus en plus héréditaire et inégalitaire s'expose à l'instabilité politique et à la violence, ce qui rend la réforme nécessaire."
+        }
+      ],
+      "kf": [
+        [
+          0.88,
+          7.5,
+          7.5
+        ],
+        [
+          108.1,
+          7.5,
+          7.5
+        ]
+      ]
+    },
+    {
+      "id": "i2",
+      "label": "Interlocuteur 2",
+      "camp": "Réforme, taxer l'accumulation",
+      "color": "#E09020",
+      "weight": 0.658,
+      "entry": 1.04,
+      "note": "Soutient une réforme de l'héritage et une taxation de l'accumulation, sans être convaincu par le chiffre de 12 millions ; apporte beaucoup de données et pose la piste d'une transmission anticipée.",
+      "speech": [
+        [
+          1.04,
+          2.01
+        ],
+        [
+          16.61,
+          16.61
+        ],
+        [
+          16.67,
+          18.98
+        ],
+        [
+          26.35,
+          29.32
+        ],
+        [
+          49.57,
+          49.58
+        ],
+        [
+          49.71,
+          51.64
+        ],
+        [
+          51.71,
+          52.84
+        ],
+        [
+          64.5,
+          66.02
+        ],
+        [
+          66.08,
+          66.34
+        ],
+        [
+          77.17,
+          79.51
+        ],
+        [
+          89.76,
+          91.33
+        ],
+        [
+          91.39,
+          91.56
+        ],
+        [
+          91.62,
+          91.84
+        ]
+      ],
+      "points": [
+        {
+          "t": 1.04,
+          "stance": "Pense que les riches paient en réalité peu d'héritage grâce aux transmissions anticipées, et doute qu'une hausse fasse partir les capitaux."
+        },
+        {
+          "t": 16.67,
+          "stance": "Souligne que la plupart des patrimoines sont désormais hérités et se demande si la quête de capital vise vraiment les enfants : au-delà d'un seuil, travailler pour plus relève du personnel."
+        },
+        {
+          "t": 26.35,
+          "stance": "Comprend le désir de laisser une trace mais n'est pas convaincu par un plafond à 12 millions ; juge que les enfants de grandes fortunes ont déjà reçu beaucoup d'avantages."
+        },
+        {
+          "t": 49.71,
+          "stance": "Estime qu'un dirigeant âgé aurait rationnellement intérêt à organiser sa succession, ce qui rassurerait les actionnaires malgré une taxation plus forte."
+        },
+        {
+          "t": 51.71,
+          "stance": "Préférerait taxer les gens pendant qu'ils accumulent plutôt qu'à leur mort, et voit dans l'héritage un moyen de réparer ce qui n'a pas été taxé."
+        },
+        {
+          "t": 64.5,
+          "stance": "Rappelle les abattements (100 000 euros par enfant) et juge dur de taxer des familles de classe moyenne au moment d'un deuil ; veut une règle équitable pour tous."
+        },
+        {
+          "t": 77.17,
+          "stance": "Se dit pour une taxation commune en Europe : renforcer une culture européenne et uniformiser les règles pour des familles dispersées."
+        },
+        {
+          "t": 89.76,
+          "stance": "Juge intéressant d'inciter à léguer avant la mort, voire d'imposer de redistribuer à partir d'un certain âge."
+        }
+      ],
+      "kf": [
+        [
+          1.04,
+          5.0,
+          5.0
+        ],
+        [
+          108.1,
+          5.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "i5",
+      "label": "Interlocuteur 5",
+      "camp": "Prudence pour les entreprises",
+      "color": "#D85A30",
+      "weight": 0.794,
+      "entry": 5.63,
+      "note": "Refuse un plafond qui fragiliserait les entreprises et les marchés, tout en admettant le besoin de mesures fortes contre la ploutocratie et en visant l'optimisation fiscale.",
+      "speech": [
+        [
+          5.63,
+          5.73
+        ],
+        [
+          5.81,
+          7.64
+        ],
+        [
+          11.24,
+          12.31
+        ],
+        [
+          19.03,
+          21.55
+        ],
+        [
+          32.5,
+          35.3
+        ],
+        [
+          39.11,
+          39.24
+        ],
+        [
+          40.16,
+          41.24
+        ],
+        [
+          46.61,
+          49.57
+        ],
+        [
+          58.11,
+          60.64
+        ],
+        [
+          60.74,
+          61.48
+        ],
+        [
+          61.85,
+          61.92
+        ],
+        [
+          62.95,
+          62.99
+        ],
+        [
+          66.42,
+          68.79
+        ],
+        [
+          69.66,
+          69.98
+        ],
+        [
+          101.45,
+          101.45
+        ]
+      ],
+      "points": [
+        {
+          "t": 5.81,
+          "stance": "Refuse un plafonnement de l'héritage : il menacerait la transmission des entreprises comme LVMH et pourrait freiner les investisseurs étrangers ; préfère s'attaquer à l'optimisation."
+        },
+        {
+          "t": 11.24,
+          "stance": "Craint qu'un fonds souverain effraie les marchés ; reconnaît le problème des dynasties mais ne voit pas de solution."
+        },
+        {
+          "t": 20.13,
+          "stance": "Distingue accumulation et dynastie : la fortune d'un entrepreneur qui crée de la valeur ne le gêne pas, mais les héritiers qui n'ont jamais travaillé, si."
+        },
+        {
+          "t": 33.63,
+          "stance": "Craint surtout l'instabilité des marchés financiers mais veut des mesures fortes sur l'héritage pour contrer la prise de pouvoir par l'argent."
+        },
+        {
+          "t": 46.61,
+          "stance": "Admet qu'on doit beaucoup à l'État, mais pense que l'incertitude à la mort d'un dirigeant âgé ferait chuter les actions."
+        },
+        {
+          "t": 48.71,
+          "stance": "Juge très impopulaire en France une taxation forte de l'héritage, ce qui décourage les politiques de la proposer."
+        },
+        {
+          "t": 66.42,
+          "stance": "Estime que l'attachement à la maison de famille détourne le débat : grâce aux donations, une famille aisée peut transmettre plus d'un million presque sans taxe."
+        }
+      ],
+      "kf": [
+        [
+          5.63,
+          -2.5,
+          -5.0
+        ],
+        [
+          108.1,
+          -2.5,
+          -5.0
+        ]
+      ]
+    },
+    {
+      "id": "i1",
+      "label": "Interlocuteur 1",
+      "camp": "Limiter les dynasties, plafond douteux",
+      "color": "#639922",
+      "weight": 0.519,
+      "entry": 9.66,
+      "note": "Veut limiter l'héritage des très grandes fortunes (dynasties, fonds souverains) et taxer de leur vivant, mais doute qu'un plafond net soit applicable.",
+      "speech": [
+        [
+          9.66,
+          11.23
+        ],
+        [
+          12.31,
+          12.92
+        ],
+        [
+          21.67,
+          21.79
+        ],
+        [
+          21.95,
+          23.68
+        ],
+        [
+          42.83,
+          44.49
+        ],
+        [
+          53.01,
+          53.5
+        ],
+        [
+          53.6,
+          53.68
+        ],
+        [
+          54.35,
+          54.53
+        ],
+        [
+          54.57,
+          54.6
+        ],
+        [
+          61.92,
+          62.91
+        ],
+        [
+          74.1,
+          74.2
+        ],
+        [
+          74.27,
+          75.53
+        ],
+        [
+          79.62,
+          80.83
+        ],
+        [
+          80.89,
+          81.1
+        ],
+        [
+          84.35,
+          84.39
+        ],
+        [
+          84.44,
+          84.6
+        ],
+        [
+          84.7,
+          85.0
+        ],
+        [
+          96.98,
+          98.37
+        ]
+      ],
+      "points": [
+        {
+          "t": 9.66,
+          "stance": "Distingue deux cas : un plafond démotiverait ceux qui s'enrichissent, mais pour les très grandes fortunes une limitation se justifie, car les héritiers n'ont aucune légitimité particulière à diriger les empires."
+        },
+        {
+          "t": 10.89,
+          "stance": "Craint des dynasties d'ultra-riches qui influencent les gouvernements et juge acceptable que les actions de très grands groupes passent dans des fonds souverains."
+        },
+        {
+          "t": 12.31,
+          "stance": "Relativise la peur des marchés : la mauvaise réputation de la France sur la dette est un autre problème, et la même mesure en Allemagne passerait mieux."
+        },
+        {
+          "t": 21.95,
+          "stance": "Estime qu'un plafond serait contre-productif : chacun veut laisser une trace à ses proches, donc les riches contourneraient la règle ou partiraient."
+        },
+        {
+          "t": 42.9,
+          "stance": "Dit qu'il faut taxer beaucoup plus les très grandes fortunes de leur vivant, que le plafond pose un problème de faisabilité, et que rien ne justifie pour autant que ce soient les fils qui héritent."
+        },
+        {
+          "t": 54.35,
+          "stance": "Objecte que séparer pouvoir et argent laisserait aux héritiers, pas forcément compétents, le contrôle des grands groupes."
+        },
+        {
+          "t": 74.27,
+          "stance": "Trouve normal de payer pour récupérer la maison familiale et souhaite qu'une partie des grands domaines revienne à la collectivité après plusieurs générations."
+        },
+        {
+          "t": 79.62,
+          "stance": "Approuve une taxation commune en Europe, pour empêcher que certains États deviennent des paradis fiscaux et pour renforcer l'identité européenne."
+        }
+      ],
+      "kf": [
+        [
+          9.66,
+          2.5,
+          5.0
+        ],
+        [
+          108.1,
+          2.5,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "i6",
+      "label": "Interlocuteur 6",
+      "camp": "Seuil et transmission au mérite",
+      "color": "#8FBF4B",
+      "weight": 0.179,
+      "entry": 29.47,
+      "note": "Interventions courtes : ne voit pas pourquoi les enfants seraient les mieux placés pour diriger une entreprise, et soutient une transmission plus rapide mais limitée à un seuil.",
+      "speech": [
+        [
+          29.47,
+          30.45
+        ],
+        [
+          30.56,
+          30.58
+        ],
+        [
+          31.33,
+          31.43
+        ],
+        [
+          31.63,
+          31.78
+        ],
+        [
+          31.88,
+          32.12
+        ],
+        [
+          32.33,
+          32.5
+        ],
+        [
+          73.26,
+          73.37
+        ],
+        [
+          76.07,
+          76.18
+        ],
+        [
+          82.73,
+          83.47
+        ],
+        [
+          83.54,
+          83.92
+        ],
+        [
+          84.27,
+          84.34
+        ],
+        [
+          85.52,
+          85.56
+        ],
+        [
+          90.13,
+          90.15
+        ],
+        [
+          94.74,
+          94.84
+        ],
+        [
+          103.91,
+          104.03
+        ],
+        [
+          104.1,
+          104.19
+        ],
+        [
+          104.3,
+          104.4
+        ],
+        [
+          104.54,
+          104.95
+        ],
+        [
+          107.33,
+          107.47
+        ],
+        [
+          107.86,
+          107.96
+        ]
+      ],
+      "points": [
+        {
+          "t": 29.47,
+          "stance": "Ne voit pas pourquoi le fils d'un grand patron dirigerait mieux qu'un diplômé compétent ; transmettre une entreprise hors de la famille ne devrait pas poser autant de problèmes."
+        },
+        {
+          "t": 32.33,
+          "stance": "Doute que la richesse de Musk reflète la valeur réellement produite."
+        },
+        {
+          "t": 82.73,
+          "stance": "Pense que l'héritage n'est pas ce qui fracture l'Europe et que les plus riches partiraient plutôt en Asie ou dans des paradis fiscaux : uniformiser en Europe changerait peu."
+        },
+        {
+          "t": 85.52,
+          "stance": "Estime que baisser l'impôt sur le revenu et monter celui sur l'héritage ne se compensent pas."
+        },
+        {
+          "t": 104.3,
+          "stance": "Soutient une transmission plus rapide du capital mais limitée à un seuil, car l'argent stocké ne fait pas tourner l'économie."
+        }
+      ],
+      "kf": [
+        [
+          29.47,
+          5.0,
+          0.0
+        ],
+        [
+          108.1,
+          5.0,
+          0.0
+        ]
+      ],
+      "uncertain": {
+        "y": "ne s'est pas exprimé sur la peur des marchés"
+      }
+    },
+    {
+      "id": "i7",
+      "label": "Interlocuteur 7",
+      "camp": "Questions et doutes",
+      "color": "#6E6D68",
+      "weight": 0.349,
+      "entry": 41.27,
+      "note": "Pose des questions et des objections plus qu'il ne défend une position : doute que les enfants soient les mieux placés pour reprendre, et doute d'une harmonisation européenne.",
+      "speech": [
+        [
+          41.27,
+          42.83
+        ],
+        [
+          54.62,
+          54.63
+        ],
+        [
+          54.84,
+          57.08
+        ],
+        [
+          58.11,
+          58.11
+        ],
+        [
+          75.7,
+          76.07
+        ],
+        [
+          76.47,
+          77.07
+        ],
+        [
+          81.1,
+          82.68
+        ],
+        [
+          83.92,
+          84.15
+        ],
+        [
+          84.21,
+          84.27
+        ],
+        [
+          84.34,
+          84.35
+        ],
+        [
+          88.08,
+          88.08
+        ],
+        [
+          88.2,
+          89.69
+        ]
+      ],
+      "points": [
+        {
+          "t": 41.27,
+          "stance": "Souligne que les entrepreneurs construisent sur la base de l'État et du système éducatif, et doute que les enfants soient les plus appropriés pour reprendre."
+        },
+        {
+          "t": 54.84,
+          "stance": "Juge qu'un successeur désigné à l'avance, comme chez Google, rassure plus qu'un enfant et que la transmission de père en fils est rare."
+        },
+        {
+          "t": 56.13,
+          "stance": "Pense que la compétition et l'envie d'innover motivent aussi au-delà de 12 millions, plus que le souci des enfants."
+        },
+        {
+          "t": 81.1,
+          "stance": "Doute qu'une taxation uniforme en Europe soit possible : les situations sont très différentes, la France taxe plus que la moyenne et certains pays veulent attirer les capitaux."
+        },
+        {
+          "t": 88.2,
+          "stance": "Suggère d'avancer la transmission pour laisser du temps au deuil de la maison et répondre aux besoins de la vie."
+        }
+      ],
+      "kf": [
+        [
+          41.27,
+          0.0,
+          2.5
+        ],
+        [
+          108.1,
+          0.0,
+          2.5
+        ]
+      ],
+      "uncertain": {
+        "x": "interventions surtout interrogatives, sans position nette pour ou contre un plafond"
+      }
+    }
+  ],
+  "refus": [],
+  "totalRedactedMinutes": 0,
+  "totalDurationMinutes": 108.1,
+  "axes": {
+    "x": {
+      "leftLabel": "Préserver la transmission familiale",
+      "rightLabel": "Limiter l'héritage des grandes fortunes",
+      "anchors": {
+        "left": [
+          "Un plafond détruirait des entreprises et effraierait les investisseurs",
+          "Il faut laisser les familles transmettre leur entreprise et leur maison",
+          "Chacun veut laisser une trace à ses proches : on ne peut pas l'interdire"
+        ],
+        "right": [
+          "Les dynasties d'héritiers captent le pouvoir et menacent la démocratie",
+          "Les héritiers de très grandes fortunes n'ont ni mérite ni légitimité particulière",
+          "L'héritage des ultra-riches doit être fortement taxé, voire limité par un seuil"
+        ]
+      }
+    },
+    "y": {
+      "bottomLabel": "Stabilité des marchés d'abord",
+      "topLabel": "Égalité et contrôle démocratique d'abord",
+      "anchors": {
+        "bottom": [
+          "Les marchés financiers réagiraient mal à une réforme brutale de l'héritage",
+          "L'incertitude sur la succession des dirigeants fait perdre de la valeur"
+        ],
+        "top": [
+          "On ne doit pas fonder les politiques publiques sur la peur des marchés",
+          "Laisser les fortunes s'accumuler met la démocratie sous l'emprise de l'argent"
+        ]
+      }
+    },
+    "quadrants": {
+      "topLeft": "Égalité, transmission préservée",
+      "topRight": "Réforme radicale",
+      "bottomLeft": "Prudence conservatrice",
+      "bottomRight": "Réforme prudente"
+    }
+  },
+  "schools": [],
+  "events": [
+    {
+      "t": 0.88,
+      "type": "cadrage",
+      "magnitude": 2,
+      "title": "Lancement sur la fuite des capitaux",
+      "desc": "L'animation ouvre sur la fuite des capitaux et sur l'idée de limiter l'héritage à 12 millions."
+    },
+    {
+      "t": 2.45,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Une taxe extraterritoriale contre la fuite",
+      "desc": "Une taxe appliquée aux citoyens français partis à l'étranger, comme aux États-Unis, est avancée comme solution."
+    },
+    {
+      "t": 3.53,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "La fuite des capitaux est jugée exagérée",
+      "desc": "Les premiers intervenants estiment que les riches ne partent pas et qu'on est loin de les taxer assez pour cela."
+    },
+    {
+      "t": 5.81,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Faut-il plafonner l'héritage ?",
+      "desc": "Un plafond menacerait les entreprises et les investisseurs pour l'un ; les héritiers de dynasties n'ont pas de légitimité pour d'autres."
+    },
+    {
+      "t": 9.66,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Légitimité des héritiers de grandes fortunes",
+      "desc": "Un fils de grand patron mérite-t-il de diriger ? Désaccord sur la valeur de la transmission familiale."
+    },
+    {
+      "t": 11.24,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Fonds souverains et peur des marchés",
+      "desc": "Les actions d'un grand groupe pourraient passer dans un fonds souverain, ce que les marchés pourraient mal accueillir."
+    },
+    {
+      "t": 12.99,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "De l'héritage à l'accumulation",
+      "desc": "Le débat s'élargit à la ploutocratie et à la taxation de l'accumulation avant même l'héritage."
+    },
+    {
+      "t": 20.13,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Musk a-t-il créé de la valeur ?",
+      "desc": "Entre ceux pour qui un entrepreneur mérite sa fortune et ceux qui y voient le hasard et le contexte."
+    },
+    {
+      "t": 29.47,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Les héritiers sont-ils les mieux placés ?",
+      "desc": "Un enfant de patron dirige-t-il mieux qu'un diplômé compétent ?"
+    },
+    {
+      "t": 32.5,
+      "type": "concession",
+      "magnitude": 1,
+      "title": "Les héritiers ne sont pas plus légitimes",
+      "desc": "Un participant concède l'absence de légitimité des héritiers mais maintient la crainte des marchés."
+    },
+    {
+      "t": 35.36,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Séparer gouvernance et argent",
+      "desc": "Idée de taxer l'argent hérité mais de laisser la gouvernance aux enfants, par exemple via les actions de vote."
+    },
+    {
+      "t": 40.16,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "Dissocier pouvoir et capital paraît intéressant",
+      "desc": "Plusieurs voix approuvent l'idée, en doutant de sa faisabilité."
+    },
+    {
+      "t": 46.61,
+      "type": "consensus",
+      "magnitude": 1,
+      "title": "On doit quelque chose à l'État",
+      "desc": "Accord de principe, mais l'argument est jugé difficile à faire accepter."
+    },
+    {
+      "t": 49.71,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Un dirigeant âgé organisera-t-il sa succession ?",
+      "desc": "Pour rassurer les marchés ou, au contraire, par peur de l'incertitude à sa mort."
+    },
+    {
+      "t": 51.71,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Taxer l'accumulation plutôt que la mort",
+      "desc": "L'héritage serait un moyen de réparer ce qui n'a pas été taxé de son vivant."
+    },
+    {
+      "t": 57.15,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Question sur l'assurance-vie",
+      "desc": "L'animation demande si l'assurance-vie doit être taxée comme un héritage."
+    },
+    {
+      "t": 58.11,
+      "type": "concession",
+      "magnitude": 1,
+      "title": "Les grandes entreprises familiales sont rares",
+      "desc": "Hermès et Auchan sont cités, puis la rareté de la gouvernance familiale est concédée."
+    },
+    {
+      "t": 60.74,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "La taxation de l'héritage est impopulaire",
+      "desc": "Les sondages montrent un rejet fort, à droite comme à gauche, ce qui freine les politiques."
+    },
+    {
+      "t": 63.06,
+      "type": "cadrage",
+      "magnitude": 2,
+      "title": "Et pour les 99 autres pour cent ?",
+      "desc": "Le débat quitte les ultra-riches pour la classe moyenne et les seuils d'imposition."
+    },
+    {
+      "t": 66.08,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "La maison de famille et l'émotion",
+      "desc": "Faut-il ménager la classe moyenne pour la maison de famille ? Désaccord sur la protection et sur ce que les abattements couvrent déjà."
+    },
+    {
+      "t": 73.26,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Taxer la classe moyenne ?",
+      "desc": "Question posée de taxer la classe moyenne pour des transmissions de 150 000 euros."
+    },
+    {
+      "t": 75.7,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Une taxation commune en Europe ?",
+      "desc": "Une proposition votée à large majorité est évoquée : harmoniser les droits de succession en Europe."
+    },
+    {
+      "t": 81.1,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Uniformiser en Europe : utile ou irréaliste ?",
+      "desc": "Contre l'évasion pour les uns, trop de situations différentes pour les autres."
+    },
+    {
+      "t": 85.1,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "Pas de vases communicants",
+      "desc": "Baisser l'impôt sur le revenu pour monter celui sur l'héritage n'est pas jugé compensatoire."
+    },
+    {
+      "t": 86.28,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Cibler au-dessus de 15 millions",
+      "desc": "Proposition de viser les très gros héritages et les sociétés immobilières sans toucher la classe moyenne."
+    },
+    {
+      "t": 88.2,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "Transmettre avant la mort",
+      "desc": "L'idée d'avancer la transmission séduit, des donations existant déjà."
+    },
+    {
+      "t": 95.05,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Les montages des plus riches",
+      "desc": "Pacte Dutreil, sociétés immobilières, holdings et fondations permettent de contourner la taxe."
+    },
+    {
+      "t": 100.0,
+      "type": "consensus",
+      "magnitude": 2,
+      "title": "Les gens sont mal informés",
+      "desc": "Les participants jugent que la méconnaissance de la taxe nourrit le rejet et que plus d'information apaiserait le débat."
+    },
+    {
+      "t": 107.33,
+      "type": "meta",
+      "magnitude": 1,
+      "title": "Regret de peu d'opposition de fond",
+      "desc": "Un participant aurait aimé davantage de voix radicalement contraires."
+    }
+  ],
+  "tension": [
+    [
+      0,
+      20
+    ],
+    [
+      0.9,
+      30
+    ],
+    [
+      3.5,
+      40
+    ],
+    [
+      5.8,
+      55
+    ],
+    [
+      9.7,
+      60
+    ],
+    [
+      11.2,
+      55
+    ],
+    [
+      13.0,
+      52
+    ],
+    [
+      20.1,
+      62
+    ],
+    [
+      23.7,
+      68
+    ],
+    [
+      26.4,
+      50
+    ],
+    [
+      29.5,
+      52
+    ],
+    [
+      32.5,
+      45
+    ],
+    [
+      35.4,
+      48
+    ],
+    [
+      37.6,
+      55
+    ],
+    [
+      40.2,
+      40
+    ],
+    [
+      46.6,
+      38
+    ],
+    [
+      49.7,
+      55
+    ],
+    [
+      51.7,
+      45
+    ],
+    [
+      57.2,
+      32
+    ],
+    [
+      60.7,
+      38
+    ],
+    [
+      63.1,
+      40
+    ],
+    [
+      66.1,
+      62
+    ],
+    [
+      70.1,
+      58
+    ],
+    [
+      73.3,
+      55
+    ],
+    [
+      75.7,
+      35
+    ],
+    [
+      81.1,
+      62
+    ],
+    [
+      82.7,
+      50
+    ],
+    [
+      85.1,
+      35
+    ],
+    [
+      86.3,
+      40
+    ],
+    [
+      90,
+      32
+    ],
+    [
+      95,
+      35
+    ],
+    [
+      100,
+      28
+    ],
+    [
+      104,
+      22
+    ],
+    [
+      108,
+      15
+    ]
+  ],
+  "polarization": {
+    "x": 8.3,
+    "y": 9.4,
+    "n": 6,
+    "nY": 6,
+    "method": "esteban_ray",
+    "alpha": 1.6
+  },
+  "interactions": [
+    {
+      "t": 3.53,
+      "from": "i4",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Rejoint l'Interlocuteur 3 : on est très loin de taxer assez pour que les riches partent."
+    },
+    {
+      "t": 7.81,
+      "from": "i4",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Répond que l'État peut gérer les actions d'un grand groupe via des fonds souverains."
+    },
+    {
+      "t": 11.24,
+      "from": "i5",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "S'oppose aux fonds souverains, par crainte d'une réaction des marchés, tout en reconnaissant le problème des dynasties."
+    },
+    {
+      "t": 14.79,
+      "from": "i4",
+      "to": "i1",
+      "type": "accord",
+      "desc": "D'accord qu'un plafond à 12 millions freinerait l'envie de s'enrichir davantage."
+    },
+    {
+      "t": 16.67,
+      "from": "i2",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Reprend le point sur l'accumulation des ultra-riches et le poids des patrimoines hérités."
+    },
+    {
+      "t": 20.13,
+      "from": "i5",
+      "to": "i3",
+      "type": "desaccord",
+      "desc": "En désaccord sur l'accumulation : un entrepreneur comme Musk a créé de la valeur, seul l'aspect dynastique pose problème."
+    },
+    {
+      "t": 21.67,
+      "from": "i1",
+      "to": "i5",
+      "type": "accord",
+      "desc": "Se dit un peu d'accord avec l'Interlocuteur 5."
+    },
+    {
+      "t": 23.74,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Répond que Musk ne mérite pas une telle fortune et que la valeur créée tient aussi au contexte."
+    },
+    {
+      "t": 26.35,
+      "from": "i2",
+      "to": "i3",
+      "type": "accord",
+      "desc": "En accord avec la fin de son propos : on adopte trop le point de vue des ultra-riches."
+    },
+    {
+      "t": 29.47,
+      "from": "i6",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Conteste que le fils d'un grand patron soit mieux placé pour diriger l'entreprise."
+    },
+    {
+      "t": 32.5,
+      "from": "i5",
+      "to": "i6",
+      "type": "concession",
+      "desc": "Concède que les héritiers n'ont ni légitimité ni compétence particulière, tout en maintenant que les marchés se rassurent de la continuité."
+    },
+    {
+      "t": 37.61,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Lui reproche de fonder sa prudence surtout sur la stabilité des marchés financiers."
+    },
+    {
+      "t": 40.16,
+      "from": "i5",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Approuve l'idée de dissocier gouvernance et capital, tout en doutant de sa faisabilité."
+    },
+    {
+      "t": 40.16,
+      "from": "i5",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Rejoint l'Interlocuteur 3 sur le sentiment de déclassement et l'instabilité politique."
+    },
+    {
+      "t": 46.61,
+      "from": "i5",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Très d'accord qu'on doit quelque chose à l'État, mais doute que la majorité l'accepte."
+    },
+    {
+      "t": 49.71,
+      "from": "i2",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Objecte qu'un dirigeant âgé organiserait rationnellement sa succession, ce qui rassurerait les marchés."
+    },
+    {
+      "t": 53.01,
+      "from": "i1",
+      "to": "i2",
+      "type": "accord",
+      "desc": "D'accord avec lui, tout en demandant pourquoi attendre le décès pour reprendre l'argent."
+    },
+    {
+      "t": 54.35,
+      "from": "i1",
+      "to": "i4",
+      "type": "desaccord",
+      "desc": "Objecte que laisser la gouvernance aux héritiers les met à la tête de grands groupes sans compétence."
+    },
+    {
+      "t": 54.84,
+      "from": "i7",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Doute qu'écarter les enfants crée vraiment de l'incertitude, puisqu'un successeur peut être prévu."
+    },
+    {
+      "t": 54.84,
+      "from": "i7",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Rejoint l'Interlocuteur 4 : la transmission de père en fils est rare."
+    },
+    {
+      "t": 58.11,
+      "from": "i5",
+      "to": "i4",
+      "type": "concession",
+      "desc": "Cite Hermès et Auchan comme grandes entreprises familiales, puis concède que la gouvernance familiale reste rare parmi les plus grandes."
+    },
+    {
+      "t": 61.92,
+      "from": "i1",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Objecte que le dirigeant qui choisit son successeur choisira probablement ses enfants."
+    },
+    {
+      "t": 66.42,
+      "from": "i5",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Estime que l'argument émotionnel de la maison de famille détourne le débat et que les abattements protègent déjà les familles."
+    },
+    {
+      "t": 70.06,
+      "from": "i4",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Répond que les abattements sur la résidence principale limitent la taxe et qu'une maison valant plusieurs millions doit être taxée."
+    },
+    {
+      "t": 74.1,
+      "from": "i1",
+      "to": "i4",
+      "type": "desaccord",
+      "desc": "Ne trouve pas aberrant de payer pour récupérer la maison familiale, contrairement à la prudence de l'Interlocuteur 4 sur la classe moyenne."
+    },
+    {
+      "t": 79.62,
+      "from": "i1",
+      "to": "i2",
+      "type": "accord",
+      "desc": "Partage ses raisons pour une taxation commune en Europe."
+    },
+    {
+      "t": 81.1,
+      "from": "i7",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Doute qu'une taxation uniforme en Europe soit possible vu les écarts entre pays."
+    },
+    {
+      "t": 81.1,
+      "from": "i7",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Doute que l'uniformisation empêche l'évasion fiscale, certains pays voulant attirer les capitaux."
+    },
+    {
+      "t": 82.73,
+      "from": "i6",
+      "to": "i7",
+      "type": "accord",
+      "desc": "Le rejoint : l'héritage n'est pas ce qui fracture l'Europe."
+    },
+    {
+      "t": 89.76,
+      "from": "i2",
+      "to": "i7",
+      "type": "accord",
+      "desc": "Trouve intéressante son idée d'avancer la transmission."
+    }
+  ],
+  "synthesis": {
+    "theme": "Héritage : faut-il plafonner ou taxer davantage ?",
+    "summary": "Lancé sur une question qui divisait les votes (limiter l'héritage à 12 millions), le débat a d'abord écarté la peur de la fuite des capitaux, puis opposé la prudence pour les entreprises à la dénonciation des dynasties. Il a glissé vers la légitimité des grandes fortunes, la dissociation entre pouvoir et argent, l'assurance-vie et la maison de famille, puis vers une taxation commune en Europe. Presque tous jugent les plus riches trop peu taxés et s'accordent sur les contournements à fermer ; les désaccords portent sur le plafond, la peur des marchés et l'Europe. Personne n'a changé d'avis : deux concessions ponctuelles seulement.",
+    "groups": [
+      {
+        "label": "Limiter fortement l'héritage des grandes fortunes, seuil compris",
+        "color": "#C0507A",
+        "members": [
+          "i3",
+          "i6"
+        ],
+        "arguments": [
+          "Les dynasties d'héritiers captent le pouvoir politique et médiatique et menacent la démocratie.",
+          "Les héritiers n'ont ni mérite ni compétence particulière pour diriger de grands groupes.",
+          "L'accumulation elle-même, avant l'héritage, doit être mise en cause.",
+          "La peur des marchés ne doit pas dicter la politique publique."
+        ]
+      },
+      {
+        "label": "Taxer beaucoup plus les très grandes fortunes, sans plafond rigide",
+        "color": "#184795",
+        "members": [
+          "i4",
+          "i2",
+          "i1"
+        ],
+        "arguments": [
+          "Les plus riches contournent la taxe par des montages (holdings, sociétés immobilières, pacte Dutreil) : c'est là qu'il faut agir.",
+          "Taxer l'accumulation de leur vivant, ou dissocier gouvernance et argent, vaut mieux qu'un plafond difficile à appliquer.",
+          "La classe moyenne est déjà protégée par les abattements et ne doit pas être davantage touchée.",
+          "Informer le public réduirait le rejet nourri par le discours populiste."
+        ]
+      },
+      {
+        "label": "Prudence face au risque pour les entreprises et les marchés",
+        "color": "#E67E22",
+        "members": [
+          "i5"
+        ],
+        "arguments": [
+          "Un plafond fragiliserait la transmission des entreprises et pourrait effrayer les investisseurs étrangers.",
+          "L'incertitude à la mort d'un dirigeant âgé ferait chuter les actions et la valeur.",
+          "Une taxation forte de l'héritage est très impopulaire, ce qui limite les mesures possibles.",
+          "Il faut pourtant des mesures fortes contre la ploutocratie et s'attaquer à l'optimisation."
+        ]
+      }
+    ],
+    "unclassified": {
+      "members": [
+        "i7"
+      ],
+      "note": "L'Interlocuteur 7 intervient surtout par des questions et des objections, sans position nette pour ou contre un plafond."
+    },
+    "kinds": {
+      "coeur": {
+        "label": "Cœur du sujet",
+        "desc": "Plafonner ou taxer davantage l'héritage des plus grandes fortunes."
+      },
+      "connexe": {
+        "label": "Leviers et effets",
+        "desc": "Les effets et moyens : fuite des capitaux, marchés, classe moyenne, contournements, donations."
+      },
+      "annexe": {
+        "label": "Sujets annexes",
+        "desc": "Légitimité des fortunes, Europe, information du public : le lien avec l'héritage devient indirect."
+      }
+    },
+    "themes": [
+      {
+        "id": "plafond",
+        "kind": "coeur",
+        "short": "Plafond/taxe",
+        "color": "#184795",
+        "label": "Plafonner ou taxer davantage l'héritage",
+        "desc": "Plafond à 12 millions, seuils, taxation plus forte des plus grosses transmissions."
+      },
+      {
+        "id": "fuite",
+        "kind": "connexe",
+        "short": "Fuite",
+        "color": "#E67E22",
+        "label": "Fuite des capitaux",
+        "desc": "Les riches partent-ils si on taxe ? Exit tax, taxe extraterritoriale."
+      },
+      {
+        "id": "marches",
+        "kind": "connexe",
+        "short": "Marchés",
+        "color": "#8E44AD",
+        "label": "Entreprises, marchés et gouvernance",
+        "desc": "Fonds souverains, actions de vote, succession des dirigeants, stabilité des marchés."
+      },
+      {
+        "id": "moyenne",
+        "kind": "connexe",
+        "short": "Classe moyenne",
+        "color": "#27AE60",
+        "label": "Classe moyenne, maison de famille et assurance-vie",
+        "desc": "Abattements, maison familiale, assurance-vie, impopularité de la taxe."
+      },
+      {
+        "id": "contour",
+        "kind": "connexe",
+        "short": "Contournements",
+        "color": "#C0392B",
+        "label": "Contournements et optimisation",
+        "desc": "Pacte Dutreil, sociétés immobilières, holdings, fondations."
+      },
+      {
+        "id": "donation",
+        "kind": "connexe",
+        "short": "Donations",
+        "color": "#16A085",
+        "label": "Transmettre avant la mort",
+        "desc": "Donations, âge de l'héritage, redistribution anticipée."
+      },
+      {
+        "id": "legitim",
+        "kind": "annexe",
+        "short": "Légitimité",
+        "color": "#C0507A",
+        "label": "Légitimité des grandes fortunes",
+        "desc": "Musk et la valeur créée, accumulation, dynasties, ploutocratie."
+      },
+      {
+        "id": "europe",
+        "kind": "annexe",
+        "short": "Europe",
+        "color": "#34495E",
+        "label": "Taxation commune en Europe",
+        "desc": "Harmoniser les droits de succession, paradis fiscaux européens."
+      },
+      {
+        "id": "info",
+        "kind": "annexe",
+        "short": "Information",
+        "color": "#D4AC0D",
+        "label": "Information du public",
+        "desc": "Méconnaissance de la taxe, populisme, médias."
+      }
+    ],
+    "timeline": [
+      [
+        0,
+        0.88,
+        null
+      ],
+      [
+        0.88,
+        5.3,
+        "fuite"
+      ],
+      [
+        5.3,
+        9.66,
+        "plafond"
+      ],
+      [
+        9.66,
+        11.24,
+        "legitim"
+      ],
+      [
+        11.24,
+        12.99,
+        "marches"
+      ],
+      [
+        12.99,
+        14.79,
+        "legitim"
+      ],
+      [
+        14.79,
+        20.13,
+        "plafond"
+      ],
+      [
+        20.13,
+        21.95,
+        "legitim"
+      ],
+      [
+        21.95,
+        23.74,
+        "plafond"
+      ],
+      [
+        23.74,
+        26.35,
+        "legitim"
+      ],
+      [
+        26.35,
+        29.36,
+        "plafond"
+      ],
+      [
+        29.36,
+        57.15,
+        "marches"
+      ],
+      [
+        57.15,
+        58.11,
+        "moyenne"
+      ],
+      [
+        58.11,
+        59.1,
+        "marches"
+      ],
+      [
+        59.1,
+        61.92,
+        "moyenne"
+      ],
+      [
+        61.92,
+        63.06,
+        "marches"
+      ],
+      [
+        63.06,
+        75.7,
+        "moyenne"
+      ],
+      [
+        75.7,
+        85.1,
+        "europe"
+      ],
+      [
+        85.1,
+        86.28,
+        "plafond"
+      ],
+      [
+        86.28,
+        88.08,
+        "contour"
+      ],
+      [
+        88.08,
+        95.05,
+        "donation"
+      ],
+      [
+        95.05,
+        96.98,
+        "contour"
+      ],
+      [
+        96.98,
+        100.0,
+        "moyenne"
+      ],
+      [
+        100.0,
+        103.37,
+        "info"
+      ],
+      [
+        103.37,
+        107.33,
+        "plafond"
+      ],
+      [
+        107.33,
+        108.1,
+        null
+      ]
+    ],
+    "mentions": [],
+    "affirmations": [
+      {
+        "text": "Il faut plafonner l'héritage, par exemple à 12 millions",
+        "stances": [
+          {
+            "id": "i5",
+            "pos": "contre",
+            "t": 5.81
+          },
+          {
+            "id": "i4",
+            "pos": "contre",
+            "t": 16.07
+          },
+          {
+            "id": "i1",
+            "pos": "nuance",
+            "t": 21.95,
+            "note": "pour limiter les dynasties, mais doute qu'un plafond soit applicable"
+          },
+          {
+            "id": "i2",
+            "pos": "nuance",
+            "t": 26.35,
+            "note": "pas convaincu par le chiffre, mais ne juge pas la limite choquante"
+          },
+          {
+            "id": "i6",
+            "pos": "pour",
+            "t": 104.3,
+            "note": "transmission plus rapide, limitée à un seuil"
+          }
+        ]
+      },
+      {
+        "text": "Les héritiers d'un grand groupe ne sont pas les mieux placés pour le diriger",
+        "stances": [
+          {
+            "id": "i6",
+            "pos": "pour",
+            "t": 29.47
+          },
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 9.66
+          },
+          {
+            "id": "i7",
+            "pos": "pour",
+            "t": 41.27
+          },
+          {
+            "id": "i5",
+            "pos": "pour",
+            "t": 32.5,
+            "note": "concède l'absence de légitimité, mais craint les marchés"
+          },
+          {
+            "id": "i4",
+            "pos": "nuance",
+            "t": 16.07,
+            "note": "comprend qu'un fils reprenne l'entreprise à condition de payer"
+          }
+        ]
+      },
+      {
+        "text": "Il faut taxer les grandes fortunes de leur vivant plutôt qu'à leur mort",
+        "stances": [
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 51.71
+          },
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 42.9
+          },
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 39.24,
+            "note": "l'accumulation et la production passent avant l'héritage"
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 14.79,
+            "note": "taxer les entreprises qui génèrent d'énormes profits"
+          }
+        ]
+      },
+      {
+        "text": "Il faut séparer la gouvernance de l'entreprise de l'argent hérité",
+        "stances": [
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 35.36
+          },
+          {
+            "id": "i1",
+            "pos": "contre",
+            "t": 54.35
+          },
+          {
+            "id": "i5",
+            "pos": "nuance",
+            "t": 40.16,
+            "note": "intéressant, mais doute de la faisabilité"
+          },
+          {
+            "id": "i3",
+            "pos": "nuance",
+            "t": 37.61,
+            "note": "ouvre la réflexion sur d'autres formes de transmission de la gouvernance"
+          }
+        ]
+      },
+      {
+        "text": "La peur des marchés financiers justifie de ménager la transmission des grandes entreprises",
+        "stances": [
+          {
+            "id": "i5",
+            "pos": "pour",
+            "t": 33.63
+          },
+          {
+            "id": "i3",
+            "pos": "contre",
+            "t": 37.61
+          },
+          {
+            "id": "i1",
+            "pos": "contre",
+            "t": 12.31
+          },
+          {
+            "id": "i2",
+            "pos": "contre",
+            "t": 49.71
+          },
+          {
+            "id": "i7",
+            "pos": "contre",
+            "t": 54.84
+          },
+          {
+            "id": "i4",
+            "pos": "nuance",
+            "t": 7.81,
+            "note": "reconnaît le risque, mais voit une réponse dans les fonds souverains"
+          }
+        ]
+      },
+      {
+        "text": "Il faut instaurer une taxation commune des successions en Europe",
+        "stances": [
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 77.17
+          },
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 79.62
+          },
+          {
+            "id": "i7",
+            "pos": "contre",
+            "t": 81.1
+          },
+          {
+            "id": "i6",
+            "pos": "contre",
+            "t": 82.73
+          }
+        ]
+      },
+      {
+        "text": "La maison de famille de la classe moyenne doit être protégée de la taxation",
+        "stances": [
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 64.5
+          },
+          {
+            "id": "i5",
+            "pos": "nuance",
+            "t": 66.42,
+            "note": "les abattements protègent déjà ; l'émotion détourne le débat"
+          },
+          {
+            "id": "i4",
+            "pos": "contre",
+            "t": 70.06
+          },
+          {
+            "id": "i1",
+            "pos": "contre",
+            "t": 74.27
+          }
+        ]
+      }
+    ]
+  }
+}

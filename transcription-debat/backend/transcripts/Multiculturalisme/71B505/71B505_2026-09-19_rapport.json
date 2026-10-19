@@ -1,0 +1,307 @@
+{
+  "audio_start": "2026-06-04T11:53:27.852508+00:00",
+  "voix": {
+    "decalage_affine_sec": 0.5,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 3",
+        "purity": 0.21337575328048633,
+        "support": 79.95578099999159
+      },
+      "SPEAKER_01": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.9952284878543749,
+        "support": 580.9076170000069
+      },
+      "SPEAKER_02": {
+        "label": "Interlocuteur 4",
+        "kind": "identifiee",
+        "best": "Interlocuteur 4",
+        "purity": 0.9945611379410009,
+        "support": 866.3181652500032
+      },
+      "SPEAKER_03": {
+        "label": "Interlocuteur 6",
+        "kind": "identifiee",
+        "best": "Interlocuteur 6",
+        "purity": 0.997292338355831,
+        "support": 648.1607492500068
+      },
+      "SPEAKER_04": {
+        "label": "Interlocuteur 2",
+        "kind": "identifiee",
+        "best": "Interlocuteur 2",
+        "purity": 0.9627895885084072,
+        "support": 587.830095750002
+      },
+      "SPEAKER_05": {
+        "label": null,
+        "kind": "faible",
+        "best": "Interlocuteur 1",
+        "purity": 0.4719101123595841,
+        "support": 7.50937499999884
+      },
+      "SPEAKER_06": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.9333241878008034,
+        "support": 224.53950324999641
+      },
+      "SPEAKER_07": {
+        "label": "Interlocuteur 7",
+        "kind": "identifiee",
+        "best": "Interlocuteur 7",
+        "purity": 0.7572500743400697,
+        "support": 603.8061880000059
+      },
+      "SPEAKER_08": {
+        "label": "Interlocuteur 8",
+        "kind": "identifiee",
+        "best": "Interlocuteur 8",
+        "purity": 0.8738072519083854,
+        "support": 70.7400000000016
+      },
+      "SPEAKER_09": {
+        "label": "Interlocuteur 9",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.5021308249626186,
+        "support": 116.34114925000131
+      },
+      "SPEAKER_10": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.9666260643660274,
+        "support": 858.0763762500096
+      },
+      "SPEAKER_11": {
+        "label": null,
+        "kind": "faible",
+        "best": "Interlocuteur 3",
+        "purity": 0.512905502402273,
+        "support": 14.959375000000819
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.9287634445163375,
+      "coverage": 0.963025366433297,
+      "evaluated_sec": 4486.874219000033
+    }
+  },
+  "frontieres": {
+    "tours": 54,
+    "fins_recalees": 31,
+    "decalage_median_sec": 0.9231210000007195
+  },
+  "metriques": {
+    "segments": 294,
+    "duration_sec": 6921.050000000001,
+    "by_source_sec": {
+      "voix": 2283.53,
+      "aucune": 106.2699999999997,
+      "voix-comblee": 15.160000000000025,
+      "log": 58.06000000000137,
+      "log+voix": 4458.03
+    },
+    "unknown_ratio": 0.015354606598709688,
+    "speaker_changes": 152,
+    "mid_sentence_cuts": 112,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 1542
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 280,
+    "rejetees": 11,
+    "non_corrigees": 3,
+    "motifs_rejet": {
+      "négation modifiée": 9,
+      "réécriture trop importante": 2
+    },
+    "suggestions_orateur": 48,
+    "noms_propres_a_verifier": [
+      [
+        "Kundera",
+        3
+      ],
+      [
+        "Canada",
+        2
+      ],
+      [
+        "Jul",
+        2
+      ],
+      [
+        "Lyautey",
+        2
+      ],
+      [
+        "Noirs",
+        2
+      ],
+      [
+        "Québec",
+        2
+      ],
+      [
+        "Spinoza",
+        2
+      ],
+      [
+        "Thoreau",
+        2
+      ],
+      [
+        "Agis",
+        1
+      ],
+      [
+        "Alpes",
+        1
+      ],
+      [
+        "Amin",
+        1
+      ],
+      [
+        "Attends",
+        1
+      ],
+      [
+        "Bonjour",
+        1
+      ],
+      [
+        "Cependant",
+        1
+      ],
+      [
+        "Chine",
+        1
+      ],
+      [
+        "Damnés",
+        1
+      ],
+      [
+        "Enchanté",
+        1
+      ],
+      [
+        "Epix",
+        1
+      ],
+      [
+        "Excuse-moi",
+        1
+      ],
+      [
+        "Fanon",
+        1
+      ],
+      [
+        "Frantz",
+        1
+      ],
+      [
+        "Hanks",
+        1
+      ],
+      [
+        "Interlude",
+        1
+      ],
+      [
+        "Jean",
+        1
+      ],
+      [
+        "Leïla",
+        1
+      ],
+      [
+        "Londres",
+        1
+      ],
+      [
+        "Maalouf",
+        1
+      ],
+      [
+        "Méditerranée",
+        1
+      ],
+      [
+        "N'explose",
+        1
+      ],
+      [
+        "Noir",
+        1
+      ],
+      [
+        "Olympia",
+        1
+      ],
+      [
+        "Ouh",
+        1
+      ],
+      [
+        "Panama",
+        1
+      ],
+      [
+        "Paname",
+        1
+      ],
+      [
+        "Paris",
+        1
+      ],
+      [
+        "Parisiens",
+        1
+      ],
+      [
+        "Sauf",
+        1
+      ],
+      [
+        "Sentez-vous",
+        1
+      ],
+      [
+        "Slimani",
+        1
+      ],
+      [
+        "Tchécoslovaquie",
+        1
+      ],
+      [
+        "Tom",
+        1
+      ],
+      [
+        "Val",
+        1
+      ],
+      [
+        "Versailles",
+        1
+      ],
+      [
+        "État",
+        1
+      ]
+    ]
+  }
+}

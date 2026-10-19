@@ -1,0 +1,306 @@
+{
+  "audio_start": "2026-10-08T15:57:22.463022+00:00",
+  "voix": {
+    "decalage_affine_sec": 2.5,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.8990960829011295,
+        "support": 1453.703389000002
+      },
+      "SPEAKER_01": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.856134105170629,
+        "support": 1174.6647594999936
+      },
+      "SPEAKER_02": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.847620414071803,
+        "support": 585.3233207500068
+      },
+      "SPEAKER_03": {
+        "label": null,
+        "kind": "fusionnee",
+        "best": "Interlocuteur 4",
+        "purity": 0.5105647474791937,
+        "support": 2063.67520075
+      },
+      "SPEAKER_04": {
+        "label": null,
+        "kind": "fusionnee",
+        "best": "Interlocuteur 2",
+        "purity": 0.2633991581459472,
+        "support": 174.71300524999543
+      },
+      "SPEAKER_05": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 6",
+        "purity": 0.4882341150093081,
+        "support": 18.284004999996796
+      },
+      "SPEAKER_06": {
+        "label": "Interlocuteur 6",
+        "kind": "identifiee",
+        "best": "Interlocuteur 6",
+        "purity": 0.915061866059524,
+        "support": 204.49973049999767
+      },
+      "SPEAKER_07": {
+        "label": "Interlocuteur 7",
+        "kind": "identifiee",
+        "best": "Interlocuteur 7",
+        "purity": 0.6809919779074713,
+        "support": 46.16937499999756
+      },
+      "SPEAKER_08": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 1",
+        "purity": 0.5336004723267087,
+        "support": 16.223514499992348
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.8754963585854051,
+      "coverage": 0.5964529361972023,
+      "evaluated_sec": 3422.003366
+    }
+  },
+  "frontieres": {
+    "tours": 60,
+    "fins_recalees": 36,
+    "decalage_median_sec": 1.4597100000000864
+  },
+  "metriques": {
+    "segments": 153,
+    "duration_sec": 6211.42,
+    "by_source_sec": {
+      "aucune": 452.4799999999993,
+      "log": 2070.160000000001,
+      "voix": 418.5200000000019,
+      "log+voix": 3270.259999999998
+    },
+    "unknown_ratio": 0.07284646666945711,
+    "speaker_changes": 47,
+    "mid_sentence_cuts": 33,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 1249
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 133,
+    "rejetees": 19,
+    "non_corrigees": 1,
+    "motifs_rejet": {
+      "masque sans prénom": 4,
+      "négation modifiée": 13,
+      "réécriture trop importante": 2
+    },
+    "suggestions_orateur": 15,
+    "noms_propres_a_verifier": [
+      [
+        "Macron",
+        4
+      ],
+      [
+        "Serbie",
+        4
+      ],
+      [
+        "Gandhi",
+        3
+      ],
+      [
+        "République",
+        3
+      ],
+      [
+        "Europe",
+        2
+      ],
+      [
+        "Front",
+        2
+      ],
+      [
+        "J'imagine",
+        2
+      ],
+      [
+        "L'héritage",
+        2
+      ],
+      [
+        "Occidentis",
+        2
+      ],
+      [
+        "Algérien",
+        1
+      ],
+      [
+        "Arnault",
+        1
+      ],
+      [
+        "Balkans",
+        1
+      ],
+      [
+        "Baltimore",
+        1
+      ],
+      [
+        "Basqueval",
+        1
+      ],
+      [
+        "Bernard",
+        1
+      ],
+      [
+        "Birmingham",
+        1
+      ],
+      [
+        "Commissariat",
+        1
+      ],
+      [
+        "Ecclesia",
+        1
+      ],
+      [
+        "Euh",
+        1
+      ],
+      [
+        "Excel",
+        1
+      ],
+      [
+        "Frontières",
+        1
+      ],
+      [
+        "Gelderloos",
+        1
+      ],
+      [
+        "Indices",
+        1
+      ],
+      [
+        "Instagram",
+        1
+      ],
+      [
+        "J'aimerais",
+        1
+      ],
+      [
+        "J'avoue",
+        1
+      ],
+      [
+        "J'entendais",
+        1
+      ],
+      [
+        "Jeunesse",
+        1
+      ],
+      [
+        "Londres",
+        1
+      ],
+      [
+        "Lyon",
+        1
+      ],
+      [
+        "Marianne",
+        1
+      ],
+      [
+        "Marocain",
+        1
+      ],
+      [
+        "Nahel",
+        1
+      ],
+      [
+        "Nemesis",
+        1
+      ],
+      [
+        "Nicolas",
+        1
+      ],
+      [
+        "Numbeo",
+        1
+      ],
+      [
+        "Parcoursup",
+        1
+      ],
+      [
+        "Peter",
+        1
+      ],
+      [
+        "Préfecture",
+        1
+      ],
+      [
+        "Quant",
+        1
+      ],
+      [
+        "Romain",
+        1
+      ],
+      [
+        "Sarkozy",
+        1
+      ],
+      [
+        "Souperon",
+        1
+      ],
+      [
+        "Stambo",
+        1
+      ],
+      [
+        "Suède",
+        1
+      ],
+      [
+        "Systembolaget",
+        1
+      ],
+      [
+        "The",
+        1
+      ],
+      [
+        "Weber",
+        1
+      ],
+      [
+        "Wire",
+        1
+      ]
+    ]
+  }
+}

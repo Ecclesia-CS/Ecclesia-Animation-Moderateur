@@ -1,0 +1,270 @@
+{
+  "audio_start": "2026-10-01T11:30:43.535991+00:00",
+  "voix": {
+    "decalage_affine_sec": -0.5,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 3",
+        "purity": 0.3868501529052081,
+        "support": 77.25374999999852
+      },
+      "SPEAKER_01": {
+        "label": "Interlocuteur 4",
+        "kind": "identifiee",
+        "best": "Interlocuteur 4",
+        "purity": 0.6518421579814316,
+        "support": 49.9439317499976
+      },
+      "SPEAKER_02": {
+        "label": "Interlocuteur 4",
+        "kind": "identifiee",
+        "best": "Interlocuteur 4",
+        "purity": 0.9547239944836936,
+        "support": 1034.9864064999956
+      },
+      "SPEAKER_03": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.9364313575724287,
+        "support": 473.4911522499973
+      },
+      "SPEAKER_04": {
+        "label": null,
+        "kind": "fusionnee",
+        "best": "Interlocuteur 2",
+        "purity": 0.60134249633785,
+        "support": 1444.0401402500092
+      },
+      "SPEAKER_05": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.9870763925402721,
+        "support": 988.91855775
+      },
+      "SPEAKER_06": {
+        "label": "Interlocuteur 6",
+        "kind": "identifiee",
+        "best": "Interlocuteur 6",
+        "purity": 0.8206196268355019,
+        "support": 69.71953525000072
+      },
+      "SPEAKER_07": {
+        "label": null,
+        "kind": "fusionnee",
+        "best": "Interlocuteur 2",
+        "purity": 0.3356472284901819,
+        "support": 80.93412650000292
+      },
+      "SPEAKER_08": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.9789330833184046,
+        "support": 601.8240562499991
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.9600611912578972,
+      "coverage": 0.6620058472296441,
+      "evaluated_sec": 3191.604106749996
+    }
+  },
+  "frontieres": {
+    "tours": 65,
+    "fins_recalees": 33,
+    "decalage_median_sec": 1.5216360000003988
+  },
+  "metriques": {
+    "segments": 199,
+    "duration_sec": 6033.560000000009,
+    "by_source_sec": {
+      "aucune": 647.1999999999989,
+      "voix-comblee": 16.120000000000545,
+      "voix": 509.7800000000035,
+      "log": 1492.7700000000016,
+      "log+voix": 3367.6900000000032
+    },
+    "unknown_ratio": 0.10726668832331128,
+    "speaker_changes": 71,
+    "mid_sentence_cuts": 47,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 1500
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 192,
+    "rejetees": 7,
+    "non_corrigees": 0,
+    "motifs_rejet": {
+      "négation modifiée": 6,
+      "masque sans prénom": 1
+    },
+    "suggestions_orateur": 38,
+    "noms_propres_a_verifier": [
+      [
+        "France",
+        28
+      ],
+      [
+        "Musk",
+        14
+      ],
+      [
+        "Elon",
+        9
+      ],
+      [
+        "Arnault",
+        6
+      ],
+      [
+        "Bernard",
+        6
+      ],
+      [
+        "Europe",
+        5
+      ],
+      [
+        "Auchan",
+        3
+      ],
+      [
+        "Malte",
+        3
+      ],
+      [
+        "République",
+        3
+      ],
+      [
+        "Dutreil",
+        2
+      ],
+      [
+        "Google",
+        2
+      ],
+      [
+        "Hermès",
+        2
+      ],
+      [
+        "Terre",
+        2
+      ],
+      [
+        "Absolument",
+        1
+      ],
+      [
+        "Accenture",
+        1
+      ],
+      [
+        "Allemagne",
+        1
+      ],
+      [
+        "Allemand",
+        1
+      ],
+      [
+        "Apple",
+        1
+      ],
+      [
+        "Arrêtez-moi",
+        1
+      ],
+      [
+        "Asie",
+        1
+      ],
+      [
+        "Attends",
+        1
+      ],
+      [
+        "Bolloré",
+        1
+      ],
+      [
+        "C'étaient",
+        1
+      ],
+      [
+        "Exclusivement",
+        1
+      ],
+      [
+        "Excuse-moi",
+        1
+      ],
+      [
+        "Hucman",
+        1
+      ],
+      [
+        "Murdoch",
+        1
+      ],
+      [
+        "Nierberg",
+        1
+      ],
+      [
+        "Nierbergs",
+        1
+      ],
+      [
+        "Norvège",
+        1
+      ],
+      [
+        "Peux-tu",
+        1
+      ],
+      [
+        "Pousse",
+        1
+      ],
+      [
+        "Poutine",
+        1
+      ],
+      [
+        "Russie",
+        1
+      ],
+      [
+        "Salut",
+        1
+      ],
+      [
+        "Suisse",
+        1
+      ],
+      [
+        "Suède",
+        1
+      ],
+      [
+        "Versailles",
+        1
+      ],
+      [
+        "Zucman",
+        1
+      ],
+      [
+        "Émotionnellement",
+        1
+      ]
+    ]
+  }
+}

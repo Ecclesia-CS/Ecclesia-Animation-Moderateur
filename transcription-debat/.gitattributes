@@ -1,0 +1,4 @@
+# Audios des débats : stockés via Git LFS (fichiers jusqu'à ~120 Mo, au-delà de la limite GitHub de 100 Mo)
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.m4a filter=lfs diff=lfs merge=lfs -text
+*.wav filter=lfs diff=lfs merge=lfs -text

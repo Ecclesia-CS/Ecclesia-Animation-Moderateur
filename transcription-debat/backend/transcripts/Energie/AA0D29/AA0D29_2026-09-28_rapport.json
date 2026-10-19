@@ -1,0 +1,341 @@
+{
+  "audio_start": "2026-09-24T12:21:32.822190+00:00",
+  "voix": {
+    "decalage_affine_sec": -20.0,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 2",
+        "purity": 0.19832582099165352,
+        "support": 26.206875000003393
+      },
+      "SPEAKER_01": {
+        "label": "Interlocuteur 9",
+        "kind": "identifiee",
+        "best": "Interlocuteur 9",
+        "purity": 0.7732631751561768,
+        "support": 591.4887142499985
+      },
+      "SPEAKER_02": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 3",
+        "purity": 0.2152127149667544,
+        "support": 204.57376325000473
+      },
+      "SPEAKER_03": {
+        "label": "Interlocuteur 10",
+        "kind": "identifiee",
+        "best": "Interlocuteur 10",
+        "purity": 0.893978697517986,
+        "support": 516.4092377499892
+      },
+      "SPEAKER_04": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.8428901480076246,
+        "support": 477.0220855000036
+      },
+      "SPEAKER_05": {
+        "label": "Interlocuteur 8",
+        "kind": "identifiee",
+        "best": "Interlocuteur 8",
+        "purity": 0.7388430572389888,
+        "support": 585.2204947499995
+      },
+      "SPEAKER_06": {
+        "label": null,
+        "kind": "faible",
+        "best": "Interlocuteur 5",
+        "purity": 1.0,
+        "support": 2.0136452499999677
+      },
+      "SPEAKER_07": {
+        "label": "Interlocuteur 7",
+        "kind": "identifiee",
+        "best": "Interlocuteur 7",
+        "purity": 0.6738461562346969,
+        "support": 238.63871524999718
+      },
+      "SPEAKER_08": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.8680446579794021,
+        "support": 371.1010937500007
+      },
+      "SPEAKER_09": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.8586074523257399,
+        "support": 175.26590975000028
+      },
+      "SPEAKER_10": {
+        "label": "Interlocuteur 2",
+        "kind": "identifiee",
+        "best": "Interlocuteur 2",
+        "purity": 0.6791063069811076,
+        "support": 591.8941502499988
+      },
+      "SPEAKER_11": {
+        "label": "Interlocuteur 4",
+        "kind": "identifiee",
+        "best": "Interlocuteur 4",
+        "purity": 0.5362545225160282,
+        "support": 48.54874999999993
+      },
+      "SPEAKER_12": {
+        "label": null,
+        "kind": "faible",
+        "best": "Interlocuteur 7",
+        "purity": 1.0,
+        "support": 1.2656249999990905
+      },
+      "SPEAKER_13": {
+        "label": "Interlocuteur 6",
+        "kind": "identifiee",
+        "best": "Interlocuteur 6",
+        "purity": 0.8950199900784422,
+        "support": 465.0332552500041
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.8089911179235669,
+      "coverage": 0.7160428816258081,
+      "evaluated_sec": 3075.1767004999965
+    }
+  },
+  "frontieres": {
+    "tours": 60,
+    "fins_recalees": 47,
+    "decalage_median_sec": 1.5971769999999879
+  },
+  "metriques": {
+    "segments": 150,
+    "duration_sec": 4965.300000000001,
+    "by_source_sec": {
+      "voix": 504.6600000000001,
+      "aucune": 121.38000000000005,
+      "log+voix": 4143.210000000003,
+      "log": 196.04999999999905
+    },
+    "unknown_ratio": 0.02444565283064468,
+    "speaker_changes": 77,
+    "mid_sentence_cuts": 63,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 676
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 139,
+    "rejetees": 8,
+    "non_corrigees": 3,
+    "motifs_rejet": {
+      "négation modifiée": 5,
+      "masque sans prénom": 1,
+      "réécriture trop importante": 2
+    },
+    "suggestions_orateur": 7,
+    "noms_propres_a_verifier": [
+      [
+        "Chine",
+        26
+      ],
+      [
+        "Europe",
+        23
+      ],
+      [
+        "C'est-à-dire",
+        5
+      ],
+      [
+        "Mercosur",
+        5
+      ],
+      [
+        "Tesla",
+        4
+      ],
+      [
+        "Airbus",
+        3
+      ],
+      [
+        "Alexandre",
+        3
+      ],
+      [
+        "Allemagne",
+        3
+      ],
+      [
+        "Navigo",
+        3
+      ],
+      [
+        "Nike",
+        3
+      ],
+      [
+        "Pass",
+        3
+      ],
+      [
+        "Rafale",
+        3
+      ],
+      [
+        "Renault",
+        3
+      ],
+      [
+        "Stellantis",
+        3
+      ],
+      [
+        "Antoine",
+        2
+      ],
+      [
+        "Boeing",
+        2
+      ],
+      [
+        "Canada",
+        2
+      ],
+      [
+        "Cuba",
+        2
+      ],
+      [
+        "Raphaël",
+        2
+      ],
+      [
+        "Adidas",
+        1
+      ],
+      [
+        "Admettons",
+        1
+      ],
+      [
+        "Allemands",
+        1
+      ],
+      [
+        "Américains",
+        1
+      ],
+      [
+        "Bangladesh",
+        1
+      ],
+      [
+        "Bernard",
+        1
+      ],
+      [
+        "Commission",
+        1
+      ],
+      [
+        "Dassault",
+        1
+      ],
+      [
+        "Friot",
+        1
+      ],
+      [
+        "Iran",
+        1
+      ],
+      [
+        "J'hésiterai",
+        1
+      ],
+      [
+        "J'étais",
+        1
+      ],
+      [
+        "Jancovici",
+        1
+      ],
+      [
+        "Janko",
+        1
+      ],
+      [
+        "L'aspect",
+        1
+      ],
+      [
+        "L'une",
+        1
+      ],
+      [
+        "L'écrasante",
+        1
+      ],
+      [
+        "Marouane",
+        1
+      ],
+      [
+        "Nord",
+        1
+      ],
+      [
+        "Ouganda",
+        1
+      ],
+      [
+        "Parisiens",
+        1
+      ],
+      [
+        "Parti",
+        1
+      ],
+      [
+        "Payés",
+        1
+      ],
+      [
+        "Peugeot",
+        1
+      ],
+      [
+        "Russie",
+        1
+      ],
+      [
+        "Sachant",
+        1
+      ],
+      [
+        "Stay",
+        1
+      ],
+      [
+        "T'inquiète",
+        1
+      ],
+      [
+        "Union",
+        1
+      ],
+      [
+        "Volkswagen",
+        1
+      ]
+    ]
+  }
+}

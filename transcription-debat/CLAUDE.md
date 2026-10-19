@@ -82,11 +82,11 @@ transcription-debat/
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
     ├── requirements.txt
     ├── .env                        HF_TOKEN + GEMINI_API_KEY
-    ├── Débats/<Thème>/<CODE>/      entrées (audio.mp3, ecclesia_*.csv) — non versionné
-    └── transcripts/<Thème>/<CODE>/ sorties — non versionné (viz/ = dashboard autonome)
+    ├── Débats/<Thème>/<CODE>/      entrées (audio.mp3, ecclesia_*.csv) — versionné, audios via Git LFS
+    └── transcripts/<Thème>/<CODE>/ sorties — versionné (viz_unifiee/ = le livrable)
 ```
 
-`Débats/` et `transcripts/` ne sont **pas versionnés** (données personnelles + audio volumineux).
+`Débats/` et `transcripts/` sont **versionnés depuis le 2026-10-19**, à la demande de l'utilisateur, en connaissance de cause : le dépôt GitHub est **public**, donc audios, logs bruts et `name_map.json` (vrais prénoms) y sont publics et le restent dans l'historique. Les audios (`*.mp3`, `*.m4a`, `*.wav`) passent par **Git LFS** (`transcription-debat/.gitattributes`) : plusieurs dépassent la limite GitHub de 100 Mo. Quota LFS gratuit : 1 Go de stockage et 1 Go de bande passante par mois, à surveiller à chaque nouveau débat. Après un clone : `git lfs pull` pour récupérer les audios.
 
 ---
 
@@ -332,7 +332,7 @@ python -m pytest tests/ -v
 - **Qui parle = preuves seulement** (log, voix). Gemini ne fait jamais une attribution (`speaker_suggestion` seulement) ; une voix non rattachée (`faible`/`fusionnee`/`distincte`) n'est jamais utilisée. Ne pas réintroduire d'attribution par LLM dans `speaker`.
 - **Garde-fous de fidélité** (`_correction_risk`, `_transfer_masks`) : ne pas les lever ; les seuils (`MAX_EDIT_RATIO`, `MIN_EDITS_FLOOR`, `NEGATORS`) sont à recalibrer sur des extraits de référence (`evaluate.py score`), pas à l'intuition.
 - **RGPD** : ne jamais réduire un tour `[REFUS]` (`boundaries.py`), toujours masquer la voix rattachée à `[REFUS]` (`fuse_word_speakers`), et n'écrire le cache Whisper qu'assaini (`sanitize_cache_words`). Les prénoms réels (`--participants`) restent locaux : ne pas les passer à `correct()`.
-- **Aucun prénom entendu dans un débat dans un fichier versionné** (tests, docs, messages de commit, `A_VERIFIER.md`) : exemples avec prénoms fictifs, constats décrits par label (`Interlocuteur N`) ou par « prénom privé ». Les prénoms réels ne vivent que dans `Débats/`, `transcripts/` et `name_map.json` (non versionnés).
+- **Aucun prénom entendu dans un débat dans le code, les tests, les docs, les messages de commit ou `A_VERIFIER.md`** : exemples avec prénoms fictifs, constats décrits par label (`Interlocuteur N`) ou par « prénom privé ». Les prénoms réels ne vivent que dans `Débats/`, `transcripts/` et `name_map.json` — versionnés et publics depuis le 2026-10-19 (décision de l'utilisateur), ce qui ne lève pas cette règle pour le reste du dépôt. Le **livrable** (`viz_unifiee/`) reste, lui, sans aucun prénom réel : `build_unified_viz.py` le refuse.
 - **Toute évolution de l'attribution se mesure** : rejouer avec `--whisper-cache` + `--diarization-cache` et comparer `evaluate.py metrics` (et `score` quand des références existent) avant/après.
 - **Pas de mode live.** `main.py`/`transcriber.py`/`diarizer.py`/`speaker_tracker.py` et le frontend ont été supprimés : tout est offline.
 - **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/`speech`/durée, les trajectoires (`kf`, lissage EWMA des scores par bloc) ET la polarisation (Esteban-Ray) sont calculés depuis le JSON, jamais demandés au LLM. Les `stance`/ancres sont des REFORMULATIONS — `validate_scores` rejette les guillemets ; ne jamais lever ce garde-fou ni l'anti-invention de prénoms. `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` est une page unique pilotée par `<CODE>.json` (`?debat=`) ou, à défaut, `data.js` (sections conditionnelles, durée via `meta.totalDurationMinutes` — jamais en dur). Aucun script depuis un CDN : il doit rester publiable tel quel sur un site (voir « Publier la visualisation sur un site »), d3, logo et polices sont copiés à côté par `write_viz` (`_ASSETS`). Couleurs et polices de la charte Ecclesia en variables CSS (`--brand`, `--serif`…). Pas de liste des prises de position d'une personne au clic (retirée volontairement). Tout texte du JSON passe par `innerHTML` : ne jamais élargir le motif de `?debat=` au-delà de `[A-Za-z0-9_-]`.

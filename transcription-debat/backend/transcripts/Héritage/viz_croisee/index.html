@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthèse croisée des débats</title>
+<script>
+// Même convention que la page par table : fond crème par défaut, ?theme=dark ou ?theme=auto.
+(function () {
+  var theme = new URLSearchParams(location.search).get('theme');
+  document.documentElement.setAttribute('data-theme', theme === 'dark' || theme === 'auto' ? theme : 'light');
+  if (window.self !== window.top) document.documentElement.classList.add('embedded');
+})();
+</script>
+<style>
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap; src: url('playfair-display.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 400 900; font-display: swap; src: url('playfair-display-italic.woff2') format('woff2'); }
+
+/* Charte Ecclesia (identique à la page par table). --ta / --tb : couleurs des deux tables. */
+:root {
+  color-scheme: light;
+  --brand: #184795; --brand-light: #64A9DE;
+  --bg: #F4EFE6; --bg2: #FBF8F3; --bg3: #E8DFD0;
+  --fg: #1A1A1A; --fg2: #5C5048; --fg3: #8A7F75;
+  --border: #E0D6C6; --axis: #B8AC9A;
+  --ta: #184795; --tb: #D9731A;
+  --pour: #0F8A6A; --contre: #C23B3B; --nuance: #B7791F;
+  --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --sans: Calibri, Carlito, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --brand: #7DB8E6; --brand-light: #9ACCF0;
+  --bg: #0E1A33; --bg2: #15264A; --bg3: #1E3360;
+  --fg: #F4EFE6; --fg2: #C9BFB0; --fg3: #8C8577; --border: #2A3F6B; --axis: #4A5F8A;
+  --ta: #7DB8E6; --tb: #F0A04B; --pour: #3FC79F; --contre: #F07B7B; --nuance: #E0B15A;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    color-scheme: dark;
+    --brand: #7DB8E6; --brand-light: #9ACCF0;
+    --bg: #0E1A33; --bg2: #15264A; --bg3: #1E3360;
+    --fg: #F4EFE6; --fg2: #C9BFB0; --fg3: #8C8577; --border: #2A3F6B; --axis: #4A5F8A;
+    --ta: #7DB8E6; --tb: #F0A04B; --pour: #3FC79F; --contre: #F07B7B; --nuance: #E0B15A;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--fg); min-height: 100vh; }
+input[type=checkbox], input[type=range] { accent-color: var(--brand); }
+html.embedded body { min-height: 0; }
+.hidden { display: none !important; }
+#load-error { margin: 24px auto; max-width: 1068px; padding: 12px 16px; border: 1px solid #D64545; border-radius: 6px; color: #D64545; font-size: 0.85rem; }
+.brand-header { max-width: 1068px; margin: 0 auto; padding: 18px 0 12px; display: flex; align-items: center; gap: 14px; border-bottom: 1.5px solid var(--brand); }
+.brand-logo { width: 56px; height: 56px; flex-shrink: 0; }
+.brand-name { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.28em; color: var(--brand); }
+.brand-sub { font-weight: 700; font-size: 0.68rem; letter-spacing: 0.22em; color: var(--fg2); margin-top: 2px; }
+.wrap { padding: 16px; max-width: 1100px; margin: 0 auto; }
+.debate-head { padding-top: 22px !important; }
+.debate-label { font-weight: 700; font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brand); }
+.debate-head h1 { font-family: var(--serif); font-weight: 700; font-size: 2rem; line-height: 1.2; margin: 8px 0 6px; }
+.debate-head p { font-size: 0.82rem; color: var(--fg2); letter-spacing: 0.02em; }
+section h2 { font-size: 0.78rem; font-weight: 700; margin: 18px 0 12px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--brand); }
+section h2::before { content: ''; display: block; width: 40px; height: 2px; background: var(--brand); margin-bottom: 8px; }
+section h3 { font-family: var(--serif); font-size: 1.3rem; font-weight: 700; margin: 30px 0 6px; }
+.help { font-size: 0.82rem; color: var(--fg2); margin-bottom: 12px; line-height: 1.5; }
+/* Légende des tables : pastilles de couleur, cases à cocher pour filtrer la carte */
+.tkey { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; }
+.tkey i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.ta { --tc: var(--ta); } .tb { --tc: var(--tb); }
+.tkey.ta i, .dot.ta { background: var(--ta); } .tkey.tb i, .dot.tb { background: var(--tb); }
+
+.synth-summary { background: var(--bg2); border-left: 4px solid var(--brand); border-radius: 0 8px 8px 0; padding: 16px 20px; font-size: 1rem; line-height: 1.7; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+.stat { background: var(--bg); border-top: 3px solid var(--brand-light); border-radius: 4px; padding: 10px 12px; font-size: 0.78rem; color: var(--fg2); line-height: 1.35; }
+.stat b { display: block; font-family: var(--serif); font-size: 1.7rem; font-weight: 700; color: var(--brand); line-height: 1.1; margin-bottom: 2px; }
+.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.group-card { border: 1px solid var(--border); border-top-width: 5px; border-radius: 8px; padding: 14px 16px; background: var(--bg2); }
+.group-card h4 { font-family: var(--serif); font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; line-height: 1.3; }
+.group-card ul { margin-left: 18px; }
+.group-card li { font-size: 0.82rem; line-height: 1.45; margin-bottom: 5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); }
+.chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--tc); }
+.group-note { font-size: 0.75rem; color: var(--fg2); font-style: italic; margin-top: 8px; }
+.unclassified { font-size: 0.78rem; color: var(--fg2); margin-top: 10px; }
+
+/* Carte */
+.controls { display: flex; align-items: center; gap: 12px; padding: 6px 0 10px; flex-wrap: wrap; }
+#slider-wrap { flex: 1; min-width: 200px; }
+#slider-wrap input { width: 100%; accent-color: var(--fg); }
+.controls button { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 4px 14px; font-size: 0.85rem; cursor: pointer; color: var(--fg); }
+.controls button:hover { background: var(--bg3); }
+.controls button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+.controls span { font-size: 0.82rem; color: var(--fg2); white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 4px 0 8px; font-size: 0.82rem; color: var(--fg2); align-items: center; }
+.legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--fg); }
+#map-container svg { display: block; width: 100%; height: auto; }
+.map-caption { font-size: 0.75rem; color: var(--fg3); padding-top: 6px; line-height: 1.5; }
+
+/* Lecture des axes + polarisation */
+#axes-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.axis-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.axis-block h4 { font-size: 0.85rem; margin-bottom: 8px; }
+.levels { list-style: none; margin: 0 0 8px; }
+.levels li { display: grid; grid-template-columns: 38px 1fr; gap: 8px; font-size: 0.78rem; line-height: 1.4; padding: 3px 0; border-bottom: 1px dashed var(--border); }
+.levels li b { color: var(--brand); text-align: right; }
+.pole b { font-size: 0.8rem; }
+.pole ul { margin: 4px 0 8px 16px; }
+.pole li { font-size: 0.78rem; color: var(--fg2); font-style: italic; line-height: 1.45; }
+#polar { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+#polar h4 { font-size: 0.85rem; margin-bottom: 8px; }
+.polar-row { display: grid; grid-template-columns: 170px 1fr 52px; align-items: center; gap: 10px; margin-bottom: 5px; font-size: 0.78rem; color: var(--fg2); }
+.polar-meter { height: 8px; border-radius: 4px; background: var(--bg3); }
+.polar-fill { height: 100%; border-radius: 4px; }
+.polar-val { font-weight: 600; text-align: right; color: var(--fg); }
+.polar-note { font-size: 0.72rem; color: var(--fg3); margin-top: 6px; line-height: 1.5; }
+
+/* Énoncés : consensus / dissensus */
+.stmt { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(300px, 1.3fr); gap: 14px; padding: 10px 0; border-bottom: 1px dashed var(--border); align-items: start; }
+.stmt-text { font-family: var(--serif); font-style: italic; font-size: 1rem; line-height: 1.4; }
+.badge { display: inline-block; font-family: var(--sans); font-style: normal; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-top: 6px; color: #fff; }
+.badge.cons { background: var(--pour); } .badge.rej { background: var(--contre); } .badge.diss { background: var(--nuance); } .badge.mix { background: var(--fg3); }
+.stmt-count { font-family: var(--sans); font-style: normal; font-size: 0.74rem; color: var(--fg2); margin-top: 4px; line-height: 1.4; }
+.cols3 { display: grid; grid-template-columns: 1fr 0.8fr 1fr; gap: 8px; }
+.col h5 { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+.col.p h5 { color: var(--pour); } .col.c h5 { color: var(--contre); } .col.n h5 { color: var(--nuance); }
+.col .pts { display: flex; flex-wrap: wrap; gap: 4px; min-height: 28px; }
+.pt { width: 28px; height: 28px; border-radius: 50%; color: #fff; background: var(--tc); font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); cursor: default; }
+.pt.nuance { background: var(--bg); color: var(--fg); border: 2px dashed var(--tc); }
+.sub { font-size: 0.8rem; color: var(--fg2); margin: 14px 0 4px; }
+.empty { font-size: 0.8rem; color: var(--fg3); font-style: italic; }
+@media (max-width: 820px) { .stmt { grid-template-columns: 1fr; } #axes-guide { grid-template-columns: 1fr; } .polar-row { grid-template-columns: 110px 1fr 46px; } }
+
+/* Comparaison */
+table.cmp { width: 100%; border-collapse: collapse; font-size: 0.84rem; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+table.cmp th, table.cmp td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+table.cmp th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg2); }
+table.cmp td.n { font-variant-numeric: tabular-nums; }
+table.cmp th.a { border-bottom: 3px solid var(--ta); } table.cmp th.b { border-bottom: 3px solid var(--tb); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 14px; }
+.card { border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; background: var(--bg2); }
+.card h4 { font-family: var(--serif); font-size: 1rem; margin-bottom: 6px; }
+.card p { font-size: 0.84rem; line-height: 1.55; color: var(--fg); }
+#themes-bars svg { display: block; width: 100%; height: auto; }
+.throws { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 14px; }
+.thhead { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 700; margin-top: 10px; color: var(--fg2); }
+.throw { display: grid; grid-template-columns: 250px 1fr 1fr; gap: 10px; align-items: center; font-size: 0.78rem; }
+.throw .tr { display: flex; align-items: center; gap: 6px; }
+.bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bar .tk { flex: 1; min-width: 24px; background: var(--bg2); border-radius: 3px; height: 10px; }
+.bar i { display: block; height: 100%; border-radius: 3px; }
+.bar span { font-size: 0.72rem; color: var(--fg2); white-space: nowrap; min-width: 74px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+.twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.twocol > div > h4 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.12em; padding-bottom: 6px; border-bottom: 3px solid var(--tc); margin-bottom: 8px; }
+.item { padding: 8px 0; border-bottom: 1px dashed var(--border); }
+.item b { font-family: var(--serif); font-size: 0.98rem; }
+.item p { font-size: 0.82rem; line-height: 1.5; color: var(--fg2); margin-top: 2px; }
+.item .pct { font-size: 0.72rem; color: var(--brand); font-weight: 700; margin-left: 6px; }
+@media (max-width: 820px) { .twocol { grid-template-columns: 1fr; } .throw { grid-template-columns: 140px 1fr 1fr; } }
+@media (max-width: 600px) { .throw { grid-template-columns: 1fr; gap: 3px; margin-bottom: 8px; } }
+footer { max-width: 1068px; margin: 32px auto 0; padding: 16px 0 24px; border-top: 1.5px solid var(--brand); font-size: 0.75rem; font-style: italic; color: var(--fg2); line-height: 1.6; }
+@media (max-width: 1100px) { footer { margin-left: 16px; margin-right: 16px; } }
+footer p + p { margin-top: 4px; }
+#tooltip { position: fixed; display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; color: var(--fg); max-width: 300px; pointer-events: none; z-index: 9999; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+#tooltip .tip-camp { color: var(--fg2); font-size: 0.75rem; margin-bottom: 4px; }
+#tooltip .tip-note { font-style: italic; color: var(--fg2); }
+</style>
+</head>
+<body>
+<header class="brand-header">
+  <img class="brand-logo" src="logo_ecclesia.png" alt="Logo Ecclesia">
+  <div><div class="brand-name">ECCLESIA</div><div class="brand-sub">ASSOCIATION DE DÉBAT</div></div>
+</header>
+<div class="wrap debate-head">
+  <div class="debate-label" id="hdr-label">Synthèse croisée</div>
+  <h1 id="hdr-title">Synthèse croisée</h1>
+  <p id="hdr-sub"></p>
+</div>
+<div id="load-error" class="hidden"></div>
+
+<section id="sec-synth" class="wrap">
+  <h2>Synthèse générale</h2>
+  <div class="synth-summary" id="summary"></div>
+  <div class="stats" id="stats"></div>
+  <h3>Les groupes d'opinion, toutes tables confondues</h3>
+  <p class="help" id="groups-help"></p>
+  <div class="groups" id="groups"></div>
+  <p class="unclassified" id="unclassified"></p>
+</section>
+
+<section id="sec-map" class="wrap">
+  <h2>La carte commune des opinions</h2>
+  <p class="help">Les quinze participants sur un même plan, avec la même grille de lecture. Pas de flèches : seulement la position de chacun, colorée selon sa table.</p>
+  <div class="legend" id="legend"></div>
+  <div class="controls">
+    <button id="play">▶ Lecture</button>
+    <div id="slider-wrap"><input type="range" id="slider" min="0" step="0.1" value="0"></div>
+    <span id="time"></span>
+    <button class="speed active" data-s="1">×1</button><button class="speed" data-s="4">×4</button>
+  </div>
+  <div id="map-container"></div>
+  <p class="map-caption" id="map-caption"></p>
+</section>
+
+<section id="sec-axes" class="wrap">
+  <h2>Comment lire la carte</h2>
+  <div id="axes-guide"></div>
+  <div id="polar"></div>
+</section>
+
+<section id="sec-consensus" class="wrap">
+  <h2>Ce qui fait consensus, dans les deux tables</h2>
+  <p class="help">Énoncés sur lesquels chaque table a au moins une voix. Classement calculé à partir des positions de chaque participant : « consensus » = au moins 3 voix et aucune de l'autre côté ; « large accord » = au moins 75 % des voix pour/contre.</p>
+  <div id="stmts-consensus"></div>
+</section>
+
+<section id="sec-dissensus" class="wrap">
+  <h2>Ce qui divise, dans les deux tables</h2>
+  <p class="help">Énoncés sur lesquels chaque table a au moins une voix, sans large majorité : au moins 2 voix de chaque côté.</p>
+  <div id="stmts-dissensus"></div>
+</section>
+
+<section id="sec-diff" class="wrap">
+  <h2>Ce qui diffère entre les tables</h2>
+  <p class="help" id="diff-intro"></p>
+  <table class="cmp" id="cmp"></table>
+  <div class="cards" id="diff-cards"></div>
+  <h3>Où est passé le temps</h3>
+  <p class="help">Chaque thème de chaque table est rattaché à un thème commun, ce qui permet de comparer. Les rayures grises sont l'animation et les transitions.</p>
+  <div id="themes-bars"></div>
+  <div class="throws" id="throws"></div>
+</section>
+
+<section id="sec-only" class="wrap">
+  <h2>Ce qui n'a été discuté que dans une table</h2>
+  <div class="twocol" id="only"></div>
+  <h3 id="only-stmts-title">Énoncés débattus dans une seule table</h3>
+  <div class="twocol" id="only-stmts"></div>
+</section>
+
+<footer id="footer"></footer>
+<div id="tooltip"></div>
+
+<script src="data.js"></script>
+<script>
+// Données : data.js (ouverture par double-clic) ou croisee.json (site). Les textes passent par esc().
+let D = window.CROSS_DATA || null;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (n, d = 1) => (n == null ? '—' : Number(n).toFixed(d).replace('.', ','));
+const TKEYS = () => D.meta.tables.map((t) => t.key);
+const tcls = (k) => (k === D.meta.tables[0].key ? 'ta' : 'tb');
+const tinfo = (k) => D.meta.tables.find((t) => t.key === k);
+const pers = (k) => D.personas.find((p) => p.key === k);
+const lab = (k) => `Table ${k} (${tinfo(k).code})`;
+
+function boot() {
+  if (D) return render();
+  fetch('croisee.json').then((r) => r.json()).then((d) => { D = d; render(); })
+    .catch(() => { const e = $('load-error'); e.textContent = 'Aucune donnée : ouvrir la page à côté de data.js ou de croisee.json.'; e.classList.remove('hidden'); });
+}
+
+function render() {
+  document.title = D.meta.title;
+  $('hdr-title').textContent = D.meta.title;
+  $('hdr-sub').textContent = D.meta.subtitle;
+  renderSynth(); renderMap(); renderAxes(); renderStatements(); renderDiff(); renderOnly(); renderFooter();
+}
+
+// ───────── Synthèse ─────────
+function chip(pk) { const p = pers(pk); return `<span class="chip ${tcls(p.table)}" data-tip="${esc(p.key)}"><i></i>${esc(p.key)}</span>`; }
+function renderSynth() {
+  $('summary').textContent = D.synthesis.summary;
+  const known = D.personas.filter((p) => !(p.uncertain || {}).x);
+  const right = known.filter((p) => p.x > 0).length;
+  const T = D.meta.tables;
+  const stats = [
+    [D.personas.length, `participants, ${T.map((t) => `${t.participants} à la table ${t.key}`).join(' et ')}`],
+    [T.length, 'tables ayant débattu du même sujet'],
+    [Math.round(T.reduce((s, t) => s + t.duration, 0)), 'minutes de débat au total'],
+    [`${right} / ${known.length}`, 'penchent du côté « limiter l\'héritage » (position connue sur l\'axe horizontal)'],
+    [D.statements.filter((s) => s.scope === 'commun').length, 'énoncés sur lesquels les deux tables se sont exprimées'],
+  ];
+  $('stats').innerHTML = stats.map(([v, t]) => `<div class="stat"><b>${esc(v)}</b>${esc(t)}</div>`).join('');
+  $('groups-help').textContent = 'Les groupes suivent les niveaux de la grille horizontale (voir « Comment lire la carte ») : chacun rassemble des participants des deux tables dont la position est voisine, avec les arguments qu\'ils ont avancés.';
+  $('groups').innerHTML = D.synthesis.groups.map((g) => {
+    const per = T.map((t) => `${g.members.filter((m) => pers(m).table === t.key).length} de la table ${t.key}`).join(', ');
+    return `<div class="group-card" style="border-top-color:${esc(g.color)}"><h4>${esc(g.label)}</h4>
+      <div class="chips">${g.members.map(chip).join('')}</div>
+      <ul>${g.arguments.map((a) => `<li>${esc(a)}</li>`).join('')}</ul><p class="group-note">${esc(per)}</p></div>`;
+  }).join('');
+  const u = D.synthesis.unclassified || {};
+  $('unclassified').innerHTML = (u.members || []).length ? `<b>Non rattaché :</b> ${u.members.map(chip).join(' ')} ${esc(u.note)}` : '';
+}
+
+// ───────── Carte ─────────
+const MAP = { W: 760, H: 640, L: 70, R: 30, T: 36, B: 56 };
+const mx = (x) => MAP.L + ((x + 10) / 20) * (MAP.W - MAP.L - MAP.R);
+const my = (y) => MAP.T + ((10 - y) / 20) * (MAP.H - MAP.T - MAP.B);
+let tNow = 0, playing = false, speed = 1, lastTs = 0, showTable = {}, showCentre = true;
+
+function posAt(p, t) {
+  const kf = p.kf;
+  if (t < kf[0][0]) return null;
+  for (let i = 1; i < kf.length; i++) {
+    if (t <= kf[i][0]) { const a = kf[i - 1], b = kf[i], f = b[0] === a[0] ? 1 : (t - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; }
+  }
+  const l = kf[kf.length - 1]; return [l[1], l[2]];
+}
+function radius(p) { const m = Math.max(...D.personas.map((q) => q.weight)); return 7 + 15 * Math.sqrt(p.weight / m); }
+
+function renderMap() {
+  const T = D.meta.tables;
+  T.forEach((t) => (showTable[t.key] = true));
+  $('legend').innerHTML = T.map((t) => `<label class="${tcls(t.key)}"><input type="checkbox" data-t="${esc(t.key)}" checked><span class="tkey ${tcls(t.key)}"><i></i>${esc(lab(t.key))}</span></label>`).join('') +
+    '<label><input type="checkbox" id="chk-centre" checked> Centre de gravité de chaque table</label><span style="font-size:0.78rem;color:var(--fg3)">Taille du point = temps de parole · cercle pointillé = position non déterminable sur un axe</span>';
+  $('legend').querySelectorAll('input[data-t]').forEach((c) => c.addEventListener('change', () => { showTable[c.dataset.t] = c.checked; drawMap(); }));
+  $('chk-centre').addEventListener('change', (e) => { showCentre = e.target.checked; drawMap(); });
+  const slider = $('slider'); slider.max = D.meta.duration; tNow = D.meta.duration; slider.value = tNow;
+  slider.addEventListener('input', () => { tNow = +slider.value; playing = false; $('play').textContent = '▶ Lecture'; drawMap(); });
+  $('play').addEventListener('click', () => {
+    if (playing) { playing = false; $('play').textContent = '▶ Lecture'; return; }
+    if (tNow >= D.meta.duration - 0.05) tNow = 0;
+    playing = true; lastTs = 0; $('play').textContent = '⏸ Pause'; requestAnimationFrame(tick);
+  });
+  document.querySelectorAll('.speed').forEach((b) => b.addEventListener('click', () => { speed = +b.dataset.s; document.querySelectorAll('.speed').forEach((x) => x.classList.toggle('active', x === b)); }));
+  $('map-caption').textContent = D.method.caption;
+  drawMap();
+}
+function tick(ts) {
+  if (!playing) return;
+  if (lastTs) tNow = Math.min(D.meta.duration, tNow + ((ts - lastTs) / 1000) * (D.meta.duration / 60) * speed);
+  lastTs = ts; $('slider').value = tNow; drawMap();
+  if (tNow >= D.meta.duration) { playing = false; $('play').textContent = '▶ Lecture'; return; }
+  requestAnimationFrame(tick);
+}
+function mmss(m) { const s = Math.round(m * 60); return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+
+function drawMap() {
+  $('time').textContent = mmss(tNow);
+  const g = [];
+  const ax = D.axes;
+  g.push(`<rect x="${mx(-10)}" y="${my(10)}" width="${mx(10) - mx(-10)}" height="${my(-10) - my(10)}" fill="var(--bg2)" stroke="var(--border)"/>`);
+  for (let v = -7.5; v <= 7.5; v += 2.5) {
+    const z = v === 0;
+    g.push(`<line x1="${mx(v)}" y1="${my(10)}" x2="${mx(v)}" y2="${my(-10)}" stroke="${z ? 'var(--axis)' : 'var(--border)'}" stroke-width="${z ? 1.5 : 1}"${z ? '' : ' stroke-dasharray="2 4"'}/>`);
+    g.push(`<line x1="${mx(-10)}" y1="${my(v)}" x2="${mx(10)}" y2="${my(v)}" stroke="${z ? 'var(--axis)' : 'var(--border)'}" stroke-width="${z ? 1.5 : 1}"${z ? '' : ' stroke-dasharray="2 4"'}/>`);
+    const lbl = (v > 0 ? '+' : '') + String(v).replace('.', ',');
+    g.push(`<text x="${mx(v)}" y="${my(-10) + 14}" font-size="10" text-anchor="middle" fill="var(--fg3)">${lbl}</text>`);
+    g.push(`<text x="${mx(-10) - 8}" y="${my(v) + 3}" font-size="10" text-anchor="end" fill="var(--fg3)">${lbl}</text>`);
+  }
+  const q = ax.quadrants;
+  g.push(`<g font-size="11" fill="var(--fg3)"><text x="${mx(-10) + 8}" y="${my(10) + 16}">${esc(q.topLeft)}</text><text x="${mx(10) - 8}" y="${my(10) + 16}" text-anchor="end">${esc(q.topRight)}</text><text x="${mx(-10) + 8}" y="${my(-10) - 8}">${esc(q.bottomLeft)}</text><text x="${mx(10) - 8}" y="${my(-10) - 8}" text-anchor="end">${esc(q.bottomRight)}</text></g>`);
+  g.push(`<g font-size="12" font-weight="700" fill="var(--fg)"><text x="${mx(-10)}" y="${my(-10) + 34}">◀ ${esc(ax.x.leftLabel)}</text><text x="${mx(10)}" y="${my(-10) + 34}" text-anchor="end">${esc(ax.x.rightLabel)} ▶</text><text x="${mx(0)}" y="${my(10) - 10}" text-anchor="middle">▲ ${esc(ax.y.topLabel)}</text><text x="${mx(0)}" y="${my(-10) + 50}" text-anchor="middle">▼ ${esc(ax.y.bottomLabel)}</text></g>`);
+
+  // points : visibles à partir de leur première prise de parole ; les points exactement superposés sont écartés
+  const vis = D.personas.filter((p) => showTable[p.table]).map((p) => ({ p, pos: posAt(p, tNow) })).filter((o) => o.pos);
+  const groups = {};
+  vis.forEach((o) => { const k = o.pos[0].toFixed(2) + '|' + o.pos[1].toFixed(2); (groups[k] = groups[k] || []).push(o); });
+  const pts = [];
+  Object.values(groups).forEach((arr) => {
+    arr.sort((a, b) => a.p.key.localeCompare(b.p.key, 'fr', { numeric: true }));
+    arr.forEach((o, i) => {
+      let dx = 0, dy = 0;
+      if (arr.length > 1) { const a = (2 * Math.PI * i) / arr.length - Math.PI / 2, r = 13 + 3 * arr.length; dx = r * Math.cos(a); dy = r * Math.sin(a); }
+      o.px = mx(o.pos[0]) + dx; o.py = my(o.pos[1]) + dy; pts.push(o);
+    });
+  });
+  pts.forEach(({ p, px, py }) => {
+    const col = `var(--${tcls(p.table)})`, u = p.uncertain || {};
+    if (u.x) g.push(`<line x1="${mx(-10)}" y1="${my(p.y)}" x2="${mx(10)}" y2="${my(p.y)}" stroke="${col}" stroke-width="1" stroke-dasharray="1 4" opacity="0.6"/>`);
+    if (u.y) g.push(`<line x1="${mx(p.x)}" y1="${my(10)}" x2="${mx(p.x)}" y2="${my(-10)}" stroke="${col}" stroke-width="1" stroke-dasharray="1 4" opacity="0.6"/>`);
+  });
+  pts.forEach(({ p, px, py }) => {
+    const r = radius(p), col = `var(--${tcls(p.table)})`, u = p.uncertain && Object.keys(p.uncertain).length;
+    g.push(`<g class="pt-g" data-k="${esc(p.key)}" style="cursor:default"><circle cx="${px}" cy="${py}" r="${r}" fill="${col}" fill-opacity="${u ? 0.35 : 0.85}" stroke="${col}" stroke-width="2"${u ? ' stroke-dasharray="3 3"' : ''}/><text x="${px}" y="${py + 3.5}" font-size="10" font-weight="700" text-anchor="middle" fill="${u ? 'var(--fg)' : '#fff'}" pointer-events="none">${esc(p.key)}</text></g>`);
+  });
+  if (showCentre) T_centres(g);
+  $('map-container').innerHTML = `<svg viewBox="0 0 ${MAP.W} ${MAP.H}" role="img" aria-label="Carte commune des opinions">${g.join('')}</svg>`;
+}
+function T_centres(g) {
+  D.meta.tables.forEach((t) => {
+    if (!showTable[t.key]) return;
+    const c = D.centroids[t.key]; if (c.x == null || c.y == null || tNow < D.meta.duration - 0.01) return;
+    const x = mx(c.x), y = my(c.y), col = `var(--${tcls(t.key)})`;
+    g.push(`<path d="M${x} ${y - 11} L${x + 11} ${y} L${x} ${y + 11} L${x - 11} ${y} Z" fill="none" stroke="${col}" stroke-width="2.5"/><text x="${x + 15}" y="${y - 8}" font-size="10" font-weight="700" fill="${col}" stroke="var(--bg2)" stroke-width="3" paint-order="stroke">centre ${esc(t.key)}</text>`);
+  });
+}
+
+// ───────── Lecture des axes + polarisation ─────────
+function renderAxes() {
+  const blk = (ax, titleLow, titleHigh, a) => `<div class="axis-block"><h4>${esc(a.leftLabel || a.bottomLabel)} ↔ ${esc(a.rightLabel || a.topLabel)}</h4>
+    <ul class="levels">${(a.levels || []).map((l) => `<li><b>${l.v > 0 ? '+' : ''}${String(l.v).replace('.', ',')}</b><span>${esc(l.text)}</span></li>`).join('')}</ul>
+    <div class="pole"><b>${esc(titleLow)}</b><ul>${a.anchors[ax[0]].map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div class="pole"><b>${esc(titleHigh)}</b><ul>${a.anchors[ax[1]].map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
+  $('axes-guide').innerHTML = blk(['left', 'right'], `${D.axes.x.leftLabel} (−) : positions-types`, `${D.axes.x.rightLabel} (+) : positions-types`, D.axes.x) +
+    blk(['bottom', 'top'], `${D.axes.y.bottomLabel} (−) : positions-types`, `${D.axes.y.topLabel} (+) : positions-types`, D.axes.y);
+  const P = D.polarization, rows = [['all', 'Les deux tables'], ...TKEYS().map((k) => [k, lab(k)])];
+  const bar = (v, col) => `<div class="polar-meter"><div class="polar-fill" style="width:${v == null ? 0 : v}%;background:${col}"></div></div>`;
+  const colOf = (k) => (k === 'all' ? 'var(--brand-light)' : `var(--${tcls(k)})`);
+  $('polar').innerHTML = `<h4>Polarisation des positions (0 = tous d'accord, 100 = deux camps aux pôles)</h4>
+    <div class="polar-row" style="font-weight:700"><span>Axe horizontal</span><span></span><span></span></div>${rows.map(([k, l]) => `<div class="polar-row"><span>${esc(l)}</span>${bar(P[k].x, colOf(k))}<span class="polar-val">${fmt(P[k].x)}</span></div>`).join('')}
+    <div class="polar-row" style="font-weight:700;margin-top:8px"><span>Axe vertical</span><span></span><span></span></div>${rows.map(([k, l]) => `<div class="polar-row"><span>${esc(l)}</span>${bar(P[k].y, colOf(k))}<span class="polar-val">${fmt(P[k].y)}</span></div>`).join('')}
+    <p class="polar-note">Indice d'Esteban-Ray (α = ${P.alpha}) sur les positions finales, pondérées par le temps de parole ; les voix dont la position est non déterminable sur un axe en sont exclues.</p>`;
+}
+
+// ───────── Énoncés ─────────
+const NATURE = { consensus_pour: ['cons', 'Consensus'], consensus_contre: ['rej', 'Rejet unanime'], large_pour: ['cons', 'Large accord'], large_contre: ['rej', 'Large rejet'], dissensus: ['diss', 'Dissensus'], partage: ['mix', 'Position peu tranchée'] };
+function stmtRow(s, withTables) {
+  const col = (pos) => s.stances.filter((x) => x.pos === pos).sort((a, b) => a.p.localeCompare(b.p, 'fr', { numeric: true }))
+    .map((x) => `<span class="pt ${pos === 'nuance' ? 'nuance' : ''} ${tcls(x.p[0])}" data-st="${esc(s.text)}|${esc(x.p)}">${esc(x.p)}</span>`).join('') || '<span class="empty">—</span>';
+  const [cls, name] = NATURE[s.nature];
+  const counts = TKEYS().map((k) => { const c = s.counts[k]; return c.pour + c.contre + c.nuance ? `${k} : ${c.pour} pour, ${c.contre} contre, ${c.nuance} nuancé${c.nuance > 1 ? 's' : ''}` : null; }).filter(Boolean).join(' · ');
+  return `<div class="stmt"><div><div class="stmt-text">${esc(s.text)}</div><span class="badge ${cls}">${name}</span><div class="stmt-count">${esc(counts)}</div></div>
+    <div class="cols3"><div class="col c"><h5>contre</h5><div class="pts">${col('contre')}</div></div><div class="col n"><h5>nuancé</h5><div class="pts">${col('nuance')}</div></div><div class="col p"><h5>pour</h5><div class="pts">${col('pour')}</div></div></div></div>`;
+}
+function renderStatements() {
+  const sorted = (arr) => arr.slice().sort((a, b) => b.stances.length - a.stances.length);
+  const common = D.statements.filter((s) => s.scope === 'commun');
+  const cons = common.filter((s) => /^(consensus|large)_/.test(s.nature)), diss = common.filter((s) => !/^(consensus|large)_/.test(s.nature));
+  $('stmts-consensus').innerHTML = cons.length ? sorted(cons).map((s) => stmtRow(s)).join('') : '<p class="empty">Aucun énoncé commun ne remplit les critères de consensus.</p>';
+  $('stmts-dissensus').innerHTML = diss.length ? sorted(diss).map((s) => stmtRow(s)).join('') : '<p class="empty">Aucun énoncé commun ne remplit les critères de dissensus.</p>';
+}
+
+// ───────── Différences ─────────
+function renderDiff() {
+  const T = D.meta.tables, [A, B] = T;
+  $('diff-intro').textContent = D.differences.intro;
+  const sharedPct = (t) => { const ids = D.themes.filter((c) => c.scope === 'commun' && c.kind !== 'anim').map((c) => c.id); return (100 * ids.reduce((s, id) => s + (t.theme_minutes[id] || 0), 0)) / t.duration; };
+  const top = (k) => { const ps = D.personas.filter((p) => p.table === k), tot = ps.reduce((s, p) => s + p.weight, 0), m = ps.reduce((a, b) => (b.weight > a.weight ? b : a)); return `${m.key} (${fmt(100 * m.weight / tot, 0)} %)`; };
+  const rows = [
+    ['Participants', (t) => t.participants],
+    ['Durée du débat (min)', (t) => fmt(t.duration)],
+    ['Parole attribuée à un participant (min)', (t) => fmt(t.speech_minutes)],
+    ['Voix la plus présente (part de la parole)', (t) => top(t.key)],
+    ['Accords · désaccords · concessions', (t) => `${t.interactions.accord} · ${t.interactions.desaccord} · ${t.interactions.concession}`],
+    ['Tension moyenne (0-100)', (t) => fmt(t.tension_mean)],
+    ['Polarisation, axe horizontal (0-100)', (t) => fmt(D.polarization[t.key].x)],
+    ['Polarisation, axe vertical (0-100)', (t) => fmt(D.polarization[t.key].y)],
+    ['Centre de gravité (horizontal ; vertical)', (t) => `${fmt(D.centroids[t.key].x, 2)} ; ${fmt(D.centroids[t.key].y, 2)}`],
+    ['Temps passé sur des thèmes communs aux deux tables', (t) => `${fmt(sharedPct(t), 0)} %`],
+    ['Audio non attribué à un participant', (t) => (t.unknown_ratio == null ? '—' : `${fmt(t.unknown_ratio)} %`)],
+  ];
+  $('cmp').innerHTML = `<tr><th></th><th class="a">${esc(lab(A.key))}</th><th class="b">${esc(lab(B.key))}</th></tr>` +
+    rows.map(([l, f]) => `<tr><td>${esc(l)}</td><td class="n">${esc(f(A))}</td><td class="n">${esc(f(B))}</td></tr>`).join('');
+  $('diff-cards').innerHTML = D.differences.cards.map((c) => `<div class="card"><h4>${esc(c.title)}</h4><p>${esc(c.body)}</p></div>`).join('');
+
+  // frises par table, colorées par thème commun
+  const col = {}; D.themes.forEach((c) => (col[c.id] = c.color));
+  const lbl = {}; D.themes.forEach((c) => (lbl[c.id] = c.label));
+  const W = 1000, bh = 26, dur = D.meta.duration, sx = (m) => (m / dur) * (W - 120) + 110;
+  const svg = [];
+  T.forEach((t, i) => {
+    const y = 8 + i * (bh + 18);
+    svg.push(`<text x="0" y="${y + 17}" font-size="13" font-weight="700" fill="var(--${tcls(t.key)})">${esc(t.key)} · ${esc(t.code)}</text>`);
+    t.timeline.forEach(([a, b, id]) => {
+      const fill = id ? col[id] : 'var(--bg3)';
+      svg.push(`<rect class="seg" data-seg="${esc((id ? lbl[id] : 'Animation, transitions') + ' · ' + mmss(a) + ' → ' + mmss(b))}" x="${sx(a)}" y="${y}" width="${Math.max(1, sx(b) - sx(a))}" height="${bh}" fill="${fill}"/>`);
+    });
+  });
+  $('themes-bars').innerHTML = `<svg viewBox="0 0 ${W} ${8 + T.length * (bh + 18)}">${svg.join('')}</svg>`;
+  const groups = [['commun', 'Thèmes communs aux deux tables'], ...T.map((t) => [t.key, `Thèmes propres à la table ${t.key}`])];
+  $('throws').innerHTML = groups.map(([sc, title]) => {
+    const list = D.themes.filter((c) => c.scope === sc && c.kind !== 'anim'); if (!list.length) return '';
+    return `<div class="thhead">${esc(title)}</div>` + list.map((c) => `<div class="throw"><span class="tr"><i class="sw" style="background:${esc(c.color)}"></i>${esc(c.label)}</span>${T.map((t) => { const m = t.theme_minutes[c.id] || 0, p = (100 * m) / t.duration; return `<div class="bar"><div class="tk"><i style="width:${Math.min(100, p * 2)}%;background:var(--${tcls(t.key)})"></i></div><span>${p ? fmt(p, 0) + ' % · ' + fmt(m) + ' min' : '—'}</span></div>`; }).join('')}</div>`).join('');
+  }).join('');
+}
+
+function renderOnly() {
+  const T = D.meta.tables, pct = (k, id) => { const t = tinfo(k), m = t.theme_minutes[id] || 0; return m ? ` <span class="pct">${fmt((100 * m) / t.duration, 0)} % du temps</span>` : ''; };
+  $('only').innerHTML = T.map((t) => `<div class="${tcls(t.key)}" style="--tc:var(--${tcls(t.key)})"><h4>${esc(lab(t.key))}</h4>${(D.only_one_table[t.key] || []).map((it) => `<div class="item"><b>${esc(it.title)}</b>${it.theme ? pct(t.key, it.theme) : ''}<p>${esc(it.body)}</p></div>`).join('') || '<p class="empty">—</p>'}</div>`).join('');
+  $('only-stmts').innerHTML = T.map((t) => { const list = D.statements.filter((s) => s.scope === t.key); return `<div class="${tcls(t.key)}" style="--tc:var(--${tcls(t.key)})"><h4>${esc(lab(t.key))}</h4>${list.map((s) => stmtRow(s)).join('') || '<p class="empty">—</p>'}</div>`; }).join('');
+}
+
+function renderFooter() { $('footer').innerHTML = D.method.footer.map((f) => `<p>${esc(f)}</p>`).join(''); }
+
+// ───────── Infobulles ─────────
+const tip = $('tooltip');
+document.addEventListener('mousemove', (e) => {
+  const gpt = e.target.closest('.pt-g, .chip[data-tip], .pt[data-st], .seg'); if (!gpt) { tip.style.display = 'none'; return; }
+  let html = '';
+  if (gpt.classList.contains('seg')) html = esc(gpt.dataset.seg);
+  else if (gpt.dataset.st) {
+    const [text, pk] = gpt.dataset.st.split('|'), s = D.statements.find((x) => x.text === text), st = s && s.stances.find((x) => x.p === pk), p = pers(pk);
+    html = `<b>${esc(pk)}</b> — ${esc(p.camp)}<div class="tip-camp">${esc(st ? { pour: 'pour', contre: 'contre', nuance: 'nuancé' }[st.pos] : '')} · à ${mmss(st ? st.t : 0)}</div>${st && st.note ? `<div class="tip-note">${esc(st.note)}</div>` : ''}`;
+  } else {
+    const p = pers(gpt.dataset.k || gpt.dataset.tip), u = p.uncertain || {};
+    html = `<b>${esc(p.key)}</b> — ${esc(p.camp)}<div class="tip-camp">${esc(lab(p.table))} · parole : ${fmt(p.weight)} min · entrée à ${mmss(p.entry)}</div><div class="tip-note">${esc(p.note)}</div>` +
+      Object.keys(u).map((a) => `<div class="tip-camp">Position non déterminable sur l'axe ${a === 'x' ? 'horizontal' : 'vertical'} : ${esc(u[a])}</div>`).join('');
+  }
+  tip.innerHTML = html; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight; tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + 'px'; tip.style.top = Math.min(e.clientY + 14, innerHeight - h - 8) + 'px';
+});
+boot();
+</script>
+</body>
+</html>

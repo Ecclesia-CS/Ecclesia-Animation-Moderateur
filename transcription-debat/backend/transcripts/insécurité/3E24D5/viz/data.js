@@ -1,0 +1,1874 @@
+// data.js — généré par analyze_debate.py (analyse Gemini)
+// Coordonnées interprétatives, pas des mesures objectives.
+
+window.DEBATE_DATA = {
+  "meta": {
+    "topic": "insécurité",
+    "code": "3E24D5",
+    "date": "2026-10-14",
+    "totalDurationMinutes": 109.1,
+    "totalRedactedMinutes": 0,
+    "method": {
+      "kind": "manual",
+      "mapTitle": "Positions des participants",
+      "caption": "Chaque point est la position d'un participant, établie à la lecture intégrale de la transcription. Un point ne se déplace durablement que si la personne change explicitement d'avis (flèche « change d'avis ») ; dans ce débat, personne ne l'a fait. Ce qui bouge, ce sont les échanges : une flèche relie celui qui parle à celui à qui il répond (verte = accord, rouge pointillée = désaccord), et une concession explicite fait pencher un instant le point vers l'autre avant qu'il revienne. Cochez « Toutes les interactions » pour voir les alliances et les lignes de fracture accumulées. Un point apparaît à la première prise de parole et grossit quand la personne parle ; survolez-le pour le résumé de sa position.",
+      "footer": [
+        "⚠ Analyse faite à la main (lecture intégrale de la transcription par Claude), sans scoring automatique. Les positions sont interprétatives et volontairement grossières : ±2,5 = penchant exprimé, ±5 = position claire, ±7,5 = position centrale et répétée. Personne n'est placé aux extrêmes (±10).",
+        "⚠ Deux axes : horizontalement, sanctionner et faire respecter l'ordre ou prévenir et traiter les causes ; verticalement, faire confiance aux institutions pour réformer ou s'en défier (ici surtout parce qu'elles servent l'ordre établi).",
+        "⚠ Tension = intensité du désaccord, pas de l'émotion (le débat est resté courtois) : ~20 cadrage ou tour de table, 35-45 questions et échanges d'informations, 50-60 désaccord argumenté, 65 confrontation de principes avec répliques directes. La courbe relie ces niveaux, elle n'est pas mesurée seconde par seconde.",
+        "⚠ Les résumés sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Les phrases d'animation (donner la parole, présenter les outils) sont écartées, y compris quand la transcription les attribue par erreur à un participant.",
+        "⚠ Table composée de personnes aux avis proches (le débat l'a regretté lui-même) : les écarts visibles sur la carte sont donc des nuances à l'intérieur d'un même courant. Les interventions de deux participants sont rares ; la position verticale de l'un d'eux est laissée indéterminée."
+      ]
+    }
+  },
+  "personas": [
+    {
+      "id": "i1",
+      "label": "Interlocuteur 1",
+      "camp": "Structures sociales, violence comme levier",
+      "color": "#D64545",
+      "weight": 0.411,
+      "entry": 2.64,
+      "note": "Ne voit pas la finalité de la prison, y compris améliorée ; voit dans les violences sexuelles un problème d'éducation et d'institutions en amont, doute que responsabiliser les consommateurs de drogue suffise et juge que, dans les faits, la violence fait bouger les choses.",
+      "speech": [
+        [
+          2.64,
+          2.96
+        ],
+        [
+          26.96,
+          28.89
+        ],
+        [
+          33.38,
+          33.84
+        ],
+        [
+          33.97,
+          34.45
+        ],
+        [
+          39.47,
+          39.53
+        ],
+        [
+          42.53,
+          43.38
+        ],
+        [
+          43.44,
+          43.97
+        ],
+        [
+          44.03,
+          44.13
+        ],
+        [
+          60.39,
+          60.92
+        ],
+        [
+          61.07,
+          61.26
+        ],
+        [
+          61.32,
+          62.22
+        ],
+        [
+          76.36,
+          78.13
+        ],
+        [
+          101.98,
+          102.65
+        ],
+        [
+          103.12,
+          105.2
+        ],
+        [
+          106.16,
+          106.45
+        ],
+        [
+          106.61,
+          106.83
+        ]
+      ],
+      "points": [
+        {
+          "t": 26.96,
+          "stance": "Ne voit pas la finalité de la prison : même améliorée et avec du travail, elle reste un lieu où l'on enferme des gens en espérant que cela se passe bien, une solution de facilité qui n'empêche pas la récidive."
+        },
+        {
+          "t": 33.38,
+          "stance": "Refuse de rejeter sur les policiers le traitement des violences sexuelles : c'est surtout un problème juridique et de moyens, et il faut éviter les clichés."
+        },
+        {
+          "t": 42.53,
+          "stance": "Considère les violences sexuelles comme un problème d'éducation et d'institutions en amont, donc de prévention, et pas seulement de traitement après coup."
+        },
+        {
+          "t": 43.44,
+          "stance": "Précise que la structure de la société arrange les dominants, sans décision consciente ni volonté d'un riche en particulier."
+        },
+        {
+          "t": 60.39,
+          "stance": "Doute que responsabiliser les consommateurs suffise : les jeunes ignorent l'économie de la drogue, et même informés, ceux qui consomment restent loin de ses effets."
+        },
+        {
+          "t": 76.36,
+          "stance": "Distingue le discrédit jeté sur un mouvement par le gouvernement et les médias de sa légitimité réelle."
+        },
+        {
+          "t": 77.81,
+          "stance": "Juge que moralement la violence est discutable mais qu'en pratique elle fait bouger les choses, car brûler envoie une image d'instabilité qui force le gouvernement à réagir."
+        },
+        {
+          "t": 101.98,
+          "stance": "Affirme qu'on ne peut pas demander aux opprimés d'être non violents quand l'État et l'économie sont eux-mêmes violents."
+        },
+        {
+          "t": 103.12,
+          "stance": "Reconnaît qu'il faudrait éviter la violence, tout en soulignant ses deux niveaux ; regrette que la droite ne soit pas représentée à la table."
+        }
+      ],
+      "kf": [
+        [
+          2.64,
+          7.5,
+          5.0
+        ],
+        [
+          109.1,
+          7.5,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "i7",
+      "label": "Interlocuteur 7",
+      "camp": "Peines à durcir pour les violences sexuelles",
+      "color": "#0F8A6A",
+      "weight": 0.03,
+      "entry": 3.27,
+      "note": "Trois interventions courtes : s'interroge sur la surmédiatisation des faits divers et juge que certaines peines, notamment pour les violences sexuelles, ne sont pas assez longues.",
+      "speech": [
+        [
+          3.27,
+          3.33
+        ],
+        [
+          4.58,
+          4.67
+        ],
+        [
+          16.97,
+          17.63
+        ],
+        [
+          105.09,
+          105.12
+        ]
+      ],
+      "points": [
+        {
+          "t": 4.58,
+          "stance": "Se demande si la surmédiatisation des faits divers, avec leur reprise politique, ne fait pas plus peur qu'il ne faudrait."
+        },
+        {
+          "t": 16.97,
+          "stance": "Remarque que certaines peines ne sont pas assez longues, notamment pour les violences sexuelles, et que les condamnations restent rares."
+        }
+      ],
+      "kf": [
+        [
+          3.27,
+          -2.5,
+          0.0
+        ],
+        [
+          109.1,
+          -2.5,
+          0.0
+        ]
+      ],
+      "uncertain": {
+        "y": "trois courtes interventions, rien sur le rôle de l'État ni de la police"
+      }
+    },
+    {
+      "id": "i2",
+      "label": "Interlocuteur 2",
+      "camp": "Critique de l'ordre établi, rapport de force",
+      "color": "#E09020",
+      "weight": 0.474,
+      "entry": 3.65,
+      "note": "Prend au sérieux les chiffres de criminalité mais voit la police protéger d'abord l'ordre établi et la propriété ; lie violences sexuelles, capitalisme et rapport de force racial, veut un contrôle d'État de l'alcool sans que le cannabis se répande, et croit que seuls les mouvements violents obtiennent des changements.",
+      "speech": [
+        [
+          3.65,
+          4.58
+        ],
+        [
+          4.73,
+          5.31
+        ],
+        [
+          6.24,
+          6.52
+        ],
+        [
+          8.54,
+          8.87
+        ],
+        [
+          14.68,
+          14.69
+        ],
+        [
+          30.98,
+          33.34
+        ],
+        [
+          36.2,
+          36.49
+        ],
+        [
+          46.94,
+          47.23
+        ],
+        [
+          47.32,
+          47.42
+        ],
+        [
+          47.53,
+          48.98
+        ],
+        [
+          50.45,
+          51.77
+        ],
+        [
+          58.03,
+          60.39
+        ],
+        [
+          62.28,
+          62.58
+        ],
+        [
+          73.82,
+          73.93
+        ],
+        [
+          74.0,
+          74.12
+        ],
+        [
+          74.17,
+          74.29
+        ],
+        [
+          83.52,
+          84.85
+        ],
+        [
+          105.8,
+          105.91
+        ],
+        [
+          105.98,
+          106.16
+        ],
+        [
+          106.45,
+          106.61
+        ],
+        [
+          106.83,
+          107.27
+        ]
+      ],
+      "points": [
+        {
+          "t": 3.65,
+          "stance": "Cite les indices de criminalité par pays pour dire que la France est en tête en Europe ; a du mal à se positionner car l'État et la bourgeoisie s'emparent de l'insécurité pour déployer les CRS."
+        },
+        {
+          "t": 4.73,
+          "stance": "Regrette que la gauche écarte les chiffres d'augmentation des crimes et délits en n'y voyant qu'un sentiment amplifié."
+        },
+        {
+          "t": 30.98,
+          "stance": "Pense que les violences sexuelles sont peu traitées parce que la police protège d'abord la propriété privée et l'État bourgeois, que ces violences ne remettent pas en cause."
+        },
+        {
+          "t": 32.3,
+          "stance": "Doute que les détenus aient plus peur les uns des autres que des gardiens : le rapport de force se joue entre personnes marginalisées, souvent racisées, et policiers blancs, avec un héritage colonial."
+        },
+        {
+          "t": 47.53,
+          "stance": "Estime que la droite n'aborde les violences sexuelles que pour stigmatiser les étrangers, et qu'un policier ne priorise pas une plainte domestique."
+        },
+        {
+          "t": 50.45,
+          "stance": "Soutient que le capitalisme n'a mis les femmes au travail que lorsque la productivité l'exigeait, avec le secteur tertiaire."
+        },
+        {
+          "t": 58.03,
+          "stance": "Ne souhaite pas que l'usage du cannabis se répande, mais voit dans la légalisation un moyen de financer une industrie plutôt qu'un système qui tue ; défend un contrôle d'État de l'alcool comme en Suède."
+        },
+        {
+          "t": 83.52,
+          "stance": "Cite l'idée que les mouvements violents, plus que les marches pacifistes, ont produit des changements, et doute qu'une convention citoyenne suffise tant que l'économie n'est pas bloquée."
+        }
+      ],
+      "kf": [
+        [
+          3.65,
+          2.5,
+          7.5
+        ],
+        [
+          109.1,
+          2.5,
+          7.5
+        ]
+      ]
+    },
+    {
+      "id": "i3",
+      "label": "Interlocuteur 3",
+      "camp": "Dignité des détenus, contre-pouvoir du peuple",
+      "color": "#D85A30",
+      "weight": 0.754,
+      "entry": 5.33,
+      "note": "Pense que les taux de crime ont baissé et que les médias entretiennent l'impression inverse ; veut des détenus traités dignement, voit dans la police et la formation une faute institutionnelle face aux violences sexuelles, refuse de pénaliser consommateurs et petits dealers et défend un pouvoir de pression du peuple sur l'État.",
+      "speech": [
+        [
+          5.33,
+          6.24
+        ],
+        [
+          6.42,
+          6.45
+        ],
+        [
+          6.52,
+          7.28
+        ],
+        [
+          17.68,
+          19.2
+        ],
+        [
+          23.17,
+          23.54
+        ],
+        [
+          23.72,
+          25.87
+        ],
+        [
+          26.01,
+          26.89
+        ],
+        [
+          41.38,
+          42.53
+        ],
+        [
+          53.67,
+          55.03
+        ],
+        [
+          55.09,
+          55.67
+        ],
+        [
+          62.59,
+          62.74
+        ],
+        [
+          62.8,
+          66.05
+        ],
+        [
+          78.13,
+          79.07
+        ],
+        [
+          79.12,
+          79.9
+        ],
+        [
+          80.09,
+          83.45
+        ],
+        [
+          85.27,
+          85.39
+        ],
+        [
+          95.66,
+          97.95
+        ],
+        [
+          98.1,
+          98.24
+        ],
+        [
+          108.54,
+          108.68
+        ]
+      ],
+      "points": [
+        {
+          "t": 5.33,
+          "stance": "Croit que les taux de crime ont baissé depuis des décennies et que les médias entretiennent l'impression inverse par des faits divers permanents."
+        },
+        {
+          "t": 6.52,
+          "stance": "Relève que comparer les pays suppose de savoir quels crimes sont déclarés ; dans beaucoup de pays les violences sexuelles ne sont pas traitées correctement."
+        },
+        {
+          "t": 17.68,
+          "stance": "Se méfie d'un ordre carcéral imposé par les gardiens : trop de restrictions créent des trafics et de la violence, qu'un cadre de vie normal réduirait."
+        },
+        {
+          "t": 23.17,
+          "stance": "Estime que payer pour les détenus est un choix de société et une responsabilité collective, même si les prisons coûtent cher."
+        },
+        {
+          "t": 25.41,
+          "stance": "Dénonce le travail forcé des détenus aux États-Unis, mal payé et qui laisse endettés à la sortie."
+        },
+        {
+          "t": 41.38,
+          "stance": "Voit dans le mauvais accueil des plaintes pour violences sexuelles une faute institutionnelle de la police, de formation et d'éducation."
+        },
+        {
+          "t": 53.67,
+          "stance": "Estime que ni le consommateur ni le petit dealer ne sont les vrais coupables : sans demande il n'y aurait pas de trafic, et pénaliser les deux ne résout rien."
+        },
+        {
+          "t": 62.8,
+          "stance": "Explique l'addiction par la souffrance et la défavorisation, et le deal par le manque d'autres opportunités dans des quartiers à fort chômage."
+        },
+        {
+          "t": 95.66,
+          "stance": "Défend que la population ait un pouvoir de pression sur l'État par les grèves et blocages, pour que les dirigeants craignent le peuple."
+        }
+      ],
+      "kf": [
+        [
+          5.33,
+          7.5,
+          5.0
+        ],
+        [
+          109.1,
+          7.5,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "i4",
+      "label": "Interlocuteur 4",
+      "camp": "Rapport de force, justice qui répare",
+      "color": "#639922",
+      "weight": 0.65,
+      "entry": 7.31,
+      "note": "Explique la criminalité par le manque de moyens de la justice et l'humiliation carcérale, juge le système classique incapable de traiter les violences sans témoin et voit dans le capitalisme un système qui se nourrit des inégalités ; préfère une justice alternative pour les personnes issues de la misère et pense que la violence fait partie du rapport de force.",
+      "speech": [
+        [
+          7.31,
+          8.54
+        ],
+        [
+          8.89,
+          9.52
+        ],
+        [
+          9.58,
+          9.59
+        ],
+        [
+          10.85,
+          11.63
+        ],
+        [
+          19.26,
+          21.22
+        ],
+        [
+          34.45,
+          35.74
+        ],
+        [
+          35.8,
+          36.04
+        ],
+        [
+          36.1,
+          36.19
+        ],
+        [
+          36.55,
+          38.43
+        ],
+        [
+          44.27,
+          45.77
+        ],
+        [
+          45.83,
+          46.94
+        ],
+        [
+          51.83,
+          52.98
+        ],
+        [
+          55.7,
+          56.46
+        ],
+        [
+          71.48,
+          73.75
+        ],
+        [
+          84.85,
+          84.87
+        ],
+        [
+          84.93,
+          85.27
+        ],
+        [
+          85.43,
+          86.67
+        ],
+        [
+          94.23,
+          95.61
+        ],
+        [
+          97.95,
+          98.1
+        ],
+        [
+          98.24,
+          98.29
+        ]
+      ],
+      "points": [
+        {
+          "t": 7.31,
+          "stance": "Juge la comparaison européenne pertinente et voit dans le manque de juges et de greffiers, deux fois moindre que la moyenne, une explication du taux de criminalité élevé."
+        },
+        {
+          "t": 8.89,
+          "stance": "Pense qu'une justice sans moyens est plus lente, moins dissuasive et moins capable de réhabiliter, ce qui nourrit la criminalité."
+        },
+        {
+          "t": 10.85,
+          "stance": "Précise que les policiers par habitant sont proches de la moyenne européenne mais que la surpopulation carcérale atteint 140 % dans les prisons et 174 % dans les maisons d'arrêt."
+        },
+        {
+          "t": 19.26,
+          "stance": "Soutient que la culture policière laisse beaucoup de violences sexuelles non élucidées, le chiffre primant sur le fond, et que l'ordre imposé par la prison engendre humiliation et frustration ; ramène la question au financement public."
+        },
+        {
+          "t": 34.53,
+          "stance": "Soutient que le système judiciaire classique est incompétent pour les faits sans témoin et arrange la classe dirigeante, et que l'institution divise pour mieux régner entre détenus."
+        },
+        {
+          "t": 36.55,
+          "stance": "Distingue une justice qui punit pour donner du sens et une justice utilitariste ; note que la prison est efficace contre la délinquance en col blanc alors qu'une justice alternative convient mieux aux personnes issues de la misère."
+        },
+        {
+          "t": 45.83,
+          "stance": "Soutient que le capitalisme se nourrit des inégalités, y compris sexistes, en exploitant gratuitement le travail domestique des femmes."
+        },
+        {
+          "t": 55.7,
+          "stance": "Retient d'une série policière qu'une zone de tolérance de la drogue a été efficace sur les chiffres mais abandonnée par les politiques parce qu'inadmissible."
+        },
+        {
+          "t": 71.48,
+          "stance": "Dénonce que les médias traditionnels donnent un récit pro-gouvernemental des blocus en ne montrant que les dégradations, alors que les réseaux sociaux portent la voix des lycéens."
+        },
+        {
+          "t": 85.43,
+          "stance": "Estime que la violence fait partie du rapport de force, qu'il faut ensuite faire aboutir ; regrette que la table ne réunisse que des étudiants de grandes écoles."
+        },
+        {
+          "t": 94.23,
+          "stance": "Rappelle que les luttes se diversifient et que les puissants imposent aussi un agenda à la majorité, parfois par des actions financières."
+        }
+      ],
+      "kf": [
+        [
+          7.31,
+          5.0,
+          5.0
+        ],
+        [
+          109.1,
+          5.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "id": "i5",
+      "label": "Interlocuteur 5",
+      "camp": "Réformer par la démocratie, avec plus de moyens",
+      "color": "#8FBF4B",
+      "weight": 1.0,
+      "entry": 9.61,
+      "note": "Voix la plus attachée aux institutions : veut plus de places, de gardiens et de rénovation des prisons, des peines alternatives et du travail en prison, interdit et sanctionne consommateurs et vendeurs de drogue tout en offrant une substitution, et refuse de légitimer la violence au profit de référendums et de syndicats forts.",
+      "speech": [
+        [
+          9.61,
+          10.77
+        ],
+        [
+          11.83,
+          14.64
+        ],
+        [
+          14.69,
+          16.15
+        ],
+        [
+          21.27,
+          23.13
+        ],
+        [
+          28.93,
+          30.92
+        ],
+        [
+          34.5,
+          34.52
+        ],
+        [
+          39.54,
+          39.65
+        ],
+        [
+          39.89,
+          41.21
+        ],
+        [
+          49.02,
+          50.44
+        ],
+        [
+          56.51,
+          57.96
+        ],
+        [
+          66.12,
+          68.69
+        ],
+        [
+          68.74,
+          68.8
+        ],
+        [
+          73.93,
+          73.96
+        ],
+        [
+          74.38,
+          76.24
+        ],
+        [
+          86.67,
+          92.15
+        ],
+        [
+          98.35,
+          101.98
+        ],
+        [
+          102.65,
+          103.1
+        ]
+      ],
+      "points": [
+        {
+          "t": 9.61,
+          "stance": "Dit que, que l'insécurité augmente ou non, il faut répondre aux plaintes dans les zones touchées ; le problème se situe surtout au niveau de la justice, dont les délais sont énormes, plus que de la police."
+        },
+        {
+          "t": 11.83,
+          "stance": "Veut plus de places et la rénovation des prisons vétustes, ainsi que de meilleures conditions de vie : un détenu humilié par l'État en sort plus enclin à récidiver."
+        },
+        {
+          "t": 13.35,
+          "stance": "Réclame plus de moyens pour faire régner l'ordre en prison dans l'intérêt des détenus, citant un détenu tué après des menaces connues."
+        },
+        {
+          "t": 14.69,
+          "stance": "Veut éloigner meurtriers et personnes dangereuses mais favorise des peines alternatives et du vrai travail en prison pour réinsérer."
+        },
+        {
+          "t": 28.93,
+          "stance": "Juge les peines alternatives difficiles à surveiller et préfère faire travailler en prison, qui sépare aussi du milieu criminel et dissuade."
+        },
+        {
+          "t": 39.89,
+          "stance": "Refuse d'attribuer le mauvais traitement des violences sexuelles à une volonté des élites : toute la société les tolérait, c'était institutionnalisé à tous niveaux."
+        },
+        {
+          "t": 49.02,
+          "stance": "Conteste que le capitalisme ait intérêt à écarter les femmes du travail : l'inégalité a appauvri tout le monde."
+        },
+        {
+          "t": 56.51,
+          "stance": "Maintient que consommateurs et vendeurs de drogue sont coupables parce qu'ils financent un narcotrafic meurtrier ; propose une substitution encadrée pour les personnes dépendantes et la légalisation de certaines drogues douces."
+        },
+        {
+          "t": 74.38,
+          "stance": "Voit un problème démocratique français : le seul moyen de se faire entendre serait de bloquer ; la violence discrédite les mouvements légitimes, comme après la mort de Nahel."
+        },
+        {
+          "t": 86.67,
+          "stance": "Refuse de légitimer la violence : dire qu'il en faut pour avancer est antidémocratique, et seuls ceux qui peuvent bloquer sont entendus."
+        },
+        {
+          "t": 89.61,
+          "stance": "Plaide pour plus de participation, des référendums d'initiative populaire et un pouvoir moins centralisé, et regrette que des assemblées citoyennes n'aient rien donné."
+        },
+        {
+          "t": 99.94,
+          "stance": "Estime qu'on peut faire bouger les choses avec moins de violence, par des syndicats plus forts et des moyens démocratiques comme la destitution."
+        }
+      ],
+      "kf": [
+        [
+          9.61,
+          -2.5,
+          -5.0
+        ],
+        [
+          109.1,
+          -2.5,
+          -5.0
+        ]
+      ]
+    },
+    {
+      "id": "i6",
+      "label": "Interlocuteur 6",
+      "camp": "Violence structurelle et privilège",
+      "color": "#6E6D68",
+      "weight": 0.147,
+      "entry": 11.63,
+      "note": "Peu d'interventions : se demande si l'on doit ajouter des places ou raccourcir les peines, s'étonne du silence médiatique sur la violence conjugale et défend l'idée d'une violence structurelle qu'il est difficile de condamner depuis une position privilégiée.",
+      "speech": [
+        [
+          11.63,
+          11.79
+        ],
+        [
+          16.19,
+          16.39
+        ],
+        [
+          16.56,
+          16.87
+        ],
+        [
+          38.43,
+          39.41
+        ],
+        [
+          68.97,
+          69.1
+        ],
+        [
+          92.17,
+          92.63
+        ],
+        [
+          92.68,
+          94.16
+        ],
+        [
+          105.2,
+          105.49
+        ],
+        [
+          105.75,
+          105.8
+        ]
+      ],
+      "points": [
+        {
+          "t": 16.56,
+          "stance": "Demande si l'on doit vraiment ajouter des places ou si les peines sont trop longues, puisque des chiffres suggèrent que la longueur ne diminue pas la récidive."
+        },
+        {
+          "t": 38.43,
+          "stance": "S'étonne que certains meurtres soient très médiatisés alors que la violence conjugale, qui touche une femme sur trois, l'est peu ; l'explique par le caractère privé de cette violence."
+        },
+        {
+          "t": 92.68,
+          "stance": "Défend l'argument de la violence structurelle : dans un système idéal il n'y aurait pas de violence, mais condamner les personnes les plus touchées est difficile depuis une position de privilège."
+        }
+      ],
+      "kf": [
+        [
+          11.63,
+          2.5,
+          5.0
+        ],
+        [
+          109.1,
+          2.5,
+          5.0
+        ]
+      ]
+    }
+  ],
+  "refus": [],
+  "totalRedactedMinutes": 0,
+  "totalDurationMinutes": 109.1,
+  "axes": {
+    "x": {
+      "leftLabel": "Sanctionner et faire respecter l'ordre d'abord",
+      "rightLabel": "Prévenir et traiter les causes d'abord",
+      "anchors": {
+        "left": [
+          "Les personnes dangereuses doivent être enfermées et la sanction dissuade",
+          "Il faut plus de places, de gardiens et d'ordre dans les prisons",
+          "Interdire et punir le trafic comme la consommation de drogue"
+        ],
+        "right": [
+          "La prison produit de la récidive : accompagner, réinsérer et éduquer en amont",
+          "Les causes sont sociales : emploi, logement, éducation, inégalités",
+          "Dépénaliser ou encadrer la drogue plutôt qu'enfermer"
+        ]
+      }
+    },
+    "y": {
+      "bottomLabel": "Faire confiance aux institutions pour réformer",
+      "topLabel": "Défiance envers l'État et ses institutions",
+      "anchors": {
+        "bottom": [
+          "On peut améliorer les choses par les voies démocratiques : référendums, syndicats, lois",
+          "Il faut plus de moyens pour la justice, la police et les prisons, pas les remettre en cause",
+          "L'État doit garder le monopole de la justice pour qu'elle soit acceptée"
+        ],
+        "top": [
+          "La police et la justice protègent d'abord l'ordre établi, ou abusent d'un monopole d'État",
+          "Tout monopole public attire la corruption : il faut le concurrencer",
+          "Sans rapport de force, voire sans violence, rien ne change"
+        ]
+      }
+    },
+    "quadrants": {
+      "topLeft": "Se méfier de l'État, sanction et marché",
+      "topRight": "Prévenir, en se méfiant de l'ordre établi",
+      "bottomLeft": "Ordre et confiance dans les institutions",
+      "bottomRight": "Prévenir et réformer par les institutions"
+    }
+  },
+  "schools": [],
+  "events": [
+    {
+      "t": 1.4,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Présentation des outils de modération",
+      "desc": "File d'attente, coupe-file et choix du sujet par les participants."
+    },
+    {
+      "t": 3.0,
+      "type": "cadrage",
+      "magnitude": 2,
+      "title": "Le rôle des médias dans le sentiment d'insécurité",
+      "desc": "L'animation propose d'ouvrir sur l'assertion qui n'avait pas fait consensus."
+    },
+    {
+      "t": 3.6,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Insécurité réelle ou ressentie ? Les chiffres européens",
+      "desc": "Classement de la France en tête de la criminalité en Europe contre baisse des taux et biais de déclaration."
+    },
+    {
+      "t": 7.3,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Moitié moins de juges et de greffiers que la moyenne européenne",
+      "desc": "Les moyens de la justice avancés comme explication."
+    },
+    {
+      "t": 11.8,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Plus de places de prison ou des peines plus courtes ?",
+      "desc": "Rénover et agrandir contre raccourcir les peines."
+    },
+    {
+      "t": 17.7,
+      "type": "dissensus",
+      "magnitude": 2,
+      "title": "Ordre carcéral ou conditions de vie normales ?",
+      "desc": "Plus de gardiens contre des restrictions qui créent de la violence."
+    },
+    {
+      "t": 23.2,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Coût des détenus et travail forcé aux États-Unis",
+      "desc": "Choix de société, esclavage des condamnés et dettes à la sortie."
+    },
+    {
+      "t": 27.0,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Quelle finalité pour la prison ?",
+      "desc": "Travail en prison, séparation du milieu criminel ou solution de facilité."
+    },
+    {
+      "t": 31.0,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Violences sexuelles mal traitées : faute de la police, de l'État ou de la société ?",
+      "desc": "Fonction de la police, formation, éducation et tolérance sociale ancienne."
+    },
+    {
+      "t": 36.6,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Punir ou réparer : prison et délinquance en col blanc",
+      "desc": "Justice qui punit pour donner du sens contre justice utilitariste."
+    },
+    {
+      "t": 45.8,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Le capitalisme profite-t-il du sexisme ?",
+      "desc": "Travail domestique non payé, productivité, secteur tertiaire."
+    },
+    {
+      "t": 53.0,
+      "type": "cadrage",
+      "magnitude": 1,
+      "title": "Passage au narcotrafic",
+      "desc": "L'animation propose narcotrafic ou blocus ; la table choisit le narcotrafic."
+    },
+    {
+      "t": 56.5,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Consommateurs et vendeurs de drogue : coupables ou victimes ?",
+      "desc": "Responsabilité, souffrance, absence d'alternatives, substitution encadrée."
+    },
+    {
+      "t": 58.0,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Alcool, cannabis et contrôle d'État",
+      "desc": "Le modèle suédois de monopole sur l'alcool est évoqué."
+    },
+    {
+      "t": 66.1,
+      "type": "concession",
+      "magnitude": 2,
+      "title": "Interdire tout en admettant le manque d'information",
+      "desc": "Un participant concède que les consommateurs sont mal renseignés."
+    },
+    {
+      "t": 69.2,
+      "type": "cadrage",
+      "magnitude": 2,
+      "title": "Les blocus lycéens",
+      "desc": "L'animation expose revendications, dégradations et réponse de l'État."
+    },
+    {
+      "t": 71.5,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Médias traditionnels et réseaux sociaux face aux blocus",
+      "desc": "Récit pro-gouvernemental contre voix des lycéens, bulles de filtres."
+    },
+    {
+      "t": 74.4,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "La violence politique est-elle légitime ou efficace ?",
+      "desc": "Discrédit des mouvements, rapport de force, comparaison historique."
+    },
+    {
+      "t": 80.1,
+      "type": "technique",
+      "magnitude": 2,
+      "title": "Mobilisations étudiantes en Serbie",
+      "desc": "Comparaison avec trois ans de blocages et réaction autoritaire."
+    },
+    {
+      "t": 83.5,
+      "type": "dissensus",
+      "magnitude": 3,
+      "title": "Convention citoyenne ou rapport de force ?",
+      "desc": "Doute sur l'effet des assemblées citoyennes sans pression économique."
+    },
+    {
+      "t": 85.4,
+      "type": "meta",
+      "magnitude": 1,
+      "title": "Un débat entre étudiants de grandes écoles",
+      "desc": "Regret d'un entre-soi social et politique."
+    },
+    {
+      "t": 98.1,
+      "type": "meta",
+      "magnitude": 1,
+      "title": "Bilan : absence de contradicteurs de droite",
+      "desc": "Une table intra-gauche, quelques regrets sur le cadrage et la contradiction."
+    },
+    {
+      "t": 108.0,
+      "type": "meta",
+      "magnitude": 1,
+      "title": "Annonce du débat suivant",
+      "desc": "Écologie et capitalisme, ouvert à des personnes extérieures."
+    }
+  ],
+  "tension": [
+    [
+      0,
+      15
+    ],
+    [
+      1.4,
+      15
+    ],
+    [
+      3.0,
+      38
+    ],
+    [
+      3.6,
+      48
+    ],
+    [
+      7.3,
+      42
+    ],
+    [
+      11.8,
+      52
+    ],
+    [
+      17.7,
+      50
+    ],
+    [
+      23.2,
+      48
+    ],
+    [
+      27.0,
+      58
+    ],
+    [
+      31.0,
+      62
+    ],
+    [
+      36.6,
+      50
+    ],
+    [
+      45.8,
+      58
+    ],
+    [
+      53.0,
+      38
+    ],
+    [
+      56.5,
+      55
+    ],
+    [
+      58.0,
+      45
+    ],
+    [
+      66.1,
+      40
+    ],
+    [
+      69.2,
+      38
+    ],
+    [
+      71.5,
+      45
+    ],
+    [
+      74.4,
+      62
+    ],
+    [
+      80.1,
+      48
+    ],
+    [
+      83.5,
+      60
+    ],
+    [
+      92.0,
+      65
+    ],
+    [
+      98.1,
+      28
+    ],
+    [
+      109.0,
+      12
+    ]
+  ],
+  "polarization": {
+    "x": 11.8,
+    "y": 13.6,
+    "n": 7,
+    "nY": 6,
+    "method": "esteban_ray",
+    "alpha": 1.6
+  },
+  "interactions": [
+    {
+      "t": 4.73,
+      "from": "i2",
+      "to": "i7",
+      "type": "accord",
+      "desc": "Admet que le sentiment est amplifié par la médiatisation."
+    },
+    {
+      "t": 5.33,
+      "from": "i3",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Oppose que les taux de crime ont baissé depuis des décennies."
+    },
+    {
+      "t": 6.52,
+      "from": "i3",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Relève que les comparaisons dépendent des crimes déclarés à la police."
+    },
+    {
+      "t": 7.31,
+      "from": "i4",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Rejoint l'idée d'une dynamique surévaluée par les médias."
+    },
+    {
+      "t": 7.31,
+      "from": "i4",
+      "to": "i2",
+      "type": "accord",
+      "desc": "Juge la comparaison européenne pertinente."
+    },
+    {
+      "t": 8.54,
+      "from": "i2",
+      "to": "i4",
+      "type": "desaccord",
+      "desc": "Demande comment relier le manque de moyens de la justice à la criminalité."
+    },
+    {
+      "t": 9.61,
+      "from": "i5",
+      "to": "i4",
+      "type": "accord",
+      "desc": "Se dit d'accord et déplace le problème vers la justice plus que la police."
+    },
+    {
+      "t": 16.56,
+      "from": "i6",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Demande si ajouter des places est la bonne réponse."
+    },
+    {
+      "t": 17.68,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Doute que l'ordre imposé par les gardiens soit la solution."
+    },
+    {
+      "t": 19.26,
+      "from": "i4",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Approuve que l'ordre pénitentiaire engendre violence et humiliation."
+    },
+    {
+      "t": 21.27,
+      "from": "i5",
+      "to": "i3",
+      "type": "concession",
+      "desc": "Reconnaît que trop contraindre provoque de la violence."
+    },
+    {
+      "t": 23.17,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Rappelle que des camps de travail aux États-Unis relèvent de l'esclavage."
+    },
+    {
+      "t": 26.96,
+      "from": "i1",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Ne voit pas la finalité d'une prison améliorée où l'on travaille."
+    },
+    {
+      "t": 28.93,
+      "from": "i5",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Soutient que le travail en prison permet de séparer du milieu criminel."
+    },
+    {
+      "t": 32.3,
+      "from": "i2",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Doute que les détenus craignent plus leurs pairs que les gardiens."
+    },
+    {
+      "t": 33.38,
+      "from": "i1",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Refuse de mettre les violences sexuelles sur le dos des policiers."
+    },
+    {
+      "t": 34.53,
+      "from": "i4",
+      "to": "i2",
+      "type": "accord",
+      "desc": "Rejoint l'idée que la structure arrange la classe dirigeante."
+    },
+    {
+      "t": 35.8,
+      "from": "i4",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Rappelle que l'institution divise pour mieux régner entre détenus."
+    },
+    {
+      "t": 39.89,
+      "from": "i5",
+      "to": "i2",
+      "type": "desaccord",
+      "desc": "Refuse de rendre les élites responsables de la tolérance passée."
+    },
+    {
+      "t": 41.38,
+      "from": "i3",
+      "to": "i5",
+      "type": "accord",
+      "desc": "Admet que la société a toléré ces violences, mais garde une part de faute à la police."
+    },
+    {
+      "t": 42.53,
+      "from": "i1",
+      "to": "i3",
+      "type": "accord",
+      "desc": "Reconnaît le problème de traitement, mais déplace le sujet vers la prévention."
+    },
+    {
+      "t": 43.44,
+      "from": "i1",
+      "to": "i5",
+      "type": "concession",
+      "desc": "Précise que ses propos n'impliquent aucune décision consciente des élites."
+    },
+    {
+      "t": 45.83,
+      "from": "i4",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Soutient que le capitalisme se nourrit des inégalités entre sexes."
+    },
+    {
+      "t": 47.53,
+      "from": "i2",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Soutient que la police traite mal les violences sexuelles."
+    },
+    {
+      "t": 49.02,
+      "from": "i5",
+      "to": "i4",
+      "type": "desaccord",
+      "desc": "Conteste que le capitalisme ait intérêt à écarter les femmes du travail."
+    },
+    {
+      "t": 50.45,
+      "from": "i2",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Affirme que la mise au travail des femmes dépendait de la productivité."
+    },
+    {
+      "t": 51.83,
+      "from": "i4",
+      "to": "i2",
+      "type": "accord",
+      "desc": "Rejoint l'idée d'une mutation liée au capitalisme, avec des raisons culturelles en plus."
+    },
+    {
+      "t": 56.51,
+      "from": "i5",
+      "to": "i3",
+      "type": "desaccord",
+      "desc": "Maintient que consommateurs et vendeurs sont coupables."
+    },
+    {
+      "t": 58.03,
+      "from": "i2",
+      "to": "i3",
+      "type": "desaccord",
+      "desc": "Demande ce que veut dire résoudre le problème de la drogue."
+    },
+    {
+      "t": 60.39,
+      "from": "i1",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Doute que la responsabilisation des consommateurs soit réaliste."
+    },
+    {
+      "t": 62.28,
+      "from": "i2",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Rappelle que presque tout objet de consommation exploite des gens."
+    },
+    {
+      "t": 62.8,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Soutient que la souffrance et la défavorisation expliquent addiction et deal."
+    },
+    {
+      "t": 66.12,
+      "from": "i5",
+      "to": "i1",
+      "type": "concession",
+      "desc": "Admet que les gens sont mal informés, tout en maintenant l'interdiction."
+    },
+    {
+      "t": 76.36,
+      "from": "i1",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Distingue le discrédit imposé de la légitimité réelle d'un mouvement."
+    },
+    {
+      "t": 78.13,
+      "from": "i3",
+      "to": "i1",
+      "type": "accord",
+      "desc": "Approuve que les médias propagent des images chocs."
+    },
+    {
+      "t": 83.52,
+      "from": "i2",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Doute que les voies démocratiques suffisent sans blocage économique."
+    },
+    {
+      "t": 84.93,
+      "from": "i4",
+      "to": "i2",
+      "type": "accord",
+      "desc": "Rejoint la question du rapport de force."
+    },
+    {
+      "t": 86.67,
+      "from": "i5",
+      "to": "i1",
+      "type": "desaccord",
+      "desc": "Refuse de légitimer la violence comme moyen d'avancer."
+    },
+    {
+      "t": 92.68,
+      "from": "i6",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Oppose la violence structurelle à l'appel à la non-violence."
+    },
+    {
+      "t": 94.23,
+      "from": "i4",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Rappelle que les puissants imposent aussi un agenda à la majorité."
+    },
+    {
+      "t": 95.66,
+      "from": "i3",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Soutient que grèves et blocages sont nécessaires pour que l'État craigne le peuple."
+    },
+    {
+      "t": 98.35,
+      "from": "i5",
+      "to": "i3",
+      "type": "desaccord",
+      "desc": "Cite les pays nordiques, moins grévistes, pour dire qu'on peut faire autrement."
+    },
+    {
+      "t": 101.98,
+      "from": "i1",
+      "to": "i5",
+      "type": "desaccord",
+      "desc": "Objecte qu'on ne peut demander aux opprimés d'être non violents."
+    },
+    {
+      "t": 103.12,
+      "from": "i1",
+      "to": "i5",
+      "type": "accord",
+      "desc": "Admet qu'il faudrait éviter la violence."
+    }
+  ],
+  "synthesis": {
+    "theme": "Comment assurer la sécurité de tous en France ?",
+    "summary": "La table est partie du rôle des médias dans le sentiment d'insécurité, puis des chiffres européens, avant de s'attarder sur les prisons (places, conditions, travail, finalité de la peine), sur le traitement policier et judiciaire des violences sexuelles, sur la drogue et sur les blocus lycéens. Presque tous jugent la prison inefficace pour réinsérer et veulent des alternatives pour la plupart des détenus. Les plus grands désaccords ont porté sur le rôle de la police (au service de l'ordre établi ou non), sur la responsabilité des consommateurs de drogue et sur la légitimité de la violence politique, où une voix attachée aux institutions s'est opposée seule aux autres. La table a regretté l'absence de contradicteurs de droite. Personne n'a explicitement changé d'avis.",
+    "groups": [
+      {
+        "label": "Critique de l'ordre établi et rapport de force",
+        "color": "#C0507A",
+        "members": [
+          "i1",
+          "i2",
+          "i4"
+        ],
+        "arguments": [
+          "La police et la justice protègent d'abord l'ordre établi et traitent mal les violences qui ne le menacent pas.",
+          "La violence fait bouger les choses quand les voies pacifiques n'obtiennent rien.",
+          "Le capitalisme se nourrit des inégalités, y compris sexistes.",
+          "La prison est une solution de facilité qui n'empêche pas la récidive."
+        ]
+      },
+      {
+        "label": "Dignité des détenus et responsabilité collective",
+        "color": "#184795",
+        "members": [
+          "i3",
+          "i6"
+        ],
+        "arguments": [
+          "Les détenus doivent vivre aussi normalement que possible : payer est un choix de société.",
+          "Ni le consommateur ni le petit dealer ne sont les vrais coupables.",
+          "La population doit peser sur l'État, par la grève ou le blocage.",
+          "La violence structurelle subie par certains interdit de condamner leur colère depuis un statut privilégié."
+        ]
+      },
+      {
+        "label": "Réformer par la démocratie, avec plus de moyens",
+        "color": "#27AE60",
+        "members": [
+          "i5"
+        ],
+        "arguments": [
+          "Plus de places, de gardiens et de moyens pour une prison digne et ordonnée, avec du travail.",
+          "Les délais de la justice sont le vrai problème, plus que la police.",
+          "La violence discrédite les mouvements ; il faut des référendums d'initiative populaire et des syndicats forts.",
+          "Les consommateurs de drogue financent un trafic meurtrier ; une substitution encadrée aide les dépendants."
+        ]
+      }
+    ],
+    "unclassified": {
+      "members": [
+        "i7"
+      ],
+      "note": "Intervient peu (trois courtes prises de parole) : médias et durcissement de certaines peines."
+    },
+    "kinds": {
+      "coeur": {
+        "label": "Cœur du sujet",
+        "desc": "Justice, prisons, police, violences sexuelles, drogue."
+      },
+      "connexe": {
+        "label": "Contexte et mobilisations",
+        "desc": "Médias, blocus lycéens, violence politique."
+      },
+      "annexe": {
+        "label": "Sujets annexes",
+        "desc": "Capitalisme et sexisme, bilan du débat."
+      }
+    },
+    "themes": [
+      {
+        "id": "medias",
+        "kind": "connexe",
+        "short": "Médias",
+        "color": "#8E44AD",
+        "label": "Médias et sentiment d'insécurité",
+        "desc": "Chiffres européens, médiatisation des faits divers, récit des blocus, bulles de filtres."
+      },
+      {
+        "id": "prison",
+        "kind": "coeur",
+        "short": "Prison",
+        "color": "#184795",
+        "label": "Justice, prisons et peines",
+        "desc": "Moyens de la justice, surpopulation, conditions, travail en prison, finalité de la peine."
+      },
+      {
+        "id": "police",
+        "kind": "coeur",
+        "short": "Police et violences sexuelles",
+        "color": "#C0507A",
+        "label": "Police, justice et violences sexuelles",
+        "desc": "Fonction de la police, plaintes, éducation, tolérance sociale, justice alternative."
+      },
+      {
+        "id": "capital",
+        "kind": "annexe",
+        "short": "Capitalisme",
+        "color": "#34495E",
+        "label": "Capitalisme, sexisme et travail des femmes",
+        "desc": "Travail domestique, productivité, secteur tertiaire."
+      },
+      {
+        "id": "drogue",
+        "kind": "coeur",
+        "short": "Drogue",
+        "color": "#E67E22",
+        "label": "Drogue et narcotrafic",
+        "desc": "Responsabilité des consommateurs, des dealers, légalisation, alcool."
+      },
+      {
+        "id": "blocus",
+        "kind": "connexe",
+        "short": "Blocus",
+        "color": "#16A085",
+        "label": "Blocus lycéens et mobilisations",
+        "desc": "Revendications des lycéens, comparaison avec la Serbie."
+      },
+      {
+        "id": "violence",
+        "kind": "connexe",
+        "short": "Violence politique",
+        "color": "#C0392B",
+        "label": "Violence politique : légitime, efficace ?",
+        "desc": "Rapport de force, non-violence, grèves, référendums, syndicats."
+      },
+      {
+        "id": "bilan",
+        "kind": "annexe",
+        "short": "Bilan",
+        "color": "#D4AC0D",
+        "label": "Bilan du débat",
+        "desc": "Entre-soi, absence de contradicteurs, format, débat suivant."
+      }
+    ],
+    "timeline": [
+      [
+        0,
+        2.98,
+        null
+      ],
+      [
+        2.98,
+        7.3,
+        "medias"
+      ],
+      [
+        7.3,
+        30.97,
+        "prison"
+      ],
+      [
+        30.97,
+        45.8,
+        "police"
+      ],
+      [
+        45.8,
+        53.0,
+        "capital"
+      ],
+      [
+        53.0,
+        69.15,
+        "drogue"
+      ],
+      [
+        69.15,
+        71.47,
+        "blocus"
+      ],
+      [
+        71.47,
+        74.37,
+        "medias"
+      ],
+      [
+        74.37,
+        78.13,
+        "violence"
+      ],
+      [
+        78.13,
+        80.08,
+        "medias"
+      ],
+      [
+        80.08,
+        83.52,
+        "blocus"
+      ],
+      [
+        83.52,
+        85.42,
+        "violence"
+      ],
+      [
+        85.42,
+        86.67,
+        "bilan"
+      ],
+      [
+        86.67,
+        98.08,
+        "violence"
+      ],
+      [
+        98.08,
+        109.15,
+        "bilan"
+      ]
+    ],
+    "mentions": [],
+    "affirmations": [
+      {
+        "text": "L'insécurité en France est surtout ressentie à cause des médias",
+        "stances": [
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 5.33
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 7.31
+          },
+          {
+            "id": "i7",
+            "pos": "pour",
+            "t": 4.58
+          },
+          {
+            "id": "i2",
+            "pos": "nuance",
+            "t": 3.65,
+            "note": "les chiffres européens montrent une insécurité réelle"
+          },
+          {
+            "id": "i5",
+            "pos": "nuance",
+            "t": 9.61,
+            "note": "qu'elle augmente ou non, il faut répondre aux plaintes"
+          }
+        ]
+      },
+      {
+        "text": "Il faut plus de places en prison",
+        "stances": [
+          {
+            "id": "i5",
+            "pos": "pour",
+            "t": 11.83
+          },
+          {
+            "id": "i6",
+            "pos": "nuance",
+            "t": 16.56,
+            "note": "se demande si les peines ne sont pas trop longues"
+          },
+          {
+            "id": "i4",
+            "pos": "nuance",
+            "t": 10.85,
+            "note": "souligne la surpopulation"
+          }
+        ]
+      },
+      {
+        "text": "Les détenus ont plus peur des autres détenus que des gardiens",
+        "stances": [
+          {
+            "id": "i5",
+            "pos": "pour",
+            "t": 13.35
+          },
+          {
+            "id": "i2",
+            "pos": "contre",
+            "t": 32.3,
+            "note": "le rapport de force se joue avec la police"
+          },
+          {
+            "id": "i4",
+            "pos": "nuance",
+            "t": 34.53,
+            "note": "l'institution divise pour mieux régner"
+          }
+        ]
+      },
+      {
+        "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
+        "stances": [
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 30.98
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 34.53
+          },
+          {
+            "id": "i3",
+            "pos": "nuance",
+            "t": 41.38,
+            "note": "faute institutionnelle de formation"
+          },
+          {
+            "id": "i1",
+            "pos": "nuance",
+            "t": 33.38,
+            "note": "surtout un problème juridique et de moyens"
+          },
+          {
+            "id": "i5",
+            "pos": "contre",
+            "t": 39.89,
+            "note": "toute la société tolérait ces violences"
+          }
+        ]
+      },
+      {
+        "text": "Le capitalisme profite du sexisme",
+        "stances": [
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 45.83
+          },
+          {
+            "id": "i2",
+            "pos": "nuance",
+            "t": 50.45,
+            "note": "les femmes ont été mises au travail quand la productivité l'exigeait"
+          },
+          {
+            "id": "i5",
+            "pos": "contre",
+            "t": 49.02
+          }
+        ]
+      },
+      {
+        "text": "Il faut légaliser ou dépénaliser en partie les drogues",
+        "stances": [
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 55.7
+          },
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 53.67
+          },
+          {
+            "id": "i5",
+            "pos": "nuance",
+            "t": 56.51,
+            "note": "légaliser certaines drogues douces mais interdire la consommation"
+          },
+          {
+            "id": "i2",
+            "pos": "nuance",
+            "t": 58.03,
+            "note": "ne veut pas que l'usage du cannabis se répande"
+          }
+        ]
+      },
+      {
+        "text": "La violence est légitime ou efficace pour se faire entendre",
+        "stances": [
+          {
+            "id": "i1",
+            "pos": "pour",
+            "t": 77.81
+          },
+          {
+            "id": "i2",
+            "pos": "pour",
+            "t": 83.52
+          },
+          {
+            "id": "i3",
+            "pos": "pour",
+            "t": 95.66
+          },
+          {
+            "id": "i4",
+            "pos": "pour",
+            "t": 85.43
+          },
+          {
+            "id": "i6",
+            "pos": "nuance",
+            "t": 92.68,
+            "note": "difficile de condamner la violence depuis un statut privilégié"
+          },
+          {
+            "id": "i5",
+            "pos": "contre",
+            "t": 86.67
+          }
+        ]
+      }
+    ]
+  }
+};

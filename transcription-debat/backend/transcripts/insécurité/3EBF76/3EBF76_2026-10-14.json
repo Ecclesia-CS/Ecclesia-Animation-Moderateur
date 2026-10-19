@@ -1,0 +1,4300 @@
+[
+  {
+    "start": 0.0,
+    "end": 2.6,
+    "speaker": "[?]",
+    "text": "Ah ok, très bien. Et peut-être, ouais,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Ah"
+    ]
+  },
+  {
+    "start": 2.68,
+    "end": 56.66,
+    "speaker": "Interlocuteur 2",
+    "text": "bah, d'autres choses... Je suis en train de gérer la délinquance liée au fait aussi que les prisons sont remplies à ras bord et que l'État est trop laxiste sur ce point. Il y a notamment une partie de... enfin, les gens accusent souvent l'immigration en partie de cette délinquance qui est un petit chêne. Ok. Et peut-être que vous voulez donner une take, puis à vous, sur ce que vous... Ouais, qu'est-ce que tu penses par rapport à cette Doxa, par exemple ? À vrai dire, oui, il y a beaucoup de cas identifiés où il s'agit parfois d'un documentaire pour les effets divers. Il y a une entente, mais après, il y a aussi ce problème systémique lié aux peines, aux capacités d'emprison, des prisons, qui ne sont pas forcément toujours liées à l'immigration. Ok, très",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "d'autres",
+      "choses...",
+      "Je",
+      "suis",
+      "train",
+      "Il",
+      "enfin,",
+      "cette",
+      "Ouais,",
+      "où",
+      "parfois",
+      "d'un",
+      "divers.",
+      "Il",
+      "une",
+      "des"
+    ]
+  },
+  {
+    "start": 56.66,
+    "end": 56.84,
+    "speaker": "Interlocuteur 1",
+    "text": "bien.",
+    "refused": false,
+    "speaker_source": "log"
+  },
+  {
+    "start": 60.34,
+    "end": 88.09,
+    "speaker": "Interlocuteur 1",
+    "text": "Je pense que les réseaux sociaux et en général l'information continue à beaucoup contribuer à ce qu'on remarque beaucoup plus les faits divers, chose qui restait un peu dans les petits patins aux petits villages, aujourd'hui se fait connaître un peu partout et donc bien évidemment, même si on ne la dit pas directement à la sécurité, on la voit tous les soirs sur nos téléphones ou à la télé, ce qui donne l'impression qu'elle est beaucoup plus présente je pense. très bien Interlocuteur 3",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "continue",
+      "à",
+      "ce",
+      "beaucoup",
+      "aux",
+      "et",
+      "très"
+    ]
+  },
+  {
+    "start": 88.09,
+    "end": 166.11,
+    "speaker": "Interlocuteur 3",
+    "text": "je suis d'accord sur le tout des médias que ce soit les médias ou le titre juste comme ça je pense qu'il ya une vraie exacerbation de l'insécurité le fait que je suis pas sûr en fait que les crimes comme ça est vraiment temps et jusqu'à ce que ça devient normal le sujet principal je pense que c'est plutôt le fait qu'il y a beaucoup à gagner pour certaines personnes à faire passer l'insécurité comme quelque chose de vraiment centrale et comme étant la question essentielle de tout de la politique c'est qui les personnes dont tu parles en tout cas le gouvernement au delà en tout cas c'est un très bon argument pour les politique pour atteindre le pouvoir. Et par définition, ça joue sur la peur, et la peur est quand même quelque chose de formidable pour gagner une déliction démocratique. Et autrement que ça, les médias, on voit qu'il y a énormément de plateformes, surtout d'extrême-droite, qui ont pu énormément se démocratiser. C'est une news, juste comme ça, des faits, des manifs, tout ça, qui ont pu se démocratiser sur, justement, d'accord très",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je",
+      "tout",
+      "des",
+      "ou",
+      "le",
+      "titre",
+      "ya",
+      "l'insécurité",
+      "le",
+      "en",
+      "comme",
+      "est",
+      "et",
+      "ça",
+      "de",
+      "en",
+      "au",
+      "politique",
+      "par",
+      "gagner",
+      "news,",
+      "juste",
+      "des",
+      "d'accord"
+    ]
+  },
+  {
+    "start": 167.42,
+    "end": 239.92,
+    "speaker": "Interlocuteur 4",
+    "text": "bien on m'a Interlocuteur 4 à toi de parler donc j'ai pas fort j'ai pas directement j'ai pas directement parler de ça mais j'ai plutôt parlé de comment est ce que je vis comment est ce que je pense ou ressent le système de justice aujourd'hui et 2 et je trouve système carcéral Je n'ai pas de take là-dessus, je vais plutôt dire mon ressenti. La semaine dernière, je suis allé au tribunal de Paris pour assister à des procès, pour voir à quoi ça ressemblait. Et j'ai vraiment eu le sentiment que ce que j'étais en train d'observer était presque un échec, était assez mauvais. Je ne voyais pas forcément l'intérêt de ce qui se passait dans les tribunaux. C'est-à-dire que la plupart des gens que j'ai vus étaient des gens, par exemple, le premier procès que j'ai vu, c'est un SDF qui se faisait, qui était alcoolique sur le public, qui s'est fait juger, enfin, il s'est fait condamner à 500 euros d'amende et à deux sanctions, à un OQTF aussi. c'était l'interdiction d'être dans Paris, comme le mec SDF, et puis c'était ça un peu à la chaîne, et les autres gens que j'ai vus, c'était des gens qui avaient des...",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "on",
+      "m'a",
+      "à",
+      "toi",
+      "j'ai",
+      "fort",
+      "j'ai",
+      "j'ai",
+      "2",
+      "je",
+      "Je",
+      "n'ai",
+      "take",
+      "C'est-à-dire",
+      "deux",
+      "c'était"
+    ]
+  },
+  {
+    "start": 244.97,
+    "end": 292.87,
+    "speaker": "Interlocuteur 4",
+    "text": "qui avaient un casier judiciaire qui était long comme le bras, qui était multirécidiviste constamment, qui refaisait la même chose, qui était toujours au même endroit, on leur mettait un an, deux ans, trois ans, on leur disait telle chose, etc. Et je ne... Alors je ne dis pas que c'est significatif, je ne dis pas que c'est représentatif non plus, je dis juste que le sentiment que j'ai eu, moi qui ne les connaissais pas, c'était c'est que tous ces gens-là, les peines de prison qu'on met, et j'imagine du coup le système carcéral dans lequel ils sont ensuite pendant un an, deux ans, vingt ans, est un échec. Alors c'est fort comme mot, je ne défends pas cette éclat, c'est plutôt vraiment ce que j'ai ressenti. Donc moi je me pose la question de, est-ce que la prison, alors je pense que la prison nécessaire, comme j'ai pu répondre dans le questionnaire, nécessaire dans une certaine mesure, je ne pense pas que ce soit la seule solution et qu'il y a beaucoup à remettre en cause aujourd'hui. Mais je n'ai pas de solution. En tout cas, je n'ai pas vraiment réfléchi, j'avoue.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "qui",
+      "Et",
+      "les",
+      "c'est",
+      "les",
+      "du"
+    ]
+  },
+  {
+    "start": 294.45,
+    "end": 308.37,
+    "speaker": "Interlocuteur 3",
+    "text": "Très bien. Donc ça va être à Interlocuteur 3. Et juste, je vais voir avec les assertions votées. Comme tu as dit, je crois que l'une des plus divergentes, c'est effectivement... Ah non. Non, c'est la plus convergente, la prison. La prison",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "avec"
+    ]
+  },
+  {
+    "start": 308.37,
+    "end": 315.25,
+    "speaker": "Interlocuteur 6",
+    "text": "est nécessaire. Effectivement, 15 votes. C'est à 100%. J'ai essayé de les voter. Non, j'étais très étonné qu'elles soient aussi votées. Moi, j'ai hésité aussi. C'est extrêmement confiant.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'est",
+      "J'ai",
+      "les",
+      "C'est"
+    ]
+  },
+  {
+    "start": 315.71,
+    "end": 402.75,
+    "speaker": "Interlocuteur 3",
+    "text": "Effectivement. Moi, j'étais très étonné de ces votants. Ça va finir en résumé du débat, ça. ça c'est Interlocuteur 3, c'est à toi. Je suis d'accord avec ce que tu disais sur le système judiciaire et le système carcéral. Je pense pas que c'est plus une question de ressenti, j'ai aussi l'impression que le système est un peu du tout optimal. J'ai l'impression que le système global et le système systémique, c'est... ça va viser souvent les mêmes personnes, en fait, et du coup, ne rien changer à la situation. Si quelqu'un, ouais, ça, SDF, et va avoir une paye de 500€, qu'est-ce qu'il va faire ? Il ne va pas plus la payer et ça ne va pas plus l'aider. Il y a de très grandes chances qu'il reprenne face pareil, qu'il revole. En vrai, c'est logique. Et donc je ne comprends pas ce qu'on résout à ça. Je suis d'un point de vue que le système s'acharne sur une personne sans du tout les aider. Et je pense qu'on va pouvoir gagner sur ça. C'est peut-être que ça s'éloigne du sujet de la... — Mais par contre, tu penses que la prison est nécessaire, quand même, vu que tu as voté là-dessus ? — Oui, c'est juste que la question était trop sérieuse. Oui, les prisons sont nécessaires pour des catégories particulières. Voilà. Pour des personnes qui seraient dangereuses pour la société, oui, c'est important pour moi de ne pas les laisser libres, quoi. Voilà. Homicide, viol, juste comme ça. Mais bon, si tu",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de",
+      "ça",
+      "Je",
+      "pas",
+      "un",
+      "du",
+      "global",
+      "c'est...",
+      "Si",
+      "ça,",
+      "et",
+      "va",
+      "qu'est-ce",
+      "et",
+      "face",
+      "Et",
+      "je",
+      "d'un",
+      "point",
+      "une",
+      "—",
+      "Oui,",
+      "c'est",
+      "Voilà.",
+      "juste"
+    ]
+  },
+  {
+    "start": 402.75,
+    "end": 428.57,
+    "speaker": "Interlocuteur 3",
+    "text": "le voles, si tu le voles quelque chose... Alors, tu vois, si tu voles de la nourriture dans un magasin, bon, d'une part, c'est pas vraiment un risque pour la société, c'est très problématique, et donc la question c'est plutôt pourquoi tu voles, enfin, il y a des raisons derrière, tu peux pas te voler au kiff. Donc souvent, ces personnes-là, c'est parce qu'ils ont pas vraiment le choix, et donc il faut trouver un moyen de savoir comment faire pour ne pas... Je crois que ça reste comme ça, quoi. Très bien.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "quelque",
+      "Alors,",
+      "c'est",
+      "enfin,",
+      "peux",
+      "te",
+      "Je"
+    ]
+  },
+  {
+    "start": 431.91,
+    "end": 491.47,
+    "speaker": "Interlocuteur 5",
+    "text": "Donc, Interlocuteur 5 ? Oui, donc, pour brancher le point de maissance, en fait, c'est un peu une situation de, je ne dirais pas de tribalisme, mais c'est comme si une certaine catégorie voit juste le système comme étant, c'est juste à le punir, en fait, c'est un peu, ça crée un peu le sentiment de c'est nous contre vous, des trucs comme ça, qui déjà créent une sorte de tension dans la société, et que réellement ce sont des personnes que l'on a marginalisées et que réellement on n'a pas créé d'autres voies pour eux que ce soit pour le travail, pour l'intégration et que justement dans les quartiers prioritaires, réellement ils ne sont pas vraiment prioritaires. Je pense que la situation, ça pourrait se corriger par une intégration dans le milieu du travail. C'est tout. D'accord, intéressant.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Oui,",
+      "le",
+      "c'est",
+      "et",
+      "Je",
+      "C'est"
+    ]
+  },
+  {
+    "start": 492.69,
+    "end": 510.79,
+    "speaker": "Interlocuteur 1",
+    "text": "[prénom] ? On va dire sur l'état dont tu as parlé, on peut se rendre compte qu'on est en avant au tribunal. C'est vrai que les gens ont beaucoup entendu parler de personnes comme ça, qui sont en routine civiliste, qui reviennent tout le temps. C'est souvent des petits délits, mais quand même, des fois c'est que les vols... le",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "On",
+      "dire",
+      "on",
+      "peut",
+      "se",
+      "rendre",
+      "avant",
+      "ont",
+      "beaucoup",
+      "routine",
+      "C'est",
+      "que",
+      "le"
+    ]
+  },
+  {
+    "start": 510.79,
+    "end": 516.03,
+    "speaker": "Interlocuteur 4",
+    "text": "mec que j'ai peut-être en question c'était pour pour vol, proxénétisme, vente de drogue",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "peut-être",
+      "pour",
+      "pour"
+    ]
+  },
+  {
+    "start": 518.69,
+    "end": 590.72,
+    "speaker": "Interlocuteur 1",
+    "text": "en vrai c'est une question des fois c'est malheureusement peut-être pas la prison je suis d'accord avec le grand coachant qui est la chose principale à faire ou en tout cas pour aider ces personnes qui sont de cet emménage de ce cercle vicieux mais justement un vrai accompagnement pour personne par personne, pour essayer de les réinsérer dans le monde du travail qui est essentiel pour la réussite sociale de quasiment tout le monde. Malheureusement, je pense que jamais de la vie n'aura les fonds suffisants qui seront débloqués pour ce genre de démarche. Et donc, aujourd'hui, on utilise entre guillemets seulement le bâton. Et il y a... Ah non, celui-là, je ne l'ai pas. Le bâton n'est jamais entre guillemets la carotte, même si, bien évidemment, on ne prend pas les gens pour des âges. Mais le bâton, il coûte cher aussi. Tu peux le dire avec moi. Ah, je suis désolé. On va dire le prochain. Je pense que le bâton coûte plus cher que la carotte. Après, tu peux revoir le calcul. Je n'ai pas les chiffres en tête. Je n'ai pas de data, mais certainement qu'Interlocuteur 6 qui",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "question",
+      "des",
+      "coachant",
+      "de",
+      "mais",
+      "pour",
+      "dans",
+      "le",
+      "qui",
+      "Et",
+      "entre",
+      "il",
+      "Ah",
+      "non,",
+      "celui-là,",
+      "Le",
+      "bien",
+      "On",
+      "dire",
+      "que",
+      "la",
+      "tu",
+      "les"
+    ]
+  },
+  {
+    "start": 590.72,
+    "end": 653.18,
+    "speaker": "Interlocuteur 6",
+    "text": "a la parole a les datas. En 5 secondes, parce que ça explique beaucoup de mes positions, je viens d'une famille de magistrats où j'ai beaucoup apprécié à tous les yeux, il y a la justice et à comment condamner. Donc sur certains points, j'ai du recul, sur d'autres points, je suis aussi empris de la vie, mais le long terme de moi, c'est des points négatifs. Sauf que ça coûte plus cher, c'est très très peu consensuel. C'est-à-dire qu'on ne sait pas. Tu peux trouver des économistes qui ont fait des études et qui ont fait un plan de vie, des économistes qui ont fait un étude et qui ont fait un plan de vie. dans les pays voisins, genre en Belgique ou en Finlande, on bat deux fois moins qu'en France. Il y a deux fois moins de ramaux de la population, il y a deux fois moins de gens qui sont en paix. Il n'y a pas deux fois plus d'insécurité et leur budget de la justice n'est pas deux fois plus haut, deux fois plus bas. Juste que leur budget que nous, on met dans les prisons, il y a sans cesse construire de nouvelles places de prison, de pouvoir louer des places de prison aux voisins. On est à 140% d'occupation, on récupère 200, on loue des places aux voisins, c'est beaucoup de l'argent. Je crois qu'on est quand même arrivé au bout de ce système-là, avec le même budget. ils arrivent à être dans un processus beaucoup plus accompagnement et donc on entend souvent l'idée de dire qu'on a un",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "En",
+      "parce",
+      "de",
+      "où",
+      "j'ai",
+      "du",
+      "le",
+      "terme",
+      "des",
+      "qu'on",
+      "fait",
+      "ont",
+      "un",
+      "plan",
+      "de",
+      "dans",
+      "bat",
+      "ramaux",
+      "la",
+      "qui",
+      "et",
+      "de",
+      "ils",
+      "et"
+    ]
+  },
+  {
+    "start": 653.18,
+    "end": 698.52,
+    "speaker": "Interlocuteur 6",
+    "text": "manque de moyens dans l'accompagnement ça c'est vrai mais on n'a pas forcément un manque de moyens sur cette partielle de la justice puisque les moyens ne sont pas du tout au bon endroit du coup j'ai envie de revenir sur on a besoin de la prime oui il y a des crimes il y a des gens qui sont des dangers pour la société effectivement on ne peut pas j'adorerais on ne peut pas. Mais les crimes, ça reste une toute, toute, toute, toute petite partie de l'affaire. Et les gens que tu as vus qui sont une énorme partie de l'affaire, ils mutilent à ces divistes, ils les envoient en prison pendant un an, ça, ça coûte cher déjà. Ensuite, ça les met en contact avec une autre criminalité qui peut être plus grosse, donc ça peut les emmener dans ce cursus. Et donc, je pense que les personnes qui sont dans la prison, pour 99% des affaires, c'est non.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "ça",
+      "partielle",
+      "puisque",
+      "ne",
+      "du",
+      "prime",
+      "on",
+      "ne",
+      "qui",
+      "personnes",
+      "qui",
+      "sont"
+    ]
+  },
+  {
+    "start": 702.23,
+    "end": 747.15,
+    "speaker": "Interlocuteur 7",
+    "text": "Donc Interlocuteur 7 va répondre. Oui, je voulais revenir sur des trucs qui ont été dit avant. Interlocuteur 3 qui a parlé de voler pour le plaisir. En vrai, je crois que ça se fait un peu quand même. Alors j'ai connu des gens qui le faisaient un peu après, je ne sais pas, donc ils reprennent son coup. Je pense que ça se fait un peu quand même. Mais en provençant, je ne sais pas. Sinon, c'est quoi ton prénom ? Interlocuteur 5. Interlocuteur 5, tu avais parlé de quartier prioritaire marginalisé. En vrai, je ne pense pas du tout. Parce que quartier prioritaire, tu entends genre... Tu peux définir ou pas ce que tu entends ? En tout cas, il y a les plus verts actuellement, c'est quartier... Genre quartier défavorisé ? Ouais, c'est ça. C'est des quartiers qui ont certains critères qui... Les zones",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Donc",
+      "Interlocuteur 7",
+      "Oui,",
+      "ont",
+      "Alors",
+      "donc",
+      "reprennent",
+      "Parce",
+      "Ouais,",
+      "Les"
+    ]
+  },
+  {
+    "start": 747.15,
+    "end": 748.23,
+    "speaker": "Interlocuteur 6",
+    "text": "d'éducation prioritaires, ça peut",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 748.23,
+    "end": 757.97,
+    "speaker": "Interlocuteur 5",
+    "text": "être... Ouais, bon, les écoles, ça peut être... Le classement, en fait, il a été fait par ce base du PIB, du revenu par habitant, en fait. Il n'y a pas d'autres données prises en compte.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "ce"
+    ]
+  },
+  {
+    "start": 759.55,
+    "end": 827.45,
+    "speaker": "Interlocuteur 7",
+    "text": "du coup je ne pense pas du tout qu'il soit marginalisé par exemple en Ile-de-France tu penserais à Saint-Denis des trucs comme ça en vrai je trouve que c'est quand même des endroits où tu as beaucoup d'infrastructures donc je ne pense pas qu'il soit marginalisé et sinon concernant la réinsertion dans le travail je suis plutôt d'accord sur le fait que c'est compliqué parce qu'en fait le code du travail je trouve qu'il est trop rigide Par exemple, si tu veux un taf, il te faut un justificatif de domicile et on te demande plein d'infos et du coup, ça complexifie le truc. Et pour avoir un domicile, tu dois avoir un travail. Du coup, c'est compliqué et c'est un peu impossible à rentrer. Du coup, je pense que le problème, il est un peu là et il faudrait faciliter justement l'accès au travail d'un point de vue réglementaire. De manière générale, si tu n'as pas de domicile et que tu ne dois pas fournir de papiers de domicile, ça va être quand même compliqué d'avoir un travail. C'est-à-dire qu'en général, quand on voit les personnes sans domicile fixe, d'abord il faut qu'elles aient un logement, et ensuite elles peuvent essayer de trouver un travail. Oui, mais pour avoir un logement, c'est mieux si tu es en taf. Les procurés, ils n'accèdent pas souvent. C'est pour ça que c'est compliqué. Quand tu n'as aucun des deux, tu es un peu... Et du coup, il faudrait que ce soit plus simple d'accéder.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "du",
+      "ne",
+      "par",
+      "des",
+      "en",
+      "Par",
+      "et",
+      "et",
+      "C'est-à-dire",
+      "les",
+      "il"
+    ]
+  },
+  {
+    "start": 827.69,
+    "end": 859.77,
+    "speaker": "Interlocuteur 7",
+    "text": "Parce que pourquoi c'est compliqué d'accéder... Accéder au logement ou au travail ? Les deux. Parce qu'en fait, pourquoi c'est compliqué d'accéder ? Parce qu'en fait, c'est compliqué de te virer derrière. Du coup, personne ne veut prendre les risques. que ce soit pour table ou logement. Alors que si tu fluidifies en facilitant les changements, tu fluidifies le truc en fait. Et donc du coup, en fait quand t'as beaucoup de barrières à la sortie, les gens mettent beaucoup de barrières à l'entrée parce qu'ils ont peur de se retrouver avec des gens chiants bloqués à l'intérieur. Du coup en facilitant diriger des gens de son logement ou diriger des gens du travail, ça faciliterait l'entrée et donc ça fluidifierait le truc. Et donc ça donnerait plus de chance aux gens qui n'y ont aucun doute.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "que",
+      "table",
+      "en",
+      "t'as",
+      "diriger",
+      "des",
+      "doute."
+    ]
+  },
+  {
+    "start": 860.13,
+    "end": 880.35,
+    "speaker": "[?]",
+    "text": "Très bien. Donc du coup je vais donner la parole à Interlocuteur 3. Je tiens donc là et vous êtes trois dans la demander la parole sur le sujet actuel on fait quand même des petits trucs croisés donc si jamais vous voulez parler d'autres choses que ce dont il y est ça a parlé le mieux c'est quand même vous mettre dans la file d'attente prendre la parole sur le sujet et de mettre le sujet donc Interlocuteur 3 je sais pas si tu voulais répondre directement il y est non",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "êtes",
+      "demander",
+      "est",
+      "le",
+      "il",
+      "y",
+      "non"
+    ]
+  },
+  {
+    "start": 880.35,
+    "end": 890.07,
+    "speaker": "Interlocuteur 3",
+    "text": "pas directement c'était plutôt un truc qu'il y avait avant c'était plutôt quand on parlait de la nécessité de la prison et la nécessité de garder les gens en prison du coup je sais pas si vous",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "qu'il",
+      "c'était",
+      "du",
+      "vous"
+    ]
+  },
+  {
+    "start": 890.07,
+    "end": 901.69,
+    "speaker": "[?]",
+    "text": "préférez parler de quoi vous préférez parler de sujet de l'accès de l'emploi et de cette politique ou de la nécessité de la prison ? De toute façon, ça nous en met assez loin. Quoi ? L'accès à l'emploi ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "vous",
+      "De",
+      "ça",
+      "met"
+    ]
+  },
+  {
+    "start": 902.23,
+    "end": 913.17,
+    "speaker": "Interlocuteur 6",
+    "text": "La question que tu poses, c'est est-ce qu'on a intérêt à faire sauter une partie des choses qui protègent les employés et les employeurs pour s'amplifier tout ça ? Et ça nous emmène assez loin dans la question. Je trouve que la question est très bien. C'est",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "La",
+      "Je",
+      "est",
+      "bien.",
+      "C'est"
+    ]
+  },
+  {
+    "start": 913.17,
+    "end": 921.37,
+    "speaker": "[?]",
+    "text": "intéressant. Du coup, ce que je propose, c'est que tu mettes, ou que quelqu'un qui veut lui répondre, je veux parler, enfin, fil de la temps, prendre la parole",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "fil"
+    ]
+  },
+  {
+    "start": 921.37,
+    "end": 930.65,
+    "speaker": "Interlocuteur 7",
+    "text": "sur un autre sujet, tu m'aides le sujet et qu'ensuite on passe là dessus ok ça te va très bien du coup Interlocuteur 3 je te donne à part ouais c'était sur sur",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "tu",
+      "m'aides",
+      "te",
+      "du",
+      "à",
+      "ouais",
+      "sur"
+    ]
+  },
+  {
+    "start": 930.65,
+    "end": 1016.63,
+    "speaker": "Interlocuteur 3",
+    "text": "l'intérêt que ça peut avoir en fait d'avoir autant de gens qui sont utilisés un article dans le monde diplomatique c'est de vivre et mourir en cellule de charlotte et en gros elle parle du fait que les populations dans les sept ans les les prisons américaines sont très vieillissantes, en fait. Donc il y a une beaucoup plus grosse part de personnes âgées dans les prisons qu'avant. Par exemple, en 1981, c'était 3%. Maintenant, c'est plutôt proche des 16%. Dans 2022, donc ça va être pire maintenant. Et qu'il y a parfois, dans certains États, 30% de la population carcérale qui a plus de 50 ans. Pourquoi je dis ça ? C'est parce que, dans la suite de l'article, En fait, ils disent que les personnes qui avaient plus de 65 ans qui étaient libérées, ils avaient 13% de chance de faire des récidives, contre 70% pour les gens qui avaient 21 ans, pour les jeunes. Donc en gros, que globalement, les libérés, ces gens-là, il y a assez peu de chances qu'ils reviennent. Donc c'est plus vraiment des problèmes pour la société. Et aussi que les garder en prison, ça coûte très très cher, parce qu'il faut payer pour leur droit de santé. Parce que là, si vous êtes en prison, effectivement, on va payer tout pour vous parce que vous n'avez rien. Et donc, il y avait un truc qui pouvait être intéressant sur le fait de réformer le système carcéral, dont le fait, justement, à partir d'un moment, c'est ce qu'ils",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "l'intérêt",
+      "qui",
+      "sont",
+      "le",
+      "de",
+      "et",
+      "et",
+      "du",
+      "sept",
+      "les",
+      "1981,",
+      "Dans",
+      "2022,",
+      "de",
+      "En",
+      "ils",
+      "Parce",
+      "êtes",
+      "effectivement,",
+      "va",
+      "payer",
+      "parce"
+    ]
+  },
+  {
+    "start": 1016.63,
+    "end": 1037.61,
+    "speaker": "Interlocuteur 3",
+    "text": "proposaient, le Medical Parole aux Etats-Unis, mais qui n'est pas appliqué, logiquement, mais qui permet d'être libéré à partir, pas d'un s'internage, mais en gros pour des raisons médicales. C'est peut-être dû donner un point de la parole pour un sujet. Très bien.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "s'internage,",
+      "pour",
+      "C'est",
+      "peut-être",
+      "dû"
+    ]
+  },
+  {
+    "start": 1037.79,
+    "end": 1122.27,
+    "speaker": "Interlocuteur 2",
+    "text": "Interlocuteur 2, c'est à toi. Du coup, je confirme, effectivement, c'est un moyen très intéressant d'optimiser la gestion de ce système d'incarcérage. Mais aussi, il faudrait juancer, parce que c'est quand même une partie assez dynamique de la vie que l'on peut passer en prison. Même si on est libéré à 35 ans, ça a quand même des répercussions parce qu'on sentait son accomplissement de temps qu'on a perdu, entre autres. Mais après, effectivement, c'est efficace en termes de résultats. On peut bien le concevoir. Après, plutôt que de continuer dans la logique de, entre guillemets, réparer les conséquences de jeunes qui se multiplient, des récidivistes, etc., pourquoi on ne pourrait pas revenir sur la cause ? Il y a ça dit que, oui, il y a beaucoup d'infrastructures dans les quartiers, etc. Certes, mais je pense que l'on pourrait toujours implémenter une politique. Je pense que ça serait plus rentable financièrement de continuer dans cette politique-là, plutôt que d'agrandir les prisons. Et au-delà de ça, une politique qui s'inspire par exemple du New Deal proposé par Roosevelt il y a un siècle environ, qui crée des industries souveraines et qui appartiennent à l'État, Est-ce qu'il y aurait plus cette logique d'un CD très solide avec un casier judiciaire blanc pour avoir un prénom de médecin, ce qui faciliterait l'introduction professionnelle des gens qui sont sensibles, qui peuvent",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Du",
+      "d'incarcérage.",
+      "Mais",
+      "que",
+      "parce",
+      "sentait",
+      "de",
+      "de",
+      "jeunes",
+      "des",
+      "Il",
+      "ça",
+      "Je",
+      "ça",
+      "du",
+      "et",
+      "Est-ce"
+    ]
+  },
+  {
+    "start": 1122.27,
+    "end": 1156.79,
+    "speaker": "Interlocuteur 2",
+    "text": "être enclin à faire des crimes ? Dans des grands travaux du type politique de Roosevelt ou des grandes relances, il n'y a pas besoin d'avoir des casiers blancs, notamment pour être fonctionnaire. Je crois qu'il y a des obligations de ne pas avoir... Le travail manuel, je pense, je ne suis pas parfaitement sûr, mais en tout cas, je pense que la sélection n'était pas aussi bien. Ah oui, d'accord. C'est-à-dire plus de travaux avec une valeur ajoutée moyenne, et donc du coup, moins de nécessités. D'accord.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Le",
+      "aussi",
+      "bien.",
+      "C'est-à-dire"
+    ]
+  },
+  {
+    "start": 1156.93,
+    "end": 1161.73,
+    "speaker": "Interlocuteur 3",
+    "text": "Pour un intérêt général. C'est pas utile. C'est des autoroutes, c'est des bâtiments, c'est tout ça. Oui,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'est",
+      "C'est"
+    ]
+  },
+  {
+    "start": 1161.73,
+    "end": 1163.51,
+    "speaker": "Interlocuteur 2",
+    "text": "c'est ça, en fait. C'est des... Oui, d'accord. Je viens d'avance.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "C'est",
+      "viens",
+      "d'avance."
+    ]
+  },
+  {
+    "start": 1165.61,
+    "end": 1242.07,
+    "speaker": "Interlocuteur 6",
+    "text": "Interlocuteur 6 ? Sur le fait qu'il y ait une population réticente, aux US, comme vous le savez, on peut prendre 300 ans de prison. En France, le maximum que tu puisses prendre, le maximum, c'est ce qu'on appelle la partie réelle, c'est 20 ans de surplus. C'est-à-dire qu'après 20 ans, tu es libère. Tu ne peux pas prendre plus... Il y a des gens qui ne vont pas jamais sortir. Mais le juge ne peut pas dire, OK, il est là pour plus de 20 ans, et dans les faits, c'est bien qu'un. Donc en gros, une idée intéressante, mais en France, je pense que c'est basé un peu, vraiment assez peu à l'échelle, parce que, et justement comme tu le dis, comme s'il y avait une forme de maturité indirectement, les gens ont tendance, on observe moins des phénomènes résidus après un certain âge, la population est relativement faible. sur les investissements sur les investissements et l'ex-travail et vos deux points qui sont aussi différents sur les investissements moi ça m'interroge beaucoup parce que actuellement c'est beaucoup d'argent qui part c'est à dire qu'il y a beaucoup d'argent qui est investi pour améliorer des conditions qui sont assez déplorables qui sont investies dans les zones de l'éducation prioritaire qui sont investies dans des zones dans des programmes et il est très dur de mesurer les effets de ces investissements c'est à dire qu'on a besoin de ces investissements Mais la question que",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Sur",
+      "aux",
+      "US,",
+      "comme",
+      "surplus.",
+      "vont",
+      "Donc",
+      "un",
+      "à",
+      "l'échelle,",
+      "comme",
+      "faible.",
+      "sur",
+      "sur",
+      "et",
+      "et",
+      "des",
+      "zones",
+      "l'éducation",
+      "dans",
+      "Mais"
+    ]
+  },
+  {
+    "start": 1242.07,
+    "end": 1294.19,
+    "speaker": "Interlocuteur 6",
+    "text": "je me suis beaucoup posée, c'est à quel point est-ce qu'on construit l'avenir ou à quel point est-ce qu'on achète une paix sociale ? Est-ce que lancer de l'argent quelque part, à court terme, t'achètes la paix sociale ? Et ce qui me dure, c'est de voir est-ce qu'en lançant de l'argent quelque part, à court terme, à long terme, tu construis quelque chose ? Et là, je n'ai pas du tout la réponse. Et donc, c'est pour ça que, à priori, je suis d'accord avec l'idée que c'est toujours plus intérêt à investir dans les infrastructures, dans ces endroits, d'où va sortir une partie non négligeable de la criminalité parce que vous notez bien qu'on est à Versailles on n'a pas les mêmes probabilités de finir en prison que quand on est au bout de l'année 93 et du coup je vous pose la question sur ces efficacités là, elles sont très très dures à mesurer du coup je pense que c'est un point intéressant et sur l'importance de réinsérer dans le monde du travail c'est les mêmes problématiques, c'est qu'on sait que c'est très efficace de réinsérer ça on va peut-être en parler avec la protection du salarié de l'inconnu",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "suis",
+      "à",
+      "t'achètes",
+      "je",
+      "les",
+      "ces",
+      "d'où",
+      "parce",
+      "qu'on",
+      "on",
+      "mêmes",
+      "de",
+      "l'année",
+      "93",
+      "c'est",
+      "qu'on",
+      "de",
+      "l'inconnu"
+    ]
+  },
+  {
+    "start": 1296.19,
+    "end": 1300.01,
+    "speaker": "Interlocuteur 2",
+    "text": "une valeur économique dans les investisseurs en france",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "une",
+      "dans",
+      "en"
+    ]
+  },
+  {
+    "start": 1305.05,
+    "end": 1309.93,
+    "speaker": "Interlocuteur 2",
+    "text": "aussi réunis plus si de manière à ce que ce passe mieux",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "aussi",
+      "réunis",
+      "de",
+      "à",
+      "ce",
+      "ce",
+      "mieux"
+    ]
+  },
+  {
+    "start": 1312.21,
+    "end": 1362.27,
+    "speaker": "Interlocuteur 6",
+    "text": "acheter la paix sociale à court terme ça plein mais on peut légitimement de la vision par exemple il faut d'abord qu'on soit les logements sociaux dans les années oula, on va essayer de ne pas se tromper de décennie, mais c'est 70-80, on a conclu tout en parlant de... Ouais. Ce que ça a donné, c'est que ça a donné une hyperconcentration des logements sociaux dans certaines villes. C'est là à l'époque où il y avait les maires de gauche, les maires qui étaient à l'époque communistes ou les maires de gauche, et qui ont accepté de, avec cet argent qui était financé par l'État, de construire ces immenses villes qui sont devenues ces immenses cités. Et donc on a donné beaucoup d'argent, on a résolu une partie de la queue de logement, mais 50 ans plus tard de notre pendule, on a créé des cités. Et donc si un biais sur l'argent indirectement, c'est créer les cités de demande, je ne sais pas si on a gagné. Et donc la question c'est comment réussir cet argent ? Je n'ai pas la réponse.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "acheter",
+      "court",
+      "on",
+      "vision",
+      "il",
+      "faut",
+      "d'abord",
+      "qu'on",
+      "les",
+      "oula,",
+      "ne",
+      "de",
+      "tout",
+      "en",
+      "de...",
+      "à",
+      "ou",
+      "queue",
+      "si",
+      "un",
+      "demande,",
+      "Et"
+    ]
+  },
+  {
+    "start": 1363.73,
+    "end": 1385.79,
+    "speaker": "[?]",
+    "text": "Je vois. Et notamment sur la criminologie, il y a souvent une tentative pour les ministères de l'Intérieur qui sont moins de 5 ans en place en théorie, d'agir plus sur le moment que sur dans mon terme ça c'est un problème d'incentive de l'argent politique voilà c'est de manière générale l'appareil politique et conférence [prénom]",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Je",
+      "dans",
+      "de",
+      "l'argent",
+      "voilà",
+      "conférence"
+    ]
+  },
+  {
+    "start": 1395.63,
+    "end": 1480.39,
+    "speaker": "Interlocuteur 1",
+    "text": "Je pense qu'il serait intéressant de comparer des zones plus compliquées avec, par exemple, les quartiers, se poser la question, qu'est-ce qui est différent ? Je pense que c'est juste une question d'argent. Moi, je ne pense vraiment pas. C'est surtout une question d'éducation, en réalité. Et peut-être que mettre de l'argent dans un super bar ou un super terrain de foot, ce n'est peut-être pas la meilleure des choses, mais aussi ça coûte beaucoup moins cher que de réellement créer cette culture scolaire, de suivi, après les cours, d'activité culturelle. C'est vraiment ça qui va, pour moi, éveiller un maximum les populations et les éloigner un maximum, je pense, des crimes en général de la délinquance. Après, est-ce que c'est si évident que ça d'atteindre, enfin de donner tout ce patrimoine culturel uniquement avec l'argent ? c'est aussi là où on s'attaque à des problèmes en fait ça va dépendre aussi des parents eux-mêmes dans quelles conditions ils ont grandi quel capital culturel ils ont pu accumuler qu'est-ce qu'ils pourront transmettre à leurs enfants et ainsi de suite donc c'est sûr qu'il va falloir commencer à changer ça un jour ou l'autre mais pour en avoir vraiment je pense des conséquences des résultats vraiment pas de temps",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "pense",
+      "de",
+      "se",
+      "Je",
+      "ne",
+      "bar",
+      "créer",
+      "culture",
+      "C'est",
+      "c'est",
+      "en",
+      "quel",
+      "je",
+      "des",
+      "pas",
+      "de",
+      "temps"
+    ]
+  },
+  {
+    "start": 1483.87,
+    "end": 1485.85,
+    "speaker": "Interlocuteur 1",
+    "text": "du coup moi j'avais entendu par rapport",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "du",
+      "moi"
+    ]
+  },
+  {
+    "start": 1485.85,
+    "end": 1489.11,
+    "speaker": "[?]",
+    "text": "à ça une espèce de proposition c'était que par exemple",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 1489.11,
+    "end": 1489.33,
+    "speaker": "Interlocuteur 7",
+    "text": "on",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 1489.33,
+    "end": 1504.55,
+    "speaker": "[?]",
+    "text": "met certains quotas dans des lycées favorisés pour avoir des personnes de lycées défavorisées du coup pour faire de la mixité sociale et du coup pour donner de l'éducation et inversement faire ça est-ce que ça serait quelque chose qui te parlerait dans ce que tu viens de dire ou",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "certains",
+      "du",
+      "est-ce",
+      "serait"
+    ]
+  },
+  {
+    "start": 1504.55,
+    "end": 1542.83,
+    "speaker": "Interlocuteur 1",
+    "text": "t'en sais rien en fait ça existe déjà un peu le grand lycée public comme ça, accepte chaque année quelques petites élites, élites je parle scolaires, des banlieues où en fait vraiment le mec qui était un petit génie qui avait 19 de moyenne il sera accepté. Et je pense qu'en général si on ouvre ça, c'est ce qui va se passer en fait. Il y aura tous les très bons lycées parisiens qui vont aller prendre les 2-3 génies. alors ok, vous êtes des droits génie à pouvoir plus facilement intégrer mais en général je pense pas que ça va être plus difficile tu",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "le",
+      "comme",
+      "je",
+      "où",
+      "il",
+      "alors",
+      "ok,",
+      "êtes",
+      "mais",
+      "je",
+      "difficile"
+    ]
+  },
+  {
+    "start": 1542.83,
+    "end": 1619.59,
+    "speaker": "Interlocuteur 6",
+    "text": "voulais réagir ? actuellement, la seule obligation que je connaisse la seule, c'est qu'il y a un quota de logements sociaux pour nous si tu n'as pas N logements sociaux pour nos habitants tu dois payer des amends c'est combien ? je ne connais pas le quota j'ai deux cas de figure la nourrissage en prendre quatre figures extrêmes on prend de lier versailles mais il va peut-être pas que le fonds sociaux et versailles versailles qu'est ce qu'ils font dans nos logements sociaux tous les logements de militaires on a beaucoup beaucoup de logements sociaux à versailles on est largement au dessus des gothards on n'a que des militaires donc les rares choses qui ont été mises en place là dessus sur forcer l'amnistie et je pour moi c'est une des meilleures solutions parce que quand tu implantes un endroit Quand tu implantes des HLM au milieu de maquillage, quand tu arrives à le faire, parce que c'est une difficulté sans nom, ces gens-là vont bénéficier indirectement d'un environnement qui ne les mènera jamais vers la prison. Jamais. Même en venant de familles pauvres, en fait, indirectement, tu bénéficies du cadre culturel qu'on a passé là-dessus, qui va t'amener vers faire autre chose. Mais actuellement, ce n'est pas le cas. Ce n'est pas fait. Et je pense que politiquement, pour le faire, on ne s'appliquerait vraiment à un gros, gros, gros projet. je",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "la",
+      "pour",
+      "nous",
+      "si",
+      "amends",
+      "je",
+      "ne",
+      "connais",
+      "la",
+      "quatre",
+      "on",
+      "de",
+      "il",
+      "va",
+      "peut-être",
+      "pas",
+      "que",
+      "fonds",
+      "qu'est",
+      "dans",
+      "nos",
+      "de",
+      "n'a",
+      "donc",
+      "qui",
+      "l'amnistie",
+      "Quand",
+      "quand",
+      "qu'on",
+      "Mais",
+      "projet.",
+      "je"
+    ]
+  },
+  {
+    "start": 1619.59,
+    "end": 1634.29,
+    "speaker": "Interlocuteur 1",
+    "text": "voudrais juste corriger ce que j'ai dit tout à l'heure moi je parlais vraiment d'un point de vue lycée et ça existe vraiment que dans deux lycées et vraiment j'ai dit les deux parce que j'avais un reportage devant eux, ils ouvraient leur liste à quelques-unes de",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "moi",
+      "d'un",
+      "point",
+      "les",
+      "devant",
+      "de"
+    ]
+  },
+  {
+    "start": 1634.29,
+    "end": 1665.89,
+    "speaker": "Interlocuteur 6",
+    "text": "mon point de vue ça ça entretient encore plus les lits parce que du coup il n'y a que deux lycées qui permettent d'avoir les meilleurs étudiants de France H4 et LLG LLG c'est comme ça qu'ils sont chaque année très très longs c'est la meilleure classe en maths parce qu'il faut s'entendre Et parce qu'il y a des mecs très formats qui laissent partout, heureusement qu'ils ne laissent pas que Paris. Et toi, du coup, tu ne parlais pas que pour le lycée, c'est de manière générale pour... Pour moi, le lycée, pour les trois personnes qui vont aller le devant, c'est bon. Mais le problème, c'est que si tu veux réussir à globaliser un petit peu, pour moi, il faut aller au-delà de simplement l'aspect académique. Je pense qu'on est d'accord.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ça",
+      "lits",
+      "c'est",
+      "faut",
+      "Et",
+      "parce",
+      "formats",
+      "qu'ils",
+      "Paris.",
+      "Je",
+      "est",
+      "d'accord."
+    ]
+  },
+  {
+    "start": 1668.07,
+    "end": 1750.11,
+    "speaker": "Interlocuteur 3",
+    "text": "Interlocuteur 3 ? Oui, pour le moment, je vais me parler d'autres choses à la base. Je vais revenir sur ce que vous venez de dire. plusieurs trucs. Premièrement, l'affectation dans les collèges et lycées sur Paris, c'est principalement sectoriel. Ça veut dire que, en particulier, les logements sociaux comptent énormément, parce que, si t'es dans le secteur d'Henri IV, tu vas en H4. C'est un collège et lycée gratuit. Voilà, donc ça, ça existe déjà. Évidemment, si t'es dans le 93, tu as une très bonne chance d'aller en H4. Et après, sur les logements sociaux, c'est quand même ce que je connais du coup de ce qu'est l'affaire générale pour le logement dans la ville de Paris, et donc c'est un truc qui est une question essentielle en fait, les logements sociaux, et en fait on ne se rend pas compte qu'il y en a beaucoup de logements sociaux à Paris, alors évidemment on peut en voir plus, je n'ai pas d'avis sur la donnée sur ça, mais il y en a beaucoup, et justement dans le centre de Paris, ça a amené à des personnes, des bâtiments entiers, des logements, qui ne sont pas les HLM que l'on peut connaitre dans les cités, ce sont des bâtiments classiques, on ne pourra pas reconnaitre que ça appartient à une ville de Paris, et il y a des familles qui s'appellent Clarme et qui, en fait, ont une performance, et qui donnent la possibilité d'accéder aux écoles de vendeurs qui sont là. Par contre,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Oui,",
+      "pour",
+      "me",
+      "plusieurs",
+      "Ça",
+      "t'es",
+      "d'Henri",
+      "tu",
+      "Voilà,",
+      "dans",
+      "Et",
+      "sociaux,",
+      "quand",
+      "de",
+      "dans",
+      "la",
+      "c'est",
+      "peut",
+      "voir",
+      "la",
+      "a",
+      "des",
+      "qui",
+      "que",
+      "les",
+      "ce",
+      "pourra",
+      "une",
+      "qui",
+      "s'appellent",
+      "Clarme",
+      "et",
+      "ont",
+      "une",
+      "performance,"
+    ]
+  },
+  {
+    "start": 1750.11,
+    "end": 1784.27,
+    "speaker": "Interlocuteur 3",
+    "text": "évidemment, moi je pense que c'est une super idée comme concept, mais évidemment, c'est une minorité des gens qui en ont besoin. ont accès à ces choses là et donc la question c'est plutôt le système existe il y a très peu de gens au final la question c'est le 93 qu'est-ce qu'on fait si t'as ton logement social au 3ème arrondissement de Paris le finissement t'iras pas en prison t'y feras pas de vol pas de soucis mais le 93 ok yes",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "moi",
+      "ont",
+      "là",
+      "et",
+      "il",
+      "au",
+      "la",
+      "t'as",
+      "au",
+      "finissement",
+      "pas",
+      "ok"
+    ]
+  },
+  {
+    "start": 1785.13,
+    "end": 1875.91,
+    "speaker": "Interlocuteur 7",
+    "text": "ouais je voulais revenir sur sur les logements sociaux ? Moi, je trouve ça vraiment atroce, les logements sociaux. Parce que... Elle aime, elle a développé un dossier. Plusieurs points. Premier point, ça sert juste à acheter des électeurs. Deuxième point, c'est bourré de corruption. Troisième point, comme les promoteurs immobiliers, donc ceux qui construisent les logements sociaux, ça veut dire que pour rentable, ils sont obligés de faire payer les autres plus cher. ça veut dire que merci et donc et donc du coup ça va juste du coup juste les gens qu'on parle sur le logement social ils vont juste payer plus cher leurs trucs parce que ils vont devoir payer la renta qui est perdue par le vendeur du logement social et dernier point quand il ya ton mère qui annonce qu'il va installer des logements sociaux à côté de chez toi ça pète les coups parce que globalement ça ramène des gens que t'as pas envie en fait plutôt que en fait en gros ce que vous dites c'est que c'est les quartiers bien qui vont influencer les gens dans l'agence sociale pour les élever alors qu'en vrai souvent c'est l'inverse ça veut dire c'est juste il y a plein de gens qui vont fuir des quartiers où il y a plein d'agences sociaux parce que l'ambiance elle est pas bien juste et du coup ça fait fure les eaux voilà Et juste, tu disais qu'il y avait beaucoup de corruption là-dedans, et donc ça, tu peux développer ? Tu",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "?",
+      "a",
+      "ça",
+      "ça",
+      "merci",
+      "qu'on",
+      "leurs",
+      "t'as",
+      "en",
+      "Et",
+      "juste,",
+      "et"
+    ]
+  },
+  {
+    "start": 1875.91,
+    "end": 1938.61,
+    "speaker": "Interlocuteur 7",
+    "text": "peux demander un logement social, ça prend une plombe, parce qu'il y a trop de demandes, bref. Et il y a de la corruption pour en obtenir un, ça veut dire que tu as juste, tu payes vite fait le mec qui s'occupe de l'attribution, et c'est bon, t'en as un, alors que ça se trouve, t'en as une même pour les autres, et tout. Et genre, il y avait des enquêtes là-dessus, il y avait Micode qui avait fait un truc là-dessus. Bref, il y a eu plusieurs trucs là-dessus, où il y a plein de corruption, en gros t'as juste à appeler le fonctionnaire qui s'occupe de ça et il te trouve un logement social machin et genre il y a l'ami du maire il a un logement social alors il a pas besoin il y a plein d'histoires comme ça sur des maires qui avaient toute leur famille dans un logement social alors que les types sont maires et tout il y a plein d'histoires comme ça et voilà sur la corruption et du coup moi je voulais juste je te donne la parole devant l'analyse et juste il y a un autre truc aussi c'est qu'une fois que t'as un logement social même si tes ressources elles s'améliorent tu peux le garder ça veut dire que t'as des gens dans un logement social ça fait super longtemps qu'ils sont là, ils en ont plus besoin mais comme ils sont déjà dedans, ils partent pas. Ils en ont plus du tout besoin. Ok et du coup moi je voulais aussi te demander mais ton point 2 et ton point 4 ils sont, j'ai l'impression",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "un",
+      "t'en",
+      "même",
+      "pour",
+      "les",
+      "en",
+      "t'as",
+      "et",
+      "te",
+      "a",
+      "un",
+      "il",
+      "il",
+      "devant",
+      "pas.",
+      "Ils",
+      "en",
+      "Ok",
+      "et",
+      "mais",
+      "ils"
+    ]
+  },
+  {
+    "start": 1938.61,
+    "end": 1971.72,
+    "speaker": "Interlocuteur 7",
+    "text": "opposés parce que tu dis c'est pour acheter des électeurs et à la fois ça casse les couilles si on met des trucs à côté. Ouais mais du coup aux autres ça veut dire que tu as été élu avec ce mandat quoi ? Oui mais t'as pas les voix des autres de toute façon. Oui mais en fait c'est juste électoraliste dans le sens vraiment comme montant. En fait, en faisant le logement social, tous les gens qui sont dans le logement social vont voter pour toi parce que tu fais pas le logement, donc juste t'achètes des bons. Encore, parce que ce principe des aides du coup je suis bouché. Très bien, du coup, Interlocuteur 2 ? Bah comme les retraites d'ailleurs, c'est le plus flacon, si tu comprends.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "parce",
+      "?",
+      "vraiment",
+      "En",
+      "pas",
+      "t'achètes",
+      "bons.",
+      "Encore,",
+      "principe",
+      "du",
+      "bouché.",
+      "Bah",
+      "flacon,"
+    ]
+  },
+  {
+    "start": 1972.6,
+    "end": 2055.18,
+    "speaker": "Interlocuteur 2",
+    "text": "Bah je pense qu'effectivement [prénom] a souligné un danger sous-jacent, le fait d'utiliser les HLM comme une passerelle sociale entre guillemets pour permettre aux gens dans certains milieux pauvres de leur donner une chance de s'insérer dans un autre milieu. parce qu'en effet, cela peut faire fuir les élites à l'étranger, je dis des gâteaux, des cerveaux. En l'occurrence, quand les élites ont peur pour leur sécurité ou ont peur que les critères d'urbanisme se dégradent, tout cela doit être bien cadré. Même d'avoir l'air de chambouler, de faire voler en vélo, etc. Donc, comme maintenir cette politique de passerelle sociale, dans lesquelles l'université en a besoin pour éduquer, insérer dans des cultures différentes les gens qui en ont besoin. Et sinon, pour revenir au cas des infrastructures, il n'y a pas que le système des HLM qui est important. Les infrastructures comme l'éducation et la santé sont très importants aussi, très importants. Mais aussi en France, la santé, bon, on se situe pas mal par rapport à beaucoup de pays. et sur le plan de l'éducation, par exemple, pour revenir à ce que tu as dit sur l'infrastructure de loisirs où, par exemple, on peut dépenser trop, l'État peut dépenser trop, donc ça, je l'ai vu, par exemple, au Maroc, il y a une part de la population qui est quand même consciente que tout ce qui est éducation, c'est critique et cela manque. Donc peut-être qu'en",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Bah",
+      "[prénom]",
+      "a",
+      "entre",
+      "parce",
+      "je",
+      "des",
+      "Même",
+      "l'air",
+      "etc.",
+      "Donc,",
+      "dans",
+      "l'université",
+      "Les",
+      "aussi,",
+      "Mais",
+      "aussi",
+      "bon,",
+      "se",
+      "et",
+      "l'État",
+      "peut-être"
+    ]
+  },
+  {
+    "start": 2055.18,
+    "end": 2083.24,
+    "speaker": "Interlocuteur 2",
+    "text": "France, on est plus conscient de cela, on l'est encore plus. Les gens hésitent encore moins à le revendiquer. Et c'est d'ailleurs, je me dis, tout l'argent dépensé lors des JO, certes, ça permet à France de rayonner et tout, mais à quel prix ? Et je pense qu'on aurait pu réallouer ce sujet-là à d'autres choses plus utiles au long terme, pour éviter, par exemple, le climat actuel. Voilà, au niveau des décennies. D'accord.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Et",
+      "c'est",
+      "France",
+      "au"
+    ]
+  },
+  {
+    "start": 2084.04,
+    "end": 2188.54,
+    "speaker": "Interlocuteur 1",
+    "text": "[prénom] ? Alors, pour répondre à ce que tu avais dit, je ne sais pas à quel point c'est plus ou moins grave le fait qu'une des personnes soit contre le fait qu'il y ait eu des HLM près de chez eux. en fait je ne sais pas à quel point ils sont ils ne sont pas rois de France c'est pas à eux de décider si oui ou non des gens peu fortunés ont le droit d'habiter à côté de chez eux en fait donc en fait leur avis je ne sais pas à quel point on comprend ce que c'est des gens qui ne le font et qui aiment bien pouvoir profiter des mêmes infrastructures que eux et quand tu disais que le fait de créer un logement social, parce que moi j'avais une vision très différente, c'était juste dans un seul bâtiment, ce serait bien, parce que j'aime pas déjà le concept de il y a le bâtiment des pauvres et le bâtiment des riches. En fait, pour moi, en tout cas dans ma vision, c'est que dans chaque bâtiment, il doit y avoir un quota de logement social. Et dans ce cas-là, ce que tu dis, c'est que ta crainte, c'est que les personnes qui sont plus fortunées doivent payer plus plus compenser la perte du promoteur immobilier. Mais je ne vois pas en quoi c'est un problème que lorsqu'on est plus, on doit dépenser plus. En fait, c'est le concept même des impôts en général. C'est-à-dire que combien même on ne récolterait pas cet argent directement des personnes qui vivent dans le bâtiment. Là, on pourrait juste le",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Alors,",
+      "répondre",
+      "ce",
+      "plus",
+      "en",
+      "ils",
+      "leur",
+      "on",
+      "ce",
+      "pouvoir",
+      "plus"
+    ]
+  },
+  {
+    "start": 2188.54,
+    "end": 2234.18,
+    "speaker": "Interlocuteur 1",
+    "text": "récolter plus généralement. C'est un impôt caché, en gros. juste pour être sûr je te disais qu'au lieu de le voir directement en général tu payes plus quand tu as plus et là par exemple on pourrait juste le récolter sur l'impôt sur le revenu et aider les promoteurs immobiliers en compensant si tu veux cette perte qu'ils ont eu en mettant des logements sociaux par leur bâtiment donc en général je ne vois pas vraiment qu'il y ait eu de problème et même moi j'ai vraiment un gros problème avec le fait de mettre des bâtiments de gens pauvres dans un quartier de Richefeur, ils seront directement ciblés, directement... Je pense que tu te sens mal, tu es dans le bâtiment des pauvres, en général. Ok.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "gros.",
+      "juste",
+      "je",
+      "te",
+      "qu'au",
+      "des",
+      "leur",
+      "ne",
+      "de",
+      "de",
+      "te",
+      "des",
+      "Ok."
+    ]
+  },
+  {
+    "start": 2236.92,
+    "end": 2237.52,
+    "speaker": "Interlocuteur 4",
+    "text": "Interlocuteur 4 ?",
+    "refused": false,
+    "speaker_source": "log"
+  },
+  {
+    "start": 2240.54,
+    "end": 2247.3,
+    "speaker": "Interlocuteur 4",
+    "text": "Déjà, je réfléchissais justement à comment on a [prénom]. Je peux passer juste après, pardon. Bien sûr, bien sûr. Interlocuteur 4 ? tu peux te passer devant vous",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "justement",
+      "comment",
+      "tu",
+      "vous"
+    ]
+  },
+  {
+    "start": 2247.3,
+    "end": 2302.92,
+    "speaker": "Interlocuteur 6",
+    "text": "êtes très très riche merci je reviendrai principalement sur ce que vous disiez à la fin ce qui m'a le plus réfléchi c'est le point duquel je sais le moins le fait qu'on installe quelque part un bâtiment d'auto au mieux un bâtiment de riche je ne crois absolument pas au fait d'imposer un logement social dans un bâtiment j'ai un bâtiment qui existe, c'est un appartement, c'est un bâtiment social il y a des possibilités ou je suis riche je vais construire un grand bâtiment ou tout simplement et même il y a des ça pose beaucoup de problèmes on ne peut pas imposer l'administration jusqu'à ce point là c'est à dire qu'il existe des limites et ce que peut faire l'État je pense que l'État ne peut pas tout faire et je pense que là on nous passerait absolument toutes ces limites de mettre des loges, des appartements au sein d'un immeuble qui sont sociaux j'ai mon appart, j'ai mon appart dans le 16ème et je me dis ok bah celui du 4ème c'est un logement social parce qu'il faut que dans ce bâtiment j'apportage je pense que ce serait très profondément illégal et que",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "vous",
+      "le",
+      "le",
+      "fait",
+      "d'auto",
+      "je",
+      "d'imposer",
+      "j'ai",
+      "des",
+      "ou",
+      "grand",
+      "ou",
+      "et",
+      "ça",
+      "jusqu'à",
+      "et",
+      "peut",
+      "ne",
+      "peut",
+      "nous",
+      "de",
+      "bah"
+    ]
+  },
+  {
+    "start": 2302.92,
+    "end": 2308.02,
+    "speaker": "Interlocuteur 1",
+    "text": "d'obliger un promoteur immobilier à chaque fois qu'il crée un bâtiment c'est",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est"
+    ]
+  },
+  {
+    "start": 2308.02,
+    "end": 2385.94,
+    "speaker": "Interlocuteur 6",
+    "text": "non c'est dit mais c'est bien les créations c'est à dire ça dans les créations j'en ai mis des gammes qui j'apprenne pas avec sa part et ils ont séparé en rose marquant et en récit crois quand même pas trop même si je crois pas trop au fait que je crois que tu as vu ton hlm dans un quartier favorisé je ne crois pas au fait que tu sois le le pauvre du quartier. Je ne dis pas qu'il n'y a pas d'écart au service. Je ne dis pas qu'il n'y a pas d'écart où tu te sens mis à part sur ce point-là. Tu n'es pas le pauvre du quartier. Tu vas emmener tes enfants dans le même parc que son roi, tu vas emmener tes enfants dans la même école primaire. Donc il y a effectivement certains moments où il y a une rupture sociale qui peut être ressentie. Mais je ne pense pas qu'on est tous des gens qui font que tu sois le pauvre du quartier. Alors si l'interjet pour vous c'était le fait que lorsqu'on installe un HLM, et donc indirectement qu'on installe un pôle de gens qui culturellement sont dissonants, le fait que ça amène globalement du bazar. Et que voir ça puisse, comme je disais, faire fuir les gens autour. Donc au mieux, leur faire perdre des voix, voire les faire fuir. Je vais revenir sur la quantité à long terme, mais à long terme, oui. Si tu construis un bâtiment comme ça et que tu fais apparaître 100 personnes qui n'ont rien à voir culturellement, qui n'ont rien à voir financièrement, oui, je",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "non",
+      "c'est",
+      "dit",
+      "bien",
+      "c'est",
+      "à",
+      "ça",
+      "dans",
+      "les",
+      "j'en",
+      "mis",
+      "des",
+      "j'apprenne",
+      "pas",
+      "sa",
+      "part",
+      "et",
+      "en",
+      "rose",
+      "marquant",
+      "et",
+      "en",
+      "récit",
+      "crois",
+      "même",
+      "je",
+      "crois",
+      "trop",
+      "au",
+      "fait",
+      "je",
+      "crois",
+      "que",
+      "vu",
+      "dans",
+      "favorisé",
+      "au",
+      "le",
+      "le",
+      "au",
+      "son",
+      "font",
+      "Alors",
+      "pour",
+      "vous",
+      "c'était",
+      "qu'on",
+      "qui",
+      "leur",
+      "quantité",
+      "long",
+      "et",
+      "qui",
+      "je"
+    ]
+  },
+  {
+    "start": 2385.94,
+    "end": 2456.74,
+    "speaker": "Interlocuteur 6",
+    "text": "suis d'accord avec toi, ça va créer du bazar. Par contre, je ne crois pas, et là c'est une croyance, mais je ne crois pas au fait que ça fasse des centres et des voies. Pour moi, l'élite culturelle ne se construit pas sur le fait que j'ai un voisin qui est mis dans un HLM qui n'a rien à voir avec moi. L'élite culturelle, le fait que ce voisin apparaisse, évidemment elle va râler, parce qu'elle préfère être tranquille dans un HLM culturel, moi le premier. Il y a un HLM qui se construit autour de mon petit pavillon à Versailles, je ne suis pas content. Mais je ne pense pas que véritablement au long terme, ça crée une baisse de niveau de cette élite autour de ça. Je pense sincèrement qu'on a vraiment... En créant ce bâtiment, on peut faire montrer les gens qui vont arriver et je ne crois pas au fait qu'on fasse descendre. Le problème, c'est qu'au bout d'un moment, le fait que en faisant ça, on arrive au mieux à cibler des populations, on va dire, très petites et extrêmement petites. Mais je ne pense sincèrement pas que même s'il y a court terme des déduisances, effectivement, il faut qu'on installe des HLM et qu'on crée un point de deal en même temps. C'est vrai. Je pense qu'au long terme, Franchement, les villes culturelles réussissent à se maintenir, et c'est plutôt une montée vers le haut qui se fait. Après, là, c'est des croyances, et je comprends que tu dises qu'au contraire,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je",
+      "des",
+      "et",
+      "j'ai",
+      "qui",
+      "un",
+      "qu'on",
+      "montrer",
+      "et",
+      "qu'au",
+      "bout",
+      "que",
+      "en",
+      "court",
+      "des",
+      "effectivement,",
+      "point",
+      "deal",
+      "C'est",
+      "qu'au"
+    ]
+  },
+  {
+    "start": 2456.76,
+    "end": 2460.66,
+    "speaker": "Interlocuteur 6",
+    "text": "les villes vont aller s'installer un peu plus loin. Il n'y aura pas ce produit, je ne comprends pas.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "produit,",
+      "ne"
+    ]
+  },
+  {
+    "start": 2463.7,
+    "end": 2479.92,
+    "speaker": "Interlocuteur 6",
+    "text": "Déménager, parce qu'il y a des pauvres qui viennent vivre vers chez toi. Il y a un point de ville qui se rend chez moi, mais je déménage. Et les gens le feront. Et pour le coup, j'ai un exemple en fait. Ils ont raté leur installation. Après, c'est un mauvais exemple. Tu vois, avec les",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "vers",
+      "je",
+      "en",
+      "Ils",
+      "Après,"
+    ]
+  },
+  {
+    "start": 2479.92,
+    "end": 2482.0,
+    "speaker": "Interlocuteur 7",
+    "text": "villes riches qui payent de l'amende plutôt que des installations.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "des",
+      "installations."
+    ]
+  },
+  {
+    "start": 2483.0,
+    "end": 2483.96,
+    "speaker": "Interlocuteur 6",
+    "text": "Il faudrait que tu aies des sueurs.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Il",
+      "des"
+    ]
+  },
+  {
+    "start": 2486.52,
+    "end": 2526.26,
+    "speaker": "Interlocuteur 3",
+    "text": "Interlocuteur 3 ? Interlocuteur 4, tu peux le parler. Interlocuteur 4, il arrive. Je vais l'acheter après. Non, mais en fait, je ne comprends pas trop ce que tu disais. Pourquoi pas mettre des logements sociaux à l'intérieur d'un dernier bâtiment, plutôt que de faire des bâtiments entiers ou de logements sociaux ? Oui, pourquoi pas. Après, je ne pense pas que ça change grand-chose à ta deuxième taille qui était « oui, mais moi je n'aimerais pas être dans un logement social parce que tout le monde sait que j'habite dans un bâtiment social ».",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "tu",
+      "le",
+      "parler.",
+      "l'acheter",
+      "en",
+      "ce",
+      "Pourquoi",
+      "dernier",
+      "de",
+      "«",
+      "je"
+    ]
+  },
+  {
+    "start": 2531.24,
+    "end": 2545.8,
+    "speaker": "Interlocuteur 3",
+    "text": "même si c'est au sein d'un bâtiment à plusieurs appartements pour être sociaux paris en termes de ressenti de vivre entouré de gens ils n'ont pas un détail",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "même",
+      "à",
+      "pour",
+      "être",
+      "paris",
+      "ils",
+      "n'ont",
+      "un"
+    ]
+  },
+  {
+    "start": 2550.02,
+    "end": 2582.42,
+    "speaker": "Interlocuteur 1",
+    "text": "Je ne sais pas à quel point vous pouvez être issu d'un milieu plus ou moins privilégié, mais si vous l'êtes vraiment, et que votre ami organise un anniversaire dans le seul marché d'amis du quartier, est-ce que vos parents accepteront plus facilement que vous alliez à cet anniversaire-là, alors que c'était juste le voisin du monsieur ? Il y a des gens vraiment très nus et très coincés, qui n'accepteraient pas que leurs enfants aillent dans le bâtiment de chez eux ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "plus",
+      "marché",
+      "de"
+    ]
+  },
+  {
+    "start": 2584.62,
+    "end": 2638.83,
+    "speaker": "Interlocuteur 5",
+    "text": "Je pense que quand on va parler de ressentis, quand on va parler de rémunérés, ce sont des situations qui sont bien plus soft que des situations de crime, de tuerie et tout, voilà, d'humeur. Et réellement, c'est que si par exemple, pour des enfants, pour des populations plus jeunes, quand elles vivent, entre parenthèses, en train normal, ou qu'elles vivent dans une situation plus ou moins régulière, ou qu'elles se sentent un peu marginalisées, c'est mieux que de vivre entouré de crimes, de dealers. Notre voisin, c'est un dealer. C'est grandi avec des des problématiques sociales disant qu'ils sont bien plus soft. Je peux répondre directement. Alors, tu as quand même un commentaire",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "d'humeur.",
+      "jeunes,",
+      "en",
+      "ou",
+      "ou",
+      "qu'elles",
+      "crimes,",
+      "Notre",
+      "grandi",
+      "des",
+      "soft."
+    ]
+  },
+  {
+    "start": 2638.83,
+    "end": 2661.89,
+    "speaker": "Interlocuteur 1",
+    "text": "direct, Interlocuteur 3. Tu peux répondre très rapidement. C'est juste que parfois, je pense que on sous-estime un peu trop les petites choses, comme l'anniversaire et ce genre de moment où des enfants vont pouvoir se mélanger culturellement et par la suite garder des amis qui sont peut-être un milieu bien plus socialement, bien plus élevés, et donc les aider énormément par la suite.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Tu",
+      "que",
+      "on",
+      "bien",
+      "les"
+    ]
+  },
+  {
+    "start": 2662.91,
+    "end": 2663.43,
+    "speaker": "Interlocuteur 3",
+    "text": "D'accord.",
+    "refused": false,
+    "speaker_source": "log"
+  },
+  {
+    "start": 2663.55,
+    "end": 2679.25,
+    "speaker": "[?]",
+    "text": "Mais ce que justement disait Interlocuteur 5, c'était qu'effectivement il y aura toujours de la ségrégation, mais à quel point c'est problématique par rapport au fait de vivre dans un milieu pauvre avec de la criminalité. Mais voilà. Interlocuteur 3 ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "qu'effectivement",
+      "il",
+      "de"
+    ]
+  },
+  {
+    "start": 2681.53,
+    "end": 2727.29,
+    "speaker": "Interlocuteur 4",
+    "text": "Très bien, Interlocuteur 4. Moi je vais globalement, je vais te répondre tout à l'heure, juste avant [prénom] concernant le fait d'imposer des logements, enfin un appartement parmi un immeuble ou même un appartement qui est le logement social etc. Je pense que ça pourrait être une bonne chose, seulement faire ça sur des logements qui ont déjà été construits, qui appartiennent déjà au marché ça t'impose à des gens de ne plus acheter leur loyer et donc j'imagine que la solution pour leur accepter ça c'est que l'état derrière paye la différence et donc c'est que c'est un coût qui de base était, le coût de l'agence sociale c'est un coût qui est plutôt sur la promoteur à la base et qui devient un coût pour l'état c'est des APL c'est des APL oui",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Moi",
+      "enfin",
+      "qui",
+      "social",
+      "qui",
+      "ça",
+      "ne",
+      "leur",
+      "ça",
+      "sociale",
+      "c'est"
+    ]
+  },
+  {
+    "start": 2727.29,
+    "end": 2735.31,
+    "speaker": "Interlocuteur 3",
+    "text": "c'est jamais comme ça on ne convertit jamais des logements privés en logements sociaux c'est toujours la création je",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "jamais"
+    ]
+  },
+  {
+    "start": 2735.31,
+    "end": 2795.99,
+    "speaker": "Interlocuteur 4",
+    "text": "suis d'accord mais sauf que là du coup On construit quand même beaucoup moins vite qu'il n'y a de logements, si on fait qu'avec les nouveaux logements, c'est négligeable, c'est bien, c'est une bonne chose, mais je pense que c'est négligeable. Paris ne se reconstruit pas. Mais bon ça c'est une chose pour Interlocuteur 7 concernant les logements sociaux donc la critique des logements sociaux. Déjà tu parlais de corruption, je suis d'accord avec toi, j'avais vu un reportage là-dessus sur la corruption, c'est quand même effectivement très documenté. La question que je me pose c'est est-ce que dans ce cas là c'est un problème de logements sociaux ou de corruption à l'échelle à l'échelle étatique, à l'échelle des fonctionnaires. Il y a peut-être autre chose à faire que de soumettre les logements sociaux pour enlever la corruption des logements sociaux. Et deuxième chose, concernant, tu disais que tu es une personne et que tu as des logements sociaux qui arrivent à côté de chez toi, ça peut baisser le niveau du quartier. Les",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "On",
+      "qu'il",
+      "si",
+      "Mais",
+      "pour",
+      "là",
+      "à",
+      "tu"
+    ]
+  },
+  {
+    "start": 2795.99,
+    "end": 2802.63,
+    "speaker": "Interlocuteur 7",
+    "text": "prix chutent souvent d'ailleurs. Comment ? Ça s'observe assez bien que quand les maires veulent installer des logements sociaux, les prix dans les quartiers baissent un peu.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Comment"
+    ]
+  },
+  {
+    "start": 2805.33,
+    "end": 2873.73,
+    "speaker": "Interlocuteur 4",
+    "text": "Moi la question que je viens de me poser c'est, ok à l'échelle micro, très locale, ça peut poser problème dans les logements sociaux parce qu'il n'y a déjà même pas ça, à l'échelle nationale, je pense qu'on a intérêt, on a beaucoup à perdre en fait, à marginaliser, à communautariser dans des endroits. ça pose beaucoup plus, en fait, au global, je pense que ça pose beaucoup plus cher tous les aspects, en fait, de l'État et de la France. C'est qu'on a, en fait, on a un choix à faire. Qu'est-ce qu'on décide de faire ? On ne peut pas communautariser les gens entre pauvres. Parce que oui, toi, tu vas être bien, mais bon, derrière, d'ailleurs, on fait des débats sur la sécurité en France, parce qu'il y a la lune de l'insécurité, le sentiment d'insécurité qui est close. voilà donc je pense pas forcément que le fait que ça pose problème localement soit en réalité un vrai souci c'est un peu un moyen de partager ça sans que ça coûte directement aux gens d'ailleurs c'est beaucoup c'est juste parce que c'est plus simple à accepter dans la région sociale qu'on prélève des imprises d'impôt c'est un mot je trouverais ça plutôt cohérent à",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Moi",
+      "viens",
+      "ok",
+      "ça",
+      "dans",
+      "qu'il",
+      "déjà",
+      "ça",
+      "en",
+      "d'ailleurs,",
+      "qu'il",
+      "la",
+      "est",
+      "close.",
+      "voilà",
+      "vrai",
+      "c'est",
+      "c'est",
+      "juste",
+      "parce",
+      "dans",
+      "qu'on",
+      "c'est",
+      "trouverais",
+      "plutôt",
+      "à"
+    ]
+  },
+  {
+    "start": 2873.73,
+    "end": 2925.99,
+    "speaker": "Interlocuteur 2",
+    "text": "nice d'accord D'accord, ça permettrait, cette logique d'unicité permet aussi d'unifier la démocratie plus qu'elle l'est actuellement, même si ça crée des situations pénibles au quotidien pour des élites qui n'apprécient pas leurs voisins, ou que les bourgeois n'aiment pas que leur enfant ait l'anniversaire de telle ou telle. Mais sinon, ce processus de qui veut commencer les HLM doit être extrêmement cadré et sélectif, d'une part pour éliminer la corruption, et aussi pour rassurer en termes de sécurité, et même motiver les gens des classes sociales les plus populaires à présenter un dossier plus clean, en premier à éduquer leur partenaire de manière stricte si ils veulent un jour déménager dans une ville plus riche ou plus longue ou que l'on considère plus riche.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "d'accord",
+      "D'accord,",
+      "permet",
+      "d'unifier",
+      "plus",
+      "enfant",
+      "Mais",
+      "commencer",
+      "d'une",
+      "les",
+      "en",
+      "premier",
+      "à",
+      "leur",
+      "ou",
+      "plus"
+    ]
+  },
+  {
+    "start": 2927.83,
+    "end": 2970.31,
+    "speaker": "[?]",
+    "text": "Très bien, donc là je vais donner la parole à [prénom] mais ça fait 45 minutes qu'on est à la moitié du débat sur ce sujet si jamais vous voulez passer au sujet suivant vous avez un bouton sur lequel vous pouvez cliquer pour dire que vous voulez aller au sujet suivant Voilà. Donc là, on parle un peu de logement et de domicilité sociale en réponse à comment assurer la sécurité de tous. On est vraiment sur une raison culturelle et d'infrastructure pour la sécurité. C'est une cause, alors c'est pas une théorie.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "qu'on",
+      "sur",
+      "si",
+      "Voilà.",
+      "Donc",
+      "C'est",
+      "alors"
+    ]
+  },
+  {
+    "start": 2972.47,
+    "end": 2996.03,
+    "speaker": "Interlocuteur 7",
+    "text": "Très bien, bah du coup, Yes ? Ouais. Du coup, juste pour revenir sur la corruption, la corruption, c'est juste... En fait, dès lors que l'État gère un truc en monopole et qu'il a trop de pouvoirs, il y a de la corruption. Dès lors que t'as un monopole, en vrai, puisqu'il y a l'État, il décide de tout, donc forcément, il y a des gens qui vont vouloir le corrompre. Parce que t'as juste à corrompre... En fait, c'est facile,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "bah",
+      "Yes",
+      "Ouais.",
+      "puisqu'il"
+    ]
+  },
+  {
+    "start": 2999.57,
+    "end": 3071.13,
+    "speaker": "Interlocuteur 7",
+    "text": "Ce que je veux dire c'est que c'est pas particulier aux logements sociaux, c'est vraiment un truc lié à l'Etat qu'un monopole court. Oui, donc du coup les fonctionnaires c'est la centralisation du pouvoir, le lobbyisme. Quand t'as juste à payer quelques fonctionnaires, enfin voilà. Parce que comme les fonctionnaires c'est pas leur argent qu'ils manipulent, ils en n'ont pas rien à filtrer, ils peuvent s'acheter facilement. en gros. Et sinon, sur mélanger, social, machin. En fait, déjà, vous parlez beaucoup des élites culturelles, machin. Les élites culturelles, les riches, en général, ils trouveront toujours un moyen d'échapper à la mixité, parce qu'ils payent plus cher, ils vont payer des amendes, machin. Donc, au final, qui va se retrouver mélangé ? C'est juste la classe moyenne, qui n'est pas assez riche pour fuir et ne pas se mixer, mais qui n'est pas assez pauvre pour avoir accès au social. Donc, c'est juste eux qui vont se retrouver mélangés, donc c'est juste eux qui vont se retrouver exposés à l'insécurité qui est liée aux populations qui habitent les logements sociaux. Donc au final, c'est juste la placement de compte-lingue, et au final, c'est juste elle qui va payer plus cher les trucs. Donc au final, les riches, ça n'a aucun impact sur eux, parce qu'ils peuvent toujours esquiver. Et voilà.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Ce",
+      "qu'un",
+      "court.",
+      "Oui,",
+      "c'est",
+      "la",
+      "enfin",
+      "en",
+      "n'ont",
+      "en",
+      "parce",
+      "qui",
+      "de",
+      "compte-lingue,",
+      "voilà."
+    ]
+  },
+  {
+    "start": 3074.47,
+    "end": 3104.29,
+    "speaker": "Interlocuteur 7",
+    "text": "Et tu disais, pourquoi est-ce que les riches et les pauvres ne pourraient pas avoir accès aux mêmes infrastructures, au final est-ce que tu peux redire ce que tu disais, parce qu'en gros tu disais pourquoi est-ce que, en gros tu disais on s'en fiche des avis des gens si on met des logiciels dans leur voiture, et du coup à ce moment là si tu as accès aux mêmes choses à quoi ça sert de gagner de l'argent ? Si au final ça sert à rien genre tu as accès, en fait tu payes plus cher la même chose genre, est-ce que tu te sens pas, enfin tu te fais niquer un peu quoi ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "est-ce",
+      "voiture,",
+      "tu"
+    ]
+  },
+  {
+    "start": 3113.11,
+    "end": 3113.47,
+    "speaker": "Interlocuteur 5",
+    "text": "en",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "en"
+    ]
+  },
+  {
+    "start": 3113.47,
+    "end": 3120.61,
+    "speaker": "Interlocuteur 7",
+    "text": "fait il y a quelqu'un, il a accès aux mêmes choses que toi mais il paye 4 fois mon chèvre, genre je te fais niquer un peu,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "il",
+      "mon"
+    ]
+  },
+  {
+    "start": 3120.69,
+    "end": 3164.19,
+    "speaker": "Interlocuteur 1",
+    "text": "c'est pas parce qu'il vit dans mon bâtiment que de 1, j'ai un si bel appartement, que de 2, j'ai une grande baignoire, une grande terrasse, etc. Et de 2, surtout, là on parle de logement. Le logement, c'est une toute petite partie de tout ce que j'aurai là, ma voiture, mes vacances que je me ferai, etc. Ok, s'il veut, il habitera dans le même bâtiment que moi, et moi ça ne me dérange pas du tout. En tout cas personnellement, que mon voisin ne soit pas un multimillionnaire, mais soit un peu nouveau et qu'il ait accès au logement juste à côté à mon palier alors qu'il gagne 4 fois moins que moi. Non",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "que",
+      "1,",
+      "j'ai",
+      "un",
+      "j'ai",
+      "En",
+      "soit",
+      "et",
+      "que"
+    ]
+  },
+  {
+    "start": 3164.19,
+    "end": 3188.72,
+    "speaker": "Interlocuteur 7",
+    "text": "mais en fait, en gros, ce que je dis, c'est qu'au final, les riches, on s'en rend, parce qu'ils vont juste toujours trouver un moyen d'esquiver. C'est juste que tu es dans la classe moyenne, tu gagnes un petit peu plus que le mec qui a le logement social et tu vas devoir dépenser autant plus dans ton logement. Parce que le loyer, c'est quand même un poste de dépense qui bouffe à peu près une grosse partie de ton salaire en général. En général, c'est souvent le premier poste de dépense de la plupart des gens, je pense. C'est",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "on",
+      "rend,",
+      "Parce",
+      "ton",
+      "en"
+    ]
+  },
+  {
+    "start": 3188.72,
+    "end": 3193.24,
+    "speaker": "Interlocuteur 1",
+    "text": "un petit problème, évidemment, qui est quand même un peu moins bien. Un",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "évidemment,",
+      "Un"
+    ]
+  },
+  {
+    "start": 3193.24,
+    "end": 3193.68,
+    "speaker": "Interlocuteur 7",
+    "text": "peu moins bien,",
+    "refused": false,
+    "speaker_source": "log"
+  },
+  {
+    "start": 3193.78,
+    "end": 3196.12,
+    "speaker": "Interlocuteur 2",
+    "text": "un peu. Beaucoup moins bien. Il y a bien un seuil",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 3196.12,
+    "end": 3197.6,
+    "speaker": "Interlocuteur 7",
+    "text": "à partir duquel... Pour être",
+    "refused": false,
+    "speaker_source": "log+voix"
+  },
+  {
+    "start": 3197.6,
+    "end": 3200.62,
+    "speaker": "Interlocuteur 1",
+    "text": "éligible au HLM, il faut vraiment gagner beaucoup d'argent.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "vraiment",
+      "beaucoup"
+    ]
+  },
+  {
+    "start": 3200.78,
+    "end": 3220.93,
+    "speaker": "Interlocuteur 7",
+    "text": "Oui, mais si tu es un petit peu au-dessus du seuil, tu n'es pas très loin du mec au final. Donc toi, tu parles du cas particulier où... qui est quand même très répandu de la place moi et non pas des riches riche parce que j'ai envie d'aller dans ton sens de toute façon de",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "au",
+      "qui",
+      "moi",
+      "et",
+      "j'ai",
+      "de",
+      "de"
+    ]
+  },
+  {
+    "start": 3220.93,
+    "end": 3233.99,
+    "speaker": "[?]",
+    "text": "toute façon donc là vous êtes quatre sur sept à dire que vous voulez passer au sujet suivant donc je pense qu'on va passer au sujet suivant si ça va toi tu veux y aller Juste une petite question, j'ai",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "toi",
+      "petite"
+    ]
+  },
+  {
+    "start": 3233.99,
+    "end": 3234.53,
+    "speaker": "Interlocuteur 1",
+    "text": "un problème, j'ai",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 3234.53,
+    "end": 3239.09,
+    "speaker": "[?]",
+    "text": "malheureusement fermé la page. Oui, l'appli ? Si tu te reconnectes, ça ne marche pas ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Oui,",
+      "?"
+    ]
+  },
+  {
+    "start": 3239.09,
+    "end": 3243.93,
+    "speaker": "Interlocuteur 1",
+    "text": "Il faut aller dans le site. Est-ce que n'importe",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Il",
+      "dans",
+      "le",
+      "site.",
+      "Est-ce"
+    ]
+  },
+  {
+    "start": 3243.93,
+    "end": 3260.13,
+    "speaker": "[?]",
+    "text": "qui peut, en cliquant sur outils, générer le QR code et lui montrer le scan ? Ok, alors moi ce que je vais vous proposer, là on a trois sujets qui vont arriver. Je vous propose qu'on vote. Je vais faire une petite dernière mention sur le dernier",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "qui",
+      "vais",
+      "dernière"
+    ]
+  },
+  {
+    "start": 3260.13,
+    "end": 3287.05,
+    "speaker": "Interlocuteur 5",
+    "text": "point. alors rapide je pense qu'il faut parler parce que pour un pourcentage qui est assez bas c'est C'est comme une dilution, je pense, entre parenthèses des pauvres, par exemple, dans un quartier qui est au-delà d'un certain pourcentage, et l'impression que justement,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "alors",
+      "je",
+      "parce",
+      "est",
+      "C'est",
+      "des"
+    ]
+  },
+  {
+    "start": 3287.37,
+    "end": 3299.15,
+    "speaker": "Interlocuteur 7",
+    "text": "c'est sous-contaminé. C'est saturé. En fait, en gros, c'est des réactions de... Quand tu mets des solides dans l'eau. Ok, ok. D'accord. Très bien. Bon, stop, stop, stop. On va passer au sujet suivant.",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 3299.65,
+    "end": 3310.59,
+    "speaker": "[?]",
+    "text": "Du coup, je vous propose que vous, pour chacun des choses que je vais dire, ceux qui sont d'accord pour passer à ce sujet, vous levez la main. donc protection du salarié locataire levez la main ceux qui sont d'accord pour passer à ce sujet",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "donc",
+      "levez"
+    ]
+  },
+  {
+    "start": 3313.25,
+    "end": 3318.45,
+    "speaker": "Interlocuteur 7",
+    "text": "c'est en gros ce qu'on parlait tout à l'heure sur les barrières à l'entrée et la sortie l'accès au travail l'accès au logement",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "en"
+    ]
+  },
+  {
+    "start": 3320.85,
+    "end": 3321.17,
+    "speaker": "Interlocuteur 6",
+    "text": "oui",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "oui"
+    ]
+  },
+  {
+    "start": 3321.17,
+    "end": 3323.31,
+    "speaker": "Interlocuteur 7",
+    "text": "en gros c'est ce qu'on parlait c'est exactement ça",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 3324.25,
+    "end": 3331.61,
+    "speaker": "[?]",
+    "text": "ensuite quelle justice pour les victimes est-ce que tu peux dire le thème oui oui c'est pourquoi on ne fait pas d'annonce parce",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "ne"
+    ]
+  },
+  {
+    "start": 3331.61,
+    "end": 3338.75,
+    "speaker": "Interlocuteur 7",
+    "text": "qu'il nous reste moins de 40 minutes Donc je trouve que préférer ce dont les gens veulent parler, c'est intéressant.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Donc"
+    ]
+  },
+  {
+    "start": 3340.97,
+    "end": 3364.37,
+    "speaker": "[?]",
+    "text": "Oui, non, c'était... Du coup, je reviens un peu en arrière sur ce qu'on disait au tout début, c'était... Rapidement, c'est juste pour présenter le thème. Oui, oui, c'est vrai. Quand on parlait des crimes, des prisons, surpopulation, etc., on parlait, on était tous d'accord pour dire que, en fait, la prison ne marche pas beaucoup. et moi le point que j'ai à aborder c'est plutôt le côté l'opinion commune je pense les gens ou à son",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Oui,",
+      "et",
+      "l'opinion",
+      "je",
+      "ou",
+      "à"
+    ]
+  },
+  {
+    "start": 3364.37,
+    "end": 3371.17,
+    "speaker": "Interlocuteur 4",
+    "text": "place la victime là dedans est-ce que c'est acceptable en fait mais donc c'est peut-être pas forcément bien d'accord",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "là",
+      "d'accord"
+    ]
+  },
+  {
+    "start": 3371.17,
+    "end": 3404.03,
+    "speaker": "[?]",
+    "text": "qui accepte de passer à ce sujet très bien une aussi j'imagine oui ok la drogue et la criminalité c'est un peu self explaining qui veut aller à ce sujet. Très bien. Et que faire contre le trafic de drogue, c'est la même chose. Donc je pense que si tout le monde est d'accord, on va passer à la drogue. Très bien. Du coup, je vais donner la parole à Interlocuteur 5.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "très",
+      "oui",
+      "explaining",
+      "sujet."
+    ]
+  },
+  {
+    "start": 3405.17,
+    "end": 3407.73,
+    "speaker": "Interlocuteur 5",
+    "text": "Voilà. Et ensuite, il y a Interlocuteur 6 dans la",
+    "refused": false,
+    "speaker_source": "log"
+  },
+  {
+    "start": 3412.95,
+    "end": 3521.59,
+    "speaker": "Interlocuteur 5",
+    "text": "tu voulais pas parler là dessus on sent que peut même affirmer qu'il ya un lien direct entre la peau de la criminalité déjà des côtés des dealers ce qui est commerce de la drogue est déjà une activité illégale qui qui rapportent déjà pas mal. C'est une alternative convaincante pour quelqu'un qui ne peut pas avoir d'emploi légal. Et il y a une forte demande là-dessus, des personnes qui sont aussi généralement au chômage ou qui sont déprimées, qui cherchent à oublier un peu leur quotidien. Et de deux, c'est l'impact qu'a la drogue sur commettre un crime, c'est qu'on n'est pas vraiment conscient des actions que l'on fait. Je pense surtout aux violences conjugales, par exemple. Bon, ça peut même aussi être lié à l'alcool. C'est que je pense que beaucoup de féminicides, ou je ne sais pas comment dire, si tu es sympa, je ne connais pas ça. Oui, c'est féminicide. Sont dus justement à un mari qui clate, voilà, juste parce qu'il était sous l'effet d'une drogue. Et pas l'alcool aussi. Oui, et réellement, il n'y a pas vraiment de conscience. Il n'y a pas vraiment de conscience sur ce crime. Et donc, première chose, je dirais que moi, je vais finir sur une idée. c'est que je ne dirais pas qu'il faut criminaliser 100% de la drogue, surtout sa consommation, parce que quelqu'un qui a effumé un joint de sa vie, qui se retrouve derrière les barreaux, ce n'est pas vraiment, déjà, son casier judiciaire,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "tu",
+      "on",
+      "peut",
+      "de",
+      "des",
+      "ce",
+      "est",
+      "qui",
+      "c'est",
+      "qu'on",
+      "si",
+      "ça.",
+      "Oui,",
+      "Sont",
+      "clate,",
+      "Oui,",
+      "et",
+      "Et",
+      "moi,"
+    ]
+  },
+  {
+    "start": 3521.59,
+    "end": 3532.01,
+    "speaker": "Interlocuteur 5",
+    "text": "et comment il va se trouver sa place dans la société, et ça crée beaucoup de situations de corruption et d'injustice sociale.",
+    "refused": false,
+    "speaker_source": "log+voix"
+  },
+  {
+    "start": 3532.83,
+    "end": 3551.11,
+    "speaker": "[?]",
+    "text": "Très bien, donc je vais donner la parole à [prénom], juste pour préciser, donc en fait c'est ce qu'a fait le Portugal, il a dépénalisé pas mal de drogues je crois, et donc du coup, en termes de consommation, on ne peut pas subir de problème judiciaire sur la consommation. On va prendre l'exemple de Singapour, si",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "donc",
+      "je",
+      "problème"
+    ]
+  },
+  {
+    "start": 3551.11,
+    "end": 3557.35,
+    "speaker": "Interlocuteur 6",
+    "text": "tu consommes la drogue, tu peux être condamné à mort. au contraire c'est gros trafic de dents effectivement",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "la",
+      "au",
+      "c'est",
+      "gros",
+      "effectivement"
+    ]
+  },
+  {
+    "start": 3558.91,
+    "end": 3559.43,
+    "speaker": "[?]",
+    "text": "qu'est-ce",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 3559.43,
+    "end": 3608.79,
+    "speaker": "Interlocuteur 1",
+    "text": "que c'est lié à la religion ? ah non alors oui il y a deux côtés, il y a le côté consommateur et le côté aussi vendeur et moi j'aimerais plus parler du côté vendeur etc c'est là où je pense qu'on a le plus gros problème on a des visions qui se partagent entre celles qui disent que en légalisant une partie une partie du monde des drogues douces, on pourrait toucher fréquentement les grands narcotraficants et donc tuer leur marché par la suite d'une entièreté de ces réseaux de neutralité. Et on peut vouloir dire qu'on partait, je ne sais pas si ça ne t'intéresse pas, parce qu'il faudrait ou non interdire ou vraiment légaliser par exemple l'air",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "alors",
+      "etc",
+      "une",
+      "du",
+      "Et",
+      "on",
+      "ne",
+      "t'intéresse",
+      "parce",
+      "vraiment"
+    ]
+  },
+  {
+    "start": 3618.91,
+    "end": 3622.05,
+    "speaker": "Interlocuteur 1",
+    "text": "c'est pas un sujet totalement déconnant par rapport à la",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "c'est",
+      "totalement"
+    ]
+  },
+  {
+    "start": 3622.05,
+    "end": 3683.97,
+    "speaker": "Interlocuteur 3",
+    "text": "criminalisation et donc le sujet d'aujourd'hui ce n'est pas Interlocuteur 3 ouais c'était pour venir sur ce que tu faisais Le lien entre la drogue et la criminalité, dans les cités dont on parle, c'est une des grosses parts de la criminalité qu'il y a. Et d'autre part, je trouve que ce marché-là va amener plein d'autres choses en criminalité. Donc, par exemple, le fait que c'est majoritairement des jeunes qui vont être impliqués là-dedans. Donc, ça va les faire sortir du système éducatif français. Et donc, en fait, ça les emprisonne dans un monde, en fait, dont ils n'ont absolument aucun pouvoir. Dans lequel ils ont absolument aucun pouvoir. Et, en fait, ça peut mener à des actes violents, à des meurtres, des choses comme ça. Des choses qui sont assez courantes dans ce monde-là. Et donc, ouais, moi, je suis intéressé par le fait de tirer un coup dessus. Très bien. Parfait. C'est à Interlocuteur 5.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "ce",
+      "ouais",
+      "tu",
+      "faisais",
+      "Le",
+      "lien",
+      "dans",
+      "dont",
+      "Donc,",
+      "Dans",
+      "lequel",
+      "ouais,",
+      "moi,"
+    ]
+  },
+  {
+    "start": 3685.45,
+    "end": 3737.57,
+    "speaker": "Interlocuteur 5",
+    "text": "Ok. On va commencer. Sur le sujet de criminalisation, de ce qui est droit et tout, en fait, je peux en dire un peu le sujet de... C'est le cas tunisien, par exemple, où il y a, en fait, un article dans la Constitution qui criminalise toute consommation de drogue et donc il y a beaucoup de jeunes qui sont détruits parce qu'ils ont été arrêtés par la police à cause de consommation de drogue mais en fait la consommation elle explose tout ce qui est dealer et tout et ça crée beaucoup de circuits illégaux et en plus je pense que puisque c'est pas régulé on peut vraiment mijoter n'importe quoi dans le serein du coup donc ça peut créer beaucoup d'infections, beaucoup d'MST",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "On",
+      "droit",
+      "en",
+      "de",
+      "et",
+      "tout",
+      "dealer"
+    ]
+  },
+  {
+    "start": 3748.46,
+    "end": 3770.76,
+    "speaker": "Interlocuteur 5",
+    "text": "concernant les criminalités je pense que il y a toujours le cercle vicieux de chômage anti-drogue, anti-addiction anti-crime tout ça et on retourne toujours au cas où est-ce qu'il y a réellement une solution à long terme envisageable pour cligner son dossier eh bien ça reste juste",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "les",
+      "je",
+      "anti-drogue,",
+      "eh"
+    ]
+  },
+  {
+    "start": 3776.71,
+    "end": 3831.62,
+    "speaker": "Interlocuteur 2",
+    "text": "Je comprends le point de vue de Interlocuteur 1 et du CEF, parce qu'ils sont assez similaires sur le fait que l'État cadre la consommation, c'est une forme de compromis, puisque s'il ne le cadre pas, les diverses organisations se reprendraient de la qualité des produits, des quantités, de la nature des substances. Et après, si on résume plutôt sur le point de vue, par exemple, je ne sais pas dans le monde des adultes, mais dans celui des enfants, surtout les parents, leurs parents qui vont être en ce cas-là plus anxieux à l'idée d'un état plus laxiste sur les lois et les substances. En ce cas-là, les parents vont se dire « Merde, mon enfant est plus exposé », alors que même si l'État, ils vont se dire « En fait, ce qu'on a fait, c'est bien, parce que les adultes ont décidé de cadrer leur consommation. » Là, il y a deux points de vue qu'il faut qu'on comprenne. Très bien.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "du",
+      "sur",
+      "diverses",
+      "organisations",
+      "se",
+      "Et",
+      "après,",
+      "En",
+      "se",
+      "«",
+      "»,",
+      "En",
+      "ont",
+      "points"
+    ]
+  },
+  {
+    "start": 3833.34,
+    "end": 3901.72,
+    "speaker": "Interlocuteur 6",
+    "text": "Et Interlocuteur 4, pour Téléphonique. Je vais aller sur d'autres trucs, je vais aller juste après sur la légalisation. Je suis complètement pas d'accord. Mais d'abord, sur le fait que tu dises qu'il y a beaucoup de lien entre criminalité et trafic de drogue, j'aimerais appeler le mot médiatique après criminalité. Il y a beaucoup de lien entre criminalité médiatique et trafic de drogue. Je suis d'accord. Les crimes en France, tous les crimes, d'un point de vue statistique, c'est des viols. Il y a beaucoup plus de viols que les criminalités et les trafics de drogue. C'est quand même qu'il y a actuellement tous les crimes en termes de stade. Et dans l'idée, si je reprends les drogues, les drogues, les drogues, il y a eu un homicide, il y en a autant. Donc, dire que la communauté est beaucoup liée à ce truc de drogue, je trouve que c'est vraiment un biais médiatique, et on était en train de tomber dedans. Donc ça prouve que même alors qu'on est quand même au poids à s'informer, à faire attention de comment on s'informe, je trouve que le résumé de la communauté... Par contre, s'il y a un problème avec la communauté, c'est mineur, je vais les voir. Là, il y a un gros problème avec les mineurs, mais là, ça en est très loin. Donc je trouve que, pour centrer là-dessus, en public, on en parle beaucoup, mais c'est pas l'essentiel de la communauté. Sur la légalisation, l'exemple qu'on a à",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "pour",
+      "aller",
+      "trucs,",
+      "Mais",
+      "Je",
+      "d'un",
+      "les",
+      "et",
+      "quand",
+      "qu'il",
+      "stade.",
+      "il",
+      "Donc,",
+      "la",
+      "beaucoup",
+      "à",
+      "ce",
+      "à",
+      "on",
+      "le",
+      "s'il",
+      "les",
+      "là,",
+      "Sur",
+      "à"
+    ]
+  },
+  {
+    "start": 3901.72,
+    "end": 3948.26,
+    "speaker": "Interlocuteur 6",
+    "text": "côté de chez nous, c'est principalement la plus chère. Le Portugal, sur la partie légalisée, le consommateur, et sur la partie légalisée dans le cannabis, la grande principale, les pays-bas. Les pays-bas, ils ont un problème. C'est que globalement, c'est le seul à avoir fait, donc c'est devenu la plaque tournante de la drogue en Europe. C'est simple, tu vas emporter de la drogue, tu importes ton cannabis dans le pays-bas, mais tu n'apportes pas que du cannabis. Et puis après, tu l'étales. Vous avez toujours le temps d'avoir, c'est parfait, c'est parfait pour remettre dans ce monde où nous sommes. Donc, au niveau européen, mon argument est moins valable, parce que si on dépénalise au niveau européen, vous pouvez dire que le réglement s'est nommé du pacte 11 de la drogue, et actuellement on dépénalise, la France devient du pacte 11 de la drogue. Donc c'est pour ça que la dépénalisation, j'ai vraiment un gros problème avec ça. Pas tant du point de vue consommateur, où je pense qu'effectivement on pourrait contrôler. Après, la stat est improbable, mais la pureté de drogue augmente en France.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de",
+      "la",
+      "Le",
+      "dans",
+      "à",
+      "l'étales.",
+      "Vous",
+      "ce",
+      "monde",
+      "où",
+      "nous",
+      "Donc,",
+      "s'est",
+      "11",
+      "de",
+      "ça."
+    ]
+  },
+  {
+    "start": 3951.48,
+    "end": 3970.36,
+    "speaker": "Interlocuteur 6",
+    "text": "c'est vraiment en train d'augmenter et donc pour moi d'un consommateur ça peut avoir des dégâts comme le tabac globalement le tabac ça revient à taxer et en fait si les consommations comme ça sur le tabac ça fait des marchés et j'ai quand même un gros problème avec l'hélicoptère en tant que parents. Voilà, c'est les deux points sur lesquels je dois revenir sur. Il ne faut pas oublier ce que c'est l'économie et l'économie.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "d'un",
+      "ça",
+      "comme",
+      "le",
+      "ça",
+      "en",
+      "si",
+      "des",
+      "et",
+      "problème",
+      "avec",
+      "l'hélicoptère",
+      "parents.",
+      "Voilà,",
+      "dois",
+      "sur.",
+      "Il",
+      "l'économie",
+      "l'économie."
+    ]
+  },
+  {
+    "start": 3971.24,
+    "end": 4011.8,
+    "speaker": "Interlocuteur 1",
+    "text": "Très bien, hyper intéressant. [prénom] ? Il y a deux choses. Il y a d'une part, je pense qu'on avait un peu tout ce qu'on voulait dire, parce qu'on a été motivement, on a fait l'argument, on a eu le sens de parler sûrement de l'économie. Même sur les noms ? Même sur les noms, c'est vrai qu'ils sont liés. d'ailleurs on a autant que les félicites et souvent la félicite c'est un travail idéal dans le cercle proche les crimes sont souvent là oui c'est ça quand on parlait de criminalité de drogue c'est très souvent on pensait en général à des crimes qui pouvaient se passer dans la rue de règlement de comptes etc",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Il",
+      "Il",
+      "avait",
+      "tout",
+      "fait",
+      "on",
+      "eu",
+      "le",
+      "de",
+      "Même",
+      "d'ailleurs",
+      "et",
+      "travail",
+      "les",
+      "oui",
+      "quand",
+      "à",
+      "etc"
+    ]
+  },
+  {
+    "start": 4013.56,
+    "end": 4032.76,
+    "speaker": "Interlocuteur 6",
+    "text": "je vais pas être dans l'intérêt dessus je trouve que justement on a souvent deux points de mesure sur des crimes un meurtre c'est un meurtre. Ok c'est beaucoup plus impressionnant quand il y a un enfant qui se fait fusiller dans une rue et fondamentalement quand il y a une femme qui est en train de se faire poignarder dans un appart, c'est un meurtre aussi. Et même si médiatiquement on ne sent souvent pas les mêmes retours, il ne",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "pas",
+      "être",
+      "dans",
+      "l'intérêt",
+      "deux",
+      "un",
+      "Et",
+      "on",
+      "sent"
+    ]
+  },
+  {
+    "start": 4032.76,
+    "end": 4060.98,
+    "speaker": "Interlocuteur 1",
+    "text": "faut pas qu'il y ait de crime de meurtre. Parce que c'est en grande partie du job qu'on se sent moins dans la situation de la personne. On se dit que ça aurait pu être moins dans la rue, alors que si on se dit que je connais mon milieu, ça me arrivera, mon mari est bien, etc. On se projette plus difficilement derrière cette victime-là que l'autre. Et sur la légalisation, effectivement,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "crime",
+      "job",
+      "qu'on",
+      "On",
+      "que",
+      "que",
+      "milieu,",
+      "derrière",
+      "l'autre."
+    ]
+  },
+  {
+    "start": 4065.78,
+    "end": 4091.8,
+    "speaker": "Interlocuteur 1",
+    "text": "ça rendrait peut-être la France une plaque tournante de la drogue. Mais la question, c'est est-ce que ça a diminué la criminalité due au trafic de drogue ou pas au PIB, enfin au PIB, c'est-à-dire que même si ça nous rend notre plaque tournante, si ça diminue la criminalité et la délinquance, et en général, les nuisances que ça apporte à la population, pourquoi pas ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Mais",
+      "notre"
+    ]
+  },
+  {
+    "start": 4095.32,
+    "end": 4099.28,
+    "speaker": "Interlocuteur 1",
+    "text": "Donc elle est pénalisée aussi. Très",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Donc"
+    ]
+  },
+  {
+    "start": 4099.28,
+    "end": 4176.9,
+    "speaker": "Interlocuteur 3",
+    "text": "bien. Interlocuteur 3 ? Ça m'intéresserait pour revenir sur ce que tu disais sur les féminicides. C'est vrai qu'on n'a pas parlé de la drogue et c'est intéressant. Et moi je m'intéresse plus dans les féminicides. la raison pour laquelle c'est que j'allais bien j'allais dire oui mais si autant de meurtre pour la drogue pour les féminicides bon bah moi ça m'intéresse d'attaquer sur la drogue parce que c'est plus facile de régler le problème est ce que j'ai bien justement le film et comment on fait pour les féminicides c'est sûrement plus simple que de décompte avant et ne comprend pas comment comment on peut faire pour mettre en place parce Il y en a entre 98 et 164 par an sur, ou j'ai pas, 975 victimes de meurtres. Il y a une centaine, un dixième des homicides sont des féminicides. Tu venais pas de dire que c'était 50% ? Ce que j'ai dit c'est qu'il y a autant de",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Ça",
+      "pour",
+      "la",
+      "bien",
+      "mais",
+      "si",
+      "pour",
+      "bon",
+      "est",
+      "bien",
+      "le",
+      "film",
+      "et",
+      "pour",
+      "les",
+      "c'est",
+      "de",
+      "avant",
+      "ne",
+      "on",
+      "en",
+      "Il",
+      "Il",
+      "Ce"
+    ]
+  },
+  {
+    "start": 4176.9,
+    "end": 4179.54,
+    "speaker": "Interlocuteur 6",
+    "text": "drogues que de féminicides. Il y a drogue,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "que",
+      "Il"
+    ]
+  },
+  {
+    "start": 4179.54,
+    "end": 4181.18,
+    "speaker": "Interlocuteur 3",
+    "text": "féminicide, c'est 20%, et ensuite",
+    "refused": false,
+    "speaker_source": "log"
+  },
+  {
+    "start": 4181.18,
+    "end": 4182.34,
+    "speaker": "[?]",
+    "text": "il y a plein d'autres trucs. Ouais,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Ouais,"
+    ]
+  },
+  {
+    "start": 4182.38,
+    "end": 4183.02,
+    "speaker": "Interlocuteur 3",
+    "text": "ensuite il y a des...",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 4183.44,
+    "end": 4202.44,
+    "speaker": "[?]",
+    "text": "Et voilà, du coup ça c'est plutôt un changement de sujet. Ouais, c'est ça, c'est pour ça que j'ai dit mourir. D'accord, mauvais bulletin. Bon alors, mais du coup en fait il n'y a personne dans la file d'attente sur le sujet actuel. Ça m'intéresse de continuer la discussion. Voilà, donc soit on va là-dessus, soit on va sur la protection du salarié et du logement vers la Créme Humainité. C'est génial, mais on",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Et",
+      "Ça",
+      "discussion.",
+      "donc",
+      "Créme",
+      "mais"
+    ]
+  },
+  {
+    "start": 4202.44,
+    "end": 4206.92,
+    "speaker": "Interlocuteur 6",
+    "text": "est assez éloigné de... Mais de toute façon on va voter. Moi aussi j'ai le choix. De toute façon, on va voter. Qui veut",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "est",
+      "de...",
+      "Moi",
+      "le",
+      "De"
+    ]
+  },
+  {
+    "start": 4206.92,
+    "end": 4220.56,
+    "speaker": "[?]",
+    "text": "aller vers le féminicide ? Vous pouvez voter pour les deux. Qui veut aller vers le féminicide ? Qui accepte d'aller aussi vers la protection du salarié locataire ? Très bien. On va aller vers les féminicides. Interlocuteur 1, c'est toi qui as la parole. Est-ce que tu voulais parler de là-dessus ?",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 4220.56,
+    "end": 4222.5,
+    "speaker": "Interlocuteur 1",
+    "text": "Je ne parlais pas du tout. Très",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Je"
+    ]
+  },
+  {
+    "start": 4222.5,
+    "end": 4290.16,
+    "speaker": "Interlocuteur 4",
+    "text": "bien. Du coup, ensuite, c'est Interlocuteur 4. Très bien. Interlocuteur 4. Oui, justement, je suis content que ça soit de la parole. Moi, je vais parler de féminicide et plus largement, en fait, aussi, beaucoup de violences sexuelles. Je pense que c'est très lié. Pour raisonner, c'est comme ça que je faisais la fiche, je regardais ce qui avait augmenté. Il y a une hausse de la délinquance là-dessus, une hausse des crimes, donc ça c'est un problème. Et c'est vrai que c'est, comme on en parlait tout à l'heure, le fait par exemple qu'il y ait un taux de plainte à 5% pour les relations sexuelles, ça pourrait baisser de 50% l'adaptation sexuelle ça resterait un problème en fait c'est que je pense que les femmes en général et puis les hommes aussi touchés par ça ne se sentent pas en sécurité du tout concernant l'adaptation sexuelle c'est que comme tu dis très bien Interlocuteur 6 la criminalité médiatique est très forte la criminalité liée aussi à l'immigration est très forte mais il y a tout un peu la société qui touche toute la société ou peu importe où tu es. Toute la société qui est des violences sexuelles et en fait...",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Du",
+      "Oui,",
+      "ça",
+      "soit",
+      "de",
+      "Je",
+      "c'est",
+      "faisais",
+      "l'adaptation",
+      "ça",
+      "en",
+      "est",
+      "un",
+      "peu",
+      "ou",
+      "et"
+    ]
+  },
+  {
+    "start": 4293.9,
+    "end": 4342.42,
+    "speaker": "Interlocuteur 4",
+    "text": "Je vous enverrai une question sur comment arrivent les féminicides, comment arrivent les violences sexuelles. Il y a beaucoup de barres sur la parole. Je ne sais pas quel impact en fait ça a eu et à quel moment du tout est-ce qu'il y a eu un impact sur la sécurité des femmes, je ne sais pas trop dire. Mais moi je trouve ça hyper intéressant et c'est même je pense le point le plus important de la sécurité en france alors c'est une sécurité qui n'est pas dans les rues enfin si on est carrément dans les rues mais je veux dire qu'il touche pas tout le monde mais qui est beaucoup plus interne en fait à notre société elle est présente partout dans tous les milieux dans toutes les sphères et donc on est loin là de comment est ce que fait la police ou la justice pour la justice du coup comment fait la police pour intervenir là dessus je me pose une question là c'est comment modifier la société pour que ces chinois soit écouté et réduit très bien et bien",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "vous",
+      "sur",
+      "barres",
+      "en",
+      "et",
+      "à",
+      "est-ce",
+      "et",
+      "enfin",
+      "si",
+      "on",
+      "qu'il",
+      "pour",
+      "la",
+      "du",
+      "comment",
+      "je",
+      "chinois",
+      "soit",
+      "et"
+    ]
+  },
+  {
+    "start": 4342.42,
+    "end": 4343.3,
+    "speaker": "Interlocuteur 5",
+    "text": "vous c'est",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "vous",
+      "c'est"
+    ]
+  },
+  {
+    "start": 4344.36,
+    "end": 4362.04,
+    "speaker": "Interlocuteur 1",
+    "text": "on va voir les débats c'est l'hôpital c'est",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "on",
+      "va",
+      "voir",
+      "les",
+      "c'est",
+      "l'hôpital",
+      "c'est"
+    ]
+  },
+  {
+    "start": 4362.04,
+    "end": 4363.4,
+    "speaker": "[?]",
+    "text": "vrai c'est vrai c'est vrai et à",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "vrai",
+      "et",
+      "à"
+    ]
+  },
+  {
+    "start": 4365.22,
+    "end": 4369.34,
+    "speaker": "Interlocuteur 7",
+    "text": "parité c'est pas trop le sujet de détente ça",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "le"
+    ]
+  },
+  {
+    "start": 4369.34,
+    "end": 4484.22,
+    "speaker": "Interlocuteur 5",
+    "text": "peut être révisé pour répondre à la dernière question je pense que l'exemple de l'Espagne est assez parlant dans le sens où ils ont facilité le fait de porter plein ils ont installé une sorte de chez la coiffeuse par exemple les femmes ont pas retenu les poivrons et un homme inclusif sera moins soucieux que sa femme aille chez le coiffeur qu'elle aille chez le poste de police parce qu'il va avoir peur, il va s'acharner sur elle, etc. Et donc, c'est une solution que l'on pourrait méditer. Et pour les raisons, je pense, que [prénom] a déjà évoquées, et c'est surtout que c'était présent dans toutes les sphères, comme on l'a déjà dit, je pense que c'est surtout dû à un franchement sexiste intérieur mais c'est surtout dans le cas des violences conjugales c'est juste qu'en fait à un certain moment l'homme n'en a juste marre il se dit que physiquement il est plus fort que sa femme il est plus grand que sa femme donc juste pour la faire taire donc ça reste toujours dans un esprit qui est plutôt sexiste et où l'homme il est plutôt dans le point de vue où c'est un peu un dictateur il a le choix de faire d'arrêter la discussion et je pense que corriger ça passe surtout par l'éducation par le dialogue et peut-être même par des résolutions peut-être même que je sais pas, ou en cote certains codes ou en cote du mariage il faut accepter des résolutions, je ne sais pas si on peut le faire d'une manière",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "pour",
+      "ont",
+      "un",
+      "qu'elle",
+      "Et",
+      "je",
+      "à",
+      "mais",
+      "n'en",
+      "il",
+      "il",
+      "de",
+      "ou",
+      "codes",
+      "ou",
+      "des"
+    ]
+  },
+  {
+    "start": 4484.22,
+    "end": 4498.78,
+    "speaker": "Interlocuteur 5",
+    "text": "formelle ou informelle, qu'on ne se fera pas violenter entre nous, que ce soit violence physique ou violence verbale. C'est ça, c'est déjà illégal. C'est déjà illégal, ça, ok. Quand même, quand même. Mais oui, ça va être à...",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "ça,",
+      "déjà",
+      "C'est",
+      "déjà",
+      "Mais",
+      "oui,"
+    ]
+  },
+  {
+    "start": 4498.78,
+    "end": 4500.84,
+    "speaker": "Interlocuteur 3",
+    "text": "[nom], vous avez fini ? Oui. Et donc",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "vous"
+    ]
+  },
+  {
+    "start": 4500.84,
+    "end": 4505.42,
+    "speaker": "[?]",
+    "text": "du coup, ça va être à Interlocuteur 3. Je voulais juste dire, effectivement, dans les agressions sexuelles...",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 4507.02,
+    "end": 4507.42,
+    "speaker": "Interlocuteur 4",
+    "text": "dans",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "dans"
+    ]
+  },
+  {
+    "start": 4507.42,
+    "end": 4531.74,
+    "speaker": "[?]",
+    "text": "les agressions sexuelles donc effectivement dans les recherches sur ce sujet il y a effectivement une des choses qui augmente la probabilité de le faire une des choses qui augmente la probabilité de le faire c'est les pensées facilitantes donc effectivement c'est se dire moi, c'est la culture du viol c'est de se dire ah bah j'ai le droit de faire ça, c'est un peu ce que tu disais donc effectivement c'est documenté Interlocuteur 3 ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "donc"
+    ]
+  },
+  {
+    "start": 4531.74,
+    "end": 4610.78,
+    "speaker": "Interlocuteur 3",
+    "text": "c'est un peu C'était un des points que j'allais aborder, parce qu'en même temps tu parlais d'esprit sexiste sur les hommes qui vont commettre ces choses-là, et en fait je pense que c'est beaucoup plus large, je pense que c'est un problème systémique, un sexisme systémique. Ça veut dire que le fait de ne pas porter plainte, c'est la peur de ne pas être pris au sérieux, c'est la peur de se mettre en situation de difficulté, en situation de danger, parce que porter plainte, ça peut se reprendre contre nous, parce que si vous portez plainte, ça peut se savoir, et derrière, la personne peut le penser. C'est une chose qui arrive. Pareil, on peut très bien mettre votre besoin de sans-suite, ce qui doit arriver un bon paquet de fois, parce qu'il n'y a pas de preuves, c'est des études que j'ai pu connaître. Donc voilà, vraiment, objectivement, tout le monde est au courant que vous êtes violé, mais vu qu'il n'y a pas de preuves, il ne se passera rien. C'est un point plus qu'aberrant. Donc je pense qu'il y a quand même un travail assez gros à faire sur ça, sur la prise au sérieux de la violence sexiste. enfin des violences existentielles et donc voilà d'autre part pour revenir sur ce qu'Interlocuteur 4 disait sur, oui je pense que c'est l'un des problèmes l'un des problèmes liés à l'insécurité moi je suis finalement tout à fait d'accord parce que par définition même l'insécurité c'est de ne",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'était",
+      "j'allais",
+      "parce",
+      "qu'en",
+      "pris",
+      "reprendre",
+      "le",
+      "penser.",
+      "C'est",
+      "une",
+      "besoin",
+      "doit",
+      "bon",
+      "de",
+      "violence",
+      "enfin",
+      "des",
+      "et",
+      "d'autre",
+      "sur,",
+      "moi"
+    ]
+  },
+  {
+    "start": 4610.78,
+    "end": 4697.8,
+    "speaker": "Interlocuteur 3",
+    "text": "pas se sentir en sécurité de ressentir ça au quotidien et je pense que je n'ai jamais autant entendu des gens quand même, évidemment dans un cadre social particulier Je n'ai jamais autant entendu dans la vie des personnes dire qu'elles ne s'intimidaient pas en société politique que les amis, qui ne peuvent pas rentrer le soir et tout seul, qui ne peuvent pas se balader dans la rue tout seul, qui plusieurs fois dans leur vie, si ce n'est toutes les semaines, se font appeler dans la rue. Je connais une personne sur deux dans mes amis qui a déjà eu une VSS au moins une fois dans sa vie. Et puis ça, c'est bagué par des chiffres dans les études qui avaient été faites. Voilà, donc globalement, arrivé à 45 ans, il n'y a à peu près aucune chance que vous n'ayez jamais vécu du VSA sans être une femme. C'est quand même une phrase qui mériterait de faire une pause. Et donc, troisième point que je voudrais aborder, c'est comment régler ça. Alors, tu as dit sur les... enfin, régler ça, pas régler ça. Comment faire en sorte de baisser ça. Tu parlais du coiffeur au fer. Ça existe aussi à la pharmacie, je sais. pareil mais ça va tout le monde ne le sait pas que la pharmacie c'est des endroits où on peut aller sans son par exemple et dire à la pharmacienne par message qu'on est en train de subir des violences psychiques. C'est en France ça ou en Espagne ? C'est en France. Ah ok parce que tu parlais",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "société",
+      "le",
+      "tout",
+      "Voilà,",
+      "donc",
+      "à",
+      "du",
+      "une",
+      "enfin,",
+      "pareil",
+      "que",
+      "c'est",
+      "sans",
+      "par",
+      "ou",
+      "C'est",
+      "parce"
+    ]
+  },
+  {
+    "start": 4697.8,
+    "end": 4745.88,
+    "speaker": "Interlocuteur 3",
+    "text": "de l'Espagne. Ah tu parlais de l'Espagne, excuse-moi. Ah ok, en France ça existe. Alors je ne sais plus quel est le terme mais il y a un terme en fait à dire à la pharmacienne donc non médicaments plus comme ça en fait ça veut dire je suis dans une situation d'insécurité dans le coeur de mon mari et donc la pharmacienne qui garde avec elle et appelle la police est autre chose que ça sur donc je pense qu'il ya une grosse part à jouer sur la formation des jeunes pas pour dire répéter d'être répété répété encore que ça ça existe il ya beaucoup de gens qui sont victimes de ça et va leur expliquer comment comment repérer ces choses-là d'emprise, par exemple, et qu'il y ait un gros travail et faire le mieux de tout possible. Je suis tout à fait d'accord avec ça. Voilà, donc à l'école. Très bien.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de",
+      "tu",
+      "en",
+      "non",
+      "plus",
+      "dans",
+      "le",
+      "coeur",
+      "et",
+      "qui",
+      "et",
+      "appelle",
+      "est",
+      "pas",
+      "d'être",
+      "et",
+      "qu'il",
+      "mieux",
+      "de",
+      "Voilà,"
+    ]
+  },
+  {
+    "start": 4749.58,
+    "end": 4836.86,
+    "speaker": "Interlocuteur 1",
+    "text": "[prénom] ? Oui, alors moi j'aimerais bien qu'on discute un peu des causes de pourquoi justement ces légendes qui sont en ce moment sur-représentées. On va finir dans à peu près 13 minutes. Juste pour vous dire un peu moins, voilà, prenez cette information. On essaie de comprendre pourquoi c'est les hommes qui sont en ce moment dans des violences domestiques. Et par conséquent, je crois qu'on aura peut-être essayé d'essayer de voir si il y a des solutions à ces problématiques-là. Moi, je pense qu'on a déjà un peu tout parlé de l'éducation. Dès le départ, les relations hommes-femmes sont très violentes. Dès le plus jeune âge, on a des enfants entre eux, que ça soit par exemple dans le choix des équipes, lorsqu'on va le groupe ou lorsqu'on va faire des sports, on se rend bien compte qu'il ne faut pas prendre les pieds parce qu'elles sont mises à son écart et elles sont considérées comme inférieures directement, que ce soit dans le groupe. Donc s'il y a une personne à qui tu as moins de considération, mais évidemment tu essaieras moins d'être violent ou en tout cas tu mépriseras tellement cette personne que tu n'auras à nouveau pas ta considération et je pense qu'une grosse partie pour moi c'est l'éducation dès le plus jeune âge, il faut savoir être un grand usant et donc quand on a des enfants qui tiennent peut-être des propos qui sont inadmissibles ou des comportements violents de part",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "justement",
+      "ces",
+      "légendes",
+      "ce",
+      "voilà,",
+      "On",
+      "c'est",
+      "en",
+      "dans",
+      "Et",
+      "par",
+      "je",
+      "d'essayer",
+      "voir",
+      "si",
+      "qu'on",
+      "tout",
+      "Dès",
+      "on",
+      "ça",
+      "le",
+      "des",
+      "on",
+      "directement,",
+      "mais",
+      "d'être",
+      "tu",
+      "n'auras",
+      "dès",
+      "de"
+    ]
+  },
+  {
+    "start": 4836.86,
+    "end": 4861.36,
+    "speaker": "Interlocuteur 1",
+    "text": "envers eux et leurs camarades on va falloir peut-être intervenir et même peut-être directement auprès des parents parce que c'est eux en quelque sorte les responsables donc il faut peut-être essayer d'étudier le genre de solutions qu'on pourrait mettre en place dans l'éducation des enfants parce qu'elle ne serait pas qu'à l'école malheureusement c'est en grande partie à la maison je ne sais pas si vous avez des idées à proposer pour ça",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "on",
+      "donc",
+      "solutions",
+      "qu'à",
+      "ne"
+    ]
+  },
+  {
+    "start": 4864.46,
+    "end": 4893.28,
+    "speaker": "Interlocuteur 1",
+    "text": "Interlocuteur 2, as-tu des idées à proposer ? non non pas forcément tu peux dire Oui, oui, tu voulais rebondir sur ce que tu voulais dire, oui, mais sinon... C'est comment éduquer, en général. Voilà, c'est-à-dire que, en fait, pour moi, je pense, je ne sais pas si vous le comprenez, c'est l'éducation qui... Non, pas moi, non, non, non. Moi, oui. It came ! En tout cas, oui, je pense que l'école ne fait pas tout, malheureusement, il y a les parents, mais comment on fait vu que ça se passe à la maison",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "non",
+      "Oui,",
+      "tu",
+      "général.",
+      "le",
+      "c'est",
+      "Non,",
+      "moi,",
+      "non,",
+      "It",
+      "fait",
+      "vu"
+    ]
+  },
+  {
+    "start": 4893.28,
+    "end": 4960.5,
+    "speaker": "Interlocuteur 2",
+    "text": "? Certes, à l'école, on peut agir en termes de prévention, mais à la maison, oui ça sera encore plus efficace du coup d'y agir il y a toujours cette problématique de la vie privée qu'on doit plus ou moins respecter et un compromis avec la vie privée et remonter à la source des problèmes de sexisme, de domination et pour cela je propose justement une alternative, pourquoi peut-être que l'état interfère parfois de manière gênante dans la vie des familles parfois ça marche, parfois ça mène à rien pourquoi pas juste garantir les conditions et l'indépendance de la femme, notamment le point de vue financier, par exemple, que ce soit dans son poste de travail, qu'il y ait des congés, enfin, tous ces congés maternels, mais que ce soit moins impacté en termes de salaire, et ça, on peut poser des logements d'urgence pour des femmes qui veulent en déménager un certain temps, vite, de leur mari, quitte à s'installer plus tard, mais repérer un point de roche, un point de transition. Ce genre de solution, c'est plutôt celle-là qu'on devrait favoriser pour l'indépendance de l'attente que les caractères fèrent.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "oui",
+      "ça",
+      "il",
+      "de",
+      "point",
+      "et",
+      "peut",
+      "mais",
+      "point",
+      "roche,",
+      "Ce",
+      "plutôt",
+      "l'attente"
+    ]
+  },
+  {
+    "start": 4961.94,
+    "end": 4980.42,
+    "speaker": "Interlocuteur 6",
+    "text": "C'est juste une question ? C'est vraiment, on a un peu trop là-dessus. À chaque fois, il y a des juges qui ordonnent des placements d'enfants. Ils sont ordonnés parce qu'on en prend le juge et les mules. Ils sont prêts de leur place, on n'en a pas donné. Et le juge dit qu'il y a un danger immédiat pour cet enfant dans sa famille complète, c'est toute urgence. Ils sont prêts. D'ailleurs, sur ce... Je suis pour te dire que",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "un",
+      "peu",
+      "trop",
+      "À",
+      "fois,",
+      "en",
+      "les",
+      "mules.",
+      "Ils",
+      "Et",
+      "Ils",
+      "pour"
+    ]
+  },
+  {
+    "start": 4980.42,
+    "end": 4983.96,
+    "speaker": "Interlocuteur 2",
+    "text": "faire ça pour des femmes... C'est encore plus dur.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "faire"
+    ]
+  },
+  {
+    "start": 4984.6,
+    "end": 4987.06,
+    "speaker": "Interlocuteur 6",
+    "text": "on est à des années lumières de pouvoir le faire",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "on",
+      "est"
+    ]
+  },
+  {
+    "start": 4988.38,
+    "end": 4988.66,
+    "speaker": "Interlocuteur 2",
+    "text": "très",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "très"
+    ]
+  },
+  {
+    "start": 4988.66,
+    "end": 5026.89,
+    "speaker": "Interlocuteur 7",
+    "text": "bien [prénom] c'est à toi d'ailleurs en parlant de ce point l'ASE, l'Aide sociale en France a eu plein de scandales sur la gestion je sais pas si vous avez vu un peu et concernant les écoles moi j'ai ma mère qui est prof à l'école du coup je connais un peu et globalement des fois les profs voient il y a des enfants qui sont maltraités et tout ils le signalent ça veut dire c'est su ils le remontent au supérieur juste s'ils en ont rien à foutre ça veut dire genre la direction est prévenu machin mais ils font rien donc donc en fait il n'y a pas de sanction parce que personne ne fait rien, il y a juste aucune réaction du rétorat par rapport à tout ça.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "a",
+      "qui",
+      "s'ils",
+      "ça",
+      "genre",
+      "donc",
+      "sanction",
+      "rétorat",
+      "par",
+      "à",
+      "tout"
+    ]
+  },
+  {
+    "start": 5030.21,
+    "end": 5125.79,
+    "speaker": "Interlocuteur 3",
+    "text": "Très bien, Interlocuteur 3, vous êtes décidé pour continuer sur les violences sexuelles que les femmes vivent, même si c'était global, l'emprise et tout ça, finalement, moi je n'étais pas du tout sensibilisé à la chose, quand globalement on le sait, voilà, on sait que ça existe, mais bon voilà, c'est mes amis, quand globalement on les a appelés dans l'arrivée et tout ça, et donc c'est horrible, mais la chose qui m'a sensibilisé énormément sur ça, et la première fois que je parle, c'est pour vous inciter à aller regarder ça, certain qui s'appelle la maison des femmes et les sorties là il ya un an je sais pas et en fait ça parle pas de la maison des femmes mais en tout qui est c'est un an c'est un endroit au sein d'un hôpital qui s'occupe de prendre en charge les femmes qui sont victimes de violences dans leur famille pour plein Il y a plein de raisons et qui vont les accompagner psychologiquement ou même des soins physiques parce qu'il y en a qui ont souffert de violences. Et puis pareil, il y a plein d'autres violences dont on ne parle jamais, mais en fait qui sont assez présentes. Par exemple, il y a pas mal de personnes qui viennent, c'est souvent en Afrique, et qui viennent depuis l'Afrique en immigration par exemple, et en fait qui ont subi là-bas des excisions et c'est des choses, c'est des pratiques qui continuent à exister en France parce que c'est des traditions c'est pas",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "vous",
+      "décidé",
+      "même",
+      "si",
+      "quand",
+      "voilà,",
+      "on",
+      "la",
+      "première",
+      "parle,",
+      "certain",
+      "qui",
+      "les",
+      "an",
+      "je",
+      "mais",
+      "tout",
+      "c'est",
+      "an",
+      "c'est",
+      "qui",
+      "dans",
+      "pour",
+      "Il",
+      "parce",
+      "en",
+      "et",
+      "c'est",
+      "pas"
+    ]
+  },
+  {
+    "start": 5125.79,
+    "end": 5145.95,
+    "speaker": "Interlocuteur 3",
+    "text": "une tradition mais c'est des traditions qui continuent à être perpétrées en France malgré les mises en lumière qui commencent à être faites je vous invite à regarder ce film parce que c'est pas des choses qu'on peut connaître comme nous, étant hommes, et ne disant pas que c'est vraiment ce qu'il fallait. Voilà.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "mais",
+      "les",
+      "je",
+      "parce",
+      "comme",
+      "nous,",
+      "étant",
+      "c'est",
+      "vraiment",
+      "fallait."
+    ]
+  },
+  {
+    "start": 5146.45,
+    "end": 5211.95,
+    "speaker": "Interlocuteur 1",
+    "text": "Très bien. [prénom] ? Déjà, juste en vrai, c'est un peu la suite d'Afrique, c'est grand. C'est un peu le sujet de l'Afrique, parce qu'en général, l'Afrique, c'est un peu la vie, c'est pour ça. Oui, oui, c'est parce que je ne connais pas les pays, je veux dire. Vous les remontez là, sur la idée que, malheureusement, on s'attend beaucoup sur quoi faire en aval, d'une époque où les femmes ont subi ces violences sexuelles ou qu'elles sont déjà dans des situations assez très compliquées d'en sortir et pas assez de quoi faire en amont pour que ça n'arrive pas, pour justement qu'elles puissent très facilement s'en sortir de cette entrave qu'elles peuvent subir de leur bourreau littéralement qui est la base d'un mari, d'un conjoint, et je pense qu'il faut vraiment plus focus sur ça que, vas-y, au dernier moment, une fois que ça fait des années qu'elle subit des violences, qu'elle puisse facilement, au dernier moment, s'en sortir pour un mouvement. Pour moi, il y a vraiment des choses à faire beaucoup plus fort avant. Je ne pense pas que c'est une autre question. Je crois que j'ai trop focus sur moi-même.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "vrai,",
+      "la",
+      "suite",
+      "le",
+      "sujet",
+      "l'Afrique,",
+      "un",
+      "la",
+      "vie,",
+      "veux",
+      "Vous",
+      "les",
+      "idée",
+      "d'une",
+      "ou",
+      "pour",
+      "qui",
+      "la",
+      "sur",
+      "que,",
+      "avant.",
+      "que",
+      "une",
+      "question.",
+      "crois",
+      "j'ai",
+      "moi-même."
+    ]
+  },
+  {
+    "start": 5212.97,
+    "end": 5229.95,
+    "speaker": "Interlocuteur 3",
+    "text": "très bien donc Interlocuteur 3 c'est juste pour dire un mot mais c'est pas exclusif c'est pas parce qu'on va aider les femmes à se reconstruire qu'on va pas aider à inspirer les jeunes et donc c'est pas du tout mais des fois c'est pas juste",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "très",
+      "mais"
+    ]
+  },
+  {
+    "start": 5229.95,
+    "end": 5268.79,
+    "speaker": "Interlocuteur 1",
+    "text": "l'instruction moi j'ai proposé l'instruction mais en général c'est à dire que il y a aussi d'autres choses à mettre j'ai beaucoup entendu parler de choses à mettre en place une fois que les violences se sont désinstallées mais presque jamais de, dès le début, est-ce qu'il n'y aurait pas des choses à faire, peut-être pas d'idées sur le coup, mais quand ça fait déjà des mois qu'on est rentrés dans ce rythme de vie constamment à se faire abaisser, constamment à se faire abonner, c'est compliqué d'en sortir. Je pense qu'il faut trouver des solutions et réfléchir à quelque chose avant que ça arrive, avant qu'on soit au fond du bouffon. C'est compliqué de sortir la personne.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "l'instruction",
+      "il",
+      "entendu"
+    ]
+  },
+  {
+    "start": 5269.49,
+    "end": 5279.01,
+    "speaker": "Interlocuteur 3",
+    "text": "d'accord, ce que je te dis c'est que c'est pas exclusif du coup c'est évidemment qu'il faut aider à avancer c'est vrai que vous êtes d'accord c'est avaler un je",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "d'accord,",
+      "du",
+      "c'est",
+      "que",
+      "c'est",
+      "je"
+    ]
+  },
+  {
+    "start": 5279.01,
+    "end": 5297.71,
+    "speaker": "Interlocuteur 2",
+    "text": "pense pas que tu vois, lui il voulait réfléchir un peu à la femme de s'extraire du frontier donc elle pourrait se retirer un moment ou moins parce que ça joue parce qu'il y a quelque chose à faire très bien, alors du coup il est 26 je propose qu'Interlocuteur 6 prenne la parole et ensuite peut-être",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "vois,"
+    ]
+  },
+  {
+    "start": 5297.71,
+    "end": 5299.55,
+    "speaker": "Interlocuteur 6",
+    "text": "à voir on va peut-être faire un tour de table — C'était",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "à",
+      "—"
+    ]
+  },
+  {
+    "start": 5299.55,
+    "end": 5301.97,
+    "speaker": "Interlocuteur 2",
+    "text": "plutôt une relance. Donc si... — C'est une",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Donc",
+      "C'est"
+    ]
+  },
+  {
+    "start": 5301.97,
+    "end": 5304.39,
+    "speaker": "[?]",
+    "text": "relance.",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 5305.39,
+    "end": 5327.57,
+    "speaker": "Interlocuteur 6",
+    "text": "En fait, théoriquement, c'est... Voilà. — C'est une loi actuelle. Et sur la... En 5 secondes, on y va. Donc pour une loi actuelle, il y a des mesures qui entourent beaucoup. Les expressions sont pour le ministère de l'État, on va dire. Là, je suis plutôt contre. C'est la suppression de la Cour criminelle de l'ordre mental, qui est globalement du délire. En gros... Du coup, je voulais vous interroger là-dessus. Du coup, je vous rendis compte de ce qui se passe.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Voilà.",
+      "C'est",
+      "une",
+      "loi",
+      "En",
+      "pour",
+      "expressions",
+      "Là,",
+      "de",
+      "Du"
+    ]
+  },
+  {
+    "start": 5331.09,
+    "end": 5393.89,
+    "speaker": "Interlocuteur 6",
+    "text": "c'est juste cette technique et on va peut-être pas savoir mais c'est très intéressant actuellement pour juger un viol pour faire simple je ne juge pas exactement comme un autre crime il y a un peu un statut à part pour des raisons de nombre il y a tellement plus de viols que de meurtre que pas une mesure de règlement à part parce que sinon les tribunaux ne peuvent pas suivre et ce qui fait qu'il y a une cour criminelle départementale qui est surnommée par tout le monde la cour du viol qui juge 90% de viols. Et qu'est-ce qui change beaucoup ? Il n'y a pas de jury populaire. Il n'y a personne qui devient un peu plus grave dans la paix. Et donc, par exemple, les associations sont, pour la plupart, pour l'idée de dire que le viol n'est pas créé, on doit le créer pour un autre et on doit l'emmener aux assises et ainsi de suite. Et pourquoi est-ce qu'il y a vraiment un mot ? Pourquoi est-ce qu'il y a beaucoup de maîtrise au fond ? Déjà parce que tout ce qu'il y a pour les assises, c'est qu'il n'y aurait pas d'insurrection. Mais aussi parce qu'il y aurait des bonnes des mauvaises victimes. Quand on est face à un jury populaire, on a beaucoup besoin d'une bonne victime de gueule et une mauvaise victime de gueule. Je ne vais pas vous donner des exemples de bonnes et de mauvaises victimes, parce que vous voyez très bien ce que je veux dire. Du coup, je vous",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "juste",
+      "je",
+      "pas",
+      "mesure",
+      "les",
+      "qui",
+      "90%",
+      "change",
+      "dans",
+      "n'est",
+      "et",
+      "qu'il",
+      "?",
+      "au",
+      "tout",
+      "qu'il",
+      "pour",
+      "c'est",
+      "n'y",
+      "d'insurrection.",
+      "des",
+      "d'une",
+      "bonne"
+    ]
+  },
+  {
+    "start": 5393.89,
+    "end": 5416.01,
+    "speaker": "Interlocuteur 6",
+    "text": "interrogeais là-dessus sur est-ce que, selon vous, on peut mieux rattacher le domicile. Et du coup, c'est un des points que j'ai mis là-dessus dans cette loi qui est très très intéressante. Sur cette loi, il y a beaucoup de choses, alors que c'est une loi qui est absolument géniale, il y a beaucoup de choses avec lesquelles pourtant je ne suis pas spécialement d'accord, comme je l'ai fait en avant. Très bien, super intéressant, alors moi je propose que du coup on fasse, alors Interlocuteur 1",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "domicile.",
+      "que",
+      "comme",
+      "je",
+      "l'ai",
+      "avant.",
+      "alors",
+      "du",
+      "alors"
+    ]
+  },
+  {
+    "start": 5416.01,
+    "end": 5421.95,
+    "speaker": "Interlocuteur 1",
+    "text": "veut... Tu peux",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "veut...",
+      "Tu"
+    ]
+  },
+  {
+    "start": 5421.95,
+    "end": 5428.77,
+    "speaker": "Interlocuteur 4",
+    "text": "après peut-être plus t'en parler, enfin on n'en est pas à la fin. En fait c'est juste que théoriquement il faudrait qu'on finisse lentement. Mais oui vas-y",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "après",
+      "peut-être",
+      "plus",
+      "on",
+      "n'en",
+      "à",
+      "la"
+    ]
+  },
+  {
+    "start": 5428.77,
+    "end": 5451.65,
+    "speaker": "[?]",
+    "text": "Interlocuteur 1, bah je propose que tu commences le tour de table, alors tour de table juste pour redire un peu à quoi ça sert de choses donc finir le débat nous dire un peu voilà ce que tu penses sur le débat et voilà et c'était un dernier truc a ajouté voilà et de plus sur comment soit c'est passé le débat et voilà c'est un retour est ce que qu'est ce qui est intéressant. Je",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "bah",
+      "alors",
+      "de",
+      "juste",
+      "de",
+      "donc",
+      "nous",
+      "dernier",
+      "a",
+      "de",
+      "Je"
+    ]
+  },
+  {
+    "start": 5451.65,
+    "end": 5534.54,
+    "speaker": "Interlocuteur 1",
+    "text": "vais faire un tour de table et j'en parlerai un peu. Je trouve ça vraiment dommage. Je ne sais pas si c'est quoi de réel. Mais je ne vois pas pourquoi le bilan serait considéré comme un crime indifférent, combien même ça coûterait trop cher. Il faudrait investir. C'est juste que les personnes payent des impôts pour pouvoir être protégées par la justice, ce n'est pas parce que c'est des femmes. Souvent, ce sont des femmes qui contribuent autant que nous. Et par le simple fait qu'elles soient trop victimes d'un truc, elles ne pourraient pas avoir le même droit que tous les autres. Je trouve que juste d'un point de vue juste, et pas de justice, c'est un principe humain, elles devraient avoir le droit à la même chose que tout le monde. Et les personnes en général, ce n'est pas que les femmes. Et sinon, du coup, je vais passer sur un peu comment j'ai vu et comment j'ai vu cette discussion, ce débat. Je trouvais qu'il était très intéressant et aussi, je l'ai tout promis, moi, pour comparer, on a beaucoup plus facilement pu passer à d'autres sujets. Et donc, ça, j'ai bien apprécié ce débat-là, que par ça, et pas que pour le sujet, c'est parce qu'on a pu passer à d'autres choses.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "j'en",
+      "quoi",
+      "réel.",
+      "bilan",
+      "que",
+      "par",
+      "ce",
+      "c'est",
+      "de",
+      "un",
+      "Et",
+      "l'ai",
+      "tout",
+      "ce",
+      "que",
+      "par",
+      "choses."
+    ]
+  },
+  {
+    "start": 5537.22,
+    "end": 5539.06,
+    "speaker": "Interlocuteur 3",
+    "text": "Tu es sur l'énergie ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Tu",
+      "?"
+    ]
+  },
+  {
+    "start": 5539.06,
+    "end": 5539.44,
+    "speaker": "[?]",
+    "text": "Oui,",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 5539.44,
+    "end": 5541.82,
+    "speaker": "Interlocuteur 4",
+    "text": "je suis sur l'énergie là-bas. J'ai fait par ma droite.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "je",
+      "là-bas.",
+      "J'ai",
+      "par"
+    ]
+  },
+  {
+    "start": 5543.4,
+    "end": 5545.2,
+    "speaker": "[?]",
+    "text": "Oui, quelle originalité, c'est pas grave.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Oui,",
+      "quelle",
+      "c'est"
+    ]
+  },
+  {
+    "start": 5548.08,
+    "end": 5551.62,
+    "speaker": "Interlocuteur 7",
+    "text": "Du coup, il faut que je dise ce que j'ai pensé du débat. Tu dis ce que tu veux, mais oui, pensez",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 5551.62,
+    "end": 5557.08,
+    "speaker": "[?]",
+    "text": "du débat en fond, et ensuite dans la forme, comment ça s'est passé, les horocodes et tout dans le genre.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "les"
+    ]
+  },
+  {
+    "start": 5558.74,
+    "end": 5565.56,
+    "speaker": "Interlocuteur 7",
+    "text": "On ne s'est pas assez faillité la gueule, c'est ça ? Oui, carrément. Moi je pense qu'il faut privatiser la police et la justice.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "On",
+      "Moi"
+    ]
+  },
+  {
+    "start": 5569.12,
+    "end": 5606.38,
+    "speaker": "Interlocuteur 7",
+    "text": "Privatiser peut-être pas, mais au moins mettre en concurrence un peu, genre en avoir plusieurs. Comme ça, ils sont en concurrence. Ouais, c'est moi. Mettre en concurrence les différentes justices. Comme ça, la justice qui est nulle et qui, par exemple, ne couvre pas certaines personnes, les gens ne paieraient pas la bonne pensée de justice. Et donc, il ne resterait que les bonnes justices qui juge bien et qui s'occupe de tous les gens. Parce que du coup, il parlait des femmes qui contribuent autant que les autres et que la justice ne s'occupe pas d'eux. Et du coup, elle pourrait résilier l'abonnement à leur justice et aller faire une autre justice qui s'occupe des femmes, par exemple. Et la police, ça serait pareil. Et voilà.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "genre",
+      "Ouais,",
+      "Et"
+    ]
+  },
+  {
+    "start": 5607.92,
+    "end": 5616.06,
+    "speaker": "Interlocuteur 2",
+    "text": "J'ai l'impression qu'il y a du harangue. Les hommes, ils vont choisir. La police, il est harangue. En plus, qui choisit",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "du",
+      "La",
+      "En"
+    ]
+  },
+  {
+    "start": 5616.06,
+    "end": 5621.9,
+    "speaker": "[?]",
+    "text": "d'aller dans quel tribunal ? Est-ce que c'est celui qui porte plainte C'est celui qui se fait porter plainte. T'as les",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "C'est",
+      "T'as"
+    ]
+  },
+  {
+    "start": 5621.9,
+    "end": 5623.5,
+    "speaker": "Interlocuteur 6",
+    "text": "deux justices. En vrai",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "En"
+    ]
+  },
+  {
+    "start": 5623.5,
+    "end": 5634.48,
+    "speaker": "Interlocuteur 7",
+    "text": "? Non, genre, si t'es abonné à une justice qui condamne un truc et que toi tu le subis, c'est ta justice à toi qui va... Oui, mais si on n'a pas la même justice... Si tu m'agresses et qu'on n'a pas la même",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "?",
+      "genre,"
+    ]
+  },
+  {
+    "start": 5634.48,
+    "end": 5637.56,
+    "speaker": "[?]",
+    "text": "justice, qui prend en charge ? La",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 5637.56,
+    "end": 5642.56,
+    "speaker": "Interlocuteur 5",
+    "text": "justice de l'agressé. Je crois que c'est contre le fondement de l'État. C'est contre tellement",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'est"
+    ]
+  },
+  {
+    "start": 5642.56,
+    "end": 5647.28,
+    "speaker": "[?]",
+    "text": "de choses qu'il y a actuellement, mais c'est intellectuellement intéressant au moins de mettre de la",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "de"
+    ]
+  },
+  {
+    "start": 5647.28,
+    "end": 5662.88,
+    "speaker": "Interlocuteur 7",
+    "text": "concurrence j'ai pas poussé le truc au bout mais en vrai je pense qu'il y a de l'idée moi j'ai hâte que tu nous tu nous le finalise parce qu'on dit la justice est nulle machin mais du coup si elle était en concurrence tout le monde partirait de sa justice bien sûr, ensuite ça pose",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "j'ai",
+      "moi",
+      "tu",
+      "le",
+      "tout",
+      "bien"
+    ]
+  },
+  {
+    "start": 5662.88,
+    "end": 5674.3,
+    "speaker": "[?]",
+    "text": "des gros gros problèmes d'égalité je assure tellement de trucs mais bon, intéressant et sur la forme du débat, quelque chose à dire ou pas ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "je",
+      "assure"
+    ]
+  },
+  {
+    "start": 5681.9,
+    "end": 5688.56,
+    "speaker": "[?]",
+    "text": "Sur ce que tu proposes, il y a un fort consensus de 16 personnes contre et 2 personnes pour.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Sur"
+    ]
+  },
+  {
+    "start": 5689.54,
+    "end": 5704.12,
+    "speaker": "Interlocuteur 5",
+    "text": "Je ne sais pas, je n'ai pas le droit de savoir, mais c'est toi, toi aussi, tu avais, ah ouais ! Non, non, je n'avais pas... Il n'y a pas de jugement. Il n'y a pas de jugement, c'est anonyme, c'est anonyme. Oui, d'accord, moi je comprends ça.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Je",
+      "ne",
+      "mais",
+      "tu",
+      "!",
+      "Non,",
+      "Il",
+      "moi",
+      "je"
+    ]
+  },
+  {
+    "start": 5706.56,
+    "end": 5721.02,
+    "speaker": "[?]",
+    "text": "Moi, la chose que j'aimerais rajouter sur ce débat-là, je me pose la question, ce que j'ai à comprendre, est-ce que vous êtes d'accord dans ce cas, par tout ce qu'on a dit qu'il faudrait peut-être plus sanctionner et punir en un point",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "ce",
+      "par",
+      "qu'il",
+      "en",
+      "un",
+      "point"
+    ]
+  },
+  {
+    "start": 5721.02,
+    "end": 5721.12,
+    "speaker": "Interlocuteur 4",
+    "text": "de vue",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 5721.12,
+    "end": 5726.74,
+    "speaker": "[?]",
+    "text": "carcéral les crimes qui font en gros il y a une victime donc les violences",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "il"
+    ]
+  },
+  {
+    "start": 5726.74,
+    "end": 5736.18,
+    "speaker": "Interlocuteur 4",
+    "text": "sexuelles ou les homicides, les homicides c'est un cas extrême et moins pénaliser et punir les crimes qui sont des délits qui font en",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ou"
+    ]
+  },
+  {
+    "start": 5736.18,
+    "end": 5743.76,
+    "speaker": "[?]",
+    "text": "gros de mal à la personne si ce n'est un vol fait de mal à quelqu'un je veux dire et qui sont aussi beaucoup plus dépendant de la précarité d'une personne.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "fait",
+      "d'une"
+    ]
+  },
+  {
+    "start": 5744.62,
+    "end": 5748.3,
+    "speaker": "Interlocuteur 2",
+    "text": "Polariser les peines en fait ? Bah c'est... pas apporter... plus punir les",
+    "refused": false,
+    "speaker_source": "voix-comblee",
+    "low_conf_words": [
+      "en",
+      "?",
+      "Bah",
+      "pas",
+      "plus"
+    ]
+  },
+  {
+    "start": 5748.3,
+    "end": 5751.86,
+    "speaker": "[?]",
+    "text": "peines qui font mal. Parce que les attentes à la",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "les"
+    ]
+  },
+  {
+    "start": 5751.86,
+    "end": 5753.52,
+    "speaker": "Interlocuteur 6",
+    "text": "personne sont vraiment inconduites de toutes les attentes.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "toutes"
+    ]
+  },
+  {
+    "start": 5753.98,
+    "end": 5755.88,
+    "speaker": "[?]",
+    "text": "Très bien résumé. Donc en gros, la",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Donc"
+    ]
+  },
+  {
+    "start": 5755.88,
+    "end": 5762.16,
+    "speaker": "Interlocuteur 7",
+    "text": "prison ça serait réservé aux gens qui sont vraiment dangereux pour la société ? Pour les gens. J'ai plus... Tu peux rompir encore",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ça",
+      "J'ai",
+      "plus...",
+      "Tu"
+    ]
+  },
+  {
+    "start": 5762.16,
+    "end": 5762.34,
+    "speaker": "[?]",
+    "text": "?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "?"
+    ]
+  },
+  {
+    "start": 5765.36,
+    "end": 5770.98,
+    "speaker": "[?]",
+    "text": "Les rompires par exemple, les violences sexuelles, etc. ce que j'ai",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "ce"
+    ]
+  },
+  {
+    "start": 5770.98,
+    "end": 5783.12,
+    "speaker": "Interlocuteur 4",
+    "text": "compris qu'il y a de très peu sanctionnés, c'est peut-être pour d'autres raisons, et que les crimes, les délits à la drogue par exemple, les vols, les délits à la drogue sont en",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "qu'il",
+      "de",
+      "c'est",
+      "crimes,",
+      "les"
+    ]
+  },
+  {
+    "start": 5783.12,
+    "end": 5809.75,
+    "speaker": "[?]",
+    "text": "fait très punis par rapport à ce que ça rapporte à tous ces punis de 3 ans, 4 ans fermes, des gens qui ont commis quelque chose, qui en vrai n'ont pas forcément fait de mal à quelqu'un, moi j'essaie de résumer ce qu'on a dit au début, de dire est-ce que c'est un intérêt de punir les gens de cette manière-là. Moi, je serais plutôt, enfin, tout à dit, mais j'aime plutôt entendre votre pensée. Est-ce que vous voulez qu'on fasse un vote là-dessus ? Ça me paraît intéressant.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "à",
+      "3",
+      "c'est",
+      "Moi,",
+      "enfin,",
+      "tout",
+      "plutôt"
+    ]
+  },
+  {
+    "start": 5810.09,
+    "end": 5818.99,
+    "speaker": "Interlocuteur 6",
+    "text": "Je ne sais pas si c'est en intérêt à particulier. Si, pour l'enregistrement. On peut prendre ça en compte. On peut faire un vote pour contre. Non, c'est vrai, c'est peut-être pas...",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "à",
+      "Si,",
+      "l'enregistrement.",
+      "On",
+      "On",
+      "faire"
+    ]
+  },
+  {
+    "start": 5821.29,
+    "end": 5831.67,
+    "speaker": "[?]",
+    "text": "Et sinon, sur le débat, moi, j'ai bien apprécié la tournoi que ça a pris. En fait, on a parlé de sujets intéressants, c'est pas focalisé... on n'a pas parlé de l'immigration",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Et",
+      "de",
+      "on"
+    ]
+  },
+  {
+    "start": 5834.29,
+    "end": 5835.67,
+    "speaker": "Interlocuteur 4",
+    "text": "on aurait pu pour le coup en",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "on",
+      "pour"
+    ]
+  },
+  {
+    "start": 5835.67,
+    "end": 5871.17,
+    "speaker": "[?]",
+    "text": "parler on aurait pu en parler quand on a parlé de la pauvreté l'immigration peut rapporter de la délinquance parce qu'il y a de gros biais de pauvreté là dedans on ne va pas parler on va parler de la délivrance sexuelle moi je ne peux pas très bien même d'un point de vue préventif donc je suis content de le dire très bien écoutez moi j'ai trouvé ça très intéressant C'était très agréable de modérer ce débat. Je posais des petites questions, c'était intéressant. Moi, je voulais modérer",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "on",
+      "a",
+      "de",
+      "là",
+      "ne",
+      "peux",
+      "de",
+      "Moi,"
+    ]
+  },
+  {
+    "start": 5871.17,
+    "end": 5871.81,
+    "speaker": "Interlocuteur 7",
+    "text": "parce que je n'avais pas",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 5871.81,
+    "end": 5943.33,
+    "speaker": "[?]",
+    "text": "énormément de texte sur ce sujet. Et voilà, ça m'a vraiment informé. Et puis voilà, vous voir partager vos avis, c'est très intéressant. Donc sur la forme, je trouve que ça s'est bien passé. Vous êtes tous à peu près entre 10 et 20% de temps de parole. Donc c'est vraiment très égalitaire. Voilà, qu'est-ce que je voulais dire ? Voilà. Et pour un peu le futur, on va amener vos amis pour discuter avec nous. Et aussi, on va faire un format bientôt, certainement, qui sera université exposée, ou en gros, un peu court, où quelqu'un pourra... Ce ne sera pas du tout un débat, rien à voir, mais ce sera quelqu'un qui vient, qui connaît très bien un sujet, un élève, entre nous, et qui, pendant 15, 20, à voir, 30 minutes, peut présenter quelque chose aux autres. Ce serait très intéressant et notamment sur la justice moi je serais très intéressé de t'entendre parce que en fait je ne sais pas si tu te rends compte mais tu as une culture, une compréhension du truc qui n'a rien à voir avec les autres. Même si c'est imparfait et tu as des limites et tu peux présenter tes limites à la fin. Moi je vais le faire sur l'économie, je ne suis pas économiste, je vais présenter les limites. Voilà ce serait moi, ça m'intéresserait un jour de t'entendre là-dessus. Voilà et sinon merci beaucoup, je t'aime très très bien.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Voilà.",
+      "rien",
+      "Ce",
+      "et",
+      "moi",
+      "parce",
+      "en",
+      "ne",
+      "les",
+      "très"
+    ]
+  },
+  {
+    "start": 5946.55,
+    "end": 6046.27,
+    "speaker": "Interlocuteur 5",
+    "text": "premier point déjà à ce qu'il faut privatiser la police et la justice en fait je croyais que l'idée c'était plutôt d'avoir des cellules indépendantes qui sont plus focalisées sur des choses sur des trucs plutôt que d'autres et d'avoir vraiment des polices, des forces privées ça va être des gangs Donc, ça décentralise l'État et ça tue l'État. Et la justice, c'est la même chose. En fait, il faut qu'un parti ait un peu le monopole de la justice, sinon les gens ne vont pas vraiment l'accepter. Mais l'idée, c'est que je comprends que... Parce que les gens, ils acceptent la justice. Je comprends que si l'État, par exemple, a le monopole de la police, je comprends que des policiers vont se comporter de manière plus corrompue ou qu'ils vont tout simplement tolérer plus de violence envers des minorités, c'est déjà arrivé, parce que tu ne peux pas répondre à un policier, tu ne peux pas agresser un policier, on va dire agresser, mais dans certaines situations, c'est plus tendu, mais je comprends l'idée que tu avais derrière. Et bon, deuxième idée, en fait, par rapport au dernier débat qui était l'héritage en France, bon, je n'ai pas vraiment pu participer pour des raisons médicales, j'ai trop crié à l'éclipse mais donc en fait je pense que ce sujet il était beaucoup plus général et qu'on a basculé on dirait pas du coq à l'oeuf mais par exemple on a abordé le sujet des féminicides, on en a",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "premier",
+      "à",
+      "et",
+      "en",
+      "plutôt",
+      "Donc,",
+      "a",
+      "l'héritage",
+      "j'ai",
+      "mais",
+      "qu'on",
+      "coq"
+    ]
+  },
+  {
+    "start": 6046.27,
+    "end": 6124.51,
+    "speaker": "Interlocuteur 5",
+    "text": "alloué la moitié du temps et il y a des UDT qui sont très intéressants et j'ai bien apprécié les dernières 6 minutes où chacun disait à peu près « Je connais telle chose, tel film, je ne sais pas quoi, à creuser. » J'ai vraiment aimé ça et ça donne un peu d'ouverture et de valeur ajoutée. Mais par exemple, si on va dire, on a commencé le truc des féminicides sur la stat que les hommes étaient plus sujets aux meurtres qu'aux femmes, mais ça aurait été plus logique de parler pourquoi est-ce que les hommes sont plus exposés aux meurtres que les femmes, par exemple. Donc aussi le sujet des féminicides est très important et tout. Mais je pense qu'en fait, là que le débat était très intéressant, je pense qu'il aurait fallu un peu plus de cadrage, parce que, je ne sais pas, le sujet aurait été plutôt, je ne sais pas, féminicide, drogue, par rapport à juste sécurité, parce qu'au début, quand on a parlé en fait des solutions, je pense que ça ressemblait un peu au sujet de l'héritage. Ça aurait pu être comme sujet de l'héritage si ce n'était juste les solutions pour la sécurité. Mais là, je pense qu'il faut un peu cadrer. Et sinon, ça a été un plaisir de discuter avec vous et d'avoir des solutions pour la sécurité. Voilà. Et je passe la parole à Interlocuteur 4.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "«",
+      "je",
+      "Donc",
+      "aussi",
+      "Mais",
+      "Ça",
+      "ce",
+      "Voilà.",
+      "passe",
+      "la"
+    ]
+  },
+  {
+    "start": 6124.73,
+    "end": 6149.75,
+    "speaker": "[?]",
+    "text": "Juste sur plus de cadrage, le fait que du coup nous, on soit large de base et qu'ensuite on décide organiquement de faire des sujets, Nous, ce dont on a peur, c'est de se bloquer et que du coup, il y a encore moins de gens qui viennent alors qu'une fois que tu es là, tu peux vraiment, et d'ailleurs, c'est ce qu'on a fait, dire qui veut parler de quoi et on y va. Mais toi, tu penses qu'on aurait gagné à aller dans plus de précision ? Mais",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "du",
+      "nous,",
+      "Nous,",
+      "et",
+      "que",
+      "alors",
+      "Mais"
+    ]
+  },
+  {
+    "start": 6149.75,
+    "end": 6171.31,
+    "speaker": "Interlocuteur 5",
+    "text": "bon, je ne sais pas en fait, mais... Juste milieu, parce que j'ai quand même senti que pendant le débat sur l'héritage, en fait, il y avait presque des choses qui se répétaient en fait. Mais là, ce sujet-là en particulier, j'ai senti que le sujet, en général, dirait un truc entre les deux. D'accord.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "milieu,",
+      "Mais",
+      "ce",
+      "le",
+      "D'accord."
+    ]
+  },
+  {
+    "start": 6175.01,
+    "end": 6239.21,
+    "speaker": "Interlocuteur 6",
+    "text": "Franchement, pour le premier sujet, il y a toujours des désaccords. Pour moi, je trouve que c'est là où il y a de l'étonnement d'ensemble, parce qu'il y a des gens qui en détaillent et qui vraiment interrompent. Et je trouve que pour le début, et après, autant suivre les discussions. Normalement, on fait ça, mais là, c'est vrai que j'ai juste commencé par la doxa. Mais effectivement, c'est mieux de commencer par des sensus. Sur le débat, c'est déjà ce que j'ai fait sur l'héritage, j'apprécie sincèrement le calme. Le calme, l'écoute réelle, même si à un moment où c'est vrai, j'ai réagi un peu trop tôt et tu me l'as fait remarquer, et tu avais raison de le faire remarquer, le calme en moyenne dans lequel s'est déroulé le débat, je trouve ça vraiment cadençable, je trouve que bon, il y a quand même plus de temps dans le droit, en tout cas on peut entendre des débats appeler comme ça, et ça fait très bien. Sur le fond, il y a un point, il y a plusieurs points qu'on n'a pas abordé qui m'intéressent beaucoup. Le fait que tu l'abordais à toute fin de ta pose de parole, ce fait qu'en finalement directement sur toute la questionnalité, avec ce qu'on peut parler des classes moyennes, c'est assez vrai. Oui, parce que vous n'en parlez pas du tout. Et sous cette vision de l'HLM, effectivement, directement, c'est plus des classes moyennes, surtout chez les collèges. Et ça nourrit le sentiment",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "il",
+      "en",
+      "interrompent.",
+      "Et",
+      "discussions.",
+      "Mais",
+      "Sur",
+      "le",
+      "c'est",
+      "fait",
+      "très",
+      "Sur",
+      "il",
+      "qui",
+      "pose",
+      "avec",
+      "peut",
+      "Oui,",
+      "Et",
+      "vision",
+      "l'HLM,"
+    ]
+  },
+  {
+    "start": 6239.21,
+    "end": 6299.17,
+    "speaker": "Interlocuteur 6",
+    "text": "de déplacement. Moi, je suis classe moyenne, mais maintenant, face aux aides, Il y a des plus pauvres qui arrivent au niveau de moi, mais moi je viens plus pauvre, ça nous met plein de choses de bon. Effectivement, c'est une partie très grande de l'insécurité. Et sur l'insécurité, il y a une aventure dans les yeux qui m'intéresse beaucoup, c'est comment juger ? Comment se mettre face à quelqu'un ? Qui écouter ? Comment écouter ? Et comment arriver à une paix ? C'est ce processus-là qui, pour moi, fait partie de l'insécurité. Parce qu'il y a un problème de défiance envers la justice. On ne l'a pas non plus évoqué. Mais l'insécurité c'est aussi accepter le jugement. Une fois que t'as accepté ton jugement, t'es convaincu que bon, non, s'il t'arrive quelque chose, tu peux être jugé. Et on peut se poser la question, c'est la question notamment politique évidemment, comment jouer les politiques et ainsi de suite. Et c'est un sujet qui me tenait beaucoup à cœur, même si on est des sujets absolument passionnants. Et parler des féminicides et se rappeler que l'insécurité médiatique c'est le trafic de drogue, et qu'en fait l'insécurité quand tu parles aux gens, surtout aux femmes en moyenne, c'est une EBSH, je trouve que c'était vraiment très très pertinent à notre moyenne. je suis très",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "classe",
+      "Il",
+      "plus",
+      "plus",
+      "met",
+      "de",
+      "de",
+      "il",
+      "les",
+      "?",
+      "C'est",
+      "qu'il",
+      "Mais",
+      "t'as",
+      "non,",
+      "être",
+      "la",
+      "jouer",
+      "et",
+      "est",
+      "c'est",
+      "notre",
+      "je",
+      "suis"
+    ]
+  },
+  {
+    "start": 6301.34,
+    "end": 6380.22,
+    "speaker": "Interlocuteur 3",
+    "text": "content d'être venu à ce débat en pensant qu'on avait parlé justement d'une violence envers les femmes. Ce qui est quand même une preuve déjà du problème en lui-même, c'est que on ne considère pas comme le premier sujet sur la sécurité, c'est pas celui qui nous met en tête, donc c'est la preuve même du problème. C'est chouette qu'on puisse l'aborder. Moi je trouve que C'est vrai que c'était bien, le changement de sujet organique c'était bien fait. Il y a des moments où je me suis dit, on passe un petit peu de temps sur le sujet, paf on a changé. Et ça nous a permis de voir plein de sujets très variés. C'est vrai qu'il y a des moments où on veut des sujets plus restreints, et donc on en retourne très centré sur quelque chose. Là c'est vrai que c'était très large, et donc on a pu aborder plein de trucs. On a parlé quand même de HLM, de drogue et de violences sexuelles, et les trois sont liés à la question de l'insécurité, donc c'est très intéressant, et oui, je suis d'accord avec toi, il y a des sujets qu'on n'a pas abordés, qui auraient été super intéressants d'aborder, les violences policières ça m'aurait intéressé, je suis d'accord avec toi. On n'a qu'une heure trente, si tu veux, on fait des débats toute la journée. C'est ça, chacun des sujets qu'on a abordés pourra être en débat tout seul, et les violences policières qui m'intéressent, pourraient être en débat par entière, donc",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "d'être",
+      "en",
+      "d'une",
+      "que",
+      "on",
+      "met",
+      "qu'on",
+      "C'est",
+      "vrai",
+      "que",
+      "Il",
+      "le",
+      "on",
+      "veut",
+      "et",
+      "sont",
+      "c'est",
+      "très",
+      "je",
+      "suis",
+      "pourra",
+      "pourraient",
+      "par"
+    ]
+  },
+  {
+    "start": 6380.22,
+    "end": 6386.72,
+    "speaker": "Interlocuteur 3",
+    "text": "au global, sur le débat, je trouvais ça très sympa et j'étais vraiment très content de pouvoir y participer.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "au",
+      "et"
+    ]
+  },
+  {
+    "start": 6392.83,
+    "end": 6403.81,
+    "speaker": "Interlocuteur 2",
+    "text": "Globalement, il y a toujours le côté que j'ai apprécié la semaine dernière, c'est-à-dire analyser les causes, bien faire le cours des causes. On a toujours le support digital qui cadre le débat tout en",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "tout"
+    ]
+  },
+  {
+    "start": 6403.81,
+    "end": 6407.35,
+    "speaker": "[?]",
+    "text": "ayant... Le support digital, c'est très fort. Il y",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Il",
+      "y"
+    ]
+  },
+  {
+    "start": 6407.35,
+    "end": 6421.09,
+    "speaker": "Interlocuteur 2",
+    "text": "a un aspect organique à l'oral, des coupures, des recadrages qui sont bien. J'irais plutôt tendance à faire les clashs, les coupures de paroles. Je pense qu'il manque un peu de ça aussi.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "qui",
+      "J'irais",
+      "à"
+    ]
+  },
+  {
+    "start": 6421.99,
+    "end": 6423.39,
+    "speaker": "Interlocuteur 7",
+    "text": "C'est ce qu'il donne du peps.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'est"
+    ]
+  },
+  {
+    "start": 6424.07,
+    "end": 6426.93,
+    "speaker": "[?]",
+    "text": "Ça manque de peau scolaire. Exactement,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Ça",
+      "de",
+      "peau"
+    ]
+  },
+  {
+    "start": 6426.95,
+    "end": 6433.65,
+    "speaker": "Interlocuteur 6",
+    "text": "je suis d'accord avec lui. Il y a des moments où je me disais « mais qu'est-ce que tu as ? ». Il y a des gens avec qui je suis plutôt d'accord en moyenne. Moi je me dis « mais là tu vas trop loin ».",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "».",
+      "Il"
+    ]
+  },
+  {
+    "start": 6434.85,
+    "end": 6444.83,
+    "speaker": "Interlocuteur 2",
+    "text": "J'ai aussi un problème personnel, justement ça, ça me manque, c'est le fait qu'il y a des gens comme moi qui ont un mémoire en courte, et qu'il y a une autre personne qui fait de la parole après, je vous laisse. Prends des notes. Ça c'est, la",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "J'ai",
+      "justement",
+      "a",
+      "ont",
+      "un",
+      "qu'il",
+      "laisse.",
+      "Ça"
+    ]
+  },
+  {
+    "start": 6444.83,
+    "end": 6449.81,
+    "speaker": "[?]",
+    "text": "prochaine fois je le rappellerai dans les conseils, les règles au début, avoir un fucking cahier à côté de soi. Ah,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Ah,"
+    ]
+  },
+  {
+    "start": 6449.81,
+    "end": 6455.25,
+    "speaker": "Interlocuteur 2",
+    "text": "t'as des notes ? Oui, sur l'appli tu peux avoir accès à des notes aussi. Ah ouais ? Ouais, va dans",
+    "refused": false,
+    "speaker_source": "voix-comblee"
+  },
+  {
+    "start": 6455.25,
+    "end": 6456.01,
+    "speaker": "[?]",
+    "text": "outils, notes.",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 6459.12,
+    "end": 6459.42,
+    "speaker": "[?]",
+    "text": "Globalement,",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 6459.42,
+    "end": 6459.82,
+    "speaker": "Interlocuteur 2",
+    "text": "vous",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 6459.82,
+    "end": 6483.96,
+    "speaker": "[?]",
+    "text": "avez plein d'outils. Ah oui, ça va déjà. ah oui on n'y a pas accès un moment mais bien sûr c'est moi qui prend des claude n'est pas écrite une",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "ça",
+      "va",
+      "ah",
+      "on",
+      "un",
+      "c'est",
+      "prend",
+      "n'est",
+      "une"
+    ]
+  },
+  {
+    "start": 6483.96,
+    "end": 6484.26,
+    "speaker": "Interlocuteur 4",
+    "text": "demi-heure",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "demi-heure"
+    ]
+  },
+  {
+    "start": 6484.26,
+    "end": 6485.94,
+    "speaker": "[?]",
+    "text": "il ya une mise à",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "une"
+    ]
+  },
+  {
+    "start": 6485.94,
+    "end": 6489.0,
+    "speaker": "Interlocuteur 7",
+    "text": "jour qui est la semaine prochaine vous c'est plusieurs dizaines",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "qui",
+      "est",
+      "la",
+      "semaine",
+      "vous",
+      "c'est",
+      "plusieurs"
+    ]
+  },
+  {
+    "start": 6489.0,
+    "end": 6495.12,
+    "speaker": "[?]",
+    "text": "d'heures sur fond mais ouais soyez là la semaine prochaine proche design incroyable incroyable",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "fond",
+      "incroyable"
+    ]
+  },
+  {
+    "start": 6495.12,
+    "end": 6496.22,
+    "speaker": "Interlocuteur 6",
+    "text": "oui",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "oui"
+    ]
+  },
+  {
+    "start": 6496.22,
+    "end": 6503.52,
+    "speaker": "[?]",
+    "text": "bien sûr le sujet de la semaine prochaine c'est l'écologie est elle compatible avec le capitalisme c'est beaucoup son cas",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "beaucoup",
+      "son",
+      "cas"
+    ]
+  },
+  {
+    "start": 6503.52,
+    "end": 6503.84,
+    "speaker": "Interlocuteur 5",
+    "text": "ouais",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ouais"
+    ]
+  },
+  {
+    "start": 6503.84,
+    "end": 6506.36,
+    "speaker": "[?]",
+    "text": "c'est ça ok c'est quand en",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "ok",
+      "quand",
+      "en"
+    ]
+  },
+  {
+    "start": 6506.36,
+    "end": 6506.56,
+    "speaker": "Interlocuteur 1",
+    "text": "fait on",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 6506.56,
+    "end": 6515.46,
+    "speaker": "[?]",
+    "text": "est en concert en partenariat avec l'impact donc ça va intéressant et l'écologie moi",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "intéressant",
+      "et",
+      "l'écologie",
+      "moi"
+    ]
+  },
+  {
+    "start": 6515.46,
+    "end": 6517.86,
+    "speaker": "Interlocuteur 1",
+    "text": "c'est vraiment le débat que j'aime autant",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 6517.86,
+    "end": 6519.02,
+    "speaker": "Interlocuteur 4",
+    "text": "dire",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 6519.02,
+    "end": 6521.44,
+    "speaker": "[?]",
+    "text": "que j'ai modéré aujourd'hui aussi pour ne pas modérer",
+    "refused": false,
+    "speaker_source": "aucune"
+  },
+  {
+    "start": 6537.52,
+    "end": 6543.38,
+    "speaker": "Interlocuteur 2",
+    "text": "C'était bien vous, vous vous êtes battus ou pas ? Vous vous êtes battus ? Non, vous vous êtes",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'était",
+      "vous,",
+      "Vous"
+    ]
+  },
+  {
+    "start": 6543.38,
+    "end": 6548.14,
+    "speaker": "[?]",
+    "text": "battus. Je passe",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Je"
+    ]
+  },
+  {
+    "start": 6548.14,
+    "end": 6548.46,
+    "speaker": "Interlocuteur 7",
+    "text": "juste",
+    "refused": false,
+    "speaker_source": "voix"
+  },
+  {
+    "start": 6548.46,
+    "end": 6550.08,
+    "speaker": "[?]",
+    "text": "sur vos téléphones.",
+    "refused": false,
+    "speaker_source": "aucune"
+  }
+]

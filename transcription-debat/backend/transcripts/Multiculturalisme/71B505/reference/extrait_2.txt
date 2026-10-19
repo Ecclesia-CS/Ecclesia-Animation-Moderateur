@@ -1,0 +1,22 @@
+# EXTRAIT DE RÉFÉRENCE — 71B505 — de 00:30:40 à 00:35:40
+# fenetre: 1840.0-2140.0
+# Écoute extrait_2.mp3 (il démarre à 00:30:40 du débat) et corrige chaque ligne :
+#  - le texte : exactement ce qui est dit (euh, répétitions et phrases inachevées compris) ;
+#  - l'orateur : Interlocuteur N, ou [?] si tu ne peux vraiment pas savoir ;
+#  - découpe une ligne en deux si l'orateur change en cours de ligne (même minutage approximatif).
+# Garde les prénoms masqués ([prénom], labels). Les lignes # sont ignorées.
+
+[00:30:55] Interlocuteur 6: Est-ce que l'arabe dialectal est très répandu à l'écrit ou c'est que de l'arabe littéraire ? L'arabe dialectal
+[00:31:01] Interlocuteur 4: s'écrit avec des lettres latines.
+[00:31:07] Interlocuteur 7: J'ai aussi une question pour les autres qui n'ont pas pris la parole
+[00:31:10] [?]: sur
+[00:31:11] Interlocuteur 9: cette question de multiculturalisme ressentie. Je crois que c'est toi qui l'as dit tout à l'heure, c'est un des parents qui vous ont donné la parole.
+[00:31:17] [?]: Oui,
+[00:31:17] Interlocuteur 7: moi j'ai ma mère qui m'a répondu, même je ne sais pas si c'était des origines ou des parents, je ne sais pas, des autres, qu'est-ce que vous ressentez, et même d'ailleurs chez [prénom] aussi, c'est juste un peu plus vite, qu'est-ce que vous ressentez justement si vous avez, ou non d'ailleurs, une société multiculturelle qui n'est pas sans l'enfance en français c'est des origines, comment vous ressentez justement cette unité culturelle que
+[00:31:44] Interlocuteur 7: sinon donne la parole à Interlocuteur 3 qui est une culturelle ?
+[00:31:48] Interlocuteur 3: Ouais, du coup, je repars sur ce que j'allais dire et pas plus je te réponds aussi sur ces questions-là. Ouais, c'est intéressant. Mais du coup, ça date, mais je voulais répondre à Interlocuteur 2 qui, au début du débat, tu parlais, du fait que quand on a une loi du coup au moment où du coup il fallait pas trop la transgresser je sais pas si je reformule bien ton propos mais du coup les limites du respect et des valeurs de la république c'est un peu les lois donc pas transgresser forcément c'est ça ? oui
+[00:32:22] Interlocuteur 2: après du coup tu peux toujours trouver une loi c'est pas un propos rigide non plus quoi Oui,
+[00:32:31] Interlocuteur 3: oui, oui. Non, mais c'était juste pour dire que du coup, peut-être, quand même, il y a une idée qui est assez centrale, qui est qu'en général, le progrès ou les idées révolutionnaires, elles arrivent quand même à travers la transgression des lois qui sont présentes. Ça, c'est développé par Thoreau dans la désobéissance civile, qui explique qu'en général, toutes les lois majeures qui ont été établies aujourd'hui, le féminisme, toutes les lois qui permettent l'égalité homme-femme, elles sont arrivées à travers des choses qui étaient illégales. Je ne sais pas, il y avait une citation qui était intéressante, qui disait « sous un gouvernement qui emprisonne injustement, la place d'un homme juste est aussi la prison ». Et du coup, si on parle de multiculturalisme, est-ce qu'il ne faut pas aussi transgresser parfois certaines lois, si elles nous permettent aussi d'arriver plus tard à une égalité entre les cultures ? C'est une question ouverte.
+[00:33:42] Interlocuteur 2: effectivement, ce que je te dis dans le sens parmi les deux, d'un côté tu peux avoir Thoreau qui dit il faut transgresser, Spinoza qui dit ah non, il ne faut pas transgresser, il faut rester sans... non mais c'est vrai dans le sens, il y a des conceptions philosophiques et il y a des gens qui disent il faut transgresser d'autres non, et je trouve que les deux sont absolument compréhensibles oui dans une certaine mesure après pour moi il faut aller au cas par cas aussi c'est à quel point à quel point c'est important de transgresser cette loi on ne peut pas appliquer le principe de transgression des lois pour tout parce que pour moi sinon ça va sans valeur on va encore plus on va arriver encore moins au multiculturalisme, on va encore plus engranger les animosités, etc. C'est comme Interlocuteur 4 disait, quand on se sent agressé, on renforce notre sentiment d'appartenance à un groupe spécifique et encore moins à la nation, on va dire. Donc oui, évidemment. Après, je pense qu'il n'y a pas de principe de forme magique avec un principe général.
+[00:35:10] Interlocuteur 6: Alors, tu
+[00:35:11] Interlocuteur 7: as fait un

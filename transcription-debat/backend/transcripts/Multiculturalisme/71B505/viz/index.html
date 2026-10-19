@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualisation du débat</title>
+<script>
+// Posé avant le rendu (pas de flash) : ?theme=light|dark force le thème, sinon il suit le
+// système. Dans une iframe, la page prend la hauteur de son contenu (voir HAUTEUR AUTO).
+(function () {
+  var theme = new URLSearchParams(location.search).get('theme');
+  if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
+  if (window.self !== window.top) document.documentElement.classList.add('embedded');
+})();
+</script>
+<!-- d3 hébergé à côté de la page (v7.9.0, licence ISC) : aucune dépendance à un CDN tiers. -->
+<script src="d3.v7.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --bg2: #f4f4f4; --bg3: #e8e8e8;
+  --fg: #111111; --fg2: #666666; --fg3: #999999;
+  --border: #dddddd; --axis: #aaaaaa;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f0f0f; --bg2: #1a1a1a; --bg3: #242424;
+    --fg: #eeeeee; --fg2: #999999; --fg3: #666666;
+    --border: #333333; --axis: #555555;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0f0f; --bg2: #1a1a1a; --bg3: #242424;
+  --fg: #eeeeee; --fg2: #999999; --fg3: #666666;
+  --border: #333333; --axis: #555555;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; }
+/* En iframe, min-height: 100vh vaudrait la hauteur de l'iframe elle-même : la page ne pourrait plus rapetisser. */
+html.embedded body { min-height: 0; }
+#load-error { margin: 24px auto; max-width: 1068px; padding: 12px 16px; border: 1px solid #D64545; border-radius: 6px; color: #D64545; font-size: 0.85rem; }
+header { padding: 14px 24px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+header h1 { font-size: 1rem; font-weight: 600; }
+header p  { font-size: 0.8rem; color: var(--fg2); }
+.wrap { padding: 16px; max-width: 1100px; margin: 0 auto; }
+section h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg2); }
+.hidden { display: none !important; }
+#banner-partial { margin: 12px auto 0; max-width: 1068px; padding: 8px 16px; border: 1px solid #E09020; border-radius: 6px; color: #E09020; font-size: 0.82rem; }
+
+/* Guide de lecture des axes */
+#axes-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.axis-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.axis-block h3 { font-size: 0.85rem; margin-bottom: 8px; }
+.pole { margin-bottom: 8px; }
+.pole b { font-size: 0.8rem; }
+.pole ul { margin: 4px 0 0 16px; }
+.pole li { font-size: 0.78rem; color: var(--fg2); font-style: italic; line-height: 1.45; }
+@media (max-width: 820px) {
+  #axes-guide { grid-template-columns: 1fr; }
+  .main-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Polarisation (indice 0-100 par axe) */
+#polar-block { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+#polar-block h3 { font-size: 0.85rem; margin-bottom: 8px; }
+.polar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.polar-label { font-size: 0.78rem; color: var(--fg2); width: 220px; flex-shrink: 0; }
+.polar-meter { flex: 1; height: 8px; border-radius: 4px; background: var(--bg3); }
+.polar-fill { height: 100%; border-radius: 4px; background: var(--fg2); }
+.polar-val { font-size: 0.8rem; font-weight: 600; width: 56px; text-align: right; }
+.polar-note { font-size: 0.72rem; color: var(--fg3); margin-top: 6px; line-height: 1.5; }
+@media (max-width: 820px) { .polar-label { width: 130px; } }
+
+/* Contrôles de lecture */
+.controls { display: flex; align-items: center; gap: 12px; padding: 10px 0 10px; flex-wrap: wrap; }
+#slider-wrap { flex: 1; min-width: 200px; position: relative; }
+#slider-wrap input[type=range] { width: 100%; accent-color: var(--fg); }
+#slider-marks { position: absolute; left: 0; right: 0; bottom: -5px; height: 6px; pointer-events: none; }
+#slider-marks .mark { position: absolute; width: 5px; height: 5px; border-radius: 50%; transform: translateX(-2px); }
+.controls button { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 4px 14px; font-size: 0.85rem; cursor: pointer; color: var(--fg); }
+.controls button:hover { background: var(--bg3); }
+.controls button.speed { padding: 4px 8px; }
+.controls button.speed.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.controls span { font-size: 0.82rem; color: var(--fg2); white-space: nowrap; }
+.tension-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg2); }
+.tension-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.phase-text { font-size: 0.8rem; color: var(--fg2); font-style: italic; padding: 2px 0 8px; min-height: 1.4em; }
+
+/* Carte + panneau narratif */
+.main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+#map-container svg { display: block; width: 100%; height: auto; }
+#now-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; position: sticky; top: 12px; }
+#now-panel h3 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg2); margin-bottom: 8px; }
+.now-item { border-left: 3px solid var(--fg3); padding: 6px 8px; margin-bottom: 8px; font-size: 0.8rem; line-height: 1.45; background: var(--bg); border-radius: 0 6px 6px 0; }
+.now-item .now-time { color: var(--fg3); font-size: 0.72rem; }
+.now-empty { font-size: 0.78rem; color: var(--fg3); font-style: italic; }
+.map-caption { font-size: 0.75rem; color: var(--fg3); padding-top: 6px; }
+
+/* Détail d'une voix (preuve de trajectoire) */
+#voice-detail { margin-top: 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+#voice-detail-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+#voice-detail-title { font-size: 0.85rem; font-weight: 600; }
+#voice-detail-close { background: none; border: none; color: var(--fg2); cursor: pointer; font-size: 0.8rem; }
+#voice-detail-list div { font-size: 0.8rem; padding: 4px 0; border-bottom: 1px dashed var(--border); line-height: 1.45; }
+#voice-detail-list .vd-time { color: var(--fg3); font-size: 0.72rem; margin-right: 6px; }
+
+/* Frise + légende */
+#tl-container svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 8px 0; font-size: 0.78rem; color: var(--fg2); }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+footer { margin-top: 32px; padding: 16px 24px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--fg3); line-height: 1.6; }
+footer p + p { margin-top: 4px; }
+#tooltip { position: fixed; display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; color: var(--fg); max-width: 280px; pointer-events: none; z-index: 9999; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+#tooltip b { font-weight: 600; }
+#tooltip .tip-camp { color: var(--fg2); font-size: 0.75rem; margin-bottom: 4px; }
+#tooltip .tip-note { font-style: italic; color: var(--fg2); }
+#tooltip .tip-evidence { color: var(--fg3); font-size: 0.72rem; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="hdr-title">Cartographie du débat</h1>
+  <p id="hdr-sub">Données interprétatives · Reconstruction par analyse de transcription</p>
+</header>
+
+<div id="load-error" class="hidden"></div>
+
+<div id="banner-partial" class="hidden">⚠ Analyse partielle : certaines passes d'analyse ont échoué — les sections correspondantes sont masquées. Relancer analyze_debate.py pour compléter.</div>
+
+<section id="sec-axes" class="wrap">
+  <h2>Comment lire cette carte</h2>
+  <div id="axes-guide"></div>
+  <div id="polar-block" class="hidden">
+    <h3>Polarisation des positions finales</h3>
+    <div class="polar-row">
+      <span class="polar-label" id="polar-x-label"></span>
+      <div class="polar-meter"><div class="polar-fill" id="polar-x-fill"></div></div>
+      <span class="polar-val" id="polar-x-val"></span>
+    </div>
+    <div class="polar-row">
+      <span class="polar-label" id="polar-y-label"></span>
+      <div class="polar-meter"><div class="polar-fill" id="polar-y-fill"></div></div>
+      <span class="polar-val" id="polar-y-val"></span>
+    </div>
+    <p class="polar-note" id="polar-note"></p>
+  </div>
+</section>
+
+<section id="sec-map" class="wrap">
+  <h2>Trajectoires des positions</h2>
+  <div class="controls">
+    <button id="play">▶ Lecture</button>
+    <div id="slider-wrap">
+      <input type="range" id="slider" min="0" value="0" step="0.1">
+      <div id="slider-marks"></div>
+    </div>
+    <span id="time">00:00</span>
+    <button class="speed active" data-speed="1">×1</button>
+    <button class="speed" data-speed="2">×2</button>
+    <button class="speed" data-speed="4">×4</button>
+    <span class="tension-badge" id="tension-badge">
+      <span class="tension-dot" id="tdot"></span>
+      <span id="tension-val">—</span>
+    </span>
+  </div>
+  <div class="phase-text" id="phase"></div>
+  <div class="main-grid">
+    <div>
+      <div id="map-container"></div>
+      <p class="map-caption">Chaque inflexion d'une trajectoire correspond à une prise de parole scorée — cliquez un point pour l'ensemble de ses positions. Le point de la voix qui parle est mis en évidence. Pendant un long silence, la position reste figée : un déplacement n'a lieu qu'à une prise de parole réelle. Un cercle en pointillé signale une position globale estimée, sans prise de parole scorée individuellement.</p>
+    </div>
+    <aside id="now-panel">
+      <h3>En ce moment</h3>
+      <div id="now-list"></div>
+    </aside>
+  </div>
+  <div id="voice-detail" class="hidden">
+    <div id="voice-detail-head">
+      <span id="voice-detail-title"></span>
+      <button id="voice-detail-close">✕ fermer</button>
+    </div>
+    <div id="voice-detail-list"></div>
+  </div>
+</section>
+
+<section id="sec-tension" class="wrap">
+  <h2>Frise de tension</h2>
+  <div id="tl-container"></div>
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot" style="background:#D64545"></span>Dissensus</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#0F8A6A"></span>Consensus</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#E09020"></span>Concession</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#888888"></span>Technique</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#534AB7"></span>Méta</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#999999"></span>Cadrage</span>
+  </div>
+</section>
+
+<footer>
+  <p>⚠ Les coordonnées, trajectoires et la courbe de tension sont interprétatives — construites par analyse de la transcription anonymisée, pas des mesures objectives. Les trajectoires sont calculées (lissage) à partir de prises de parole scorées individuellement sur une échelle ordinale courte.</p>
+  <p>⚠ Les résumés de points de vue sont des reformulations, jamais des citations. Aucun prénom réel n'apparaît.</p>
+  <p>⚠ Les zones hachurées signalent des passages non enregistrés (refus de participants) : mesure absente, pas un silence.</p>
+  <p id="footer-reliability" class="hidden"></p>
+</footer>
+
+<div id="tooltip"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// DONNÉES (chargées par loadData, voir INIT en bas de page)
+// ─────────────────────────────────────────────
+let D = {};
+let DUR = 0;
+let present = { axes: false, map: false, tension: false };
+let PLAY_BASE = 0;   // débat complet en 60 s à ×1
+
+// Une page, plusieurs débats : ?debat=<CODE> charge <CODE>.json posé à côté de index.html.
+// Sans paramètre, on retombe sur data.js — seul mode qui marche en ouvrant le fichier
+// par double-clic (fetch est bloqué en file://).
+// L'identifiant est restreint à [A-Za-z0-9_-] : les textes du JSON passent par innerHTML,
+// une URL ne doit donc pas pouvoir désigner un fichier hors du dossier ni un autre site.
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error(`Impossible de charger ${src}.`));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadData() {
+  const id = new URLSearchParams(location.search).get('debat');
+  if (id !== null) {
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) throw new Error(`Identifiant de débat invalide : « ${id} ».`);
+    const res = await fetch(`${id}.json`);
+    if (!res.ok) throw new Error(`Débat « ${id} » introuvable (${id}.json, HTTP ${res.status}).`);
+    return res.json();
+  }
+  if (!window.DEBATE_DATA) {
+    try { await loadScript('data.js'); }
+    catch (e) { throw new Error('Aucune donnée : ajouter ?debat=<CODE> à l\'adresse, ou placer data.js à côté de la page.'); }
+  }
+  return window.DEBATE_DATA || {};
+}
+
+function applyData(data) {
+  D = data || {};
+  DUR = (D.meta && D.meta.totalDurationMinutes) || 0;
+  PLAY_BASE = DUR / 60000;
+  slider.max = DUR;
+
+  if (D.meta && D.meta.topic) {
+    document.getElementById('hdr-title').textContent = 'Débat — ' + D.meta.topic;
+    document.title = 'Débat ' + (D.meta.code || '') + ' — Visualisation';
+  }
+
+  present = {
+    axes: !!(D.axes && D.axes.x && D.axes.x.anchors && D.axes.y && D.axes.y.anchors),
+    map: !!(D.axes && Array.isArray(D.personas) && D.personas.length > 0),
+    tension: Array.isArray(D.events) && D.events.length > 0 &&
+             Array.isArray(D.tension) && D.tension.length > 0
+  };
+  if (!DUR) { present.axes = present.map = present.tension = false; }
+  if (!present.axes) document.getElementById('sec-axes').classList.add('hidden');
+  if (!present.map) document.getElementById('sec-map').classList.add('hidden');
+  if (!present.tension) {
+    document.getElementById('sec-tension').classList.add('hidden');
+    document.getElementById('tension-badge').classList.add('hidden');
+  }
+  if (!present.map || !present.tension) {
+    document.getElementById('banner-partial').classList.remove('hidden');
+  }
+}
+
+function showLoadError(err) {
+  ['sec-axes', 'sec-map', 'sec-tension'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  const el = document.getElementById('load-error');
+  el.textContent = '⚠ ' + (err && err.message ? err.message : String(err));
+  el.classList.remove('hidden');
+}
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+const EVENT_COLORS = {
+  dissensus: '#D64545', consensus: '#0F8A6A', concession: '#E09020',
+  technique: '#888888', meta: '#534AB7', cadrage: '#999999'
+};
+
+function lerp(kf, t) {
+  if (t <= kf[0][0]) return [kf[0][1], kf[0][2]];
+  const last = kf[kf.length - 1];
+  if (t >= last[0]) return [last[1], last[2]];
+  for (let i = 0; i < kf.length - 1; i++) {
+    if (t >= kf[i][0] && t <= kf[i + 1][0]) {
+      const r = (t - kf[i][0]) / (kf[i + 1][0] - kf[i][0]);
+      return [kf[i][1] + r * (kf[i + 1][1] - kf[i][1]),
+              kf[i][2] + r * (kf[i + 1][2] - kf[i][2])];
+    }
+  }
+  return [last[1], last[2]];
+}
+
+function getTension(t) {
+  const ts = D.tension;
+  if (t <= ts[0][0]) return ts[0][1];
+  if (t >= ts[ts.length - 1][0]) return ts[ts.length - 1][1];
+  for (let i = 0; i < ts.length - 1; i++) {
+    if (t >= ts[i][0] && t <= ts[i + 1][0]) {
+      const r = (t - ts[i][0]) / (ts[i + 1][0] - ts[i][0]);
+      return ts[i][1] + r * (ts[i + 1][1] - ts[i][1]);
+    }
+  }
+  return ts[ts.length - 1][1];
+}
+
+function isInRefus(t) { return (D.refus || []).some(([a, b]) => t >= a && t <= b); }
+
+function tensionColor(val, inRefus) {
+  if (inRefus) return '#888888';
+  if (val <= 45) return '#22aa55';
+  if (val >= 72) return '#dd3322';
+  return '#ddaa22';
+}
+
+function formatTime(minutes) {
+  const m = Math.floor(minutes);
+  const s = Math.round((minutes - m) * 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function getCurrentEvent(t) {
+  let current = null;
+  for (const ev of (D.events || [])) { if (ev.t <= t) current = ev; else break; }
+  return current;
+}
+
+function isSpeaking(p, t) { return (p.speech || []).some(([a, b]) => t >= a && t <= b); }
+
+const tooltip = document.getElementById('tooltip');
+function showTip(html, evt) { tooltip.innerHTML = html; tooltip.style.display = 'block'; moveTip(evt); }
+function moveTip(evt) {
+  const x = evt.clientX + 14, y = evt.clientY - 10;
+  const rect = tooltip.getBoundingClientRect();
+  tooltip.style.left = Math.min(x, window.innerWidth - rect.width - 10) + 'px';
+  tooltip.style.top = Math.max(y, 10) + 'px';
+}
+function hideTip() { tooltip.style.display = 'none'; }
+
+// ─────────────────────────────────────────────
+// GUIDE DE LECTURE DES AXES (ancres paraphrasées)
+// ─────────────────────────────────────────────
+function renderAxesGuide() {
+  const el = document.getElementById('axes-guide');
+  const blocks = [
+    { title: 'Axe horizontal', poles: [
+      { name: D.axes.x.leftLabel + ' (gauche)', anchors: D.axes.x.anchors.left },
+      { name: D.axes.x.rightLabel + ' (droite)', anchors: D.axes.x.anchors.right }] },
+    { title: 'Axe vertical', poles: [
+      { name: D.axes.y.bottomLabel + ' (bas)', anchors: D.axes.y.anchors.bottom },
+      { name: D.axes.y.topLabel + ' (haut)', anchors: D.axes.y.anchors.top }] }
+  ];
+  el.innerHTML = blocks.map(b => `
+    <div class="axis-block">
+      <h3>${b.title}</h3>
+      ${b.poles.map(p => `
+        <div class="pole"><b>${p.name}</b> — positions-types entendues :
+          <ul>${p.anchors.map(a => `<li>${a}</li>`).join('')}</ul>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// POLARISATION PAR AXE (indice d'Esteban-Ray, calculé — pas d'interprétation LLM)
+// ─────────────────────────────────────────────
+function renderPolarization() {
+  const pol = D.polarization;
+  document.getElementById('polar-block').classList.remove('hidden');
+  const rows = [
+    ['x', `${D.axes.x.leftLabel} ⟷ ${D.axes.x.rightLabel}`],
+    ['y', `${D.axes.y.bottomLabel} ⟷ ${D.axes.y.topLabel}`]
+  ];
+  rows.forEach(([k, label]) => {
+    document.getElementById(`polar-${k}-label`).textContent = label;
+    document.getElementById(`polar-${k}-fill`).style.width = `${Math.max(0, Math.min(100, pol[k]))}%`;
+    document.getElementById(`polar-${k}-val`).textContent = `${pol[k]}/100`;
+  });
+  document.getElementById('polar-note').textContent =
+    `Indice d'Esteban-Ray (0 = consensus, 100 = deux camps opposés aux extrêmes), calculé sur les ` +
+    `positions de fin de débat pondérées par le temps de parole, modérateur exclu (${pol.n} voix).`;
+}
+
+// ─────────────────────────────────────────────
+// ÉTAT DE LECTURE PARTAGÉ (carte + frise)
+// ─────────────────────────────────────────────
+const state = { t: 0, playing: false, raf: null, lastTs: null, speed: 1, trails: {} };
+let mapApi = null, tlApi = null;
+
+const slider = document.getElementById('slider');
+
+function setT(t, rebuild) {
+  state.t = Math.max(0, Math.min(DUR, t));
+  if (rebuild && mapApi) mapApi.rebuildTrails(state.t);
+  updateAll();
+}
+
+function updateAll() {
+  const t = state.t;
+  slider.value = t;
+  document.getElementById('time').textContent = formatTime(t);
+  if (present.tension) {
+    const tval = getTension(t), inRef = isInRefus(t);
+    document.getElementById('tdot').style.background = tensionColor(tval, inRef);
+    document.getElementById('tension-val').textContent =
+      inRef ? 'Indéterminé (non enreg.)' : `Tension ${Math.round(tval)}/100`;
+    const ev = getCurrentEvent(t);
+    document.getElementById('phase').textContent = ev ? `${ev.title} — ${ev.desc}` : '';
+  }
+  if (mapApi) mapApi.update(t);
+  renderNow(t);
+  if (tlApi) tlApi.setReadhead(t);
+}
+
+function stopPlay() {
+  state.playing = false;
+  state.lastTs = null;
+  if (state.raf) cancelAnimationFrame(state.raf);
+  document.getElementById('play').textContent = '▶ Lecture';
+}
+
+function animFrame(ts) {
+  if (!state.playing) return;
+  if (state.lastTs !== null) {
+    state.t = Math.min(DUR, state.t + (ts - state.lastTs) * PLAY_BASE * state.speed);
+  }
+  state.lastTs = ts;
+  updateAll();
+  if (state.t >= DUR) stopPlay();
+  else state.raf = requestAnimationFrame(animFrame);
+}
+
+document.getElementById('play').addEventListener('click', () => {
+  if (state.playing) { stopPlay(); return; }
+  if (state.t >= DUR) setT(0, true);
+  state.playing = true;
+  state.lastTs = null;
+  document.getElementById('play').textContent = '⏸ Pause';
+  state.raf = requestAnimationFrame(animFrame);
+});
+
+slider.addEventListener('input', e => { stopPlay(); setT(+e.target.value, true); });
+
+document.querySelectorAll('button.speed').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.speed = +btn.dataset.speed;
+    document.querySelectorAll('button.speed').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
+function renderSliderMarks() {
+  const strip = document.getElementById('slider-marks');
+  (D.events || []).forEach(ev => {
+    const d = document.createElement('span');
+    d.className = 'mark';
+    d.style.left = (ev.t / DUR * 100) + '%';
+    d.style.background = EVENT_COLORS[ev.type] || '#999';
+    strip.appendChild(d);
+  });
+}
+
+// ─────────────────────────────────────────────
+// PANNEAU « EN CE MOMENT » (paraphrases)
+// ─────────────────────────────────────────────
+function renderNow(t) {
+  if (!present.map) return;
+  const items = [];
+  D.personas.forEach(p => (p.points || []).forEach(pt => {
+    if (pt.t <= t) items.push({ p, pt });
+  }));
+  items.sort((a, b) => b.pt.t - a.pt.t);
+  const top = items.slice(0, 4);
+  const el = document.getElementById('now-list');
+  if (!top.length) {
+    el.innerHTML = '<p class="now-empty">Aucune prise de position scorée à cet instant.</p>';
+    return;
+  }
+  el.innerHTML = top.map(({ p, pt }) => `
+    <div class="now-item" style="border-color:${p.color}">
+      <span class="now-time">[${formatTime(pt.t)}]</span> <b>${p.label}</b><br>${pt.stance}
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// DÉTAIL D'UNE VOIX (preuve complète de trajectoire)
+// ─────────────────────────────────────────────
+function showVoiceDetail(p) {
+  document.getElementById('voice-detail-title').textContent = `${p.label} — ${p.camp}`;
+  const list = document.getElementById('voice-detail-list');
+  const pts = (p.points || []).slice().sort((a, b) => a.t - b.t);
+  list.innerHTML = pts.length
+    ? pts.map(pt => `<div><span class="vd-time">[${formatTime(pt.t)}]</span>${pt.stance}</div>`).join('')
+    : '<div class="now-empty">Aucune prise de position scorée pour cette voix.</div>';
+  document.getElementById('voice-detail').classList.remove('hidden');
+}
+document.getElementById('voice-detail-close').addEventListener('click', () => {
+  document.getElementById('voice-detail').classList.add('hidden');
+});
+
+// ─────────────────────────────────────────────
+// CARTE ANIMÉE
+// ─────────────────────────────────────────────
+function drawMap() {
+  const container = document.getElementById('map-container');
+  const W = 760, H = 520;
+  const mg = { top: 40, right: 30, bottom: 40, left: 50 };
+  const pw = W - mg.left - mg.right, ph = H - mg.top - mg.bottom;
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .style('width', '100%').style('height', 'auto');
+  const g = svg.append('g').attr('transform', `translate(${mg.left},${mg.top})`);
+
+  const xSc = d3.scaleLinear().domain([-10, 10]).range([0, pw]);
+  const ySc = d3.scaleLinear().domain([-10, 10]).range([ph, 0]);
+
+  // Quadrants
+  const quadrants = [
+    { x1: -10, y1: 0, x2: 0, y2: 10, label: D.axes.quadrants.topLeft, anchor: 'start' },
+    { x1: 0, y1: 0, x2: 10, y2: 10, label: D.axes.quadrants.topRight, anchor: 'end' },
+    { x1: -10, y1: -10, x2: 0, y2: 0, label: D.axes.quadrants.bottomLeft, anchor: 'start' },
+    { x1: 0, y1: -10, x2: 10, y2: 0, label: D.axes.quadrants.bottomRight, anchor: 'end' }
+  ];
+  quadrants.forEach(q => {
+    g.append('rect')
+      .attr('x', xSc(q.x1)).attr('y', ySc(q.y2))
+      .attr('width', xSc(q.x2) - xSc(q.x1)).attr('height', ySc(q.y1) - ySc(q.y2))
+      .attr('fill', 'var(--bg2)').attr('opacity', 0.6);
+    const lx = q.anchor === 'start' ? xSc(q.x1) + 6 : xSc(q.x2) - 6;
+    const ly = q.y2 > 0 ? ySc(q.y2) + 14 : ySc(q.y1) - 6;
+    g.append('text')
+      .attr('x', lx).attr('y', ly).attr('text-anchor', q.anchor)
+      .attr('font-size', '9.5px').attr('fill', 'var(--fg3)').attr('pointer-events', 'none')
+      .text(q.label);
+  });
+
+  // Axes + labels
+  g.append('line').attr('x1', xSc(-10)).attr('x2', xSc(10)).attr('y1', ySc(0)).attr('y2', ySc(0))
+    .attr('stroke', 'var(--axis)').attr('stroke-width', 1);
+  g.append('line').attr('x1', xSc(0)).attr('x2', xSc(0)).attr('y1', ySc(-10)).attr('y2', ySc(10))
+    .attr('stroke', 'var(--axis)').attr('stroke-width', 1);
+  const axStyle = { fill: 'var(--fg2)', size: '10px' };
+  g.append('text').attr('x', xSc(-10)).attr('y', ySc(0) - 6).attr('text-anchor', 'start')
+    .attr('fill', axStyle.fill).attr('font-size', axStyle.size).attr('font-weight', 600).text(D.axes.x.leftLabel);
+  g.append('text').attr('x', xSc(10)).attr('y', ySc(0) - 6).attr('text-anchor', 'end')
+    .attr('fill', axStyle.fill).attr('font-size', axStyle.size).attr('font-weight', 600).text(D.axes.x.rightLabel);
+  g.append('text').attr('x', xSc(0) + 4).attr('y', ySc(10) + 2).attr('text-anchor', 'start')
+    .attr('fill', axStyle.fill).attr('font-size', axStyle.size).attr('font-weight', 600).text(D.axes.y.topLabel);
+  g.append('text').attr('x', xSc(0) + 4).attr('y', ySc(-10) + 12).attr('text-anchor', 'start')
+    .attr('fill', axStyle.fill).attr('font-size', axStyle.size).attr('font-weight', 600).text(D.axes.y.bottomLabel);
+
+  // Traînées + points
+  const trailLines = {}, circles = {}, groups = {};
+  D.personas.forEach(p => {
+    trailLines[p.id] = g.append('polyline')
+      .attr('fill', 'none').attr('stroke', p.color).attr('stroke-opacity', 0.35)
+      .attr('stroke-width', 1.5).attr('stroke-linejoin', 'round');
+    state.trails[p.id] = [];
+  });
+
+  const rScale = p => 5 + p.weight * 8;
+  // Preuve de trajectoire : nombre de prises de parole réellement scorées pour cette voix.
+  // 0 = position globale estimée par la passe 1 seule → cercle pointillé, opacité réduite.
+  const evidenceCount = p => (p.points || []).length;
+  const evidenceText = p => {
+    const n = evidenceCount(p);
+    if (!n) return 'Position globale estimée — aucune prise de parole scorée individuellement';
+    return n > 1 ? `Trajectoire fondée sur ${n} prises de parole scorées`
+                 : 'Trajectoire fondée sur 1 prise de parole scorée';
+  };
+  D.personas.forEach(p => {
+    const grp = g.append('g').attr('opacity', 0);
+    circles[p.id] = grp.append('circle')
+      .attr('r', rScale(p))
+      .attr('fill', p.color).attr('fill-opacity', evidenceCount(p) ? 0.9 : 0.45)
+      .attr('stroke', evidenceCount(p) ? 'var(--bg)' : 'var(--fg3)')
+      .attr('stroke-dasharray', evidenceCount(p) ? null : '3,3')
+      .attr('stroke-width', 1.5)
+      .style('cursor', 'pointer')
+      .on('mousemove', evt => showTip(
+        `<b>${p.label}</b><div class="tip-camp">${p.camp}</div><div class="tip-note">${p.note}</div>` +
+        `<div class="tip-evidence">${evidenceText(p)}</div>`, evt))
+      .on('mouseleave', hideTip)
+      .on('click', () => showVoiceDetail(p));
+    grp.append('text')
+      .attr('dx', 12).attr('dy', -6)
+      .attr('font-size', '10px').attr('font-weight', 600)
+      .attr('fill', 'var(--fg)').attr('pointer-events', 'none')
+      .text(p.label);
+    groups[p.id] = grp;
+  });
+
+  function update(t) {
+    D.personas.forEach(p => {
+      const grp = groups[p.id];
+      if (t < p.entry) {
+        grp.attr('opacity', 0);
+        state.trails[p.id] = [];
+        trailLines[p.id].attr('points', '');
+        return;
+      }
+      const speaking = isSpeaking(p, t);
+      grp.attr('opacity', speaking ? 1 : 0.6);
+      circles[p.id]
+        .attr('r', speaking ? rScale(p) * 1.3 : rScale(p))
+        .attr('stroke-width', speaking ? 2.5 : 1.5);
+
+      const [dx, dy] = lerp(p.kf, t);
+      const px = xSc(dx), py = ySc(dy);
+      grp.attr('transform', `translate(${px},${py})`);
+
+      const samples = state.trails[p.id];
+      const last = samples.length ? samples[samples.length - 1] : null;
+      if (!last || Math.abs(t - last[2]) >= 0.5) {
+        samples.push([px, py, t]);
+        if (samples.length > 400) samples.shift();
+      }
+      trailLines[p.id].attr('points', samples.map(s => `${s[0]},${s[1]}`).join(' '));
+    });
+  }
+
+  function rebuildTrails(t) {
+    D.personas.forEach(p => { state.trails[p.id] = []; });
+    for (let st = 0; st <= t; st += 0.5) {
+      D.personas.forEach(p => {
+        if (st < p.entry) return;
+        const [dx, dy] = lerp(p.kf, st);
+        state.trails[p.id].push([xSc(dx), ySc(dy), st]);
+      });
+    }
+  }
+
+  return { update, rebuildTrails };
+}
+
+// ─────────────────────────────────────────────
+// FRISE DE TENSION SYNCHRONISÉE
+// ─────────────────────────────────────────────
+function drawTimeline() {
+  const container = document.getElementById('tl-container');
+  const W = 1068;
+  const mg = { top: 20, right: 20, bottom: 90, left: 46 };
+  const pw = W - mg.left - mg.right;
+  const chartH = 180, markerY = chartH + 16;
+  const totalH = mg.top + chartH + 90;
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${W} ${totalH}`)
+    .style('width', '100%').style('height', 'auto')
+    .style('cursor', 'crosshair');
+
+  const defs = svg.append('defs');
+  defs.append('pattern')
+    .attr('id', 'hatch-refus')
+    .attr('patternUnits', 'userSpaceOnUse')
+    .attr('width', 6).attr('height', 6)
+    .attr('patternTransform', 'rotate(45)')
+    .append('line')
+      .attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 6)
+      .attr('stroke', 'var(--fg3)').attr('stroke-width', 1.5);
+
+  const g = svg.append('g').attr('transform', `translate(${mg.left},${mg.top})`);
+  const xSc = d3.scaleLinear().domain([0, DUR]).range([0, pw]);
+  const ySc = d3.scaleLinear().domain([0, 100]).range([chartH, 0]);
+
+  // Graduations temporelles
+  const tickStep = DUR > 120 ? 20 : 10;
+  for (let m = 0; m <= DUR; m += tickStep) {
+    g.append('line').attr('x1', xSc(m)).attr('x2', xSc(m))
+      .attr('y1', chartH).attr('y2', chartH + 4)
+      .attr('stroke', 'var(--axis)').attr('stroke-width', 1);
+    g.append('text').attr('x', xSc(m)).attr('y', chartH + 14)
+      .attr('text-anchor', 'middle').attr('font-size', '9px').attr('fill', 'var(--fg3)')
+      .text(`${m}'`);
+  }
+  [0, 50, 100].forEach(v => {
+    g.append('line').attr('x1', 0).attr('x2', pw).attr('y1', ySc(v)).attr('y2', ySc(v))
+      .attr('stroke', 'var(--border)').attr('stroke-width', 0.5);
+    g.append('text').attr('x', -6).attr('y', ySc(v) + 4)
+      .attr('text-anchor', 'end').attr('font-size', '9px').attr('fill', 'var(--fg3)').text(v);
+  });
+  g.append('text').attr('x', -30).attr('y', chartH / 2)
+    .attr('text-anchor', 'middle').attr('font-size', '9px').attr('fill', 'var(--fg3)')
+    .attr('transform', `rotate(-90,-30,${chartH / 2})`).text('Tension');
+
+  // Aire + ligne de tension
+  const area = d3.area().x(d => xSc(d[0])).y0(chartH).y1(d => ySc(d[1])).curve(d3.curveMonotoneX);
+  g.append('path').datum(D.tension).attr('d', area).attr('fill', '#E8673A').attr('fill-opacity', 0.35);
+  const line = d3.line().x(d => xSc(d[0])).y(d => ySc(d[1])).curve(d3.curveMonotoneX);
+  g.append('path').datum(D.tension).attr('d', line)
+    .attr('fill', 'none').attr('stroke', '#E8673A').attr('stroke-width', 2);
+
+  // Zones de refus
+  (D.refus || []).forEach(([a, b]) => {
+    const bw = xSc(b) - xSc(a);
+    g.append('rect').attr('x', xSc(a)).attr('y', 0)
+      .attr('width', Math.max(bw, 2)).attr('height', chartH)
+      .attr('fill', 'url(#hatch-refus)').attr('opacity', 0.45);
+    if (bw > 20) {
+      g.append('text').attr('x', xSc((a + b) / 2)).attr('y', chartH / 2)
+        .attr('text-anchor', 'middle').attr('font-size', '11px')
+        .attr('fill', 'var(--fg3)').attr('pointer-events', 'none').text('?');
+    }
+  });
+
+  // Marqueurs d'events (clic → seek)
+  D.events.forEach(ev => {
+    const mx = xSc(ev.t);
+    const mr = 4 + ev.magnitude * 1.8;
+    const ec = EVENT_COLORS[ev.type] || '#999';
+    g.append('line').attr('x1', mx).attr('x2', mx)
+      .attr('y1', chartH).attr('y2', chartH + markerY - mr - 1)
+      .attr('stroke', ec).attr('stroke-opacity', 0.35).attr('stroke-width', 1);
+    const mkGrp = g.append('g')
+      .attr('transform', `translate(${mx}, ${chartH + markerY})`)
+      .style('cursor', 'pointer');
+    if (ev.type === 'concession') {
+      mkGrp.append('polygon').attr('points', `0,${-mr} ${mr},0 0,${mr} ${-mr},0`).attr('fill', ec);
+    } else {
+      mkGrp.append('circle').attr('r', mr).attr('fill', ec);
+    }
+    mkGrp
+      .on('mousemove', evt => showTip(
+        `<b>${ev.title}</b><br><span style="color:${ec};font-size:0.75rem;">${ev.type} — ${formatTime(ev.t)}</span><br>${ev.desc}`, evt))
+      .on('mouseleave', hideTip)
+      .on('click', evt => { evt.stopPropagation(); stopPlay(); setT(ev.t, true); });
+  });
+
+  // Tête de lecture partagée
+  const readhead = g.append('line')
+    .attr('x1', 0).attr('x2', 0)
+    .attr('y1', 0).attr('y2', chartH + markerY + 8)
+    .attr('stroke', 'var(--fg)').attr('stroke-width', 1.5)
+    .attr('stroke-dasharray', '3,2');
+
+  // Clic n'importe où sur la frise → seek
+  svg.on('click', evt => {
+    const [px] = d3.pointer(evt, g.node());
+    const t = xSc.invert(px);
+    if (isFinite(t)) { stopPlay(); setT(t, true); }
+  });
+
+  return { setReadhead: t => readhead.attr('x1', xSc(t)).attr('x2', xSc(t)) };
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function renderReliability() {
+  const rel = D.meta && D.meta.reliability;
+  if (!rel || rel.type !== 'axisInversion') return;
+  const el = document.getElementById('footer-reliability');
+  el.classList.remove('hidden');
+  el.textContent = `Contrôle de fiabilité : ${rel.n} prises de parole re-scorées avec les axes ` +
+    `inversés — la corrélation entre les deux passages (attendue proche de 1) est de ` +
+    `rX=${rel.rX ?? 'n/a'} et rY=${rel.rY ?? 'n/a'}. Une valeur faible signale des placements instables.`;
+}
+
+function render() {
+  if (present.axes) renderAxesGuide();
+  if (present.axes && D.polarization) renderPolarization();
+  if (present.map) mapApi = drawMap();
+  if (present.tension) { tlApi = drawTimeline(); renderSliderMarks(); }
+  renderReliability();
+  if (DUR) setT(0, true);
+}
+
+// ─────────────────────────────────────────────
+// HAUTEUR AUTO EN IFRAME
+// La page annonce sa hauteur au site hôte à chaque changement (chargement, panneau
+// « détail d'une voix » ouvert/fermé, passage en mobile) ; l'hôte n'a qu'à l'appliquer
+// à l'iframe — extrait à copier dans transcription-debat/CLAUDE.md, § Publier sur un site.
+// ─────────────────────────────────────────────
+if (window.self !== window.top && 'ResizeObserver' in window) {
+  let lastHeight = 0;
+  const postHeight = () => {
+    const height = Math.ceil(document.documentElement.getBoundingClientRect().height);
+    if (height === lastHeight) return;
+    lastHeight = height;
+    window.parent.postMessage({ type: 'ecclesia-viz:height', height }, '*');
+  };
+  new ResizeObserver(postHeight).observe(document.body);
+  window.addEventListener('load', postHeight);
+}
+
+loadData().then(data => { applyData(data); render(); }).catch(showLoadError);
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+{
+  "audio_start": "2026-10-01T11:29:26.951540+00:00",
+  "voix": {
+    "decalage_affine_sec": -14.0,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": "Interlocuteur 2",
+        "kind": "identifiee",
+        "best": "Interlocuteur 2",
+        "purity": 0.9005047403748034,
+        "support": 999.1073632500043
+      },
+      "SPEAKER_01": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 7",
+        "purity": 0.32854080828749005,
+        "support": 39.96078924999915
+      },
+      "SPEAKER_02": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.8931149006376246,
+        "support": 247.13009724999932
+      },
+      "SPEAKER_03": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.9063701130225748,
+        "support": 23.45895975000019
+      },
+      "SPEAKER_04": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.7661801588048116,
+        "support": 816.8305992499994
+      },
+      "SPEAKER_05": {
+        "label": null,
+        "kind": "fusionnee",
+        "best": "Interlocuteur 1",
+        "purity": 0.34782107337284346,
+        "support": 1829.9719287500136
+      },
+      "SPEAKER_06": {
+        "label": "Interlocuteur 8",
+        "kind": "identifiee",
+        "best": "Interlocuteur 8",
+        "purity": 0.6650740438487449,
+        "support": 60.0581624999996
+      },
+      "SPEAKER_07": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 3",
+        "purity": 0.5473912575462343,
+        "support": 239.08050950000404
+      },
+      "SPEAKER_08": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 2",
+        "purity": 0.31343873458750515,
+        "support": 35.31790674999901
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.8191501921308578,
+      "coverage": 0.5099081010888024,
+      "evaluated_sec": 2187.9729907500055
+    }
+  },
+  "frontieres": {
+    "tours": 71,
+    "fins_recalees": 54,
+    "decalage_median_sec": 0.9594399999996313
+  },
+  "metriques": {
+    "segments": 347,
+    "duration_sec": 5982.850000000002,
+    "by_source_sec": {
+      "aucune": 1151.550000000004,
+      "log": 1902.5999999999979,
+      "voix": 825.5,
+      "log+voix": 2091.6400000000012,
+      "voix-comblee": 11.559999999999945
+    },
+    "unknown_ratio": 0.1924751581604091,
+    "speaker_changes": 250,
+    "mid_sentence_cuts": 175,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 1581
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 331,
+    "rejetees": 16,
+    "non_corrigees": 0,
+    "motifs_rejet": {
+      "négation modifiée": 13,
+      "masque sans prénom": 3
+    },
+    "suggestions_orateur": 106,
+    "noms_propres_a_verifier": [
+      [
+        "France",
+        13
+      ],
+      [
+        "État",
+        5
+      ],
+      [
+        "Zucman",
+        4
+      ],
+      [
+        "Constitution",
+        3
+      ],
+      [
+        "Group",
+        3
+      ],
+      [
+        "Ford",
+        2
+      ],
+      [
+        "J'aurais",
+        2
+      ],
+      [
+        "John",
+        2
+      ],
+      [
+        "Marion",
+        2
+      ],
+      [
+        "Maïbad",
+        2
+      ],
+      [
+        "Musk",
+        2
+      ],
+      [
+        "Twitter",
+        2
+      ],
+      [
+        "États",
+        2
+      ],
+      [
+        "Apple",
+        1
+      ],
+      [
+        "Arnault",
+        1
+      ],
+      [
+        "Bernard",
+        1
+      ],
+      [
+        "Celle-là",
+        1
+      ],
+      [
+        "Chine",
+        1
+      ],
+      [
+        "Cicéron",
+        1
+      ],
+      [
+        "Devine",
+        1
+      ],
+      [
+        "Dieu",
+        1
+      ],
+      [
+        "Hop",
+        1
+      ],
+      [
+        "Imagine",
+        1
+      ],
+      [
+        "J'en",
+        1
+      ],
+      [
+        "Lance-nous",
+        1
+      ],
+      [
+        "Let's",
+        1
+      ],
+      [
+        "Locke",
+        1
+      ],
+      [
+        "Morgan",
+        1
+      ],
+      [
+        "Mélenchon",
+        1
+      ],
+      [
+        "Noël",
+        1
+      ],
+      [
+        "Parasite",
+        1
+      ],
+      [
+        "Phil",
+        1
+      ],
+      [
+        "Putain",
+        1
+      ],
+      [
+        "Ramène",
+        1
+      ],
+      [
+        "Rawls",
+        1
+      ],
+      [
+        "Sachant",
+        1
+      ],
+      [
+        "Silicon",
+        1
+      ],
+      [
+        "Techniquement",
+        1
+      ],
+      [
+        "Valley",
+        1
+      ]
+    ]
+  }
+}

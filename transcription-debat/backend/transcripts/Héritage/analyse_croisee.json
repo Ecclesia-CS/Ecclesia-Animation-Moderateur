@@ -1,0 +1,918 @@
+{
+ "title": "Héritage : deux tables, un seul paysage d'opinions",
+ "subtitle": "Synthèse croisée des tables 0650D7 et 4999B8 · 15 participants · données interprétatives",
+ "topic": "Héritage",
+ "tables": [
+  {
+   "key": "A",
+   "code": "0650D7",
+   "color": "#184795",
+   "label": "Table A",
+   "corrected": "transcripts/Héritage/0650D7/0650D7_2026-10-01_corrected.json",
+   "analysis": "transcripts/Héritage/0650D7/0650D7_analyse_manuelle.json",
+   "rapport": "transcripts/Héritage/0650D7/0650D7_2026-10-01_rapport.json",
+   "name_map": "Débats/héritage/0650D7/name_map.json"
+  },
+  {
+   "key": "B",
+   "code": "4999B8",
+   "color": "#D9731A",
+   "label": "Table B",
+   "corrected": "transcripts/Héritage/4999B8/4999B8_2026-10-01_corrected.json",
+   "analysis": "transcripts/Héritage/4999B8/4999B8_analyse_manuelle.json",
+   "rapport": "transcripts/Héritage/4999B8/4999B8_2026-10-01_rapport.json",
+   "name_map": "Débats/héritage/4999B8/name_map.json"
+  }
+ ],
+ "axes": {
+  "x": {
+   "leftLabel": "Liberté de transmettre, propriété d'abord",
+   "rightLabel": "Limiter ou redistribuer l'héritage",
+   "levels": [
+    {
+     "v": -7.5,
+     "text": "Aucune limitation ni taxation de principe : propriété et consentement d'abord"
+    },
+    {
+     "v": -2.5,
+     "text": "Refus du plafond, transmission des entreprises et donations protégées ; taxes ciblées acceptées"
+    },
+    {
+     "v": 0,
+     "text": "Position mixte (refuse un plafond mais veut aussi des mesures fortes) ou non exprimée"
+    },
+    {
+     "v": 2.5,
+     "text": "Taxer nettement plus les très grandes fortunes, sans plafond rigide"
+    },
+    {
+     "v": 5,
+     "text": "Plafond ou limite ferme, ou réforme profonde de l'héritage"
+    },
+    {
+     "v": 7.5,
+     "text": "Redistribution quasi totale à la mort (taxation à 100 %, capital de départ égal)"
+    }
+   ],
+   "anchors": {
+    "left": [
+     "Chacun doit pouvoir disposer librement de son argent et le transmettre à qui il veut",
+     "Un plafond ou une taxation forte des riches est immoral, voire du vol, ou fragilise les entreprises",
+     "Des taxes d'héritage trop lourdes découragent de bâtir une fortune"
+    ],
+    "right": [
+     "Nul ne devrait recevoir autant par le seul hasard de la naissance",
+     "Il faut taxer fortement l'héritage des plus riches, le plafonner, voire tout redistribuer",
+     "La concentration des richesses menace la démocratie"
+    ]
+   }
+  },
+  "y": {
+   "bottomLabel": "Le marché et la stabilité d'abord",
+   "topLabel": "Le contrôle collectif et démocratique d'abord",
+   "levels": [
+    {
+     "v": -7.5,
+     "text": "Le marché et la propriété tranchent seuls ; l'État se limite à garantir la liberté"
+    },
+    {
+     "v": -5,
+     "text": "Priorité à la stabilité des marchés et des entreprises"
+    },
+    {
+     "v": -2.5,
+     "text": "Confiance dans le marché, correctifs limités (niches fiscales, succession démocratisée mesurée)"
+    },
+    {
+     "v": 0,
+     "text": "Position mixte ou non exprimée"
+    },
+    {
+     "v": 2.5,
+     "text": "Correction par la loi (fonds souverain, taxation) sans remettre en cause le marché"
+    },
+    {
+     "v": 5,
+     "text": "Encadrement fort, ou primauté du contrôle démocratique sur la peur des marchés"
+    },
+    {
+     "v": 7.5,
+     "text": "Le collectif décide de la valeur du travail et des fortunes : convention citoyenne, coopératives, ploutocratie dénoncée"
+    }
+   ],
+   "anchors": {
+    "bottom": [
+     "Seul l'acheteur peut juger la valeur d'un travail ou d'un bien ; l'État reste minimal",
+     "Les marchés financiers réagiraient mal à une réforme brutale de l'héritage",
+     "Le marché ajuste naturellement les salaires et les fortunes"
+    ],
+    "top": [
+     "La valeur du travail et des fortunes doit se débattre et se décider collectivement",
+     "On ne doit pas fonder les politiques publiques sur la peur des marchés",
+     "La loi doit encadrer le marché : SMIC, écart de salaires, coopératives, taxes"
+    ]
+   }
+  },
+  "quadrants": {
+   "topLeft": "Encadrer le marché, transmission libre",
+   "topRight": "Limiter l'héritage, contrôle collectif",
+   "bottomLeft": "Libéral : transmission et marché libres",
+   "bottomRight": "Limiter l'héritage, confiance au marché"
+  }
+ },
+ "personas": {
+  "A1": {
+   "camp": "Taxer fort, plafond douteux",
+   "note": "Veut limiter les dynasties, taxer de leur vivant et accepte un fonds souverain ; doute qu'un plafond net soit applicable et écarte la peur des marchés.",
+   "x": 2.5,
+   "y": 5
+  },
+  "A2": {
+   "camp": "Réforme, taxer l'accumulation",
+   "note": "Soutient une réforme et la taxation de l'accumulation sans être convaincu par le chiffre de 12 millions ; pense qu'un dirigeant âgé organiserait sa succession.",
+   "x": 2.5,
+   "y": 2.5
+  },
+  "A3": {
+   "camp": "Réforme profonde",
+   "note": "Voix la plus catégorique de sa table pour réformer : dénonce les dynasties, la ploutocratie et l'accumulation, et refuse de régler la politique sur la peur des marchés.",
+   "x": 5,
+   "y": 5
+  },
+  "A4": {
+   "camp": "Taxer sans plafond rigide",
+   "note": "Veut taxer nettement plus les ultra-riches et fermer les contournements, sans plafond rigide ; propose de dissocier gouvernance et argent.",
+   "x": 2.5,
+   "y": 2.5
+  },
+  "A5": {
+   "camp": "Prudence pour les entreprises",
+   "note": "Refuse un plafond qui fragiliserait les entreprises et les marchés, tout en admettant le besoin de mesures fortes contre la ploutocratie.",
+   "x": 0,
+   "y": -5
+  },
+  "A6": {
+   "camp": "Seuil et transmission au mérite",
+   "note": "Interventions courtes : ne voit pas pourquoi les enfants dirigeraient mieux, et soutient une transmission plus rapide mais limitée à un seuil.",
+   "x": 5,
+   "y": 0,
+   "uncertain": {
+    "y": "ne s'est exprimé ni sur la peur des marchés ni sur le rôle du collectif"
+   }
+  },
+  "A7": {
+   "camp": "Questions et doutes",
+   "note": "Pose surtout des questions et des objections : doute que les enfants soient les mieux placés pour reprendre, et doute d'une taxation uniforme en Europe.",
+   "x": 0,
+   "y": 2.5,
+   "uncertain": {
+    "x": "interventions surtout interrogatives, sans position nette pour ou contre un plafond"
+   }
+  },
+  "B1": {
+   "camp": "Taxer à 100 %, redistribuer",
+   "note": "Voix la plus redistributive : taxer l'héritage à 100 % et verser un capital de départ à chacun ; conteste que le marché juge la valeur du travail.",
+   "x": 7.5,
+   "y": 7.5
+  },
+  "B2": {
+   "camp": "Plafonner, encadrer le marché",
+   "note": "Défend un plafond (12 millions lui paraît même trop haut), craint l'oligarchie et préfère coopératives et limites d'écart de salaires, tout en doutant d'une taxation à 100 %.",
+   "x": 5,
+   "y": 7.5
+  },
+  "B3": {
+   "camp": "Propriété privée et consentement",
+   "note": "Seule voix libertarienne : consentement et propriété comme seule morale, taxer les riches serait un vol ; s'en remet au marché pour juger la valeur.",
+   "x": -7.5,
+   "y": -7.5
+  },
+  "B4": {
+   "camp": "Plafond juste, obstacles pratiques",
+   "note": "Interventions rares : un plafond serait juste en théorie mais pose des obstacles pratiques ; laisser l'héritage libre concentre les richesses.",
+   "x": 5,
+   "y": 0,
+   "uncertain": {
+    "y": "n'a abordé ni le marché ni le rôle de l'État"
+   }
+  },
+  "B5": {
+   "camp": "Questionne propriété et concentration",
+   "note": "Questionne la légitimité de la propriété et de la concentration du capital, relativise la fuite des riches et conteste que consentement et liberté suffisent.",
+   "x": 5,
+   "y": 2.5
+  },
+  "B6": {
+   "camp": "Réformer sans faire fuir",
+   "note": "Trouve le plafond trop extrême : veut une succession démocratisée, des niches fiscales pour garder les riches et des donations moins taxées.",
+   "x": -2.5,
+   "y": -2.5
+  },
+  "B7": {
+   "camp": "Contrat social, redistribution",
+   "note": "Rejette le consentement comme valeur fondamentale au nom du contrat social ; veut redistribuer l'héritage, même issu du travail, à la mort.",
+   "x": 7.5,
+   "y": 5
+  },
+  "B8": {
+   "camp": "Tout redistribuer",
+   "note": "Peu d'interventions mais nettes : tout redistribuer, car celui qui hérite d'une entreprise part bien plus loin.",
+   "x": 7.5,
+   "y": 0,
+   "uncertain": {
+    "y": "très peu d'interventions, rien sur le marché ni l'État"
+   }
+  }
+ },
+ "common_themes": [
+  {
+   "id": "plafond",
+   "label": "Plafonner ou taxer l'héritage",
+   "color": "#184795",
+   "kind": "theme"
+  },
+  {
+   "id": "entreprises",
+   "label": "Entreprises, capital et gouvernance",
+   "color": "#8E44AD",
+   "kind": "theme"
+  },
+  {
+   "id": "legitim",
+   "label": "Mérite, légitimité et concentration des fortunes",
+   "color": "#C0507A",
+   "kind": "theme"
+  },
+  {
+   "id": "donation",
+   "label": "Donations et âge de l'héritage",
+   "color": "#16A085",
+   "kind": "theme"
+  },
+  {
+   "id": "moyenne",
+   "label": "Classe moyenne, maison de famille, assurance-vie",
+   "color": "#27AE60",
+   "kind": "theme"
+  },
+  {
+   "id": "contour",
+   "label": "Contournements et optimisation",
+   "color": "#C0392B",
+   "kind": "theme"
+  },
+  {
+   "id": "fuite",
+   "label": "Fuite des capitaux",
+   "color": "#E0A100",
+   "kind": "theme"
+  },
+  {
+   "id": "europe",
+   "label": "Taxation commune en Europe",
+   "color": "#34495E",
+   "kind": "theme"
+  },
+  {
+   "id": "info",
+   "label": "Information du public",
+   "color": "#D4AC0D",
+   "kind": "theme"
+  },
+  {
+   "id": "consent",
+   "label": "Consentement, propriété et contrat social",
+   "color": "#0E7490",
+   "kind": "theme"
+  },
+  {
+   "id": "etat",
+   "label": "Démocratie et rôle de l'État",
+   "color": "#6D4C41",
+   "kind": "theme"
+  },
+  {
+   "id": "travail",
+   "label": "Marché, salaires et valeur du travail",
+   "color": "#C2410C",
+   "kind": "theme"
+  },
+  {
+   "id": "format",
+   "label": "Bilan du débat et de l'outil",
+   "color": "#9CA3AF",
+   "kind": "theme"
+  },
+  {
+   "id": "anim",
+   "label": "Animation, transitions",
+   "color": "#CFC7B8",
+   "kind": "anim"
+  }
+ ],
+ "theme_map": {
+  "A": {
+   "plafond": "plafond",
+   "fuite": "fuite",
+   "marches": "entreprises",
+   "moyenne": "moyenne",
+   "contour": "contour",
+   "donation": "donation",
+   "legitim": "legitim",
+   "europe": "europe",
+   "info": "info",
+   "__none__": "anim"
+  },
+  "B": {
+   "plafond": "plafond",
+   "entreprises": "entreprises",
+   "donation": "donation",
+   "merite": "legitim",
+   "concentr": "legitim",
+   "consent": "consent",
+   "etat": "etat",
+   "travail": "travail",
+   "format": "format",
+   "__none__": "anim"
+  }
+ },
+ "summary": "Sur deux tables, quinze participants ont débattu de la même question : faut-il plafonner l'héritage (le chiffre proposé était 12 millions) ou le taxer davantage ? Plusieurs voix des deux tables observent que les plus riches échappent largement à l'impôt successoral grâce à des montages (holdings, sociétés immobilières, pacte Dutreil), et personne ne l'a contesté. Onze des treize voix qui se sont prononcées jugent que naître héritier ne donne ni mérite ni légitimité particulière, et six voient dans la concentration des richesses une menace pour la démocratie. Au-delà, les opinions s'étalent sur un gradient : trois voix prônent une redistribution quasi totale à la mort, cinq veulent un plafond ou une réforme profonde, trois veulent taxer fortement sans plafond rigide, deux défendent la prudence pour les entreprises et la transmission, et une seule défend la propriété privée absolue. Le plafond lui-même ne fait pas consensus (cinq pour, quatre contre, trois nuancés), pas plus que la crainte qu'une forte taxation fasse fuir les riches. Personne n'a explicitement changé d'avis dans aucune des deux tables.",
+ "groups": [
+  {
+   "label": "Redistribuer presque tout à la mort",
+   "color": "#C0507A",
+   "members": [
+    "B1",
+    "B7",
+    "B8"
+   ],
+   "arguments": [
+    "Naître avec un capital n'est pas un mérite : un héritier démarre bien plus loin que celui qui n'a rien.",
+    "Ne devrait être transmis que ce qui vient du travail, voire rien, avec un capital de départ versé à chacun.",
+    "La valeur d'une entreprise vient d'un travail collectif et de matières premières, pas d'une seule personne.",
+    "Le marché donne le pouvoir de décision aux plus riches : la valeur du travail doit se débattre collectivement."
+   ]
+  },
+  {
+   "label": "Plafond ou réforme profonde, sous contrôle collectif",
+   "color": "#184795",
+   "members": [
+    "A3",
+    "A6",
+    "B2",
+    "B4",
+    "B5"
+   ],
+   "arguments": [
+    "Les dynasties d'héritiers et la concentration des richesses menacent la démocratie : ploutocratie, oligarchie.",
+    "Les héritiers n'ont ni mérite ni compétence particulière pour posséder ou diriger de grands groupes.",
+    "Un plafond est juste en principe, mais il faut traiter le cas des grandes entreprises et de l'évasion.",
+    "Coopératives, plafond d'écart de salaires ou part de l'État au capital limitent la concentration.",
+    "Des milliardaires qui ne lèguent rien relativisent l'idée qu'une taxe décourage de créer des fortunes."
+   ]
+  },
+  {
+   "label": "Taxer beaucoup plus les très grandes fortunes, sans plafond rigide",
+   "color": "#16A085",
+   "members": [
+    "A1",
+    "A2",
+    "A4"
+   ],
+   "arguments": [
+    "Les plus riches contournent la taxe par des montages (holdings, sociétés immobilières, pacte Dutreil) : c'est là qu'il faut agir.",
+    "Taxer l'accumulation de leur vivant, ou dissocier gouvernance et argent, vaut mieux qu'un plafond difficile à appliquer.",
+    "Les actions d'un grand groupe peuvent être reçues par un fonds souverain sans désorganiser l'entreprise.",
+    "La classe moyenne est déjà protégée par les abattements : il ne faut pas la toucher davantage."
+   ]
+  },
+  {
+   "label": "Prudence pour les entreprises et la transmission",
+   "color": "#E0A100",
+   "members": [
+    "A5",
+    "B6"
+   ],
+   "arguments": [
+    "Un plafond fragilise la transmission des entreprises et peut effrayer les investisseurs ou les riches.",
+    "Des taxes d'héritage trop lourdes découragent de bâtir une fortune ; des niches fiscales ou des donations moins taxées gardent les riches en France.",
+    "L'incertitude à la mort d'un dirigeant âgé ferait chuter la valeur des entreprises.",
+    "Il faut pourtant des mesures contre la ploutocratie : taxation forte ciblée ou succession démocratisée."
+   ]
+  },
+  {
+   "label": "Propriété privée et consentement d'abord",
+   "color": "#0E7490",
+   "members": [
+    "B3"
+   ],
+   "arguments": [
+    "Le consentement et la propriété sont la seule morale : décider de l'argent d'autrui est immoral.",
+    "Taxer les riches est un vol, et la démocratie impose la volonté d'une majorité à une minorité.",
+    "Le marché est le seul juge de la valeur d'un travail ; l'État n'a pas à garantir plus que la liberté et la propriété.",
+    "Une taxation à 100 % découragerait de produire."
+   ]
+  }
+ ],
+ "unclassified": {
+  "members": [
+   "A7"
+  ],
+  "note": "A7 intervient surtout par des questions et des objections, sans position nette pour ou contre un plafond."
+ },
+ "statements": [
+  {
+   "text": "Les plus riches échappent largement à l'impôt sur l'héritage : c'est aux contournements qu'il faut s'attaquer",
+   "stances": [
+    {
+     "p": "A4",
+     "pos": "pour",
+     "t": 3.53,
+     "note": "l'héritage est presque pas taxé pour les très riches"
+    },
+    {
+     "p": "A5",
+     "pos": "pour",
+     "t": 5.81,
+     "note": "préfère s'attaquer à l'optimisation plutôt qu'au plafond"
+    },
+    {
+     "p": "A2",
+     "pos": "pour",
+     "t": 1.04,
+     "note": "les riches paient peu grâce aux transmissions anticipées"
+    },
+    {
+     "p": "B1",
+     "pos": "pour",
+     "t": 0.45,
+     "note": "les plus riches sont taxés à moins de 10 %"
+    },
+    {
+     "p": "B2",
+     "pos": "pour",
+     "t": 4.27,
+     "note": "énormément de niches fiscales pour les milliardaires"
+    }
+   ]
+  },
+  {
+   "text": "Hériter ne donne ni mérite ni légitimité particulière à posséder ou à diriger",
+   "stances": [
+    {
+     "p": "A1",
+     "pos": "pour",
+     "t": 9.66
+    },
+    {
+     "p": "A3",
+     "pos": "pour",
+     "t": 23.74
+    },
+    {
+     "p": "A6",
+     "pos": "pour",
+     "t": 29.47
+    },
+    {
+     "p": "A7",
+     "pos": "pour",
+     "t": 41.27
+    },
+    {
+     "p": "A5",
+     "pos": "pour",
+     "t": 32.5,
+     "note": "concède l'absence de légitimité, mais craint les marchés"
+    },
+    {
+     "p": "A4",
+     "pos": "nuance",
+     "t": 16.07,
+     "note": "comprend qu'un fils reprenne l'entreprise à condition de payer"
+    },
+    {
+     "p": "B1",
+     "pos": "pour",
+     "t": 58.08
+    },
+    {
+     "p": "B2",
+     "pos": "pour",
+     "t": 2.94
+    },
+    {
+     "p": "B5",
+     "pos": "pour",
+     "t": 22.83
+    },
+    {
+     "p": "B6",
+     "pos": "pour",
+     "t": 62.66
+    },
+    {
+     "p": "B7",
+     "pos": "pour",
+     "t": 60.16
+    },
+    {
+     "p": "B8",
+     "pos": "pour",
+     "t": 59.19
+    },
+    {
+     "p": "B3",
+     "pos": "contre",
+     "t": 15.6,
+     "note": "tout don consenti est légitime, y compris d'un ami ou d'un parent"
+    }
+   ]
+  },
+  {
+   "text": "La concentration des richesses menace la démocratie",
+   "stances": [
+    {
+     "p": "A1",
+     "pos": "pour",
+     "t": 10.89
+    },
+    {
+     "p": "A3",
+     "pos": "pour",
+     "t": 12.99
+    },
+    {
+     "p": "A5",
+     "pos": "pour",
+     "t": 33.63
+    },
+    {
+     "p": "B1",
+     "pos": "pour",
+     "t": 74.91
+    },
+    {
+     "p": "B2",
+     "pos": "pour",
+     "t": 45.95
+    },
+    {
+     "p": "B4",
+     "pos": "pour",
+     "t": 23.28
+    },
+    {
+     "p": "B3",
+     "pos": "nuance",
+     "t": 48.98,
+     "note": "le problème vient surtout de l'État et de la corruption"
+    }
+   ]
+  },
+  {
+   "text": "L'État peut recevoir une part du capital des grandes entreprises (fonds souverain, actions)",
+   "stances": [
+    {
+     "p": "A1",
+     "pos": "pour",
+     "t": 10.89
+    },
+    {
+     "p": "A4",
+     "pos": "pour",
+     "t": 7.81
+    },
+    {
+     "p": "B2",
+     "pos": "pour",
+     "t": 10.31
+    },
+    {
+     "p": "A3",
+     "pos": "nuance",
+     "t": 37.61,
+     "note": "ouvre la réflexion sur d'autres formes de transmission de la gouvernance"
+    },
+    {
+     "p": "B6",
+     "pos": "nuance",
+     "t": 16.97,
+     "note": "préfère que l'État rachète les parts, avec une succession démocratisée"
+    },
+    {
+     "p": "A5",
+     "pos": "contre",
+     "t": 11.24,
+     "note": "craint qu'un fonds souverain effraie les marchés"
+    }
+   ]
+  },
+  {
+   "text": "Il faut favoriser et détaxer les donations faites avant la mort",
+   "stances": [
+    {
+     "p": "A2",
+     "pos": "pour",
+     "t": 89.76
+    },
+    {
+     "p": "A7",
+     "pos": "pour",
+     "t": 88.2
+    },
+    {
+     "p": "A4",
+     "pos": "pour",
+     "t": 92.88
+    },
+    {
+     "p": "B6",
+     "pos": "pour",
+     "t": 80.5
+    },
+    {
+     "p": "B3",
+     "pos": "pour",
+     "t": 80.99
+    }
+   ]
+  },
+  {
+   "text": "L'héritage et sa taxation sont mal connus du public",
+   "stances": [
+    {
+     "p": "A4",
+     "pos": "pour",
+     "t": 72.7,
+     "note": "85 % des gens ne paient pas, mais le discours populiste dit le contraire"
+    },
+    {
+     "p": "B1",
+     "pos": "pour",
+     "t": 0.45,
+     "note": "la médiane reçue est de 70 000 euros et 85 % des héritages ne sont pas taxés"
+    },
+    {
+     "p": "B8",
+     "pos": "pour",
+     "t": 1.64,
+     "note": "les règles d'héritage sont mal connues"
+    }
+   ]
+  },
+  {
+   "text": "L'héritage doit être plafonné, par exemple à 12 millions",
+   "stances": [
+    {
+     "p": "A5",
+     "pos": "contre",
+     "t": 5.81
+    },
+    {
+     "p": "A4",
+     "pos": "contre",
+     "t": 16.07
+    },
+    {
+     "p": "A1",
+     "pos": "nuance",
+     "t": 21.95,
+     "note": "pour limiter les dynasties, mais doute qu'un plafond soit applicable"
+    },
+    {
+     "p": "A2",
+     "pos": "nuance",
+     "t": 26.35,
+     "note": "pas convaincu par le chiffre, mais ne juge pas la limite choquante"
+    },
+    {
+     "p": "A6",
+     "pos": "pour",
+     "t": 104.3,
+     "note": "transmission plus rapide, limitée à un seuil"
+    },
+    {
+     "p": "B2",
+     "pos": "pour",
+     "t": 2.94
+    },
+    {
+     "p": "B7",
+     "pos": "pour",
+     "t": 52.77
+    },
+    {
+     "p": "B1",
+     "pos": "pour",
+     "t": 57.69,
+     "note": "va plus loin : taxer à 100 %"
+    },
+    {
+     "p": "B8",
+     "pos": "pour",
+     "t": 59.19,
+     "note": "va plus loin : tout redistribuer"
+    },
+    {
+     "p": "B4",
+     "pos": "nuance",
+     "t": 5.99,
+     "note": "juste dans un monde idéal, mais obstacles pratiques"
+    },
+    {
+     "p": "B6",
+     "pos": "contre",
+     "t": 16.97
+    },
+    {
+     "p": "B3",
+     "pos": "contre",
+     "t": 7.71
+    }
+   ]
+  },
+  {
+   "text": "Une taxation forte de l'héritage ferait fuir les riches ou découragerait de créer des fortunes",
+   "stances": [
+    {
+     "p": "A5",
+     "pos": "pour",
+     "t": 5.81,
+     "note": "freinerait les investisseurs étrangers"
+    },
+    {
+     "p": "A1",
+     "pos": "pour",
+     "t": 21.95,
+     "note": "les riches contourneraient la règle ou partiraient"
+    },
+    {
+     "p": "A3",
+     "pos": "contre",
+     "t": 2.45,
+     "note": "les riches partent qu'on les taxe ou non"
+    },
+    {
+     "p": "A4",
+     "pos": "contre",
+     "t": 3.53,
+     "note": "on est très loin de taxer assez pour les faire partir"
+    },
+    {
+     "p": "A2",
+     "pos": "contre",
+     "t": 1.04
+    },
+    {
+     "p": "B6",
+     "pos": "pour",
+     "t": 16.97,
+     "note": "des taxes lourdes découragent de bâtir une fortune"
+    },
+    {
+     "p": "B3",
+     "pos": "pour",
+     "t": 81.87,
+     "note": "doute que les gens produisent si tout est taxé à 100 %"
+    },
+    {
+     "p": "B5",
+     "pos": "contre",
+     "t": 21.77,
+     "note": "des milliardaires de la tech ne lèguent rien à leurs enfants"
+    },
+    {
+     "p": "B4",
+     "pos": "nuance",
+     "t": 6.98,
+     "note": "pointe l'évasion fiscale comme obstacle sans trancher"
+    }
+   ]
+  },
+  {
+   "from_table": "A",
+   "index": 2
+  },
+  {
+   "from_table": "A",
+   "index": 3
+  },
+  {
+   "from_table": "A",
+   "index": 4
+  },
+  {
+   "from_table": "A",
+   "index": 5
+  },
+  {
+   "from_table": "A",
+   "index": 6
+  },
+  {
+   "from_table": "B",
+   "index": 1
+  },
+  {
+   "from_table": "B",
+   "index": 2
+  },
+  {
+   "from_table": "B",
+   "index": 3
+  },
+  {
+   "from_table": "B",
+   "index": 4
+  },
+  {
+   "from_table": "B",
+   "index": 5
+  }
+ ],
+ "differences": {
+  "intro": "Les deux tables sont parties de la même question mais ne se sont pas parlé de la même manière ni des mêmes choses. Les chiffres du tableau sont calculés ; les encadrés les commentent.",
+  "cards": [
+   {
+    "title": "Une table homogène, une table éclatée",
+    "body": "À la table A, les six participants dont la position est connue vont de 0 à +5 sur l'axe de l'héritage : personne ne défend la propriété d'abord, personne ne veut tout redistribuer. À la table B, on trouve un libertarien à −7,5 et trois voix à +7,5. Sur l'axe horizontal, la polarisation est de 3,4 pour A contre 18,0 pour B ; sur l'axe vertical, de 7,8 contre 22,8."
+   },
+   {
+    "title": "Même tension moyenne, désaccords de nature différente",
+    "body": "La tension moyenne est comparable (45 pour A, 42 pour B sur 100), mais pas ce qui la produit. À la table A, 13 accords, 15 désaccords et 2 concessions, répartis entre plusieurs voix. À la table B, 2 accords, 36 désaccords et aucune concession, dont 30 opposent une voix au libertarien (B3), qui a aussi tenu 29 % de la parole attribuée."
+   },
+   {
+    "title": "Pratique d'un côté, principes de l'autre",
+    "body": "La table A a surtout débattu de mécanismes concrets : entreprises et marchés, maison de famille et assurance-vie, taxation commune en Europe. La table B s'est organisée autour d'une controverse de principe, le consentement et la propriété, qui a entraîné la valeur du travail, le marché et le rôle de l'État."
+   },
+   {
+    "title": "Qui occupe la parole",
+    "body": "Table A : A4 (26 % de la parole) et A5 (21 %) dominent. Table B : B3 (29 %) et B2 (27 %) tiennent plus de la moitié de la parole, tandis que B4 et B8 n'en ont que 3 % chacun."
+   },
+   {
+    "title": "Question de départ et fiabilité",
+    "body": "La question de départ (plafonner ou taxer) a occupé 18 % du temps de la table A et 7 % de celui de la table B ; la table A a passé 61 % de son temps sur des thèmes communs aux deux tables, la table B 37 %. L'audio non attribué est de 10,7 % pour A et de 19,2 % pour B : les échanges rapides de B rendent son attribution plus fragile."
+   }
+  ]
+ },
+ "only_one_table": {
+  "A": [
+   {
+    "title": "Classe moyenne, maison de famille, assurance-vie",
+    "theme": "moyenne",
+    "body": "Faut-il ménager la maison de famille ? Les abattements suffisent-ils ? L'assurance-vie doit-elle être taxée comme un héritage ?"
+   },
+   {
+    "title": "Taxation commune en Europe",
+    "theme": "europe",
+    "body": "Une harmonisation des droits de succession empêcherait-elle l'évasion, ou est-elle irréaliste vu les écarts entre pays ?"
+   },
+   {
+    "title": "Fuite des capitaux",
+    "theme": "fuite",
+    "body": "Les riches partent-ils si on les taxe ? Exit tax et taxe extraterritoriale."
+   },
+   {
+    "title": "Contournements et optimisation",
+    "theme": "contour",
+    "body": "Pacte Dutreil, sociétés immobilières, holdings, fondations : le détail des montages des plus riches. Un seul participant de l'autre table y touche, sans y consacrer de temps."
+   },
+   {
+    "title": "Information du public",
+    "theme": "info",
+    "body": "Méconnaissance de la taxe et discours populiste selon lequel l'État volerait les héritiers."
+   }
+  ],
+  "B": [
+   {
+    "title": "Consentement, propriété et contrat social",
+    "theme": "consent",
+    "body": "Le consentement individuel est-il la seule morale ? La propriété repose-t-elle sur le travail ? Le contrat social justifie-t-il de céder une part de ses libertés ?"
+   },
+   {
+    "title": "Marché, salaires et valeur du travail",
+    "theme": "travail",
+    "body": "Qui juge la valeur du travail, le marché ou la société ? SMIC, écart de salaires, éboueurs, infirmières, coopératives."
+   },
+   {
+    "title": "Démocratie et rôle de l'État",
+    "theme": "etat",
+    "body": "Démocratie contre liberté individuelle, constitution, monopole de la police et de la justice."
+   },
+   {
+    "title": "Bilan du débat et de l'outil",
+    "theme": "format",
+    "body": "Retours sur le format, le temps de parole, la modération et les boutons de prise de parole."
+   }
+  ]
+ },
+ "method": {
+  "caption": "Les quinze participants sont placés sur un même plan à deux axes, avec la même grille de lecture (voir « Comment lire la carte »). Chaque point est une position fixe établie à la lecture intégrale de chaque transcription, puis recalée sur cette grille commune : elle peut différer légèrement de la carte propre à chaque table. Bleu : table A (0650D7). Orange : table B (4999B8). Aucun participant n'a explicitement changé d'avis dans aucune des deux tables, donc aucun déplacement durable n'est affiché : les points apparaissent à la première prise de parole. Survolez un point pour son résumé. Les points exactement superposés sont légèrement écartés pour la lisibilité.",
+  "footer": [
+   "⚠ Positions interprétatives et volontairement grossières (pas de 2,5) : ±2,5 = penchant exprimé, ±5 = position claire, ±7,5 = position centrale et répétée. Elles ont été recalées sur une grille commune à partir des deux analyses par table. Deux tables et quinze participants forment un petit échantillon, sans valeur statistique.",
+   "⚠ Les consensus et dissensus sont classés par calcul à partir de prises de position ancrées sur des passages précis : « consensus » = au moins 3 voix et aucune de l'autre côté, « large accord » = au moins 75 % des voix pour/contre, « dissensus » = au moins 2 voix de chaque côté. L'absence d'opposition exprimée n'est pas une adhésion : un énoncé que personne n'a contesté peut simplement ne pas avoir été discuté.",
+   "⚠ Les résumés sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Temps de parole, thèmes, tension et interactions viennent des deux analyses par table. La table B, aux échanges très rapides, a davantage d'audio non attribué et quelques voix mélangées dans la transcription."
+  ]
+ }
+}

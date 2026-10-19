@@ -1,0 +1,1381 @@
+{
+ "method": {
+  "kind": "manual",
+  "mapTitle": "Positions des participants",
+  "caption": "Chaque point est la position d'un participant, établie à la lecture intégrale de la transcription. Un point ne se déplace durablement que si la personne change explicitement d'avis (flèche « change d'avis ») ; dans ce débat, personne ne l'a fait. Ce qui bouge, ce sont les échanges : une flèche relie celui qui parle à celui à qui il répond (verte = accord, rouge pointillée = désaccord), et une concession explicite fait pencher un instant le point vers l'autre avant qu'il revienne. Cochez « Toutes les interactions » pour voir les alliances et les lignes de fracture accumulées, « Tous les déplacements » pour les mouvements survenus. Un point apparaît à la première prise de parole et grossit quand la personne parle ; survolez-le pour le résumé de sa position.",
+  "footer": [
+   "⚠ Analyse faite à la main (lecture intégrale de la transcription par Claude), sans scoring automatique. Les positions sont interprétatives et volontairement grossières : ±2,5 = penchant exprimé, ±5 = position claire, ±7,5 = position centrale et répétée. Personne n'est placé aux extrêmes (±10).",
+   "⚠ Tension = intensité du désaccord, pas de l'émotion (le débat est resté courtois) : ~20 cadrage ou tour de table, 35-45 questions et échanges d'informations, 50-60 désaccord argumenté, 65 confrontation de principes avec répliques directes. La courbe relie ces niveaux, elle n'est pas mesurée seconde par seconde.",
+   "⚠ Les résumés sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Les phrases d'animation (donner la parole, annoncer le tour de table) sont écartées, y compris quand la transcription les attribue par erreur à un participant.",
+   "⚠ Table aux échanges très rapides : la transcription mélange parfois des voix (fragments attribués à la mauvaise personne) et environ un cinquième de l'audio, dont la fin du débat, n'est attribué à personne. Les Interlocuteurs 4 et 8 ont peu parlé : leur position est moins documentée. Le dernier quart d'heure est surtout un retour sur le format du débat."
+  ]
+ },
+ "axes": {
+  "x": {
+   "leftLabel": "Liberté de transmettre, propriété d'abord",
+   "rightLabel": "Limiter ou redistribuer l'héritage",
+   "anchors": {
+    "left": [
+     "Chacun doit pouvoir disposer librement de son argent et le transmettre à qui il veut",
+     "Un plafond ou une taxation forte des riches est immoral, voire du vol",
+     "Des taxes d'héritage trop lourdes découragent de bâtir une fortune"
+    ],
+    "right": [
+     "Nul ne devrait recevoir autant par le seul hasard de la naissance",
+     "Il faut taxer l'héritage, voire tout redistribuer pour donner un départ égal à chacun",
+     "La concentration des richesses menace la démocratie"
+    ]
+   }
+  },
+  "y": {
+   "bottomLabel": "Le marché juge la valeur",
+   "topLabel": "La société délibère et encadre",
+   "anchors": {
+    "bottom": [
+     "Seul l'acheteur peut juger la valeur d'un travail ou d'un bien",
+     "L'État doit se limiter à garantir la liberté et la propriété",
+     "Le marché ajuste naturellement les salaires"
+    ],
+    "top": [
+     "La valeur du travail doit se débattre collectivement, par exemple en convention citoyenne",
+     "La loi doit encadrer le marché : SMIC, écart de salaires, coopératives",
+     "Le contrat social justifie de céder une partie de ses libertés"
+    ]
+   }
+  },
+  "quadrants": {
+   "topLeft": "Encadrer sans taxer l'héritage",
+   "topRight": "Redistribution et régulation",
+   "bottomLeft": "Libertarien",
+   "bottomRight": "Redistribuer sans régulation"
+  }
+ },
+ "personas": {
+  "i1": {
+   "camp": "Taxer à 100 %, redistribuer",
+   "x": 7.5,
+   "y": 7.5,
+   "note": "Voix la plus redistributive : veut taxer l'héritage à 100 % pour verser un capital de départ à chacun, défend la démocratie comme délibération et conteste que le marché juge la valeur du travail.",
+   "points": [
+    {
+     "t": 0.45,
+     "stance": "Constate que l'héritage est mal compris : la médiane reçue est de 70 000 euros, 85 % des héritages ne sont pas taxés et les plus riches paient moins de 10 % ; veut augmenter l'impôt sur l'héritage des plus riches."
+    },
+    {
+     "t": 24.54,
+     "stance": "Refuse que le consentement individuel prime : exiger l'unanimité bloquerait toute décision, et une taxation décidée démocratiquement est légitime."
+    },
+    {
+     "t": 26.14,
+     "stance": "Conçoit la démocratie comme une délibération qui cherche le consensus, pas comme la loi des 51 % ; juge juste de taxer davantage ceux qui sont nés avec plus de capital."
+    },
+    {
+     "t": 35.71,
+     "stance": "Reproche à l'Interlocuteur 3 d'être contre le contrat social, alors qu'il admet déjà des règles imposées ; ajoute que le travail doit primer sur le capital."
+    },
+    {
+     "t": 56.23,
+     "stance": "Juge la méritocratie nécessaire mais insuffisante : elle ne justifie pas l'héritage, d'autant que les écarts de rémunération vont de 1 à 100 dans les grandes entreprises."
+    },
+    {
+     "t": 57.69,
+     "stance": "Propose de taxer l'héritage à 100 % et de redistribuer entre 150 000 et 250 000 euros à chacun à 25 ans."
+    },
+    {
+     "t": 58.08,
+     "stance": "Veut qu'on ne puisse transmettre que ce qu'on a gagné par son travail, pas ce qu'on a soi-même reçu."
+    },
+    {
+     "t": 74.91,
+     "stance": "Soutient que le marché donne le pouvoir de décision aux plus riches, ce qui est une ploutocratie, et propose des conventions citoyennes pour débattre de la valeur du travail."
+    }
+   ]
+  },
+  "i2": {
+   "camp": "Plafonner, encadrer le marché",
+   "x": 5,
+   "y": 7.5,
+   "note": "Défend un plafond (12 millions lui paraît même trop haut), voit dans la concentration des richesses un risque d'oligarchie et préfère des coopératives et des limites d'écart de salaires, tout en doutant d'une taxation à 100 %.",
+   "points": [
+    {
+     "t": 2.94,
+     "stance": "Défend un plafond : nul ne devrait recevoir plus de 12 millions par le hasard de la naissance, et ce chiffre lui paraît même trop élevé."
+    },
+    {
+     "t": 10.31,
+     "stance": "Estime qu'on peut transmettre une part d'une grande entreprise à l'État sous forme d'actions, comme dans la taxe Zucman, sans réduire sa capacité d'investir : seule la propriété du capital se fragmente."
+    },
+    {
+     "t": 14.88,
+     "stance": "Rappelle que la part des fortunes venant du travail est passée de deux tiers à un tiers depuis les années 1970 : fonder la propriété sur le travail ne décrit plus la société."
+    },
+    {
+     "t": 41.38,
+     "stance": "Soutient que la liberté des uns s'arrête où commence celle des autres, que les lois en découlent et que démocratie et constitution sont la bonne façon d'arbitrer."
+    },
+    {
+     "t": 45.95,
+     "stance": "Voit dans la concentration des richesses le cœur du problème : quelques-uns achètent des médias et de l'influence, ce qui mène à une oligarchie ; il faut donc taxer l'héritage de ces fortunes."
+    },
+    {
+     "t": 47.38,
+     "stance": "Estime que la taxation sert à ce que ceux qui n'héritent de rien héritent au moins de services publics, d'éducation, de santé et d'opportunités."
+    },
+    {
+     "t": 64.15,
+     "stance": "Préfère transformer les sociétés en coopératives détenues par les salariés pour limiter la concentration des richesses, sans être hostile à une petite entreprise comme une boulangerie."
+    },
+    {
+     "t": 77.42,
+     "stance": "Juge anormal qu'un PDG gagne 400 fois le salaire médian, mais doute qu'une taxation à 100 % puisse fonctionner durablement."
+    },
+    {
+     "t": 87.27,
+     "stance": "Propose de plafonner l'écart entre le salaire moyen et le salaire maximal dans une entreprise, au nom de principes moraux traduits en loi."
+    }
+   ]
+  },
+  "i3": {
+   "camp": "Propriété privée et consentement",
+   "x": -7.5,
+   "y": -7.5,
+   "note": "Seule voix libertarienne : fait du consentement et de la propriété la seule morale, juge la taxation des riches assimilable à un vol, se méfie de l'État et s'en remet au marché pour juger la valeur.",
+   "points": [
+    {
+     "t": 7.71,
+     "stance": "Pose le consentement et la liberté comme seule morale : chacun doit disposer librement de son argent, et vouloir en décider à sa place est immoral."
+    },
+    {
+     "t": 15.6,
+     "stance": "Explique que la propriété s'acquiert par une transaction consentie (échange de travail ou d'argent, ou don), sans lien nécessaire avec le travail."
+    },
+    {
+     "t": 28.73,
+     "stance": "Soutient que la démocratie permet à une majorité d'imposer sa volonté à une minorité, ce qui nie le consentement."
+    },
+    {
+     "t": 32.3,
+     "stance": "N'aime pas l'idée d'un État puissant qui choisit à la place des gens ce qui est bon pour eux."
+    },
+    {
+     "t": 43.74,
+     "stance": "Juge que taxer les riches est du vol et que son objectif est de limiter au minimum l'impact des uns sur les autres."
+    },
+    {
+     "t": 49.95,
+     "stance": "Remet en cause le monopole de l'État sur la police et la justice, et ne retient comme règle que la réparation des dommages causés."
+    },
+    {
+     "t": 68.75,
+     "stance": "Estime que le salarié échange son temps contre de l'argent par une transaction consentie, sans lien avec la valeur que l'entreprise crée."
+    },
+    {
+     "t": 74.13,
+     "stance": "Affirme que seul l'acheteur peut juger la valeur d'un bien ou d'un service : le marché est le bon juge."
+    },
+    {
+     "t": 81.87,
+     "stance": "Doute que les gens continueraient de produire si l'argent était taxé à 100 %, et pense que les actionnaires paient le dirigeant à la hauteur de la valeur qu'il apporte."
+    }
+   ]
+  },
+  "i4": {
+   "camp": "Plafond juste, obstacles pratiques",
+   "x": 5,
+   "y": 0,
+   "note": "Interventions rares : juge un plafond à 12 millions juste en théorie mais pointe les obstacles (entreprises, évasion), puis soutient que laisser l'héritage libre concentre les richesses.",
+   "points": [
+    {
+     "t": 5.99,
+     "stance": "Pense que, dans un monde où la loi serait bien appliquée sans détournement, une limite à 12 millions serait juste."
+    },
+    {
+     "t": 6.98,
+     "stance": "Soulève les obstacles : que deviennent les grandes entreprises familiales avec un plafond, et que faire de l'évasion fiscale ?"
+    },
+    {
+     "t": 23.28,
+     "stance": "Soutient que laisser l'héritage libre mène à une concentration croissante des richesses et à la pauvreté du plus grand nombre, ce qui prime sur la liberté de transmettre."
+    }
+   ],
+   "uncertain": {
+    "y": "n'a pas abordé le marché ni le rôle de l'État"
+   }
+  },
+  "i5": {
+   "camp": "Questionne propriété et concentration",
+   "x": 5,
+   "y": 2.5,
+   "note": "Questionne la légitimité de la propriété et de la concentration du capital, relativise la fuite des riches et conteste que consentement et liberté suffisent.",
+   "points": [
+    {
+     "t": 8.24,
+     "stance": "Estime que l'accumulation de capital pose le même problème que la philanthropie des plus fortunés : une personne décide seule de ce qui est bon pour la société."
+    },
+    {
+     "t": 9.5,
+     "stance": "Doute qu'un entrepreneur pense à sa succession en créant son entreprise, et demande de définir la propriété : si elle vient du travail, de quel droit la transmettre ?"
+    },
+    {
+     "t": 20.52,
+     "stance": "Explique le lien entre propriété et travail par la pensée de Locke : ce qui m'appartient, c'est ce pour quoi j'ai œuvré."
+    },
+    {
+     "t": 21.77,
+     "stance": "Rappelle que des milliardaires de la tech ont choisi de ne rien léguer à leurs enfants, ce qui relativise l'idée qu'une taxe décourage la création de fortunes."
+    },
+    {
+     "t": 22.83,
+     "stance": "Doute que la famille soit la plus apte à poursuivre l'entreprise, vu les conflits dans les conseils d'actionnaires."
+    },
+    {
+     "t": 27.05,
+     "stance": "Objecte qu'un impôt n'est pas un individu qui impose sa volonté à un autre, mais une société face à un individu."
+    }
+   ]
+  },
+  "i6": {
+   "camp": "Réformer sans faire fuir",
+   "x": -2.5,
+   "y": -2.5,
+   "note": "Comprend un plafond mais le juge trop extrême : veut une succession démocratisée, des niches fiscales pour garder les riches en France et des donations moins taxées.",
+   "points": [
+    {
+     "t": 16.97,
+     "stance": "Juge le plafond de 12 millions trop extrême : il faudrait un État assez puissant pour racheter les parts, et des taxes d'héritage trop lourdes découragent de bâtir des fortunes."
+    },
+    {
+     "t": 44.86,
+     "stance": "Pense que le consentement parfait est impossible à cause du contrat social, et que la démocratie fait converger des avis divergents vers un compromis."
+    },
+    {
+     "t": 53.97,
+     "stance": "Pour limiter la concentration sans faire fuir les riches, propose de bonnes niches fiscales, comme l'assurance-vie, qui les incitent à rester et à dépenser en France."
+    },
+    {
+     "t": 62.66,
+     "stance": "Propose une succession d'entreprise démocratisée : un conseil réunissant l'État, les actionnaires et les salariés déciderait à qui léguer."
+    },
+    {
+     "t": 80.5,
+     "stance": "Juge les donations trop taxées en France : on hérite vers 50 ans, trop tard pour financer des projets, et il faudrait les détaxer."
+    },
+    {
+     "t": 85.58,
+     "stance": "Propose de réserver un noyau du capital aux salariés, protégé de la dilution."
+    }
+   ]
+  },
+  "i7": {
+   "camp": "Contrat social, redistribution",
+   "x": 7.5,
+   "y": 5,
+   "note": "Rejette le consentement comme valeur fondamentale au nom du contrat social, juge la valeur issue d'un travail collectif et veut redistribuer l'héritage, même celui issu du travail, à la mort.",
+   "points": [
+    {
+     "t": 33.22,
+     "stance": "Rejette que le consentement soit une valeur fondamentale : le contrat social suppose de céder une part de ses libertés contre redistribution et services, et l'entreprise a des effets indirects sur les salariés."
+    },
+    {
+     "t": 51.06,
+     "stance": "Souligne que la justice et la police enfreignent déjà le consentement en imposant des sanctions au nom du contrat social."
+    },
+    {
+     "t": 52.77,
+     "stance": "Approuve qu'une règle commune prenne une partie de l'argent, par amende ou parce qu'on n'a pas à hériter de quantités gigantesques."
+    },
+    {
+     "t": 60.16,
+     "stance": "Juge les héritages disproportionnés par rapport au travail d'une vie et pense que même le fruit du travail devrait être redistribué à la mort."
+    },
+    {
+     "t": 61.66,
+     "stance": "Pense que la valeur est un travail collectif et vient aussi de matières premières, donc que l'inventeur ne mérite pas toute la richesse créée."
+    },
+    {
+     "t": 70.08,
+     "stance": "Estime qu'un contrat consenti n'est pas forcément juste : si une entreprise explose en valeur et paie peu ses salariés, la société doit juger la valeur du travail."
+    },
+    {
+     "t": 71.8,
+     "stance": "Défend un encadrement par la loi, comme le SMIC, car le marché ne s'ajuste pas toujours."
+    }
+   ]
+  },
+  "i8": {
+   "camp": "Tout redistribuer",
+   "x": 7.5,
+   "y": 0,
+   "note": "Peu d'interventions, mais très nettes : ceux qui héritent d'une entreprise partent bien plus loin, donc il faut tout redistribuer.",
+   "points": [
+    {
+     "t": 1.64,
+     "stance": "Raconte avoir vu un don d'un ami lointain à sa mère taxé, et trouve que les règles d'héritage sont mal connues."
+    },
+    {
+     "t": 59.19,
+     "stance": "Dit que celui qui hérite d'une entreprise démarre bien mieux que celui qui n'a rien ; est pour tout redistribuer, personne ne devant rien donner et chacun partant avec la même chose."
+    }
+   ],
+   "uncertain": {
+    "y": "très peu d'interventions, rien sur le marché ni l'État"
+   }
+  }
+ },
+ "interactions": [
+  {
+   "t": 4.66,
+   "from": "i3",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Réfute son raisonnement sur les dividendes : ils reflètent des entreprises matures, pas un abus."
+  },
+  {
+   "t": 7.71,
+   "from": "i3",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "S'oppose à un plafond : vouloir décider de l'argent d'autrui est immoral."
+  },
+  {
+   "t": 8.24,
+   "from": "i5",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Conteste que liberté et consentement suffisent et demande de définir la propriété."
+  },
+  {
+   "t": 11.67,
+   "from": "i2",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Oppose que la loi du marché ne devrait pas primer, la société ayant choisi un contrat social."
+  },
+  {
+   "t": 14.88,
+   "from": "i2",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Objecte que la propriété fondée sur le travail ne tient plus quand deux tiers des fortunes viennent de l'héritage."
+  },
+  {
+   "t": 15.6,
+   "from": "i3",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Réplique que la propriété vient d'une transaction consentie, sans lien avec le travail."
+  },
+  {
+   "t": 16.97,
+   "from": "i6",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Défend la loi du marché et juge le plafond de 12 millions trop extrême."
+  },
+  {
+   "t": 18.31,
+   "from": "i2",
+   "to": "i6",
+   "type": "desaccord",
+   "desc": "Objecte que l'État reçoit l'héritage directement et n'a pas besoin de fonds pour racheter."
+  },
+  {
+   "t": 20.52,
+   "from": "i5",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Explique que le lien entre propriété et travail existe, en s'appuyant sur Locke."
+  },
+  {
+   "t": 20.52,
+   "from": "i5",
+   "to": "i6",
+   "type": "desaccord",
+   "desc": "Répond qu'une taxe forte ne décourage pas forcément de bâtir une fortune."
+  },
+  {
+   "t": 24.54,
+   "from": "i1",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Refuse que le consentement individuel prime sur la décision démocratique."
+  },
+  {
+   "t": 26.14,
+   "from": "i1",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Oppose démocratie délibérative et simple règle de majorité."
+  },
+  {
+   "t": 27.05,
+   "from": "i5",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Objecte que l'impôt est une société face à un individu, pas un individu qui en impose à un autre."
+  },
+  {
+   "t": 28.73,
+   "from": "i3",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Répond que la démocratie impose la volonté de la majorité à la minorité, ce qui nie le consentement."
+  },
+  {
+   "t": 35.71,
+   "from": "i1",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Lui reproche d'être contre le contrat social tout en admettant des règles imposées."
+  },
+  {
+   "t": 37.5,
+   "from": "i1",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Teste sa position avec le cas d'un héritier de toutes les possessions du monde."
+  },
+  {
+   "t": 40.19,
+   "from": "i2",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Oppose le cas des pollueurs qui portent atteinte à la liberté des autres."
+  },
+  {
+   "t": 41.38,
+   "from": "i2",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Soutient que les lois et la démocratie découlent de la liberté de chacun."
+  },
+  {
+   "t": 43.53,
+   "from": "i2",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Demande comment arbitrer des intérêts divergents : taxer les riches, une déchetterie."
+  },
+  {
+   "t": 43.74,
+   "from": "i3",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Répond que taxer les riches est du vol."
+  },
+  {
+   "t": 44.86,
+   "from": "i6",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Pense que le consentement parfait est impossible et que la démocratie vaut mieux qu'un régime autoritaire."
+  },
+  {
+   "t": 51.06,
+   "from": "i7",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Relève que la justice enfreint déjà son principe de consentement au nom du contrat social."
+  },
+  {
+   "t": 52.77,
+   "from": "i7",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Défend qu'une règle commune prenne une partie de l'argent, au nom du contrat social."
+  },
+  {
+   "t": 53.22,
+   "from": "i3",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Répond qu'il ne faut pas céder son consentement, seulement réparer ce qu'on a violé."
+  },
+  {
+   "t": 53.97,
+   "from": "i6",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Veut éviter de faire fuir les riches, là où elle veut limiter la concentration des richesses."
+  },
+  {
+   "t": 59.19,
+   "from": "i8",
+   "to": "i1",
+   "type": "accord",
+   "desc": "Va dans son sens et va plus loin : tout redistribuer."
+  },
+  {
+   "t": 60.16,
+   "from": "i7",
+   "to": "i1",
+   "type": "accord",
+   "desc": "Se dit bien d'accord avec l'Interlocuteur 1 sur la redistribution."
+  },
+  {
+   "t": 67.13,
+   "from": "i3",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Objecte que les salariés peuvent déjà acheter des actions, sans coopératives."
+  },
+  {
+   "t": 68.75,
+   "from": "i3",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Répond que le salarié est lié à l'entreprise par une transaction consentie, sans lien avec la valeur."
+  },
+  {
+   "t": 70.08,
+   "from": "i7",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Oppose qu'un contrat consenti n'est pas forcément juste."
+  },
+  {
+   "t": 71.49,
+   "from": "i3",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Répond que le marché ajuste les salaires : un employé précieux est mieux payé ou part."
+  },
+  {
+   "t": 71.8,
+   "from": "i7",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Défend la loi (SMIC) car le marché ne s'ajuste pas toujours."
+  },
+  {
+   "t": 74.13,
+   "from": "i3",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Affirme que seul l'acheteur juge la valeur, donc que le marché est le bon juge."
+  },
+  {
+   "t": 74.91,
+   "from": "i1",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Réplique que le marché donne le pouvoir aux riches, ce qui est une ploutocratie."
+  },
+  {
+   "t": 76.3,
+   "from": "i2",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "N'est pas d'accord que les riches décident de la consommation."
+  },
+  {
+   "t": 77.42,
+   "from": "i2",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Doute que la taxation à 100 % puisse fonctionner."
+  },
+  {
+   "t": 81.87,
+   "from": "i3",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Doute que les gens produisent si tout est taxé à 100 %."
+  },
+  {
+   "t": 89.06,
+   "from": "i3",
+   "to": "i2",
+   "type": "desaccord",
+   "desc": "Soutient que les éboueurs sont bien payés car le marché s'ajuste."
+  }
+ ],
+ "events": [
+  {
+   "t": 0.45,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "L'héritage est mal compris",
+   "desc": "Un participant rappelle que 85 % des héritages ne sont pas taxés et que les plus riches paient peu."
+  },
+  {
+   "t": 2.29,
+   "type": "cadrage",
+   "magnitude": 2,
+   "title": "Faut-il plafonner l'héritage à 12 millions ?",
+   "desc": "L'animation relance la question qui avait le plus divisé les votes."
+  },
+  {
+   "t": 2.94,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Un plafond à 12 millions : trop haut, juste ou extrême ?",
+   "desc": "Un plafond est défendu, jugé juste en théorie, trop extrême ou immoral selon les voix."
+  },
+  {
+   "t": 4.66,
+   "type": "technique",
+   "magnitude": 1,
+   "title": "Les dividendes en France",
+   "desc": "Échange sur les dividendes élevés des entreprises françaises matures."
+  },
+  {
+   "t": 6.98,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Que deviennent les grandes entreprises transmises ?",
+   "desc": "Les risques pour les entreprises familiales et l'évasion fiscale sont avancés, puis la piste d'une part transmise à l'État."
+  },
+  {
+   "t": 7.71,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Consentement et propriété comme seule morale ?",
+   "desc": "Un participant fait du consentement la seule morale ; plusieurs lui opposent le contrat social."
+  },
+  {
+   "t": 14.88,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "La propriété repose-t-elle sur le travail ?",
+   "desc": "Désaccord sur l'origine de la propriété et sur le poids de l'héritage dans les fortunes."
+  },
+  {
+   "t": 16.97,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "L'État peut-il racheter les parts ?",
+   "desc": "Faut-il que l'État rachète les parts d'entreprise lors d'une succession ?"
+  },
+  {
+   "t": 21.77,
+   "type": "technique",
+   "magnitude": 1,
+   "title": "Des milliardaires qui ne lèguent rien",
+   "desc": "Des milliardaires de la tech renoncent à transmettre, ce qui relativise l'effet dissuasif d'une taxe."
+  },
+  {
+   "t": 23.28,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Liberté d'héritage et concentration des richesses",
+   "desc": "Laisser l'héritage libre concentrerait encore les richesses."
+  },
+  {
+   "t": 24.54,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Démocratie ou consentement individuel ?",
+   "desc": "Opposition entre décision démocratique et exigence de consentement de chacun."
+  },
+  {
+   "t": 27.78,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "Recentrer sur l'héritage",
+   "desc": "L'animation propose de revenir à l'héritage après la digression sur la démocratie."
+  },
+  {
+   "t": 33.22,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Le consentement est-il une valeur fondamentale ?",
+   "desc": "Le contrat social suppose de céder une part de ses libertés, selon une voix."
+  },
+  {
+   "t": 43.74,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Taxer les riches : vol ou arbitrage collectif ?",
+   "desc": "Désaccord frontal sur la légitimité de taxer les riches."
+  },
+  {
+   "t": 45.95,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Concentration des richesses et oligarchie",
+   "desc": "Le pouvoir de l'argent sur les médias et les lois est présenté comme enjeu central."
+  },
+  {
+   "t": 49.95,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Un monopole de l'État sur la police et la justice ?",
+   "desc": "Débat sur le rôle minimal de l'État et la réparation des dommages."
+  },
+  {
+   "t": 51.06,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Le contrat social viole-t-il le consentement ?",
+   "desc": "La justice et la police imposent des sanctions, ce qui interroge le principe de consentement."
+  },
+  {
+   "t": 55.26,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "Passage au mérite",
+   "desc": "L'animation passe de la discussion sur le consentement au mérite."
+  },
+  {
+   "t": 59.19,
+   "type": "consensus",
+   "magnitude": 2,
+   "title": "Ne transmettre que ce qu'on a gagné",
+   "desc": "Plusieurs voix vont dans le sens de limiter la transmission à ce qui vient du travail, voire de tout redistribuer."
+  },
+  {
+   "t": 62.66,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Une succession d'entreprise démocratisée",
+   "desc": "Un conseil réunissant État, actionnaires et salariés déciderait à qui léguer l'entreprise ; les coopératives sont évoquées."
+  },
+  {
+   "t": 68.75,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Le salaire reflète-t-il la valeur créée ?",
+   "desc": "Désaccord sur l'équité d'un contrat de travail consenti."
+  },
+  {
+   "t": 74.13,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Qui juge la valeur du travail ?",
+   "desc": "Le marché ou la société : désaccord sur le juge de la valeur."
+  },
+  {
+   "t": 77.42,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Écart de salaires et taxation à 100 %",
+   "desc": "Ratio entre PDG et salarié, et doutes sur une taxation à 100 %."
+  },
+  {
+   "t": 80.5,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Détaxer les donations",
+   "desc": "L'argent hérité arrive trop tard ; une taxation croissante avec l'âge est envisagée."
+  },
+  {
+   "t": 85.29,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "Tour de table de clôture",
+   "desc": "L'animation annonce le tour de table final et un retour sur le débat."
+  },
+  {
+   "t": 91.5,
+   "type": "meta",
+   "magnitude": 1,
+   "title": "Bilan du débat par les participants",
+   "desc": "Retours sur le format, le temps de parole, la modération et les digressions."
+  },
+  {
+   "t": 94.08,
+   "type": "meta",
+   "magnitude": 1,
+   "title": "Idées d'amélioration de l'outil",
+   "desc": "Chrono de réaction, renommer les boutons de prise de parole, trois niveaux de présence."
+  }
+ ],
+ "tension": [
+  [
+   0,
+   20
+  ],
+  [
+   0.5,
+   28
+  ],
+  [
+   2.9,
+   50
+  ],
+  [
+   4.7,
+   45
+  ],
+  [
+   6,
+   42
+  ],
+  [
+   7.7,
+   60
+  ],
+  [
+   10.3,
+   48
+  ],
+  [
+   14.9,
+   62
+  ],
+  [
+   17,
+   52
+  ],
+  [
+   21.8,
+   40
+  ],
+  [
+   24.5,
+   65
+  ],
+  [
+   27.8,
+   40
+  ],
+  [
+   33.2,
+   56
+  ],
+  [
+   40.2,
+   55
+  ],
+  [
+   43.7,
+   62
+  ],
+  [
+   46,
+   50
+  ],
+  [
+   51,
+   60
+  ],
+  [
+   55.3,
+   35
+  ],
+  [
+   59.2,
+   40
+  ],
+  [
+   62.7,
+   35
+  ],
+  [
+   68.8,
+   58
+  ],
+  [
+   74.1,
+   62
+  ],
+  [
+   77.4,
+   50
+  ],
+  [
+   80.5,
+   38
+  ],
+  [
+   85.3,
+   25
+  ],
+  [
+   91.5,
+   15
+  ],
+  [
+   100,
+   12
+  ],
+  [
+   105.9,
+   8
+  ]
+ ],
+ "synthesis": {
+  "theme": "Héritage : plafonner à 12 millions ?",
+  "summary": "Lancé sur la question qui avait le plus divisé les votes (plafonner l'héritage à 12 millions), le débat a vite glissé vers les fondements : consentement et propriété privée, démocratie contre liberté individuelle, mérite, valeur du travail, marché contre régulation. Un participant libertarien s'est opposé seul à presque tous, jusqu'à comparer la taxation des riches à un vol. La plupart ont défendu un plafond ou une redistribution forte de l'héritage, jusqu'à une taxation à 100 % avec un capital versé à chacun ; une voix a surtout mis en avant les risques pour les entreprises et la fuite des riches. Le dernier quart d'heure a servi de retour sur le format du débat. Personne n'a explicitement changé d'avis.",
+  "groups": [
+   {
+    "label": "Taxer à 100 %, voire tout redistribuer",
+    "color": "#C0507A",
+    "members": [
+     "i1",
+     "i7",
+     "i8"
+    ],
+    "arguments": [
+     "Naître avec un capital n'est pas un mérite : celui qui hérite d'une entreprise part bien plus loin.",
+     "Ne devrait être transmis que ce qui vient du travail, voire rien, et un capital de départ serait versé à chacun.",
+     "La valeur vient d'un travail collectif et de matières premières, pas d'une seule personne.",
+     "Le marché donne le pouvoir aux riches : la valeur du travail doit se débattre collectivement."
+    ]
+   },
+   {
+    "label": "Plafonner et encadrer la concentration des richesses",
+    "color": "#184795",
+    "members": [
+     "i2",
+     "i4",
+     "i5"
+    ],
+    "arguments": [
+     "Un plafond à 12 millions est juste, mais difficile à appliquer pour les grandes entreprises et l'évasion.",
+     "La concentration des richesses mène à une oligarchie et à l'achat des médias.",
+     "Coopératives, plafond d'écart de salaires et part de l'État dans le capital limitent la concentration.",
+     "La propriété ne repose plus sur le travail : les deux tiers des fortunes sont héritées."
+    ]
+   },
+   {
+    "label": "Propriété privée et consentement d'abord",
+    "color": "#E67E22",
+    "members": [
+     "i3"
+    ],
+    "arguments": [
+     "Le consentement et la propriété sont la seule morale : décider de l'argent d'autrui est immoral.",
+     "Taxer les riches est un vol, et la démocratie impose la volonté d'une majorité à une minorité.",
+     "Le marché est le seul juge de la valeur d'un travail ; l'État n'a pas à garantir plus que la liberté et la propriété.",
+     "Une taxation à 100 % découragerait de produire."
+    ]
+   },
+   {
+    "label": "Réformer sans faire fuir les entreprises et les riches",
+    "color": "#27AE60",
+    "members": [
+     "i6"
+    ],
+    "arguments": [
+     "Un plafond de 12 millions est trop extrême, et des taxes lourdes découragent de bâtir une fortune.",
+     "Des niches fiscales comme l'assurance-vie gardent les riches en France.",
+     "Les donations devraient être moins taxées, car on hérite trop tard.",
+     "La succession des entreprises pourrait se décider dans un conseil réunissant État, actionnaires et salariés."
+    ]
+   }
+  ],
+  "kinds": {
+   "coeur": {
+    "label": "Cœur du sujet",
+    "desc": "Plafonner ou redistribuer l'héritage."
+   },
+   "connexe": {
+    "label": "Leviers et effets",
+    "desc": "Entreprises, donations, mérite, concentration des richesses."
+   },
+   "annexe": {
+    "label": "Sujets annexes",
+    "desc": "Consentement, rôle de l'État, valeur du travail, bilan du débat : le lien avec l'héritage devient indirect."
+   }
+  },
+  "themes": [
+   {
+    "id": "plafond",
+    "kind": "coeur",
+    "short": "Plafond",
+    "color": "#184795",
+    "label": "Plafonner ou redistribuer l'héritage",
+    "desc": "Plafond à 12 millions, taxation à 100 %, ce que l'héritage représente dans les fortunes."
+   },
+   {
+    "id": "entreprises",
+    "kind": "connexe",
+    "short": "Entreprises",
+    "color": "#8E44AD",
+    "label": "Transmission des entreprises et propriété du capital",
+    "desc": "Dividendes, grandes entreprises familiales, parts de l'État, coopératives, conseil de succession."
+   },
+   {
+    "id": "donation",
+    "kind": "connexe",
+    "short": "Donations",
+    "color": "#16A085",
+    "label": "Donations et âge de l'héritage",
+    "desc": "On hérite vers 50 ans ; détaxer les donations."
+   },
+   {
+    "id": "merite",
+    "kind": "connexe",
+    "short": "Mérite",
+    "color": "#27AE60",
+    "label": "Mérite et héritage",
+    "desc": "Ne transmettre que ce qu'on a gagné ; redistribuer à 25 ans."
+   },
+   {
+    "id": "concentr",
+    "kind": "connexe",
+    "short": "Concentration",
+    "color": "#C0392B",
+    "label": "Concentration des richesses et pouvoir",
+    "desc": "Oligarchie, médias, niches fiscales pour garder les riches."
+   },
+   {
+    "id": "consent",
+    "kind": "annexe",
+    "short": "Consentement",
+    "color": "#E67E22",
+    "label": "Consentement, propriété et contrat social",
+    "desc": "Fondements moraux de la propriété, consentement individuel contre contrat social."
+   },
+   {
+    "id": "etat",
+    "kind": "annexe",
+    "short": "État",
+    "color": "#34495E",
+    "label": "Démocratie et rôle de l'État",
+    "desc": "Démocratie contre liberté individuelle, constitution, monopole de la police et de la justice."
+   },
+   {
+    "id": "travail",
+    "kind": "annexe",
+    "short": "Valeur du travail",
+    "color": "#C0507A",
+    "label": "Marché, salaires et valeur du travail",
+    "desc": "Qui juge la valeur du travail ; SMIC, écart de salaires, éboueurs, infirmières."
+   },
+   {
+    "id": "format",
+    "kind": "annexe",
+    "short": "Format",
+    "color": "#D4AC0D",
+    "label": "Bilan du débat et de l'outil",
+    "desc": "Retours sur la modération, le temps de parole et les boutons de prise de parole."
+   }
+  ],
+  "timeline": [
+   [
+    0,
+    4.66,
+    "plafond"
+   ],
+   [
+    4.66,
+    5.99,
+    "entreprises"
+   ],
+   [
+    5.99,
+    7.71,
+    "plafond"
+   ],
+   [
+    7.71,
+    10.31,
+    "consent"
+   ],
+   [
+    10.31,
+    12.98,
+    "entreprises"
+   ],
+   [
+    12.98,
+    16.97,
+    "consent"
+   ],
+   [
+    16.97,
+    20.52,
+    "entreprises"
+   ],
+   [
+    20.52,
+    21.77,
+    "consent"
+   ],
+   [
+    21.77,
+    23.28,
+    "plafond"
+   ],
+   [
+    23.28,
+    24.54,
+    "concentr"
+   ],
+   [
+    24.54,
+    27.78,
+    "etat"
+   ],
+   [
+    27.78,
+    28.73,
+    null
+   ],
+   [
+    28.73,
+    33.22,
+    "etat"
+   ],
+   [
+    33.22,
+    43.74,
+    "consent"
+   ],
+   [
+    43.74,
+    45.95,
+    "etat"
+   ],
+   [
+    45.95,
+    48.98,
+    "concentr"
+   ],
+   [
+    48.98,
+    53.97,
+    "consent"
+   ],
+   [
+    53.97,
+    55.26,
+    "concentr"
+   ],
+   [
+    55.26,
+    62.66,
+    "merite"
+   ],
+   [
+    62.66,
+    67.13,
+    "entreprises"
+   ],
+   [
+    67.13,
+    80.5,
+    "travail"
+   ],
+   [
+    80.5,
+    85.29,
+    "donation"
+   ],
+   [
+    85.29,
+    87.27,
+    "entreprises"
+   ],
+   [
+    87.27,
+    91.35,
+    "travail"
+   ],
+   [
+    91.35,
+    105.93,
+    "format"
+   ]
+  ],
+  "mentions": [],
+  "affirmations": [
+   {
+    "text": "L'héritage doit être plafonné, par exemple à 12 millions",
+    "stances": [
+     {
+      "id": "i2",
+      "pos": "pour",
+      "t": 2.94
+     },
+     {
+      "id": "i7",
+      "pos": "pour",
+      "t": 52.77
+     },
+     {
+      "id": "i1",
+      "pos": "pour",
+      "t": 57.69,
+      "note": "va plus loin : taxer à 100 %"
+     },
+     {
+      "id": "i8",
+      "pos": "pour",
+      "t": 59.19,
+      "note": "va plus loin : tout redistribuer"
+     },
+     {
+      "id": "i4",
+      "pos": "nuance",
+      "t": 5.99,
+      "note": "juste dans un monde idéal, mais obstacles pratiques"
+     },
+     {
+      "id": "i6",
+      "pos": "contre",
+      "t": 16.97
+     },
+     {
+      "id": "i3",
+      "pos": "contre",
+      "t": 7.71
+     }
+    ]
+   },
+   {
+    "text": "Taxer les riches est un vol",
+    "stances": [
+     {
+      "id": "i3",
+      "pos": "pour",
+      "t": 43.74
+     },
+     {
+      "id": "i1",
+      "pos": "contre",
+      "t": 26.14
+     },
+     {
+      "id": "i2",
+      "pos": "contre",
+      "t": 41.38
+     },
+     {
+      "id": "i7",
+      "pos": "contre",
+      "t": 52.77
+     }
+    ]
+   },
+   {
+    "text": "Le consentement individuel doit primer sur la décision de la majorité",
+    "stances": [
+     {
+      "id": "i3",
+      "pos": "pour",
+      "t": 28.73
+     },
+     {
+      "id": "i1",
+      "pos": "contre",
+      "t": 24.54
+     },
+     {
+      "id": "i7",
+      "pos": "contre",
+      "t": 33.22
+     },
+     {
+      "id": "i6",
+      "pos": "contre",
+      "t": 44.86
+     },
+     {
+      "id": "i2",
+      "pos": "contre",
+      "t": 41.38
+     },
+     {
+      "id": "i5",
+      "pos": "contre",
+      "t": 27.05
+     }
+    ]
+   },
+   {
+    "text": "On ne devrait transmettre que ce qu'on a gagné par son travail",
+    "stances": [
+     {
+      "id": "i1",
+      "pos": "pour",
+      "t": 58.08
+     },
+     {
+      "id": "i8",
+      "pos": "nuance",
+      "t": 59.19,
+      "note": "préfère que personne ne transmette rien"
+     },
+     {
+      "id": "i7",
+      "pos": "contre",
+      "t": 60.16,
+      "note": "même le fruit du travail devrait être redistribué à la mort"
+     },
+     {
+      "id": "i3",
+      "pos": "contre",
+      "t": 15.6,
+      "note": "la propriété n'a pas de lien nécessaire avec le travail"
+     }
+    ]
+   },
+   {
+    "text": "Le marché est le bon juge de la valeur du travail",
+    "stances": [
+     {
+      "id": "i3",
+      "pos": "pour",
+      "t": 74.13
+     },
+     {
+      "id": "i1",
+      "pos": "contre",
+      "t": 74.91
+     },
+     {
+      "id": "i7",
+      "pos": "contre",
+      "t": 70.08
+     },
+     {
+      "id": "i2",
+      "pos": "contre",
+      "t": 76.3
+     },
+     {
+      "id": "i6",
+      "pos": "nuance",
+      "t": 16.97,
+      "note": "défend la loi du marché, mais propose une succession démocratisée"
+     }
+    ]
+   },
+   {
+    "text": "Il faut taxer l'héritage à 100 % et verser un capital de départ à chacun",
+    "stances": [
+     {
+      "id": "i1",
+      "pos": "pour",
+      "t": 57.69
+     },
+     {
+      "id": "i8",
+      "pos": "pour",
+      "t": 59.19
+     },
+     {
+      "id": "i2",
+      "pos": "nuance",
+      "t": 77.42,
+      "note": "doute que ce soit praticable durablement"
+     },
+     {
+      "id": "i3",
+      "pos": "contre",
+      "t": 81.87
+     }
+    ]
+   },
+   {
+    "text": "Il faut détaxer les donations",
+    "stances": [
+     {
+      "id": "i6",
+      "pos": "pour",
+      "t": 80.5
+     },
+     {
+      "id": "i3",
+      "pos": "pour",
+      "t": 80.99
+     }
+    ]
+   }
+  ]
+ }
+}
