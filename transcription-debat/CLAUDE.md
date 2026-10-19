@@ -52,7 +52,7 @@ Recette, dans l'ordre (chaque étape ne se fait que si son résultat n'existe pa
 5. **Spec** `transcripts\<Thème>\analyse_unifiee.json` : résumé flash, chemin de l'export pré-débat, et **lecture du pré-débat** écrite à la main (libellés des axes de la carte, synthèse de deux lignes par camp) ; puis `build_unified_viz.py` → `viz_unifiee\`. Format : [§ Page unique](#page-unique-de-restitution-en-menus-accordéons-référence).
 6. **Vérifier la page au navigateur** (Browser pane, servie en local) : menus, carte animée de chaque table, tension, aucune personne identifiable hors du « débat en mouvement », aucun débordement à 375 px.
 
-Avec **une seule table**, la page garde ses trois menus (pré-débat, synthèse flash, la table). Le cas n'a pas encore été joué : l'analyse croisée d'une seule table est à confirmer au premier débat concerné.
+Avec **une seule table**, la page garde ses trois menus (pré-débat, synthèse flash, la table). Joué pour la première fois le 2026-10-19 (capitalisme et écologie, F4A8FC) : l'analyse croisée d'une table passe telle quelle (`tables` à un élément, `theme_map` identité + `__none__` → `anim`, `differences.cards` vide). La synthèse flash et le menu de la table montrent alors les mêmes énoncés et les mêmes camps : c'est attendu.
 
 ---
 
@@ -243,7 +243,7 @@ Règles d'affichage (consignes du 19/10, à garder) :
 - **Charte de l'appli** (chantier 168) : bleu marine `#15233F`, crème `#FBF9F4`, sable `#F1EBDD`, Newsreader + Archivo (licences OFL à côté), angles quasi droits. Aucun CDN, aucune dépendance.
 - **Garde-fous** : textes écrits à la main (`flash_summary`, `pre_debate_lecture`) et textes de l'export passent par `_check_text` (ni guillemets ni prénom de `name_map.json`). Refus (« Page unifiée refusée ») si l'export n'est pas `ecclesia.pre_debat.v1`, s'il manque une liste, si un nombre est hors bornes, si un camp cité n'existe pas, si une couleur n'est pas `#RRGGBB`, ou si la lecture cite un camp inconnu ou laisse un libellé d'axe vide.
 
-Premiers cas : Héritage (0650D7 × 4999B8, sans pré-débat) ; insécurité (3EBF76 × 3E24D5, avec pré-débat et lecture, 19/10).
+Premiers cas : Héritage (0650D7 × 4999B8, sans pré-débat) ; insécurité (3EBF76 × 3E24D5, avec pré-débat et lecture, 19/10) ; capitalisme et écologie (F4A8FC seule, avec pré-débat, 19/10).
 
 ### Publier la visualisation sur un site (ancienne page par table)
 Un seul dossier sur l'hébergeur (GitHub Pages ou autre) pour **tous** les débats : `index.html`, `d3.v7.min.js`, `logo_ecclesia.png`, `playfair-display.woff2`, `playfair-display-italic.woff2` et `OFL-playfair-display.txt` (identiques pour chaque débat) + un `<CODE>.json` par débat. `data.js` est inutile en ligne. **Relire le JSON avant de le publier** (aucun prénom réel).

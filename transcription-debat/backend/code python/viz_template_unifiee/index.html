@@ -526,7 +526,7 @@ function flashHTML() {
       ${axesGuideHTML()}
     </div>
     <div class="block"><div class="label">Les camps d'opinion du débat</div>
-      <p class="help">Formés à partir des positions sur la carte, ${T.length > 1 ? 'toutes tables confondues' : ''} : ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant.</p>
+      <p class="help">Formés à partir des positions sur la carte${T.length > 1 ? ', toutes tables confondues' : ''} : ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant.</p>
       ${campsHTML(F.groups, F.unclassified)}
     </div>`;
 }

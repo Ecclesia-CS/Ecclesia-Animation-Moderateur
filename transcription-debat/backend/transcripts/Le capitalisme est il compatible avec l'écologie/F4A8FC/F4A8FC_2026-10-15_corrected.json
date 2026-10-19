@@ -1,0 +1,3649 @@
+[
+  {
+    "start": 11.11,
+    "end": 18.95,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est ton moment pour réagir, on est prêts à ce qu'il y ait des réponses. On peut commencer ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'est",
+      "ton",
+      "pour",
+      "à",
+      "ce",
+      "qu'il",
+      "y",
+      "des",
+      "On"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 18.95,
+    "end": 42.57,
+    "speaker": "[?]",
+    "text": "— Merci. — Ouais. Du coup, pour commencer, moi, je vous propose de partir d'une assertion. On n'était pas tous d'accord. Celle sur le fait que les pays émergents doivent pouvoir augmenter leurs émissions de CO2 pour sortir de la pauvreté, même si à l'échelle de la planète, forcément, ça réduit nos efforts globaux pour la promotion des énergies décarbonées.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "—",
+      "promotion",
+      "des"
+    ],
+    "speaker_suggestion": "Interlocuteur 1",
+    "correction": "gemini"
+  },
+  {
+    "start": 44.75,
+    "end": 121.79,
+    "speaker": "Interlocuteur 1",
+    "text": "Est-ce qu'il y a quelqu'un qui voudrait s'exprimer sur ce sujet ? Oui, je ne sais pas de quoi il parle, mais c'est bon. Moi, j'ai voté qu'il fallait qu'ils puissent émettre un plus pour pouvoir se développer. En général, là où la croissance est bien corrélée fortement avec des externalités écologiques, c'est justement quand on construit des infrastructures. C'est quand on construit des routes, des centrales de production d'énergie, des écoles, des hôpitaux. Ça, ça pollue vraiment. Ensuite, quand la croissance devient plus centrée sur les services, il y a moins d'externalité écologique. Du coup, ces pays-là ont justement besoin de construire ces infrastructures. Donc, ça me paraîtrait très bizarre d'aujourd'hui leur mettre des bâtons dans les roues en leur disant qu'on n'a que des énergies décarbonées. On peut clairement les aider à utiliser des énergies moins carbonées, mais ça va être compliqué. Et je pense que plutôt que de faire cette option en leur mettant des bâtons dans les roues, il faudrait que les pays riches décroissent leurs émissions plus rapidement que ce qui est prévu.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "qu'il",
+      "de",
+      "quoi",
+      "C'est",
+      "de",
+      "leurs"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 127.12,
+    "end": 187.84,
+    "speaker": "Interlocuteur 2",
+    "text": "Oui, j'ai pas eu le temps de sortir mon carnet mais en gros il y a deux trucs. Je trouve que d'une part je suis plutôt d'accord pour le fait qu'ils aient le droit d'un peu plus polluer que nous parce que nous on a pu le faire avant et donc on a carrément pollué comme on voulait pendant tous les pays développés, pourquoi ils sont développés ? Parce qu'ils se sont développés à un moment donc ils ont beaucoup utilisé d'énergie fossile et tout ça et du coup, on a un peu le bon coup de dire nous on s'est développé, et puis maintenant, on arrête de surdévelopper, d'une part. Et d'autre part, à l'inverse, je pense quand même qu'il ne faut pas refaire les erreurs qu'on a pu faire. Nous, les pays maintenant développés, on a énormément dépensé, et en fait, plus que ce qu'on aurait dû. Et donc je pense que pour les pays maintenant qui sont en voie de développement, il ne faut pas les brider. Donc on peut les autoriser à faire un peu plus que nous mais il faut pas non plus, faut quand même limiter, je trouve. Voilà et...",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "oui,",
+      "j'ai",
+      "à",
+      "Et",
+      "donc",
+      "pas",
+      "faut",
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 192.74,
+    "end": 262.82,
+    "speaker": "Interlocuteur 3",
+    "text": "C'est le premier, c'est ce que c'est le sujet justement. Si on parle de développer des routes, si on parle de développer des hôpitaux, elle est où la limite pour savoir à quel moment est-ce que nous on n'a pas construit trop de routes ou on n'a pas construit trop d'hôpitaux, etc. Parce que par exemple pour le sujet des routes de manière assez précise, si on a développé autant de routes, c'est parce qu'on a principalement fait l'usage du transport commun comme étant le mode privilégié de transport, celui de la voiture. Sauf que pour toute aire de l'organisation, c'est probablement le pire des moyens. Et d'un point de vue écologique, je pense qu'on peut légitimement soutenir que ce n'est vraiment pas du tout optimal. Et enfin, pour ajouter sur le point de ce qui donne le droit au pays de se développer, je veux éventuellement être d'accord, mais la question c'est à quelles conditions est-ce qu'on est capable de le faire ? Si cela repose sur des capacités économiques, si on regarde actuellement comment se porte l'économie de ces pays en voie de développement, on remarque que la plupart du temps, ils sont exploités pour une seule ressource en particulier et qui ne permet pas de développer tout le reste. Par exemple, un pays qui a son économie centrée autour de l'exploitation d'une ressource naturelle, comme une terre rare, etc., on se rend compte que son économie est centrée autour de celle-ci.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "le",
+      "ce",
+      "le",
+      "justement",
+      "si",
+      "routes",
+      "si",
+      "elle",
+      "ou",
+      "on",
+      "etc",
+      "parce",
+      "toute",
+      "de",
+      "Si",
+      "ils"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 263.62,
+    "end": 277.12,
+    "speaker": "Interlocuteur 3",
+    "text": "Donc je trouve le problème un peu plus large, je peux simplement dire on autorise les gens à développer un peu plus de carbone, c'est-à-dire qu'en fait il faut juste repenser leur position économique dans le monde, parce que ça implique nécessairement qu'il va falloir qu'on abandonne des postes.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "trouve",
+      "le",
+      "on"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 280.74,
+    "end": 281.98,
+    "speaker": "Interlocuteur 3",
+    "text": "Interlocuteur 4, tu voulais ajouter d'autres",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 281.98,
+    "end": 334.5,
+    "speaker": "Interlocuteur 4",
+    "text": "choses ? Une dernière chose que je voulais ajouter, c'est plus dans le fait d'essayer de ne pas aussi retomber dans une forme de néocolonialisme avec un contrôle sur ces pays-là et leur dire on les autorise, on ne les autorise pas, on les contrôle. Ça, je trouve que ça peut être un peu dangereux et je pense que ça serait plutôt préférable d'être dans une direction d'accompagnement plutôt que de contrôle absolu et que ça pourrait s'inscrire dans des échanges économiques ce genre de choses et pas vraiment une prédation et en se plaçant dessus et c'est vrai ce que Interlocuteur 3 a dit, c'est-à-dire repenser leur place dans l'économie et ne pas les faire dépendre uniquement d'un seul secteur économique. Par exemple, le Congo, je crois qu'avec le cobalt, ils sont très dépendants. Et d'autres pays, également en Afrique. Et donc, voilà, je trouvais ce que tu disais assez intéressant. — Oui.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Une",
+      "avec",
+      "ça",
+      "je",
+      "Par",
+      "voilà,",
+      "Dylan",
+      "soit",
+      "—",
+      "Oui."
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 334.68,
+    "end": 408.68,
+    "speaker": "Interlocuteur 5",
+    "text": "— Je vais peut-être ajouter une vision un peu différente sur ce thème-là, sur le fait que ces pays en voie de développement, ils sont pas tous, mais certains, beaucoup en développement. Parce que nous, pays riches, on a besoin de matières premières, on importe beaucoup de choses qui sont fabriquées et qui ne sont plus fabriquées chez nous. Et donc une assez grande partie de notre impact carbone provient du fait qu'on importe ces produits qui sont fabriqués à bas coût à l'étranger et qui ont un impact non négligeable dans ces pays-là. Donc le développement de ces pays-là, il est en partie lié au fait que nous, on a un gros impact carbone. Et du coup c'est pas seulement le fait que eux ils vont... enfin c'est aussi lié à notre impact carbone à nous, donc si on veut le baisser, ça va peut-être aussi vouloir dire que ces pays-là, ils vont peut-être plus autant se développer ou ça voudrait dire qu'il faudrait trouver d'autres moyens, donc c'est peut-être le système du coup, si on est en capitalisme, c'est peut-être le système actuel qui est pas bon par rapport à ça, mais il y a quand même cette question-là de si on veut moins polluer de nous, ça implique qu'il y a aussi d'autres pays qui vont pouvoir moins croître, moins se développer. Et ça pose cette question-là.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "une",
+      "vision",
+      "Parce",
+      "c'est",
+      "moins",
+      "de"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 411.34,
+    "end": 477.21,
+    "speaker": "Interlocuteur 2",
+    "text": "Interlocuteur 1 ? Oui, c'est une autre question. Je suis d'accord sur tout ce qui est eau, tout ça. Ce dont je parlais, c'était plutôt, par exemple, pour la production énergétique. Il y a des moyens de faire du développement sans avoir des usines à gaz, en particulier la Chine est très forte dans ce domaine et donc en Afrique elle a énormément déployé de moyens pour développer des usines à gaz donc ils ont réouvert une énorme... je ne sais pas ce que c'était, je ne sais pas si c'était en Angola, je ne suis pas sûr, mais ils ont réouvert une énorme usine à gaz là-bas en fait mais qui équivaut à trois réacteurs nucléaires et ça je suis pas convaincu par contre. Est-ce qu'on peut essayer d'aider au développement économique en intégrant des centrales nucléaires ou des barrages hydrauliques ? Ça peut être plus intéressant sans les brimer sur le développement énergétique. Voilà, c'est une idée. Est-ce que c'est faisable ? Je ne sais pas.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Oui,",
+      "très",
+      "donc",
+      "une",
+      "je",
+      "si",
+      "On",
+      "en",
+      "ou",
+      "Interlocuteur 1"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 477.21,
+    "end": 553.87,
+    "speaker": "Interlocuteur 1",
+    "text": "Juste un point aussi pour l'utilisation de l'application. Donc, pour répondre à ce qui se dit actuellement, le bouton, c'est demander la parole sur le sujet actuel. Et sinon, vous pouvez aussi proposer un autre sujet sur lequel on pourra débattre plus tard avec l'autre bouton et même marquer quel est ce sujet que vous proposez. Et alors, du coup, moi, ce que je voulais dire, à ta question de à quel moment on doit stopper, arrêter de faire des routes pour les pays en développement, on va quand ils veulent. Ce n'est pas spécifiquement les routes. Oui, non, pas spécifiquement les routes, mais juste à la production de manière générale. Quand eux ils le jugeront, n'allons pas dans un rapport colonial où on leur dit vous avez trop consommé, ce ne sera pas hyper sympa. Sur les routes, effectivement on en a développé trop, mais ils en ont quand même besoin. C'est-à-dire que la voiture c'est nécessaire en ville, pas forcément à la campagne, ça le sera toujours, on ne peut pas avoir des trains qui relient toutes les petites villes, on peut en discuter, ça peut être intéressant, mais vraiment moi c'est ce que je pense. Sur la dépendance aux matières premières, oui c'est extrêmement important et en plus c'est important de dire qu'on l'entretient cette dépendance aux matières premières, c'est-à-dire qu'une économie qui dépend de ses matières premières et qui l'appauvrit n'a pas beaucoup de valeur ajoutée puisque",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Donc,",
+      "demander",
+      "on",
+      "quand",
+      "Oui,",
+      "quand",
+      "ils",
+      "le",
+      "n'allons",
+      "vous",
+      "hyper",
+      "mais",
+      "oui",
+      "c'est",
+      "puisque"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 553.87,
+    "end": 576.63,
+    "speaker": "Interlocuteur 1",
+    "text": "en fait extraire des matières premières, ce n'est pas énorme en valeur ajoutée et en plus il y a un phénomène économique qui se fait que du coup ils exportent des matières premières et donc du coup les autres industries sont moins fortes parce que leur monnaie s'apprécie à cause de ça. Je pourrais rentrer dans les détails mais en fait du coup les autres industries de l'économie sont désavantagées par le fait que cette industrie-là est bonne.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "du",
+      "du"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 580.87,
+    "end": 609.86,
+    "speaker": "Interlocuteur 6",
+    "text": "Moi c'est pour répondre à Interlocuteur 1. En fait je ne suis pas tout à fait d'accord sur tout ce qui est développement de route et tout parce que notre modèle d'un pays développé, il n'est pas forcément adapté à ce qui va nous arriver dans les 50 prochaines années. Donc le fait d'avoir des grosses villes et de devoir utiliser la voiture pour tout, des camions pour approvisionner des grosses villes, ce n'est pas forcément un modèle qui est adapté avec des ressources fossiles qui vont être de plus en plus rares. C'est exactement l'inverse de ce que j'ai dit.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Donc",
+      "ce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 610.36,
+    "end": 610.92,
+    "speaker": "Interlocuteur 1",
+    "text": "Dans les",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 610.92,
+    "end": 611.28,
+    "speaker": "[?]",
+    "text": "villes,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Interlocuteur 6",
+    "correction": "gemini"
+  },
+  {
+    "start": 611.28,
+    "end": 661.94,
+    "speaker": "Interlocuteur 6",
+    "text": "la voiture n'est pas nécessaire, à l'extérieur... Même à l'extérieur, construire des routes, cadrer le pays avec des routes pour desservir la campagne, ce n'est pas forcément non plus quelque chose qui est... Comment tu fais ? Des transports décarbonés comme le train, tu disais on ne va pas cadrer le pays avec des trains mais en soi c'est quand même quelque chose qui est je pense plus raisonnable surtout qu'on développe des technologies qui consomment de moins en moins, on a des énergies de moins en moins carbonées. Évidemment il y a des questions de est-ce qu'on va aider tel pays à développer du nucléaire et tout ça, mais je pense qu'il y a moyen d'aider les pays, de leur permettre de se développer sans forcément utiliser des énergies carbonées. Est-ce que tu veux peut-être répondre directement ? Bah non,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "avec",
+      "des",
+      "tel",
+      "moyen",
+      "?",
+      "Est-ce",
+      "Bah"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 662.0,
+    "end": 705.26,
+    "speaker": "Interlocuteur 1",
+    "text": "c'est juste, sur les trains, c'est quand même très très cher en fait, les trains. Moi je suis vraiment pour les trains, je pense à la SNCF, mais ça veut pas dire que je m'y connais, en tout cas ça veut dire que moi je suis pour les trains. Mais donc, c'est très important les trains, mais c'est très très cher, en fait c'est quand même, tu dois mapper un réseau avant d'utiliser, mais ça reste plus pratique la voiture et pour ce qui est transport en commun c'est bien mais à partir d'une certaine densité de population, c'est-à-dire que mettre des bus à la campagne ça peut être intéressant mais de manière très rare, ponctuelle, ciblée, donc je suis tout à fait pour le fait de diminuer l'utilisation de la voiture, elle reste nécessaire au moins sur un certain sens je pense. Je",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "veut",
+      "c'est",
+      "mais",
+      "c'est",
+      "certain"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 709.67,
+    "end": 791.11,
+    "speaker": "Interlocuteur 7",
+    "text": "peux m'en dire rapidement sur ce qu'a dit Interlocuteur 6 sur la voiture à la campagne mais en plus de priver un vrai inconfort aux habitants de la campagne il y a plein de trucs genre juste on parle souvent des déserts médicaux et tout, on s'enlève la voiture, on ne peut pas se déplacer, on ne peut pas travailler, il y a plein d'utilitaires, les agriculteurs ils ne peuvent pas cultiver les terres, ils ne peuvent pas se remettre à prendre des saisonniers, ça ne se fait plus et je trouve que les routes C'est l'essentiel pour le développement d'un pays. Vous n'allez pas développer un pays si vous ne faites pas de route. Même si vous mettez des trains pour les grandes villes, si vous ne mettez pas de route avant, vous ne faites pas les rails et vous ne faites pas le déplacement de population, il n'y a pas d'activité. Et ensuite, sur la question qui était d'accepter que les pays en développement émettent plus de CO2, moi je n'étais pas d'accord parce que déjà, est-ce qu'on n'a pas d'assurance ? Ce n'est pas parce qu'on pollue qu'on va se développer. Ce n'est pas cette implication-là. Je suis d'accord que si on veut se développer, on doit polluer, mais ce n'est pas l'inverse qui va nous faire développer. Et ensuite s'est poussé à la consommation et eux pour se développer c'est notre consommation à nous et donc c'est un c'est un peu un paradoxe en train de dire faut qu'on soit bon pour qui se développe",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "peux",
+      "mais",
+      "genre",
+      "juste",
+      "on",
+      "ne",
+      "ne",
+      "et",
+      "C'est",
+      "route.",
+      "si",
+      "les",
+      "et",
+      "le",
+      "il",
+      "Et",
+      "qui",
+      "d'accepter",
+      "c'est"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "peux m'en dire rapidement sur ce qu'a dit Interlocuteur 6 sur la voiture à la campagne, mais en plus de priver un vrai inconfort aux habitants de la campagne, il y a plein de trucs, genre juste on parle souvent des déserts médicaux et tout, on s'enlève la voiture, on ne peut pas se déplacer, on ne peut pas travailler, il y a plein d'utilitaires, les agriculteurs ils ne peuvent pas cultiver les terres, ils ne peuvent pas se remettre à prendre des saisonniers, ça ne se fait plus et je trouve que les routes c'est l'essentiel pour le développement d'un pays. Vous n'allez pas développer un pays si vous ne faites pas de route. Même si vous mettez des trains pour les grandes villes, si vous ne mettez pas de route avant, vous ne faites pas les rails et vous ne faites pas le déplacement de population, il n'y a pas d'activité. Et ensuite, sur la question qui était d'accepter que les pays en développement émettent plus de CO2, moi je n'étais pas d'accord parce que déjà, est-ce qu'on a une assurance ? Ce n'est pas parce qu'on pollue qu'on va se développer. Ce n'est pas cette implication-là. Je suis d'accord que si on veut se développer, on doit polluer, mais ce n'est pas l'inverse qui va nous faire développer. Et ensuite c'est poussé à la consommation et eux pour se développer c'est notre consommation à nous et donc c'est un peu un paradoxe en train de dire faut qu'on soit bon pour qu'ils se développent"
+  },
+  {
+    "start": 791.11,
+    "end": 845.33,
+    "speaker": "Interlocuteur 7",
+    "text": "et qu'ils polluent, alors que d'un côté on dit ouais on devrait nous, les Européens, moins consommer, mais si on consomme moins, c'est les vêtements au Bangladesh, le pétrole au Niger, ils vont pas se développer et ne pas pouvoir polluer, sinon ils polluent pas. Donc polluer eux, c'est polluer nous aussi. Tu peux répéter ? Je sais que s'ils veulent plus polluer, c'est plus de consommation, mais c'est aussi la consommation des Européens qui nous mettons des règles, et on veut baisser notre bilan carbone, mais si on baisse notre bilan carbone, eux ils ne vont pas pouvoir l'augmenter, parce qu'ils se développent avec la mondialisation, ils ne se développent pas avec nous, les nations ne se développent pas en autarcie. En tout cas, aujourd'hui, elles se développent beaucoup avec la mondialisation. Elles ne peuvent pas polluer seules. Et nous, on aura l'esprit tranquille parce qu'on ne devra pas polluer. C'est notre consommation qui est liée à leur développement aussi. —",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "ouais",
+      "si",
+      "les",
+      "au",
+      "ils",
+      "et",
+      "ne",
+      "ils",
+      "Donc",
+      "Tu",
+      "En",
+      "elles",
+      "—"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 849.97,
+    "end": 948.63,
+    "speaker": "Interlocuteur 8",
+    "text": "OK. Donc en fait, concernant le point des pays émergents, j'imagine surtout pour les pays au plus bas en liste de développement. Donc j'imagine que pour construire un État, il faut des ports si le pays est déjà un littoral, qu'il faut des routes pour connecter les villes et que même si les routes existent, parfois, elles sont à l'état de piste. Et juste mettre du goudron et avoir une route qui est plus lisse ça peut réduire j'imagine de 3 fois la durée de transport d'une marchandise d'un endroit à un autre donc ça favorise le développement économique, mais je pense en fait que pour faire développer ces pays-là c'est un mal nécessaire mais ce qui est intéressant c'est de construire peut-être via des accords multilatéraux ou des projets de l'ONU des plans de remplacement d'énergie fossile. Par exemple, j'imagine qu'en Afrique du Nord, il y a beaucoup de soleil. J'ai vu qu'il y avait une étude qui disait que si 40% du désert de la Libye était couvert de panneaux solaires, ça alimenterait toute l'énergie de l'Europe, 100% de l'énergie de l'Europe. Donc, j'imagine qu'il faudrait plutôt réfléchir à long terme et ne plus trop faire ces calculs capitalistes. Mais je pense que ça ne doit pas se faire d'une relation hiérarchisée entre États, c'est plus un plan d'aide et je pense que ça doit passer un peu par le milieu et ces organismes-là. OK, ok. Juste, on va peut-être finir la liste de ceux",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "OK.",
+      "ça",
+      "j'imagine",
+      "3",
+      "endroit",
+      "qu'en",
+      "qui",
+      "milieu"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 948.63,
+    "end": 951.91,
+    "speaker": "Interlocuteur 8",
+    "text": "qui veulent parler, on va peut-être passer à un autre sujet, à voir s'il y en a d'autres qui veulent...",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 952.69,
+    "end": 963.11,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est juste pour vous dire aussi il y a un bouton pour dire si jamais vous voulez passer au sujet suivant vous pouvez cliquer dessus et quand on sera au moins au-dessus de la moitié on pourra passer à un autre sujet c'est comme",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "comme"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 970.5,
+    "end": 1041.43,
+    "speaker": "Interlocuteur 3",
+    "text": "ce que j'avais dit tout à l'heure, mais ce que vous avez dit juste avant c'était intéressant, mais juste la raison pour laquelle effectivement on a peut-être besoin de la voiture à la campagne, il faut se demander pourquoi parce qu'en fait on a déplacé toute l'activité économique autour de la campagne et la ville et ça c'est un choix économique et politique. Le gros problème de ça, c'est parce que si on déplace les fonctions économiques à la ville, ça veut dire qu'on dépérit la vie économique qu'il y a autour de la campagne. Donc en fait, vouloir dire, je veux que les routes, qu'on puisse utiliser les voitures à la campagne, ça serait essayer de dire, c'est parce que ces gens-là, ils vont pouvoir avoir une vie normale seulement s'ils prennent la voiture. Sauf que précisément, si on arrête de vouloir que ces fonctions économiques soient à la ville, enfin, soient à la ville, pardon, c'est en fait renoncer à pourquoi est-ce qu'elles sont à la ville, c'est-à-dire les optimisations capitalistes. Parce que si on centralise ces fonctions-là, c'est parce qu'elles ne sont peut-être pas forcément nécessaires sur le plan de développement, ou deux, parce qu'elles servent principalement à des fonctions capitalistes. Donc si on les supprime, ça veut dire qu'il faudrait raccompagner la ville à la campagne, en fait, juste que les territoires deviennent totalement plus autonomes les uns des autres. Et",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "j'avais",
+      "mais",
+      "avant",
+      "il",
+      "vie",
+      "parce",
+      "en",
+      "soit",
+      "ou",
+      "que",
+      "totalement"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1041.43,
+    "end": 1055.99,
+    "speaker": "Interlocuteur 3",
+    "text": "juste pour la question du développement du rail, que la route, on va quand même réussir à développer le rail sans avoir de route. Dans l'histoire, il me semble qu'on a développé le rail sans avoir de voitures.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "que",
+      "Dans"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1061.27,
+    "end": 1068.01,
+    "speaker": "Interlocuteur 3",
+    "text": "Pour développer les autres chemins de fer, on n'a pas eu besoin de voitures, puisqu'elles n'existaient pas. Avant,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Pour",
+      "autres",
+      "puisqu'elles",
+      "Avant,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1069.43,
+    "end": 1071.03,
+    "speaker": "Interlocuteur 7",
+    "text": "Il y avait des chevaux, ça existait déjà.",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1075.29,
+    "end": 1079.15,
+    "speaker": "Interlocuteur 1",
+    "text": "D'accord, développer des routes avant de développer des chemins de fer, c'est...",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "d'accord",
+      "chez"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1084.81,
+    "end": 1168.81,
+    "speaker": "Interlocuteur 9",
+    "text": "le sujet du train je trouve qu'il y a assez intéressant je pense qu'il y a aussi des problématiques environnementales avec les chemins de fer qui font qu'il n'y a pas plus de problèmes avec la chaleur et comment ça peut fonctionner dans le temps le fait que l'on voit que la SNCF a des problèmes avec les rails qui surchauffent et et qui donc se tord, etc., je pense que du coup, ça rend le train intéressant, mandalant, parce que c'est bien moins polluant que la voiture, mais quand même, la géographie fait que ce n'est pas une solution miracle, je trouve. Je voudrais aussi vous revenir sur la question initiale. Je suis assez d'accord avec le fait qu'on a dit que, enfin, qui était dit que polluer pour un pays en développement, ce n'est pas exactement égal au fait de se développer, mais comment est-ce que j'avais compris la question ? Moi, c'était plutôt dans le sens où, par rapport aux réchauffements climatiques, on peut penser au fait de limiter les émissions des pays en les obligeant à réduire leurs émissions. Et ce que je comprenais dans la question, c'était qu'on n'a pas envie de limiter aux pays en émergeant leur consommation parce que nous, quand on est en train de se développer, on n'était pas limités. et d'accord on pourrait dire que ça les laisse polluer sans forcément se développer mais pour moi la question c'est plus une question de comment est-ce qu'on gère à l'échelle mondiale",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "assez",
+      "je",
+      "pense",
+      "n'y",
+      "que",
+      "et",
+      "donc",
+      "la",
+      "ce",
+      "vous",
+      "Moi,",
+      "et",
+      "les"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "Le sujet du train, je trouve qu'il est assez intéressant. Je pense qu'il y a aussi des problématiques environnementales avec les chemins de fer qui font qu'il y a des problèmes avec la chaleur et comment ça peut fonctionner dans le temps. Le fait que l'on voit que la SNCF a des problèmes avec les rails qui surchauffent et qui donc se tordent, etc., je pense que du coup, ça rend le train intéressant, mandalant, parce que c'est bien moins polluant que la voiture, mais quand même, la géographie fait que ce n'est pas une solution miracle, je trouve. Je voudrais aussi revenir sur la question initiale. Je suis assez d'accord avec le fait qui était dit que polluer pour un pays en développement, ce n'est pas exactement égal au fait de se développer, mais comment est-ce que j'avais compris la question ? Moi, c'était plutôt dans le sens où, par rapport au réchauffement climatique, on peut penser au fait de limiter les émissions des pays en les obligeant à réduire leurs émissions. Et ce que je comprenais dans la question, c'était qu'on n'a pas envie de limiter aux pays en développement leur consommation, parce que nous, quand on était en train de se développer, on n'était pas limités. Et d'accord, on pourrait dire que ça les laisse polluer sans forcément se développer, mais pour moi la question c'est plus une question de comment est-ce qu'on gère à l'échelle mondiale"
+  },
+  {
+    "start": 1168.81,
+    "end": 1189.49,
+    "speaker": "Interlocuteur 9",
+    "text": "les émissions et est-ce qu'on différencie les traitements des pays en fonction de à quel stade de développement ils sont ? Et avec cette vision-là, je me disais qu'il ne faut pas imposer de telles contraintes à des pays qui sont en train de se développer, mais peut-être que pour les autres pays, là, une contrainte, ce serait plus pertinent.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "on"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1193.37,
+    "end": 1201.27,
+    "speaker": "Interlocuteur 1",
+    "text": "Modérateur : Moi, c'était juste sur la voiture, mais en fait, vous avez quasiment fini directement.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1205.69,
+    "end": 1253.18,
+    "speaker": "Interlocuteur 5",
+    "text": "Oui, juste par rapport à ce que tu avais dit sur la ville et la campagne. Je défends le fait que la ville, ça a été plus un instrument capitaliste. Moi, je pense quand même que la ville, c'est quand même aussi une optimisation écologique, en fait, parce que mettre des gens dans des immeubles, c'est bien plus écologique que d'avoir terraformé des énormes surfaces, comme aux États-Unis avec leurs énormes, comment est-ce qu'on appelle ça ? Les suburbs. En fait, mettre des gens dans des immeubles, c'est quand même bien plus écologique et le fait que tout soit proche dans une ville, ça veut dire que les déplacements tu peux les faire à pied, en vélo, et en fait tu as quelque chose qui est bien plus efficace, créer une ville, que d'avoir tout qui est espacé sur le territoire.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Oui,",
+      "ça",
+      "parce",
+      "?",
+      "suburbs",
+      "en",
+      "ça",
+      "en",
+      "à"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1261.27,
+    "end": 1263.41,
+    "speaker": "Interlocuteur 2",
+    "text": "Qu'est-ce que tu veux répondre ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Qu'est-ce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1263.95,
+    "end": 1264.47,
+    "speaker": "Interlocuteur 3",
+    "text": "Tu ne peux",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1264.47,
+    "end": 1264.97,
+    "speaker": "Interlocuteur 1",
+    "text": "pas répondre sur",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1264.97,
+    "end": 1265.93,
+    "speaker": "Interlocuteur 10",
+    "text": "l'urbanisme ? Si, si,",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1265.95,
+    "end": 1326.53,
+    "speaker": "Interlocuteur 3",
+    "text": "je peux. En premier lieu, éventuellement, d'accord, mais on jugera postérieurement qu'une solution était écologique parce qu'on constate qu'il y a des conséquences écologiquement favorables à l'institution de la chose. Pour moi aussi, je trouve que c'est aussi bizarre que de prétendre qu'un moteur militaire est immodulable. Je trouve que c'est curieux. Pardon ? C'est pas vrai ? Non, en fait, c'est parce que l'année dernière, c'était pendant le, je crois que ça s'appelle l'élection et la transformation d'entreprise, on avait une conférence dans laquelle on présentait comment est-ce que ça prend dans ce développement, essayer d'intégrer les cycles circulaires, etc. Et puis là, ils avaient présenté sous les slides, une personne a vu, il y avait l'exemple du M88 qui est le moteur du Rafale. Bon, prétendre qu'en 1988 et avant, on avait un souci de créer des moteurs écologiques avec un cycle vertueux de production, ça me semble complètement délirant, surtout que le M88 est basé sur le M57.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "jugera",
+      "de",
+      "dont",
+      "C'est",
+      "vrai",
+      "une",
+      "sous",
+      "vue,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1326.53,
+    "end": 1333.41,
+    "speaker": "Interlocuteur 11",
+    "text": "Il est toujours le même truc que là, si on met plus de personnes dans des villes et que les villes sont plus petites, il nous semble qu'en effet, c'est plus économe.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "le",
+      "même",
+      "truc",
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1334.31,
+    "end": 1335.27,
+    "speaker": "Interlocuteur 3",
+    "text": "Oui, mais... Comment",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Comment"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1335.27,
+    "end": 1336.73,
+    "speaker": "Interlocuteur 11",
+    "text": "par rapport à ça, ça change ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "par",
+      "ça"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1337.33,
+    "end": 1344.04,
+    "speaker": "Interlocuteur 3",
+    "text": "Ce que je voulais dire, c'est que... Je crois que je n'ai pas donné mon profil. Oui,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "n'ai",
+      "donné",
+      "mon"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1344.66,
+    "end": 1349.5,
+    "speaker": "Interlocuteur 11",
+    "text": "on voit ce que tu veux dire. Ce n'était pas forcément la bonne solution. Finalement, on a eu des négociations positives.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "voit",
+      "eu"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1349.74,
+    "end": 1364.84,
+    "speaker": "Interlocuteur 3",
+    "text": "Voilà. Et du coup, on justifie que c'est bien par ça. Mais la raison pour laquelle la ville existe, c'est parce qu'on a industrialisé les campagnes et dire qu'on va mettre plein de monde à la ville parce qu'à la ville, ça permet de densifier toutes les autres activités qu'on développe en plus. Mais après, ces activités n'étaient pas forcément nécessaires. Elles sont propres, mais elles sont liées au capitalisme.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Voilà.",
+      "elles",
+      "sont"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1372.36,
+    "end": 1409.45,
+    "speaker": "Interlocuteur 7",
+    "text": "Je ne vois pas pourquoi tu relies l'urbanisation au capitalisme. C'est un phénomène qui est lié à la révolution industrielle et à l'industrialisation et elle est commune à tous les régimes, capitalisme ou communisme ou même n'importe quel système. Ce n'est pas le capitalisme qui a urbanisé nos pays. C'est juste que les moyens de production ont changé, la consommation aussi, ce n'est pas lié au capitalisme. Le communisme, l'URSS, ils ont aussi beaucoup moins de monde en campagne.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je",
+      "même",
+      "à"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1410.03,
+    "end": 1415.59,
+    "speaker": "Interlocuteur 3",
+    "text": "Oui, mais précisément parce que c'est pour des raisons, c'est pour la raison. Mais",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "raison."
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1415.59,
+    "end": 1416.71,
+    "speaker": "Interlocuteur 7",
+    "text": "tu",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 1424.84,
+    "end": 1429.68,
+    "speaker": "[?]",
+    "text": "peux dire que l'État est d'accord avec moi aussi. Je ne pense pas",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "l'état",
+      "est",
+      "d'accord"
+    ],
+    "speaker_suggestion": "Interlocuteur 3",
+    "correction": "gemini"
+  },
+  {
+    "start": 1434.28,
+    "end": 1435.94,
+    "speaker": "[?]",
+    "text": "Est-ce qu'on reviendra plus",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Est-ce"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 1435.94,
+    "end": 1437.22,
+    "speaker": "Interlocuteur 1",
+    "text": "sur le sujet un peu après ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "sur"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1437.22,
+    "end": 1446.02,
+    "speaker": "[?]",
+    "text": "Est-ce que quelqu'un d'autre doit ajouter quelque chose ? Ou est-ce qu'on passe du coup à un autre sujet, si j'ai la joie de voir que la plupart des gens sont d'accord pour passer à la suite ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "?",
+      "j'ai"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 1447.66,
+    "end": 1484.56,
+    "speaker": "Interlocuteur 8",
+    "text": "L'intervention en fait autour des villes, je pense que ce qui pollue le plus chez un pays, c'est s'il est hyper centralisé. Parce qu'il va y avoir beaucoup de bouchons à l'extrémité des villes. Et tout simplement, c'est juste une hypercentralisation. Ça se constate pour des pays où la capitale rassemble moins de 50 % de la population, même plus, et où d'autres, c'est plus également réparti. En fait, c'est la mégalopole. Oui bon, pas nécessairement, je pense que l'on ne peut pas vraiment imposer des règles d'urbanisme, mais en rapport avec l'écologie.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "L'intervention,",
+      "Parce",
+      "moins",
+      "en",
+      "c'est",
+      "la",
+      "oui",
+      "bon",
+      "l'on"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1494.49,
+    "end": 1532.32,
+    "speaker": "Interlocuteur 10",
+    "text": "Je ne suis pas du tout d'accord avec centraliser justement plus les choses. Je montre que la centralisation est un levier sur lequel on peut jouer. Centraliser les personnes, c'est une chose, on parle des grandes villes, centraliser les besoins, centraliser l'infrastructure. Moi, justement, ça permet de limiter un maximum tout ce qui est nécessaire, donc par exemple les routes, les moyens de transport, les trains, c'est pas hyper bruyant, c'est vrai que tous les déplacements sont centralisés, sont minimisés justement. Et puis donc, plutôt que d'avoir 150 grosses villes, t'en as 10, bah moi je trouve que c'est une bonne chose, la centralisation.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je",
+      "plus",
+      "les",
+      "est",
+      "c'est",
+      "on",
+      "parle",
+      "ça",
+      "donc",
+      "moyens",
+      "des",
+      "c'est",
+      "et",
+      "donc",
+      "bah",
+      "la"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1534.42,
+    "end": 1565.9,
+    "speaker": "Interlocuteur 8",
+    "text": "C'est juste qu'il y a une différence entre 10 villes et une ville, et avoir 10 grandes villes ça va, je parle dans le cas d'une grande ville par exemple. Si un État décide d'hypercentraliser, il y aura beaucoup d'exodes ruraux et beaucoup de personnes qui vont aller dans des conditions insalubres et ça crée déjà plusieurs problèmes sociaux. Mais je pense qu'écologiquement ce n'est pas bon, ni pour la campagne, ni pour la ville. Donc la France, par exemple,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "il",
+      "ce",
+      "ni",
+      "Donc"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1565.94,
+    "end": 1576.62,
+    "speaker": "Interlocuteur 10",
+    "text": "La France comme exemple, comme pays hyper centralisé, Paris qui est largement supérieur à tous les autres secondaires communes. Et donc toi, tu penses que c'est une mauvaise chose, cette centralisation, d'un point de vue écologique ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "la",
+      "d'un",
+      "?"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1576.98,
+    "end": 1672.52,
+    "speaker": "Interlocuteur 8",
+    "text": "Ça dépend de la façon dont l'État gère, en fait. Mais j'imagine dans les pays développés qu'il y a au moins la moitié de la population dans chaque grande ville qui vit dans des bidons-villes, en fait. Et l'État, il ne peut tout simplement pas vraiment contrôler ces endroits et il y a plusieurs surtout dans des cas où c'est pas régulier en fait il y a beaucoup de non j'ai des déchets des déchetteries voilà il y a des déchetteries dans les villes et il y a des personnes dans le travail c'est justement de rassembler des déchets qui vivent dans ces conditions dans une ville je pense que bon C'est un peu compatible avec le capitalisme dans le sens où ces personnes qui sont généralement d'origine rurale, en fait, elles ont choisi la ville pour avoir plus d'occasion, plus d'opportunités pour se développer. Elles ont trouvé un chômage et vivent dans des conditions insalubres où parfois il n'y a pas de courant, parfois il n'y a pas d'électricité. Et généralement, puisque ce n'est pas organisé, ça dégénère en fait. Je pense que ce sont aussi parmi les populations les plus exploitées et ce sont peut-être même les miniers et tout. Donc ça va justement dépendre. Est-ce que l'État avait un projet clair pour centraliser ou il avait juste eu l'idée de concentrer tout dans une seule zone et que tous les autres citoyens devaient s'adapter à ce changement ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "l'État",
+      "les",
+      "pas",
+      "surtout",
+      "il",
+      "non",
+      "je",
+      "bon",
+      "Je",
+      "que",
+      "aussi",
+      "et"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "Ça dépend de la façon dont l'État gère, en fait. Mais j'imagine dans les pays développés qu'il y a au moins la moitié de la population dans chaque grande ville qui vit dans des bidonvilles, en fait. Et l'État, il ne peut tout simplement pas vraiment contrôler ces endroits et il y a plusieurs surtout dans des cas où ce n'est pas régulier, en fait. Il y a beaucoup de décharges, des déchetteries, voilà, il y a des déchetteries dans les villes et il y a des personnes dont le travail c'est justement de rassembler des déchets qui vivent dans ces conditions dans une ville. Je pense que bon, c'est un peu compatible avec le capitalisme dans le sens où ces personnes qui sont généralement d'origine rurale, en fait, elles ont choisi la ville pour avoir plus d'occasions, plus d'opportunités pour se développer. Elles ont trouvé un chômage et vivent dans des conditions insalubres où parfois il n'y a pas de courant, parfois il n'y a pas d'électricité. Et généralement, puisque ce n'est pas organisé, ça dégénère, en fait. Je pense que ce sont aussi parmi les populations les plus exploitées et ce sont peut-être même les milliers et tout. Donc ça va justement dépendre. Est-ce que l'État avait un projet clair pour centraliser ou il avait juste eu l'idée de concentrer tout dans une seule zone et que tous les autres citoyens devaient s'adapter à ce changement ?"
+  },
+  {
+    "start": 1681.97,
+    "end": 1682.37,
+    "speaker": "Interlocuteur 11",
+    "text": "Oui",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Oui"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1682.37,
+    "end": 1684.89,
+    "speaker": "Interlocuteur 1",
+    "text": "parce qu'on est plus de 10 à vouloir passer au sujet.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "parce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1684.89,
+    "end": 1685.47,
+    "speaker": "Interlocuteur 11",
+    "text": "Oui, je suis d'accord.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Oui"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1686.89,
+    "end": 1687.29,
+    "speaker": "[?]",
+    "text": "Donc",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 1691.19,
+    "end": 1719.91,
+    "speaker": "[?]",
+    "text": "il y avait deux nouveaux sujets qui avaient été proposés. D'abord la possibilité pour le capitalisme d'être compatible avec l'écologie si on le régule. Et la question de la fermeture des industries polluantes. C'était un des nouveaux sujets de désaccord au sein du groupe. Est-ce que ça vaut le coup de fermer les industries polluantes même si on n'a pas de plan B pour les salariés et tous ceux qui dépendent de ces industries-là ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "D'abord",
+      "Et",
+      "tous"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 1720.13,
+    "end": 1732.75,
+    "speaker": "Interlocuteur 10",
+    "text": "Est-ce que les salariés, tous n'ont pas d'alternative écologique ? Voilà, c'est la question. Je voulais me mettre un peu dans le cadre de cette question-là, mais oui.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Est-ce",
+      "les",
+      "tous",
+      "Voilà,",
+      "voulais",
+      "me",
+      "au"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1734.85,
+    "end": 1738.11,
+    "speaker": "[?]",
+    "text": "Qui serait plutôt pour le premier sujet ? Ce sont",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Ce"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 1738.11,
+    "end": 1738.97,
+    "speaker": "Interlocuteur 11",
+    "text": "les deux voies à travers les choses.",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1740.95,
+    "end": 1745.05,
+    "speaker": "Interlocuteur 2",
+    "text": "De toute façon, le dispo n'est pas... Oui, oui, le dispo n'est pas... c'est lequel on fait en premier. Lequel on fait en premier,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "De",
+      "le",
+      "dispo",
+      "oui,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1745.13,
+    "end": 1753.54,
+    "speaker": "Interlocuteur 1",
+    "text": "oui. Qu'est-ce qu'il y a ? Quatre. Pour le deuxième sujet, je pense qu'il y a les gens qui s'affichent.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Qu'est-ce",
+      "?",
+      "Pour"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1755.79,
+    "end": 1764.05,
+    "speaker": "[?]",
+    "text": "C'est pareil. Un petit problème. Je pense qu'il y a des gens qui s'affichent. On va faire dans l'ordre. Faisons le deuxième. Moi,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Un",
+      "problème.",
+      "Je",
+      "gens",
+      "On",
+      "va",
+      "Moi,"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 1764.97,
+    "end": 1766.29,
+    "speaker": "Interlocuteur 1",
+    "text": "je ne suis pas pour le deuxième parce que le",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "suis"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1766.29,
+    "end": 1769.65,
+    "speaker": "Interlocuteur 11",
+    "text": "pouvoir de l'église, c'est trop. Le pouvoir",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1769.65,
+    "end": 1772.97,
+    "speaker": "Interlocuteur 1",
+    "text": "de l'église, c'est quoi ? On va dire que parmi les premiers sujets,",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "On",
+      "que"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1773.07,
+    "end": 1774.13,
+    "speaker": "Interlocuteur 11",
+    "text": "il y a deux personnes qui sont éclatées.",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1775.19,
+    "end": 1777.19,
+    "speaker": "Interlocuteur 2",
+    "text": "Le deuxième sujet, il est... Allez,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Allez,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1777.25,
+    "end": 1781.41,
+    "speaker": "Interlocuteur 11",
+    "text": "c'est bon. Si on va au pied, c'est pas grave. Mais je crois pas que j'ai mal à dire.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Si",
+      "va",
+      "au",
+      "c'est",
+      "pas",
+      "à"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1783.31,
+    "end": 1783.95,
+    "speaker": "Interlocuteur 10",
+    "text": "Le premier",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1783.95,
+    "end": 1843.67,
+    "speaker": "Interlocuteur 1",
+    "text": "sujet, ça va, du coup ? Ouais, ça va. Très bien. Je voulais commencer par ça, en disant que, personnellement, je pense qu'on peut réguler le capitalisme pour l'histoire écologique. En fait, ça dépend, évidemment, de ce qu'on appelle le capitalisme. Mais si on part vraiment du fait que le capitalisme, c'est la propriété privée des moyens de production, je ne pense pas qu'on ait besoin de socialiser tous les moyens de production pour arriver à une société vraiment écologique. Je pense qu'on peut faire plein de réformes qui peuvent être intéressantes. On peut mettre des taxes carbone, on peut faire un RSA écologique pour redistribuer les taxes carbone, on peut faire des réglementations, on peut faire de l'investissement public vers les industries qui sont les plus polluantes, par exemple pour réduire l'acier avec de l'hydrogène décarboné. Mais je pense qu'une stratégie, évidemment, de planification écologique forte de l'État peut être possible, mais ce qui n'enlève absolument pas la propriété privée des moyens de production. C'est ma take. Je vais pouvoir la développer, si vous voulez.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "pour",
+      "Mais"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1847.37,
+    "end": 1848.91,
+    "speaker": "Interlocuteur 1",
+    "text": "Non, je veux bien que tu la développes.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "veux"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1852.41,
+    "end": 1858.37,
+    "speaker": "Interlocuteur 1",
+    "text": "Qu'est-ce que vous voulez que je développe ? J'ai vraiment dit...",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Qu'est-ce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1860.87,
+    "end": 1864.97,
+    "speaker": "Interlocuteur 9",
+    "text": "C'est quoi la définition contraire ? La définition contraire c'est une véritable écologie",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "C'est"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1864.97,
+    "end": 1866.63,
+    "speaker": "Interlocuteur 5",
+    "text": "qui passe par une mise en commun des moyens de",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 1866.63,
+    "end": 1876.17,
+    "speaker": "Interlocuteur 9",
+    "text": "production. Moi là je viens de définir le communisme. Oui, oui. Il y a des gens ? Non mais oui, s'il y a des gens qui défendent ces thèses, je sais pas. Je n'imagine pas comment c'est possible de penser",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Oui,",
+      "oui",
+      "s'il",
+      "je",
+      "sais"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1876.17,
+    "end": 1880.03,
+    "speaker": "[?]",
+    "text": "que l'économie... Alors là, on a un système de mensonge qui est un plaid.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Alors",
+      "mensonge",
+      "un"
+    ],
+    "speaker_suggestion": "Interlocuteur 9",
+    "correction": "gemini"
+  },
+  {
+    "start": 1881.65,
+    "end": 1913.19,
+    "speaker": "Interlocuteur 2",
+    "text": "Attention pour le scolastique. Ok, alors Interlocuteur 2 qui a pris la parole. C'était pour te poser une question du coup comme Interlocuteur 10. Ma question c'est plutôt comment tu ferais ça ? C'est-à-dire c'est quoi, le truc que j'imagine, tu me diras que c'est pas ça, mais c'est quoi, c'est des subventions où tu dis bah oui, l'État il va aller... je vais pas faire des prêts à 0% pour si vous avez développé l'énergie verte, c'est quoi, c'est des subventions, c'est des, comment dire, des régulations, vous n'avez pas le droit de faire ça ou c'est je vous aide à faire ça ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "le",
+      "Ok,",
+      "C'était",
+      "du",
+      "c'est,",
+      "déjà"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 1913.19,
+    "end": 2004.81,
+    "speaker": "Interlocuteur 1",
+    "text": "Les deux, mon gars. Non, bah, en vrai, ça passe par plusieurs instruments. Mais clairement, tout va y passer. La tarification du carbone, c'est absolument nécessaire, mais c'est pas suffisant, parce que ça donne juste un gros droit aux riches de polluer. Donc ensuite, il faut réglementer à quel point les riches ont le droit de polluer. Effectivement, le jet privé, même s'il coûte deux fois plus cher, il y a une question d'équité. Ensuite, il y a des choses qui, même avec une taxation du carbone, ne vont pas disparaître. Donc, il faut réglementer. Ensuite, sur l'équité encore une fois, je reviens sur le RSA écologique mais avec ce qu'on gagne de la taxe carbone, on peut le redistribuer pour que le fait que les pauvres subissent encore plus la transition écologique, c'est... c'était... Et ensuite, il y a plein de politiques sur chacun des secteurs, l'énergie, l'agriculture, l'industrie qui peuvent être appliquées avec de la planification mais aussi des réponses du marché et notamment certaines innovations intéressantes. Ça existe actuellement au niveau français comme européen ; face à une taxe carbone, c'est un marché du carbone, mais c'est sensiblement la même chose, c'est juste que l'État met un quota de carbone à faire et distribue ces quotas et les entreprises doivent les acheter ou se les vendre. Ça impose du coup une véritable, un seuil maximum d'émissions.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "—",
+      "Non,",
+      "bah,",
+      "le",
+      "ensuite",
+      "encore",
+      "c'était",
+      "et",
+      "ça",
+      "face",
+      "met",
+      "se",
+      "d'émissions."
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2004.81,
+    "end": 2009.39,
+    "speaker": "Interlocuteur 1",
+    "text": "C'était le premier 1 milliard par des bandits dans Bercy.",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "1"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2009.69,
+    "end": 2012.17,
+    "speaker": "Interlocuteur 7",
+    "text": "C'est ce qu'il y a ? C'est ce...",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ce",
+      "ce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2012.17,
+    "end": 2025.35,
+    "speaker": "Interlocuteur 4",
+    "text": "qu'il y a ? C'est quoi ça ? C'est un des plus gros détournements de fonds de l'histoire. Il y a des gens qui allaient détourner des centaines de millions avec ce système-là. Presque 1 milliard. Je n'ai pas du tout vu ça. Il a super bien marché ce système-là.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "qu'il",
+      "Je"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2026.57,
+    "end": 2027.69,
+    "speaker": "Interlocuteur 7",
+    "text": "Vraiment, moi, je n'ai vraiment pas",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 2027.69,
+    "end": 2028.93,
+    "speaker": "Interlocuteur 1",
+    "text": "entendu ça. Je pense que c'est",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 2028.93,
+    "end": 2043.61,
+    "speaker": "Interlocuteur 7",
+    "text": "vraiment bon. Peut-être que... C'est ça ? C'était en quelle... C'était au début, dès qu'ils ont mis le mécanisme, ils se sont dit qu'ils avaient mis de la TVA sur le carbone et ils ont fait... C'est vraiment pas de la TVA sur le carbone. C'est vraiment pas la taxe carbone de Macron, celle dont",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "C'était",
+      "dès",
+      "Marshall,",
+      "se",
+      "qu'ils",
+      "avaient",
+      "et",
+      "C'est",
+      "celle"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2043.61,
+    "end": 2046.33,
+    "speaker": "Interlocuteur 1",
+    "text": "je parle. Je ne suis pas sûr",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 2046.33,
+    "end": 2049.37,
+    "speaker": "Interlocuteur 7",
+    "text": "que ça ait à voir. C'est pas le truc des gilets jaunes ? Non, non.",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 2051.07,
+    "end": 2053.23,
+    "speaker": "Interlocuteur 11",
+    "text": "C'est genre Arnaud Miermann ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "rejetee",
+    "correction_motif": "réécriture trop importante",
+    "texte_gemini": "C'est genre la fraude à la TVA ?"
+  },
+  {
+    "start": 2053.23,
+    "end": 2059.34,
+    "speaker": "Interlocuteur 7",
+    "text": "Ouais, c'est ça. Mais ils ont fait des fraudes à la TVA sur le carbone.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Mais",
+      "faux-faux"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2069.07,
+    "end": 2069.39,
+    "speaker": "Interlocuteur 7",
+    "text": "Il",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Il"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2069.39,
+    "end": 2069.79,
+    "speaker": "[?]",
+    "text": "y a une",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Interlocuteur 11",
+    "correction": "gemini"
+  },
+  {
+    "start": 2069.79,
+    "end": 2072.33,
+    "speaker": "Interlocuteur 11",
+    "text": "autre affaire qui s'appelle Fraude à la TVA sur les quotas de carbone.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "autre"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2077.94,
+    "end": 2083.24,
+    "speaker": "Interlocuteur 11",
+    "text": "Et là, ça fonctionne encore. Je veux dire, c'était quand même en 2008. C'était il y a longtemps.",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 2087.88,
+    "end": 2162.04,
+    "speaker": "Interlocuteur 4",
+    "text": "Moi, du coup, une des raisons pour lesquelles je pense que ça pourrait difficilement marcher, c'est qu'il y a une des propriétés qui se constate dans le capitalisme, c'est l'extension du domaine de la marchandisation. C'est-à-dire que tout finit par être englobé par le marché, de sorte à pouvoir tirer profit de absolument tout ce qui se fait sur Terre, même jusqu'à aller faire par exemple un marché des femmes en marchandisant le fait de pouvoir mettre un sein à certaines femmes. Ça, c'est par exemple un exemple extrême d'extension du domaine du capital. Et donc, étant donné que dans le capitalisme, toute la production est détenue par des propriétaires privés qui se mettent ensemble tout simplement en accord pour faire toujours plus de profits, en fait, ces réformes-là, en soi, je les trouve bien. C'est-à-dire que si vraiment il y a l'idée de... En fait, toi, ton système, ce serait vraiment : les propriétaires privés sont vraiment mis à genoux devant l'État, en fait, en quelque sorte. C'est vraiment, ils ont les moyens de production, mais en fait, l'État est vraiment extrêmement puissant et vraiment c'est l'État qui guide et ils n'ont pas trop la parole. Je ne vois pas comment c'est possible dans un système où ce sont ces gens-là qui ont les moyens de produire toute la richesse sur toute la Terre. Donc déjà ça, je comprends pas. Et ça veut dire que tu conserves... Est-ce que tu conserves par exemple",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "du",
+      "absolument",
+      "un",
+      "Et",
+      "profits,",
+      "c'est",
+      "ce",
+      "fait",
+      "ce",
+      "tu"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2162.04,
+    "end": 2195.34,
+    "speaker": "Interlocuteur 4",
+    "text": "des actionnaires dans les entreprises qui du coup prennent des décisions sur des logiques de profit, mais du coup c'est-à-dire que toi tu les contraindrais beaucoup. En fait, ce que je ne comprends pas, c'est comment tu mets en place ça. C'est-à-dire que pour toi, il y a vraiment une loi, enfin on propose des lois comme ça, et in fine, elles finissent par être votées sans contestation des capitalistes. C'est-à-dire qu'elles arrivent comme ça, elles sont votées, on dit par exemple les entreprises sont contraintes extrêmement à faire des investissements écologiques. Je ne vois pas comment ça pourrait être mis en place, étant donné que ce sont ces gens-là qui détiennent tout le pouvoir financier, politique, médiatique.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "du",
+      "c'est-à-dire",
+      "il",
+      "les",
+      "que"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2197.78,
+    "end": 2211.22,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est vrai que du coup, on appelle tous 5 semaines de congés payés ou alors un SMIC ou alors… C'est beaucoup moins fort que les mesures que tu proposes toi. Pas forcément. Les capitalistes peuvent faire énormément",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "5",
+      "ou",
+      "ou",
+      "C'est"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2211.22,
+    "end": 2221.18,
+    "speaker": "Interlocuteur 4",
+    "text": "de profits avec 5 semaines de congés payés. Oui. Et alors que tes mesures, toi, tes mesures sont vraiment extrêmement restrictives. 5 semaines de congés payés, je ne le sais Ce n'est pas tant que ça, déjà.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Et",
+      "je",
+      "le",
+      "Ce"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "de profits avec 5 semaines de congés payés. Oui. Alors que tes mesures, toi, tes mesures sont vraiment extrêmement restrictives. 5 semaines de congés payés, je ne sais pas, ce n'est pas tant que ça, déjà."
+  },
+  {
+    "start": 2221.44,
+    "end": 2221.94,
+    "speaker": "[?]",
+    "text": "Je vais",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Je"
+    ],
+    "speaker_suggestion": "Interlocuteur 1",
+    "correction": "gemini"
+  },
+  {
+    "start": 2221.94,
+    "end": 2242.78,
+    "speaker": "Interlocuteur 1",
+    "text": "finir de répondre ? Oui, mais ce sont des petites mesures que tu as proposées. Là, ce que j'ai montré, moi, le SMIC, mais non, tous les capitalistes, toutes les personnes qui sont vraiment pro-marché, dérégulation du marché, l'OCDE, ça leur casse les couilles, le SMIC. Il n'y a pas de SMIC allemand, par exemple. C'est un truc qui fait chier pas mal de monde. Tu vois",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "?",
+      "mais",
+      "c'est",
+      "que",
+      "moi,",
+      "mais",
+      "un"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2242.78,
+    "end": 2244.26,
+    "speaker": "Interlocuteur 4",
+    "text": "bien que l'industrie tombe quand même. Oui, c'est vrai.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Oui,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2245.72,
+    "end": 2322.12,
+    "speaker": "Interlocuteur 1",
+    "text": "Du coup, pour la question du lobbyisme, de à quel point les capitalistes vont attaquer l'État. Peut-être, j'avoue que même dans le début du capitalisme des États-Unis, il a suffi que Theodore Roosevelt arrive au pouvoir et ait une grosse volonté politique alors que c'était vraiment une oligarchie libérale. Il n'y avait vraiment que des grands capitalistes qui menaient, qui avaient le pouvoir. Encore une fois, la banque centrale de l'époque, c'était JP Morgan. Elle était privée. Et à ce moment-là, il y a un pouvoir politique fort qui arrive, qui pète ces oligarchies. Vraiment, je crois dans le pouvoir politique, et il faut qu'il soit saisi et mis en place. Du coup, c'est pour répondre à ce truc de « les capitalistes vont reprendre le pouvoir et l'influencer ». Pas forcément. Je ne sais pas. Sur la question de « est-ce qu'il y aurait toujours des actionnaires ? » On peut en parler un peu plus ? Moi, les actionnaires, je pourrais m'en passer avec des systèmes de coopérative ou quoi, mais même s'il y a des actionnaires, je pense qu'on peut quand même réussir à infléchir le capitalisme vers l'écologie, notamment, la taxe carbone, c'est exactement ça. C'est-à-dire que si jamais tu rends des alternatives carbonées plus chères que décarbonées, voilà, tu as aligné le truc. Ensuite, sur les autres sujets comme la biodiversité, c'est beaucoup moins fort, et là, il faudra des régulations qui",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "ces",
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2322.12,
+    "end": 2382.84,
+    "speaker": "Interlocuteur 1",
+    "text": "sont bien différentes, et je ne parle pas de ça. Donc au moins sur le climat, tu alignes les profits et les intérêts privés avec les intérêts écologiques, avec les intérêts climatiques. Sur ce que tu disais, sur le capitalisme, on va toujours plus loin dans la marchandisation. Je pense vraiment que c'est confondre le capitalisme et le néolibéralisme. C'est-à-dire que le fait d'augmenter ce qui peut être marchandisé, ce qui peut être rendu en titre d'actif, ce sur quoi on peut capitaliser, ce n'est pas forcément le capitalisme justement. Le capitalisme c'est juste la possibilité en tant qu'individu de détenir une propriété d'un moyen de production. Donc ce n'est pas forcément, on ne va pas forcément super loin, d'ailleurs aujourd'hui on n'ira pas quand on est dans un capitalisme libéral, pourtant je n'ai pas le droit de capitaliser sur mon rein et de vendre, pour l'instant bien sûr, c'est vrai qu'il y a beaucoup de gens qui proposent ça dans le débat, mais bon voilà, effectivement il faut ne pas confondre le capitalisme et le néolibéralisme et à quel point on va dans la marchandisation, encore une fois le pouvoir politique peut lutter là-dessus, voilà. Je suis",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "justement.",
+      "c'est",
+      "super",
+      "aujourd'hui",
+      "pour",
+      "Je"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2388.63,
+    "end": 2455.17,
+    "speaker": "Interlocuteur 5",
+    "text": "assez d'accord avec toi sur le fait qu'au niveau national, on puisse éventuellement réussir à réglementer le capitalisme, à forcer les entreprises à réaliser une transition écologique. Mais moi, ce qui me questionne le plus, c'est par rapport à la mondialisation, parce qu'une transition écologique, ça doit se faire pour tout le monde, pour tous les pays. Et ça c'est quelque chose qui est bien plus compliqué parce que au niveau d'un État il y a un peuple qui peut voter pour appliquer certaines mesures mais mettre tout le monde d'accord au niveau mondial c'est pas du tout le même défi et c'est pourtant nécessaire pour arriver à un résultat parce que si l'Europe elle réduit toutes ses émissions mais que derrière tu as les États-Unis ou les pays en Asie qui émettent bien plus bas au final ce n'est pas que ce que l'a fait l'Europe n'a servi à rien mais au final c'est un peu ce qu'on va ressentir quand même. Donc c'est un peu une mise en doute du problème du capitalisme mondialisé qui fait que c'est difficile, en fait on est presque d'accord sur rien, il y a personne qui respecte vraiment les traités internationaux, il y a pas mal de traités internationaux qui sont bafoués régulièrement.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "pour",
+      "il",
+      "ses",
+      "tu",
+      "quand",
+      "une",
+      "en",
+      "y",
+      "il"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2459.32,
+    "end": 2474.54,
+    "speaker": "Interlocuteur 7",
+    "text": "J'ai une petite question, si tu fais des coopératives, d'où vient l'argent qui est investi dans la société ? C'est quoi une coopérative ? Alors",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "J'ai",
+      "qui",
+      "une",
+      "Alors"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2474.54,
+    "end": 2504.22,
+    "speaker": "Interlocuteur 1",
+    "text": "ça je veux bien y répondre mais je pense que c'est un autre sujet. Je pense que tu peux vouloir en parler plus tard parce que moi ce que j'ai défendu justement, c'est ce que j'ai dit, je pense qu'on peut garder des actionnaires, même avec, mais c'est ce que je t'ai répondu juste avant, j'ai dit, on peut garder des actionnaires et pourtant aller vers l'écologie, notamment avec la taxe carbone qui aligne l'intérêt privé avec l'intérêt climatique voilà, si tu veux parler des coopératives peut-être plus tard j'aurais peut-être pas dû le mentionner, parce que en vrai je le défendrais, mais ce n'est pas le débat",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "avec",
+      "voilà,",
+      "peut-être",
+      "plus",
+      "j'aurais",
+      "que"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2509.36,
+    "end": 2596.38,
+    "speaker": "Interlocuteur 1",
+    "text": "ah oui, et du coup sur la concurrence, je suis tout à fait d'accord, enfin, les plus gros problèmes de l'humanité sont aujourd'hui des problèmes de coopération internationale. Que ce soit l'écologie, que ce soit la fiscalité, que ce soit la santé. En fait, on l'a bien vu avec le Covid et toutes les zoonoses qui vont arriver. Voilà. Donc, effectivement, la France ne va pas devenir écologique tout de suite. Maintenant, je ne pense pas qu'on soit vraiment à l'étape zéro de la coopération internationale sur l'écologie. Sur la biodiversité on le met sur le climat ce n'est pas le cas c'est-à-dire que effectivement Trump fait beaucoup de bruit et fait une lutte très violente contre l'écologie en revanche on peut tout à fait voir déjà Biden ne le faisait pas autant et certainement que après des républicains on va avoir à nouveau des démocrates et par exemple l'Asie la Chine en fait leurs émissions sont en train d'aller sur un plateau. Donc en fait, ils sont sur un plateau, il y a des petites incertitudes, mais en tout cas, certainement que la Chine arrive au pic de ses émissions. Parce qu'elle installe certes des centrales à charbon, mais elle les utilise de moins en moins, et surtout elle installe des puissances installées folles de renouvelables électriques. Donc en fait, elle a aussi un marché du carbone avec lequel on peut entrer en symbiose bientôt. Voilà. On peut... Enfin, c'est",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Enfin,",
+      "sur",
+      "Donc",
+      "ils",
+      "peut",
+      "Voilà."
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2596.38,
+    "end": 2601.94,
+    "speaker": "Interlocuteur 1",
+    "text": "dur, mais je pense qu'on va aller vers de la coopération internationale de plus en plus. J'espère.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 2607.86,
+    "end": 2611.8,
+    "speaker": "Interlocuteur 3",
+    "text": "Différence de ta vision du capitalisme régulé d'un capitalisme d'État ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "réécriture trop importante",
+    "texte_gemini": "Quelle est la différence entre ta vision du capitalisme régulé et un capitalisme d'État ?"
+  },
+  {
+    "start": 2615.44,
+    "end": 2647.28,
+    "speaker": "Interlocuteur 1",
+    "text": "Alors, je ne sais pas trop. J'avoue que moi, je parlerais plus d'un capitalisme régulé qu'un capitalisme d'État, mais peut-être que c'est ce que tu entends par là. Pour moi, un capitalisme d'État, ça se rapproche plus d'un dirigisme où vraiment le secteur privé n'a plus aucune initiative. Moi, je parle vraiment plus de planification écologique et c'est assez différent dans le sens où il n'y a pas forcément besoin de nationalisation. Je pense qu'il en faudra des nationalisations, mais je ne pense pas qu'il faille nationaliser toutes les industries, je",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "mais",
+      "pour",
+      "un",
+      "je"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2649.81,
+    "end": 2656.65,
+    "speaker": "Interlocuteur 11",
+    "text": "voulais juste poser la question à Interlocuteur 1 de ce qu'il entendait par un marché, le marché chinois du carbone, et que ça allait fusionner avec le mécanisme d'ajustement aux frontières ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "le",
+      "et",
+      "delta"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2657.63,
+    "end": 2694.53,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est-à-dire qu'ils ont un marché du carbone, c'est-à-dire qu'il y a des quotas carbone, je ne sais pas comment ils fonctionnent, mais soit c'est des quotas carbone, soit c'est une taxe carbone, c'est encore une fois la même chose, juste sous deux angles différents. Et du coup, nous, ce qu'on a, ça va être un mécanisme d'ajustement aux frontières, et donc ce qui va se passer, c'est qu'on va certes leur faire payer notre taxe carbone, mais on va faire payer que le delta, c'est-à-dire que leur taxe carbone est moins haute que la nôtre. Et du coup, quand on importe des produits de chez eux, ils vont payer une taxe carbone, mais juste la différence entre la leur et la nôtre. C'est ça, cette intégration qui va se passer. J'ai peut-être même déjà en place.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est-à-dire",
+      "Et",
+      "du"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2697.9,
+    "end": 2698.22,
+    "speaker": "Interlocuteur 1",
+    "text": "Personne",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 2698.22,
+    "end": 2702.52,
+    "speaker": "[?]",
+    "text": "ne voulait rebondir là-dessus. Est-ce que du coup, vous voulez qu'on passe ? Moi,",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 2702.62,
+    "end": 2710.94,
+    "speaker": "Interlocuteur 4",
+    "text": "c'était plus sur comment tu mets en place ces réformes. Est-ce qu'il y a de la violence ou non pour les mettre en place ? Comment est-ce que tu fais face aux capitalistes ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "tête"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2710.94,
+    "end": 2717.4,
+    "speaker": "Interlocuteur 1",
+    "text": "Non, je n'ai pas de réponse là-dessus, notamment que ce que je dis n'est pas vraiment en vogue. Non, mais",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2717.4,
+    "end": 2723.5,
+    "speaker": "Interlocuteur 4",
+    "text": "si tu me dis qu'il est là, il arrive. Mais comment est-ce qu'il arrive en fait ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "si",
+      "en"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2725.42,
+    "end": 2759.0,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est pas récent. C'est-à-dire qu'au fur et à mesure, si les gens en ont marre de voir qu'il y a des canicules, on est totalement dépendant de pays qui ne nous veulent pas du bien sur des énergies fossiles. Si on n'arrive pas à manger local à des prix abordables, tous les problèmes qui peuvent se poser avec l'écologie, les gens vont pouvoir voter pour une vraie politique sociale et écologique. Mais effectivement, ça présuppose que les gens soient d'accord avec ce que je dis. On",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "Si",
+      "que",
+      "On"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2764.09,
+    "end": 2766.49,
+    "speaker": "[?]",
+    "text": "peut ajouter quelque chose, ou on passe à la suite.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "à"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 2769.72,
+    "end": 2771.22,
+    "speaker": "[?]",
+    "text": "pour passer à la suite, dans les",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "dans"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 2775.7,
+    "end": 2777.94,
+    "speaker": "[?]",
+    "text": "usines, est-ce qu'on doit fermer les usines ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 2780.62,
+    "end": 2861.81,
+    "speaker": "Interlocuteur 10",
+    "text": "Les industries les plus polluantes, même lorsqu'aucune solution d'emplacement n'existe pour leurs salariés, moi je voudrais plutôt tourner ça, lorsque une solution n'existe, plutôt au global, alternative en fait, j'essaie de regarder un peu qu'elles sont les industries polluantes dans le monde, et du coup ma question va plutôt tourner sur à quel point on accepte une sorte de décroissance ou de changer nos habitudes, parce que les industries polluantes c'est l'énergie environ 30% dans le monde, on sait qu'il y a des alternatives c'est l'industrie lourde, donc ce qui est acier le ciment, les transports c'est 15% l'agriculture c'est 18 à 20% après il y a le bâtiment, donc chauffage, etc. et donc supposons il y a une bonne moitié de ce que j'ai cité il n'y a pas d'alternative concrète on va juste parler du ciment alors je sais qu'il y a des choses en développement quand même Ou l'acier par exemple, on a besoin d'acier pour faire plein de choses, c'est extrêmement polluant à la météorologie. Donc ma question c'est, parce que c'est un point de divergence, qu'est-ce qu'on accepte d'abandonner ? Si jamais on dit qu'il n'y a pas d'alternative. Parce que la machine des géantes est d'accord pour fermer les industries polluantes, même s'il n'y a pas de solution. Mais dans ce cas, est-ce qu'on accepte en gros une sorte de décroissance dans l'argent et dans notre insertion ? Est-ce que vous acceptez",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Les",
+      "lorsque",
+      "au",
+      "à",
+      "ou",
+      "parce",
+      "c'est",
+      "c'est",
+      "l'industrie",
+      "donc",
+      "après",
+      "il",
+      "on",
+      "choses",
+      "Ou",
+      "faire",
+      "géantes",
+      "en",
+      "gros",
+      "dans",
+      "Est-ce"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "Les industries les plus polluantes, même lorsqu'aucune solution d'emplacement n'existe pour leurs salariés, moi je voudrais plutôt tourner ça, lorsque aucune solution n'existe, plutôt au global, alternative en fait, j'essaie de regarder un peu quelles sont les industries polluantes dans le monde, et du coup ma question va plutôt tourner sur à quel point on accepte une sorte de décroissance ou de changer nos habitudes, parce que les industries polluantes c'est l'énergie environ 30% dans le monde, on sait qu'il y a des alternatives, c'est l'industrie lourde, donc ce qui est l'acier, le ciment, les transports c'est 15%, l'agriculture c'est 18 à 20%, après il y a le bâtiment, donc chauffage, etc. Et donc supposons, il y a une bonne moitié de ce que j'ai cité où il n'y a pas d'alternative concrète, on va juste parler du ciment alors je sais qu'il y a des choses en développement quand même ou l'acier par exemple, on a besoin d'acier pour faire plein de choses, c'est extrêmement polluant à la production. Donc ma question c'est, parce que c'est un point de divergence, qu'est-ce qu'on accepte d'abandonner ? Si jamais on dit qu'il n'y a pas d'alternative. Parce que les gens sont d'accord pour fermer les industries polluantes, même s'il n'y a pas de solution. Mais dans ce cas, est-ce qu'on accepte en gros une sorte de décroissance dans l'argent et dans notre insertion ? Est-ce que vous acceptez"
+  },
+  {
+    "start": 2861.81,
+    "end": 2864.33,
+    "speaker": "Interlocuteur 10",
+    "text": "la décroissance, non l'écologie ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "la décroissance ou l'écologie ?"
+  },
+  {
+    "start": 2873.55,
+    "end": 2878.99,
+    "speaker": "Interlocuteur 1",
+    "text": "J'ai beaucoup pris la parole, est-ce que vous voulez en parler ? Moi",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "J'ai",
+      "est-ce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2878.99,
+    "end": 2879.05,
+    "speaker": "[?]",
+    "text": "je",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Interlocuteur 1",
+    "correction": "gemini"
+  },
+  {
+    "start": 2879.05,
+    "end": 2954.05,
+    "speaker": "Interlocuteur 7",
+    "text": "vais défendre le fait qu'on ne puisse pas fermer ces industries. On n'a pas l'alternative parce que déjà on parlait des RFA, c'est mettre des gens sur le carreau. Et surtout par rapport à l'énergie, là l'essence elle augmente de 40 centimes, il y a des manifestations dans le temps en France et je pense qu'on n'en mesure pas très bien l'impact que ça a. Ces industries ne prennent pas autant de place parce qu'on aime polluer. En fait, elles ont des vrais impacts sur plein de gens, de la façon dont on organise plein de gens. Il y a un confort que les gens ne veulent pas abandonner. Juste le fait de se chauffer l'hiver, on commence à se chauffer dès la Toussaint, tu vois. Ça ne se faisait pas il y a 70 ans, ça ne se faisait pas. Et donc on ne peut pas abandonner, on ne peut pas se dire aucune solution, on arrête les centrales à charbon, on arrête l'agriculture, on va arrêter tout ce qui est engrais chimiques et tout, parce que ça fait tellement longtemps qu'on est plongé dedans, ça a apporté tellement à la population, à l'humanité, qu'on ne va pas laisser tomber ça, on peut essayer de les évoluer, on peut essayer de les modifier, mais on ne peut pas, c'est irréaliste de se dire qu'on peut les lâcher. On peut les fermer. Valo.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "déjà",
+      "RIA,",
+      "là",
+      "elle",
+      "le",
+      "et",
+      "n'en",
+      "ne",
+      "En",
+      "on",
+      "aime",
+      "on",
+      "on",
+      "à",
+      "On"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 2955.29,
+    "end": 3006.61,
+    "speaker": "Interlocuteur 6",
+    "text": "Moi, je suis en partie d'accord avec Interlocuteur 7. Mais quand tu parlais justement du confort qu'on a acquis ces, je ne sais pas, 30, 50, 100 dernières années, tout à la révolution industrielle, je pense qu'il y a un effort de sobriété qui peut être fait sur certaines choses. Par exemple, je pense à des appareils électroniques qu'on peut réutiliser, réparer. Au lieu de reconstruire un bâtiment de zéro, on peut rénover. Mais il y a certaines choses dans la vie quotidienne, dans la manière dont on gère les infrastructures, l'organisation du pays en général, qui peut, en échange d'abandonner une certaine partie de notre confort, garder certaines industries qui sont très polluantes, parce que, comme tu l'as dit, elles sont essentielles, mais tout en réduisant quand même leur impact.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Aaron.",
+      "tout",
+      "mais"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3011.92,
+    "end": 3062.68,
+    "speaker": "Interlocuteur 9",
+    "text": "C'est après ce que je voulais dire aussi. Je comprends l'idée qu'on a gagné du confort et que les enlever d'un coup, personne n'a envie d'accepter ça. Mais il y a quand même un truc qui semble très clair aujourd'hui, c'est que quoi qu'il arrive, on va avoir des problèmes de quantité. Soit le pétrole avec le prix qui est monté comme tu dis ou en général l'accès à l'énergie, ça ne semble pas clair qu'on puisse avoir des véhicules thermiques habitables et donc même si les gens aujourd'hui ne sont pas prêts à accepter de perdre du confort, c'est soit perdre du confort maintenant mais avec une pente plus ou moins douce, soit prendre un mur tôt ou tard. En tout cas, je pense que c'est soit on fait ce choix-là, soit ça sera pas sans un mur à jouer.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "envie",
+      "soit",
+      "est",
+      "et",
+      "l'autre",
+      "En",
+      "fait",
+      "jeu-là,",
+      "pas",
+      "sans",
+      "un"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3068.29,
+    "end": 3128.97,
+    "speaker": "Interlocuteur 7",
+    "text": "Moi, je crois en la régularité du marché. Il n'y aura pas de mur, en fait. Déjà, le pétrole, il y en aura toujours, juste qu'à un moment, il va devenir trop cher à exploiter. Il n'y aura jamais, genre, plus de pétrole sur la planète. Les ressources sont limitées, mais elles vont coûter trop cher avant qu'on puisse les utiliser. Et il n'y aura pas de mur, genre, à un moment, les gens vont se rendre compte, ça va changer, il y aura de nouvelles alternatives. Mais moi je crois plus en la théorie que ça va être il vaut mieux laisser faire justement ce changement opéré, tu vois là c'est ce qui s'opère aujourd'hui, de manière douce plutôt que dire tu mets des gens sur... le chômage, il augmente, c'est pas moi qui vais en pâtir tu vois il y a des gens ils perdent leur maison et on les voit pas parce que c'est pas eux qui ont choisi et c'est un peu les grands oubliés mais il y a toujours des gens qui profitent de ces changements et tout et je pense que la manière la moins brutale de faire, c'est de croire en la régularité du marché.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "qu'à",
+      "mais",
+      "moi",
+      "il",
+      "tu",
+      "l'église",
+      "dire",
+      "mets",
+      "un...",
+      "tu",
+      "il",
+      "les",
+      "choisi",
+      "mais",
+      "tout",
+      "emboutable",
+      "du",
+      "marché"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3131.79,
+    "end": 3186.19,
+    "speaker": "Interlocuteur 9",
+    "text": "Tu penses que en laissant le marché se régulariser tout seul ça va être plus doux pour les gens ? Je pense que déjà avec le diesel à 2 euros 30 les gens ils sont déjà en train de galérer, ils ne peuvent plus aller au travail. J'ai entendu ce matin un mec qui disait qu'il ne pouvait pas aller chez le médecin parce qu'il vit à la campagne, il était trop loin, il devait payer le plein, donc en fait, selon moi, c'est déjà un stade assez avancé, et en fait, c'est déjà trop tard pour les gens qui ont besoin de ces outils-là, de ces énergies-là, c'est un peu trop tard pour se dire que le marché va se réduire tout seul pour que les gens n'en pâtissent pas et les gens sont déjà dans la galère. Le prix du pétrole a tellement augmenté, les gilets jaunes c'était à combien le prix du pétrole ? C'était à 70 juste comme ça et on est à 2,30 quoi, en fait ça n'a plus",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "tu",
+      "euros",
+      "ils",
+      "ne",
+      "j'ai",
+      "de",
+      "se",
+      "c'est",
+      "sont",
+      "les",
+      "gilets",
+      "mais",
+      "juste",
+      "et",
+      "a",
+      "en"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3186.19,
+    "end": 3193.53,
+    "speaker": "Interlocuteur 7",
+    "text": "rien à voir, c'est ce qui pourrait se passer si on abandonne les énergies fossiles en ce moment, c'est pas ce que j'appelle doux.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "d'eau"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3195.95,
+    "end": 3250.93,
+    "speaker": "Interlocuteur 9",
+    "text": "C'est pas clair que le contexte géopolitique va s'améliorer et c'est pas clair que même après on va avoir des prix qui vont redescendre à des taux plus normaux. Et puis les gens qui aujourd'hui souffrent, c'est pas clair que quand le prix va peut-être potentiellement, si le prix diminue, eux ils vont réussir à s'en remettre de ce qu'il en est aujourd'hui. Donc il faudrait anticiper et se dire que dès aujourd'hui on ne peut pas continuer à consommer du pétrole aussi abondamment puisque de toute évidence on est trop dépendant de facteurs extérieurs et on ne peut pas faire autant d'hypothèses sur ce qui va nous arriver sans savoir vraiment quels sont nos leviers d'action. Et comment est-ce qu'on peut effectivement se protéger et protéger les citoyens qui sont plus dans le besoin avec tout ce qui est, toute la part d'aléatoire qui est liée à ces énergies ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "le",
+      "et",
+      "en",
+      "donc",
+      "Et",
+      "plus",
+      "toute",
+      "d'aléatoire"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3255.44,
+    "end": 3256.74,
+    "speaker": "Interlocuteur 9",
+    "text": "Interlocuteur 8 ?",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "?"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3257.24,
+    "end": 3306.0,
+    "speaker": "Interlocuteur 8",
+    "text": "En fait, pour revenir sur le point de faut-il fermer certaines industries dans une idée de l'urgence, en fait, que ces industries sont trop polluantes et qu'il faut les fermer maintenant, je pense qu'il faudrait réfléchir sur les alternatives proposées aux salariés, par exemple, et surtout que ça risque d'isoler et de dépeupler certaines régions, certaines provinces, et que ça risque de créer des contestations sociales qui pourront dégénérer ou autre chose. Et en fait, loin d'un remplacement, au lieu de chercher à remplacer ce type d'énergie, je pense qu'il faudrait imaginer juste un plan B pour les salariés, qu'est-ce qu'ils pourront faire d'autre pour éviter une recrudescence du chômage et d'autres problèmes sociaux.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "En",
+      "revenir",
+      "et",
+      "Je",
+      "Et",
+      "en",
+      "pense",
+      "une",
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3306.34,
+    "end": 3321.08,
+    "speaker": "Interlocuteur 3",
+    "text": "C'était perdre du confort, mais c'est de quel confort on parle ? Je suis d'accord pour la question de l'engrais, mais le confort",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'était",
+      "mais"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3321.08,
+    "end": 3359.8,
+    "speaker": "Interlocuteur 7",
+    "text": "du mode de vie occidental, pas c'est pas du tout ça. Par exemple une chaise en plastique qui doit coûter 20 euros l'unité, si tu veux plus de plastique tu vas te prendre des chaises en bois qui coûtent 120 euros, tu vois il n'y en a plus en fait, tu fais des cours de voûts, ça c'est un confort et là tu le vois même plus en fait que c'est un confort d'avoir 400 chaises, la salle a pu coûter pas très cher à équiper par rapport à ce que ça aurait pu coûter sans ce qu'on a pollué pour C'est vraiment des trucs, du quotidien on n'y pense même plus, c'est pas des voyages en jet, c'est des points de la vie en tout cas, c'est juste ça.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "du",
+      "pas",
+      "c'est",
+      "pas",
+      "du",
+      "ça.",
+      "Par",
+      "une",
+      "euros",
+      "tu",
+      "il",
+      "là",
+      "le",
+      "d'avoir",
+      "400",
+      "la",
+      "pas",
+      "par",
+      "C'est",
+      "c'est",
+      "des",
+      "points",
+      "en"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "du mode de vie occidental. Par exemple, une chaise en plastique qui doit coûter 20 euros l'unité, si tu veux plus de plastique tu vas te prendre des chaises en bois qui coûtent 120 euros, tu vois il n'y en a plus en fait, tu fais des coupes de budget, ça c'est un confort et là tu le vois même plus en fait que c'est un confort d'avoir 400 chaises, la salle a pu coûter pas très cher à équiper par rapport à ce que ça aurait pu coûter sans ce qu'on a pollué. C'est vraiment des trucs du quotidien, on n'y pense même plus, c'est pas des voyages en jet, c'est des points de la vie en tout cas, c'est juste ça."
+  },
+  {
+    "start": 3363.1,
+    "end": 3440.16,
+    "speaker": "Interlocuteur 5",
+    "text": "Ouais donc pour revenir sur ces industries si on les ferme ou pas, moi je pense pas qu'il fallait les fermer puisque notamment on parle en fait d'industrie, l'industrie, le ciment, l'acier, c'est que des matériaux qui sont quand même nécessaires à... On voit mal comment est-ce qu'on pourrait s'en passer même si on commence à recycler, il en faut quand même encore un peu, puisque le recyclage, ce n'est pas un défi, ce n'est pas infini. Et par rapport à ces industries-là, je pense qu'il y a quand même pas mal de transitions sur comment est-ce qu'elles fonctionnent qui sont possibles, même si ce n'est pas le cas actuellement, c'est surtout, je pense, un manque de volonté des entreprises parce parce que ça coûte vraiment trop cher, par exemple, de remplacer... Alors, je ne sais pas, pour la métallurgie, il y a certaines choses, donc il doit utiliser du charbon pour atteindre certaines températures. Et en réalité, il est possible de passer à l'électrification, même si ça requiert des procédés qui sont bien plus techniques et onéreux. Mais c'est là, je pense, que peut-être l'État, qui a une intervention à faire pour forcer les entreprises, quitte à avoir des conséquences négatives éventuellement sur le coût des choses derrière je sais pas mais moi c'est là qu'il ya une action à faire plus qu'à interdire ces industries en soi et pour revenir sur l'efficience du marché en fait je suis à",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Ouais",
+      "si",
+      "fallait",
+      "l'industrie,",
+      "c'est",
+      "à...",
+      "On",
+      "industries-là,",
+      "sur",
+      "je",
+      "là",
+      "qu'à",
+      "soi",
+      "en",
+      "fait"
+    ],
+    "correction": "rejetee",
+    "correction_motif": "négation modifiée",
+    "texte_gemini": "Ouais donc pour revenir sur ces industries si on les ferme ou pas, moi je pense pas qu'il fallait les fermer puisque notamment on parle en fait d'industrie, l'industrie, le ciment, l'acier, c'est que des matériaux qui sont quand même nécessaires à... On voit mal comment est-ce qu'on pourrait s'en passer même si on commence à recycler, il en faut quand même encore un peu, puisque le recyclage, ce n'est pas infini. Et par rapport à ces industries-là, je pense qu'il y a quand même pas mal de transitions sur comment est-ce qu'elles fonctionnent qui sont possibles, même si ce n'est pas le cas actuellement, c'est surtout, je pense, un manque de volonté des entreprises parce que ça coûte vraiment trop cher, par exemple, de remplacer... Alors, je ne sais pas, pour la métallurgie, il y a certaines choses, donc il doit utiliser du charbon pour atteindre certaines températures. Et en réalité, il est possible de passer à l'électrification, même si ça requiert des procédés qui sont bien plus techniques et onéreux. Mais c'est là, je pense, que peut-être l'État, qui a une intervention à faire pour forcer les entreprises, quitte à avoir des conséquences négatives éventuellement sur le coût des choses derrière, je ne sais pas, mais moi c'est là qu'il y a une action à faire plus qu'à interdire ces industries en soi et pour revenir sur l'efficience du marché, en fait, je suis à"
+  },
+  {
+    "start": 3440.16,
+    "end": 3517.86,
+    "speaker": "Interlocuteur 5",
+    "text": "moitié d'accord avec cette affirmation parce que c'est aussi quelque chose qu'on peut enfin le marché n'est pas toujours efficient, en fait il peut, on va dire que je pense que sur un très long terme il sera efficient, mais peut-être pas efficient pendant quand même un sacré bon bout de temps avant qu'on s'en rende compte. C'est par exemple le cas si on regarde par exemple, je sais pas si c'est encore le cas mais l'entreprise la plus valorisée du monde actuellement enfin peut-être pas actuellement du coup mais qui était SpaceX bah on voit mal comment est-ce que ça peut être l'entreprise la plus valorisée actuellement puisque qu'est-ce qu'elle produit ? Bah elle envoie des fusées dans l'espace et bah elle fait pas beaucoup d'argent avec ça non plus. En fait, tout l'argent qu'elle a, c'est avec, comment ça s'appelle le truc pour avoir Internet, là ? Oui, Starlink. Je ne sais pas, ils doivent faire 10 milliards par an et ils sont valorisés 1000 milliards. Ce n'est pas quelque chose qui semble extrêmement efficient ou logique. Et en plus, ils ont plein de dettes avec Musk qui a fait n'importe quoi. Bref, ça c'est une chose. Donc, je ne sais pas si le marché est au final efficient, mais est-ce que ce sera pas trop tard au moment où il va devenir efficient, parce que si on ne s'est pas préparé avant, ça rejoint ce dont tu parlais, Interlocuteur 10.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "n'est",
+      "difficile",
+      "on",
+      "peut",
+      "je",
+      "bah",
+      "bah",
+      "Oui,",
+      "1000",
+      "avec",
+      "masque",
+      "qui",
+      "au",
+      "ce",
+      "parce",
+      "ça"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3517.86,
+    "end": 3596.26,
+    "speaker": "Interlocuteur 10",
+    "text": "Moi je voulais répondre, je suis complètement d'accord avec ce que tu as dit, je voulais vraiment répondre sur la, comme on a dit ça, la régularité des marchés, même au côté efficient, moi le gros problème c'est que justement les marchés et l'intérêt public divergent complètement et surtout sur l'écologie le principal cas c'est qu'ils n'ont pas du tout le même intérêt. Ce que les marchés font c'est déjà beaucoup plus à très court terme. Les problèmes écologiques ne sont pas du tout intégrés, des effondrements des terrains, je serais un des, des sous-emis très schématiques, des sécheresses, ne sont pas du tout inclus dans les modèles financiers qu'on a. Donc le long terme n'est du coup pas du tout pris en compte. Les externalités ne sont pas prises en compte, justement ces problèmes écologiques ne sont pas pris en compte dans les modèles. Donc c'est ici que, non, justement, il ne faut pas faire confiance au marché. Et comme disait très bien Interlocuteur 1 tout à l'heure, moi je crois réellement dans le fait de faire converger intérêt privé et intérêt public, je peux dire ça à l'écologie dans ce cas-là. Pour faire converger ces deux mondes-là, ça fait que oui dans ce cas-là il y a les marchés de l'électricité.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Moi",
+      "voulais",
+      "voulais",
+      "comme",
+      "côté",
+      "moi",
+      "publics",
+      "complètement",
+      "le",
+      "cas",
+      "de",
+      "même",
+      "ce",
+      "marins",
+      "très",
+      "court",
+      "ne",
+      "sont",
+      "des",
+      "je",
+      "un",
+      "des",
+      "très",
+      "du",
+      "je",
+      "à",
+      "l'écologie",
+      "pour",
+      "ça",
+      "dans",
+      "les",
+      "l'électricité"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3599.75,
+    "end": 3649.15,
+    "speaker": "Interlocuteur 7",
+    "text": "Un exemple, un moment où ça a convergé : la Chine s'est aujourd'hui électrifiée autant et qu'elle arrête de couper du bois, maintenant on exporte du bois en Chine, c'est parce qu'elle s'est rendue compte que ça a coûté à elle la pollution qu'elle créait, ça a coûté à l'économie chinoise, c'est pour ça qu'elle est maintenant électrifiée autant. Ça a pris du temps, tu es d'accord que ça a pris du temps, parfois il y a des bulles et quand ça explose c'est pas bien et tout et que les délais de temps sont trop longs pour anticiper, mais in fine, en fait, il faut juste prendre conscience que ça va... Juste les gens, les gens qui s'occupent de ça, les traders et tout, ils n'ont pas encore la conscience du mal qui va être fait dans 60-70 ans, de ce qu'ils font maintenant. S'ils en avaient conscience, s'ils pouvaient se projeter à quel point ça va leur coûter, ils changeraient, tu vois.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "s'est",
+      "l'a",
+      "tu",
+      "et",
+      "en",
+      "ça",
+      "s'occupent"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3650.33,
+    "end": 3659.33,
+    "speaker": "Interlocuteur 10",
+    "text": "Le problème c'est qu'ils ne savent pas, les financiers ne savent pas, ils sont très parqués dans leur domaine d'expertise, ils ne savent pas que ce qu'ils font c'est mal en société.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Le",
+      "qu'ils",
+      "que",
+      "en",
+      "société."
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3661.67,
+    "end": 3762.12,
+    "speaker": "Interlocuteur 1",
+    "text": "Oui c'est ça, en fait le marché ne price pas les externalités, c'est le principe. Du coup là par exemple ce que tu as dit sur la Chine et les gros problèmes, le charbon, en fait typiquement c'est pas le marché qui a pris cette décision. C'est pas le marché qui a rendu plus cher le bois, comme ça a été l'État qui a pris une décision en disant bon bah là on va arrêter de mener une politique de déforestation et on va plutôt remplacer ça par de l'énergie électrique. Peut-être que c'est pas vrai et dans ce cas je vais tout corriger, mais je crois que c'est ce qui s'est passé et voilà oui bon bah c'est ça, moi encore une fois je suis pour un capitalisme régulé. Autant croire en l'efficience du marché, non, le marché ça ne traite pas les externalités, surtout le marché c'est très court-termiste, c'est à dire que le marché ça va voir à trois ans devant lui quoi, en fait parier sur le fait que le pétrole un moment on va plus l'utiliser on voit bien que c'est pas ce qui se passe et sur la transition, moi je suis très d'accord avec Interlocuteur 9 sur le fait qu'il y a une transition à faire et moi je parle bien de transition, il y a une transition à faire sur le à quel point on doit décroître, quoi c'est le truc, c'est ce qu'on essaie de faire. Oui bah là c'est d'accord avec ce que tu as dit sur on doit choisir comment on décroît, sinon on subit.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Oui",
+      "en",
+      "Du",
+      "disant",
+      "monsieur",
+      "du",
+      "c'est",
+      "ça",
+      "bon",
+      "tout",
+      "non",
+      "le",
+      "surtout",
+      "trois",
+      "quoi",
+      "un",
+      "ya",
+      "le",
+      "c'est",
+      "bleu",
+      "c'est",
+      "ce",
+      "bah",
+      "on",
+      "doit",
+      "son",
+      "subi",
+      "comme",
+      "une"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3765.64,
+    "end": 3849.44,
+    "speaker": "Interlocuteur 9",
+    "text": "On a plusieurs fois cité la Chine et sa manière de gérer une sorte de taxe carbone et comment est-ce qu'elle fait pour réduire ses émissions. Et puis on a parlé du marché chinois et du fait qu'ils ont réussi à modifier leur production de bois parce que ça leur coûtait plus cher en termes de carbone, etc. Mais j'ai eu un peu l'impression que l'exemple chinois est extrêmement particulier puisque l'État chinois a un fonctionnement qui est quand même pas très démocratique et je ne sais pas si cet exemple-là, bien qu'il soit fonctionnel d'un point de vue de quantité de carbone émis, soit un exemple à suivre et une méthodologie qui puisse s'adapter dans nos sociétés, étant donné qu'il faut un contrôle de l'État tout-puissant. Je ne sais pas si c'est un peu ce que tu disais tout à l'heure, quand tu parlais de la technique d'Interlocuteur 1 sur les régulations de l'État et de toute la production. Il faut que l'État soit hyper puissant pour pouvoir réglementer très fortement la production et donc ensuite avoir un impact positif. Mais est-ce que dans le contexte actuel, avec nos sociétés occidentales, cet exemple-là est celui qu'il faut suivre et est-il envisageable ? C'est ça que je veux dire.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "que",
+      "l'on",
+      "de",
+      "la",
+      "On",
+      "une",
+      "etc.",
+      "et",
+      "Mais",
+      "il"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3858.98,
+    "end": 3917.06,
+    "speaker": "Interlocuteur 4",
+    "text": "Du coup, pour revenir sur ce que tu disais, Interlocuteur 1, sur la non-efficience des marchés selon toi, est-ce que tu aurais des exemples de secteurs de production où tu voudrais vraiment garder les marchés, par exemple, où tu vois que ce ne serait pas possible ? Parce que par exemple, en France, la SNCF c'était un monopole sur les trains, EDF, c'est un monopole sur l'électricité. La sécu, c'est un monopole public sur la santé. Globalement, ces trois exemples fonctionnent très bien. Ma question, c'est pourquoi est-ce qu'on ne pourrait pas étendre cette logique-là et garder un tout petit peu de privé, mais ça serait un privé, si tu veux, au sens pour garder quand même un peu d'innovation, pour laisser de la liberté d'innovation à des gens, mais ça ne serait absolument pas ça qui structurerait l'économie. C'est-à-dire que vraiment on aurait par exemple des gens qui seraient payés à, je ne vais pas imaginer, des entreprises d'innovation, ce genre de choses, mais en un certain endroit dans la société où tu laisses de la liberté d'entreprendre aux gens, mais le total est sorti des marchés. Pourquoi est-ce que tu voudrais garder du marché ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "les",
+      "parce",
+      "au",
+      "C'est-à-dire",
+      "à,",
+      "vais",
+      "en",
+      "es",
+      "à"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 3919.52,
+    "end": 4008.42,
+    "speaker": "Interlocuteur 1",
+    "text": "Parce que je ne veux pas dire que l'URSS c'est vraiment un cas communiste, mais en tout cas c'est un bon exemple de ce qui s'est passé quand on a vraiment pas voulu le marché, quand on a voulu un Gosplan et que c'était plus du tout les consommateurs qui choisissaient ce qu'on leur donnait mais que c'était vraiment des fonctionnaires qui l'ont planifié, bon bah ça a pas du tout marché. Ça a marché en termes de production pendant un moment, à quel point ils ont produit en termes de ce que l'État voulait, quoi, des armes, des tracteurs, voilà, mais en soi sur les populations, on n'a pas vraiment développé ce que voulaient les populations, on ne savait pas parce que pas de rencontre d'offres et donc c'est déjà ça, c'est une bonne incarnation de pourquoi est-ce que je pense que le marché est nécessaire, à défaut d'être suffisant surtout à réglementer, et en fait il y a plein de marchés où tu as envie de ça pour agréger les informations. Est-ce que vraiment j'imagine un système de boulangerie qui soit tout appartenant à l'État ? Non, mais ça me paraît cohérent d'avoir des entrepreneurs de mon chèque. Et sur les secteurs ? Oui, sur l'énergie, moi je serais pour la nationalisation, mais je pense que ça se fait au cas par cas. Par exemple, sur les médicaments, je ne sais pas à quel point on a déjà vu un système de monopole du médicament vraiment créer des médicaments.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "parce",
+      "c'est",
+      "plan",
+      "de",
+      "quoi",
+      "de",
+      "d'armes",
+      "voilà",
+      "mais",
+      "pas",
+      "et",
+      "donc",
+      "à",
+      "de",
+      "mais",
+      "mon",
+      "chèque.",
+      "Et",
+      "?"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4011.06,
+    "end": 4027.32,
+    "speaker": "Interlocuteur 1",
+    "text": "Alors qu'actuellement, c'est des privés qui développent des médicaments avec des gros biais de production. Voilà. Si tu as d'autres exemples de secteurs, je pourrais parler au cas par cas, mais je ne",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de",
+      "Voilà.",
+      "je",
+      "ne"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4027.32,
+    "end": 4097.94,
+    "speaker": "Interlocuteur 4",
+    "text": "peux pas répondre. Du coup, sur la santé, si on prend l'exemple des États-Unis, elle est énormément financée par le public. C'est vraiment phénoménal. Et c'est des financements privés et de la recherche publique qui, après, simplement, par exemple, des brevets qui sont rachetés à l'État par des secteurs privés, qui après font du bénéfice dessus. Donc en fait, la recherche de base est publique et également avoir une santé publique pharmaceutique, ça permettrait d'orienter vers quoi est-ce qu'on fait la recherche, comme tu l'as dit. Aujourd'hui, c'est plutôt guidé par le profit. C'est quels sont les traitements qui, globalement, vont nous rapporter le plus, même si ce n'est pas ça qui va soigner le plus de gens. Déjà, ça permet d'orienter plutôt la production vers le bien-être plutôt que le profit. Par rapport à l'URSS, ils avaient un gros problème, effectivement, au niveau des prix, qui est que l'État était extrêmement centralisé. Et ça, c'était déjà critiqué à l'époque par les communistes, qui disaient qu'il n'y avait pas assez de collectivité, les différentes régions n'étaient pas assez autonomes. Ça, c'était déjà critiqué à l'époque. Et il y a un article, bon, j'ai essayé de chercher, mais j'ai oublié, qui parlait de... c'est des chercheurs du CNRS français, qui explique qu'aujourd'hui avec la data science et l'IA, on pourrait faire une prévision économique, pardon, c'est quoi",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "après",
+      "et",
+      "l'étude,",
+      "le",
+      "groupe",
+      "bon,",
+      "c'est",
+      "qui"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4097.94,
+    "end": 4169.62,
+    "speaker": "Interlocuteur 4",
+    "text": "le mot exact ? C'est... Modélisation. Pardon, vas-y. Modélisation, je ne sais pas. Anticipation, c'est un plan économique, par exemple comme fait la Chine sur des décennies, avec ces choses-là, notamment parce que ce ne serait pas le marché qui régulerait les prix, mais ce serait l'IA et la data science avec des algorithmes d'État qui feraient en sorte que la production sur certains secteurs, on voit que là ça manque, il faudrait en mettre plus, là au niveau de la consommation il faudrait redistribuer de la nourriture dans cette région-là et donc ça ne serait pas dicté par des marchés, ça serait dicté par est-ce que les gens là manquent de nourriture oui, non, etc. et qu'il y a des algorithmes qui guident ça, donc ça, ces technologies pourraient beaucoup nous aider à faire ça, et aussi l'URSS c'était la merde pas exclusivement à cause du communisme, c'est surtout parce qu'ils ont dû rattraper un retard de force productive, en fait ils n'avaient rien et du coup ils se sont bougés de faire les choses extrêmement vite pour attraper les États-Unis et c'est aussi ça qui a fait qu'il y avait des famines parce qu'en fait à la fin du 19e en Russie il y avait déjà des famines et il y en avait encore en URSS, mais c'est le truc c'est que ils ont voulu aller beaucoup trop vite et beaucoup trop de centralisation. Aujourd'hui en France si on veut faire un système comme ça, en fait, on n'aurait pas toutes",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "un",
+      "ce",
+      "ça",
+      "il",
+      "et",
+      "ne",
+      "ça",
+      "qu'il",
+      "en"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4169.62,
+    "end": 4192.3,
+    "speaker": "Interlocuteur 4",
+    "text": "ces galères-là, tu vois c'est à dire que la production en France on a une autonomie alimentaire qui est quand même extrêmement forte, on a des contrats commerciaux avec 20 pays dans le monde qui sont bien ficelés, il n'y aurait pas de famine en fait. C'est-à-dire que même si ce n'est pas guidé par le marché, je pense qu'on aurait totalement les moyens de donner à manger à tout le monde et de la nourriture de meilleure qualité d'ailleurs, parce qu'on pourrait réguler beaucoup plus comment est-ce qu'elle est produite.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "tu",
+      "en"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4196.21,
+    "end": 4252.97,
+    "speaker": "Interlocuteur 2",
+    "text": "C'était pour revenir sur ce que tu venais de dire. Tu parlais de la Chine en disant que justement, est-ce qu'on peut vraiment prendre comme exemple ce qui est un état totalitaire, enfin autoritaire, excusez-moi, et donc c'est problématique. Aussi c'est vrai que ça explique quand même énormément la transition écologique qu'ils sont en train de faire, enfin une fois que le gouvernement a décidé de faire ça, bon ben tout le monde suit, tout le monde est obligé de suivre, et donc la question c'est, que je vous pose, comment, peut-être plutôt Interlocuteur 1, parce que c'est un peu ce qu'il défend, mais comment est-ce qu'on peut avoir un état qui est très fort et donc qui va permettre de contraindre ou de motiver les entreprises à faire la transition écologique, donc à faire un mouvement quand même de société qui est assez massif, sans tomber dans une forme d'autoritarisme. Et du coup, peut-être que ça revient un peu sur ce que tu disais sur les Trente Glorieuses, si je ne dis pas de conneries, on ne se comprend pas, bref. Là,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'était",
+      "ce",
+      "en",
+      "c'est",
+      "bon",
+      "ben",
+      "tout",
+      "peut-être",
+      "ou",
+      "à",
+      "donc",
+      "Et",
+      "ne",
+      "on",
+      "ne"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4252.97,
+    "end": 4314.69,
+    "speaker": "Interlocuteur 1",
+    "text": "la taxe est à nous. Pour moi, c'est le mini-instrument. Ce n'est pas suffisant. Tu vas devoir mettre d'autres réglementations mais c'est le gros, c'est-à-dire tes alternatives carbonées sont plus chères que décarbonées avec l'augmentation du prix et en plus si tu planifies bien cette augmentation dans le marché, au bout d'un moment il va se dire, peut-être que je vais arrêter d'investir, non. C'est pour ça qu'avec des interdictions, par exemple des voitures thermiques, il n'y a plus d'interdiction de voitures thermiques, mais il y a quasiment l'équivalent dans la loi, les voitures thermiques vont s'arrêter en 2035 en Europe. C'est vraiment équivalent dans la loi aujourd'hui. Justement, on planifie le truc en disant, voilà, vous allez faire ça. Mais ce n'est pas l'État qui est en charge de trouver le moyen de battre les concurrents privés. On reste dans une logique de concurrence où des grosses entreprises essaient de battre le concurrent et donc de faire des innovations.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "mini-instrument.",
+      "tu",
+      "mais",
+      "tes",
+      "dans",
+      "des",
+      "C'est",
+      "le",
+      "voilà,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4327.59,
+    "end": 4349.83,
+    "speaker": "Interlocuteur 1",
+    "text": "Moi je voulais juste parler à Interlocuteur 4, c'était pour l'IA, la data science c'est l'IA. Moi je veux bien qu'on voit ça, mais pour l'instant c'est quand même tellement expérimental. Déjà que j'ai peur de l'IA, mais en plus si elle gère l'économie, pourquoi pas ? Mais il faudrait quand même qu'il y ait des preuves que ça marche. Sur",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Moi",
+      "c'est"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4353.09,
+    "end": 4398.93,
+    "speaker": "Interlocuteur 9",
+    "text": "les deux points, le point de la question de la taxe carbone et de la planification et de l'IA, j'ai du mal à saisir comment est-ce que planifier sans avoir un état qui serait autoritaire et très fort, ça fonctionne réellement. Est-ce que vous avez une idée de comment est-ce que, concrètement, on peut avoir un impact assez fort ? Est-ce qu'on met une taxe carbone qui serait abusée à l'échelle de la France, de l'Europe ? Je ne comprends pas exactement comment ça pourrait marcher sans avoir une sorte de contrainte très forte sur les entreprises.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "et",
+      "et",
+      "à"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4401.75,
+    "end": 4471.53,
+    "speaker": "Interlocuteur 4",
+    "text": "Du coup l'idée déjà là on parle par exemple si on parle de la santé du capitalisme le seul avantage c'est pas du tout l'écologie, l'environnement etc. Il y a aussi tout l'avantage de la dépendance au marché du travail qui fait que tu pourrais par exemple instaurer un revenu général où les individus ne sont plus dépendants de leur emploi et donc par exemple ils tiennent vraiment à ce système parce que ça leur assure une garantie économique générale qui est beaucoup plus forte et deuxièmement je vois pas pourquoi est-ce que tu penses que ça serait directement totalitaire. Peut-être que tu penses à l'URSS qui était extrêmement centralisée à Moscou. Mais tu peux vraiment redonner une autonomie. Et par exemple, Proudhon parlait d'un État, en fait, si tu veux, un cercle. Il disait que ça se fait de l'extérieur, c'est-à-dire les plus petites collectivités. Ensuite, on revient au département, aux régions. Et à la fin, on a un consensus d'États qui se forment. C'est pas obligé d'être comme en Chine où c'est globalement l'inverse, où tu as un État très fort qui donne les directives pour le reste. Et moi, je voulais faire remarquer que l'État dans lequel on vit aujourd'hui est déjà autoritaire. Par exemple, en France, je crois que les Gilets jaunes, c'était 115 éborgnés, des chiffres similaires. Et dès qu'il y a des contestations ou des revendications sociales, t'as les CRS qui te tirent dessus",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "du",
+      "santé",
+      "C'est",
+      "Et",
+      "Par",
+      "t'as"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4471.53,
+    "end": 4496.23,
+    "speaker": "Interlocuteur 4",
+    "text": "avec des flashballs. Donc en fait, on peut faire passer des lois jusqu'à ce qu'elles dérangent la bourgeoisie. Et donc finalement, est-ce que c'est plus ou moins autoritaire ? Je ne sais pas. Est-ce qu'un État qui impose des mesures écologiques est plus autoritaire qu'un État qui, comme aujourd'hui en France, ne se laisse pas faire pour imposer des mesures écologiques ? Quel est le plus autoritaire ? Moi, je ne sais pas. Est-ce que vous avez un",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4496.23,
+    "end": 4500.87,
+    "speaker": "Interlocuteur 9",
+    "text": "exemple concret d'application de la transition ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de",
+      "l'intensité"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4501.33,
+    "end": 4521.59,
+    "speaker": "Interlocuteur 4",
+    "text": "Non, aujourd'hui, ce n'est clairement pas appliqué dans le monde. En fait, le capitalisme est un mode de production. En tant que mode de production, il a besoin de s'étendre sur toute la planète pour être optimal au même titre que le communisme, donc c'est vrai que t'as aujourd'hui quasiment aucun pays, t'as Cuba qui souffre beaucoup à cause du blocus, t'as la Corée du Nord qui est complètement isolée, mais globalement on n'a pas d'objectif",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "au",
+      "donc",
+      "t'as"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4525.44,
+    "end": 4608.6,
+    "speaker": "Interlocuteur 1",
+    "text": "Oui alors c'était du coup ce que tu disais, donc moi encore une fois vraiment, ça dépend ce qu'on défend mais encore une fois je pense pas que pour que le capitalisme devienne écolo et compatible avec des objectifs climatiques on a besoin d'avoir un état tout puissant ou pas, parce que la planification la taxe carbone, t'as dit que tu savais pas comment ça fonctionnait mais c'est vraiment juste tu dis à émettre une tonne de CO2 pour cette entreprise ça vaut tant, en gros c'est ça ou alors tu fixes combien en tout est autorisé à émettre et le marché va lui fixer un prix parce qu'à quel point elles en ont besoin, à quel point elles émettent. Donc en fait au final, c'est juste un prix au carbone. Non du coup bon bah moi, je suis une entreprise, j'émets du carbone, et ensuite, on me dit, voilà ce que tu fais, ça va te coûter beaucoup plus cher. Je veux être rentable, ou engraisser mes actionnaires, enfin, enrichir mes actionnaires. Et du coup, dans ce cas, je vais essayer, si c'est possible, d'aller vers une alternative moins carbonée. Et là, on voit bien que l'État ne m'a pas du tout forcé, enfin, m'a bien incité. Mais en tout cas, ce n'est pas l'État, ce ne sont pas des fonctionnaires qui sont venus dans mon business et qui ont dit, il faut faire ça, ça, ça. C'est vraiment aligner le marché et ses intérêts, le prix, vers l'écologie. Donc c'est pour ça que la taxe carbone,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "oui",
+      "compatible",
+      "on",
+      "d'avoir",
+      "ou",
+      "pas",
+      "parce",
+      "la",
+      "t'as",
+      "à",
+      "à",
+      "un",
+      "non",
+      "Moi,",
+      "voilà",
+      "C'est",
+      "Donc"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4608.66,
+    "end": 4643.0,
+    "speaker": "Interlocuteur 1",
+    "text": "c'est vraiment, au moins la tarification du carbone, c'est vraiment loin d'un état qui serait dirigiste ou quoi. Et encore une fois, j'ai regardé dans les assertions, les nationalisations, on n'est pas du tout tous d'accord. Moi je ne serais pas d'accord pour nationaliser toutes les grandes entreprises pour faire ce genre de choses, notamment parce que je pense qu'on n'en a pas besoin, qu'on peut les inciter à aller vers là. Vraiment je nationaliserais vraiment EDF et le marché de l'électricité. Pas EDF non, je veux dire le marché de l'électricité. Actuellement je pense que c'est une connerie, on pourrait y revenir mais voilà. Mais il y a des trucs où je ne pense même pas qu'il y ait besoin de nationaliser.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "d'électricité.",
+      "Pas",
+      "non,",
+      "de",
+      "ne"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4643.24,
+    "end": 4661.62,
+    "speaker": "Interlocuteur 9",
+    "text": "Mais avec cette définition, est-ce qu'il n'y a pas un risque de délocalisation des entreprises très polluantes dans les pays, comme on parlait au début, qui seraient non soumis à une taxe ? Et donc au final, on fait quoi ? On met nos entreprises polluantes dans les pays ?",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Mais",
+      "ce",
+      "Et",
+      "nos"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4662.28,
+    "end": 4710.5,
+    "speaker": "Interlocuteur 1",
+    "text": "Alors ça, les fonctionnaires européens ont déjà une réponse, elle est déjà en place, c'est l'équilibre carbone aux frontières. C'est-à-dire que si jamais il y a un pays qui ne paie pas de taxe carbone et qui nous envoie des produits qui ne sont pas carbonés, donc du coup avec une concurrence déloyale, eh bien on met cette taxe carbone. Et du coup, à l'intérieur de notre marché, il y a quand même cette concurrence. Le problème, c'est plus les exportations. C'est-à-dire qu'on ne peut pas réussir à être aussi compétitif. Mais en fait, même l'Allemagne va dans le sens de la taxe carbone, alors que l'Allemagne est vraiment le poumon industriel de l'Europe. En fait, même l'Allemagne se dit qu'au bout d'un moment, on va décarboner notre économie. Autant dire au marché, peut-être que là, c'est moins rentable, peut-être que vous allez moins exporter, mais dans le futur, ça va nous être pratique. Quand",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "eh"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4714.75,
+    "end": 4735.39,
+    "speaker": "Interlocuteur 4",
+    "text": "tu me demandais d'exemples de pays communistes, je peux comprendre que ça fasse peur, qu'il n'y ait pas d'incarnation physique de ce mode de production-là. Mais par exemple, quand on est passé du féodalisme au capitalisme, c'était tout nouveau ici, c'est tous les rapports sociaux qui ont été chamboulés. Et pourtant, finalement, il s'est mis en place sur toute la planète. Si",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "je",
+      "Et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4750.59,
+    "end": 4752.83,
+    "speaker": "Interlocuteur 3",
+    "text": "on définit le capitalisme comme une détention,",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "une"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4757.83,
+    "end": 4763.13,
+    "speaker": "Interlocuteur 3",
+    "text": "on possède des moyens de production, la question que je me pose, c'est pourquoi est-ce qu'un individu voudrait...",
+    "refused": false,
+    "speaker_source": "log",
+    "correction": "gemini"
+  },
+  {
+    "start": 4766.3,
+    "end": 4769.1,
+    "speaker": "Interlocuteur 3",
+    "text": "pour faire du profit. Donc, si on utilise",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "pour"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4769.1,
+    "end": 4797.28,
+    "speaker": "Interlocuteur 1",
+    "text": "cette logique, ça veut dire que la seule fin du capitalisme, c'est de faire du profit ? C'est d'aligner l'intérêt des individus. Par exemple, moi, c'est de faire du profit sur du pain. C'est-à-dire que mon but, c'est de te fournir ton besoin en pain, en me donnant de l'argent pour pouvoir répondre à mes besoins, et surtout mes envies, donc capitalisme. Et du coup, effectivement, il y a la concurrence, du fait que du coup moi je vais baisser mon prix pour que tu préfères mon pain au pain de l'autre côté.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "fin",
+      "de",
+      "donc",
+      "du",
+      "à",
+      "l'autre"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4797.78,
+    "end": 4802.0,
+    "speaker": "Interlocuteur 3",
+    "text": "Non, ça c'est une conséquence. Effectivement, c'est une conséquence. Mais voilà, c'est ça l'intérêt",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Non,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4802.0,
+    "end": 4805.34,
+    "speaker": "Interlocuteur 1",
+    "text": "effectivement, c'est de faire des profits.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "effectivement,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4808.48,
+    "end": 4816.82,
+    "speaker": "Interlocuteur 4",
+    "text": "Et donc du coup il y a quand même toujours la croissance quoi. Parce que si toutes les entreprises au global, au positif, font du profit, c'est qu'il y a de la croissance. Voilà, c'est ça pour moi la conséquence.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Et",
+      "quand",
+      "pour"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4816.98,
+    "end": 4837.66,
+    "speaker": "Interlocuteur 1",
+    "text": "Non, la croissance ce serait l'augmentation de ces profits ou même l'augmentation du PIB, mais tu pourrais très très bien faire le même profit que tout le monde, très bizarre comme pensée dans un capitalisme aujourd'hui qui est le même depuis les années 70 mais ce serait les mêmes profits chaque année et en fait la plupart des entreprises d'aujourd'hui c'est ça, c'est-à-dire que votre boucher, il ne fait pas plus de profits",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "ces",
+      "penser",
+      "c'est",
+      "ne"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4837.66,
+    "end": 4842.42,
+    "speaker": "Interlocuteur 4",
+    "text": "chaque année. La plupart des entreprises quand même essaient de croître pour faire plus de profits l'année suivante en",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "pour"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4842.42,
+    "end": 4849.22,
+    "speaker": "Interlocuteur 1",
+    "text": "fait non, la plupart des vrais la plupart des TPE, PME ne font pas de la",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "rejetee",
+    "correction_motif": "réécriture trop importante",
+    "texte_gemini": "fait non, la plupart des vraies PME, TPE ne font pas de la"
+  },
+  {
+    "start": 4849.22,
+    "end": 4853.7,
+    "speaker": "Interlocuteur 4",
+    "text": "croissance. Parce qu'elles n'y arrivent pas. Elles voudraient. Oui, oui. Alors, même pas",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Parce",
+      "Alors,"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4853.7,
+    "end": 4864.28,
+    "speaker": "Interlocuteur 1",
+    "text": "forcément. Pour les investisseurs, il faut faire plus de profits. Même pas forcément, parce que ça se trouve, ton boucher, il gagne très très bien sa vie, et pour pouvoir croître, il devra faire encore plus de travail, qui sera vraiment chiant, et du coup, il reste comme ça. C'est un cas particulier.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Pour",
+      "il",
+      "faut"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4864.58,
+    "end": 4877.34,
+    "speaker": "Interlocuteur 4",
+    "text": "Les gens qui gèrent des structures grosses de 150 ou plus salariés, globalement, c'est juste un investissement comptable qui augmente un profit comptable. Ça n'augmente pas une charge de travail, donc c'est là où j'ai un peu du mal à suivre.",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 4878.14,
+    "end": 4882.18,
+    "speaker": "Interlocuteur 1",
+    "text": "Donc là, ce serait un autre sujet, c'est comment le capitaliste ne peut pas être croissantiste.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Donc"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4882.28,
+    "end": 4897.52,
+    "speaker": "Interlocuteur 4",
+    "text": "Voilà, c'est ça. Parce que par exemple, quand tu empruntes à une banque, elle va accepter que tu lui fasses un crédit sous condition que tu fasses plus de profits l'année suivante et donc que tu fasses croître ton entreprise. Donc ça veut dire qu'il n'y aurait plus de crédit. Enfin, je ne sais pas, j'ai du mal à…",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4898.44,
+    "end": 4905.94,
+    "speaker": "Interlocuteur 1",
+    "text": "Alors, en tout cas, peut-être que c'est un autre sujet que tu peux aborder ? De toute façon, je crois qu'on est vers la fin. Ça fait déjà 1h15 qu'on",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "Alors,",
+      "en",
+      "que",
+      "peux",
+      "?",
+      "De",
+      "ça"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4905.94,
+    "end": 4908.7,
+    "speaker": "Interlocuteur 11",
+    "text": "dévoile. Est-ce que vous voulez qu'on passe au",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 4908.7,
+    "end": 4911.28,
+    "speaker": "Interlocuteur 1",
+    "text": "quota carbone individuel ? Je",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "je"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4914.61,
+    "end": 4964.67,
+    "speaker": "Interlocuteur 1",
+    "text": "l'ai proposé parce que c'était une divergence dans ce qu'on pensait, mais moi je serais plutôt contre dans le sens où c'est très dur de faire une comptabilité carbone individuelle. Si jamais on pouvait cliquer des doigts et qu'on arrivait à bien mesurer ça, et on avait un quota carbone individuel, ça me paraîtrait très équitable, au moins on pourrait réfléchir à comment le rendre équitable, en fonction des besoins. Par exemple, typiquement, l'avion, je pense qu'on devrait fortement freiner parce qu'on n'a pas la technologie, mais je trouve qu'il y a des personnes qui sont plus légitimes à prendre l'avion que d'autres, notamment des personnes dont la famille est loin. Et aussi qu'il y a certains postes, notamment des politiques ou des postes à responsabilité qui vont avoir besoin, qui le prennent beaucoup trop, parce qu'ils le devraient, mais qui ont quand même besoin de se déplacer ailleurs. Pour moi, c'est la faisabilité qui pose problème.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "en",
+      "si",
+      "parce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4967.55,
+    "end": 4994.85,
+    "speaker": "Interlocuteur 4",
+    "text": "Je me fais un peu l'avocat du diable, mais aujourd'hui, tous nos achats sont centralisés sur des cartes bancaires. Moi, je défends la proposition, mais tous nos achats sont centralisés sur des cartes bancaires. Finalement, est-ce que dans le détail de l'achat, ça serait vraiment surveiller à fond les citoyens, etc. Dans tous les cas, c'est un peu l'idée de la proposition. Je pense que la faisabilité n'est pas si dure que ça. Parce que juste sur l'achat de cartes bancaires, tu précises l'article qui a été acheté avec une référence. Et",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Je",
+      "Dans",
+      "Parce",
+      "Et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 4994.85,
+    "end": 5000.83,
+    "speaker": "Interlocuteur 1",
+    "text": "du coup, ça présuppose de savoir combien est-ce que ton article, il a émis. Oui,",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "du"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5000.85,
+    "end": 5006.15,
+    "speaker": "Interlocuteur 4",
+    "text": "mais ça, l'entreprise, par exemple, à chaque fois qu'elle crée un nouvel article associé à une référence, elle peut calculer le coût carbone. Ça",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 5006.15,
+    "end": 5021.09,
+    "speaker": "Interlocuteur 1",
+    "text": "veut dire du coup, tu as besoin d'une comptabilité carbone dans les entreprises. Et basiquement, il faut rajouter autant de personnes qui bossent sur ta comptabilité financière en comptabilité carbone. Autant non. Pourquoi ce serait différent ? C'est quasiment la même chose. C'est juste que tu comptes des trucs tout le long de ta chaîne de production.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "du"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5024.53,
+    "end": 5026.69,
+    "speaker": "Interlocuteur 1",
+    "text": "ça me paraît compliqué à mettre en place mais",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ça",
+      "mais"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5028.58,
+    "end": 5034.06,
+    "speaker": "Interlocuteur 11",
+    "text": "le fait est que la taxe carbone n'étant pas suffisante, comment est-ce qu'on peut la compléter ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "du"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5036.04,
+    "end": 5046.94,
+    "speaker": "Interlocuteur 4",
+    "text": "Du coup, vu que tu étais pour la taxe carbone, quand tu as besoin de faire une taxe pour mettre en place la taxe carbone, chaque entreprise a déjà besoin de calculer, non ? Parce que la taxe carbone",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "non",
+      "parce",
+      "la"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5046.94,
+    "end": 5072.54,
+    "speaker": "Interlocuteur 1",
+    "text": "tu le mets directement sur l'énergie, par exemple, ou alors je crois qu'elle est mise sur l'énergie. Du coup, en fait, elle découle de tout ce qui est énergétique, par exemple, à la toute base, mon baril de pétrole, il est plus cher et voilà, ensuite, par exemple, quand tu émets du CO2 dans des industries lourdes comme la réduction de l'acier, tu sais à peu près combien ça émet et du coup tu leur mets des quotas.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "le",
+      "du",
+      "par",
+      "mon",
+      "il",
+      "tu"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5072.54,
+    "end": 5077.38,
+    "speaker": "Interlocuteur 4",
+    "text": "L'entreprise n'aurait pas besoin de calculer individuellement pour chaque produit l'émission carbone sur la chaîne logistique",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "l'entreprise"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5077.38,
+    "end": 5077.52,
+    "speaker": "Interlocuteur 1",
+    "text": "va",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "va"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5077.52,
+    "end": 5079.02,
+    "speaker": "Interlocuteur 4",
+    "text": "pas le temps d'être",
+    "refused": false,
+    "speaker_source": "log",
+    "low_conf_words": [
+      "le"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5079.02,
+    "end": 5082.38,
+    "speaker": "Interlocuteur 1",
+    "text": "un tout petit peu à voir, effectivement, je mets du doute dans ce que je dis.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "tout",
+      "dans"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5085.57,
+    "end": 5155.65,
+    "speaker": "Interlocuteur 10",
+    "text": "Sur les quotas individuels, c'est vrai que moi au début j'étais contre cette proposition, je la trouvais injuste, parce que justement pour moi il n'y avait pas cette notion de pondération des droits carbone de chacun en fonction de leurs besoins réels. C'est vrai que tu m'as plutôt convaincu, si on arrivait en fait à pondérer les besoins de chacun, donc par exemple que la personne utilise sa voiture pour aller au travail, et donc, en fait, il a plus de droits de carbone que le personnel qui n'en a pas besoin. Les personnes qui vont voir leur famille loin, bon, ça c'est une question, c'est évident. Bon, en fait, effectivement, je crois que c'est plutôt juste. La grande question, c'est comment tu convertis tous ces trucs-là dans le monde des gens. Et pour moi, la question de, oui, il faudrait que chaque article, on ait un coût carbone. Évidemment, je pense que c'est peut-être le plus simple à faire dans cette partie-là. Mais ce n'est pas le problème de la difficulté de la faisabilité. Le problème de la faisabilité, c'est qui a droit à quoi ? C'est-à-dire, comment est-ce que, si on n'a pas les bons droits, pour des raisons différentes, le mec qui habite à 15 minutes plus loin, est-ce qu'il aura besoin de droits à plus de carbone ? C'est super complexe, et donc là, oui, là j'ai des doutes. Mais, par contre, dans le principe, si on y arrivait, finalement, je suis plutôt convaincu.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Sur",
+      "c'est",
+      "au",
+      "pour",
+      "vas",
+      "en",
+      "donc",
+      "Et",
+      "de",
+      "loin.",
+      "Bon,",
+      "Bon,",
+      "convertes",
+      "tous",
+      "dans",
+      "C'est-à-dire,",
+      "comment",
+      "minutes",
+      "est-ce",
+      "finalement,",
+      "plutôt"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5158.73,
+    "end": 5192.31,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est vrai que c'est un autre argument contre, ça a l'air vachement compliqué de savoir quels besoins qui voilà et du coup bas sur la taxe carbone donc sur la taxe carbone ça donne un espèce de monopole aux riches de polluer et bon bah en fait là déjà la taxe carbone au moins elle elle enlève toutes les réglementations que tu dois faire sur tout ce qui n'est pas ce problème là, c'est donc déjà c'est ça t'enlève plein de régulations à faire, donc c'est déjà une simplicité accrue, mais même sur ces sujets, c'est à",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "de",
+      "qui",
+      "voilà",
+      "bas",
+      "la",
+      "bon",
+      "que",
+      "c'est",
+      "donc",
+      "une",
+      "à",
+      "c'est"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5192.31,
+    "end": 5197.85,
+    "speaker": "Interlocuteur 11",
+    "text": "dire que si jamais c'est ça",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "c'est",
+      "ça"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5197.85,
+    "end": 5206.07,
+    "speaker": "Interlocuteur 1",
+    "text": "si jamais tu ne mets pas taxe carbone, c'est-à-dire tu dois aller réglementer chacun des problèmes qui auraient été réglés par la taxe carbone.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "la"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5206.07,
+    "end": 5207.13,
+    "speaker": "Interlocuteur 11",
+    "text": "Oui",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "oui"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5207.13,
+    "end": 5207.95,
+    "speaker": "Interlocuteur 1",
+    "text": "c'est",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 5207.95,
+    "end": 5209.07,
+    "speaker": "Interlocuteur 11",
+    "text": "nécessaire mais est-ce que c'est juste",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "est-ce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5209.07,
+    "end": 5239.81,
+    "speaker": "Interlocuteur 1",
+    "text": "Ok c'est vrai et non mais même si je ne répondais pas là-dessus, la taxe carbone elle serait quand même souhaitable parce qu'elle enlève tout ça. Mais du coup, sur ce sujet-là, la taxe carbone ne fait rien, mais on peut faire des régulations, des régulations restantes. Typiquement, par exemple, limiter fortement, voire interdire les jets privés, ou des choses dans le genre. Par exemple, limiter le nombre de maisons que tu peux avoir. Là, on peut faire des régulations sur à quel point les riches ont une limite à polluer.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 5247.15,
+    "end": 5274.7,
+    "speaker": "Interlocuteur 3",
+    "text": "Si on est incapable de mesurer particulièrement ce qu'un individu est capable de consommer au moins en tant qu'un homme, c'est-à-dire un constat général de limite absolue pour tout le monde. De la même manière, c'est extrêmement autoritaire ou totalitaire sur le plan de la mesure. Moi, ça ne me paraît pas complètement absurde. Par exemple, je crois que ce n'était pas longtemps qu'elle a dit qu'il faudrait que chaque personne dans le monde n'ait effectué au plus qu'un vol dans sa vie.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "Si",
+      "en",
+      "tant",
+      "plan",
+      "mesure.",
+      "a"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5279.37,
+    "end": 5308.53,
+    "speaker": "Interlocuteur 3",
+    "text": "C'est pareil, tes téléphones, c'est pareil. Pourquoi est-ce que chacun a le droit d'avoir, je ne sais pas, de changer une fois de téléphone ? Pourquoi avoir chacun 10 fois le même ? Au fond, ça remplit le besoin, ça fonctionne pour tout le monde. En revanche, on sait que vouloir en développer toujours, toujours, toujours, ça pose des problèmes écologiques et économiques, tout ce qu'on veut. Tout en plus que tout le monde, si on essaie de généraliser la quantité de ce qu'on a, ce n'est juste pas compatible avec 7 milliards parce que le mode de vie occidental nécessite à peu près 6 planètes.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "C'est",
+      "tes",
+      "a",
+      "une",
+      "chacun",
+      "10",
+      "Au",
+      "prêt,",
+      "et",
+      "ce",
+      "7",
+      "parce"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5309.07,
+    "end": 5309.43,
+    "speaker": "[?]",
+    "text": "Pour",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Pour"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5313.62,
+    "end": 5324.6,
+    "speaker": "[?]",
+    "text": "finir, Jean-Paul, comme ça fait 1h20 ou 2, maintenant qu'on est là peut-être, pour finir par un tour de table, à part si vraiment vous voulez... Je peux juste faire un truc ? Ouais, si tu commences le tour de table... On",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Jean-Paul,",
+      "peut-être,",
+      "faire",
+      "Ouais,",
+      "si"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "rejetee",
+    "correction_motif": "masque sans prénom",
+    "texte_gemini": "finir, [prénom], comme ça fait 1h20 ou 2h maintenant qu'on est là peut-être, pour finir par un tour de table, à part si vraiment vous voulez... Je peux juste faire un truc ? Ouais, si tu commences le tour de table... On"
+  },
+  {
+    "start": 5324.6,
+    "end": 5326.8,
+    "speaker": "Interlocuteur 1",
+    "text": "va juste finir sur le sujet de la taxe carbone. De toute façon, le tour de",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "du",
+      "Côte"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5326.8,
+    "end": 5330.34,
+    "speaker": "[?]",
+    "text": "table, c'est... C'est toi qui... Tu parles, tu dis peut-être un",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5330.34,
+    "end": 5393.32,
+    "speaker": "Interlocuteur 5",
+    "text": "dernier mot pour finir sur le sujet, et après ton avis général sur le sujet. Ok. Juste, donc, moi je suis contre la taxe carbone parce que je pense que c'est une mesure qui est socialement pas du tout acceptable. Je pense que c'est peut-être le mode de vie aussi actuel qui est basé là-dessus. Le capitalisme, c'est un peu l'idée de se dire qu'il y a une chance qui est d'accéder à un meilleur niveau de vie au cours de sa vie. Et mettre un quota carbone, c'est... Même si, je ne sais pas, moi je pense que ce n'est pas du tout acceptable pour les gens, même si c'est impossible pour les gens d'arriver à un niveau social où ils vont pouvoir vivre dans le luxe, je ne sais pas moi je pense que c'est quelque chose qui, même si ce n'est pas bien, c'est quelque chose qui fait tenir la société en fait, d'avoir l'illusion que l'on peut augmenter son niveau de vie. Bah moi j'ai bien aimé le débat, je trouve qu'il était, il y avait des avis un peu partout. Après, je n'ai pas vraiment d'autre choix en plus à dire sur le débat.",
+    "refused": false,
+    "speaker_source": "log+voix",
+    "low_conf_words": [
+      "où",
+      "je",
+      "moi",
+      "ce",
+      "que",
+      "d'avance",
+      "Bah",
+      "trouve",
+      "Après,",
+      "choix",
+      "en"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5398.69,
+    "end": 5450.37,
+    "speaker": "Interlocuteur 11",
+    "text": "Est-ce qu'il est possible de mettre un cap ? Forcément, tout ce qui est consommation directe, ce n'est pas difficile. Alors que, par exemple, les vols, étant donné que tu dois montrer ta tête et ta carte d'identité quatre fois, c'est plus facile quand même de mettre un cap. Du coup, je pense que tu as quand même des mesures qui sont posables et d'autres qui le sont moins, en ce sens où justement ce truc de... Oui, par carte bancaire, tu peux avoir des données, je ne sais pas à quel point. En vrai, peut-être qu'on pourrait étendre le contrôle aéré, entre guillemets, à tout. Je ne sais pas, mais voilà. Et après ça, par rapport au débat, j'ai bien vu, il y a juste un thème qu'on n'a pas abordé, mais auquel je n'ai pas pensé non plus à proposer, c'était du coup le côté croissance-décroissance. Peut-être que tu as pu dire ce que tu en penses.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Est-ce",
+      "ce",
+      "quatre",
+      "quand",
+      "Du",
+      "Oui,",
+      "carte",
+      "Je",
+      "vu,",
+      "tu",
+      "pu",
+      "dire",
+      "ce",
+      "penses."
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5456.4,
+    "end": 5524.06,
+    "speaker": "Interlocuteur 2",
+    "text": "Moi, pour conclure sur ma position, je dirais, je suis plutôt d'accord avec l'idée de Interlocuteur 1 pour l'instant sur le fait d'avoir un capitalisme qui va être régulé. Pour l'instant, ça ne me paraît pas aberrant. Alors évidemment, il y a plein de limitations, mais bienvenue dans la réalité. Et dans un second temps, si vraiment... En fait, le truc, c'est plutôt... De façon pragmatique, il y a tellement de problèmes actuellement qui sont vraiment, qu'on peut juste régler, pas si difficilement que ça, et donc c'est vraiment la première étape qu'on doit faire, il faut vraiment absolument faire ça, le capitalisme pour l'instant c'est très compliqué de le changer, de changer de régime, et sinon d'améliorer ce qu'on a pour l'instant, et si ça ne marche pas, on va voir ce qu'il y a ensuite, pour l'instant c'est ce qu'il faut faire maintenant je pense. Voilà, et sinon sur le débat, écoutez, je n'ai pas énormément pris la parole parce que je n'ai pas forcément énormément d'avis très tranchés sur la question, mais j'ai beaucoup apprécié de vous écouter. Il y a des gens qui sont quand même très renseignés sur ces sujets-là et c'est intéressant d'entendre.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "qui",
+      "d'améliorer",
+      "Voilà,",
+      "j'ai",
+      "Il",
+      "d'entendre.",
+      "Donc"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5524.06,
+    "end": 5539.8,
+    "speaker": "[?]",
+    "text": "Voilà, merci pour ça. Du coup j'ai pas parlé du débat parce que je m'étais rendu là-dessus. J'étais juste venu là pour voir, c'était un plaisir d'écouter les gens débattre qui connaissaient pas mal de choses sur ce thème et",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "du",
+      "j'ai",
+      "m'étais",
+      "cd",
+      "ce",
+      "j'étais",
+      "juste",
+      "c'était",
+      "qui",
+      "mal",
+      "de"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5539.8,
+    "end": 5546.6,
+    "speaker": "Interlocuteur 1",
+    "text": "ça va sur le fait que t'aies pas parlé de ce théorème t'aurais pu en tout cas même parler même si t'avais appuyé sur le contour",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "t'aurais",
+      "contour"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5546.6,
+    "end": 5550.06,
+    "speaker": "[?]",
+    "text": "c'est",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "c'est"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5550.06,
+    "end": 5599.39,
+    "speaker": "Interlocuteur 3",
+    "text": "une personne qui est partie c'est mal effectivement c'est pas forcément la structure même de la ville existe déjà depuis bien avant. Quelle était sa question ? C'était par rapport au lien entre la constitution de la ville et le capitalisme. Ah oui, d'accord. Je suis d'accord avec le fait qu'il n'y a pas besoin de capitalisme pour avoir des villes, parce que la structure des villes existe déjà depuis bien plus de temps. En revanche, le point de vue, c'est la ville actuelle. Et pour ça, il y a un bon moyen de le comparer, c'est si on regarde des villes historiques. On voit qu'elles n'ont pas la même conception qu'une ville qui a été largement constituée à une période capitaliste, par exemple, aux Etats-Unis. Et on voit que dans une ville de ce genre-là, les activités sont centralisées et que si elles peuvent fonctionner, c'est parce que ce sont certaines activités qui sont délocalisées et pas d'autres. Et pour le débat, c'était intéressant.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "une",
+      "personne",
+      "c'est",
+      "mal",
+      "La",
+      "de",
+      "le",
+      "à",
+      "Et",
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5604.25,
+    "end": 5608.15,
+    "speaker": "Interlocuteur 1",
+    "text": "Quand tu réfléchissais, c'est normal de prendre du temps pour réfléchir ? Non, mais...",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 5609.77,
+    "end": 5610.09,
+    "speaker": "[?]",
+    "text": "Pas",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Pas"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5613.61,
+    "end": 5628.55,
+    "speaker": "Interlocuteur 9",
+    "text": "de pensée spécifique à l'adopter, mais oui, le débat, encore une fois, c'est intéressant d'avoir des gens qui sont plus ou moins renseignés, ça permet d'avoir des informations assez précises et en plus d'essayer d'ouvrir des idées différentes, donc c'est toujours hyper enrichissant.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "l'adopter,",
+      "d'avoir",
+      "gens",
+      "d'essayer"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5632.98,
+    "end": 5694.53,
+    "speaker": "Interlocuteur 10",
+    "text": "Moi je n'ai rien à ajouter sur le contenu du débat. Je le trouvais globalement très intéressant parce que des gens s'y connaissaient très bien. Maintenant sur mon côté perso, je suis venu un peu comme Interlocuteur 2, sans avoir de gros stakes et même je suis venu en étant d'accord directement avec un capitalisme régulé parce que c'est une idée qui me plaît plus, qui me convainc parce que j'aime le monde dans lequel on vit et ça me plaît d'y croire et en fait je sors de là toujours avec la même idée donc j'ai pas encore réussi à me convaincre de pourquoi ça faisait mieux, pourquoi le capitalisme pouvait être mieux et ça c'est vrai que c'est pour ça aussi que j'ai appelé Bad Take, c'est que j'arrive pas à sortir de cette idée que je suis d'accord, mais aussi surtout parce que ça me régule. C'est un peu une solution facile qui me permet de vivre comme je le vis globalement et c'est compliqué pour moi d'avoir une grosse prise de position là-dessus. Je ne suis pas encore assez conscient, je crois que j'ai réfléchi beaucoup à ça, si ça va venir.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "sur",
+      "stakes.",
+      "et",
+      "même",
+      "c'est",
+      "parce",
+      "donc",
+      "ça",
+      "le",
+      "pouvait",
+      "Bad",
+      "je",
+      "régule.",
+      "comme",
+      "c'est",
+      "ne",
+      "j'ai",
+      "beaucoup",
+      "si"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5697.47,
+    "end": 5727.43,
+    "speaker": "Interlocuteur 4",
+    "text": "Moi j'ai bien aimé, surtout étonnamment au début quand on parlait d'urbanisme parce que c'est un sujet que je ne connais pas du tout et c'est vrai que ça structure beaucoup de choses d'ailleurs au Lumen j'ai vu qu'ils ont pas mal de livres sur ça récemment qu'ils ont achetés d'auteurs assez récents donc voilà c'est peut-être intéressant d'aller lire et oui je trouvais le débat sympa on a abordé pas mal de sujets je trouve qu'il n'y en a pas un qui a prédominé, l'urbanisme c'est resté longtemps mais je n'ai pas trouvé ça désagréable et voilà je suis content de",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "d'ailleurs",
+      "c'est",
+      "s'est",
+      "je",
+      "suis"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5727.43,
+    "end": 5727.59,
+    "speaker": "[?]",
+    "text": "vous",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5731.46,
+    "end": 5736.22,
+    "speaker": "[?]",
+    "text": "donner un top pour ou contre, c'était sympa de vous écouter tous un peu bon c'est vrai que je voulais un peu plus parler",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "donner",
+      "top",
+      "contre",
+      "je"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5747.29,
+    "end": 5772.97,
+    "speaker": "Interlocuteur 1",
+    "text": "Merci, parce que c'était la première fois qu'il est modéré, donc bravo ! Merci beaucoup [prénom]. Alors moi sur le débat, c'était intéressant, effectivement c'est vraiment... Normalement je ne prends pas autant la parole que ça. Je veux dire c'est vraiment le sujet qui est un peu... moi je me suis vraiment beaucoup politisé avec l'écologie et encore plus avec l'économie donc là j'avoue que j'étais vraiment dans",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Merci,",
+      "parce",
+      "sur",
+      "je",
+      "moi",
+      "donc"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5772.97,
+    "end": 5773.81,
+    "speaker": "Interlocuteur 2",
+    "text": "mon",
+    "refused": false,
+    "speaker_source": "voix",
+    "correction": "gemini"
+  },
+  {
+    "start": 5773.81,
+    "end": 5793.57,
+    "speaker": "Interlocuteur 1",
+    "text": "élément, c'est vraiment là où j'ai pas mal affiché mais voilà sur comment s'est passé le débat bah j'ai été déçu que le contradicteur passe par terre si tôt et toi aussi j'ai l'impression que t'as pas full répondu à ce que je disais.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "bah",
+      "toi",
+      "t'as",
+      "full"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5794.87,
+    "end": 5803.41,
+    "speaker": "Interlocuteur 4",
+    "text": "Ouais, j'aurais pu plus mais je voulais pas prendre votre parole... Puis il y avait tout le temps des gens en liste d'attente donc...",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "votre",
+      "le...",
+      "Puis",
+      "il"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5804.71,
+    "end": 5876.61,
+    "speaker": "Interlocuteur 1",
+    "text": "Et voilà, ça j'ai trouvé l'image. On en reparlera plus tard mais j'étais aussi un peu déçu qu'il n'y ait pas beaucoup de gens d'impact, quoi. Il y en a certains qui devaient venir et qui ont vraiment eu des empêchements mais voilà, voilà. Sinon aussi sur le fond, je trouve en tout cas la dynamique avec le modérateur et différents boutons maintenant elle est plutôt bien rodée, je trouve qu'on n'a plus du tout de problème sur les rebonds, les croisements ou quoi, je sais pas ce que vous en pensez mais ça marchait bien. Sinon sur le débat de fond, moi je pourrais même être un peu socialiste, mais c'est juste que en fait... Un tout petit peu, pas trop, on ne peut pas déconner, on va laisser du profit. Non, mais sur le fait de typiquement raisonner sur les besoins, ça me paraît tout à fait pertinent. Par exemple, les chaises, est-ce qu'on a encore beaucoup d'innovations à faire dans les chaises ? Donc effectivement, avoir une entreprise publique qui centralise ce truc des mobiliers très classiques comme des chaises, ça ne me paraîtrait pas déconnant par exemple. Et ça typiquement, c'est socialiser un moyen de production très spécifique. Il y a des choses où ça m'irait beaucoup mais du coup il y aurait toujours un marché à côté donc ce serait mettre un peu de socialisme, un peu de capitalisme aussi, c'est beau donc...",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "ça",
+      "d'impact",
+      "quoi.",
+      "devait",
+      "et",
+      "qu'ils",
+      "mais",
+      "voilà",
+      "foot",
+      "je",
+      "le",
+      "n'a",
+      "moi",
+      "en",
+      "Un",
+      "ne",
+      "va",
+      "par",
+      "c'est",
+      "donc"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5876.61,
+    "end": 5877.27,
+    "speaker": "[?]",
+    "text": "du coup t'as des",
+    "refused": false,
+    "speaker_source": "aucune",
+    "speaker_suggestion": "Interlocuteur 11",
+    "correction": "gemini"
+  },
+  {
+    "start": 5877.27,
+    "end": 5879.45,
+    "speaker": "Interlocuteur 11",
+    "text": "chaises d'État et t'as des chaises pas d'État, non ?",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "pas"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5879.45,
+    "end": 5886.07,
+    "speaker": "Interlocuteur 1",
+    "text": "C'est pas ça qu'on va faire, les chaises d'État elles auraient un prix hyper bas, elles sont centralisées, toujours de la même manière.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "va",
+      "la"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5888.39,
+    "end": 5905.41,
+    "speaker": "Interlocuteur 4",
+    "text": "C'est pas ça qu'on va faire, une entreprise d'État qui fait le mobilier et à côté tu laisses la liberté artistique aux gens de proposer des alternatives, mais qui ne seraient pas des entreprises, qui seraient de l'art. Déjà tu laisses l'art, tu ne vas pas faire un art d'État, ça va être déchirant.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "c'est",
+      "Mais",
+      "entreprises,",
+      "qui",
+      "de",
+      "ne"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5908.03,
+    "end": 5951.58,
+    "speaker": "Interlocuteur 1",
+    "text": "Et voilà, sinon j'ai beaucoup pris la parole. Mais c'était sympa comme débat. Voilà, et bien merci beaucoup, c'est top. Vous pouvez ouvrir l'application, donc là normalement vous avez un questionnaire qui va s'ouvrir et notamment si vous avez des idées de sujets dont vous aimeriez parler, dites-les nous, parce que nous on les regarde, donc s'il y en a qu'on a jamais mis dans le truc, on va les mettre, ça peut être intéressant. Et aussi on a plein d'idées sur lesquelles vous pouvez voter mais ne votez pas sur toutes, votez sur celles voilà et du coup",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "comme",
+      "et",
+      "vous",
+      "donc",
+      "et",
+      "dans",
+      "ne",
+      "et"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5956.38,
+    "end": 5966.7,
+    "speaker": "Interlocuteur 1",
+    "text": "Sinon pour la réunion, je pense qu'on peut se dire qu'on en fait une en 30 minutes parce qu'on n'a pas grand-chose à faire. Moi j'aurais dit en distanciel parce qu'on a un match à 21h.",
+    "refused": false,
+    "speaker_source": "voix",
+    "low_conf_words": [
+      "Moi",
+      "j'aurais",
+      "dit",
+      "en",
+      "un",
+      "à",
+      "une"
+    ],
+    "correction": "gemini"
+  },
+  {
+    "start": 5968.56,
+    "end": 5978.14,
+    "speaker": "[?]",
+    "text": "Ok. C'est à quelle heure le cours ? C'est à 17h. Si c'est... c'est à 21h. Ceux-là, vraiment, t'as dit quoi ?",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Ok.",
+      "C'est",
+      "Boffia,",
+      "à",
+      "t'as"
+    ],
+    "speaker_suggestion": "Modérateur",
+    "correction": "gemini"
+  },
+  {
+    "start": 5993.93,
+    "end": 5995.33,
+    "speaker": "[?]",
+    "text": "Merci.",
+    "refused": false,
+    "speaker_source": "aucune",
+    "low_conf_words": [
+      "Merci."
+    ],
+    "speaker_suggestion": "Interlocuteur 4",
+    "correction": "gemini"
+  }
+]

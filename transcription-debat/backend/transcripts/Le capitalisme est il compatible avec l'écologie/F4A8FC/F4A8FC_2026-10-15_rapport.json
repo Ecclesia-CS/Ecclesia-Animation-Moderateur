@@ -1,0 +1,355 @@
+{
+  "audio_start": "2026-10-15T12:26:06.062441+00:00",
+  "voix": {
+    "decalage_affine_sec": 2.5,
+    "rattachement": {
+      "SPEAKER_00": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 1",
+        "purity": 0.42266131642748567,
+        "support": 21.679592250000468
+      },
+      "SPEAKER_01": {
+        "label": "Interlocuteur 4",
+        "kind": "identifiee",
+        "best": "Interlocuteur 4",
+        "purity": 0.8795391384803176,
+        "support": 632.2913230000075
+      },
+      "SPEAKER_02": {
+        "label": "Interlocuteur 7",
+        "kind": "identifiee",
+        "best": "Interlocuteur 7",
+        "purity": 0.8880951021037395,
+        "support": 401.5525892500041
+      },
+      "SPEAKER_03": {
+        "label": "Interlocuteur 3",
+        "kind": "identifiee",
+        "best": "Interlocuteur 3",
+        "purity": 0.9743490094222411,
+        "support": 358.28253775000206
+      },
+      "SPEAKER_04": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.7415283457772596,
+        "support": 24.84652724999691
+      },
+      "SPEAKER_05": {
+        "label": "Interlocuteur 10",
+        "kind": "identifiee",
+        "best": "Interlocuteur 10",
+        "purity": 0.9553475113135319,
+        "support": 278.9413897499985
+      },
+      "SPEAKER_06": {
+        "label": "Interlocuteur 1",
+        "kind": "identifiee",
+        "best": "Interlocuteur 1",
+        "purity": 0.9196380383191507,
+        "support": 1374.4448827500046
+      },
+      "SPEAKER_07": {
+        "label": "Interlocuteur 11",
+        "kind": "identifiee",
+        "best": "Interlocuteur 11",
+        "purity": 0.3958995247858139,
+        "support": 63.29461499999479
+      },
+      "SPEAKER_08": {
+        "label": null,
+        "kind": "faible",
+        "best": "Interlocuteur 10",
+        "purity": 0.5405405405416035,
+        "support": 0.6243750000014643
+      },
+      "SPEAKER_09": {
+        "label": "Interlocuteur 9",
+        "kind": "identifiee",
+        "best": "Interlocuteur 9",
+        "purity": 0.9940787812840847,
+        "support": 405.96942374999776
+      },
+      "SPEAKER_10": {
+        "label": "Interlocuteur 8",
+        "kind": "identifiee",
+        "best": "Interlocuteur 8",
+        "purity": 0.9740230445555701,
+        "support": 291.06697150000036
+      },
+      "SPEAKER_11": {
+        "label": "Interlocuteur 5",
+        "kind": "identifiee",
+        "best": "Interlocuteur 5",
+        "purity": 0.9959660130366864,
+        "support": 362.8055230000081
+      },
+      "SPEAKER_12": {
+        "label": "Interlocuteur 2",
+        "kind": "identifiee",
+        "best": "Interlocuteur 2",
+        "purity": 0.9851265665162858,
+        "support": 198.55032149999644
+      },
+      "SPEAKER_13": {
+        "label": "Interlocuteur 6",
+        "kind": "identifiee",
+        "best": "Interlocuteur 6",
+        "purity": 0.9998599719451461,
+        "support": 120.51156474999823
+      },
+      "SPEAKER_14": {
+        "label": null,
+        "kind": "distincte",
+        "best": "Interlocuteur 1",
+        "purity": 0.39637689511177066,
+        "support": 19.860438000001004
+      },
+      "SPEAKER_15": {
+        "label": "Interlocuteur 7",
+        "kind": "identifiee",
+        "best": "Interlocuteur 7",
+        "purity": 0.7477302578032887,
+        "support": 20.627425249999447
+      }
+    },
+    "validation_croisee": {
+      "agreement": 0.9266399032620568,
+      "coverage": 0.9817178743384369,
+      "evaluated_sec": 4491.7023852500115
+    }
+  },
+  "frontieres": {
+    "tours": 111,
+    "fins_recalees": 76,
+    "decalage_median_sec": 1.2846850000000813
+  },
+  "metriques": {
+    "segments": 235,
+    "duration_sec": 5526.170000000004,
+    "by_source_sec": {
+      "voix": 847.9899999999993,
+      "aucune": 146.14000000000146,
+      "log+voix": 4468.880000000004,
+      "log": 63.159999999999854
+    },
+    "unknown_ratio": 0.026445078598740422,
+    "speaker_changes": 114,
+    "mid_sentence_cuts": 81,
+    "legacy_join_artifacts": 0,
+    "low_conf_words": 1092
+  },
+  "correction": {
+    "modele": "gemini-3.1-flash-lite",
+    "acceptees": 223,
+    "rejetees": 12,
+    "non_corrigees": 0,
+    "motifs_rejet": {
+      "négation modifiée": 8,
+      "réécriture trop importante": 3,
+      "masque sans prénom": 1
+    },
+    "suggestions_orateur": 28,
+    "noms_propres_a_verifier": [
+      [
+        "Chine",
+        10
+      ],
+      [
+        "France",
+        10
+      ],
+      [
+        "Afrique",
+        3
+      ],
+      [
+        "Modélisation",
+        2
+      ],
+      [
+        "Nord",
+        2
+      ],
+      [
+        "Sauf",
+        2
+      ],
+      [
+        "Angola",
+        1
+      ],
+      [
+        "Anticipation",
+        1
+      ],
+      [
+        "Arnaud",
+        1
+      ],
+      [
+        "Asie",
+        1
+      ],
+      [
+        "Attention",
+        1
+      ],
+      [
+        "Bad",
+        1
+      ],
+      [
+        "Bangladesh",
+        1
+      ],
+      [
+        "Bercy",
+        1
+      ],
+      [
+        "Biden",
+        1
+      ],
+      [
+        "Ceux-là",
+        1
+      ],
+      [
+        "Congo",
+        1
+      ],
+      [
+        "Corée",
+        1
+      ],
+      [
+        "Covid",
+        1
+      ],
+      [
+        "Cuba",
+        1
+      ],
+      [
+        "D'abord",
+        1
+      ],
+      [
+        "Europe",
+        1
+      ],
+      [
+        "Faisons",
+        1
+      ],
+      [
+        "Fraude",
+        1
+      ],
+      [
+        "Glorieuses",
+        1
+      ],
+      [
+        "Gosplan",
+        1
+      ],
+      [
+        "Internet",
+        1
+      ],
+      [
+        "J'espère",
+        1
+      ],
+      [
+        "L'intervention",
+        1
+      ],
+      [
+        "Libye",
+        1
+      ],
+      [
+        "Lumen",
+        1
+      ],
+      [
+        "Macron",
+        1
+      ],
+      [
+        "Miermann",
+        1
+      ],
+      [
+        "Morgan",
+        1
+      ],
+      [
+        "Moscou",
+        1
+      ],
+      [
+        "Musk",
+        1
+      ],
+      [
+        "Niger",
+        1
+      ],
+      [
+        "Paris",
+        1
+      ],
+      [
+        "Proudhon",
+        1
+      ],
+      [
+        "Rafale",
+        1
+      ],
+      [
+        "Roosevelt",
+        1
+      ],
+      [
+        "Russie",
+        1
+      ],
+      [
+        "Starlink",
+        1
+      ],
+      [
+        "Theodore",
+        1
+      ],
+      [
+        "Toussaint",
+        1
+      ],
+      [
+        "Trente",
+        1
+      ],
+      [
+        "Trump",
+        1
+      ],
+      [
+        "Valo",
+        1
+      ],
+      [
+        "États",
+        1
+      ]
+    ]
+  }
+}

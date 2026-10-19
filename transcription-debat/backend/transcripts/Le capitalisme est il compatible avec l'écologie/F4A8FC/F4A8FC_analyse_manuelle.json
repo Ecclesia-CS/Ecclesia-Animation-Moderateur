@@ -1,0 +1,1494 @@
+{
+ "method": {
+  "kind": "manual",
+  "mapTitle": "Positions des participants",
+  "caption": "Chaque point est la position d'un participant, établie à la lecture intégrale de la transcription. Un point ne se déplace durablement que si la personne change explicitement d'avis ; dans ce débat, personne ne l'a fait. Ce qui bouge, ce sont les échanges : une flèche relie celui qui parle à celui à qui il répond (verte = accord, rouge pointillée = désaccord, une concession rapproche un instant le point). Un point apparaît à la première prise de parole et grossit quand la personne parle ; survolez-le pour le résumé de sa position.",
+  "footer": [
+   "Analyse faite à la main (lecture intégrale de la transcription par Claude), sans scoring automatique. Les positions sont interprétatives et volontairement grossières : ±2,5 = penchant exprimé, ±5 = position claire, ±7,5 = position centrale et répétée. Personne n'est placé aux extrêmes (±10).",
+   "Deux axes : horizontalement, faire porter la transition par un marché régulé ou sortir du marché pour planifier ; verticalement, préserver le confort et l'emploi ou accepter la sobriété.",
+   "Tension = intensité du désaccord, pas de l'émotion (le débat est resté courtois) : ~20 cadrage ou tour de table, 35-45 questions et échanges d'informations, 50-60 désaccord argumenté, 62 confrontation de principes. La courbe relie ces niveaux, elle n'est pas mesurée seconde par seconde.",
+   "Les résumés sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Les phrases d'animation (donner la parole, expliquer l'application, lancer un vote) sont écartées.",
+   "Attribution de la transcription fiable (accord voix et journal de parole de 93 % en validation croisée, 3 % de l'audio sans locuteur). Trois voix se sont peu prononcées sur un des deux axes : leur position y est laissée indéterminée (ligne pointillée)."
+  ]
+ },
+ "axes": {
+  "x": {
+   "leftLabel": "Le marché, régulé, peut porter la transition",
+   "rightLabel": "Sortir du marché : planifier et socialiser",
+   "anchors": {
+    "left": [
+     "Un prix du carbone aligne le profit des entreprises sur l'intérêt climatique",
+     "Le marché est nécessaire pour savoir ce que veulent les consommateurs",
+     "Laisser le marché opérer une transition douce plutôt que brusquer"
+    ],
+    "right": [
+     "Le capitalisme étend la marchandisation à tout et ses propriétaires tiennent le pouvoir",
+     "Les monopoles publics fonctionnent : étendre cette logique à l'économie",
+     "Planifier la production selon les besoins plutôt que selon le profit"
+    ]
+   }
+  },
+  "y": {
+   "bottomLabel": "Préserver le confort et l'emploi",
+   "topLabel": "Sobriété : consommer moins",
+   "anchors": {
+    "bottom": [
+     "On ne peut pas fermer les industries dont dépendent emplois et confort",
+     "Contraindre la consommation des individus est socialement inacceptable",
+     "Transformer les industries sans les interdire"
+    ],
+    "top": [
+     "Accepter de perdre du confort maintenant plutôt que subir un mur",
+     "Réparer, rénover, consommer moins",
+     "Fixer des limites de consommation pour tous"
+    ]
+   }
+  },
+  "quadrants": {
+   "topLeft": "Réguler le marché et viser la sobriété",
+   "topRight": "Planifier et consommer moins",
+   "bottomLeft": "Marché et confort préservé",
+   "bottomRight": "État qui force la transition, emplois préservés"
+  }
+ },
+ "personas": {
+  "i1": {
+   "camp": "Capitalisme régulé, prix du carbone",
+   "x": -2.5,
+   "y": 2.5,
+   "note": "Voix la plus présente : défend un capitalisme régulé par un prix du carbone redistribué, des normes et une planification écologique, avec quelques nationalisations au cas par cas. Juge le marché nécessaire mais court-termiste, et veut choisir comment on décroît plutôt que le subir.",
+   "points": [
+    {
+     "t": 0.7458,
+     "stance": "Veut laisser les pays en développement émettre plus pour bâtir leurs infrastructures, et que les pays riches réduisent leurs émissions plus vite que prévu."
+    },
+    {
+     "t": 7.9535,
+     "stance": "Refuse un rapport colonial qui dicterait aux pays pauvres quand s'arrêter ; rappelle qu'une économie fondée sur les matières premières reste appauvrie."
+    },
+    {
+     "t": 11.0333,
+     "stance": "Favorable au train mais le juge très cher ; la voiture reste nécessaire hors des villes, même s'il faut en réduire l'usage."
+    },
+    {
+     "t": 29.7325,
+     "stance": "Pense qu'on peut rendre le capitalisme écologique sans socialiser les moyens de production : taxe carbone, revenu redistribuant cette taxe, réglementations, investissement public, planification."
+    },
+    {
+     "t": 31.8865,
+     "stance": "Juge le prix du carbone nécessaire mais insuffisant, car il donne aux riches un droit de polluer : il faut aussi réglementer leur pollution."
+    },
+    {
+     "t": 37.4287,
+     "stance": "Croit qu'une forte volonté politique peut briser les oligarchies, comme au début du vingtième siècle aux États-Unis ; on peut garder des actionnaires si le prix du carbone aligne profit et climat."
+    },
+    {
+     "t": 38.702,
+     "stance": "Reproche de confondre capitalisme et néolibéralisme : détenir un moyen de production n'oblige pas à tout marchandiser."
+    },
+    {
+     "t": 41.8227,
+     "stance": "Voit la coopération internationale progresser : les émissions de la Chine atteignent un plateau et son marché du carbone pourra se raccorder au nôtre."
+    },
+    {
+     "t": 43.5907,
+     "stance": "Distingue le capitalisme régulé du capitalisme d'État : planifier ne demande pas de tout nationaliser."
+    },
+    {
+     "t": 45.4237,
+     "stance": "N'a pas de réponse sur la résistance des capitalistes, sinon que les électeurs, face aux canicules et à la dépendance énergétique, voteront pour une politique sociale et écologique."
+    },
+    {
+     "t": 61.0278,
+     "stance": "Le marché ne fait pas payer les dégâts qu'il cause et voit à trois ans ; il faut choisir comment on décroît, sinon on le subit."
+    },
+    {
+     "t": 65.3253,
+     "stance": "Cite l'échec de la planification soviétique pour dire que le marché reste nécessaire pour connaître les besoins ; nationaliserait l'énergie, au cas par cas."
+    },
+    {
+     "t": 72.1265,
+     "stance": "Juge trop expérimental de confier la planification de l'économie à l'intelligence artificielle."
+    },
+    {
+     "t": 75.424,
+     "stance": "Soutient que le prix du carbone incite sans diriger les entreprises, loin d'un État tout-puissant ; ne nationaliserait que le marché de l'électricité."
+    },
+    {
+     "t": 77.7047,
+     "stance": "Répond au risque de délocalisation par le mécanisme européen d'ajustement carbone aux frontières."
+    },
+    {
+     "t": 79.485,
+     "stance": "Admet que le capitalisme vise le profit, mais pas forcément la croissance : beaucoup de petites entreprises ne grandissent pas."
+    },
+    {
+     "t": 81.9102,
+     "stance": "Plutôt contre un quota carbone individuel, équitable en principe mais très difficile à mesurer."
+    },
+    {
+     "t": 84.623,
+     "stance": "Reconnaît un doute sur ce qu'exigerait la comptabilité carbone des entreprises."
+    },
+    {
+     "t": 86.8178,
+     "stance": "Propose de compléter le prix du carbone par des limites aux plus riches : jets privés, nombre de résidences."
+    },
+    {
+     "t": 96.7452,
+     "stance": "Se dit prêt à un peu de socialisme : une entreprise publique pour des biens sans innovation, à côté d'un marché."
+    }
+   ]
+  },
+  "i2": {
+   "camp": "Réguler d'abord, par pragmatisme",
+   "x": -2.5,
+   "y": 0,
+   "note": "Peu d'interventions : laisse les pays en développement émettre un peu plus en limitant, imagine les aider avec du nucléaire ou de l'hydraulique, et se rallie par pragmatisme au capitalisme régulé tout en se demandant comment un État fort éviterait l'autoritarisme.",
+   "points": [
+    {
+     "t": 2.1187,
+     "stance": "Accepte que les pays en développement polluent un peu plus que nous, qui l'avons fait avant, mais veut qu'ils ne refassent pas nos excès."
+    },
+    {
+     "t": 6.8557,
+     "stance": "Doute des centrales à gaz construites en Afrique et propose d'aider ces pays avec du nucléaire ou des barrages."
+    },
+    {
+     "t": 69.9368,
+     "stance": "Demande comment un État assez fort pour contraindre les entreprises éviterait l'autoritarisme, à l'image de la Chine."
+    },
+    {
+     "t": 90.94,
+     "stance": "Conclut qu'améliorer un capitalisme régulé est la première étape réaliste ; on verra ensuite si cela ne suffit pas."
+    }
+   ],
+   "uncertain": {
+    "y": "ne s'est pas prononcé sur la sobriété ni sur le confort"
+   }
+  },
+  "i3": {
+   "camp": "Critique du capitalisme, limites pour tous",
+   "x": 5,
+   "y": 7.5,
+   "note": "Relie la voiture, la ville et la centralisation des activités aux optimisations capitalistes, veut des territoires plus autonomes et défend des limites absolues de consommation pour tous ; concède en fin de débat que la ville existait avant le capitalisme.",
+   "points": [
+    {
+     "t": 3.2123,
+     "stance": "Demande où fixer la limite des infrastructures : le tout voiture n'est pas optimal, ni pour l'organisation ni pour l'écologie."
+    },
+    {
+     "t": 4.3937,
+     "stance": "Plutôt que d'autoriser plus d'émissions, veut repenser la place des pays pauvres, enfermés dans l'exploitation d'une ressource."
+    },
+    {
+     "t": 16.175,
+     "stance": "Voit dans le besoin de voiture à la campagne la conséquence d'un choix : concentrer les activités en ville pour des raisons capitalistes ; préfère des territoires autonomes."
+    },
+    {
+     "t": 17.3572,
+     "stance": "Rappelle que le rail s'est développé avant l'automobile."
+    },
+    {
+     "t": 22.4957,
+     "stance": "Juge que la ville densifie surtout des activités liées au capitalisme, pas forcément nécessaires."
+    },
+    {
+     "t": 55.1057,
+     "stance": "Demande de quel confort on parle quand on refuse de le perdre."
+    },
+    {
+     "t": 79.1765,
+     "stance": "Demande pourquoi détenir un moyen de production, sinon pour en tirer profit."
+    },
+    {
+     "t": 87.4525,
+     "stance": "Défend une limite de consommation identique pour tous, sur les vols ou les téléphones : le mode de vie occidental demanderait plusieurs planètes."
+    },
+    {
+     "t": 92.501,
+     "stance": "Concède qu'il n'y a pas besoin de capitalisme pour avoir des villes, mais maintient que la ville actuelle en porte la marque."
+    }
+   ]
+  },
+  "i4": {
+   "camp": "Sortir du marché, planifier",
+   "x": 7.5,
+   "y": 2.5,
+   "note": "Voix la plus critique du capitalisme : la marchandisation s'étend à tout et les propriétaires tiennent le pouvoir. Défend les monopoles publics, une planification appuyée sur les données, un fédéralisme décentralisé, et le quota carbone individuel.",
+   "points": [
+    {
+     "t": 4.6997,
+     "stance": "Met en garde contre un néocolonialisme qui contrôlerait les émissions des pays pauvres : les accompagner et diversifier leurs économies."
+    },
+    {
+     "t": 34.798,
+     "stance": "Voit le capitalisme étendre la marchandisation à tout ; doute qu'un État puisse contraindre des propriétaires qui détiennent la richesse."
+    },
+    {
+     "t": 36.034,
+     "stance": "Demande comment imposer de telles lois à ceux qui détiennent le pouvoir financier, politique et médiatique."
+    },
+    {
+     "t": 45.0437,
+     "stance": "Insiste : comment fait-on face aux capitalistes, et faut-il de la violence pour imposer ces réformes ?"
+    },
+    {
+     "t": 64.3163,
+     "stance": "Cite le train, l'électricité et l'assurance maladie comme monopoles publics qui marchent, et demande pourquoi garder du marché au-delà d'un peu d'innovation."
+    },
+    {
+     "t": 67.122,
+     "stance": "Défend une santé publique qui oriente la recherche vers le bien-être plutôt que le profit ; l'échec soviétique tient à la centralisation."
+    },
+    {
+     "t": 68.299,
+     "stance": "Imagine une planification guidée par les données et les besoins réels ; la France pourrait nourrir tout le monde sans marché."
+    },
+    {
+     "t": 73.3625,
+     "stance": "Évoque un revenu garanti et un fédéralisme partant des petites collectivités ; juge l'État actuel déjà autoritaire envers les contestations sociales."
+    },
+    {
+     "t": 78.5792,
+     "stance": "Rappelle que le passage au capitalisme a lui aussi bouleversé tous les rapports sociaux."
+    },
+    {
+     "t": 80.1413,
+     "stance": "Soutient que le profit généralisé implique la croissance."
+    },
+    {
+     "t": 82.7925,
+     "stance": "Défend le quota carbone individuel, jugé faisable à partir des achats par carte bancaire."
+    },
+    {
+     "t": 98.1398,
+     "stance": "Imagine une entreprise publique du mobilier, avec une liberté de création à côté."
+    }
+   ]
+  },
+  "i5": {
+   "camp": "Transition imposée aux entreprises",
+   "x": 2.5,
+   "y": -2.5,
+   "note": "Lie le développement des pays pauvres à notre consommation, voit la ville comme une optimisation écologique, veut que l'État force la transformation des industries plutôt que de les fermer, doute de l'efficience du marché et refuse de contraindre la consommation individuelle.",
+   "points": [
+    {
+     "t": 5.578,
+     "stance": "Rappelle qu'une part de notre empreinte carbone vient de produits fabriqués dans les pays pauvres : réduire la nôtre ralentira leur développement."
+    },
+    {
+     "t": 20.0948,
+     "stance": "Voit la ville comme une optimisation écologique : habiter en immeuble et se déplacer à pied vaut mieux que l'étalement."
+    },
+    {
+     "t": 39.8105,
+     "stance": "Pense qu'on peut réglementer le capitalisme au niveau national, mais doute d'un accord mondial quand les traités sont bafoués."
+    },
+    {
+     "t": 56.0517,
+     "stance": "Refuse de fermer le ciment et l'acier, indispensables ; c'est à l'État de forcer les entreprises à les électrifier."
+    },
+    {
+     "t": 57.336,
+     "stance": "Juge le marché efficient seulement à très long terme, peut-être trop tard."
+    },
+    {
+     "t": 88.839,
+     "stance": "Juge socialement inacceptable de plafonner la consommation de chacun : l'espoir d'améliorer son niveau de vie fait tenir la société."
+    }
+   ]
+  },
+  "i6": {
+   "camp": "Sobriété et transports décarbonés",
+   "x": 0,
+   "y": 5,
+   "note": "Trois interventions : le modèle des grandes villes desservies par la voiture n'est pas adapté aux prochaines décennies, il faut aider les pays pauvres sans énergies carbonées, et accepter de perdre un peu de confort pour garder les industries essentielles.",
+   "points": [
+    {
+     "t": 9.6812,
+     "stance": "Juge le modèle des grandes villes approvisionnées par la route inadapté à la raréfaction des énergies fossiles."
+    },
+    {
+     "t": 10.188,
+     "stance": "Préfère le train à la route et pense qu'on peut aider les pays pauvres à se développer sans énergies carbonées."
+    },
+    {
+     "t": 49.2548,
+     "stance": "Partage en partie l'avis de garder les industries essentielles, en échange d'un effort de sobriété : réparer, rénover, abandonner une part de confort."
+    }
+   ],
+   "uncertain": {
+    "x": "ne s'est prononcé ni sur le marché ni sur la propriété"
+   }
+  },
+  "i7": {
+   "camp": "Confiance dans le marché",
+   "x": -7.5,
+   "y": -5,
+   "note": "Seule voix confiante dans le marché : défend la voiture et les routes, refuse de laisser les pays pauvres émettre plus, de fermer les industries polluantes ou de sacrifier le confort, et pense que les prix guideront une transition douce.",
+   "points": [
+    {
+     "t": 11.8278,
+     "stance": "Juge routes et voiture indispensables au développement et à la campagne ; refuse que polluer plus soit la condition du développement."
+    },
+    {
+     "t": 13.1852,
+     "stance": "Souligne que la pollution des pays pauvres sert notre consommation : polluer chez eux, c'est polluer pour nous."
+    },
+    {
+     "t": 22.8727,
+     "stance": "Lie l'urbanisation à l'industrialisation, commune à tous les régimes, et non au capitalisme."
+    },
+    {
+     "t": 47.9842,
+     "stance": "Refuse de fermer ces industries sans alternative : chômage, prix de l'énergie et confort quotidien en dépendent."
+    },
+    {
+     "t": 51.1382,
+     "stance": "Croit que le marché régulera : le pétrole deviendra trop cher avant de manquer, et la transition sera plus douce que des fermetures."
+    },
+    {
+     "t": 53.1032,
+     "stance": "Juge qu'abandonner maintenant les énergies fossiles n'aurait rien de doux."
+    },
+    {
+     "t": 55.3513,
+     "stance": "Illustre le confort invisible du quotidien par le prix des chaises en plastique."
+    },
+    {
+     "t": 59.9958,
+     "stance": "Prend la Chine comme exemple : elle s'est électrifiée quand la pollution a coûté à son économie ; les financiers ne voient pas encore le coût à long terme."
+    }
+   ]
+  },
+  "i8": {
+   "camp": "Aide multilatérale, plan B pour les salariés",
+   "x": 2.5,
+   "y": -2.5,
+   "note": "Voit les routes comme un mal nécessaire pour les pays pauvres, à accompagner par des plans multilatéraux d'énergie renouvelable ; s'inquiète de l'hypercentralisation et des bidonvilles, et veut un plan B pour les salariés des industries polluantes.",
+   "points": [
+    {
+     "t": 14.1662,
+     "stance": "Juge les routes un mal nécessaire aux pays pauvres et propose des plans multilatéraux de remplacement des énergies fossiles, comme le solaire en Afrique du Nord, sans hiérarchie entre États."
+    },
+    {
+     "t": 24.1277,
+     "stance": "Pense qu'un pays hypercentralisé pollue davantage, par les embouteillages aux portes de la capitale."
+    },
+    {
+     "t": 25.5737,
+     "stance": "Craint qu'une hypercentralisation provoque exode rural et habitat insalubre."
+    },
+    {
+     "t": 54.2873,
+     "stance": "Avant de fermer des industries, veut un plan B pour les salariés afin de ne pas dépeupler des régions."
+    }
+   ]
+  },
+  "i9": {
+   "camp": "Anticiper la sobriété",
+   "x": 0,
+   "y": 5,
+   "note": "Veut traiter les pays selon leur stade de développement et accepter une perte de confort progressive plutôt que de subir un choc ; ne croit pas à une transition douce par le marché, mais doute aussi qu'on puisse planifier sans État autoritaire.",
+   "points": [
+    {
+     "t": 18.0802,
+     "stance": "Juge le train moins polluant mais pas miraculeux, les rails souffrant déjà de la chaleur."
+    },
+    {
+     "t": 19.4802,
+     "stance": "Propose de ne pas contraindre les pays en développement et de réserver les contraintes aux autres."
+    },
+    {
+     "t": 50.1987,
+     "stance": "Soutient qu'il faut choisir de perdre du confort maintenant, en pente douce, plutôt que de prendre un mur."
+    },
+    {
+     "t": 52.1965,
+     "stance": "Conteste qu'un marché laissé à lui-même soit doux : avec un carburant très cher, des gens ne peuvent déjà plus se soigner ou travailler."
+    },
+    {
+     "t": 53.2658,
+     "stance": "Veut anticiper et réduire dès maintenant notre dépendance au pétrole."
+    },
+    {
+     "t": 62.7607,
+     "stance": "Doute que l'exemple chinois, peu démocratique, puisse servir de modèle."
+    },
+    {
+     "t": 72.5515,
+     "stance": "Ne voit pas comment planifier fortement sans un État autoritaire."
+    },
+    {
+     "t": 77.3873,
+     "stance": "Craint que le prix du carbone pousse les industries polluantes à se délocaliser."
+    }
+   ]
+  },
+  "i10": {
+   "camp": "Capitalisme régulé, convaincu à moitié",
+   "x": -2.5,
+   "y": 2.5,
+   "note": "Voit la centralisation comme un levier écologique, pose la question de ce qu'on accepte d'abandonner, juge que marché et intérêt public divergent sur l'écologie, et se dit convaincu en principe par un quota carbone pondéré selon les besoins ; reste attaché au capitalisme régulé tout en reconnaissant que l'idée l'arrange.",
+   "points": [
+    {
+     "t": 24.9082,
+     "stance": "Défend la centralisation : regrouper les gens et les besoins réduit routes et transports."
+    },
+    {
+     "t": 46.3437,
+     "stance": "Demande ce qu'on accepte d'abandonner quand aucune alternative n'existe, et si l'on accepte une forme de décroissance."
+    },
+    {
+     "t": 58.631,
+     "stance": "Pense que marchés et intérêt public divergent sur l'écologie : court terme, dégâts non comptés ; il faut les faire converger."
+    },
+    {
+     "t": 60.8388,
+     "stance": "Ajoute que les financiers, enfermés dans leur spécialité, ne mesurent pas le mal qu'ils font."
+    },
+    {
+     "t": 84.7595,
+     "stance": "D'abord contre le quota carbone individuel, se dit convaincu en principe s'il est pondéré selon les besoins, mais doute qu'on sache dire qui a droit à quoi."
+    },
+    {
+     "t": 93.883,
+     "stance": "Venu favorable au capitalisme régulé, repart avec la même idée, en reconnaissant qu'elle l'arrange."
+    }
+   ]
+  },
+  "i11": {
+   "camp": "Questions sur le prix du carbone",
+   "x": 0,
+   "y": 2.5,
+   "note": "Intervient surtout par des questions : fraude aux quotas carbone, marché chinois du carbone, manière de compléter un prix du carbone jugé insuffisant ; pense qu'un plafond est possible au moins pour les vols.",
+   "points": [
+    {
+     "t": 22.1088,
+     "stance": "Demande en quoi des villes plus denses et plus petites seraient moins économes."
+    },
+    {
+     "t": 34.4965,
+     "stance": "Rappelle la fraude à la TVA sur les quotas carbone, en 2008."
+    },
+    {
+     "t": 44.1635,
+     "stance": "Demande comment le marché chinois du carbone s'articulera avec l'ajustement aux frontières."
+    },
+    {
+     "t": 83.8097,
+     "stance": "Le prix du carbone ne suffisant pas, demande comment le compléter."
+    },
+    {
+     "t": 89.9782,
+     "stance": "Juge un plafond possible pour les vols, plus difficile pour la consommation courante ; regrette que la décroissance n'ait pas été abordée."
+    }
+   ],
+   "uncertain": {
+    "x": "a surtout posé des questions, sans se prononcer sur le marché"
+   }
+  }
+ },
+ "interactions": [
+  {
+   "t": 3.2123,
+   "from": "i3",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Doute qu'il faille autant de routes : le tout voiture n'est pas optimal."
+  },
+  {
+   "t": 4.6997,
+   "from": "i4",
+   "to": "i3",
+   "type": "accord",
+   "desc": "Reprend l'idée de repenser la place des pays pauvres dans l'économie."
+  },
+  {
+   "t": 7.9535,
+   "from": "i1",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Répond que ce sont ces pays qui décideront quand s'arrêter."
+  },
+  {
+   "t": 9.6812,
+   "from": "i6",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Juge le modèle des villes desservies par la route inadapté."
+  },
+  {
+   "t": 11.8278,
+   "from": "i7",
+   "to": "i6",
+   "type": "desaccord",
+   "desc": "Défend la voiture, indispensable à la campagne."
+  },
+  {
+   "t": 16.175,
+   "from": "i3",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Répond que ce besoin de voiture vient d'un choix économique."
+  },
+  {
+   "t": 20.0948,
+   "from": "i5",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Voit la ville comme une optimisation écologique."
+  },
+  {
+   "t": 22.8727,
+   "from": "i7",
+   "to": "i3",
+   "type": "desaccord",
+   "desc": "Conteste le lien entre urbanisation et capitalisme."
+  },
+  {
+   "t": 24.9082,
+   "from": "i10",
+   "to": "i8",
+   "type": "desaccord",
+   "desc": "Défend la centralisation contre l'idée qu'elle pollue."
+  },
+  {
+   "t": 34.798,
+   "from": "i4",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Doute qu'on puisse réguler un système qui marchandise tout."
+  },
+  {
+   "t": 38.702,
+   "from": "i1",
+   "to": "i4",
+   "type": "desaccord",
+   "desc": "Lui reproche de confondre capitalisme et néolibéralisme."
+  },
+  {
+   "t": 39.8105,
+   "from": "i5",
+   "to": "i1",
+   "type": "accord",
+   "desc": "Admet qu'on peut réguler au niveau national."
+  },
+  {
+   "t": 47.9842,
+   "from": "i7",
+   "to": "i10",
+   "type": "desaccord",
+   "desc": "Refuse de fermer les industries sans alternative."
+  },
+  {
+   "t": 49.2548,
+   "from": "i6",
+   "to": "i7",
+   "type": "accord",
+   "desc": "Partage en partie l'idée de garder les industries essentielles."
+  },
+  {
+   "t": 50.1987,
+   "from": "i9",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Préfère perdre du confort maintenant que prendre un mur."
+  },
+  {
+   "t": 51.1382,
+   "from": "i7",
+   "to": "i9",
+   "type": "desaccord",
+   "desc": "Croit au marché pour une transition douce."
+  },
+  {
+   "t": 52.1965,
+   "from": "i9",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Juge que le marché laissé à lui-même n'est pas doux."
+  },
+  {
+   "t": 57.336,
+   "from": "i5",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Doute de l'efficience du marché à temps."
+  },
+  {
+   "t": 58.631,
+   "from": "i10",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Soutient que marché et intérêt public divergent."
+  },
+  {
+   "t": 61.0278,
+   "from": "i1",
+   "to": "i7",
+   "type": "desaccord",
+   "desc": "Rappelle que le marché ne compte pas les dégâts écologiques."
+  },
+  {
+   "t": 61.0278,
+   "from": "i1",
+   "to": "i9",
+   "type": "accord",
+   "desc": "Partage l'idée de choisir comment décroître."
+  },
+  {
+   "t": 64.3163,
+   "from": "i4",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Demande pourquoi garder du marché quand les monopoles publics marchent."
+  },
+  {
+   "t": 65.3253,
+   "from": "i1",
+   "to": "i4",
+   "type": "desaccord",
+   "desc": "Oppose l'échec de la planification soviétique."
+  },
+  {
+   "t": 67.122,
+   "from": "i4",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Défend une recherche et une santé publiques."
+  },
+  {
+   "t": 69.9368,
+   "from": "i2",
+   "to": "i9",
+   "type": "accord",
+   "desc": "Reprend son doute sur l'exemple chinois."
+  },
+  {
+   "t": 72.1265,
+   "from": "i1",
+   "to": "i4",
+   "type": "desaccord",
+   "desc": "Juge l'intelligence artificielle trop expérimentale pour planifier."
+  },
+  {
+   "t": 73.3625,
+   "from": "i4",
+   "to": "i9",
+   "type": "desaccord",
+   "desc": "Conteste qu'une planification soit forcément autoritaire."
+  },
+  {
+   "t": 75.424,
+   "from": "i1",
+   "to": "i9",
+   "type": "desaccord",
+   "desc": "Répond que le prix du carbone incite sans diriger."
+  },
+  {
+   "t": 82.7925,
+   "from": "i4",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Défend la faisabilité du quota carbone individuel."
+  },
+  {
+   "t": 84.623,
+   "from": "i1",
+   "to": "i4",
+   "type": "concession",
+   "desc": "Admet un doute sur la comptabilité carbone."
+  },
+  {
+   "t": 84.7595,
+   "from": "i10",
+   "to": "i1",
+   "type": "concession",
+   "desc": "Se dit convaincu en principe par un quota pondéré selon les besoins."
+  },
+  {
+   "t": 87.4525,
+   "from": "i3",
+   "to": "i1",
+   "type": "desaccord",
+   "desc": "Défend une limite de consommation identique pour tous."
+  },
+  {
+   "t": 88.839,
+   "from": "i5",
+   "to": "i4",
+   "type": "desaccord",
+   "desc": "Juge le quota carbone socialement inacceptable."
+  },
+  {
+   "t": 90.94,
+   "from": "i2",
+   "to": "i1",
+   "type": "accord",
+   "desc": "Se rallie au capitalisme régulé."
+  },
+  {
+   "t": 92.501,
+   "from": "i3",
+   "to": "i7",
+   "type": "concession",
+   "desc": "Concède que la ville a précédé le capitalisme."
+  },
+  {
+   "t": 96.7452,
+   "from": "i1",
+   "to": "i4",
+   "type": "concession",
+   "desc": "Accepterait de socialiser quelques productions."
+  }
+ ],
+ "events": [
+  {
+   "t": 0.32,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "Ouverture sur les pays en développement",
+   "desc": "L'animation part d'une assertion du vote qui divisait : laisser les pays pauvres émettre plus pour se développer."
+  },
+  {
+   "t": 4.7,
+   "type": "consensus",
+   "magnitude": 2,
+   "title": "Accompagner plutôt que contrôler",
+   "desc": "Plusieurs voix refusent un rapport néocolonial et veulent diversifier les économies dépendantes d'une ressource."
+  },
+  {
+   "t": 11.8,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Routes et voiture, indispensables ?",
+   "desc": "La voiture à la campagne oppose ceux qui la jugent vitale à ceux qui y voient un choix d'organisation."
+  },
+  {
+   "t": 20.1,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "La ville, outil écologique ou produit du capitalisme ?",
+   "desc": "Densité, étalement, centralisation et exode rural."
+  },
+  {
+   "t": 28.1,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "Vote pour le sujet suivant",
+   "desc": "Réguler le capitalisme ou fermer les industries polluantes."
+  },
+  {
+   "t": 29.7,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Le programme du capitalisme régulé",
+   "desc": "Taxe carbone redistribuée, réglementations, investissement public, planification."
+  },
+  {
+   "t": 34.8,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Les capitalistes laisseront-ils faire ?",
+   "desc": "Extension de la marchandisation et pouvoir des propriétaires, face à la volonté politique."
+  },
+  {
+   "t": 46.3,
+   "type": "cadrage",
+   "magnitude": 2,
+   "title": "Fermer les industries polluantes ?",
+   "desc": "La question devient : qu'accepte-t-on d'abandonner ?"
+  },
+  {
+   "t": 51.1,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Faire confiance au marché",
+   "desc": "Une voix mise sur une transition douce par les prix, les autres y voient court terme et dégâts non comptés."
+  },
+  {
+   "t": 64.3,
+   "type": "dissensus",
+   "magnitude": 3,
+   "title": "Sortir du marché ?",
+   "desc": "Monopoles publics et planification face à l'échec soviétique."
+  },
+  {
+   "t": 69.9,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Un État fort sans autoritarisme ?",
+   "desc": "Exemple chinois, fédéralisme, autoritarisme de l'État actuel."
+  },
+  {
+   "t": 77.4,
+   "type": "technique",
+   "magnitude": 2,
+   "title": "Délocalisations et ajustement carbone aux frontières",
+   "desc": "Le prix du carbone pousse-t-il les industries à partir ?"
+  },
+  {
+   "t": 79.2,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Profit et croissance",
+   "desc": "Le capitalisme impose-t-il la croissance ?"
+  },
+  {
+   "t": 81.9,
+   "type": "dissensus",
+   "magnitude": 2,
+   "title": "Quota carbone individuel",
+   "desc": "Équité, faisabilité et acceptabilité d'un plafond de consommation."
+  },
+  {
+   "t": 84.8,
+   "type": "concession",
+   "magnitude": 2,
+   "title": "Doutes partagés sur le quota",
+   "desc": "Une voix admet un doute sur la comptabilité carbone, une autre se dit convaincue en principe."
+  },
+  {
+   "t": 90.9,
+   "type": "cadrage",
+   "magnitude": 1,
+   "title": "Tour de table de clôture",
+   "desc": "Chacun donne sa position finale et son avis sur le débat."
+  },
+  {
+   "t": 96.7,
+   "type": "concession",
+   "magnitude": 1,
+   "title": "Un peu de socialisme",
+   "desc": "La voix la plus favorable au capitalisme régulé accepterait de socialiser quelques productions."
+  }
+ ],
+ "tension": [
+  [
+   0,
+   15
+  ],
+  [
+   0.3,
+   25
+  ],
+  [
+   4.7,
+   30
+  ],
+  [
+   11.8,
+   45
+  ],
+  [
+   16.2,
+   50
+  ],
+  [
+   20.1,
+   50
+  ],
+  [
+   22.9,
+   55
+  ],
+  [
+   28.1,
+   20
+  ],
+  [
+   29.7,
+   35
+  ],
+  [
+   34.8,
+   55
+  ],
+  [
+   38.7,
+   58
+  ],
+  [
+   41.8,
+   40
+  ],
+  [
+   46.3,
+   40
+  ],
+  [
+   48.0,
+   50
+  ],
+  [
+   51.1,
+   60
+  ],
+  [
+   53.1,
+   62
+  ],
+  [
+   57.3,
+   50
+  ],
+  [
+   61.0,
+   55
+  ],
+  [
+   64.3,
+   62
+  ],
+  [
+   67.1,
+   60
+  ],
+  [
+   69.9,
+   48
+  ],
+  [
+   73.4,
+   55
+  ],
+  [
+   77.4,
+   45
+  ],
+  [
+   79.2,
+   55
+  ],
+  [
+   81.9,
+   45
+  ],
+  [
+   84.8,
+   35
+  ],
+  [
+   88.8,
+   40
+  ],
+  [
+   90.9,
+   20
+  ],
+  [
+   96.7,
+   25
+  ],
+  [
+   99.9,
+   10
+  ]
+ ],
+ "synthesis": {
+  "theme": "Le capitalisme est-il compatible avec l'écologie ?",
+  "summary": "Onze participants se sont demandé si le capitalisme est compatible avec l'écologie. Partie des pays en développement, la discussion a dérivé vers la voiture, le train et la ville, avant de revenir à la question posée : peut-on réguler le capitalisme par un prix du carbone et des normes, ou faut-il sortir du marché ? La plupart acceptent que les pays pauvres émettent plus pour se développer et refusent de fermer les industries polluantes sans solution pour leurs salariés. Une seule voix fait confiance au marché pour mener la transition ; les autres lui reprochent d'ignorer le long terme. Le désaccord principal oppose le capitalisme régulé, le plus défendu, à une voix favorable à la planification et aux monopoles publics ; le quota carbone individuel divise aussi. Personne n'a changé de camp, mais une voix s'est dite convaincue en principe par le quota, et la plus favorable au capitalisme régulé accepterait un peu de socialisme.",
+  "groups": [
+   {
+    "label": "Réguler le capitalisme",
+    "color": "#2B4A86",
+    "members": [
+     "i1",
+     "i2",
+     "i10"
+    ],
+    "arguments": [
+     "Un prix du carbone redistribué aligne le profit sur le climat, sans socialiser la production.",
+     "Le marché est nécessaire mais court-termiste : il faut des normes et des limites aux plus riches.",
+     "Améliorer ce qui existe est la première étape réaliste."
+    ]
+   },
+   {
+    "label": "Sortir du marché, planifier",
+    "color": "#B04A3C",
+    "members": [
+     "i3",
+     "i4"
+    ],
+    "arguments": [
+     "Le capitalisme étend la marchandisation et ses propriétaires tiennent le pouvoir politique.",
+     "Les monopoles publics marchent : planifier selon les besoins plutôt que le profit.",
+     "Fixer des limites de consommation pour tous."
+    ]
+   },
+   {
+    "label": "Anticiper la sobriété",
+    "color": "#3F8462",
+    "members": [
+     "i6",
+     "i9"
+    ],
+    "arguments": [
+     "Perdre du confort progressivement maintenant plutôt que subir un choc.",
+     "Réparer, rénover, préférer le train et réduire la dépendance au pétrole.",
+     "Une transition laissée au marché n'a rien de doux pour les plus fragiles."
+    ]
+   },
+   {
+    "label": "Transformer sans fermer",
+    "color": "#C8742A",
+    "members": [
+     "i5",
+     "i8"
+    ],
+    "arguments": [
+     "Ne pas fermer les industries indispensables, mais forcer leur électrification.",
+     "Prévoir un plan B pour les salariés pour ne pas dépeupler des régions.",
+     "Aider les pays pauvres par des plans multilatéraux d'énergie renouvelable."
+    ]
+   },
+   {
+    "label": "Confiance dans le marché",
+    "color": "#7A5C99",
+    "members": [
+     "i7"
+    ],
+    "arguments": [
+     "Les prix guideront une transition plus douce que des fermetures.",
+     "Routes, voiture et industries portent emplois et confort quotidien.",
+     "Polluer plus n'est pas la condition du développement des pays pauvres."
+    ]
+   }
+  ],
+  "unclassified": {
+   "members": [
+    "i11"
+   ],
+   "note": "ses interventions étaient surtout des questions."
+  },
+  "kinds": {
+   "coeur": {
+    "label": "La question posée",
+    "desc": "Réguler le capitalisme, marché, planification, profit et croissance."
+   },
+   "connexe": {
+    "label": "Questions liées",
+    "desc": "Pays en développement, industries polluantes, quota carbone individuel."
+   },
+   "annexe": {
+    "label": "Sujets annexes",
+    "desc": "Transports, ville, bilan du débat."
+   }
+  },
+  "themes": [
+   {
+    "id": "pays_dev",
+    "kind": "connexe",
+    "short": "Pays pauvres",
+    "color": "#6383B4",
+    "label": "Pays en développement et émissions",
+    "desc": "Droit à émettre, infrastructures, néocolonialisme, dépendance aux matières premières."
+   },
+   {
+    "id": "transport",
+    "kind": "annexe",
+    "short": "Transports",
+    "color": "#9B3A2D",
+    "label": "Routes, voiture et train",
+    "desc": "Voiture à la campagne, coût du train, développement par la route."
+   },
+   {
+    "id": "ville",
+    "kind": "annexe",
+    "short": "Ville",
+    "color": "#7A5C99",
+    "label": "Ville, urbanisme et centralisation",
+    "desc": "Densité, étalement, hypercentralisation, exode rural."
+   },
+   {
+    "id": "regule",
+    "kind": "coeur",
+    "short": "Capitalisme régulé",
+    "color": "#15233F",
+    "label": "Capitalisme régulé : prix du carbone et réglementation",
+    "desc": "Taxe carbone, quotas, normes, ajustement aux frontières, coopération internationale."
+   },
+   {
+    "id": "industries",
+    "kind": "connexe",
+    "short": "Industries",
+    "color": "#C8742A",
+    "label": "Fermer les industries polluantes ? Confort et emploi",
+    "desc": "Salariés, confort, sobriété, électrification de l'industrie."
+   },
+   {
+    "id": "marche",
+    "kind": "coeur",
+    "short": "Marché",
+    "color": "#1E6B6D",
+    "label": "Le marché peut-il mener la transition ?",
+    "desc": "Efficience, court terme, dégâts non comptés, transition douce ou choc."
+   },
+   {
+    "id": "planif",
+    "kind": "coeur",
+    "short": "Planification",
+    "color": "#B04A3C",
+    "label": "Planification, monopoles publics et État fort",
+    "desc": "Monopoles publics, planification par les données, autoritarisme, fédéralisme."
+   },
+   {
+    "id": "profit",
+    "kind": "coeur",
+    "short": "Profit",
+    "color": "#5A3E36",
+    "label": "Profit et croissance",
+    "desc": "Le capitalisme impose-t-il la croissance ?"
+   },
+   {
+    "id": "quota",
+    "kind": "connexe",
+    "short": "Quota",
+    "color": "#3F8462",
+    "label": "Quota carbone individuel",
+    "desc": "Équité, faisabilité, acceptabilité d'un plafond de consommation."
+   },
+   {
+    "id": "bilan",
+    "kind": "annexe",
+    "short": "Bilan",
+    "color": "#9CA3AF",
+    "label": "Bilan du débat",
+    "desc": "Positions finales et avis sur le débat."
+   }
+  ],
+  "timeline": [
+   [
+    0,
+    0.75,
+    null
+   ],
+   [
+    0.75,
+    9.68,
+    "pays_dev"
+   ],
+   [
+    9.68,
+    18.08,
+    "transport"
+   ],
+   [
+    18.08,
+    20.09,
+    "pays_dev"
+   ],
+   [
+    20.09,
+    28.03,
+    "ville"
+   ],
+   [
+    28.03,
+    29.72,
+    null
+   ],
+   [
+    29.72,
+    46.34,
+    "regule"
+   ],
+   [
+    46.34,
+    51.14,
+    "industries"
+   ],
+   [
+    51.14,
+    54.28,
+    "marche"
+   ],
+   [
+    54.28,
+    57.33,
+    "industries"
+   ],
+   [
+    57.33,
+    62.76,
+    "marche"
+   ],
+   [
+    62.76,
+    75.42,
+    "planif"
+   ],
+   [
+    75.42,
+    79.17,
+    "regule"
+   ],
+   [
+    79.17,
+    81.77,
+    "profit"
+   ],
+   [
+    81.77,
+    90.94,
+    "quota"
+   ],
+   [
+    90.94,
+    99.92,
+    "bilan"
+   ]
+  ],
+  "mentions": [],
+  "affirmations": [
+   {
+    "text": "Un capitalisme fortement régulé peut être compatible avec l'écologie",
+    "stances": [
+     {
+      "id": "i1",
+      "pos": "pour",
+      "t": 29.7325
+     },
+     {
+      "id": "i2",
+      "pos": "pour",
+      "t": 90.94
+     },
+     {
+      "id": "i10",
+      "pos": "pour",
+      "t": 93.883
+     },
+     {
+      "id": "i4",
+      "pos": "contre",
+      "t": 34.798
+     },
+     {
+      "id": "i3",
+      "pos": "contre",
+      "t": 79.1765
+     },
+     {
+      "id": "i5",
+      "pos": "nuance",
+      "t": 39.8105,
+      "note": "possible au niveau national, difficile à l'échelle mondiale"
+     },
+     {
+      "id": "i9",
+      "pos": "nuance",
+      "t": 72.5515,
+      "note": "doute qu'on puisse planifier sans État autoritaire"
+     }
+    ]
+   },
+   {
+    "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
+    "stances": [
+     {
+      "id": "i1",
+      "pos": "pour",
+      "t": 0.7458
+     },
+     {
+      "id": "i2",
+      "pos": "pour",
+      "t": 2.1187,
+      "note": "en limitant"
+     },
+     {
+      "id": "i4",
+      "pos": "pour",
+      "t": 4.6997,
+      "note": "accompagner plutôt que contrôler"
+     },
+     {
+      "id": "i8",
+      "pos": "pour",
+      "t": 14.1662,
+      "note": "un mal nécessaire"
+     },
+     {
+      "id": "i9",
+      "pos": "pour",
+      "t": 19.4802
+     },
+     {
+      "id": "i7",
+      "pos": "contre",
+      "t": 11.8278
+     },
+     {
+      "id": "i6",
+      "pos": "nuance",
+      "t": 10.188,
+      "note": "se développer sans énergies carbonées"
+     }
+    ]
+   },
+   {
+    "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
+    "stances": [
+     {
+      "id": "i7",
+      "pos": "pour",
+      "t": 47.9842
+     },
+     {
+      "id": "i6",
+      "pos": "pour",
+      "t": 49.2548,
+      "note": "en réduisant leur impact"
+     },
+     {
+      "id": "i8",
+      "pos": "pour",
+      "t": 54.2873
+     },
+     {
+      "id": "i5",
+      "pos": "pour",
+      "t": 56.0517,
+      "note": "en forçant leur électrification"
+     },
+     {
+      "id": "i9",
+      "pos": "nuance",
+      "t": 50.1987,
+      "note": "accepter de perdre du confort dès maintenant"
+     },
+     {
+      "id": "i3",
+      "pos": "nuance",
+      "t": 55.1057,
+      "note": "demande de quel confort on parle"
+     }
+    ]
+   },
+   {
+    "text": "Le marché peut mener seul la transition, en douceur",
+    "stances": [
+     {
+      "id": "i7",
+      "pos": "pour",
+      "t": 51.1382
+     },
+     {
+      "id": "i9",
+      "pos": "contre",
+      "t": 52.1965
+     },
+     {
+      "id": "i10",
+      "pos": "contre",
+      "t": 58.631
+     },
+     {
+      "id": "i1",
+      "pos": "contre",
+      "t": 61.0278
+     },
+     {
+      "id": "i5",
+      "pos": "nuance",
+      "t": 57.336,
+      "note": "efficient, mais peut-être trop tard"
+     }
+    ]
+   },
+   {
+    "text": "Il faut sortir les grands secteurs du marché par la planification publique",
+    "stances": [
+     {
+      "id": "i4",
+      "pos": "pour",
+      "t": 64.3163
+     },
+     {
+      "id": "i1",
+      "pos": "contre",
+      "t": 65.3253,
+      "note": "nationaliser au cas par cas seulement"
+     },
+     {
+      "id": "i10",
+      "pos": "contre",
+      "t": 93.883
+     }
+    ]
+   },
+   {
+    "text": "Un quota carbone individuel serait souhaitable",
+    "stances": [
+     {
+      "id": "i4",
+      "pos": "pour",
+      "t": 82.7925
+     },
+     {
+      "id": "i10",
+      "pos": "pour",
+      "t": 84.7595,
+      "note": "en principe, s'il est pondéré selon les besoins"
+     },
+     {
+      "id": "i3",
+      "pos": "pour",
+      "t": 87.4525
+     },
+     {
+      "id": "i1",
+      "pos": "contre",
+      "t": 81.9102,
+      "note": "faute de pouvoir le mesurer"
+     },
+     {
+      "id": "i5",
+      "pos": "contre",
+      "t": 88.839
+     },
+     {
+      "id": "i11",
+      "pos": "nuance",
+      "t": 89.9782,
+      "note": "possible pour les vols"
+     }
+    ]
+   },
+   {
+    "text": "Concentrer la population en ville est plus écologique",
+    "stances": [
+     {
+      "id": "i5",
+      "pos": "pour",
+      "t": 20.0948
+     },
+     {
+      "id": "i10",
+      "pos": "pour",
+      "t": 24.9082
+     },
+     {
+      "id": "i3",
+      "pos": "contre",
+      "t": 22.4957
+     },
+     {
+      "id": "i6",
+      "pos": "contre",
+      "t": 9.6812
+     },
+     {
+      "id": "i8",
+      "pos": "nuance",
+      "t": 24.1277,
+      "note": "l'hypercentralisation pollue"
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -1,0 +1,449 @@
+{
+  "format": "ecclesia.pre_debat.v1",
+  "lisez_moi": [
+    "Données du vote d'AVANT le débat (pré-vote à distance et vote en présentiel), reconstituées telles qu'elles étaient avant tout revote du post-débat.",
+    "Parts (part_pour, part_pour_camp…) entre 0 et 1 : pour / (pour + contre). Abstentions et votes blancs sont comptés à part et n'entrent pas dans les parts.",
+    "consensus : les 3 assertions que chaque camp soutient (sens = adhesion) ou rejette (sens = rejet) le plus ; score = part du camp le moins convaincu. Une assertion n'est classée que si chaque camp a au moins 2 votes pour ou contre.",
+    "dissensus : les 3 assertions qui opposent le plus les camps ; score = écart de part_pour entre le camp le plus pour et le camp le plus contre.",
+    "Seules les assertions avec au moins 3 votes pour ou contre sont classées.",
+    "camps : groupes d'opinion calculés sur les votes (analyse en composantes principales puis k-means, comme l'onglet Analyse). enonces_caracteristiques = ce qui distingue le plus le camp du reste des votants. nom_ia et description_ia ne sont présents que si les camps sont exactement ceux nommés par l'IA dans l'appli.",
+    "carte : un point par votant placé, anonyme. x et y sont les deux premières composantes principales des votes : les axes n'ont pas de libellé, seules les distances et les regroupements ont un sens.",
+    "Aucun nom ni identifiant de participant n'est inclus."
+  ],
+  "seance": {
+    "titre": "Le capitalisme est il compatible avec l'écologie ?",
+    "date_seance": "2026-10-15T12:00:00+00:00",
+    "exporte_le": "2026-10-19T09:52:35.991Z",
+    "votes": "avant débat (pre_closure)"
+  },
+  "participation": {
+    "votants_places": 14,
+    "assertions_approuvees": 17,
+    "assertions_analysees": 17,
+    "votes": 228
+  },
+  "consensus": [
+    {
+      "rang": 1,
+      "enonce": "Une politique écologique qui accroît les inégalités sociales doit être abandonnée, même si elle réduit fortement les émissions de CO₂.",
+      "pour": 9,
+      "contre": 2,
+      "abstention": 3,
+      "blanc": 0,
+      "part_pour": 0.818,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 2,
+          "pour": 2,
+          "contre": 1,
+          "part_pour": 0.667
+        },
+        {
+          "camp": 3,
+          "pour": 2,
+          "contre": 1,
+          "part_pour": 0.667
+        },
+        {
+          "camp": 4,
+          "pour": 2,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "sens": "adhesion",
+      "score": 0.667
+    },
+    {
+      "rang": 2,
+      "enonce": "Un capitalisme fortement réglementé peut être écologiquement soutenable.",
+      "pour": 10,
+      "contre": 2,
+      "abstention": 2,
+      "blanc": 0,
+      "part_pour": 0.833,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 3,
+          "contre": 1,
+          "part_pour": 0.75
+        },
+        {
+          "camp": 2,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 4,
+          "pour": 1,
+          "contre": 1,
+          "part_pour": 0.5
+        }
+      ],
+      "sens": "adhesion",
+      "score": 0.5
+    },
+    {
+      "rang": 3,
+      "enonce": "Pour accélérer la transition écologique, l'État devrait orienter les investissements des entreprises privées, même au détriment de leur rentabilité.",
+      "pour": 10,
+      "contre": 1,
+      "abstention": 3,
+      "blanc": 0,
+      "part_pour": 0.909,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 1,
+          "contre": 1,
+          "part_pour": 0.5
+        },
+        {
+          "camp": 2,
+          "pour": 4,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 2,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 4,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "sens": "adhesion",
+      "score": 0.5
+    }
+  ],
+  "dissensus": [
+    {
+      "rang": 1,
+      "enonce": "Les grandes entreprises du secteur énergétique devraient être nationalisées pour accélérer la transition écologique.",
+      "pour": 7,
+      "contre": 6,
+      "abstention": 1,
+      "blanc": 0,
+      "part_pour": 0.538,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 0,
+          "contre": 4,
+          "part_pour": 0
+        },
+        {
+          "camp": 2,
+          "pour": 4,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 1,
+          "contre": 1,
+          "part_pour": 0.5
+        },
+        {
+          "camp": 4,
+          "pour": 2,
+          "contre": 1,
+          "part_pour": 0.667
+        }
+      ],
+      "score": 1
+    },
+    {
+      "rang": 2,
+      "enonce": "Il est acceptable que des entreprises privées réalisent des profits importants grâce aux subventions publiques destinées à la transition écologique.",
+      "pour": 6,
+      "contre": 5,
+      "abstention": 3,
+      "blanc": 0,
+      "part_pour": 0.545,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 1,
+          "contre": 2,
+          "part_pour": 0.333
+        },
+        {
+          "camp": 2,
+          "pour": 2,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 4,
+          "pour": 0,
+          "contre": 3,
+          "part_pour": 0
+        }
+      ],
+      "score": 1
+    },
+    {
+      "rang": 3,
+      "enonce": "La protection de la biodiversité doit pouvoir primer sur les droits des propriétaires privés.",
+      "pour": 8,
+      "contre": 3,
+      "abstention": 2,
+      "blanc": 0,
+      "part_pour": 0.727,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 0,
+          "contre": 2,
+          "part_pour": 0
+        },
+        {
+          "camp": 2,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 2,
+          "contre": 1,
+          "part_pour": 0.667
+        },
+        {
+          "camp": 4,
+          "pour": 3,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "score": 1
+    }
+  ],
+  "camps": [
+    {
+      "camp": 1,
+      "couleur": "#2b4a86",
+      "taille": 4,
+      "part": 0.286,
+      "centre": {
+        "x": 1.925,
+        "y": -0.644
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "La protection de la biodiversité doit pouvoir primer sur les droits des propriétaires privés.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.889
+        },
+        {
+          "enonce": "Les grandes entreprises du secteur énergétique devraient être nationalisées pour accélérer la transition écologique.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.778
+        },
+        {
+          "enonce": "Il faut privilégier la production locale, même lorsque l'importation de certains produits présente un meilleur bilan carbone.",
+          "sens": "pour",
+          "part_pour_camp": 0.75,
+          "part_pour_reste": 0.1
+        }
+      ]
+    },
+    {
+      "camp": 2,
+      "couleur": "#b04a3c",
+      "taille": 4,
+      "part": 0.286,
+      "centre": {
+        "x": -1.332,
+        "y": 0.55
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "Les grandes entreprises du secteur énergétique devraient être nationalisées pour accélérer la transition écologique.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.333
+        },
+        {
+          "enonce": "Les pays en développement doivent pouvoir augmenter leurs émissions de CO₂ pour sortir de la pauvreté, même si cela ralentit la lutte mondiale contre le changement climatique.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.625
+        },
+        {
+          "enonce": "Il est acceptable que des entreprises privées réalisent des profits importants grâce aux subventions publiques destinées à la transition écologique.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.444
+        }
+      ]
+    },
+    {
+      "camp": 3,
+      "couleur": "#3f8462",
+      "taille": 3,
+      "part": 0.214,
+      "centre": {
+        "x": 0.299,
+        "y": 1.883
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "La décroissance est nécessaire dans les pays riches, même si elle entraîne une baisse du niveau de vie moyen.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.75
+        },
+        {
+          "enonce": "Il est acceptable que des entreprises privées réalisent des profits importants grâce aux subventions publiques destinées à la transition écologique.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.375
+        },
+        {
+          "enonce": "Il faut fermer les industries les plus polluantes, même lorsqu'aucune solution de remplacement n'existe pour leurs salariés.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.4
+        }
+      ]
+    },
+    {
+      "camp": 4,
+      "couleur": "#c8742a",
+      "taille": 3,
+      "part": 0.214,
+      "centre": {
+        "x": -1.089,
+        "y": -1.757
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "Il est acceptable que des entreprises privées réalisent des profits importants grâce aux subventions publiques destinées à la transition écologique.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.75
+        },
+        {
+          "enonce": "La décroissance est nécessaire dans les pays riches, même si elle entraîne une baisse du niveau de vie moyen.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.429
+        },
+        {
+          "enonce": "Construire de nouvelles centrales nucléaires est indispensable pour lutter efficacement contre le changement climatique.",
+          "sens": "contre",
+          "part_pour_camp": 0.333,
+          "part_pour_reste": 0.9
+        }
+      ]
+    }
+  ],
+  "carte": {
+    "axes": "composantes principales 1 (x) et 2 (y) des votes, sans unité",
+    "variance_expliquee": [
+      0.199,
+      0.165
+    ],
+    "points": [
+      {
+        "x": 1.388,
+        "y": -0.313,
+        "camp": 1
+      },
+      {
+        "x": 1.432,
+        "y": -0.831,
+        "camp": 1
+      },
+      {
+        "x": 2.046,
+        "y": -0.554,
+        "camp": 1
+      },
+      {
+        "x": 2.833,
+        "y": -0.877,
+        "camp": 1
+      },
+      {
+        "x": -2.097,
+        "y": 0.466,
+        "camp": 2
+      },
+      {
+        "x": -1.279,
+        "y": 1.249,
+        "camp": 2
+      },
+      {
+        "x": -1.058,
+        "y": 0.176,
+        "camp": 2
+      },
+      {
+        "x": -0.894,
+        "y": 0.308,
+        "camp": 2
+      },
+      {
+        "x": -0.595,
+        "y": 1.826,
+        "camp": 3
+      },
+      {
+        "x": 0.69,
+        "y": 2.112,
+        "camp": 3
+      },
+      {
+        "x": 0.802,
+        "y": 1.711,
+        "camp": 3
+      },
+      {
+        "x": -1.802,
+        "y": -2.124,
+        "camp": 4
+      },
+      {
+        "x": -1.006,
+        "y": -2.306,
+        "camp": 4
+      },
+      {
+        "x": -0.461,
+        "y": -0.842,
+        "camp": 4
+      }
+    ]
+  }
+}
