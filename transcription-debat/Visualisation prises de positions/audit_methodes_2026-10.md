@@ -204,6 +204,10 @@ Fait (`backend/code python/opinion_math.py`, branché dans `build_unified_viz.py
 
 Résultat sur les trois débats : **aucun camp net** (§ 3.2 confirmé avec la méthode complète). Restent à faire : le relevé sur une grille d'énoncés fixée d'avance (§ 4.2 a), le double codage réel d'au moins un débat (§ 4.2 b), et les comparaisons par paires (Bradley-Terry, § 4.2 c), qui demandent de nouveaux appels à un modèle de langue.
 
+### Décision du 2026-10-19 (après mise en œuvre)
+
+L'utilisateur a demandé des camps délimités « comme dans le pré-vote » : le test du hasard ne masque plus les camps, il reste calculable pour l'audit (`camps(..., test=True)`). Résultat de ce test sur les camps affichés : Héritage 12 + 3 voix (silhouette 0,53 contre 0,57 au hasard, stabilité 0,72), insécurité 9 + 1 (0,54 contre 0,58, stabilité 0,52), capitalisme 5 + 4 (0,36 contre 0,58, stabilité 0,24). Ces camps sont donc des tendances de lecture, pas des groupes statistiquement établis : c'est aussi le cas des camps du pré-vote de l'appli, calculés par la même règle. La page n'affiche plus aucune explication de méthode ; les indicateurs restent dans `unifiee.json` (`method`). Les cartes portent leurs libellés d'axes et de coins, écrits à partir des énoncés qui pèsent le plus sur chaque axe.
+
 ## Références
 
 **Vérifiées [V]**

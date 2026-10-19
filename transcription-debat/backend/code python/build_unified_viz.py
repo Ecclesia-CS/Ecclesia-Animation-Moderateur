@@ -66,20 +66,14 @@ CAMP_COLORS = ["#1E6B6D", "#9B3A2D", "#6383B4", "#7A5C99", "#3F8462", "#B97A2A"]
 UNCLASSIFIED_COLOR = "#898A8C"
 # Pied de page : méthode de CETTE page (le classement diffère de celui de la page croisée, d'où un texte propre).
 FOOTER = [
-    "⚠ Carte et camps de la transcription calculés, pas choisis : analyse en composantes principales et regroupement "
-    "des prises de position relevées, selon la méthode de Polis, avec un test qui écarte les camps indiscernables du "
-    "hasard. Quelques tables et une quinzaine de participants forment un petit échantillon : à lire avec prudence.",
-    f"⚠ Consensus et dissensus sont classés par calcul à partir des prises de position relevées : consensus = au moins "
-    f"{MIN_VOICES_CONSENSUS} voix pour ou contre, dont au moins les trois quarts du même côté, classés par le consensus "
-    "tenant compte des camps de Polis ; dissensus = des voix des deux côtés sans majorité nette. Ne pas s'être exprimé "
-    "n'est ni une adhésion ni un rejet.",
-    "⚠ Les énoncés et les prises de position sont relevés à la lecture de la transcription, chacun rattaché à un moment "
-    "de l'enregistrement ; ce sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît.",
+    "Les énoncés et les prises de position sont des reformulations de ce qui a été dit, jamais des citations, "
+    "et aucun prénom réel n'apparaît.",
 ]
 
 MAP_EXTENT = 9.0      # carte de la transcription ramenée dans ±9 (même facteur sur les deux axes)
 MAP_CLIP = 9.8        # une position intermédiaire (peu de prises de position) ne sort pas du plan
 MOVE_MINUTES = 1.0    # durée de l'animation quand une nouvelle prise de position déplace un point
+QUADRANTS = ("topLeft", "topRight", "bottomLeft", "bottomRight")   # libellés de coin facultatifs des lectures
 AXIS_STATEMENTS = 4   # énoncés qui pèsent le plus sur chaque axe, montrés sous la carte
 TABLE_COLORS = ["var(--ta)", "var(--tb)", "var(--tc3)", "var(--tc4)"]
 
@@ -351,6 +345,8 @@ def prepare_pre_debate(raw: dict, names: list[str], lecture: dict | None = None)
         if la is not None:
             axes = {"x": {s: _text((la.get("x") or {}).get(s), f"axe x, {s}", names) for s in ("left", "right")},
                     "y": {s: _text((la.get("y") or {}).get(s), f"axe y, {s}", names) for s in ("bottom", "top")}}
+            if la.get("quadrants") is not None:
+                axes["quadrants"] = {q: _text(la["quadrants"].get(q), f"coin {q}", names) for q in QUADRANTS}
         syn = lecture.get("camps") or {}
         unknown = set(syn) - {str(c["camp"]) for c in camps}
         if unknown:
@@ -471,6 +467,8 @@ def transcription_opinions(cross: dict, durations: dict[str, float], names: list
             raise UnifiedError("transcription_lecture : libellés d'axes donnés, mais aucune carte n'a pu être calculée")
         axes["lecture"] = {"x": {s: _ttext((la.get("x") or {}).get(s), f"lecture, axe x, {s}", names) for s in ("left", "right")},
                            "y": {s: _ttext((la.get("y") or {}).get(s), f"lecture, axe y, {s}", names) for s in ("bottom", "top")}}
+        if la.get("quadrants") is not None:
+            axes["lecture"]["quadrants"] = {q: _ttext(la["quadrants"].get(q), f"lecture, coin {q}", names) for q in QUADRANTS}
     lc = lecture.get("camps") or {}
     known = {str(g["camp"]): g for g in groups}
     unknown = set(lc) - set(known)

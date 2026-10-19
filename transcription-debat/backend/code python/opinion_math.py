@@ -10,11 +10,11 @@ Méthode (références dans « Visualisation prises de positions/audit_methodes_
   = moyenne de la colonne ; ACP, deux composantes ; position multipliée par √(C / Cp) pour que les voix
   qui se sont peu exprimées ne s'agglutinent pas au centre. Une voix avec moins de MIN_VOTES prises de
   position n'est pas placée (Polis : 7 sur une centaine de commentaires, hyperparamètre assumé).
-- Camps : Polis §1.3, k-means de 2 à 5 groupes sur la carte, k retenu au meilleur coefficient de
-  silhouette (Rousseeuw 1987). En plus : test d'absence de structure (même procédure sur des nuages
-  sans groupe, principe de la gap statistic, Tibshirani et al. 2001) et stabilité par rééchantillonnage
-  des voix (indice de Rand ajusté, Hubert & Arabie 1985 ; Hennig 2007). Camps affichés seulement s'ils
-  battent le hasard.
+- Camps : comme le pré-vote de l'appli et Polis §1.3, k-means de 2 à 5 groupes sur la carte, k retenu
+  au meilleur coefficient de silhouette (Rousseeuw 1987), solution sans camp d'une personne préférée.
+  Pour l'audit seulement (`camps(..., test=True)`, non affiché) : test d'absence de structure (gap
+  statistic, Tibshirani et al. 2001) et stabilité par rééchantillonnage (Hubert & Arabie 1985 ;
+  Hennig 2007).
 - Énoncés caractéristiques d'un camp : représentativité de Polis §1.4, P = (1 + N_v) / (2 + N),
   rapport camp / reste, test de deux proportions ; retenus si significatifs (z ≥ 1,2816, seuil 90 %
   du code de Polis) et majoritaires dans le camp.
@@ -149,14 +149,14 @@ def silhouette(x: np.ndarray, labels: np.ndarray) -> float:
     return float(np.mean(scores))
 
 
-def best_k(x: np.ndarray, seed: int = SEED, n_init: int = 10):
-    """k de 2 à min(5, n/3) au meilleur coefficient de silhouette, sans camp de moins de MIN_CAMP_SIZE
+def best_k(x: np.ndarray, seed: int = SEED, n_init: int = 10, min_size: int = MIN_CAMP_SIZE):
+    """k de 2 à min(5, n/3) au meilleur coefficient de silhouette, sans camp de moins de `min_size`
     voix. None si aucune solution (moins de 6 points)."""
     k_max = min(K_MAX, len(x) // MIN_PER_CAMP)
     best = None
     for k in range(2, k_max + 1):
         labels, centers = kmeans(x, k, seed, n_init)
-        if np.min(np.bincount(labels, minlength=k)) < MIN_CAMP_SIZE:
+        if np.min(np.bincount(labels, minlength=k)) < min_size:
             continue
         sc = silhouette(x, labels)
         if best is None or sc > best[2] + 1e-12:
@@ -181,27 +181,34 @@ def adjusted_rand(a, b) -> float:
     return 1.0 if maxi == expected else float((s_ij - expected) / (maxi - expected))
 
 
-def camps(x: np.ndarray, seed: int = SEED) -> dict:
-    """Camps d'opinion sur la carte, avec leurs indicateurs de validité.
-    `nets` : la silhouette dépasse le 95e centile de la même procédure appliquée à des nuages
-    gaussiens de même moyenne et covariance (aucun groupe) ; sinon aucun camp n'est affiché."""
+def camps(x: np.ndarray, seed: int = SEED, test: bool = False) -> dict:
+    """Camps d'opinion sur la carte, comme le pré-vote de l'appli (onglet Analyse) : k-moyennes de 2 à
+    min(5, n/3) groupes, k retenu au meilleur coefficient de silhouette, graine fixe. Une solution sans
+    camp d'une seule personne est préférée ; s'il n'y en a aucune, la meilleure est gardée quand même.
+
+    `test=True` ajoute les indicateurs de validité de l'audit (non affichés sur la page) : silhouette
+    atteinte par des nuages sans structure (95e centile, principe de la gap statistic) et stabilité par
+    rééchantillonnage (indice de Rand ajusté médian)."""
     n = len(x)
-    out = {"n": n, "k": 0, "labels": [-1] * n, "nets": False, "silhouette": None,
-           "silhouette_hasard_95": None, "stabilite": None}
-    found = best_k(x, seed)
+    out = {"n": n, "k": 0, "labels": [-1] * n, "nets": False, "silhouette": None}
+    found = best_k(x, seed) or best_k(x, seed, min_size=1)
     if found is None:
-        out["raison"] = ("trop peu de voix placées pour former des camps" if n < 2 * MIN_PER_CAMP else
-                         "tous les regroupements possibles isolent une seule personne, ce qui ne fait pas un camp")
+        out["raison"] = "trop peu de voix placées pour former des camps"
         return out
     k, labels, sil, centers = found
+    # numérotation stable : du plus grand camp au plus petit, puis de gauche à droite
+    order = sorted(range(k), key=lambda g: (-int(np.sum(labels == g)), float(centers[g][0]), float(centers[g][1])))
+    remap = {g: i for i, g in enumerate(order)}
+    out.update({"k": k, "labels": [remap[int(g)] for g in labels], "silhouette": round(sil, 3), "nets": True})
+    if not test:
+        return out
     rng = np.random.default_rng(seed)
     cov = np.cov(x.T) + 1e-9 * np.eye(2)
     null = []
     for _ in range(N_NULL):
         z = rng.multivariate_normal(x.mean(0), cov, n)
-        nb = best_k(z, int(rng.integers(1 << 30)))  # même procédure que sur les vraies données
+        nb = best_k(z, int(rng.integers(1 << 30))) or best_k(z, int(rng.integers(1 << 30)), min_size=1)
         null.append(nb[2] if nb else 0.0)
-    p95 = float(np.percentile(null, NULL_QUANTILE))
     aris = []
     for _ in range(N_BOOT):
         idx = rng.choice(n, n, replace=True)
@@ -210,14 +217,9 @@ def camps(x: np.ndarray, seed: int = SEED) -> dict:
         _, c = kmeans(x[idx], k, int(rng.integers(1 << 30)), n_init=3)
         pred = np.argmin(((x[:, None, :] - c[None]) ** 2).sum(-1), axis=1)
         aris.append(adjusted_rand(labels, pred))
-    # numérotation stable : du plus grand camp au plus petit, puis de gauche à droite
-    order = sorted(range(k), key=lambda g: (-int(np.sum(labels == g)), float(centers[g][0]), float(centers[g][1])))
-    remap = {g: i for i, g in enumerate(order)}
-    out.update({"k": k, "labels": [remap[int(g)] for g in labels], "silhouette": round(sil, 3),
-                "silhouette_hasard_95": round(p95, 3), "nets": bool(sil > p95),
+    p95 = float(np.percentile(null, NULL_QUANTILE))
+    out.update({"silhouette_hasard_95": round(p95, 3), "bat_le_hasard": bool(sil > p95),
                 "stabilite": round(float(np.median(aris)), 3) if aris else None})
-    if not out["nets"]:
-        out["raison"] = "les groupes trouvés ne se distinguent pas d'un nuage sans structure"
     return out
 
 
@@ -253,6 +255,12 @@ def representative(statements: list[dict], members: set[str], others: set[str], 
         for side, kin, kout in (("pour", pin, pout), ("contre", cin, cout)):
             pa, pb = _p(kin, nin), _p(kout, nout)
             z = two_prop_z(kin, nin, kout, nout)
+            share_in = pin / (pin + cin) if pin + cin else None
+            share_out = pout / (pout + cout) if pout + cout else None
+            # un énoncé que le reste partage autant que le camp ne le distingue pas, même si le test passe
+            # (écart dû aux seules nuances) : on exige que la part de pour aille dans le sens du camp
+            if share_in is not None and share_out is not None and                     (share_in <= share_out if side == "pour" else share_in >= share_out):
+                continue
             if nin and pa >= 0.5 and z >= Z_SIG_90:
                 found[side].append({"text": st["text"], "sens": side, "ratio": round(pa / pb, 3), "z": round(z, 3),
                                     "part_pour_camp": round(pin / (pin + cin), 3) if pin + cin else None,

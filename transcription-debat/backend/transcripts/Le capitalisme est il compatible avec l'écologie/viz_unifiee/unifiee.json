@@ -61,7 +61,22 @@
         }
       ]
     },
-    "lecture": null
+    "lecture": {
+      "x": {
+        "left": "Planifier et rationner le carbone",
+        "right": "Un capitalisme régulé suffit"
+      },
+      "y": {
+        "bottom": "Transition par le marché, emplois préservés",
+        "top": "Justice climatique entre pays"
+      },
+      "quadrants": {
+        "topLeft": "Planification et justice mondiale",
+        "topRight": "Régulation et justice mondiale",
+        "bottomLeft": "Rationner sans casser l'emploi",
+        "bottomRight": "Faire confiance au marché"
+      }
+    }
   },
   "method": {
     "voix": 11,
@@ -75,12 +90,12 @@
       0.273
     ],
     "camps": {
-      "nets": false,
+      "nets": true,
       "k": 2,
       "silhouette": 0.356,
-      "silhouette_hasard_95": 0.579,
-      "stabilite": 0.241,
-      "raison": "les groupes trouvés ne se distinguent pas d'un nuage sans structure"
+      "silhouette_hasard_95": null,
+      "stabilite": null,
+      "raison": null
     },
     "concordance_lecture": {
       "r2": 0.363,
@@ -508,6 +523,12 @@
       "y": {
         "bottom": "Décroissance, contre les profits tirés des subventions vertes",
         "top": "Sans décroissance, profits subventionnés acceptés"
+      },
+      "quadrants": {
+        "topLeft": "Nationaliser, sans décroissance",
+        "topRight": "Propriété et croissance",
+        "bottomLeft": "Nationaliser et décroître",
+        "bottomRight": "Propriété privée et sobriété"
       }
     },
     "carte": {
@@ -594,34 +615,58 @@
     "ranking": {
       "consensus": [
         {
-          "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
-          "side": "pour",
-          "p": 5,
-          "c": 1,
-          "nu": 1,
-          "agreement": 0.667,
-          "score_consensus": 0.6667,
-          "score_dissensus": null
-        },
-        {
           "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
           "side": "pour",
           "p": 4,
           "c": 0,
           "nu": 2,
           "agreement": 1.0,
-          "score_consensus": 0.625,
-          "score_dissensus": null
+          "score_consensus": 0.36,
+          "score_dissensus": 0.0,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 2,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            }
+          ]
         },
         {
-          "text": "Le marché peut mener seul la transition, en douceur",
-          "side": "contre",
-          "p": 1,
-          "c": 3,
+          "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
+          "side": "pour",
+          "p": 5,
+          "c": 1,
           "nu": 1,
-          "agreement": 0.5,
-          "score_consensus": 0.5714,
-          "score_dissensus": null
+          "agreement": 0.667,
+          "score_consensus": 0.32,
+          "score_dissensus": 0.3,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 3,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 1,
+              "contre": 1,
+              "nuance": 1
+            },
+            {
+              "camp": 0,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         }
       ],
       "consensus_ties": [],
@@ -633,8 +678,22 @@
           "c": 2,
           "nu": 1,
           "agreement": 0.0,
-          "score_consensus": 0.4286,
-          "score_dissensus": null
+          "score_consensus": 0.15,
+          "score_dissensus": 0.5,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 2,
+              "pour": 0,
+              "contre": 2,
+              "nuance": 0
+            }
+          ]
         },
         {
           "text": "Un capitalisme fortement régulé peut être compatible avec l'écologie",
@@ -643,23 +702,130 @@
           "c": 2,
           "nu": 2,
           "agreement": 0.2,
-          "score_consensus": 0.4444,
-          "score_dissensus": null
+          "score_consensus": 0.125,
+          "score_dissensus": 0.5,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 2
+            },
+            {
+              "camp": 2,
+              "pour": 0,
+              "contre": 2,
+              "nuance": 0
+            },
+            {
+              "camp": 0,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         },
         {
-          "text": "Un quota carbone individuel serait souhaitable",
-          "side": "pour",
-          "p": 3,
+          "text": "Il faut sortir les grands secteurs du marché par la planification publique",
+          "side": "contre",
+          "p": 1,
           "c": 2,
-          "nu": 1,
-          "agreement": 0.2,
-          "score_consensus": 0.5,
-          "score_dissensus": null
+          "nu": 0,
+          "agreement": 0.333,
+          "score_consensus": 0.25,
+          "score_dissensus": 0.4167,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 0,
+              "contre": 2,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         }
       ],
       "dissensus_ties": []
     },
-    "groups": [],
+    "groups": [
+      {
+        "camp": 1,
+        "label": "Capitalisme régulé et ville dense",
+        "color": "#1E6B6D",
+        "size": 5,
+        "representative": [
+          {
+            "text": "Concentrer la population en ville est plus écologique",
+            "sens": "pour",
+            "ratio": 2.4,
+            "z": 1.491,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.0
+          },
+          {
+            "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
+            "sens": "pour",
+            "ratio": 1.6,
+            "z": 1.449,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.667
+          },
+          {
+            "text": "Un quota carbone individuel serait souhaitable",
+            "sens": "contre",
+            "ratio": 3.0,
+            "z": 1.732,
+            "part_pour_camp": 0.333,
+            "part_pour_reste": 1.0
+          }
+        ],
+        "synthese": "Pour concentrer la population en ville et laisser les pays en développement émettre plus pour se développer ; plutôt contre un quota carbone individuel.",
+        "by_table": {
+          "A": 5
+        }
+      },
+      {
+        "camp": 2,
+        "label": "Quota carbone et planification",
+        "color": "#9B3A2D",
+        "size": 4,
+        "representative": [
+          {
+            "text": "Le marché peut mener seul la transition, en douceur",
+            "sens": "pour",
+            "ratio": 4.0,
+            "z": 2.236,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.0
+          },
+          {
+            "text": "Il faut sortir les grands secteurs du marché par la planification publique",
+            "sens": "pour",
+            "ratio": 2.667,
+            "z": 1.732,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.0
+          },
+          {
+            "text": "Un quota carbone individuel serait souhaitable",
+            "sens": "pour",
+            "ratio": 2.25,
+            "z": 1.732,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.333
+          }
+        ],
+        "synthese": "Favorable à un quota carbone individuel et à sortir les grands secteurs du marché, tout en jugeant que le marché peut mener la transition en douceur.",
+        "by_table": {
+          "A": 4
+        }
+      }
+    ],
     "n_participants": 11,
     "n_common_statements": 7
   },
@@ -673,34 +839,58 @@
       "ranking": {
         "consensus": [
           {
-            "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
-            "side": "pour",
-            "p": 5,
-            "c": 1,
-            "nu": 1,
-            "agreement": 0.667,
-            "score_consensus": 0.6667,
-            "score_dissensus": null
-          },
-          {
             "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
             "side": "pour",
             "p": 4,
             "c": 0,
             "nu": 2,
             "agreement": 1.0,
-            "score_consensus": 0.625,
-            "score_dissensus": null
+            "score_consensus": 0.36,
+            "score_dissensus": 0.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 1
+              }
+            ]
           },
           {
-            "text": "Le marché peut mener seul la transition, en douceur",
-            "side": "contre",
-            "p": 1,
-            "c": 3,
+            "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
+            "side": "pour",
+            "p": 5,
+            "c": 1,
             "nu": 1,
-            "agreement": 0.5,
-            "score_consensus": 0.5714,
-            "score_dissensus": null
+            "agreement": 0.667,
+            "score_consensus": 0.32,
+            "score_dissensus": 0.3,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 1,
+                "nuance": 1
+              },
+              {
+                "camp": 0,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [],
@@ -712,8 +902,22 @@
             "c": 2,
             "nu": 1,
             "agreement": 0.0,
-            "score_consensus": 0.4286,
-            "score_dissensus": null
+            "score_consensus": 0.15,
+            "score_dissensus": 0.5,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 2,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Un capitalisme fortement régulé peut être compatible avec l'écologie",
@@ -722,23 +926,124 @@
             "c": 2,
             "nu": 2,
             "agreement": 0.2,
-            "score_consensus": 0.4444,
-            "score_dissensus": null
+            "score_consensus": 0.125,
+            "score_dissensus": 0.5,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 2
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 2,
+                "nuance": 0
+              },
+              {
+                "camp": 0,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
-            "text": "Un quota carbone individuel serait souhaitable",
-            "side": "pour",
-            "p": 3,
+            "text": "Il faut sortir les grands secteurs du marché par la planification publique",
+            "side": "contre",
+            "p": 1,
             "c": 2,
-            "nu": 1,
-            "agreement": 0.2,
-            "score_consensus": 0.5,
-            "score_dissensus": null
+            "nu": 0,
+            "agreement": 0.333,
+            "score_consensus": 0.25,
+            "score_dissensus": 0.4167,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 2,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "dissensus_ties": []
       },
-      "groups": [],
+      "groups": [
+        {
+          "camp": 1,
+          "label": "Capitalisme régulé et ville dense",
+          "color": "#1E6B6D",
+          "size": 5,
+          "representative": [
+            {
+              "text": "Concentrer la population en ville est plus écologique",
+              "sens": "pour",
+              "ratio": 2.4,
+              "z": 1.491,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.0
+            },
+            {
+              "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
+              "sens": "pour",
+              "ratio": 1.6,
+              "z": 1.449,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.667
+            },
+            {
+              "text": "Un quota carbone individuel serait souhaitable",
+              "sens": "contre",
+              "ratio": 3.0,
+              "z": 1.732,
+              "part_pour_camp": 0.333,
+              "part_pour_reste": 1.0
+            }
+          ],
+          "synthese": "Pour concentrer la population en ville et laisser les pays en développement émettre plus pour se développer ; plutôt contre un quota carbone individuel."
+        },
+        {
+          "camp": 2,
+          "label": "Quota carbone et planification",
+          "color": "#9B3A2D",
+          "size": 4,
+          "representative": [
+            {
+              "text": "Le marché peut mener seul la transition, en douceur",
+              "sens": "pour",
+              "ratio": 4.0,
+              "z": 2.236,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.0
+            },
+            {
+              "text": "Il faut sortir les grands secteurs du marché par la planification publique",
+              "sens": "pour",
+              "ratio": 2.667,
+              "z": 1.732,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.0
+            },
+            {
+              "text": "Un quota carbone individuel serait souhaitable",
+              "sens": "pour",
+              "ratio": 2.25,
+              "z": 1.732,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.333
+            }
+          ],
+          "synthese": "Favorable à un quota carbone individuel et à sortir les grands secteurs du marché, tout en jugeant que le marché peut mener la transition en douceur."
+        }
+      ],
       "unplaced": 2,
       "kinds": {
         "coeur": {
@@ -972,9 +1277,9 @@
           ],
           "weight": 29.143,
           "entry": 0.19,
-          "camp": "Sans camp net",
+          "camp": "Capitalisme régulé et ville dense",
           "note": "Voix la plus présente : défend un capitalisme régulé par un prix du carbone redistribué, des normes et une planification écologique, avec quelques nationalisations au cas par cas. Juge le marché nécessaire mais court-termiste, et veut choisir comment on décroît plutôt que le subir.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               0.19,
@@ -1405,9 +1710,9 @@
           ],
           "weight": 6.763,
           "entry": 3.21,
-          "camp": "Sans camp net",
+          "camp": "Quota carbone et planification",
           "note": "Relie la voiture, la ville et la centralisation des activités aux optimisations capitalistes, veut des territoires plus autonomes et défend des limites absolues de consommation pour tous ; concède en fin de débat que la ville existait avant le capitalisme.",
-          "color": "var(--ta)",
+          "color": "#9B3A2D",
           "speech": [
             [
               3.21,
@@ -1550,9 +1855,9 @@
           ],
           "weight": 11.807,
           "entry": 4.7,
-          "camp": "Sans camp net",
+          "camp": "Quota carbone et planification",
           "note": "Voix la plus critique du capitalisme : la marchandisation s'étend à tout et les propriétaires tiennent le pouvoir. Défend les monopoles publics, une planification appuyée sur les données, un fédéralisme décentralisé, et le quota carbone individuel.",
-          "color": "var(--ta)",
+          "color": "#9B3A2D",
           "speech": [
             [
               4.7,
@@ -1741,9 +2046,9 @@
           ],
           "weight": 6.79,
           "entry": 5.58,
-          "camp": "Sans camp net",
+          "camp": "Capitalisme régulé et ville dense",
           "note": "Lie le développement des pays pauvres à notre consommation, voit la ville comme une optimisation écologique, veut que l'État force la transformation des industries plutôt que de les fermer, doute de l'efficience du marché et refuse de contraindre la consommation individuelle.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               5.58,
@@ -1816,9 +2121,9 @@
           ],
           "weight": 2.183,
           "entry": 9.68,
-          "camp": "Sans camp net",
+          "camp": "Quota carbone et planification",
           "note": "Trois interventions : le modèle des grandes villes desservies par la voiture n'est pas adapté aux prochaines décennies, il faut aider les pays pauvres sans énergies carbonées, et accepter de perdre un peu de confort pour garder les industries essentielles.",
-          "color": "var(--ta)",
+          "color": "#9B3A2D",
           "speech": [
             [
               9.68,
@@ -1863,9 +2168,9 @@
           ],
           "weight": 7.493,
           "entry": 11.83,
-          "camp": "Sans camp net",
+          "camp": "Quota carbone et planification",
           "note": "Seule voix confiante dans le marché : défend la voiture et les routes, refuse de laisser les pays pauvres émettre plus, de fermer les industries polluantes ou de sacrifier le confort, et pense que les prix guideront une transition douce.",
-          "color": "var(--ta)",
+          "color": "#9B3A2D",
           "speech": [
             [
               11.83,
@@ -1982,9 +2287,9 @@
           ],
           "weight": 5.244,
           "entry": 14.17,
-          "camp": "Sans camp net",
+          "camp": "Capitalisme régulé et ville dense",
           "note": "Voit les routes comme un mal nécessaire pour les pays pauvres, à accompagner par des plans multilatéraux d'énergie renouvelable ; s'inquiète de l'hypercentralisation et des bidonvilles, et veut un plan B pour les salariés des industries polluantes.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               14.17,
@@ -2055,9 +2360,9 @@
           ],
           "weight": 7.456,
           "entry": 18.08,
-          "camp": "Sans camp net",
+          "camp": "Capitalisme régulé et ville dense",
           "note": "Veut traiter les pays selon leur stade de développement et accepter une perte de confort progressive plutôt que de subir un choc ; ne croit pas à une transition douce par le marché, mais doute aussi qu'on puisse planifier sans État autoritaire.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               18.08,
@@ -2168,9 +2473,9 @@
           ],
           "weight": 6.091,
           "entry": 21.08,
-          "camp": "Sans camp net",
+          "camp": "Capitalisme régulé et ville dense",
           "note": "Voit la centralisation comme un levier écologique, pose la question de ce qu'on accepte d'abandonner, juge que marché et intérêt public divergent sur l'écologie, et se dit convaincu en principe par un quota carbone pondéré selon les besoins ; reste attaché au capitalisme régulé tout en reconnaissant que l'idée l'arrange.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               21.08,
@@ -2850,8 +3155,6 @@
     }
   ],
   "footer": [
-    "⚠ Carte et camps de la transcription calculés, pas choisis : analyse en composantes principales et regroupement des prises de position relevées, selon la méthode de Polis, avec un test qui écarte les camps indiscernables du hasard. Quelques tables et une quinzaine de participants forment un petit échantillon : à lire avec prudence.",
-    "⚠ Consensus et dissensus sont classés par calcul à partir des prises de position relevées : consensus = au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté, classés par le consensus tenant compte des camps de Polis ; dissensus = des voix des deux côtés sans majorité nette. Ne pas s'être exprimé n'est ni une adhésion ni un rejet.",
-    "⚠ Les énoncés et les prises de position sont relevés à la lecture de la transcription, chacun rattaché à un moment de l'enregistrement ; ce sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît."
+    "Les énoncés et les prises de position sont des reformulations de ce qui a été dit, jamais des citations, et aucun prénom réel n'apparaît."
   ]
 }

@@ -11,12 +11,48 @@
       "y": {
         "bottom": "Sanction rapide et certaine d'abord",
         "top": "Cibler le narcotrafic, sanction rapide secondaire"
+      },
+      "quadrants": {
+        "topLeft": "Relativiser, viser le narcotrafic",
+        "topRight": "Prison et lutte contre le narcotrafic",
+        "bottomLeft": "Relativiser, mais sanctionner vite",
+        "bottomRight": "Fermeté : sanction rapide et prison"
       }
     },
     "camps": {
       "1": "Relativise l'insécurité, jugée surtout ressentie et amplifiée par les médias, et veut concentrer les moyens sur les risques qui tuent le plus. Préfère réduire les peines plutôt que construire des places de prison.",
       "2": "Prend l'insécurité au sérieux, pas comme un simple ressenti, et veut combattre le narcotrafic par la demande, consommateurs compris. Plutôt favorable à de nouvelles places de prison, sans faire de la sanction rapide une priorité.",
       "3": "Met la sanction rapide et certaine avant la prévention et veut construire des places de prison plutôt que réduire les peines. Seul camp où l'idée de polices privées en concurrence trouve des soutiens."
+    }
+  },
+  "transcription_lecture": {
+    "axes": {
+      "x": {
+        "left": "Faire confiance à l'ordre établi",
+        "right": "Contester l'ordre établi"
+      },
+      "y": {
+        "bottom": "Ni légalisation ni mixité imposée",
+        "top": "Légaliser les drogues, imposer la mixité"
+      },
+      "quadrants": {
+        "topLeft": "Réformer sans rompre",
+        "topRight": "Rupture et prévention",
+        "bottomLeft": "Ordre et prison",
+        "bottomRight": "Contester, sans légaliser"
+      }
+    },
+    "camps": {
+      "1": {
+        "taille": 9,
+        "label": "Contester l'ordre établi",
+        "synthese": "Juge que la police et la justice défendent l'ordre établi, notamment face aux violences sexuelles, et penche pour légaliser en partie les drogues."
+      },
+      "2": {
+        "taille": 1,
+        "label": "Plus de prison",
+        "synthese": "Veut plus de places en prison et rejette l'idée que la violence soit légitime pour se faire entendre."
+      }
     }
   }
 }

@@ -63,22 +63,24 @@ def test_kmeans_is_deterministic():
     assert om.kmeans(x, 3)[0].tolist() == om.kmeans(x, 3)[0].tolist()
 
 
-def test_camps_are_shown_only_when_they_beat_chance():
+def test_camps_follow_the_pre_vote_rule_and_the_audit_test_is_optional():
     rng = np.random.default_rng(3)
     groups = np.vstack([rng.normal([-6, 0], 0.5, (6, 2)), rng.normal([6, 0], 0.5, (6, 2))])
     res = om.camps(groups)
-    assert res["nets"] is True and res["k"] == 2 and res["stabilite"] > 0.9
+    assert res["nets"] is True and res["k"] == 2 and "stabilite" not in res
     assert sorted(np.bincount(res["labels"]).tolist()) == [6, 6]
+    tested = om.camps(groups, test=True)
+    assert tested["bat_le_hasard"] is True and tested["stabilite"] > 0.9
     blob = rng.normal(0, 1, (12, 2))
-    assert om.camps(blob)["nets"] is False
+    assert om.camps(blob)["nets"] is True                      # comme le pré-vote : des camps sont toujours formés
+    assert om.camps(blob, test=True)["bat_le_hasard"] is False  # … même quand l'audit les juge indiscernables du hasard
 
 
-def test_camps_never_contain_a_single_voice():
+def test_a_single_voice_camp_is_kept_when_there_is_no_other_solution():
     x = np.array([[0, 0], [0.1, 0], [0, 0.1], [0.1, 0.1], [0.2, 0], [20, 20]])
-    res = om.camps(x)
-    assert res["k"] == 0 or min(np.bincount(res["labels"])) >= 2
-    if res["k"] == 0:
-        assert "isolent une seule personne" in res["raison"]
+    assert om.best_k(x) is None                                  # aucune solution sans camp d'une personne…
+    res = om.camps(x)                                             # … alors la meilleure est gardée, comme au pré-vote
+    assert res["nets"] is True and sorted(np.bincount(res["labels"]).tolist()) == [1, 5]
 
 
 def test_too_few_voices_for_camps():

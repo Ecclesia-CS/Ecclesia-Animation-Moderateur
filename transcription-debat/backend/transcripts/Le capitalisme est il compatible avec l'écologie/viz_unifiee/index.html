@@ -350,7 +350,7 @@ function stmtRowHTML(r, i) {
 }
 function stmtColumnHTML(title, color, rows, ties, noun) {
   const n = rows.length;
-  const short = n < 3 ? `<p class="short">${n === 0 ? `Aucun${noun.f ? 'e' : ''} ${noun.one} ne remplit ce critère.` : n === 1 ? `Un${noun.f ? 'e' : ''} seul${noun.f ? 'e' : ''} ${noun.one} remplit ce critère.` : `Seul${noun.f ? 'e' : ''}s ${n} ${noun.many} remplissent ce critère.`}</p>` : '';
+  const short = n < 3 ? `<p class="short">${n === 0 ? `Aucun${noun.f ? 'e' : ''} ${noun.one} ne ressort ici.` : n === 1 ? `Un${noun.f ? 'e' : ''} seul${noun.f ? 'e' : ''} ${noun.one} ressort.` : `Seul${noun.f ? 'e' : ''}s ${n} ${noun.many} ressortent.`}</p>` : '';
   const tie = ties && ties.length ? `<p class="ties">À égalité avec le n° ${n} : ${ties.map(esc).join(' ; ')}.</p>` : '';
   return `<div class="stcol" style="--col:${color}"><h3>${title}</h3>${rows.map(stmtRowHTML).join('')}${short}${tie}</div>`;
 }
@@ -383,17 +383,12 @@ function preDebateFilledHTML(P) {
       </div>
     </div>
     <div class="block"><div class="label">Consensus et dissensus avant le débat</div>
-      <p class="help">La barre verte et rouge donne la part de pour et de contre ; en dessous, la même part dans chaque camp d'opinion.</p>
       <div class="stmts">${col('Les plus forts consensus', 'var(--pour)', P.consensus, 'cons')}${col('Les plus forts dissensus', 'var(--contre)', P.dissensus, 'diss')}</div>
-      <details class="howto"><summary>Comment ce classement est calculé</summary><p>Par l'appli, à partir des votes d'avant le débat. Un <b>consensus</b> est une assertion que chaque camp soutient (adhésion) ou rejette (rejet) : elle est classée selon la part du camp le moins convaincu. Un <b>dissensus</b> est une assertion qui oppose les camps : elle est classée selon l'écart de part de pour entre le camp le plus pour et le camp le plus contre. Seules les assertions avec au moins 3 votes pour ou contre sont classées ; abstentions et votes blancs n'entrent pas dans les parts. Un camp avec moins de 2 votes pour ou contre sur une assertion n'a pas de part (n.d.).</p></details>
     </div>
     <div class="block"><div class="label">Les camps d'opinion avant le débat</div>
-      <p class="help">Chaque point est un votant, anonyme, placé selon ses votes et coloré selon son camp ; le grand cercle numéroté marque le centre du camp. Deux votants proches ont voté de façon semblable.</p>
+      <p class="help">Chaque point est un votant, coloré selon son camp ; le grand cercle numéroté marque le centre du camp. Deux votants proches ont voté de façon semblable.</p>
       <div class="map-box" id="pre-map">${preMapSVG(P)}</div>
       <div class="legend">${P.camps.map((c) => `<span><i style="background:${c.couleur}"></i>${esc(preCampName(c))} (${c.taille})</span>`).join('')}</div>
-      <p class="caption">${P.axes
-        ? 'Les axes sont les deux premières composantes principales des votes ; leurs libellés sont une lecture, déduite de la position des camps et des assertions qui les distinguent, pas une mesure.'
-        : 'Les axes sont les deux premières composantes principales des votes : ils n\'ont pas de libellé, seuls les distances et les regroupements ont un sens.'} Ce plan n'est pas celui de la carte du débat (menu suivant).${v ? ` Ces deux axes résument ${Math.round((v[0] + v[1]) * 100)} % des écarts entre votants.` : ''}</p>
     </div>
     <div class="block"><div class="label">Qui pense quoi : les camps expliqués</div>
       <p class="help">Pour chaque camp, les assertions qui le distinguent le plus du reste des votants.</p>
@@ -401,16 +396,20 @@ function preDebateFilledHTML(P) {
     </div>`;
 }
 
+// Libellés écrits sur une carte : pôles au bout des axes, et un libellé par coin si la lecture en donne.
+function axisLabels(L) {
+  if (!L) return '';
+  const q = L.quadrants, out = [`<g font-size="12.5" font-weight="700" fill="var(--marine)"><text x="${mx(-10)}" y="${my(-10) + 24}">◀ ${esc(L.x.left)}</text><text x="${mx(10)}" y="${my(-10) + 24}" text-anchor="end">${esc(L.x.right)} ▶</text><text x="${mx(0)}" y="${my(10) - 12}" text-anchor="middle">▲ ${esc(L.y.top)}</text><text x="${mx(0)}" y="${my(-10) + 46}" text-anchor="middle">▼ ${esc(L.y.bottom)}</text></g>`];
+  if (q) out.push(`<g font-size="11.5" font-style="italic" fill="var(--marine2)" opacity="0.9"><text x="${mx(-10) + 10}" y="${my(10) + 20}">${esc(q.topLeft)}</text><text x="${mx(10) - 10}" y="${my(10) + 20}" text-anchor="end">${esc(q.topRight)}</text><text x="${mx(-10) + 10}" y="${my(-10) - 12}">${esc(q.bottomLeft)}</text><text x="${mx(10) - 10}" y="${my(-10) - 12}" text-anchor="end">${esc(q.bottomRight)}</text></g>`);
+  return out.join('');
+}
 function preMapSVG(P) {
   const g = [`<rect x="${mx(-10)}" y="${my(10)}" width="${mx(10) - mx(-10)}" height="${my(-10) - my(10)}" fill="var(--creme)" stroke="var(--line)"/>`];
   for (let v = -7.5; v <= 7.5; v += 2.5) {
     const st = v === 0 ? 'stroke="#C6C4BF" stroke-width="1.5"' : 'stroke="var(--line)" stroke-dasharray="2 4"';
     g.push(`<line x1="${mx(v)}" y1="${my(10)}" x2="${mx(v)}" y2="${my(-10)}" ${st}/><line x1="${mx(-10)}" y1="${my(v)}" x2="${mx(10)}" y2="${my(v)}" ${st}/>`);
   }
-  if (P.axes) {
-    const a = P.axes;
-    g.push(`<g font-size="12" font-weight="700" fill="var(--marine)"><text x="${mx(-10)}" y="${my(-10) + 22}">◀ ${esc(a.x.left)}</text><text x="${mx(10)}" y="${my(-10) + 22}" text-anchor="end">${esc(a.x.right)} ▶</text><text x="${mx(0)}" y="${my(10) - 12}" text-anchor="middle">▲ ${esc(a.y.top)}</text><text x="${mx(0)}" y="${my(-10) + 42}" text-anchor="middle">▼ ${esc(a.y.bottom)}</text></g>`);
-  }
+  g.push(axisLabels(P.axes));
   const campOf = Object.fromEntries(P.camps.map((c) => [c.camp, c]));
   P.carte.points.forEach((p) => {
     const c = campOf[p.camp];
@@ -428,7 +427,7 @@ function preMapSVG(P) {
 // Énoncés relevés dans la transcription. camps : camps d'opinion du menu (ordre = n° de camp, 1-indexé).
 // scope : { one: 'énoncé commun aux tables', many: 'énoncés communs aux tables' }.
 function statementsHTML(ranking, camps, scope) {
-  const campInfo = (n) => { const c = camps.find((g) => g.camp === n); return c ? { name: c.label, color: c.color } : { name: 'Hors camp', color: '#898A8C' }; };
+  const campInfo = (n) => { const c = camps.find((g) => g.camp === n); return c ? { name: c.label, color: c.color } : { name: 'Non placés', color: '#898A8C' }; };
   const toRow = (s, kind) => ({
     text: s.text, kind, sens: s.side === 'contre' ? 'rejet' : 'adhesion', pour: s.p, contre: s.c,
     extras: [s.nu ? `${s.nu} nuancé${s.nu > 1 ? 's' : ''}` : ''],
@@ -437,8 +436,7 @@ function statementsHTML(ranking, camps, scope) {
       value: pc.pour + pc.contre ? `${pct(pc.pour / (pc.pour + pc.contre))} pour` : `${pc.nuance} nuancé${pc.nuance > 1 ? 's' : ''}` })),
   });
   const noun = { one: scope.one, many: scope.many, f: false };
-  return `<div class="stmts">${stmtColumnHTML('Les plus forts consensus', 'var(--pour)', ranking.consensus.map((s) => toRow(s, 'cons')), ranking.consensus_ties, noun)}${stmtColumnHTML('Les plus forts dissensus', 'var(--contre)', ranking.dissensus.map((s) => toRow(s, 'diss')), ranking.dissensus_ties, noun)}</div>
-    <details class="howto"><summary>Comment ce classement est calculé</summary><p>À partir des prises de position relevées dans la transcription (pour, contre, nuancé), avec les règles de <b>Polis</b>, l'outil de consultation utilisé notamment à Taïwan. Un énoncé est un <b>consensus</b> s'il réunit au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté, sans qu'aucun camp ne penche de l'autre côté ; adhésion comme rejet comptent. Ils sont classés par le consensus « tenant compte des camps » de Polis : la probabilité d'adhérer (ou de rejeter) est estimée dans chaque camp, puis multipliée d'un camp à l'autre, pour qu'un accord n'en écrase pas un autre. Un <b>dissensus</b> a des voix des deux côtés sans majorité nette ; il est classé par l'écart entre le camp le plus pour et le plus contre, ou, sans camps nets, par la taille du côté minoritaire. Les voix nuancées comptent comme une abstention. Ne pas s'être exprimé ne veut pas dire être neutre.</p></details>`;
+  return `<div class="stmts">${stmtColumnHTML('Les plus forts consensus', 'var(--pour)', ranking.consensus.map((s) => toRow(s, 'cons')), ranking.consensus_ties, noun)}${stmtColumnHTML('Les plus forts dissensus', 'var(--contre)', ranking.dissensus.map((s) => toRow(s, 'diss')), ranking.dissensus_ties, noun)}</div>`;
 }
 
 function campsHTML(groups, unplaced) {
@@ -446,17 +444,11 @@ function campsHTML(groups, unplaced) {
   const pc = (v) => (v == null ? 'aucune voix' : pct(v));
   const byTable = (g) => (g.by_table && D.tables.length > 1
     ? ` (${D.tables.filter((t) => g.by_table[t.key]).map((t) => `${g.by_table[t.key]} à la table ${esc(t.key)}`).join(', ')})` : '');
-  const M = D.method || {}, C = M.camps || {};
-  if (!groups.length) {
-    const why = C.k && C.silhouette != null
-      ? `Le meilleur regroupement trouvé (${C.k} groupes) a une séparation de ${fmt(C.silhouette, 2)} ; des nuages de points sans aucun groupe atteignent ${fmt(C.silhouette_hasard_95, 2)} une fois sur vingt. Ces groupes pourraient donc être l'effet du hasard : ils ne sont pas affichés.`
-      : `Raison : ${esc(C.raison || 'données insuffisantes')}.`;
-    return `<p class="note"><b>Pas de camps nets.</b> Les prises de position relevées ne dessinent pas de groupes distincts. ${why}</p>`;
-  }
+  if (!groups.length) return '<p class="note">Trop peu de participants placés pour dessiner des camps.</p>';
   const cards = groups.map((g) => `<div class="camp" style="--cc:${g.color}"><h4>${esc(g.label)}</h4>
-    <p class="meta">${who(g.size)}${byTable(g)}</p>${g.synthese ? `<p>${esc(g.synthese)}</p>` : ''}
+    <p class="meta">${who(g.size)}${byTable(g)}</p>${g.synthese ? `<p class="synth">${esc(g.synthese)}</p>` : ''}
     ${g.representative.length ? `<ul>${g.representative.map((e) => `<li><b class="${e.sens === 'pour' ? 'p' : 'c'}">${e.sens === 'pour' ? 'Pour' : 'Contre'} :</b> ${esc(e.text)}<small>${pc(e.part_pour_camp)} pour dans ce camp, ${pc(e.part_pour_reste)} chez les autres</small></li>`).join('')}</ul>` : '<p class="note">Aucun énoncé ne distingue nettement ce camp.</p>'}</div>`).join('');
-  const un = unplaced ? `<p class="unclassified"><b>${who(unplaced)} non placé${unplaced > 1 ? 's' : ''}</b> sur la carte : moins de ${M.min_prises} prises de position relevées, donc dans aucun camp.</p>` : '';
+  const un = unplaced ? `<p class="unclassified"><b>${who(unplaced)} non placé${unplaced > 1 ? 's' : ''}</b> : trop peu de prises de position pour les rattacher à un camp.</p>` : '';
   return `<div class="camps">${cards}</div>${un}`;
 }
 
@@ -479,47 +471,16 @@ function spreadOffsets(people) {
   });
   return off;
 }
-const axisName = (k) => { const a = D.axes[k]; return `axe ${k === 'x' ? 1 : 2} · ${Math.round(100 * a.variance)} % des écarts`; };
 function mapBackground() {
   const ax = D.axes, g = [];
   g.push(`<rect x="${mx(-10)}" y="${my(10)}" width="${mx(10) - mx(-10)}" height="${my(-10) - my(10)}" fill="var(--creme)" stroke="var(--line)"/>`);
   g.push(`<line x1="${mx(0)}" y1="${my(10)}" x2="${mx(0)}" y2="${my(-10)}" stroke="#C6C4BF" stroke-width="1.5"/><line x1="${mx(-10)}" y1="${my(0)}" x2="${mx(10)}" y2="${my(0)}" stroke="#C6C4BF" stroke-width="1.5"/>`);
   if (!ax) return g.join('');
-  const L = ax.lecture;
-  g.push(`<g font-size="12" font-weight="700" fill="var(--marine)">${L
-    ? `<text x="${mx(-10)}" y="${my(-10) + 34}">◀ ${esc(L.x.left)}</text><text x="${mx(10)}" y="${my(-10) + 34}" text-anchor="end">${esc(L.x.right)} ▶</text><text x="${mx(0)}" y="${my(10) - 12}" text-anchor="middle">▲ ${esc(L.y.top)}</text><text x="${mx(0)}" y="${my(-10) + 52}" text-anchor="middle">▼ ${esc(L.y.bottom)}</text>`
-    : `<text x="${mx(0)}" y="${my(-10) + 34}" text-anchor="middle">◀ ${esc(axisName('x'))} ▶</text><text x="${mx(-10) - 14}" y="${my(0)}" text-anchor="middle" transform="rotate(-90 ${mx(-10) - 14} ${my(0)})">◀ ${esc(axisName('y'))} ▶</text>`}</g>`);
+  g.push(axisLabels(ax.lecture));
   return g.join('');
 }
 function personTip(p, extra) {
   return `<b>${esc(p.key)}</b> · ${esc(p.camp)}<div class="sub">${extra}</div>${p.note ? `<div class="it">${esc(p.note)}</div>` : ''}`;
-}
-function axesGuideHTML() {
-  if (!D.axes) return '';
-  const blk = (k, plus, moins) => {
-    const a = D.axes[k];
-    return `<div><h4>${esc(axisName(k)[0].toUpperCase() + axisName(k).slice(1))}</h4><ul>${a.enonces.map((e) => `<li><b>${e.accord_vers === 'plus' ? plus : moins}</b><span>${esc(e.text)}</span></li>`).join('')}</ul></div>`;
-  };
-  return `<details class="howto" open><summary>Comment lire les deux axes</summary><p class="help">Chaque axe est calculé, pas choisi : c'est une combinaison des énoncés qui sépare le plus les participants. Voici ceux qui pèsent le plus ; être d'accord avec l'énoncé pousse du côté indiqué, être en désaccord pousse de l'autre.${D.axes.lecture ? ' Les libellés écrits sur la carte sont une lecture de ces énoncés, pas une mesure.' : ''}</p><div class="axes-guide axes-calc">${blk('x', 'droite', 'gauche')}${blk('y', 'haut', 'bas')}</div></details>`;
-}
-function methodHTML() {
-  const M = D.method, C = M.camps || {}, v = M.variance;
-  const items = [
-    `<li><b>Ce qui est mesuré.</b> Pour chaque participant et chaque énoncé, sa prise de position relevée dans la transcription : pour, contre, nuancé, ou rien. ${M.voix} participants × ${M.enonces} énoncés : ${pct(M.remplissage)} des cases sont remplies, car à l'oral chacun ne se prononce que sur une partie des sujets. Chaque prise de position renvoie à un moment précis de l'enregistrement.</li>`,
-    `<li><b>La carte.</b> Même calcul que Polis : une analyse en composantes principales des prises de position, où un énoncé sur lequel quelqu'un ne s'est pas exprimé compte pour la moyenne des autres, et où la position de ceux qui se sont peu exprimés est corrigée pour ne pas les tasser au centre. ${M.placees} participants sur ${M.voix} sont placés (au moins ${M.min_prises} prises de position).${v ? ` Les deux axes montrent ${Math.round(100 * (v[0] + v[1]))} % des écarts d'opinion ; le reste n'est pas visible sur un plan.` : ''} Un point ne bouge que lorsque la personne prend position sur un nouvel énoncé.</li>`,
-    `<li><b>Les camps.</b> Regroupement par k-moyennes de 2 à 5 groupes, le nombre retenu étant celui qui sépare le mieux (silhouette), comme Polis. Ils ne sont affichés que s'ils se distinguent du hasard : ${C.silhouette != null ? `séparation ${fmt(C.silhouette, 2)}, contre ${fmt(C.silhouette_hasard_95, 2)} atteint une fois sur vingt par des nuages sans aucun groupe${C.stabilite != null ? ` ; en retirant des participants au hasard, les mêmes groupes reviennent à ${pct(C.stabilite)} (indice de Rand ajusté)` : ''}. ${C.nets ? 'Les camps sont donc affichés.' : 'Ce n\'est pas le cas ici : aucun camp n\'est affiché.'}` : `${esc(C.raison || '')}.`}</li>`,
-  ];
-  if (M.concordance_lecture) {
-    const c = M.concordance_lecture;
-    items.push(`<li><b>Comparaison avec une lecture humaine.</b> La carte calculée partage ${pct(c.r2)} de sa forme avec les positions attribuées à la lecture des transcriptions (analyse procustéenne ; le hasard en donne jusqu'à ${pct(c.hasard_95)}).</li>`);
-  }
-  if (M.fiabilite_codage) {
-    const f = M.fiabilite_codage;
-    items.push(`<li><b>Fiabilité du relevé.</b> Un second relevé indépendant des prises de position concorde avec celui-ci : alpha de Krippendorff ${f.alpha == null ? 'non calculable' : fmt(f.alpha, 2)} sur ${f.unites} cases (0,8 et plus : fiable ; 0,667 : acceptable pour des conclusions prudentes).</li>`);
-  } else {
-    items.push(`<li><b>Fiabilité du relevé.</b> Les énoncés et les prises de position ont été relevés par une seule lecture ; aucun second relevé indépendant n'a encore mesuré leur fiabilité.</li>`);
-  }
-  return `<details class="howto"><summary>Comment cette carte et ces camps sont calculés</summary><ul class="method">${items.join('')}</ul></details>`;
 }
 
 // ───────────────────────── 02 · Synthèse flash ─────────────────────────
@@ -536,17 +497,15 @@ function flashHTML() {
       </div>
     </div>
     <div class="block"><div class="label">Consensus et dissensus${T.length > 1 ? ', toutes tables confondues' : ''}</div>
-      <p class="help">${T.length > 1 ? 'Seuls comptent ici les énoncés sur lesquels chaque table s\'est exprimée. ' : ''}La barre donne la part de pour et de contre ; en dessous, la même part dans chaque camp d'opinion du débat.</p>
       ${statementsHTML(F.ranking, F.groups, T.length > 1 ? { one: 'énoncé commun aux tables', many: 'énoncés communs aux tables' } : { one: 'énoncé du débat', many: 'énoncés du débat' })}
     </div>
     <div class="block"><div class="label">Où se situe chacun, en fin de débat</div>
-      <p class="help">Tous les participants placés sur un même plan, le même que dans chaque table, calculé à partir de leurs prises de position. Deux points proches ont pris position de la même façon. Une couleur par table ; la taille du point suit le temps de parole.</p>
+      <p class="help">Deux points proches ont pris position de la même façon. Une couleur par table ; la taille du point suit le temps de parole.</p>
       <div class="map-box" id="flash-map">${flashMapSVG()}</div>
-      <div class="legend">${T.map((t) => `<span><i style="background:${tableColor(t.key)}"></i>${esc(t.label)} · ${esc(t.code)}</span>`).join('')}${D.flash.n_participants - D.map.length ? `<span>${D.flash.n_participants - D.map.length} non placé${D.flash.n_participants - D.map.length > 1 ? 's' : ''} : moins de ${D.method.min_prises} prises de position</span>` : ''}</div>
-      ${axesGuideHTML()}${methodHTML()}
+      <div class="legend">${T.map((t) => `<span><i style="background:${tableColor(t.key)}"></i>${esc(t.label)} · ${esc(t.code)}</span>`).join('')}${D.flash.n_participants - D.map.length ? `<span>${D.flash.n_participants - D.map.length} non placé${D.flash.n_participants - D.map.length > 1 ? 's' : ''} : trop peu de prises de position</span>` : ''}</div>
     </div>
     <div class="block"><div class="label">Les camps d'opinion du débat</div>
-      <p class="help">Calculés sur la carte${T.length > 1 ? ', toutes tables confondues' : ''} : ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant. Sous chaque camp, les énoncés qui le distinguent le plus des autres participants.</p>
+      <p class="help">Ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant. Sous chaque camp, ce qui le distingue le plus des autres participants.</p>
       ${campsHTML(F.groups, D.flash.n_participants - D.map.length)}
     </div>`;
 }
@@ -569,7 +528,6 @@ function tableHTML(t) {
   return `
     <div class="block"><div class="label">Ce qui s'est dit à cette table</div><p class="resume">${esc(t.summary)}</p></div>
     <div class="block"><div class="label">Consensus et dissensus de la table</div>
-      <p class="help">La barre donne la part de pour et de contre ; en dessous, la même part dans chaque camp d'opinion de la table (voir plus bas).</p>
       ${statementsHTML(t.ranking, t.groups, { one: 'énoncé de cette table', many: 'énoncés de cette table' })}
     </div>
     <div class="block"><div class="label">Le temps passé sur chaque sujet</div>
@@ -589,13 +547,13 @@ function tableHTML(t) {
         <div>
           <div class="map-box" data-role="map"></div>
           <div class="legend">
-            ${t.groups.length ? t.groups.map((g) => `<span><i style="background:${g.color}"></i>${esc(g.label)}</span>`).join('') : `<span><i style="background:${tableColor(t.key)}"></i>Pas de camps nets : une seule couleur</span>`}${t.unplaced ? `<span>${t.unplaced} non placé${t.unplaced > 1 ? 's' : ''} : moins de ${D.method.min_prises} prises de position</span>` : ''}
+            ${t.groups.length ? t.groups.map((g) => `<span><i style="background:${g.color}"></i>${esc(g.label)}</span>`).join('') : `<span><i style="background:${tableColor(t.key)}"></i>Pas de camps nets : une seule couleur</span>`}${t.unplaced ? `<span>${t.unplaced} non placé${t.unplaced > 1 ? 's' : ''} : trop peu de prises de position</span>` : ''}
           </div>
           <div class="legend">
             ${Object.entries(LINK).map(([k, l]) => `<span><span class="sw${l.dash ? ' dash' : ''}" style="border-top-color:${l.c}"></span>${k === 'accord' ? 'Accord' : k === 'desaccord' ? 'Désaccord' : 'Concession'}</span>`).join('')}
             <label><input type="checkbox" data-role="all-links"> Garder tous les échanges jusqu'ici</label>
           </div>
-          <p class="caption">Même plan que la carte de la synthèse flash. Un point apparaît quand la personne a pris position sur ${D.method.min_prises} énoncés, et ne bouge que lorsqu'elle prend position sur un nouvel énoncé : sa place est recalculée avec ce qu'elle a dit jusque-là. Les échanges (accord, désaccord, concession) sont montrés par des flèches, sans déplacer les points. La taille suit le temps de parole.</p>
+          <p class="caption">Même plan que la carte de la synthèse flash. La taille du point suit le temps de parole.</p>
         </div>
         <aside class="panel">
           <h4>Tension du débat</h4>

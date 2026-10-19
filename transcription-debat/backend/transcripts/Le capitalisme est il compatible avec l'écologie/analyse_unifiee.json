@@ -1,23 +1,59 @@
 {
- "cross": "transcripts/Le capitalisme est il compatible avec l'écologie/analyse_croisee.json",
- "flash_summary": "Onze participants, sur une seule table, se sont demandé si le capitalisme est compatible avec l'écologie. Le capitalisme régulé, par un prix du carbone et des normes, est le plus défendu ; une voix veut sortir du marché et planifier, une autre fait confiance au marché seul. La plupart laissent les pays pauvres émettre plus pour se développer et refusent de fermer les industries polluantes sans solution pour leurs salariés.",
- "pre_debate": "transcripts/Le capitalisme est il compatible avec l'écologie/ecclesia_pre_debat_Le_capitalisme_est_il_compatible_avec_l__2026-10-19.json",
- "pre_debate_lecture": {
-  "axes": {
-   "x": {
-    "left": "Nationaliser l'énergie, la biodiversité avant la propriété",
-    "right": "Propriété privée préservée, production locale"
-   },
-   "y": {
-    "bottom": "Décroissance, contre les profits tirés des subventions vertes",
-    "top": "Sans décroissance, profits subventionnés acceptés"
-   }
+  "cross": "transcripts/Le capitalisme est il compatible avec l'écologie/analyse_croisee.json",
+  "flash_summary": "Onze participants, sur une seule table, se sont demandé si le capitalisme est compatible avec l'écologie. Le capitalisme régulé, par un prix du carbone et des normes, est le plus défendu ; une voix veut sortir du marché et planifier, une autre fait confiance au marché seul. La plupart laissent les pays pauvres émettre plus pour se développer et refusent de fermer les industries polluantes sans solution pour leurs salariés.",
+  "pre_debate": "transcripts/Le capitalisme est il compatible avec l'écologie/ecclesia_pre_debat_Le_capitalisme_est_il_compatible_avec_l__2026-10-19.json",
+  "pre_debate_lecture": {
+    "axes": {
+      "x": {
+        "left": "Nationaliser l'énergie, la biodiversité avant la propriété",
+        "right": "Propriété privée préservée, production locale"
+      },
+      "y": {
+        "bottom": "Décroissance, contre les profits tirés des subventions vertes",
+        "top": "Sans décroissance, profits subventionnés acceptés"
+      },
+      "quadrants": {
+        "topLeft": "Nationaliser, sans décroissance",
+        "topRight": "Propriété et croissance",
+        "bottomLeft": "Nationaliser et décroître",
+        "bottomRight": "Propriété privée et sobriété"
+      }
+    },
+    "camps": {
+      "1": "Fait passer les droits des propriétaires avant la protection de la biodiversité et refuse de nationaliser l'énergie. Seul camp à privilégier la production locale même au prix d'un moins bon bilan carbone.",
+      "2": "Veut nationaliser les grandes entreprises de l'énergie et accepte que des entreprises privées profitent des subventions vertes. Refuse que les pays en développement augmentent leurs émissions pour sortir de la pauvreté.",
+      "3": "Rejette la décroissance et accepte les profits privés tirés des subventions vertes. Prêt à fermer les industries les plus polluantes même sans solution pour leurs salariés.",
+      "4": "Juge la décroissance nécessaire dans les pays riches et refuse les profits privés tirés des subventions vertes. Majoritairement opposé à de nouvelles centrales nucléaires."
+    }
   },
-  "camps": {
-   "1": "Fait passer les droits des propriétaires avant la protection de la biodiversité et refuse de nationaliser l'énergie. Seul camp à privilégier la production locale même au prix d'un moins bon bilan carbone.",
-   "2": "Veut nationaliser les grandes entreprises de l'énergie et accepte que des entreprises privées profitent des subventions vertes. Refuse que les pays en développement augmentent leurs émissions pour sortir de la pauvreté.",
-   "3": "Rejette la décroissance et accepte les profits privés tirés des subventions vertes. Prêt à fermer les industries les plus polluantes même sans solution pour leurs salariés.",
-   "4": "Juge la décroissance nécessaire dans les pays riches et refuse les profits privés tirés des subventions vertes. Majoritairement opposé à de nouvelles centrales nucléaires."
+  "transcription_lecture": {
+    "axes": {
+      "x": {
+        "left": "Planifier et rationner le carbone",
+        "right": "Un capitalisme régulé suffit"
+      },
+      "y": {
+        "bottom": "Transition par le marché, emplois préservés",
+        "top": "Justice climatique entre pays"
+      },
+      "quadrants": {
+        "topLeft": "Planification et justice mondiale",
+        "topRight": "Régulation et justice mondiale",
+        "bottomLeft": "Rationner sans casser l'emploi",
+        "bottomRight": "Faire confiance au marché"
+      }
+    },
+    "camps": {
+      "1": {
+        "taille": 5,
+        "label": "Capitalisme régulé et ville dense",
+        "synthese": "Pour concentrer la population en ville et laisser les pays en développement émettre plus pour se développer ; plutôt contre un quota carbone individuel."
+      },
+      "2": {
+        "taille": 4,
+        "label": "Quota carbone et planification",
+        "synthese": "Favorable à un quota carbone individuel et à sortir les grands secteurs du marché, tout en jugeant que le marché peut mener la transition en douceur."
+      }
+    }
   }
- }
 }

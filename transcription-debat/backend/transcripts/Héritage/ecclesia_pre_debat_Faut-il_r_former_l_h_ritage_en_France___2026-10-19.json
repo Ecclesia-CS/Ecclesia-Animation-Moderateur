@@ -1,0 +1,399 @@
+{
+  "format": "ecclesia.pre_debat.v1",
+  "lisez_moi": [
+    "Données du vote d'AVANT le débat (pré-vote à distance et vote en présentiel), reconstituées telles qu'elles étaient avant tout revote du post-débat.",
+    "Parts (part_pour, part_pour_camp…) entre 0 et 1 : pour / (pour + contre). Abstentions et votes blancs sont comptés à part et n'entrent pas dans les parts.",
+    "consensus : les 3 assertions que chaque camp soutient (sens = adhesion) ou rejette (sens = rejet) le plus ; score = part du camp le moins convaincu. Une assertion n'est classée que si chaque camp a au moins 2 votes pour ou contre.",
+    "dissensus : les 3 assertions qui opposent le plus les camps ; score = écart de part_pour entre le camp le plus pour et le camp le plus contre.",
+    "Seules les assertions avec au moins 3 votes pour ou contre sont classées.",
+    "camps : groupes d'opinion calculés sur les votes (analyse en composantes principales puis k-means, comme l'onglet Analyse). enonces_caracteristiques = ce qui distingue le plus le camp du reste des votants. nom_ia et description_ia ne sont présents que si les camps sont exactement ceux nommés par l'IA dans l'appli.",
+    "carte : un point par votant placé, anonyme. x et y sont les deux premières composantes principales des votes : les axes n'ont pas de libellé, seules les distances et les regroupements ont un sens.",
+    "Aucun nom ni identifiant de participant n'est inclus."
+  ],
+  "seance": {
+    "titre": "Faut-il réformer l'héritage en France ?",
+    "date_seance": null,
+    "exporte_le": "2026-10-19T08:13:10.279Z",
+    "votes": "avant débat (pre_closure)"
+  },
+  "participation": {
+    "votants_places": 16,
+    "assertions_approuvees": 16,
+    "assertions_analysees": 16,
+    "votes": 256
+  },
+  "consensus": [
+    {
+      "rang": 1,
+      "enonce": "La vague d'héritages des vingt prochaines années va creuser les inégalités entre jeunes.",
+      "pour": 15,
+      "contre": 0,
+      "abstention": 1,
+      "blanc": 0,
+      "part_pour": 1,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 4,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 2,
+          "pour": 9,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 2,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "sens": "adhesion",
+      "score": 1
+    },
+    {
+      "rang": 2,
+      "enonce": "Taxer les héritages freine l'investissement et la croissance.",
+      "pour": 0,
+      "contre": 14,
+      "abstention": 2,
+      "blanc": 0,
+      "part_pour": 0,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 0,
+          "contre": 5,
+          "part_pour": 0
+        },
+        {
+          "camp": 2,
+          "pour": 0,
+          "contre": 7,
+          "part_pour": 0
+        },
+        {
+          "camp": 3,
+          "pour": 0,
+          "contre": 2,
+          "part_pour": 0
+        }
+      ],
+      "sens": "rejet",
+      "score": 1
+    },
+    {
+      "rang": 3,
+      "enonce": "Réussir ses études suffit à compenser l'absence d'héritage.",
+      "pour": 1,
+      "contre": 14,
+      "abstention": 1,
+      "blanc": 0,
+      "part_pour": 0.067,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 1,
+          "contre": 3,
+          "part_pour": 0.25
+        },
+        {
+          "camp": 2,
+          "pour": 0,
+          "contre": 9,
+          "part_pour": 0
+        },
+        {
+          "camp": 3,
+          "pour": 0,
+          "contre": 2,
+          "part_pour": 0
+        }
+      ],
+      "sens": "rejet",
+      "score": 0.75
+    }
+  ],
+  "dissensus": [
+    {
+      "rang": 1,
+      "enonce": "Donner à tous les enfants les mêmes chances compte plus que laisser beaucoup aux siens.",
+      "pour": 13,
+      "contre": 2,
+      "abstention": 1,
+      "blanc": 0,
+      "part_pour": 0.867,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 5,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 2,
+          "pour": 8,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 0,
+          "contre": 2,
+          "part_pour": 0
+        }
+      ],
+      "score": 1
+    },
+    {
+      "rang": 2,
+      "enonce": "Les droits de succession devraient être harmonisés dans toute l'Union européenne.",
+      "pour": 11,
+      "contre": 3,
+      "abstention": 2,
+      "blanc": 0,
+      "part_pour": 0.786,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 4,
+          "contre": 1,
+          "part_pour": 0.8
+        },
+        {
+          "camp": 2,
+          "pour": 7,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 0,
+          "contre": 2,
+          "part_pour": 0
+        }
+      ],
+      "score": 1
+    },
+    {
+      "rang": 3,
+      "enonce": "Il faut plafonner à 12 millions d'euros l'héritage qu'une personne peut recevoir.",
+      "pour": 7,
+      "contre": 6,
+      "abstention": 3,
+      "blanc": 0,
+      "part_pour": 0.538,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 1,
+          "contre": 4,
+          "part_pour": 0.2
+        },
+        {
+          "camp": 2,
+          "pour": 6,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 0,
+          "contre": 2,
+          "part_pour": 0
+        }
+      ],
+      "score": 1
+    }
+  ],
+  "camps": [
+    {
+      "camp": 1,
+      "couleur": "#2b4a86",
+      "taille": 5,
+      "part": 0.313,
+      "centre": {
+        "x": 0.872,
+        "y": -1.241
+      },
+      "nom_ia": "Protection de l'entreprise familiale",
+      "description_ia": "Ce camp est marqué par une forte opposition à la taxation des entreprises familiales, tout en étant plus réservé sur l'idée de plafonner les très grands héritages et de taxer l'assurance-vie comme un héritage ordinaire, par rapport aux autres camps.",
+      "enonces_caracteristiques": [
+        {
+          "enonce": "Mieux informés, les Français accepteraient davantage l'impôt sur l'héritage.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 1
+        },
+        {
+          "enonce": "Il faut plafonner à 12 millions d'euros l'héritage qu'une personne peut recevoir.",
+          "sens": "contre",
+          "part_pour_camp": 0.2,
+          "part_pour_reste": 0.75
+        },
+        {
+          "enonce": "La transmission d'une entreprise familiale devrait être exonérée d'impôt.",
+          "sens": "pour",
+          "part_pour_camp": 0.4,
+          "part_pour_reste": 0.111
+        }
+      ]
+    },
+    {
+      "camp": 2,
+      "couleur": "#b04a3c",
+      "taille": 9,
+      "part": 0.563,
+      "centre": {
+        "x": -1.021,
+        "y": 0.325
+      },
+      "nom_ia": "En faveur d'une taxation accrue",
+      "description_ia": "Ce groupe est majoritairement favorable à une taxation plus élevée de l'héritage, y compris l'assurance-vie et les plafonnements à 12 millions d'euros, tout en étant opposé à l'exonération des entreprises familiales.",
+      "enonces_caracteristiques": [
+        {
+          "enonce": "Il faut plafonner à 12 millions d'euros l'héritage qu'une personne peut recevoir.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.143
+        },
+        {
+          "enonce": "Mieux informés, les Français accepteraient davantage l'impôt sur l'héritage.",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.25
+        },
+        {
+          "enonce": "La transmission d'une entreprise familiale devrait être exonérée d'impôt.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.5
+        }
+      ]
+    },
+    {
+      "camp": 3,
+      "couleur": "#3f8462",
+      "taille": 2,
+      "part": 0.125,
+      "centre": {
+        "x": 2.413,
+        "y": 1.642
+      },
+      "nom_ia": "Indépendants sur l'harmonisation",
+      "description_ia": "Ce camp se distingue par une position neutre sur l'harmonisation européenne des droits de succession, contrairement aux autres camps qui expriment une opinion claire.",
+      "enonces_caracteristiques": [
+        {
+          "enonce": "Donner à tous les enfants les mêmes chances compte plus que laisser beaucoup aux siens.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 1
+        },
+        {
+          "enonce": "Les droits de succession devraient être harmonisés dans toute l'Union européenne.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.917
+        },
+        {
+          "enonce": "Il faut plafonner à 12 millions d'euros l'héritage qu'une personne peut recevoir.",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.636
+        }
+      ]
+    }
+  ],
+  "carte": {
+    "axes": "composantes principales 1 (x) et 2 (y) des votes, sans unité",
+    "variance_expliquee": [
+      0.346,
+      0.16
+    ],
+    "points": [
+      {
+        "x": -0.191,
+        "y": -1.001,
+        "camp": 1
+      },
+      {
+        "x": -0.005,
+        "y": -1.501,
+        "camp": 1
+      },
+      {
+        "x": 0.65,
+        "y": -1.105,
+        "camp": 1
+      },
+      {
+        "x": 0.91,
+        "y": -1.751,
+        "camp": 1
+      },
+      {
+        "x": 2.995,
+        "y": -0.849,
+        "camp": 1
+      },
+      {
+        "x": -1.6,
+        "y": 0.78,
+        "camp": 2
+      },
+      {
+        "x": -1.466,
+        "y": 0.286,
+        "camp": 2
+      },
+      {
+        "x": -1.328,
+        "y": -0.252,
+        "camp": 2
+      },
+      {
+        "x": -1.224,
+        "y": 0.031,
+        "camp": 2
+      },
+      {
+        "x": -0.971,
+        "y": 0.291,
+        "camp": 2
+      },
+      {
+        "x": -0.852,
+        "y": 0.734,
+        "camp": 2
+      },
+      {
+        "x": -0.81,
+        "y": -0.099,
+        "camp": 2
+      },
+      {
+        "x": -0.75,
+        "y": 0.247,
+        "camp": 2
+      },
+      {
+        "x": -0.184,
+        "y": 0.905,
+        "camp": 2
+      },
+      {
+        "x": 1.372,
+        "y": 1.988,
+        "camp": 3
+      },
+      {
+        "x": 3.455,
+        "y": 1.297,
+        "camp": 3
+      }
+    ]
+  }
+}

@@ -68,7 +68,22 @@ window.UNIFIED_DATA = {
         }
       ]
     },
-    "lecture": null
+    "lecture": {
+      "x": {
+        "left": "Faire confiance à l'ordre établi",
+        "right": "Contester l'ordre établi"
+      },
+      "y": {
+        "bottom": "Ni légalisation ni mixité imposée",
+        "top": "Légaliser les drogues, imposer la mixité"
+      },
+      "quadrants": {
+        "topLeft": "Réformer sans rompre",
+        "topRight": "Rupture et prévention",
+        "bottomLeft": "Ordre et prison",
+        "bottomRight": "Contester, sans légaliser"
+      }
+    }
   },
   "method": {
     "voix": 14,
@@ -82,12 +97,12 @@ window.UNIFIED_DATA = {
       0.231
     ],
     "camps": {
-      "nets": false,
-      "k": 0,
-      "silhouette": null,
+      "nets": true,
+      "k": 2,
+      "silhouette": 0.535,
       "silhouette_hasard_95": null,
       "stabilite": null,
-      "raison": "tous les regroupements possibles isolent une seule personne, ce qui ne fait pas un camp"
+      "raison": null
     },
     "concordance_lecture": {
       "r2": 0.454,
@@ -454,6 +469,12 @@ window.UNIFIED_DATA = {
       "y": {
         "bottom": "Sanction rapide et certaine d'abord",
         "top": "Cibler le narcotrafic, sanction rapide secondaire"
+      },
+      "quadrants": {
+        "topLeft": "Relativiser, viser le narcotrafic",
+        "topRight": "Prison et lutte contre le narcotrafic",
+        "bottomLeft": "Relativiser, mais sanctionner vite",
+        "bottomRight": "Fermeté : sanction rapide et prison"
       }
     },
     "carte": {
@@ -566,8 +587,28 @@ window.UNIFIED_DATA = {
           "c": 0,
           "nu": 3,
           "agreement": 1.0,
-          "score_consensus": 0.6364,
-          "score_dissensus": null
+          "score_consensus": 0.2222,
+          "score_dissensus": null,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 5,
+              "contre": 0,
+              "nuance": 2
+            },
+            {
+              "camp": 2,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 0,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         },
         {
           "text": "Il faut légaliser ou dépénaliser en partie les drogues",
@@ -576,15 +617,103 @@ window.UNIFIED_DATA = {
           "c": 1,
           "nu": 2,
           "agreement": 0.667,
-          "score_consensus": 0.6,
-          "score_dissensus": null
+          "score_consensus": 0.2222,
+          "score_dissensus": null,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 5,
+              "contre": 1,
+              "nuance": 1
+            },
+            {
+              "camp": 2,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 1
+            }
+          ]
         }
       ],
       "consensus_ties": [],
       "dissensus": [],
       "dissensus_ties": []
     },
-    "groups": [],
+    "groups": [
+      {
+        "camp": 1,
+        "label": "Contester l'ordre établi",
+        "color": "#1E6B6D",
+        "size": 9,
+        "representative": [
+          {
+            "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
+            "sens": "pour",
+            "ratio": 2.4,
+            "z": 1.491,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.0
+          },
+          {
+            "text": "La violence est légitime ou efficace pour se faire entendre",
+            "sens": "pour",
+            "ratio": 2.0,
+            "z": 1.732,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.5
+          },
+          {
+            "text": "Il faut légaliser ou dépénaliser en partie les drogues",
+            "sens": "pour",
+            "ratio": 2.0,
+            "z": 1.38,
+            "part_pour_camp": 0.833,
+            "part_pour_reste": null
+          }
+        ],
+        "synthese": "Juge que la police et la justice défendent l'ordre établi, notamment face aux violences sexuelles, et penche pour légaliser en partie les drogues.",
+        "by_table": {
+          "A": 6,
+          "B": 3
+        }
+      },
+      {
+        "camp": 2,
+        "label": "Plus de prison",
+        "color": "#9B3A2D",
+        "size": 1,
+        "representative": [
+          {
+            "text": "Il faut plus de places en prison",
+            "sens": "pour",
+            "ratio": 2.667,
+            "z": 1.732,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": null
+          },
+          {
+            "text": "Les détenus ont plus peur des autres détenus que des gardiens",
+            "sens": "pour",
+            "ratio": 2.667,
+            "z": 1.732,
+            "part_pour_camp": 1.0,
+            "part_pour_reste": 0.0
+          },
+          {
+            "text": "La violence est légitime ou efficace pour se faire entendre",
+            "sens": "contre",
+            "ratio": 4.667,
+            "z": 2.449,
+            "part_pour_camp": 0.0,
+            "part_pour_reste": 1.0
+          }
+        ],
+        "synthese": "Veut plus de places en prison et rejette l'idée que la violence soit légitime pour se faire entendre.",
+        "by_table": {
+          "B": 1
+        }
+      }
+    ],
     "n_participants": 14,
     "n_common_statements": 2
   },
@@ -605,7 +734,21 @@ window.UNIFIED_DATA = {
             "nu": 0,
             "agreement": 1.0,
             "score_consensus": 0.875,
-            "score_dissensus": null
+            "score_dissensus": null,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 6,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "La prison est nécessaire pour les personnes dangereuses",
@@ -615,7 +758,21 @@ window.UNIFIED_DATA = {
             "nu": 0,
             "agreement": 1.0,
             "score_consensus": 0.8,
-            "score_dissensus": null
+            "score_dissensus": null,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Il faut légaliser ou dépénaliser en partie les drogues",
@@ -625,7 +782,21 @@ window.UNIFIED_DATA = {
             "nu": 0,
             "agreement": 0.5,
             "score_consensus": 0.6667,
-            "score_dissensus": null
+            "score_dissensus": null,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [],
@@ -637,13 +808,67 @@ window.UNIFIED_DATA = {
             "c": 1,
             "nu": 1,
             "agreement": 0.0,
-            "score_consensus": 0.4,
-            "score_dissensus": null
+            "score_consensus": 0.25,
+            "score_dissensus": null,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 0,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "dissensus_ties": []
       },
-      "groups": [],
+      "groups": [
+        {
+          "camp": 1,
+          "label": "Contester l'ordre établi",
+          "color": "#1E6B6D",
+          "size": 6,
+          "representative": [
+            {
+              "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
+              "sens": "pour",
+              "ratio": 2.4,
+              "z": 1.491,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.0
+            },
+            {
+              "text": "La violence est légitime ou efficace pour se faire entendre",
+              "sens": "pour",
+              "ratio": 2.0,
+              "z": 1.732,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.5
+            },
+            {
+              "text": "Il faut légaliser ou dépénaliser en partie les drogues",
+              "sens": "pour",
+              "ratio": 2.0,
+              "z": 1.38,
+              "part_pour_camp": 0.833,
+              "part_pour_reste": null
+            }
+          ],
+          "synthese": "Juge que la police et la justice défendent l'ordre établi, notamment face aux violences sexuelles, et penche pour légaliser en partie les drogues."
+        }
+      ],
       "unplaced": 1,
       "kinds": {
         "coeur": {
@@ -878,9 +1103,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 17.203,
           "entry": 0.94,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Voix la plus constante pour la prévention : juge que le bâton coûte plus cher que la carotte, veut un accompagnement personnalisé et de l'éducation dès le plus jeune âge, défend un quota de logements sociaux dans chaque immeuble et la légalisation d'une partie des drogues douces pour casser les réseaux.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               0.94,
@@ -1101,9 +1326,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 9.233,
           "entry": 0.04,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Voit un problème systémique de peines et de prisons plutôt qu'un problème d'immigration, veut traiter les causes par de grands travaux et des industries publiques offrant des emplois stables, accepte un encadrement étatique de la drogue et préfère l'indépendance financière des femmes à l'ingérence dans les familles.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               0.04,
@@ -1250,9 +1475,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 18.213,
           "entry": 1.47,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Pense que le système judiciaire s'acharne sur les mêmes personnes sans les aider ; garde la prison pour les personnes dangereuses, veut libérer les détenus âgés ou malades, relie la drogue à la criminalité des cités et voit dans les violences sexuelles un sexisme systémique à traiter par la formation des jeunes.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               1.47,
@@ -1397,9 +1622,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 7.749,
           "entry": 2.79,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Raconte avoir vu des procès à Paris comme un échec, juge la prison nécessaire dans une certaine mesure mais pas la seule solution, soutient la mixité du logement malgré son coût pour l'État et veut punir plus les atteintes aux personnes et moins les délits de précarité.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               2.79,
@@ -1538,9 +1763,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 11.61,
           "entry": 7.2,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Voit un système perçu comme fait pour punir, qui crée un nous contre eux ; veut intégrer par le travail, refuse de criminaliser toute consommation de drogue, mise sur l'éducation contre les violences conjugales et défend le monopole de l'État sur la police et la justice.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               7.2,
@@ -1671,9 +1896,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 17.997,
           "entry": 5.14,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Issu d'une famille de magistrats, compare avec la Belgique et la Finlande pour dire que la prison coûte cher sans protéger davantage ; doute que l'argent des quartiers construise l'avenir, refuse la dépénalisation de la drogue et voit dans la défiance envers la justice une part de l'insécurité.",
-          "color": "var(--ta)",
+          "color": "#1E6B6D",
           "speech": [
             [
               5.14,
@@ -2538,28 +2763,68 @@ window.UNIFIED_DATA = {
       "ranking": {
         "consensus": [
           {
-            "text": "La violence est légitime ou efficace pour se faire entendre",
-            "side": "pour",
-            "p": 4,
-            "c": 1,
-            "nu": 1,
-            "agreement": 0.6,
-            "score_consensus": 0.625,
-            "score_dissensus": null
-          },
-          {
             "text": "L'insécurité est surtout ressentie, exagérée par les médias et les réseaux",
             "side": "pour",
             "p": 3,
             "c": 0,
             "nu": 2,
             "agreement": 1.0,
-            "score_consensus": 0.5714,
-            "score_dissensus": null
+            "score_consensus": 0.2,
+            "score_dissensus": null,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 0,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [],
         "dissensus": [
+          {
+            "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
+            "side": "pour",
+            "p": 2,
+            "c": 1,
+            "nu": 2,
+            "agreement": 0.333,
+            "score_consensus": 0.2,
+            "score_dissensus": 0.4167,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 0,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              }
+            ]
+          },
           {
             "text": "Les détenus ont plus peur des autres détenus que des gardiens",
             "side": "pour",
@@ -2567,8 +2832,22 @@ window.UNIFIED_DATA = {
             "c": 1,
             "nu": 1,
             "agreement": 0.0,
-            "score_consensus": 0.4,
-            "score_dissensus": null
+            "score_consensus": 0.1667,
+            "score_dissensus": 0.3333,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Le capitalisme profite du sexisme",
@@ -2577,23 +2856,94 @@ window.UNIFIED_DATA = {
             "c": 1,
             "nu": 1,
             "agreement": 0.0,
-            "score_consensus": 0.4,
-            "score_dissensus": null
-          },
-          {
-            "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
-            "side": "pour",
-            "p": 2,
-            "c": 1,
-            "nu": 2,
-            "agreement": 0.333,
-            "score_consensus": 0.4286,
-            "score_dissensus": null
+            "score_consensus": 0.1667,
+            "score_dissensus": 0.3333,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "dissensus_ties": []
       },
-      "groups": [],
+      "groups": [
+        {
+          "camp": 1,
+          "label": "Contester l'ordre établi",
+          "color": "#1E6B6D",
+          "size": 3,
+          "representative": [
+            {
+              "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
+              "sens": "pour",
+              "ratio": 2.4,
+              "z": 1.491,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.0
+            },
+            {
+              "text": "La violence est légitime ou efficace pour se faire entendre",
+              "sens": "pour",
+              "ratio": 2.0,
+              "z": 1.732,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.5
+            },
+            {
+              "text": "Il faut légaliser ou dépénaliser en partie les drogues",
+              "sens": "pour",
+              "ratio": 2.0,
+              "z": 1.38,
+              "part_pour_camp": 0.833,
+              "part_pour_reste": null
+            }
+          ],
+          "synthese": "Juge que la police et la justice défendent l'ordre établi, notamment face aux violences sexuelles, et penche pour légaliser en partie les drogues."
+        },
+        {
+          "camp": 2,
+          "label": "Plus de prison",
+          "color": "#9B3A2D",
+          "size": 1,
+          "representative": [
+            {
+              "text": "Il faut plus de places en prison",
+              "sens": "pour",
+              "ratio": 2.667,
+              "z": 1.732,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": null
+            },
+            {
+              "text": "Les détenus ont plus peur des autres détenus que des gardiens",
+              "sens": "pour",
+              "ratio": 2.667,
+              "z": 1.732,
+              "part_pour_camp": 1.0,
+              "part_pour_reste": 0.0
+            },
+            {
+              "text": "La violence est légitime ou efficace pour se faire entendre",
+              "sens": "contre",
+              "ratio": 4.667,
+              "z": 2.449,
+              "part_pour_camp": 0.0,
+              "part_pour_reste": 1.0
+            }
+          ],
+          "synthese": "Veut plus de places en prison et rejette l'idée que la violence soit légitime pour se faire entendre."
+        }
+      ],
       "unplaced": 3,
       "kinds": {
         "coeur": {
@@ -2930,9 +3280,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 13.134,
           "entry": 3.65,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Prend au sérieux les chiffres de criminalité mais voit la police protéger d'abord l'ordre établi et la propriété ; lie violences sexuelles, capitalisme et rapport de force racial, veut un contrôle d'État de l'alcool sans que le cannabis se répande, et croit que seuls les mouvements violents obtiennent des changements.",
-          "color": "var(--tb)",
+          "color": "#1E6B6D",
           "speech": [
             [
               3.65,
@@ -3083,9 +3433,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 20.883,
           "entry": 5.33,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Pense que les taux de crime ont baissé et que les médias entretiennent l'impression inverse ; veut des détenus traités dignement, voit dans la police et la formation une faute institutionnelle face aux violences sexuelles, refuse de pénaliser consommateurs et petits dealers et défend un pouvoir de pression du peuple sur l'État.",
-          "color": "var(--tb)",
+          "color": "#1E6B6D",
           "speech": [
             [
               5.33,
@@ -3252,9 +3602,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 18.004,
           "entry": 7.31,
-          "camp": "Sans camp net",
+          "camp": "Contester l'ordre établi",
           "note": "Explique la criminalité par le manque de moyens de la justice et l'humiliation carcérale, juge le système classique incapable de traiter les violences sans témoin et voit dans le capitalisme un système qui se nourrit des inégalités ; préfère une justice alternative pour les personnes issues de la misère et pense que la violence fait partie du rapport de force.",
-          "color": "var(--tb)",
+          "color": "#1E6B6D",
           "speech": [
             [
               7.31,
@@ -3443,9 +3793,9 @@ window.UNIFIED_DATA = {
           ],
           "weight": 27.682,
           "entry": 9.61,
-          "camp": "Sans camp net",
+          "camp": "Plus de prison",
           "note": "Voix la plus attachée aux institutions : veut plus de places, de gardiens et de rénovation des prisons, des peines alternatives et du travail en prison, interdit et sanctionne consommateurs et vendeurs de drogue tout en offrant une substitution, et refuse de légitimer la violence au profit de référendums et de syndicats forts.",
-          "color": "var(--tb)",
+          "color": "#9B3A2D",
           "speech": [
             [
               9.61,
@@ -4247,8 +4597,6 @@ window.UNIFIED_DATA = {
     }
   ],
   "footer": [
-    "⚠ Carte et camps de la transcription calculés, pas choisis : analyse en composantes principales et regroupement des prises de position relevées, selon la méthode de Polis, avec un test qui écarte les camps indiscernables du hasard. Quelques tables et une quinzaine de participants forment un petit échantillon : à lire avec prudence.",
-    "⚠ Consensus et dissensus sont classés par calcul à partir des prises de position relevées : consensus = au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté, classés par le consensus tenant compte des camps de Polis ; dissensus = des voix des deux côtés sans majorité nette. Ne pas s'être exprimé n'est ni une adhésion ni un rejet.",
-    "⚠ Les énoncés et les prises de position sont relevés à la lecture de la transcription, chacun rattaché à un moment de l'enregistrement ; ce sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît."
+    "Les énoncés et les prises de position sont des reformulations de ce qui a été dit, jamais des citations, et aucun prénom réel n'apparaît."
   ]
 };
