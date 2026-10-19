@@ -175,6 +175,20 @@ details.howto p { margin-top: 6px; max-width: 820px; }
 .todo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .todo.big { min-height: 260px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
 
+/* Pré-débat rempli (export de l'appli) */
+.split { display: flex; height: 9px; border-radius: var(--r); overflow: hidden; background: var(--sable); margin-top: 8px; max-width: 360px; }
+.split i { display: block; height: 100%; }
+.split .sp { background: var(--pour); } .split .sc { background: var(--contre); }
+.bycamp { margin-top: 8px; display: grid; gap: 3px; max-width: 360px; }
+.bycamp > div { display: grid; grid-template-columns: 74px 1fr 92px; gap: 8px; align-items: center; font-size: .72rem; color: var(--fg2); }
+.bycamp .cn { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--anthracite); }
+.bycamp .cn i { width: 8px; height: 8px; border-radius: 50%; background: var(--dc); }
+.bycamp .split { margin-top: 0; height: 7px; }
+.bycamp .v { text-align: right; font-variant-numeric: tabular-nums; }
+.camp .meta { font-size: .74rem; color: var(--fg2); margin-bottom: 8px; }
+.camp li small { display: block; color: var(--fg2); font-size: .72rem; }
+.camp li b.p { color: var(--pour); } .camp li b.c { color: var(--contre); }
+
 footer { margin: 24px auto 0; padding: 16px 16px 28px; border-top: 1px solid var(--line); font-size: .74rem; color: var(--fg2); font-style: italic; }
 footer p + p { margin-top: 4px; }
 #tip { position: fixed; display: none; z-index: 50; max-width: 300px; background: var(--blanc); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-lg); padding: 8px 12px; font-size: .78rem; line-height: 1.45; pointer-events: none; }
@@ -282,11 +296,13 @@ function render() {
 }
 
 // ───────────────────────── 01 · Pré-débat ─────────────────────────
-// Le questionnaire d'avant le débat n'est pas encore exporté : blocs à compléter.
+// Données exportées par l'appli (chantier 170) : rendu avec les composants de la synthèse flash.
+// Sans export (pre_debate null) : blocs à compléter.
 function preDebateHTML() {
+  const intro = `<p class="help" style="margin-top:18px">Avant le débat, chaque participant a voté pour ou contre une série d'affirmations sur le sujet. Ces votes dessinent des camps d'opinion établis <b>avant</b> toute discussion, à comparer avec ceux qui ressortent de la transcription (menu suivant).</p>`;
+  if (D.pre_debate) return intro + preDebateFilledHTML(D.pre_debate);
   const todo = (title, text, lines = 3, cls = '') => `<div class="todo ${cls}"><b>${esc(title)}</b><p>${esc(text)}</p>${cls === 'big' ? '' : Array.from({ length: lines }, (_, i) => `<div class="ph ${['m', 's', ''][i % 3]}"></div>`).join('')}</div>`;
-  return `
-    <p class="help" style="margin-top:18px">Avant le débat, chaque participant a voté pour ou contre une série d'affirmations sur le sujet. Ces votes dessinent des camps d'opinion établis <b>avant</b> toute discussion, à comparer avec ceux qui ressortent de la transcription (menu suivant).</p>
+  return intro + `
     <div class="block"><div class="label">Les assertions du questionnaire</div>
       <div class="todo-grid">
         ${todo('Ici : les 3 assertions les plus consensuelles', 'Énoncé, part de pour et de contre, nombre de votants — même présentation que les consensus de la synthèse flash.')}
@@ -301,6 +317,85 @@ function preDebateHTML() {
         ${[1, 2, 3].map((i) => todo(`Ici : camp ${i}`, 'Nom du camp, nombre de membres, affirmations qui le caractérisent.', 3)).join('')}
       </div>
     </div>`;
+}
+
+const pct = (v) => (v == null ? 'n.d.' : `${Math.round(v * 100)} %`);
+const preCampName = (c) => c.nom_ia || `Camp ${c.camp}`;
+function splitBar(p, c) {
+  const n = p + c || 1;
+  return `<div class="split" ${tipAttr(`${p} pour · ${c} contre`)}><i class="sp" style="width:${(100 * p) / n}%"></i><i class="sc" style="width:${(100 * c) / n}%"></i></div>`;
+}
+
+function preDebateFilledHTML(P) {
+  const campOf = Object.fromEntries(P.camps.map((c) => [c.camp, c]));
+  const n = P.participation;
+  const rowHTML = (s, i, kind) => {
+    const badge = kind === 'cons'
+      ? `<span class="badge ${s.sens === 'rejet' ? 'contre' : 'pour'}">${s.sens === 'rejet' ? 'Rejet' : 'Adhésion'}</span>`
+      : '<span class="badge diss">Dissensus</span>';
+    const extra = [s.abstention ? `${s.abstention} abstention${s.abstention > 1 ? 's' : ''}` : '', s.blanc ? `${s.blanc} blanc${s.blanc > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+    const byCamp = s.par_camp.map((pc) => {
+      const c = campOf[pc.camp];
+      return `<div><span class="cn" style="--dc:${c.couleur}"><i></i>${esc(`Camp ${c.camp}`)}</span>${splitBar(pc.pour, pc.contre)}<span class="v">${pc.part_pour == null ? 'n.d.' : `${pct(pc.part_pour)} pour`}</span></div>`;
+    }).join('');
+    return `<div class="st"><span class="st-rank">${i + 1}</span><div>
+      <div class="st-text">${esc(s.enonce)}</div>${badge}<span class="st-count"><b class="p">${s.pour} pour</b> · <b class="c">${s.contre} contre</b>${extra ? ` · ${extra}` : ''} · ${pct(s.part_pour)} pour</span>
+      ${splitBar(s.pour, s.contre)}
+      <div class="bycamp">${byCamp}</div>
+    </div></div>`;
+  };
+  const col = (title, color, rows, kind) => {
+    const short = rows.length < 3 ? `<p class="short">${rows.length === 0 ? 'Aucune assertion ne remplit ce critère.' : rows.length === 1 ? 'Une seule assertion remplit ce critère.' : `Seules ${rows.length} assertions remplissent ce critère.`}</p>` : '';
+    return `<div class="stcol" style="--col:${color}"><h3>${title}</h3>${rows.map((s, i) => rowHTML(s, i, kind)).join('')}${short}</div>`;
+  };
+  const camps = P.camps.map((c) => `<div class="camp" style="--cc:${c.couleur}"><h4>${esc(preCampName(c))}</h4>
+    <p class="meta">${c.nom_ia ? `Camp ${c.camp} · ` : ''}${c.taille} votant${c.taille > 1 ? 's' : ''} · ${pct(c.part)} des votants placés</p>
+    ${c.description_ia ? `<p class="note" style="margin:0 0 8px">${esc(c.description_ia)}</p>` : ''}
+    ${c.enonces_caracteristiques.length ? `<ul>${c.enonces_caracteristiques.map((e) => `<li><b class="${e.sens === 'pour' ? 'p' : 'c'}">${e.sens === 'pour' ? 'Pour' : 'Contre'} :</b> ${esc(e.enonce)}<small>${pct(e.part_pour_camp)} pour dans ce camp, ${pct(e.part_pour_reste)} chez les autres votants</small></li>`).join('')}</ul>` : '<p class="note">Aucune assertion ne distingue nettement ce camp.</p>'}
+  </div>`).join('');
+  const v = P.carte.variance_expliquee;
+  return `
+    <div class="block"><div class="label">En bref</div>
+      <div class="stats">
+        <span class="stat"><b>${n.votants_places}</b>votants placés</span>
+        <span class="stat"><b>${n.votes}</b>votes</span>
+        <span class="stat"><b>${n.assertions_analysees}</b>assertions classées sur ${n.assertions_approuvees}</span>
+        <span class="stat"><b>${P.camps.length}</b>camp${P.camps.length > 1 ? 's' : ''} d'opinion</span>
+      </div>
+    </div>
+    <div class="block"><div class="label">Consensus et dissensus avant le débat</div>
+      <p class="help">La barre verte et rouge donne la part de pour et de contre ; en dessous, la même part dans chaque camp d'opinion.</p>
+      <div class="stmts">${col('Les plus forts consensus', 'var(--pour)', P.consensus, 'cons')}${col('Les plus forts dissensus', 'var(--contre)', P.dissensus, 'diss')}</div>
+      <details class="howto"><summary>Comment ce classement est calculé</summary><p>Par l'appli, à partir des votes d'avant le débat. Un <b>consensus</b> est une assertion que chaque camp soutient (adhésion) ou rejette (rejet) : elle est classée selon la part du camp le moins convaincu. Un <b>dissensus</b> est une assertion qui oppose les camps : elle est classée selon l'écart de part de pour entre le camp le plus pour et le camp le plus contre. Seules les assertions avec au moins 3 votes pour ou contre sont classées ; abstentions et votes blancs n'entrent pas dans les parts. Un camp avec moins de 2 votes pour ou contre sur une assertion n'a pas de part (n.d.).</p></details>
+    </div>
+    <div class="block"><div class="label">Les camps d'opinion avant le débat</div>
+      <p class="help">Chaque point est un votant, anonyme, placé selon ses votes et coloré selon son camp ; le grand cercle numéroté marque le centre du camp. Deux votants proches ont voté de façon semblable.</p>
+      <div class="map-box" id="pre-map">${preMapSVG(P)}</div>
+      <div class="legend">${P.camps.map((c) => `<span><i style="background:${c.couleur}"></i>${esc(preCampName(c))} (${c.taille})</span>`).join('')}</div>
+      <p class="caption">Les axes sont les deux premières composantes principales des votes : ils n'ont pas de libellé, et ce plan n'est pas celui de la carte du débat (menu suivant). Seuls les distances et les regroupements ont un sens.${v ? ` Ces deux axes résument ${Math.round((v[0] + v[1]) * 100)} % des écarts entre votants.` : ''}</p>
+    </div>
+    <div class="block"><div class="label">Qui pense quoi : les camps expliqués</div>
+      <p class="help">Pour chaque camp, les assertions qui le distinguent le plus du reste des votants.</p>
+      <div class="camps">${camps}</div>
+    </div>`;
+}
+
+function preMapSVG(P) {
+  const g = [`<rect x="${mx(-10)}" y="${my(10)}" width="${mx(10) - mx(-10)}" height="${my(-10) - my(10)}" fill="var(--creme)" stroke="var(--line)"/>`];
+  for (let v = -7.5; v <= 7.5; v += 2.5) {
+    const st = v === 0 ? 'stroke="#C6C4BF" stroke-width="1.5"' : 'stroke="var(--line)" stroke-dasharray="2 4"';
+    g.push(`<line x1="${mx(v)}" y1="${my(10)}" x2="${mx(v)}" y2="${my(-10)}" ${st}/><line x1="${mx(-10)}" y1="${my(v)}" x2="${mx(10)}" y2="${my(v)}" ${st}/>`);
+  }
+  const campOf = Object.fromEntries(P.camps.map((c) => [c.camp, c]));
+  P.carte.points.forEach((p) => {
+    const c = campOf[p.camp];
+    g.push(`<circle cx="${mx(p.x)}" cy="${my(p.y)}" r="7" fill="${c.couleur}" fill-opacity="0.75" stroke="var(--blanc)" stroke-width="1.5" ${tipAttr(`Un votant · <b>${esc(preCampName(c))}</b>`)}/>`);
+  });
+  P.camps.forEach((c) => {
+    const x = mx(c.centre.x), y = my(c.centre.y);
+    g.push(`<g ${tipAttr(`<b>${esc(preCampName(c))}</b><div class="sub">${c.taille} votant${c.taille > 1 ? 's' : ''} · centre du camp</div>`)}><circle cx="${x}" cy="${y}" r="15" fill="var(--blanc)" fill-opacity="0.85" stroke="${c.couleur}" stroke-width="3"/><text x="${x}" y="${y + 4}" font-size="12" font-weight="700" text-anchor="middle" fill="${c.couleur}" pointer-events="none">${c.camp}</text></g>`);
+  });
+  return `<svg viewBox="0 0 ${MAP.W} ${MAP.H}" role="img" aria-label="Carte des camps d'opinion avant le débat">${g.join('')}</svg>`;
 }
 
 // ───────────────────────── Composants partagés ─────────────────────────

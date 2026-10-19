@@ -1,8 +1,9 @@
 """Construit la page UNIQUE de restitution d'un débat à plusieurs tables, en menus accordéons.
 
 Une seule page, des menus repliables de haut en bas :
-1. Synthèse pré-débat : consensus, dissensus et camps d'opinion issus du questionnaire envoyé AVANT
-   le débat. Données pas encore exportées : blocs à compléter tant que `pre_debate` est absent.
+1. Synthèse pré-débat : consensus, dissensus et camps d'opinion issus du vote d'AVANT le débat, lus
+   dans le JSON exporté par l'appli (chantier 170, format ecclesia.pre_debat.v1). Blocs à compléter
+   tant que `pre_debate` est absent ou null.
 2. Synthèse flash : résumé très court de toutes les tables réunies, les 3 plus forts consensus et
    dissensus communs aux tables, la carte 2D finale de tous les participants (fixe, une couleur par
    table, taille = temps de parole), les camps d'opinion de la transcription.
@@ -23,7 +24,7 @@ Spec (JSON, chemins relatifs à backend/) :
   { "cross": "transcripts/<Thème>/analyse_croisee.json",
     "tables": { "<CODE>": "transcripts/<Thème>/<CODE>/viz/<CODE>.json", ... },
     "flash_summary": "...",
-    "pre_debate": null }
+    "pre_debate": "transcripts/<Thème>/ecclesia_pre_debat_<titre>_<date>.json" }   (ou null)
 
 Usage (depuis backend/) :
   .venv\\Scripts\\python "code python\\build_unified_viz.py" <spec.json> [--out <dossier>]
@@ -56,6 +57,10 @@ FOOTER = [
     "⚠ Les résumés et les prises de position sont des reformulations, jamais des citations, et aucun prénom réel "
     "n'apparaît. Temps de parole, sujets, tension et échanges viennent des analyses de chaque table.",
 ]
+
+PRE_DEBATE_FORMAT = "ecclesia.pre_debat.v1"
+PRE_MAP_EXTENT = 9.0   # la carte ACP pré-débat (sans unité) est ramenée dans ±9 sur le plan -10..+10 de la page
+_HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 _TEMPLATE_DIR = Path(__file__).parent / "viz_template_unifiee"
 _ASSETS = ["logo_ecclesia.webp", "newsreader-latin-opsz-normal.woff2", "newsreader-latin-opsz-italic.woff2",
@@ -137,9 +142,138 @@ def camp_colors(groups: list[dict]) -> list[str]:
     return [CAMP_COLORS[i % len(CAMP_COLORS)] for i in range(len(groups))]
 
 
+# ───────────────────────── pré-débat (export de l'appli) ─────────────────────────
+
+def _num(v, where: str, lo: float | None = None, hi: float | None = None) -> float:
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        raise UnifiedError(f"pré-débat, {where} : nombre attendu")
+    if (lo is not None and v < lo) or (hi is not None and v > hi):
+        raise UnifiedError(f"pré-débat, {where} : {v} hors de [{lo}, {hi}]")
+    return v
+
+
+def _count(v, where: str) -> int:
+    if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+        raise UnifiedError(f"pré-débat, {where} : entier positif ou nul attendu")
+    return v
+
+
+def _list(d, key: str, where: str) -> list:
+    v = d.get(key) if isinstance(d, dict) else None
+    if not isinstance(v, list):
+        raise UnifiedError(f"pré-débat, {where} : liste « {key} » attendue")
+    return v
+
+
+def _text(v, where: str, names: list[str]) -> str:
+    if not isinstance(v, str) or not v.strip():
+        raise UnifiedError(f"pré-débat, {where} : texte attendu")
+    try:
+        _check_text(v, f"pré-débat, {where}", names)
+    except CrossError as e:
+        raise UnifiedError(str(e)) from e
+    return v.strip()
+
+
+def _ranked(rows: list, kind: str, camp_ids: set[int], names: list[str]) -> list[dict]:
+    out = []
+    for i, r in enumerate(rows, 1):
+        w = f"{kind} n° {i}"
+        if not isinstance(r, dict):
+            raise UnifiedError(f"pré-débat, {w} : objet attendu")
+        item = {"rang": _count(r.get("rang", i), w + ", rang"), "enonce": _text(r.get("enonce"), w, names),
+                "score": _num(r.get("score"), w + ", score", 0, 1),
+                **{k: _count(r.get(k), f"{w}, {k}") for k in ("pour", "contre", "abstention", "blanc")},
+                "part_pour": _num(r.get("part_pour"), w + ", part_pour", 0, 1), "par_camp": []}
+        if kind == "consensus":
+            if r.get("sens") not in ("adhesion", "rejet"):
+                raise UnifiedError(f"pré-débat, {w} : sens « adhesion » ou « rejet » attendu")
+            item["sens"] = r["sens"]
+        for c in _list(r, "par_camp", w):
+            if not isinstance(c, dict) or c.get("camp") not in camp_ids:
+                raise UnifiedError(f"pré-débat, {w} : camp inconnu dans par_camp")
+            pp = c.get("part_pour")
+            item["par_camp"].append({"camp": c["camp"], "pour": _count(c.get("pour"), w), "contre": _count(c.get("contre"), w),
+                                     "part_pour": None if pp is None else _num(pp, w + ", part_pour du camp", 0, 1)})
+        out.append(item)
+    return sorted(out, key=lambda x: x["rang"])
+
+
+def prepare_pre_debate(raw: dict, names: list[str]) -> dict:
+    """Valide l'export pré-débat de l'appli (chantier 170, format ecclesia.pre_debat.v1) et le prépare
+    pour la page : textes soumis aux garde-fous (ni guillemets ni prénom réel), carte ACP mise à l'échelle
+    sur le plan de la page avec le même facteur sur les deux axes (les distances ne sont pas déformées).
+    Les classements viennent de l'appli : rien n'est recalculé ici."""
+    if not isinstance(raw, dict) or raw.get("format") != PRE_DEBATE_FORMAT:
+        raise UnifiedError(f"pré-débat : format {PRE_DEBATE_FORMAT} attendu")
+    camps_raw = _list(raw, "camps", "fichier")
+    if not camps_raw:
+        raise UnifiedError("pré-débat : aucun camp")
+    camp_ids: set[int] = set()
+    for c in camps_raw:
+        cid = _count(c.get("camp") if isinstance(c, dict) else None, "numéro de camp")
+        if cid in camp_ids:
+            raise UnifiedError(f"pré-débat : camp {cid} en double")
+        camp_ids.add(cid)
+
+    carte = raw.get("carte")
+    pts = _list(carte, "points", "carte")
+    for i, p in enumerate(pts, 1):
+        if not isinstance(p, dict) or p.get("camp") not in camp_ids:
+            raise UnifiedError(f"pré-débat, point {i} de la carte : camp inconnu")
+        _num(p.get("x"), f"point {i}, x"), _num(p.get("y"), f"point {i}, y")
+    centres = []
+    for c in camps_raw:
+        ce = c.get("centre")
+        if not isinstance(ce, dict):
+            raise UnifiedError(f"pré-débat, camp {c['camp']} : centre attendu")
+        centres.append((_num(ce.get("x"), f"camp {c['camp']}, centre x"), _num(ce.get("y"), f"camp {c['camp']}, centre y")))
+    extent = max([abs(v) for p in pts for v in (p["x"], p["y"])] + [abs(v) for xy in centres for v in xy] + [0])
+    scale = PRE_MAP_EXTENT / extent if extent > 0 else 1.0
+
+    def plan(v: float) -> float:
+        return round(v * scale, 3)
+
+    camps = []
+    for c, (cx, cy) in zip(camps_raw, centres):
+        w = f"camp {c['camp']}"
+        if not isinstance(c.get("couleur"), str) or not _HEX_RE.match(c["couleur"]):
+            raise UnifiedError(f"pré-débat, {w} : couleur #RRGGBB attendue")
+        carac = []
+        for j, e in enumerate(_list(c, "enonces_caracteristiques", w), 1):
+            we = f"{w}, énoncé caractéristique {j}"
+            if not isinstance(e, dict) or e.get("sens") not in ("pour", "contre"):
+                raise UnifiedError(f"pré-débat, {we} : sens « pour » ou « contre » attendu")
+            carac.append({"enonce": _text(e.get("enonce"), we, names), "sens": e["sens"],
+                          "part_pour_camp": _num(e.get("part_pour_camp"), we, 0, 1),
+                          "part_pour_reste": _num(e.get("part_pour_reste"), we, 0, 1)})
+        camps.append({"camp": c["camp"], "couleur": c["couleur"], "taille": _count(c.get("taille"), w + ", taille"),
+                      "part": _num(c.get("part"), w + ", part", 0, 1), "centre": {"x": plan(cx), "y": plan(cy)},
+                      **({"nom_ia": _text(c["nom_ia"], w + ", nom", names)} if c.get("nom_ia") else {}),
+                      **({"description_ia": _text(c["description_ia"], w + ", description", names)}
+                         if c.get("description_ia") else {}),
+                      "enonces_caracteristiques": carac})
+    camps.sort(key=lambda c: c["camp"])
+
+    part = raw.get("participation") if isinstance(raw.get("participation"), dict) else {}
+    var = carte.get("variance_expliquee")
+    return {
+        "participation": {k: _count(part.get(k, 0), f"participation, {k}")
+                          for k in ("votants_places", "assertions_approuvees", "assertions_analysees", "votes")},
+        "consensus": _ranked(_list(raw, "consensus", "fichier"), "consensus", camp_ids, names),
+        "dissensus": _ranked(_list(raw, "dissensus", "fichier"), "dissensus", camp_ids, names),
+        "camps": camps,
+        "carte": {"points": [{"x": plan(p["x"]), "y": plan(p["y"]), "camp": p["camp"]} for p in pts],
+                  "variance_expliquee": [_num(v, "variance expliquée", 0, 1) for v in var]
+                  if isinstance(var, list) and len(var) == 2 else None},
+    }
+
+
 # ───────────────────────── construction ─────────────────────────
 
-def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str]) -> dict:
+def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
+          pre_debate: dict | None = None) -> dict:
+    """`pre_debate` : contenu du JSON pré-débat exporté par l'appli (déjà lu), ou None → blocs à compléter."""
     tables_meta = cross["meta"]["tables"]
     missing = [t["code"] for t in tables_meta if t["code"] not in table_viz]
     if missing:
@@ -220,7 +354,7 @@ def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str])
         "map": [{"key": p["key"], "table": p["table"], "x": p["kf"][-1][1], "y": p["kf"][-1][2],
                  "weight": p["weight"], "camp": p["camp"], "note": p["note"],
                  **({"uncertain": p["uncertain"]} if p.get("uncertain") else {})} for p in cross["personas"]],
-        "pre_debate": spec.get("pre_debate"),
+        "pre_debate": prepare_pre_debate(pre_debate, names) if pre_debate is not None else None,
         "flash": flash, "tables": tables, "footer": FOOTER,
     }
 
@@ -260,7 +394,13 @@ def main() -> None:
         cross_tables = load_tables(cross_spec, base)
         cross = build_cross(cross_spec, cross_tables)
         names = [n for t in cross_tables for n in t.get("names", []) if len(n) >= 3]
-        data = build(spec, cross, {code: _load_json(base / p) for code, p in spec["tables"].items()}, names)
+        pre = None
+        if spec.get("pre_debate"):
+            try:
+                pre = _load_json(base / spec["pre_debate"])
+            except (OSError, json.JSONDecodeError) as e:
+                raise UnifiedError(f"pré-débat illisible ({spec['pre_debate']}) : {e}") from e
+        data = build(spec, cross, {code: _load_json(base / p) for code, p in spec["tables"].items()}, names, pre)
     except (CrossError, UnifiedError) as e:
         print(f"Page unifiée refusée : {e}", file=sys.stderr)
         sys.exit(1)

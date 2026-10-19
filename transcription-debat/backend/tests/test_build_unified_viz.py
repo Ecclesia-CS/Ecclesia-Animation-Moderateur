@@ -4,8 +4,8 @@ import copy
 import pytest
 
 from build_cross_viz import CrossError
-from build_unified_viz import (KIND_LABELS, UnifiedError, build, rank_statements, relabel, tally,
-                               theme_minutes)
+from build_unified_viz import (KIND_LABELS, PRE_MAP_EXTENT, UnifiedError, build, prepare_pre_debate,
+                               rank_statements, relabel, tally, theme_minutes)
 
 
 def _st(text, **voices):
@@ -128,3 +128,104 @@ def test_build_refuses_missing_table_analysis(mini):
     spec, cross, viz = mini
     with pytest.raises(UnifiedError):
         build(spec, cross, {"AAA111": viz["AAA111"]}, names=[])
+
+
+# ───────── pré-débat : export de l'appli (chantier 170, ecclesia.pre_debat.v1) ─────────
+
+def _ranked_row(rang, enonce, **extra):
+    return {"rang": rang, "enonce": enonce, "score": 0.8, "pour": 8, "contre": 2, "abstention": 1, "blanc": 0,
+            "part_pour": 0.8, "par_camp": [{"camp": 1, "pour": 5, "contre": 0, "part_pour": 1.0},
+                                           {"camp": 2, "pour": 3, "contre": 2, "part_pour": 0.6}], **extra}
+
+
+def pre_export():
+    """Export factice au format de src/lib/preDebateExport.ts."""
+    return {
+        "format": "ecclesia.pre_debat.v1", "lisez_moi": ["..."],
+        "seance": {"titre": "Séance test", "date_seance": "2026-10-01", "exporte_le": "2026-10-19T10:00:00Z",
+                   "votes": "avant débat (pre_closure)"},
+        "participation": {"votants_places": 4, "assertions_approuvees": 6, "assertions_analysees": 5, "votes": 22},
+        "consensus": [_ranked_row(2, "Deuxième consensus", sens="rejet"), _ranked_row(1, "Premier consensus", sens="adhesion")],
+        "dissensus": [_ranked_row(1, "Un dissensus")],
+        "camps": [
+            {"camp": 2, "couleur": "#b04a3c", "taille": 2, "part": 0.5, "centre": {"x": -0.5, "y": 0.1},
+             "enonces_caracteristiques": [{"enonce": "Plutôt contre", "sens": "contre", "part_pour_camp": 0.1, "part_pour_reste": 0.9}]},
+            {"camp": 1, "couleur": "#2b4a86", "taille": 2, "part": 0.5, "centre": {"x": 0.5, "y": -0.1},
+             "nom_ia": "Les réformateurs", "description_ia": "Veulent changer la règle.",
+             "enonces_caracteristiques": [{"enonce": "Plutôt pour", "sens": "pour", "part_pour_camp": 1.0, "part_pour_reste": 0.2}]},
+        ],
+        "carte": {"axes": "composantes principales", "variance_expliquee": [0.41, 0.22],
+                  "points": [{"x": 0.4, "y": -0.2, "camp": 1}, {"x": 0.6, "y": 0.0, "camp": 1},
+                             {"x": -0.3, "y": 0.1, "camp": 2}, {"x": -0.7, "y": 0.1, "camp": 2}]},
+    }
+
+
+def test_build_without_pre_debate_keeps_placeholder(mini):
+    spec, cross, viz = mini
+    assert build(spec, cross, viz, names=[])["pre_debate"] is None
+
+
+def test_build_with_pre_debate_fills_menu(mini):
+    spec, cross, viz = mini
+    pre = build(spec, cross, viz, names=["Camille"], pre_debate=pre_export())["pre_debate"]
+    assert [s["enonce"] for s in pre["consensus"]] == ["Premier consensus", "Deuxième consensus"]   # trié par rang
+    assert pre["consensus"][1]["sens"] == "rejet"
+    assert [s["enonce"] for s in pre["dissensus"]] == ["Un dissensus"]
+    assert pre["dissensus"][0]["par_camp"][1] == {"camp": 2, "pour": 3, "contre": 2, "part_pour": 0.6}
+    assert [c["camp"] for c in pre["camps"]] == [1, 2]
+    assert pre["camps"][0]["nom_ia"] == "Les réformateurs" and "nom_ia" not in pre["camps"][1]
+    assert pre["participation"]["votants_places"] == 4
+    assert pre["carte"]["variance_expliquee"] == [0.41, 0.22]
+
+
+def test_pre_debate_map_is_scaled_onto_the_plane_without_distortion():
+    pre = prepare_pre_debate(pre_export(), names=[])
+    pts = pre["carte"]["points"]
+    # le point le plus éloigné (|x| = 0,7) arrive au bord du plan ; même facteur sur les deux axes
+    assert max(max(abs(p["x"]), abs(p["y"])) for p in pts) == pytest.approx(PRE_MAP_EXTENT)
+    assert pts[0] == {"x": pytest.approx(0.4 * PRE_MAP_EXTENT / 0.7, abs=1e-3), "y": pytest.approx(-0.2 * PRE_MAP_EXTENT / 0.7, abs=1e-3), "camp": 1}
+    assert pre["camps"][0]["centre"] == {"x": pytest.approx(0.5 * PRE_MAP_EXTENT / 0.7, abs=1e-3), "y": pytest.approx(-0.1 * PRE_MAP_EXTENT / 0.7, abs=1e-3)}
+
+
+def test_pre_debate_with_all_points_at_origin_does_not_divide_by_zero():
+    raw = pre_export()
+    raw["carte"]["points"] = [{"x": 0, "y": 0, "camp": 1}]
+    for c in raw["camps"]:
+        c["centre"] = {"x": 0, "y": 0}
+    assert prepare_pre_debate(raw, names=[])["carte"]["points"] == [{"x": 0, "y": 0, "camp": 1}]
+
+
+def test_pre_debate_refuses_quotes_or_real_names():
+    raw = pre_export()
+    raw["consensus"][0]["enonce"] = "Il faut « tout changer »"
+    with pytest.raises(UnifiedError, match="guillemets"):
+        prepare_pre_debate(raw, names=[])
+    raw = pre_export()
+    raw["camps"][1]["enonces_caracteristiques"][0]["enonce"] = "Camille a raison"
+    with pytest.raises(UnifiedError, match="prénom"):
+        prepare_pre_debate(raw, names=["Camille"])
+    raw = pre_export()
+    raw["camps"][1]["nom_ia"] = "Le camp de Camille"
+    with pytest.raises(UnifiedError, match="prénom"):
+        prepare_pre_debate(raw, names=["Camille"])
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda r: r.update(format="ecclesia.pre_debat.v2"),
+    lambda r: r.pop("consensus"),
+    lambda r: r.update(camps=[]),
+    lambda r: r["carte"]["points"].append({"x": 0, "y": 0, "camp": 9}),
+    lambda r: r["dissensus"][0]["par_camp"].append({"camp": 9, "pour": 1, "contre": 1, "part_pour": 0.5}),
+    lambda r: r["consensus"][0].update(part_pour=1.4),
+    lambda r: r["consensus"][0].update(sens="neutre"),
+    lambda r: r["consensus"][0].update(pour="8"),
+    lambda r: r["camps"][0].update(couleur="rouge"),
+    lambda r: r["camps"].append(copy.deepcopy(r["camps"][0])),
+    lambda r: r["camps"][0]["enonces_caracteristiques"][0].update(sens="neutre"),
+    lambda r: r["carte"]["points"][0].update(x=None),
+])
+def test_pre_debate_refuses_malformed_export(mutate):
+    raw = pre_export()
+    mutate(raw)
+    with pytest.raises(UnifiedError):
+        prepare_pre_debate(raw, names=[])
