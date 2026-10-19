@@ -19,7 +19,7 @@ Voir [`docs/chantiers.md`](./docs/chantiers.md) pour l'état courant des chantie
 
 Ce dépôt contient **deux projets** :
 1. **L'app web de modération** (racine `src/`) : le présent CLAUDE.md.
-2. **La transcription des débats** (`transcription-debat/`) : pipeline Python **offline** (Whisper + croisement log Ecclesia + anonymisation + correction Gemini), indépendant de l'app web. Supprimé le 2026-10-02 puis restauré le 2026-10-18 à la demande de l'utilisateur. Doc dédiée : [transcription-debat/CLAUDE.md](./transcription-debat/CLAUDE.md).
+2. **La transcription des débats** (`transcription-debat/`) : pipeline Python **offline** (Whisper + croisement log Ecclesia + anonymisation + correction Gemini), indépendant de l'app web. Supprimé le 2026-10-02 puis restauré le 2026-10-18 à la demande de l'utilisateur. **« Faire la transcription » ne livre plus que la page en menus accordéons** (`viz_unifiee/`, `build_unified_viz.py`, depuis le 2026-10-19), jamais les anciennes visualisations. Doc dédiée : [transcription-debat/CLAUDE.md](./transcription-debat/CLAUDE.md).
 
 ---
 

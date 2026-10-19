@@ -38,6 +38,23 @@ Conception, résultats chiffrés et références : [docs/superpowers/specs/2026-
 
 ---
 
+## ⚠️ « Faire la transcription » = la page en menus accordéons, et rien d'autre (consigne du 2026-10-19)
+
+Quand on demande de **faire la transcription** d'un débat, le **seul livrable** est la page unique en menus accordéons : `transcripts\<Thème>\viz_unifiee\index.html`, produite par `build_unified_viz.py` (détail : [§ Page unique de restitution](#page-unique-de-restitution-en-menus-accordéons-référence)). C'est la référence de toute restitution, avec une ou plusieurs tables.
+
+**Ne plus jamais livrer, présenter ni publier** les anciennes visualisations : page par table (`viz\index.html`, qu'elle vienne d'`analyze_debate.py`/Gemini ou de `build_manual_viz.py`), page croisée (`viz_croisee\`), `viz_gemini\`. Les scripts restent, parce qu'ils fabriquent les **données d'entrée** de la page unique. Les pages HTML qu'ils écrivent au passage sont des sous-produits : on ne les ouvre pas, on ne les montre pas et on ne les vérifie pas.
+
+Recette, dans l'ordre (chaque étape ne se fait que si son résultat n'existe pas déjà) :
+1. **Transcript corrigé** de chaque table : `run_transcription.ps1`, **sans** `-Visualize` → `<CODE>_<DATE>_corrected.json`.
+2. **Analyse manuelle par table** (`<CODE>_analyse_manuelle.json`) puis `build_manual_viz.py`, seulement pour obtenir `viz\<CODE>.json` (déroulé : reformulations, échanges, tension, thèmes). Voir [§ analyse manuelle](#visualisation-par-analyse-manuelle-alternative-à-gemini).
+3. **Analyse croisée** `transcripts\<Thème>\analyse_croisee.json` : positions de toutes les voix sur la grille commune, groupes, énoncés. `build_unified_viz.py` la recalcule et la valide lui-même : inutile de lancer `build_cross_viz.py`.
+4. **Spec** `transcripts\<Thème>\analyse_unifiee.json` (résumé flash + chemins), puis `build_unified_viz.py` → `viz_unifiee\`.
+5. **Vérifier la page au navigateur** (Browser pane, servie en local) : menus, carte animée de chaque table, tension, aucun débordement à 375 px.
+
+Avec **une seule table**, la page garde ses trois menus (pré-débat, synthèse flash, la table). Le cas n'a pas encore été joué : l'analyse croisée d'une seule table est à confirmer au premier débat concerné.
+
+---
+
 ## Structure
 
 ```
@@ -165,7 +182,7 @@ python "code python\evaluate.py" score transcripts\<Thème>\<CODE>\reference\ext
 $env:GEMINI_MODEL = "gemini-2.5-flash"
 ```
 
-### Générer la visualisation (option)
+### Générer la visualisation Gemini (ancienne page par table — plus livrée, voir la consigne du 19/10)
 Via le pipeline complet :
 ```powershell
 .\run_transcription.ps1 -Csv ... -Audio ... -Code <CODE> -Topic "<Thème>" -Visualize
@@ -178,6 +195,7 @@ Ou seule, sur un transcript déjà corrigé :
 Produit `transcripts\<Thème>\<CODE>\viz\{index.html, d3.v7.min.js, data.js, <CODE>.json}`. Ré-exécutable seul si une passe a échoué (quota). `index.html` s'ouvre tel quel par double-clic (il lit `data.js`).
 
 ### Visualisation par analyse manuelle (alternative à Gemini)
+> Depuis le 19/10, cette étape ne sert qu'à produire `viz\<CODE>.json`, entrée de la page unique : la page `viz\index.html` écrite au passage n'est plus un livrable.
 Quand l'analyse Gemini n'est pas fiable (déplacements aberrants sur la carte), l'interprétation est faite à la lecture du transcript (par Claude ou un humain) dans `transcripts\<Thème>\<CODE>\<CODE>_analyse_manuelle.json` (axes + ancres, position **fixe** par voix sauf changement d'avis explicite déclaré dans `shifts` — `{t, x, y, desc}` ancré sur la prise de parole où il est exprimé, déplace durablement le point —, reformulations horodatées, événements, courbe de tension, textes de méthode), puis :
 ```powershell
 .venv\Scripts\python "code python\build_manual_viz.py" "transcripts\<Thème>\<CODE>\<CODE>_<DATE>_corrected.json" "transcripts\<Thème>\<CODE>\<CODE>_analyse_manuelle.json" --name-map "Débats\<Thème>\<CODE>\name_map.json"
@@ -185,14 +203,15 @@ Quand l'analyse Gemini n'est pas fiable (déplacements aberrants sur la carte), 
 Temps de parole, entrée, refus, durée et polarisation restent **mesurés** sur le transcript. Refus si une voix manque, si une reformulation ne tombe pas sur un segment de sa voix (±3 s), contient des guillemets ou un prénom de `name_map.json`. Un axe sur lequel une voix ne s'est pas prononcée se déclare `"uncertain": {"y": "raison"}` : ligne pointillée sur la carte, voix exclue de la polarisation de cet axe. La dynamique passe par `"interactions"` (`{t, from, to, type: accord|desaccord|concession, desc}`, `from` ancré sur un de ses segments) : flèche de `from` vers `to` pendant 3 min de débat, cumul optionnel ; seule une `concession` déplace un point (20 % vers `to`, aller-retour) — **ne jamais faire bouger une position de fond sans changement d'avis observable**. Un bloc `"synthesis"` optionnel ajoute en haut de page : résumé, arguments par groupe d'opinion (une voix par groupe au plus), dérive thématique (`timeline` = découpage continu de 0 à la fin en `[début, fin, thème|null]`, thèmes `coeur`/`connexe`/`annexe` par rapport au sujet de départ ; les minutes sont calculées, jamais saisies) et affirmations de consensus/dissensus (chaque `pour`/`contre`/`nuance` ancré sur un segment de la voix, comme les reformulations). Premier cas : AA0D29 (Énergie, 28/09) ; la version Gemini est gardée dans `viz_gemini/`.
 
 ### Visualisation croisée (plusieurs tables, même sujet)
+> Depuis le 19/10, seule `analyse_croisee.json` sert (grille commune de la page unique) ; la page `viz_croisee\` n'est plus un livrable.
 Une page unique pour tous les participants de plusieurs tables : synthèse générale sans distinguer les tables, carte 2D **commune** (une couleur par table, pas de flèches ni de liste de prises de position), puis, en descendant, consensus et dissensus communs, différences entre les tables, sujets propres à une seule table. L'interprétation vient de `<dossier>/analyse_croisee.json` (positions recalées sur une **grille commune** à partir des analyses par table, groupes d'opinion, énoncés avec prises de position ancrées, rattachement de chaque thème de chaque table à un thème commun) ; tout ce qui se mesure est calculé (temps de parole, polarisation, temps par thème, interactions, tension, comptage des positions, classement consensus/dissensus par seuils).
 ```powershell
 .venv\Scripts\python "code python\build_cross_viz.py" "transcripts\<Thème>\analyse_croisee.json"
 ```
 Écrit `transcripts\<Thème>\viz_croisee\` (`index.html` + `data.js`, ouverture par double-clic). Refus si une voix manque, si une prise de position ne tombe pas sur un segment de sa voix (±3 s), si un texte contient des guillemets ou un prénom de `name_map.json`, ou si un thème n'est pas rattaché. Un changement d'avis déclaré dans une analyse par table doit être re-placé dans l'analyse croisée. Premier cas : Héritage (0650D7 × 4999B8).
 
-### Page unique de restitution, en menus accordéons (prototype du 18/10)
-Remplace, à terme, la page par table et la page croisée par **une seule page** de menus repliables : **01 Synthèse pré-débat** (consensus, dissensus et camps du questionnaire d'avant le débat — blocs à compléter tant que `pre_debate` est `null`, export pas encore disponible) · **02 Synthèse flash** (résumé très court de toutes les tables, 3 plus forts consensus et dissensus *communs* aux tables, carte 2D finale fixe — une couleur par table, taille = temps de parole —, camps de la transcription) · **un menu par table** (« Table A · `<code>` » : résumé, ses 3 consensus et 3 dissensus, temps par sujet, carte animée avec la **tension dans le panneau « ce qui vient d'être dit »**, camps de la table). Au moins trois menus, même pour une seule table.
+### Page unique de restitution, en menus accordéons (référence)
+**Seul livrable depuis le 19/10** : remplace la page par table et la page croisée par **une seule page** de menus repliables : **01 Synthèse pré-débat** (consensus, dissensus et camps du questionnaire d'avant le débat — blocs à compléter tant que `pre_debate` est `null`, export pas encore disponible) · **02 Synthèse flash** (résumé très court de toutes les tables, 3 plus forts consensus et dissensus *communs* aux tables, carte 2D finale fixe — une couleur par table, taille = temps de parole —, camps de la transcription) · **un menu par table** (« Table A · `<code>` » : résumé, ses 3 consensus et 3 dissensus, temps par sujet, carte animée avec la **tension dans le panneau « ce qui vient d'être dit »**, camps de la table). Au moins trois menus, même pour une seule table.
 ```powershell
 .venv\Scripts\python "code python\build_unified_viz.py" "transcripts\<Thème>\analyse_unifiee.json"
 ```
@@ -203,7 +222,7 @@ Spec : `{"cross": "<analyse_croisee.json>", "tables": {"<CODE>": "<CODE>/viz/<CO
 - Charte de **l'appli** (chantier 168) : bleu marine `#15233F`, crème `#FBF9F4`, sable `#F1EBDD`, Newsreader + Archivo (copiées de `@fontsource-variable`, licences OFL à côté), angles quasi droits. Aucun CDN, aucune dépendance (pas de d3).
 - Seul texte écrit à la main : `flash_summary`, soumis aux garde-fous de l'analyse croisée (ni guillemets ni prénom réel).
 
-### Publier la visualisation sur un site
+### Publier la visualisation sur un site (ancienne page par table)
 Un seul dossier sur l'hébergeur (GitHub Pages ou autre) pour **tous** les débats : `index.html`, `d3.v7.min.js`, `logo_ecclesia.png`, `playfair-display.woff2`, `playfair-display-italic.woff2` et `OFL-playfair-display.txt` (identiques pour chaque débat) + un `<CODE>.json` par débat. `data.js` est inutile en ligne. **Relire le JSON avant de le publier** (aucun prénom réel).
 
 Paramètres d'URL : `?debat=<CODE>` (charge `<CODE>.json`, obligatoire en ligne, lettres/chiffres/`-`/`_` seulement) · `?theme=dark` (sombre) ou `?theme=auto` (suit le système du visiteur) ; par défaut, fond crème de la charte Ecclesia.
