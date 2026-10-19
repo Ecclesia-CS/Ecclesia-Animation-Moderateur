@@ -195,6 +195,19 @@ def test_pre_debate_with_all_points_at_origin_does_not_divide_by_zero():
     assert prepare_pre_debate(raw, names=[])["carte"]["points"] == [{"x": 0, "y": 0, "camp": 1}]
 
 
+@pytest.mark.parametrize("raw_text", ['"La prison est nécessaire."', "« La prison est nécessaire. »",
+                                      "“La prison est nécessaire.”", '  "La prison est nécessaire."  '])
+def test_pre_debate_strips_quotes_wrapping_the_whole_statement(raw_text):
+    # l'appli exporte les assertions telles que saisies, souvent entre guillemets : ce ne sont pas des citations
+    raw = pre_export()
+    raw["consensus"][0]["enonce"] = raw_text
+    raw["camps"][0]["enonces_caracteristiques"][0]["enonce"] = raw_text
+    out = prepare_pre_debate(raw, names=[])
+    texts = [c["enonce"] for c in out["consensus"]] + [e["enonce"] for c in out["camps"] for e in c["enonces_caracteristiques"]]
+    assert texts.count("La prison est nécessaire.") == 2
+    assert not any(t.startswith(('"', "«", "“")) for t in texts)
+
+
 def test_pre_debate_refuses_quotes_or_real_names():
     raw = pre_export()
     raw["consensus"][0]["enonce"] = "Il faut « tout changer »"

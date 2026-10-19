@@ -1,0 +1,403 @@
+{
+  "format": "ecclesia.pre_debat.v1",
+  "lisez_moi": [
+    "Données du vote d'AVANT le débat (pré-vote à distance et vote en présentiel), reconstituées telles qu'elles étaient avant tout revote du post-débat.",
+    "Parts (part_pour, part_pour_camp…) entre 0 et 1 : pour / (pour + contre). Abstentions et votes blancs sont comptés à part et n'entrent pas dans les parts.",
+    "consensus : les 3 assertions que chaque camp soutient (sens = adhesion) ou rejette (sens = rejet) le plus ; score = part du camp le moins convaincu. Une assertion n'est classée que si chaque camp a au moins 2 votes pour ou contre.",
+    "dissensus : les 3 assertions qui opposent le plus les camps ; score = écart de part_pour entre le camp le plus pour et le camp le plus contre.",
+    "Seules les assertions avec au moins 3 votes pour ou contre sont classées.",
+    "camps : groupes d'opinion calculés sur les votes (analyse en composantes principales puis k-means, comme l'onglet Analyse). enonces_caracteristiques = ce qui distingue le plus le camp du reste des votants. nom_ia et description_ia ne sont présents que si les camps sont exactement ceux nommés par l'IA dans l'appli.",
+    "carte : un point par votant placé, anonyme. x et y sont les deux premières composantes principales des votes : les axes n'ont pas de libellé, seules les distances et les regroupements ont un sens.",
+    "Aucun nom ni identifiant de participant n'est inclus."
+  ],
+  "seance": {
+    "titre": "Comment assurer la sécurité de tous en France ?",
+    "date_seance": null,
+    "exporte_le": "2026-10-19T08:51:07.679Z",
+    "votes": "avant débat (pre_closure)"
+  },
+  "participation": {
+    "votants_places": 18,
+    "assertions_approuvees": 16,
+    "assertions_analysees": 16,
+    "votes": 288
+  },
+  "consensus": [
+    {
+      "rang": 1,
+      "enonce": "\"Le problème de la police est quantitatif : plus d'effectifs, de véhicules et de brigades.\"",
+      "pour": 0,
+      "contre": 15,
+      "abstention": 3,
+      "blanc": 0,
+      "part_pour": 0,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 0,
+          "contre": 6,
+          "part_pour": 0
+        },
+        {
+          "camp": 2,
+          "pour": 0,
+          "contre": 6,
+          "part_pour": 0
+        },
+        {
+          "camp": 3,
+          "pour": 0,
+          "contre": 3,
+          "part_pour": 0
+        }
+      ],
+      "sens": "rejet",
+      "score": 1
+    },
+    {
+      "rang": 2,
+      "enonce": "\"La prison est nécessaire.\"",
+      "pour": 15,
+      "contre": 0,
+      "abstention": 3,
+      "blanc": 0,
+      "part_pour": 1,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 6,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 2,
+          "pour": 5,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 3,
+          "pour": 4,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "sens": "adhesion",
+      "score": 1
+    },
+    {
+      "rang": 3,
+      "enonce": "\"La meilleure politique de sécurité est une politique sociale : école, insertion, soutien aux familles.\"",
+      "pour": 16,
+      "contre": 2,
+      "abstention": 0,
+      "blanc": 0,
+      "part_pour": 0.889,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 7,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 2,
+          "pour": 6,
+          "contre": 1,
+          "part_pour": 0.857
+        },
+        {
+          "camp": 3,
+          "pour": 3,
+          "contre": 1,
+          "part_pour": 0.75
+        }
+      ],
+      "sens": "adhesion",
+      "score": 0.75
+    }
+  ],
+  "dissensus": [
+    {
+      "rang": 1,
+      "enonce": "\"Pour réduire la surpopulation carcérale, il faut construire des places plutôt que réduire les peines.\"",
+      "pour": 7,
+      "contre": 6,
+      "abstention": 5,
+      "blanc": 0,
+      "part_pour": 0.538,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 0,
+          "contre": 5,
+          "part_pour": 0
+        },
+        {
+          "camp": 2,
+          "pour": 3,
+          "contre": 1,
+          "part_pour": 0.75
+        },
+        {
+          "camp": 3,
+          "pour": 4,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "score": 1
+    },
+    {
+      "rang": 2,
+      "enonce": "\"L'insécurité en France est résiduelle, elle est surtout ressentie à cause des médias.\"",
+      "pour": 9,
+      "contre": 7,
+      "abstention": 2,
+      "blanc": 0,
+      "part_pour": 0.563,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 6,
+          "contre": 0,
+          "part_pour": 1
+        },
+        {
+          "camp": 2,
+          "pour": 1,
+          "contre": 5,
+          "part_pour": 0.167
+        },
+        {
+          "camp": 3,
+          "pour": 2,
+          "contre": 2,
+          "part_pour": 0.5
+        }
+      ],
+      "score": 0.833
+    },
+    {
+      "rang": 3,
+      "enonce": "\"Sans sanction rapide et certaine, aucune politique de prévention ne protège les victimes.\"",
+      "pour": 6,
+      "contre": 7,
+      "abstention": 5,
+      "blanc": 0,
+      "part_pour": 0.462,
+      "par_camp": [
+        {
+          "camp": 1,
+          "pour": 1,
+          "contre": 3,
+          "part_pour": 0.25
+        },
+        {
+          "camp": 2,
+          "pour": 1,
+          "contre": 4,
+          "part_pour": 0.2
+        },
+        {
+          "camp": 3,
+          "pour": 4,
+          "contre": 0,
+          "part_pour": 1
+        }
+      ],
+      "score": 0.8
+    }
+  ],
+  "camps": [
+    {
+      "camp": 1,
+      "couleur": "#2b4a86",
+      "taille": 7,
+      "part": 0.389,
+      "centre": {
+        "x": -1.501,
+        "y": -0.067
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "\"Pour réduire la surpopulation carcérale, il faut construire des places plutôt que réduire les peines.\"",
+          "sens": "contre",
+          "part_pour_camp": 0,
+          "part_pour_reste": 0.875
+        },
+        {
+          "enonce": "\"L'insécurité en France est résiduelle, elle est surtout ressentie à cause des médias.\"",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.3
+        },
+        {
+          "enonce": "\"Un État doit consacrer ses moyens de sécurité d'abord aux risques qui tuent le plus, pas à ceux qui inquiètent le plus.\"",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.5
+        }
+      ]
+    },
+    {
+      "camp": 2,
+      "couleur": "#b04a3c",
+      "taille": 7,
+      "part": 0.389,
+      "centre": {
+        "x": 0.921,
+        "y": 1.028
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "\"Un État doit consacrer ses moyens de sécurité d'abord aux risques qui tuent le plus, pas à ceux qui inquiètent le plus.\"",
+          "sens": "contre",
+          "part_pour_camp": 0.333,
+          "part_pour_reste": 1
+        },
+        {
+          "enonce": "\"L'insécurité en France est résiduelle, elle est surtout ressentie à cause des médias.\"",
+          "sens": "contre",
+          "part_pour_camp": 0.167,
+          "part_pour_reste": 0.8
+        },
+        {
+          "enonce": "\"Le narcotrafic ne se combat qu'en s'attaquant à la demande, y compris en sanctionnant les consommateurs.\"",
+          "sens": "pour",
+          "part_pour_camp": 0.6,
+          "part_pour_reste": 0
+        }
+      ]
+    },
+    {
+      "camp": 3,
+      "couleur": "#3f8462",
+      "taille": 4,
+      "part": 0.222,
+      "centre": {
+        "x": 1.014,
+        "y": -1.68
+      },
+      "enonces_caracteristiques": [
+        {
+          "enonce": "\"Sans sanction rapide et certaine, aucune politique de prévention ne protège les victimes.\"",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.222
+        },
+        {
+          "enonce": "\"Pour réduire la surpopulation carcérale, il faut construire des places plutôt que réduire les peines.\"",
+          "sens": "pour",
+          "part_pour_camp": 1,
+          "part_pour_reste": 0.333
+        },
+        {
+          "enonce": "Il faut plusieurs polices privées en concurence",
+          "sens": "pour",
+          "part_pour_camp": 0.5,
+          "part_pour_reste": 0
+        }
+      ]
+    }
+  ],
+  "carte": {
+    "axes": "composantes principales 1 (x) et 2 (y) des votes, sans unité",
+    "variance_expliquee": [
+      0.237,
+      0.159
+    ],
+    "points": [
+      {
+        "x": -1.765,
+        "y": -0.209,
+        "camp": 1
+      },
+      {
+        "x": -1.757,
+        "y": 0.262,
+        "camp": 1
+      },
+      {
+        "x": -1.74,
+        "y": 0.491,
+        "camp": 1
+      },
+      {
+        "x": -1.687,
+        "y": -0.192,
+        "camp": 1
+      },
+      {
+        "x": -1.455,
+        "y": -0.129,
+        "camp": 1
+      },
+      {
+        "x": -1.196,
+        "y": 0.115,
+        "camp": 1
+      },
+      {
+        "x": -0.903,
+        "y": -0.81,
+        "camp": 1
+      },
+      {
+        "x": -0.265,
+        "y": 1.605,
+        "camp": 2
+      },
+      {
+        "x": 0.032,
+        "y": 0.211,
+        "camp": 2
+      },
+      {
+        "x": 0.872,
+        "y": 0.724,
+        "camp": 2
+      },
+      {
+        "x": 1.034,
+        "y": 1.405,
+        "camp": 2
+      },
+      {
+        "x": 1.196,
+        "y": 0.983,
+        "camp": 2
+      },
+      {
+        "x": 1.29,
+        "y": 0.262,
+        "camp": 2
+      },
+      {
+        "x": 2.289,
+        "y": 2.005,
+        "camp": 2
+      },
+      {
+        "x": -0.344,
+        "y": -1.298,
+        "camp": 3
+      },
+      {
+        "x": 0.5,
+        "y": -1.422,
+        "camp": 3
+      },
+      {
+        "x": 1.78,
+        "y": -2.421,
+        "camp": 3
+      },
+      {
+        "x": 2.12,
+        "y": -1.58,
+        "camp": 3
+      }
+    ]
+  }
+}

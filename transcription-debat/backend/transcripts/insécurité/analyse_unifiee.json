@@ -1,0 +1,9 @@
+{
+  "cross": "transcripts/insécurité/analyse_croisee.json",
+  "tables": {
+    "3EBF76": "transcripts/insécurité/3EBF76/viz/3EBF76.json",
+    "3E24D5": "transcripts/insécurité/3E24D5/viz/3E24D5.json"
+  },
+  "flash_summary": "Quatorze participants, sur deux tables, ont débattu de la même question : comment assurer la sécurité de tous en France ? Personne n'a contesté que les médias et les réseaux exagèrent le sentiment d'insécurité. Les deux tables jugent la prison inefficace pour réinsérer, la table A la gardant pour les personnes dangereuses, et la plupart penchent pour légaliser en partie les drogues. Ce qui sépare surtout les participants, c'est la confiance accordée à la police, à la justice et à l'État. Personne n'a changé d'avis.",
+  "pre_debate": "transcripts/insécurité/ecclesia_pre_debat_Comment_assurer_la_s_curit__de_tous_en_F_2026-10-19.json"
+}

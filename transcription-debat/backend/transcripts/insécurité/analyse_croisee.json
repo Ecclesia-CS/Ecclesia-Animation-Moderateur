@@ -1,0 +1,537 @@
+{
+ "title": "Insécurité : deux tables, un seul paysage d'opinions",
+ "subtitle": "Synthèse croisée des tables 3EBF76 et 3E24D5 · 14 participants · données interprétatives",
+ "topic": "Comment assurer la sécurité de tous en France ?",
+ "tables": [
+  {
+   "key": "A",
+   "code": "3EBF76",
+   "color": "#2B4A86",
+   "label": "Table A",
+   "corrected": "transcripts/insécurité/3EBF76/3EBF76_2026-10-14_corrected.json",
+   "analysis": "transcripts/insécurité/3EBF76/3EBF76_analyse_manuelle.json",
+   "rapport": "transcripts/insécurité/3EBF76/3EBF76_2026-10-14_rapport.json",
+   "name_map": "Débats/insécurité/3EBF76/name_map.json"
+  },
+  {
+   "key": "B",
+   "code": "3E24D5",
+   "color": "#B97A2A",
+   "label": "Table B",
+   "corrected": "transcripts/insécurité/3E24D5/3E24D5_2026-10-14_corrected.json",
+   "analysis": "transcripts/insécurité/3E24D5/3E24D5_analyse_manuelle.json",
+   "rapport": "transcripts/insécurité/3E24D5/3E24D5_2026-10-14_rapport.json",
+   "name_map": "Débats/insécurité/3E24D5/name_map.json"
+  }
+ ],
+ "axes": {
+  "x": {
+   "leftLabel": "Sanctionner et faire respecter l'ordre d'abord",
+   "rightLabel": "Prévenir et traiter les causes d'abord",
+   "anchors": {
+    "left": [
+     "Les personnes dangereuses doivent être enfermées et la sanction dissuade",
+     "Il faut plus de places, de gardiens et d'ordre dans les prisons",
+     "Interdire et punir le trafic comme la consommation de drogue"
+    ],
+    "right": [
+     "La prison produit de la récidive : accompagner, réinsérer et éduquer en amont",
+     "Les causes sont sociales : emploi, logement, éducation, inégalités",
+     "Dépénaliser ou encadrer la drogue plutôt qu'enfermer"
+    ]
+   },
+   "levels": [
+    {
+     "v": -2.5,
+     "text": "Plus de moyens et de fermeté : places de prison, peines plus lourdes pour certains faits"
+    },
+    {
+     "v": 0,
+     "text": "Position non déterminable sur ce clivage, ou propos mêlant sanction et prévention"
+    },
+    {
+     "v": 2.5,
+     "text": "Prévenir d'abord, en gardant la prison pour les personnes dangereuses"
+    },
+    {
+     "v": 5,
+     "text": "Réinsérer et traiter les causes sociales : la prison produit de la récidive"
+    },
+    {
+     "v": 7.5,
+     "text": "La prison n'a pas de finalité utile : tout miser sur la prévention et l'accompagnement"
+    }
+   ]
+  },
+  "y": {
+   "bottomLabel": "Faire confiance aux institutions pour réformer",
+   "topLabel": "Défiance envers l'État et ses institutions",
+   "anchors": {
+    "bottom": [
+     "On peut améliorer les choses par les voies démocratiques : référendums, syndicats, lois",
+     "Il faut plus de moyens pour la justice, la police et les prisons, pas les remettre en cause",
+     "L'État doit garder le monopole de la justice pour qu'elle soit acceptée"
+    ],
+    "top": [
+     "La police et la justice protègent d'abord l'ordre établi, ou abusent d'un monopole d'État",
+     "Tout monopole public attire la corruption : il faut le concurrencer",
+     "Sans rapport de force, voire sans violence, rien ne change"
+    ]
+   },
+   "levels": [
+    {
+     "v": -5,
+     "text": "Confiance dans les institutions : réformer par la loi, avec plus de moyens"
+    },
+    {
+     "v": -2.5,
+     "text": "Réformer les institutions en mesurant leur efficacité"
+    },
+    {
+     "v": 0,
+     "text": "Position non déterminable sur ce clivage"
+    },
+    {
+     "v": 2.5,
+     "text": "Doute sur l'institution judiciaire, qui s'acharne sur les mêmes personnes"
+    },
+    {
+     "v": 5,
+     "text": "La police et la justice protègent d'abord l'ordre établi ; la population doit peser par le rapport de force"
+    },
+    {
+     "v": 7.5,
+     "text": "Défiance forte : monopole d'État corrompu, ou rapport de force y compris violent"
+    }
+   ]
+  },
+  "quadrants": {
+   "topLeft": "Se méfier de l'État, sanction et marché",
+   "topRight": "Prévenir, en se méfiant de l'ordre établi",
+   "bottomLeft": "Ordre et confiance dans les institutions",
+   "bottomRight": "Prévenir et réformer par les institutions"
+  }
+ },
+ "personas": {
+  "A1": {
+   "x": 7.5,
+   "y": -2.5,
+   "camp": "Prévenir, accompagner, mélanger",
+   "note": "Voix la plus constante pour la prévention : juge que le bâton coûte plus cher que la carotte, veut un accompagnement personnalisé et de l'éducation dès le plus jeune âge, défend un quota de logements sociaux dans chaque immeuble et la légalisation d'une partie des drogues douces pour casser les réseaux."
+  },
+  "A2": {
+   "x": 5,
+   "y": -2.5,
+   "camp": "Causes sociales, investissement public",
+   "note": "Voit un problème systémique de peines et de prisons plutôt qu'un problème d'immigration, veut traiter les causes par de grands travaux et des industries publiques offrant des emplois stables, accepte un encadrement étatique de la drogue et préfère l'indépendance financière des femmes à l'ingérence dans les familles."
+  },
+  "A3": {
+   "x": 5,
+   "y": 2.5,
+   "camp": "Prison pour les dangereux, causes d'abord",
+   "note": "Pense que le système judiciaire s'acharne sur les mêmes personnes sans les aider ; garde la prison pour les personnes dangereuses, veut libérer les détenus âgés ou malades, relie la drogue à la criminalité des cités et voit dans les violences sexuelles un sexisme systémique à traiter par la formation des jeunes."
+  },
+  "A4": {
+   "x": 5,
+   "y": 2.5,
+   "camp": "Prison utile mais insuffisante",
+   "note": "Raconte avoir vu des procès à Paris comme un échec, juge la prison nécessaire dans une certaine mesure mais pas la seule solution, soutient la mixité du logement malgré son coût pour l'État et veut punir plus les atteintes aux personnes et moins les délits de précarité."
+  },
+  "A5": {
+   "x": 5,
+   "y": -2.5,
+   "camp": "Intégrer plutôt qu'exclure",
+   "note": "Voit un système perçu comme fait pour punir, qui crée un nous contre eux ; veut intégrer par le travail, refuse de criminaliser toute consommation de drogue, mise sur l'éducation contre les violences conjugales et défend le monopole de l'État sur la police et la justice."
+  },
+  "A6": {
+   "x": 2.5,
+   "y": -5,
+   "camp": "Réformer en mesurant l'efficacité",
+   "note": "Issu d'une famille de magistrats, compare avec la Belgique et la Finlande pour dire que la prison coûte cher sans protéger davantage ; doute que l'argent des quartiers construise l'avenir, refuse la dépénalisation de la drogue et voit dans la défiance envers la justice une part de l'insécurité."
+  },
+  "A7": {
+   "x": 0,
+   "y": 7.5,
+   "camp": "Marché, concurrence, moins d'État",
+   "note": "Seule voix libérale de la table : juge le code du travail trop rigide, rejette les logements sociaux (électoralisme, corruption), voit dans tout monopole d'État une source de corruption et propose de mettre en concurrence plusieurs justices et polices.",
+   "uncertain": {
+    "x": "ses propositions relèvent du marché, il n'a pris position ni sur la prison ni sur la drogue"
+   }
+  },
+  "B1": {
+   "x": 7.5,
+   "y": 5,
+   "camp": "Structures sociales, violence comme levier",
+   "note": "Ne voit pas la finalité de la prison, y compris améliorée ; voit dans les violences sexuelles un problème d'éducation et d'institutions en amont, doute que responsabiliser les consommateurs de drogue suffise et juge que, dans les faits, la violence fait bouger les choses."
+  },
+  "B2": {
+   "x": 2.5,
+   "y": 7.5,
+   "camp": "Critique de l'ordre établi, rapport de force",
+   "note": "Prend au sérieux les chiffres de criminalité mais voit la police protéger d'abord l'ordre établi et la propriété ; lie violences sexuelles, capitalisme et rapport de force racial, veut un contrôle d'État de l'alcool sans que le cannabis se répande, et croit que seuls les mouvements violents obtiennent des changements."
+  },
+  "B3": {
+   "x": 7.5,
+   "y": 5,
+   "camp": "Dignité des détenus, contre-pouvoir du peuple",
+   "note": "Pense que les taux de crime ont baissé et que les médias entretiennent l'impression inverse ; veut des détenus traités dignement, voit dans la police et la formation une faute institutionnelle face aux violences sexuelles, refuse de pénaliser consommateurs et petits dealers et défend un pouvoir de pression du peuple sur l'État."
+  },
+  "B4": {
+   "x": 5,
+   "y": 5,
+   "camp": "Rapport de force, justice qui répare",
+   "note": "Explique la criminalité par le manque de moyens de la justice et l'humiliation carcérale, juge le système classique incapable de traiter les violences sans témoin et voit dans le capitalisme un système qui se nourrit des inégalités ; préfère une justice alternative pour les personnes issues de la misère et pense que la violence fait partie du rapport de force."
+  },
+  "B5": {
+   "x": -2.5,
+   "y": -5,
+   "camp": "Réformer par la démocratie, avec plus de moyens",
+   "note": "Voix la plus attachée aux institutions : veut plus de places, de gardiens et de rénovation des prisons, des peines alternatives et du travail en prison, interdit et sanctionne consommateurs et vendeurs de drogue tout en offrant une substitution, et refuse de légitimer la violence au profit de référendums et de syndicats forts."
+  },
+  "B6": {
+   "x": 2.5,
+   "y": 5,
+   "camp": "Violence structurelle et privilège",
+   "note": "Peu d'interventions : se demande si l'on doit ajouter des places ou raccourcir les peines, s'étonne du silence médiatique sur la violence conjugale et défend l'idée d'une violence structurelle qu'il est difficile de condamner depuis une position privilégiée."
+  },
+  "B7": {
+   "x": -2.5,
+   "y": 0,
+   "camp": "Peines à durcir pour les violences sexuelles",
+   "note": "Trois interventions courtes : s'interroge sur la surmédiatisation des faits divers et juge que certaines peines, notamment pour les violences sexuelles, ne sont pas assez longues.",
+   "uncertain": {
+    "y": "trois courtes interventions, rien sur le rôle de l'État ni de la police"
+   }
+  }
+ },
+ "common_themes": [
+  {
+   "id": "medias",
+   "label": "Médias et sentiment d'insécurité",
+   "color": "#6383B4",
+   "kind": "theme"
+  },
+  {
+   "id": "prison",
+   "label": "Prison, peines et justice",
+   "color": "#15233F",
+   "kind": "theme"
+  },
+  {
+   "id": "drogue",
+   "label": "Drogue et trafic",
+   "color": "#1E6B6D",
+   "kind": "theme"
+  },
+  {
+   "id": "vss",
+   "label": "Violences sexuelles, police et justice",
+   "color": "#9B3A2D",
+   "kind": "theme"
+  },
+  {
+   "id": "travail",
+   "label": "Réinsertion, emploi et code du travail",
+   "color": "#3F8462",
+   "kind": "theme"
+  },
+  {
+   "id": "causes",
+   "label": "Causes sociales : investissement et éducation",
+   "color": "#7A5C99",
+   "kind": "theme"
+  },
+  {
+   "id": "logement",
+   "label": "Logement social, mixité et quartiers",
+   "color": "#C8742A",
+   "kind": "theme"
+  },
+  {
+   "id": "etat",
+   "label": "Rôle de l'État : monopole, corruption, justice privée",
+   "color": "#6D4C41",
+   "kind": "theme"
+  },
+  {
+   "id": "capital",
+   "label": "Capitalisme, sexisme et travail des femmes",
+   "color": "#B04A3C",
+   "kind": "theme"
+  },
+  {
+   "id": "blocus",
+   "label": "Blocus lycéens et mobilisations",
+   "color": "#D79E38",
+   "kind": "theme"
+  },
+  {
+   "id": "violence",
+   "label": "Violence politique : légitime, efficace ?",
+   "color": "#5A3E36",
+   "kind": "theme"
+  },
+  {
+   "id": "bilan",
+   "label": "Bilan du débat",
+   "color": "#9CA3AF",
+   "kind": "theme"
+  },
+  {
+   "id": "anim",
+   "label": "Animation, transitions",
+   "color": "#CFC7B8",
+   "kind": "anim"
+  }
+ ],
+ "theme_map": {
+  "A": {
+   "medias": "medias",
+   "prison": "prison",
+   "travail": "travail",
+   "causes": "causes",
+   "logement": "logement",
+   "etat": "etat",
+   "drogue": "drogue",
+   "violences": "vss",
+   "bilan": "bilan",
+   "__none__": "anim"
+  },
+  "B": {
+   "medias": "medias",
+   "prison": "prison",
+   "police": "vss",
+   "capital": "capital",
+   "drogue": "drogue",
+   "blocus": "blocus",
+   "violence": "violence",
+   "bilan": "bilan",
+   "__none__": "anim"
+  }
+ },
+ "summary": "Sur deux tables, quatorze participants ont débattu de la même question : comment assurer la sécurité de tous en France ? Les deux sont parties du rôle des médias dans le sentiment d'insécurité, puis se sont longuement arrêtées sur la prison, jugée nécessaire pour les personnes dangereuses mais inefficace pour réinsérer les autres, et sur la drogue, où la plupart penchent pour une légalisation partielle. La table A a ensuite parlé de causes sociales, de logement et de mixité, la table B du rôle de la police, des violences sexuelles et de la légitimité de la violence politique. Les opinions penchent nettement vers la prévention ; ce qui les sépare surtout, c'est la confiance accordée aux institutions. Personne n'a explicitement changé d'avis.",
+ "groups": [
+  {
+   "label": "Prévenir et réinsérer, en réformant les institutions",
+   "color": "#3F8462",
+   "members": [
+    "A1",
+    "A2",
+    "A5",
+    "A6"
+   ],
+   "arguments": [
+    "Accompagner et réinsérer coûte moins cher et protège mieux qu'enfermer.",
+    "Traiter les causes : emploi stable, investissement public, éducation en amont.",
+    "D'autres pays emprisonnent moins sans plus d'insécurité, pour le même budget."
+   ]
+  },
+  {
+   "label": "Prison pour les dangereux, alternatives pour les autres",
+   "color": "#6383B4",
+   "members": [
+    "A3",
+    "A4",
+    "B6"
+   ],
+   "arguments": [
+    "La prison reste nécessaire pour les personnes dangereuses, mais n'est pas la seule solution.",
+    "Le système judiciaire s'acharne sur les mêmes personnes sans les aider.",
+    "La violence subie par certains interdit de condamner leur colère depuis un statut privilégié."
+   ]
+  },
+  {
+   "label": "Critique de l'ordre établi et rapport de force",
+   "color": "#9B3A2D",
+   "members": [
+    "B1",
+    "B2",
+    "B3",
+    "B4"
+   ],
+   "arguments": [
+    "La police et la justice protègent d'abord l'ordre établi et traitent mal les violences qui ne le menacent pas.",
+    "La prison est une solution de facilité qui n'empêche pas la récidive ; les détenus doivent vivre dignement.",
+    "Quand les voies pacifiques n'obtiennent rien, la violence peut faire bouger les choses."
+   ]
+  },
+  {
+   "label": "Plus de moyens et de fermeté, par les institutions",
+   "color": "#15233F",
+   "members": [
+    "B5",
+    "B7"
+   ],
+   "arguments": [
+    "Plus de places, de gardiens et de moyens pour une prison digne et ordonnée, avec du travail.",
+    "Certaines peines, notamment pour les violences sexuelles, ne sont pas assez lourdes.",
+    "La violence discrédite les mouvements : passer par les référendums et les syndicats."
+   ]
+  },
+  {
+   "label": "Marché, concurrence et moins d'État",
+   "color": "#C8742A",
+   "members": [
+    "A7"
+   ],
+   "arguments": [
+    "Tout monopole d'État attire la corruption : mettre plusieurs polices et justices en concurrence.",
+    "Les logements sociaux achètent des électeurs ; assouplir le marché du travail et du logement."
+   ]
+  }
+ ],
+ "unclassified": {
+  "members": [],
+  "note": ""
+ },
+ "statements": [
+  {
+   "text": "L'insécurité est surtout ressentie, exagérée par les médias et les réseaux",
+   "stances": [
+    {
+     "p": "A1",
+     "pos": "pour",
+     "t": 1.0
+    },
+    {
+     "p": "A3",
+     "pos": "pour",
+     "t": 1.4667
+    },
+    {
+     "p": "A6",
+     "pos": "pour",
+     "t": 63.8833
+    },
+    {
+     "p": "A2",
+     "pos": "nuance",
+     "t": 0.0333,
+     "note": "reconnaît une part de réalité aux faits divers"
+    },
+    {
+     "p": "B3",
+     "pos": "pour",
+     "t": 5.3167
+    },
+    {
+     "p": "B4",
+     "pos": "pour",
+     "t": 7.3
+    },
+    {
+     "p": "B7",
+     "pos": "pour",
+     "t": 4.5667
+    },
+    {
+     "p": "B2",
+     "pos": "nuance",
+     "t": 3.6333,
+     "note": "les chiffres européens montrent une insécurité réelle"
+    },
+    {
+     "p": "B5",
+     "pos": "nuance",
+     "t": 9.6,
+     "note": "qu'elle augmente ou non, il faut répondre aux plaintes"
+    }
+   ]
+  },
+  {
+   "text": "Il faut légaliser ou dépénaliser en partie les drogues",
+   "stances": [
+    {
+     "p": "A1",
+     "pos": "pour",
+     "t": 59.3167
+    },
+    {
+     "p": "A5",
+     "pos": "pour",
+     "t": 56.8667
+    },
+    {
+     "p": "A2",
+     "pos": "pour",
+     "t": 62.9333,
+     "note": "sous forme d'encadrement par l'État"
+    },
+    {
+     "p": "A6",
+     "pos": "contre",
+     "t": 63.8833
+    },
+    {
+     "p": "B4",
+     "pos": "pour",
+     "t": 55.7
+    },
+    {
+     "p": "B3",
+     "pos": "pour",
+     "t": 53.6667
+    },
+    {
+     "p": "B5",
+     "pos": "nuance",
+     "t": 56.5,
+     "note": "légaliser certaines drogues douces mais interdire la consommation"
+    },
+    {
+     "p": "B2",
+     "pos": "nuance",
+     "t": 58.0333,
+     "note": "ne veut pas que l'usage du cannabis se répande"
+    }
+   ]
+  },
+  {
+   "from_table": "A",
+   "index": 1
+  },
+  {
+   "from_table": "A",
+   "index": 2
+  },
+  {
+   "from_table": "A",
+   "index": 3
+  },
+  {
+   "from_table": "A",
+   "index": 5
+  },
+  {
+   "from_table": "B",
+   "index": 1
+  },
+  {
+   "from_table": "B",
+   "index": 2
+  },
+  {
+   "from_table": "B",
+   "index": 3
+  },
+  {
+   "from_table": "B",
+   "index": 4
+  },
+  {
+   "from_table": "B",
+   "index": 6
+  }
+ ],
+ "differences": {
+  "intro": "Les deux tables ont suivi le même début (médias, prison, drogue) puis ont bifurqué.",
+  "cards": []
+ },
+ "only_one_table": {},
+ "method": {
+  "caption": "Positions fixes sur la grille commune aux deux tables (mêmes axes et mêmes ancres dans les deux analyses).",
+  "footer": [
+   "Positions interprétatives établies à la lecture des transcriptions, sur une grille commune aux deux tables."
+  ]
+ }
+}

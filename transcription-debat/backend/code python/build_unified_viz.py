@@ -165,14 +165,28 @@ def _list(d, key: str, where: str) -> list:
     return v
 
 
+_WRAPPING_QUOTES = {'"': '"', "«": "»", "“": "”"}
+
+
+def unwrap_quotes(text: str) -> str:
+    """Retire les guillemets qui entourent TOUT un énoncé (« "La prison est nécessaire." »). Les assertions
+    du questionnaire sont souvent saisies ainsi dans l'appli : ce sont les énoncés votés, pas des propos
+    rapportés. Un guillemet à l'intérieur du texte reste refusé par _check_text."""
+    t = text.strip()
+    while len(t) >= 2 and _WRAPPING_QUOTES.get(t[0]) == t[-1]:
+        t = t[1:-1].strip()
+    return t
+
+
 def _text(v, where: str, names: list[str]) -> str:
     if not isinstance(v, str) or not v.strip():
         raise UnifiedError(f"pré-débat, {where} : texte attendu")
+    v = unwrap_quotes(v)
     try:
         _check_text(v, f"pré-débat, {where}", names)
     except CrossError as e:
         raise UnifiedError(str(e)) from e
-    return v.strip()
+    return v
 
 
 def _ranked(rows: list, kind: str, camp_ids: set[int], names: list[str]) -> list[dict]:
