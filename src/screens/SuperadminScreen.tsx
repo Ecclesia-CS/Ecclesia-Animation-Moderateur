@@ -59,7 +59,8 @@ import AnalysisPanel, { AnalysisComparisonPanel } from '../components/AnalysisPa
 import LLMModerationPanel from '../components/voting/LLMModerationPanel'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import { mergeAssertions } from '../lib/gemini'
-import { loadVotesForAnalysis, loadLatestAnalysis } from '../lib/analysis'
+import { loadVotesForAnalysis, loadLatestAnalysis, runOpinionAnalysis, AnalysisError } from '../lib/analysis'
+import { buildPreDebateExport } from '../lib/preDebateExport'
 import type { LoadedAnalysis } from '../lib/analysis'
 import { generateGroupNames, groupsFingerprint, namingGroupsFromAnalysis } from '../lib/groupNaming'
 import type { NamingGroup } from '../lib/groupNaming'
@@ -1987,7 +1988,7 @@ function SessionDetail({
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [deleteTableConfirm, setDeleteTableConfirm] = useState<SessionTableRow | null>(null)
-  const [exportingType,      setExportingType]      = useState<null | 'questionnaire' | 'speaking' | 'history'>(null)
+  const [exportingType,      setExportingType]      = useState<null | 'questionnaire' | 'speaking' | 'history' | 'predebate'>(null)
   const [isQForced,    setIsQForced]    = useState(false)
   const [showQConfirm, setShowQConfirm] = useState(false)
   const [qActing,      setQActing]      = useState(false)
@@ -3439,6 +3440,52 @@ function SessionDetail({
     }
   }
 
+  // Chantier 170 — extraction des données pré-débat (séance complète clôturée) :
+  // 3 consensus, 3 dissensus, carte 2D et description des camps, calculés sur
+  // les votes tels qu'ils étaient AVANT le débat (`pre_closure`, revotes du
+  // post-débat annulés). Fichier JSON anonyme, destiné à la page de restitution
+  // de transcription-debat/ (menu « Synthèse pré-débat ») ou à une IA.
+  // Aucune écriture en base : l'analyse est recalculée dans le navigateur.
+  async function handleExportPreDebate() {
+    const password = getPwd()!
+    setExportingType('predebate')
+    setError(null)
+    try {
+      const [votes, rows, latest] = await Promise.all([
+        loadVotesForAnalysis(supabase, password, session.id, false, 'pre_closure'),
+        listAssertionsAdmin(password, session.id),
+        loadLatestAnalysis(supabase, password, session.id),
+      ])
+      const approved = new Map(rows.filter(a => a.status === 'approved').map(a => [a.id, a.content]))
+      const memberIds    = [...new Set(votes.map(v => v.member_id))]
+      const assertionIds = [...new Set(votes.map(v => v.assertion_id))]
+      const analysis = runOpinionAnalysis(votes, memberIds, assertionIds)
+      const data = buildPreDebateExport({
+        title: titreSeance(session.title), sessionDate: currentSession.scheduled_at ?? null,
+        exportedAt: new Date().toISOString(), votes, assertions: approved, analysis,
+        latestAnalysis: latest, groupNames,
+      })
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8;' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      const slug = session.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)
+      a.download = `ecclesia_pre_debat_${slug}_${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      if (e instanceof AnalysisError) { setError(`Extraction pré-débat impossible : ${e.message}`); return }
+      const msg = extractErr(e)
+      if (msg.toLowerCase().includes('mot de passe') || msg.toLowerCase().includes('password')) {
+        onAuthError()
+        return
+      }
+      setError(msg)
+    } finally {
+      setExportingType(null)
+    }
+  }
+
   // Chantier 130 — déplie/charge l'historique d'une table (participants +
   // tours de parole). Réutilise get_table_participants/get_table_speaking_
   // turns_admin (déjà utilisées par handleExportHistory ci-dessus, aucune
@@ -4842,6 +4889,28 @@ function SessionDetail({
                           </button>
                         </div>
                       </div>
+                      {/* Chantier 170 — séance complète clôturée seulement : c'est la seule
+                          où le vote d'avant débat existe et ne bougera plus. */}
+                      {currentSession.phase === 'closed' && sessionType === 'full' && !isOrg && (
+                        <div className="flex flex-col gap-2 pt-2 border-t border-bleu-fonce/10">
+                          <span className="text-xs font-medium text-gray-500">Restitution</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              onClick={handleExportPreDebate}
+                              disabled={exportingType !== null}
+                              className="rounded-[8px] py-1.5 px-3 text-xs font-medium border border-bleu-fonce/20
+                                text-bleu-fonce/80 hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] hover:text-bleu-fonce transition-colors
+                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair
+                                disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {exportingType === 'predebate' ? <><Spinner /> Extraction…</> : 'Extraction données pré-débat'}
+                            </button>
+                            <span className="text-xs text-gray-600">
+                              Fichier JSON : 3 consensus, 3 dissensus, carte et description des camps, d'après le vote d'avant débat.
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </section>

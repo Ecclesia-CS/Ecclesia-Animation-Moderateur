@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
-> 🚧 **Chantier 170 en cours** (2026-10-19) — branche `claude/chantier-170-export-pre-debat`. Superadmin, onglet Analyse, « Actions post-séance », séance complète **clôturée** : bouton « Extraction données pré-débat » qui télécharge un JSON (3 consensus, 3 dissensus, carte 2D des camps, description des camps, calculés sur les votes d'avant débat) pour la page de restitution de `transcription-debat/`. Fichiers touchés : `src/screens/SuperadminScreen.tsx` (section post-séance), `src/lib/preDebateExport.ts` + son test (nouveaux). Front seul, aucune migration prévue.
+> **Le 2026-10-19, le chantier 170 est fait** (bouton « Extraction données pré-débat » du superadmin, séance complète clôturée) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 170. Front seul, **aucune migration**. Mergé dans `dev` puis dans `main`. Entrée « en cours » retirée.
 
 > **Le 2026-10-15, le chantier 169 est fait sur sa branche** (vote blanc / abstention, proposition après un vote blanc) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 169. Mergé directement dans `main` le 2026-10-15, migration `20261015_chantier169_*` appliquée sur dev **et** prod ; `dev` doit récupérer `main`. Entrée « en cours » retirée.
 

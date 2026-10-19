@@ -592,3 +592,12 @@ Fichiers : `transcription-debat/backend/code python/build_cross_viz.py` (nouveau
 - [ ] Les 15 positions sur la grille commune (±2,5 près) sont des **recalages** des positions par table : vérifier qu'aucune n'est injuste, en particulier A5 (refuse le plafond mais veut des mesures fortes, placé à 0) et les trois voix à +7,5 de la table B.
 - [ ] Les prises de position des énoncés communs (consensus et dissensus) s'appuient sur des attributions de voix qui peuvent être fausses, surtout à la table B (échanges rapides, 19 % d'audio non attribué).
 - [ ] Aucun changement d'avis n'a été relevé dans les deux débats : la carte n'affiche donc aucun déplacement durable.
+
+## Chantier 170 (2026-10-19) — Extraction des données pré-débat
+
+Front seul, aucune migration. Bouton « Extraction données pré-débat » dans Superadmin > Analyse > Actions post-séance, visible seulement en phase `closed` d'une séance complète, hors association. Logique testée (`src/lib/preDebateExport.test.ts`, 8 cas), `tsc` et build OK.
+
+- [ ] **Bouton au navigateur** : non joué, la session n'a pas le mot de passe superadmin. Sur une séance complète clôturée avec votes : ouvrir Actions post-séance, cliquer, vérifier le téléchargement de `ecclesia_pre_debat_<titre>_<date>.json`, puis relire le fichier (3 consensus, 3 dissensus, carte, camps, aucun nom de participant).
+- [ ] **Bouton absent** en phase autre que `closed`, sur un débat simple, un sondage et côté `#asso`.
+- [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
+- [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
