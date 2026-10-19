@@ -115,151 +115,106 @@ window.UNIFIED_DATA = {
   },
   "map": [
     {
-      "key": "A1",
       "table": "A",
       "x": 2.5,
       "y": 5.0,
-      "weight": 12.137,
-      "camp": "Taxer fort, plafond douteux",
-      "note": "Veut limiter les dynasties, taxer de leur vivant et accepte un fonds souverain ; doute qu'un plafond net soit applicable et écarte la peur des marchés."
+      "weight": 12.137
     },
     {
-      "key": "A2",
       "table": "A",
       "x": 2.5,
       "y": 2.5,
-      "weight": 15.381,
-      "camp": "Réforme, taxer l'accumulation",
-      "note": "Soutient une réforme et la taxation de l'accumulation sans être convaincu par le chiffre de 12 millions ; pense qu'un dirigeant âgé organiserait sa succession."
+      "weight": 15.381
     },
     {
-      "key": "A3",
       "table": "A",
       "x": 5.0,
       "y": 5.0,
-      "weight": 8.014,
-      "camp": "Réforme profonde",
-      "note": "Voix la plus catégorique de sa table pour réformer : dénonce les dynasties, la ploutocratie et l'accumulation, et refuse de régler la politique sur la peur des marchés."
+      "weight": 8.014
     },
     {
-      "key": "A4",
       "table": "A",
       "x": 2.5,
       "y": 2.5,
-      "weight": 23.362,
-      "camp": "Taxer sans plafond rigide",
-      "note": "Veut taxer nettement plus les ultra-riches et fermer les contournements, sans plafond rigide ; propose de dissocier gouvernance et argent."
+      "weight": 23.362
     },
     {
-      "key": "A5",
       "table": "A",
       "x": 0.0,
       "y": -5.0,
-      "weight": 18.55,
-      "camp": "Prudence pour les entreprises",
-      "note": "Refuse un plafond qui fragiliserait les entreprises et les marchés, tout en admettant le besoin de mesures fortes contre la ploutocratie."
+      "weight": 18.55
     },
     {
-      "key": "A6",
       "table": "A",
       "x": 5.0,
       "y": 0.0,
       "weight": 4.176,
-      "camp": "Seuil et transmission au mérite",
-      "note": "Interventions courtes : ne voit pas pourquoi les enfants dirigeraient mieux, et soutient une transmission plus rapide mais limitée à un seuil.",
-      "uncertain": {
-        "y": "ne s'est exprimé ni sur la peur des marchés ni sur le rôle du collectif"
-      }
+      "uncertain": [
+        "y"
+      ]
     },
     {
-      "key": "A7",
       "table": "A",
       "x": 0.0,
       "y": 2.5,
       "weight": 8.153,
-      "camp": "Questions et doutes",
-      "note": "Pose surtout des questions et des objections : doute que les enfants soient les mieux placés pour reprendre, et doute d'une taxation uniforme en Europe.",
-      "uncertain": {
-        "x": "interventions surtout interrogatives, sans position nette pour ou contre un plafond"
-      }
+      "uncertain": [
+        "x"
+      ]
     },
     {
-      "key": "B1",
       "table": "B",
       "x": 7.5,
       "y": 7.5,
-      "weight": 10.857,
-      "camp": "Taxer à 100 %, redistribuer",
-      "note": "Voix la plus redistributive : taxer l'héritage à 100 % et verser un capital de départ à chacun ; conteste que le marché juge la valeur du travail."
+      "weight": 10.857
     },
     {
-      "key": "B2",
       "table": "B",
       "x": 5.0,
       "y": 7.5,
-      "weight": 22.102,
-      "camp": "Plafonner, encadrer le marché",
-      "note": "Défend un plafond (12 millions lui paraît même trop haut), craint l'oligarchie et préfère coopératives et limites d'écart de salaires, tout en doutant d'une taxation à 100 %."
+      "weight": 22.102
     },
     {
-      "key": "B3",
       "table": "B",
       "x": -7.5,
       "y": -7.5,
-      "weight": 23.497,
-      "camp": "Propriété privée et consentement",
-      "note": "Seule voix libertarienne : consentement et propriété comme seule morale, taxer les riches serait un vol ; s'en remet au marché pour juger la valeur."
+      "weight": 23.497
     },
     {
-      "key": "B4",
       "table": "B",
       "x": 5.0,
       "y": 0.0,
       "weight": 2.593,
-      "camp": "Plafond juste, obstacles pratiques",
-      "note": "Interventions rares : un plafond serait juste en théorie mais pose des obstacles pratiques ; laisser l'héritage libre concentre les richesses.",
-      "uncertain": {
-        "y": "n'a abordé ni le marché ni le rôle de l'État"
-      }
+      "uncertain": [
+        "y"
+      ]
     },
     {
-      "key": "B5",
       "table": "B",
       "x": 5.0,
       "y": 2.5,
-      "weight": 4.811,
-      "camp": "Questionne propriété et concentration",
-      "note": "Questionne la légitimité de la propriété et de la concentration du capital, relativise la fuite des riches et conteste que consentement et liberté suffisent."
+      "weight": 4.811
     },
     {
-      "key": "B6",
       "table": "B",
       "x": -2.5,
       "y": -2.5,
-      "weight": 6.359,
-      "camp": "Réformer sans faire fuir",
-      "note": "Trouve le plafond trop extrême : veut une succession démocratisée, des niches fiscales pour garder les riches et des donations moins taxées."
+      "weight": 6.359
     },
     {
-      "key": "B7",
       "table": "B",
       "x": 7.5,
       "y": 5.0,
-      "weight": 7.8,
-      "camp": "Contrat social, redistribution",
-      "note": "Rejette le consentement comme valeur fondamentale au nom du contrat social ; veut redistribuer l'héritage, même issu du travail, à la mort."
+      "weight": 7.8
     },
     {
-      "key": "B8",
       "table": "B",
       "x": 7.5,
       "y": 0.0,
       "weight": 2.502,
-      "camp": "Tout redistribuer",
-      "note": "Peu d'interventions mais nettes : tout redistribuer, car celui qui hérite d'une entreprise part bien plus loin.",
-      "uncertain": {
-        "y": "très peu d'interventions, rien sur le marché ni l'État"
-      }
+      "uncertain": [
+        "y"
+      ]
     }
   ],
   "pre_debate": null,
@@ -270,66 +225,128 @@ window.UNIFIED_DATA = {
         {
           "text": "Hériter ne donne ni mérite ni légitimité particulière à posséder ou à diriger",
           "side": "pour",
-          "pour": [
-            "A1",
-            "A3",
-            "A5",
-            "A6",
-            "A7",
-            "B1",
-            "B2",
-            "B5",
-            "B6",
-            "B7",
-            "B8"
-          ],
-          "contre": [
-            "B3"
-          ],
-          "nuance": [
-            "A4"
-          ],
           "p": 11,
           "c": 1,
           "nu": 1,
-          "agreement": 0.833
+          "agreement": 0.833,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 3,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 4,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 3,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 4,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 5,
+              "pour": 0,
+              "contre": 1,
+              "nuance": 0
+            },
+            {
+              "camp": 0,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         },
         {
           "text": "La concentration des richesses menace la démocratie",
           "side": "pour",
-          "pour": [
-            "A1",
-            "A3",
-            "A5",
-            "B1",
-            "B2",
-            "B4"
-          ],
-          "contre": [],
-          "nuance": [
-            "B3"
-          ],
           "p": 6,
           "c": 0,
           "nu": 1,
-          "agreement": 1.0
+          "agreement": 1.0,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 3,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 3,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 4,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 5,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 1
+            }
+          ]
         },
         {
           "text": "Les plus riches échappent largement à l'impôt sur l'héritage : c'est aux contournements qu'il faut s'attaquer",
           "side": "pour",
-          "pour": [
-            "A2",
-            "A4",
-            "A5",
-            "B1",
-            "B2"
-          ],
-          "contre": [],
-          "nuance": [],
           "p": 5,
           "c": 0,
           "nu": 0,
-          "agreement": 1.0
+          "agreement": 1.0,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 3,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 4,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 5,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         }
       ],
       "consensus_ties": [
@@ -339,51 +356,82 @@ window.UNIFIED_DATA = {
         {
           "text": "Une taxation forte de l'héritage ferait fuir les riches ou découragerait de créer des fortunes",
           "side": "pour",
-          "pour": [
-            "A1",
-            "A5",
-            "B3",
-            "B6"
-          ],
-          "contre": [
-            "A2",
-            "A3",
-            "A4",
-            "B5"
-          ],
-          "nuance": [
-            "B4"
-          ],
           "p": 4,
           "c": 4,
           "nu": 1,
-          "agreement": 0.0
+          "agreement": 0.0,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 0,
+              "contre": 2,
+              "nuance": 1
+            },
+            {
+              "camp": 3,
+              "pour": 1,
+              "contre": 2,
+              "nuance": 0
+            },
+            {
+              "camp": 4,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 5,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         },
         {
           "text": "L'héritage doit être plafonné, par exemple à 12 millions",
           "side": "pour",
-          "pour": [
-            "A6",
-            "B1",
-            "B2",
-            "B7",
-            "B8"
-          ],
-          "contre": [
-            "A4",
-            "A5",
-            "B3",
-            "B6"
-          ],
-          "nuance": [
-            "A1",
-            "A2",
-            "B4"
-          ],
           "p": 5,
           "c": 4,
           "nu": 3,
-          "agreement": 0.111
+          "agreement": 0.111,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 3,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 3,
+              "pour": 0,
+              "contre": 1,
+              "nuance": 2
+            },
+            {
+              "camp": 4,
+              "pour": 0,
+              "contre": 2,
+              "nuance": 0
+            },
+            {
+              "camp": 5,
+              "pour": 0,
+              "contre": 1,
+              "nuance": 0
+            }
+          ]
         }
       ],
       "dissensus_ties": []
@@ -392,84 +440,80 @@ window.UNIFIED_DATA = {
       {
         "label": "Redistribuer presque tout à la mort",
         "color": "#1E6B6D",
-        "members": [
-          "B1",
-          "B7",
-          "B8"
-        ],
+        "size": 3,
         "arguments": [
           "Naître avec un capital n'est pas un mérite : un héritier démarre bien plus loin que celui qui n'a rien.",
           "Ne devrait être transmis que ce qui vient du travail, voire rien, avec un capital de départ versé à chacun.",
           "La valeur d'une entreprise vient d'un travail collectif et de matières premières, pas d'une seule personne.",
           "Le marché donne le pouvoir de décision aux plus riches : la valeur du travail doit se débattre collectivement."
-        ]
+        ],
+        "by_table": {
+          "B": 3
+        }
       },
       {
         "label": "Plafond ou réforme profonde, sous contrôle collectif",
         "color": "#9B3A2D",
-        "members": [
-          "A3",
-          "A6",
-          "B2",
-          "B4",
-          "B5"
-        ],
+        "size": 5,
         "arguments": [
           "Les dynasties d'héritiers et la concentration des richesses menacent la démocratie : ploutocratie, oligarchie.",
           "Les héritiers n'ont ni mérite ni compétence particulière pour posséder ou diriger de grands groupes.",
           "Un plafond est juste en principe, mais il faut traiter le cas des grandes entreprises et de l'évasion.",
           "Coopératives, plafond d'écart de salaires ou part de l'État au capital limitent la concentration.",
           "Des milliardaires qui ne lèguent rien relativisent l'idée qu'une taxe décourage de créer des fortunes."
-        ]
+        ],
+        "by_table": {
+          "A": 2,
+          "B": 3
+        }
       },
       {
         "label": "Taxer beaucoup plus les très grandes fortunes, sans plafond rigide",
         "color": "#6383B4",
-        "members": [
-          "A1",
-          "A2",
-          "A4"
-        ],
+        "size": 3,
         "arguments": [
           "Les plus riches contournent la taxe par des montages (holdings, sociétés immobilières, pacte Dutreil) : c'est là qu'il faut agir.",
           "Taxer l'accumulation de leur vivant, ou dissocier gouvernance et argent, vaut mieux qu'un plafond difficile à appliquer.",
           "Les actions d'un grand groupe peuvent être reçues par un fonds souverain sans désorganiser l'entreprise.",
           "La classe moyenne est déjà protégée par les abattements : il ne faut pas la toucher davantage."
-        ]
+        ],
+        "by_table": {
+          "A": 3
+        }
       },
       {
         "label": "Prudence pour les entreprises et la transmission",
         "color": "#7A5C99",
-        "members": [
-          "A5",
-          "B6"
-        ],
+        "size": 2,
         "arguments": [
           "Un plafond fragilise la transmission des entreprises et peut effrayer les investisseurs ou les riches.",
           "Des taxes d'héritage trop lourdes découragent de bâtir une fortune ; des niches fiscales ou des donations moins taxées gardent les riches en France.",
           "L'incertitude à la mort d'un dirigeant âgé ferait chuter la valeur des entreprises.",
           "Il faut pourtant des mesures contre la ploutocratie : taxation forte ciblée ou succession démocratisée."
-        ]
+        ],
+        "by_table": {
+          "A": 1,
+          "B": 1
+        }
       },
       {
         "label": "Propriété privée et consentement d'abord",
         "color": "#3F8462",
-        "members": [
-          "B3"
-        ],
+        "size": 1,
         "arguments": [
           "Le consentement et la propriété sont la seule morale : décider de l'argent d'autrui est immoral.",
           "Taxer les riches est un vol, et la démocratie impose la volonté d'une majorité à une minorité.",
           "Le marché est le seul juge de la valeur d'un travail ; l'État n'a pas à garantir plus que la liberté et la propriété.",
           "Une taxation à 100 % découragerait de produire."
-        ]
+        ],
+        "by_table": {
+          "B": 1
+        }
       }
     ],
     "unclassified": {
-      "members": [
-        "A7"
-      ],
-      "note": "A7 intervient surtout par des questions et des objections, sans position nette pour ou contre un plafond."
+      "count": 1,
+      "note": "Une personne intervient surtout par des questions et des objections, sans position nette pour ou contre un plafond."
     },
     "n_participants": 15,
     "n_common_statements": 8
@@ -486,52 +530,92 @@ window.UNIFIED_DATA = {
           {
             "text": "Hériter ne donne ni mérite ni légitimité particulière à posséder ou à diriger",
             "side": "pour",
-            "pour": [
-              "A1",
-              "A3",
-              "A5",
-              "A6",
-              "A7"
-            ],
-            "contre": [],
-            "nuance": [
-              "A4"
-            ],
             "p": 5,
             "c": 0,
             "nu": 1,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 0,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Il faut taxer les grandes fortunes de leur vivant plutôt qu'à leur mort",
             "side": "pour",
-            "pour": [
-              "A1",
-              "A2",
-              "A3",
-              "A4"
-            ],
-            "contre": [],
-            "nuance": [],
             "p": 4,
             "c": 0,
             "nu": 0,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Les plus riches échappent largement à l'impôt sur l'héritage : c'est aux contournements qu'il faut s'attaquer",
             "side": "pour",
-            "pour": [
-              "A2",
-              "A4",
-              "A5"
-            ],
-            "contre": [],
-            "nuance": [],
             "p": 3,
             "c": 0,
             "nu": 0,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [
@@ -542,55 +626,92 @@ window.UNIFIED_DATA = {
           {
             "text": "Il faut instaurer une taxation commune des successions en Europe",
             "side": "pour",
-            "pour": [
-              "A1",
-              "A2"
-            ],
-            "contre": [
-              "A6",
-              "A7"
-            ],
-            "nuance": [],
             "p": 2,
             "c": 2,
             "nu": 0,
-            "agreement": 0.0
+            "agreement": 0.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 0,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Une taxation forte de l'héritage ferait fuir les riches ou découragerait de créer des fortunes",
             "side": "contre",
-            "pour": [
-              "A1",
-              "A5"
-            ],
-            "contre": [
-              "A2",
-              "A3",
-              "A4"
-            ],
-            "nuance": [],
             "p": 2,
             "c": 3,
             "nu": 0,
-            "agreement": 0.2
+            "agreement": 0.2,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 2,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Il faut séparer la gouvernance de l'entreprise de l'argent hérité",
             "side": "pour",
-            "pour": [
-              "A4"
-            ],
-            "contre": [
-              "A1"
-            ],
-            "nuance": [
-              "A3",
-              "A5"
-            ],
             "p": 1,
             "c": 1,
             "nu": 2,
-            "agreement": 0.0
+            "agreement": 0.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              }
+            ]
           }
         ],
         "dissensus_ties": []
@@ -599,10 +720,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Limiter fortement l'héritage des grandes fortunes, seuil compris",
           "color": "#1E6B6D",
-          "members": [
-            "A3",
-            "A6"
-          ],
+          "size": 2,
           "arguments": [
             "Les dynasties d'héritiers captent le pouvoir politique et médiatique et menacent la démocratie.",
             "Les héritiers n'ont ni mérite ni compétence particulière pour diriger de grands groupes.",
@@ -613,11 +731,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Taxer beaucoup plus les très grandes fortunes, sans plafond rigide",
           "color": "#9B3A2D",
-          "members": [
-            "A4",
-            "A2",
-            "A1"
-          ],
+          "size": 3,
           "arguments": [
             "Les plus riches contournent la taxe par des montages (holdings, sociétés immobilières, pacte Dutreil) : c'est là qu'il faut agir.",
             "Taxer l'accumulation de leur vivant, ou dissocier gouvernance et argent, vaut mieux qu'un plafond difficile à appliquer.",
@@ -628,9 +742,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Prudence face au risque pour les entreprises et les marchés",
           "color": "#6383B4",
-          "members": [
-            "A5"
-          ],
+          "size": 1,
           "arguments": [
             "Un plafond fragiliserait la transmission des entreprises et pourrait effrayer les investisseurs étrangers.",
             "L'incertitude à la mort d'un dirigeant âgé ferait chuter les actions et la valeur.",
@@ -640,10 +752,8 @@ window.UNIFIED_DATA = {
         }
       ],
       "unclassified": {
-        "members": [
-          "A7"
-        ],
-        "note": "A7 intervient surtout par des questions et des objections, sans position nette pour ou contre un plafond."
+        "count": 1,
+        "note": "Une personne intervient surtout par des questions et des objections, sans position nette pour ou contre un plafond."
       },
       "kinds": {
         "coeur": {
@@ -2312,58 +2422,104 @@ window.UNIFIED_DATA = {
           {
             "text": "Hériter ne donne ni mérite ni légitimité particulière à posséder ou à diriger",
             "side": "pour",
-            "pour": [
-              "B1",
-              "B2",
-              "B5",
-              "B6",
-              "B7",
-              "B8"
-            ],
-            "contre": [
-              "B3"
-            ],
-            "nuance": [],
             "p": 6,
             "c": 1,
             "nu": 0,
-            "agreement": 0.714
+            "agreement": 0.714,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Le consentement individuel doit primer sur la décision de la majorité",
             "side": "contre",
-            "pour": [
-              "B3"
-            ],
-            "contre": [
-              "B1",
-              "B2",
-              "B5",
-              "B6",
-              "B7"
-            ],
-            "nuance": [],
             "p": 1,
             "c": 5,
             "nu": 0,
-            "agreement": 0.667
+            "agreement": 0.667,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 2,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 2,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "La concentration des richesses menace la démocratie",
             "side": "pour",
-            "pour": [
-              "B1",
-              "B2",
-              "B4"
-            ],
-            "contre": [],
-            "nuance": [
-              "B3"
-            ],
             "p": 3,
             "c": 0,
             "nu": 1,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [],
@@ -2371,59 +2527,104 @@ window.UNIFIED_DATA = {
           {
             "text": "L'héritage doit être plafonné, par exemple à 12 millions",
             "side": "pour",
-            "pour": [
-              "B1",
-              "B2",
-              "B7",
-              "B8"
-            ],
-            "contre": [
-              "B3",
-              "B6"
-            ],
-            "nuance": [
-              "B4"
-            ],
             "p": 4,
             "c": 2,
             "nu": 1,
-            "agreement": 0.333
+            "agreement": 0.333,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Une taxation forte de l'héritage ferait fuir les riches ou découragerait de créer des fortunes",
             "side": "pour",
-            "pour": [
-              "B3",
-              "B6"
-            ],
-            "contre": [
-              "B5"
-            ],
-            "nuance": [
-              "B4"
-            ],
             "p": 2,
             "c": 1,
             "nu": 1,
-            "agreement": 0.333
+            "agreement": 0.333,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "On ne devrait transmettre que ce qu'on a gagné par son travail",
             "side": "contre",
-            "pour": [
-              "B1"
-            ],
-            "contre": [
-              "B3",
-              "B7"
-            ],
-            "nuance": [
-              "B8"
-            ],
             "p": 1,
             "c": 2,
             "nu": 1,
-            "agreement": 0.333
+            "agreement": 0.333,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 1,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "dissensus_ties": [
@@ -2434,11 +2635,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Taxer à 100 %, voire tout redistribuer",
           "color": "#1E6B6D",
-          "members": [
-            "B1",
-            "B7",
-            "B8"
-          ],
+          "size": 3,
           "arguments": [
             "Naître avec un capital n'est pas un mérite : celui qui hérite d'une entreprise part bien plus loin.",
             "Ne devrait être transmis que ce qui vient du travail, voire rien, et un capital de départ serait versé à chacun.",
@@ -2449,11 +2646,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Plafonner et encadrer la concentration des richesses",
           "color": "#9B3A2D",
-          "members": [
-            "B2",
-            "B4",
-            "B5"
-          ],
+          "size": 3,
           "arguments": [
             "Un plafond à 12 millions est juste, mais difficile à appliquer pour les grandes entreprises et l'évasion.",
             "La concentration des richesses mène à une oligarchie et à l'achat des médias.",
@@ -2464,9 +2657,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Propriété privée et consentement d'abord",
           "color": "#6383B4",
-          "members": [
-            "B3"
-          ],
+          "size": 1,
           "arguments": [
             "Le consentement et la propriété sont la seule morale : décider de l'argent d'autrui est immoral.",
             "Taxer les riches est un vol, et la démocratie impose la volonté d'une majorité à une minorité.",
@@ -2477,9 +2668,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Réformer sans faire fuir les entreprises et les riches",
           "color": "#7A5C99",
-          "members": [
-            "B6"
-          ],
+          "size": 1,
           "arguments": [
             "Un plafond de 12 millions est trop extrême, et des taxes lourdes découragent de bâtir une fortune.",
             "Des niches fiscales comme l'assurance-vie gardent les riches en France.",
@@ -2489,7 +2678,7 @@ window.UNIFIED_DATA = {
         }
       ],
       "unclassified": {
-        "members": [],
+        "count": 0,
         "note": ""
       },
       "kinds": {

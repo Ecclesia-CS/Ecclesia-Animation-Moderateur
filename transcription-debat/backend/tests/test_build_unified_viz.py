@@ -4,8 +4,8 @@ import copy
 import pytest
 
 from build_cross_viz import CrossError
-from build_unified_viz import (KIND_LABELS, PRE_MAP_EXTENT, UnifiedError, build, prepare_pre_debate,
-                               rank_statements, relabel, tally, theme_minutes)
+from build_unified_viz import (KIND_LABELS, PRE_MAP_EXTENT, UnifiedError, anonymize_keys, build,
+                               prepare_pre_debate, rank_statements, relabel, tally, theme_minutes)
 
 
 def _st(text, **voices):
@@ -100,12 +100,43 @@ def test_build_uses_common_grid_and_relabels_texts(mini):
     assert {p["key"]: (p["x"], p["y"]) for p in a["personas"]} == {"A1": (5, 5), "A2": (-5, 0)}
     assert a["interactions"][0] == {"t": 1, "from": "A1", "to": "A2", "type": "desaccord", "desc": "Répond à A2."}
     assert a["personas"][0]["points"][0]["stance"] == "A1 parle."
-    assert a["unclassified"] == {"members": ["A2"], "note": "A2 doute."}
+    assert a["unclassified"] == {"count": 1, "note": "Une personne doute."}   # le camp ne dit pas qui
     assert a["kinds"]["coeur"]["label"] == "La question posée"        # jamais « cœur du sujet »
     assert a["personas"][1]["color"] == "#898A8C"                     # non rattaché : gris
     assert data["flash"]["n_common_statements"] == 1
     assert [s["text"] for s in data["flash"]["ranking"]["dissensus"]] == ["commun"]
-    assert [p["key"] for p in data["map"]] == ["A1", "A2", "B1", "B2"]
+    assert [(p["table"], p["x"], p["y"]) for p in data["map"]] == [("A", 5, 5), ("A", -5, 0), ("B", 2.5, 2.5), ("B", 0, 0)]
+
+
+def test_syntheses_never_say_who(mini):
+    """Consigne du 2026-10-19 : consensus, dissensus, carte flash et camps sans aucune personne identifiée."""
+    spec, cross, viz = mini
+    data = build(spec, cross, viz, names=[])
+    assert all(set(p) == {"table", "x", "y", "weight"} for p in data["map"])
+    for ranking in [data["flash"]["ranking"]] + [t["ranking"] for t in data["tables"]]:
+        for row in ranking["consensus"] + ranking["dissensus"]:
+            assert not {"pour", "contre", "nuance"} & set(row)          # plus de listes de voix
+    for camps in [data["flash"]["groups"]] + [t["groups"] for t in data["tables"]]:
+        assert all("members" not in c and c["size"] >= 1 for c in camps)
+    assert data["flash"]["groups"][0]["by_table"] == {"A": 1, "B": 1}
+
+
+def test_ranking_counts_per_camp_without_names():
+    stmts = [_st("clivant", pour="A1 A2", contre="B1 B2", nuance="A3")]
+    camp = {"A1": 1, "A2": 1, "B1": 2, "B2": 2}.get                   # A3 n'est dans aucun camp
+    row = rank_statements(stmts, camp_of=camp, n_camps=2)["dissensus"][0]
+    assert row["par_camp"] == [{"camp": 1, "pour": 2, "contre": 0, "nuance": 0},
+                               {"camp": 2, "pour": 0, "contre": 2, "nuance": 0},
+                               {"camp": 0, "pour": 0, "contre": 0, "nuance": 1}]
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("A7 intervient surtout par des questions.", "Une personne intervient surtout par des questions."),
+    ("Proche de B3. B4 nuance.", "Proche de une personne. Une personne nuance."),
+    ("Rien à retirer ici.", "Rien à retirer ici."),
+])
+def test_anonymize_keys(text, expected):
+    assert anonymize_keys(text) == expected
 
 
 def test_build_refuses_quotes_or_real_names_in_flash_summary(mini):
@@ -206,6 +237,26 @@ def test_pre_debate_strips_quotes_wrapping_the_whole_statement(raw_text):
     texts = [c["enonce"] for c in out["consensus"]] + [e["enonce"] for c in out["camps"] for e in c["enonces_caracteristiques"]]
     assert texts.count("La prison est nécessaire.") == 2
     assert not any(t.startswith(('"', "«", "“")) for t in texts)
+
+
+def test_pre_debate_reading_adds_axes_and_camp_syntheses():
+    lecture = {"axes": {"x": {"left": "Gauche", "right": "Droite"}, "y": {"bottom": "Bas", "top": "Haut"}},
+               "camps": {"1": "Ce camp pense ceci, en deux lignes."}}
+    out = prepare_pre_debate(pre_export(), names=[], lecture=lecture)
+    assert out["axes"] == {"x": {"left": "Gauche", "right": "Droite"}, "y": {"bottom": "Bas", "top": "Haut"}}
+    assert out["camps"][0]["synthese"] == "Ce camp pense ceci, en deux lignes."
+    assert "synthese" not in out["camps"][1]
+    assert prepare_pre_debate(pre_export(), names=[])["axes"] is None
+
+
+@pytest.mark.parametrize("lecture,match", [
+    ({"camps": {"9": "Camp inexistant."}}, "camps inconnus"),
+    ({"axes": {"x": {"left": "Gauche"}, "y": {"bottom": "Bas", "top": "Haut"}}}, "texte attendu"),
+    ({"camps": {"1": "Camille pense ceci."}}, "prénom"),
+])
+def test_pre_debate_reading_is_validated(lecture, match):
+    with pytest.raises(UnifiedError, match=match):
+        prepare_pre_debate(pre_export(), names=["Camille"], lecture=lecture)
 
 
 def test_pre_debate_refuses_quotes_or_real_names():

@@ -107,136 +107,94 @@ window.UNIFIED_DATA = {
   },
   "map": [
     {
-      "key": "A1",
       "table": "A",
       "x": 7.5,
       "y": -2.5,
-      "weight": 17.203,
-      "camp": "Prévenir, accompagner, mélanger",
-      "note": "Voix la plus constante pour la prévention : juge que le bâton coûte plus cher que la carotte, veut un accompagnement personnalisé et de l'éducation dès le plus jeune âge, défend un quota de logements sociaux dans chaque immeuble et la légalisation d'une partie des drogues douces pour casser les réseaux."
+      "weight": 17.203
     },
     {
-      "key": "A2",
       "table": "A",
       "x": 5.0,
       "y": -2.5,
-      "weight": 9.233,
-      "camp": "Causes sociales, investissement public",
-      "note": "Voit un problème systémique de peines et de prisons plutôt qu'un problème d'immigration, veut traiter les causes par de grands travaux et des industries publiques offrant des emplois stables, accepte un encadrement étatique de la drogue et préfère l'indépendance financière des femmes à l'ingérence dans les familles."
+      "weight": 9.233
     },
     {
-      "key": "A3",
       "table": "A",
       "x": 5.0,
       "y": 2.5,
-      "weight": 18.213,
-      "camp": "Prison pour les dangereux, causes d'abord",
-      "note": "Pense que le système judiciaire s'acharne sur les mêmes personnes sans les aider ; garde la prison pour les personnes dangereuses, veut libérer les détenus âgés ou malades, relie la drogue à la criminalité des cités et voit dans les violences sexuelles un sexisme systémique à traiter par la formation des jeunes."
+      "weight": 18.213
     },
     {
-      "key": "A4",
       "table": "A",
       "x": 5.0,
       "y": 2.5,
-      "weight": 7.749,
-      "camp": "Prison utile mais insuffisante",
-      "note": "Raconte avoir vu des procès à Paris comme un échec, juge la prison nécessaire dans une certaine mesure mais pas la seule solution, soutient la mixité du logement malgré son coût pour l'État et veut punir plus les atteintes aux personnes et moins les délits de précarité."
+      "weight": 7.749
     },
     {
-      "key": "A5",
       "table": "A",
       "x": 5.0,
       "y": -2.5,
-      "weight": 11.61,
-      "camp": "Intégrer plutôt qu'exclure",
-      "note": "Voit un système perçu comme fait pour punir, qui crée un nous contre eux ; veut intégrer par le travail, refuse de criminaliser toute consommation de drogue, mise sur l'éducation contre les violences conjugales et défend le monopole de l'État sur la police et la justice."
+      "weight": 11.61
     },
     {
-      "key": "A6",
       "table": "A",
       "x": 2.5,
       "y": -5.0,
-      "weight": 17.997,
-      "camp": "Réformer en mesurant l'efficacité",
-      "note": "Issu d'une famille de magistrats, compare avec la Belgique et la Finlande pour dire que la prison coûte cher sans protéger davantage ; doute que l'argent des quartiers construise l'avenir, refuse la dépénalisation de la drogue et voit dans la défiance envers la justice une part de l'insécurité."
+      "weight": 17.997
     },
     {
-      "key": "A7",
       "table": "A",
       "x": 0.0,
       "y": 7.5,
       "weight": 11.382,
-      "camp": "Marché, concurrence, moins d'État",
-      "note": "Seule voix libérale de la table : juge le code du travail trop rigide, rejette les logements sociaux (électoralisme, corruption), voit dans tout monopole d'État une source de corruption et propose de mettre en concurrence plusieurs justices et polices.",
-      "uncertain": {
-        "x": "ses propositions relèvent du marché, il n'a pris position ni sur la prison ni sur la drogue"
-      }
+      "uncertain": [
+        "x"
+      ]
     },
     {
-      "key": "B1",
       "table": "B",
       "x": 7.5,
       "y": 5.0,
-      "weight": 11.365,
-      "camp": "Structures sociales, violence comme levier",
-      "note": "Ne voit pas la finalité de la prison, y compris améliorée ; voit dans les violences sexuelles un problème d'éducation et d'institutions en amont, doute que responsabiliser les consommateurs de drogue suffise et juge que, dans les faits, la violence fait bouger les choses."
+      "weight": 11.365
     },
     {
-      "key": "B2",
       "table": "B",
       "x": 2.5,
       "y": 7.5,
-      "weight": 13.134,
-      "camp": "Critique de l'ordre établi, rapport de force",
-      "note": "Prend au sérieux les chiffres de criminalité mais voit la police protéger d'abord l'ordre établi et la propriété ; lie violences sexuelles, capitalisme et rapport de force racial, veut un contrôle d'État de l'alcool sans que le cannabis se répande, et croit que seuls les mouvements violents obtiennent des changements."
+      "weight": 13.134
     },
     {
-      "key": "B3",
       "table": "B",
       "x": 7.5,
       "y": 5.0,
-      "weight": 20.883,
-      "camp": "Dignité des détenus, contre-pouvoir du peuple",
-      "note": "Pense que les taux de crime ont baissé et que les médias entretiennent l'impression inverse ; veut des détenus traités dignement, voit dans la police et la formation une faute institutionnelle face aux violences sexuelles, refuse de pénaliser consommateurs et petits dealers et défend un pouvoir de pression du peuple sur l'État."
+      "weight": 20.883
     },
     {
-      "key": "B4",
       "table": "B",
       "x": 5.0,
       "y": 5.0,
-      "weight": 18.004,
-      "camp": "Rapport de force, justice qui répare",
-      "note": "Explique la criminalité par le manque de moyens de la justice et l'humiliation carcérale, juge le système classique incapable de traiter les violences sans témoin et voit dans le capitalisme un système qui se nourrit des inégalités ; préfère une justice alternative pour les personnes issues de la misère et pense que la violence fait partie du rapport de force."
+      "weight": 18.004
     },
     {
-      "key": "B5",
       "table": "B",
       "x": -2.5,
       "y": -5.0,
-      "weight": 27.682,
-      "camp": "Réformer par la démocratie, avec plus de moyens",
-      "note": "Voix la plus attachée aux institutions : veut plus de places, de gardiens et de rénovation des prisons, des peines alternatives et du travail en prison, interdit et sanctionne consommateurs et vendeurs de drogue tout en offrant une substitution, et refuse de légitimer la violence au profit de référendums et de syndicats forts."
+      "weight": 27.682
     },
     {
-      "key": "B6",
       "table": "B",
       "x": 2.5,
       "y": 5.0,
-      "weight": 4.072,
-      "camp": "Violence structurelle et privilège",
-      "note": "Peu d'interventions : se demande si l'on doit ajouter des places ou raccourcir les peines, s'étonne du silence médiatique sur la violence conjugale et défend l'idée d'une violence structurelle qu'il est difficile de condamner depuis une position privilégiée."
+      "weight": 4.072
     },
     {
-      "key": "B7",
       "table": "B",
       "x": -2.5,
       "y": 0.0,
       "weight": 0.842,
-      "camp": "Peines à durcir pour les violences sexuelles",
-      "note": "Trois interventions courtes : s'interroge sur la surmédiatisation des faits divers et juge que certaines peines, notamment pour les violences sexuelles, ne sont pas assez longues.",
-      "uncertain": {
-        "y": "trois courtes interventions, rien sur le rôle de l'État ni de la police"
-      }
+      "uncertain": [
+        "y"
+      ]
     }
   ],
   "pre_debate": {
@@ -462,7 +420,8 @@ window.UNIFIED_DATA = {
             "part_pour_camp": 1,
             "part_pour_reste": 0.5
           }
-        ]
+        ],
+        "synthese": "Relativise l'insécurité, jugée surtout ressentie et amplifiée par les médias, et veut concentrer les moyens sur les risques qui tuent le plus. Préfère réduire les peines plutôt que construire des places de prison."
       },
       {
         "camp": 2,
@@ -492,7 +451,8 @@ window.UNIFIED_DATA = {
             "part_pour_camp": 0.6,
             "part_pour_reste": 0
           }
-        ]
+        ],
+        "synthese": "Prend l'insécurité au sérieux, pas comme un simple ressenti, et veut combattre le narcotrafic par la demande, consommateurs compris. Plutôt favorable à de nouvelles places de prison, sans faire de la sanction rapide une priorité."
       },
       {
         "camp": 3,
@@ -522,9 +482,20 @@ window.UNIFIED_DATA = {
             "part_pour_camp": 0.5,
             "part_pour_reste": 0
           }
-        ]
+        ],
+        "synthese": "Met la sanction rapide et certaine avant la prévention et veut construire des places de prison plutôt que réduire les peines. Seul camp où l'idée de polices privées en concurrence trouve des soutiens."
       }
     ],
+    "axes": {
+      "x": {
+        "left": "Insécurité relativisée, réduire les peines",
+        "right": "Insécurité prise au sérieux, plus de places de prison"
+      },
+      "y": {
+        "bottom": "Sanction rapide et certaine d'abord",
+        "top": "Cibler le narcotrafic, sanction rapide secondaire"
+      }
+    },
     "carte": {
       "points": [
         {
@@ -631,46 +602,82 @@ window.UNIFIED_DATA = {
         {
           "text": "L'insécurité est surtout ressentie, exagérée par les médias et les réseaux",
           "side": "pour",
-          "pour": [
-            "A1",
-            "A3",
-            "A6",
-            "B3",
-            "B4",
-            "B7"
-          ],
-          "contre": [],
-          "nuance": [
-            "A2",
-            "B2",
-            "B5"
-          ],
           "p": 6,
           "c": 0,
           "nu": 3,
-          "agreement": 1.0
+          "agreement": 1.0,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 2,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 3,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 4,
+              "pour": 1,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 5,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         },
         {
           "text": "Il faut légaliser ou dépénaliser en partie les drogues",
           "side": "pour",
-          "pour": [
-            "A1",
-            "A2",
-            "A5",
-            "B3",
-            "B4"
-          ],
-          "contre": [
-            "A6"
-          ],
-          "nuance": [
-            "B2",
-            "B5"
-          ],
           "p": 5,
           "c": 1,
           "nu": 2,
-          "agreement": 0.667
+          "agreement": 0.667,
+          "par_camp": [
+            {
+              "camp": 1,
+              "pour": 3,
+              "contre": 1,
+              "nuance": 0
+            },
+            {
+              "camp": 2,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 0
+            },
+            {
+              "camp": 3,
+              "pour": 2,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 4,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 1
+            },
+            {
+              "camp": 5,
+              "pour": 0,
+              "contre": 0,
+              "nuance": 0
+            }
+          ]
         }
       ],
       "consensus_ties": [],
@@ -681,74 +688,71 @@ window.UNIFIED_DATA = {
       {
         "label": "Prévenir et réinsérer, en réformant les institutions",
         "color": "#1E6B6D",
-        "members": [
-          "A1",
-          "A2",
-          "A5",
-          "A6"
-        ],
+        "size": 4,
         "arguments": [
           "Accompagner et réinsérer coûte moins cher et protège mieux qu'enfermer.",
           "Traiter les causes : emploi stable, investissement public, éducation en amont.",
           "D'autres pays emprisonnent moins sans plus d'insécurité, pour le même budget."
-        ]
+        ],
+        "by_table": {
+          "A": 4
+        }
       },
       {
         "label": "Prison pour les dangereux, alternatives pour les autres",
         "color": "#9B3A2D",
-        "members": [
-          "A3",
-          "A4",
-          "B6"
-        ],
+        "size": 3,
         "arguments": [
           "La prison reste nécessaire pour les personnes dangereuses, mais n'est pas la seule solution.",
           "Le système judiciaire s'acharne sur les mêmes personnes sans les aider.",
           "La violence subie par certains interdit de condamner leur colère depuis un statut privilégié."
-        ]
+        ],
+        "by_table": {
+          "A": 2,
+          "B": 1
+        }
       },
       {
         "label": "Critique de l'ordre établi et rapport de force",
         "color": "#6383B4",
-        "members": [
-          "B1",
-          "B2",
-          "B3",
-          "B4"
-        ],
+        "size": 4,
         "arguments": [
           "La police et la justice protègent d'abord l'ordre établi et traitent mal les violences qui ne le menacent pas.",
           "La prison est une solution de facilité qui n'empêche pas la récidive ; les détenus doivent vivre dignement.",
           "Quand les voies pacifiques n'obtiennent rien, la violence peut faire bouger les choses."
-        ]
+        ],
+        "by_table": {
+          "B": 4
+        }
       },
       {
         "label": "Plus de moyens et de fermeté, par les institutions",
         "color": "#7A5C99",
-        "members": [
-          "B5",
-          "B7"
-        ],
+        "size": 2,
         "arguments": [
           "Plus de places, de gardiens et de moyens pour une prison digne et ordonnée, avec du travail.",
           "Certaines peines, notamment pour les violences sexuelles, ne sont pas assez lourdes.",
           "La violence discrédite les mouvements : passer par les référendums et les syndicats."
-        ]
+        ],
+        "by_table": {
+          "B": 2
+        }
       },
       {
         "label": "Marché, concurrence et moins d'État",
         "color": "#3F8462",
-        "members": [
-          "A7"
-        ],
+        "size": 1,
         "arguments": [
           "Tout monopole d'État attire la corruption : mettre plusieurs polices et justices en concurrence.",
           "Les logements sociaux achètent des électeurs ; assouplir le marché du travail et du logement."
-        ]
+        ],
+        "by_table": {
+          "A": 1
+        }
       }
     ],
     "unclassified": {
-      "members": [],
+      "count": 0,
       "note": ""
     },
     "n_participants": 14,
@@ -766,52 +770,104 @@ window.UNIFIED_DATA = {
           {
             "text": "Il faut accompagner et réinsérer plutôt que seulement enfermer",
             "side": "pour",
-            "pour": [
-              "A1",
-              "A2",
-              "A3",
-              "A4",
-              "A5",
-              "A6"
-            ],
-            "contre": [],
-            "nuance": [],
             "p": 6,
             "c": 0,
             "nu": 0,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "L'insécurité est surtout ressentie, exagérée par les médias et les réseaux",
             "side": "pour",
-            "pour": [
-              "A1",
-              "A3",
-              "A6"
-            ],
-            "contre": [],
-            "nuance": [
-              "A2"
-            ],
             "p": 3,
             "c": 0,
             "nu": 1,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "La prison est nécessaire pour les personnes dangereuses",
             "side": "pour",
-            "pour": [
-              "A3",
-              "A4",
-              "A6"
-            ],
-            "contre": [],
-            "nuance": [],
             "p": 3,
             "c": 0,
             "nu": 0,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [],
@@ -819,19 +875,36 @@ window.UNIFIED_DATA = {
           {
             "text": "Il faut mettre la police et la justice en concurrence",
             "side": "pour",
-            "pour": [
-              "A7"
-            ],
-            "contre": [
-              "A5"
-            ],
-            "nuance": [
-              "A2"
-            ],
             "p": 1,
             "c": 1,
             "nu": 1,
-            "agreement": 0.0
+            "agreement": 0.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 4,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "dissensus_ties": []
@@ -840,11 +913,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Prévenir, accompagner et mélanger",
           "color": "#1E6B6D",
-          "members": [
-            "A1",
-            "A4",
-            "A5"
-          ],
+          "size": 3,
           "arguments": [
             "Le bâton coûte plus cher que la carotte : accompagner et réinsérer vaut mieux qu'enfermer.",
             "Marginaliser et regrouper les plus pauvres coûte plus cher à l'État et nourrit l'insécurité.",
@@ -855,10 +924,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Traiter les causes par l'investissement public",
           "color": "#9B3A2D",
-          "members": [
-            "A2",
-            "A3"
-          ],
+          "size": 2,
           "arguments": [
             "Grands travaux et industries publiques peuvent offrir des emplois stables, même avec un casier.",
             "Le système judiciaire s'acharne sur les mêmes personnes ; la prison reste pour les personnes dangereuses.",
@@ -869,9 +935,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Réformer en mesurant l'efficacité",
           "color": "#6383B4",
-          "members": [
-            "A6"
-          ],
+          "size": 1,
           "arguments": [
             "D'autres pays emprisonnent moins sans plus d'insécurité, pour le même budget.",
             "On ne sait pas si l'argent des quartiers construit l'avenir ou n'achète que la paix sociale.",
@@ -882,9 +946,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Marché, concurrence et moins d'État",
           "color": "#7A5C99",
-          "members": [
-            "A7"
-          ],
+          "size": 1,
           "arguments": [
             "Les logements sociaux achètent des électeurs et nourrissent la corruption.",
             "Tout monopole d'État attire la corruption.",
@@ -894,7 +956,7 @@ window.UNIFIED_DATA = {
         }
       ],
       "unclassified": {
-        "members": [],
+        "count": 0,
         "note": ""
       },
       "kinds": {
@@ -2739,40 +2801,64 @@ window.UNIFIED_DATA = {
           {
             "text": "L'insécurité est surtout ressentie, exagérée par les médias et les réseaux",
             "side": "pour",
-            "pour": [
-              "B3",
-              "B4",
-              "B7"
-            ],
-            "contre": [],
-            "nuance": [
-              "B2",
-              "B5"
-            ],
             "p": 3,
             "c": 0,
             "nu": 2,
-            "agreement": 1.0
+            "agreement": 1.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 0,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "La violence est légitime ou efficace pour se faire entendre",
             "side": "pour",
-            "pour": [
-              "B1",
-              "B2",
-              "B3",
-              "B4"
-            ],
-            "contre": [
-              "B5"
-            ],
-            "nuance": [
-              "B6"
-            ],
             "p": 4,
             "c": 1,
             "nu": 1,
-            "agreement": 0.6
+            "agreement": 0.6,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 3,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 2,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "consensus_ties": [],
@@ -2780,55 +2866,86 @@ window.UNIFIED_DATA = {
           {
             "text": "Les détenus ont plus peur des autres détenus que des gardiens",
             "side": "pour",
-            "pour": [
-              "B5"
-            ],
-            "contre": [
-              "B2"
-            ],
-            "nuance": [
-              "B4"
-            ],
             "p": 1,
             "c": 1,
             "nu": 1,
-            "agreement": 0.0
+            "agreement": 0.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "Le capitalisme profite du sexisme",
             "side": "pour",
-            "pour": [
-              "B4"
-            ],
-            "contre": [
-              "B5"
-            ],
-            "nuance": [
-              "B2"
-            ],
             "p": 1,
             "c": 1,
             "nu": 1,
-            "agreement": 0.0
+            "agreement": 0.0,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 1,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 0
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           },
           {
             "text": "La police et la justice traitent mal les violences sexuelles parce qu'elles défendent l'ordre établi",
             "side": "pour",
-            "pour": [
-              "B2",
-              "B4"
-            ],
-            "contre": [
-              "B5"
-            ],
-            "nuance": [
-              "B1",
-              "B3"
-            ],
             "p": 2,
             "c": 1,
             "nu": 2,
-            "agreement": 0.333
+            "agreement": 0.333,
+            "par_camp": [
+              {
+                "camp": 1,
+                "pour": 2,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 2,
+                "pour": 0,
+                "contre": 0,
+                "nuance": 1
+              },
+              {
+                "camp": 3,
+                "pour": 0,
+                "contre": 1,
+                "nuance": 0
+              }
+            ]
           }
         ],
         "dissensus_ties": []
@@ -2837,11 +2954,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Critique de l'ordre établi et rapport de force",
           "color": "#1E6B6D",
-          "members": [
-            "B1",
-            "B2",
-            "B4"
-          ],
+          "size": 3,
           "arguments": [
             "La police et la justice protègent d'abord l'ordre établi et traitent mal les violences qui ne le menacent pas.",
             "La violence fait bouger les choses quand les voies pacifiques n'obtiennent rien.",
@@ -2852,10 +2965,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Dignité des détenus et responsabilité collective",
           "color": "#9B3A2D",
-          "members": [
-            "B3",
-            "B6"
-          ],
+          "size": 2,
           "arguments": [
             "Les détenus doivent vivre aussi normalement que possible : payer est un choix de société.",
             "Ni le consommateur ni le petit dealer ne sont les vrais coupables.",
@@ -2866,9 +2976,7 @@ window.UNIFIED_DATA = {
         {
           "label": "Réformer par la démocratie, avec plus de moyens",
           "color": "#6383B4",
-          "members": [
-            "B5"
-          ],
+          "size": 1,
           "arguments": [
             "Plus de places, de gardiens et de moyens pour une prison digne et ordonnée, avec du travail.",
             "Les délais de la justice sont le vrai problème, plus que la police.",
@@ -2878,9 +2986,7 @@ window.UNIFIED_DATA = {
         }
       ],
       "unclassified": {
-        "members": [
-          "B7"
-        ],
+        "count": 1,
         "note": "Intervient peu (trois courtes prises de parole) : médias et durcissement de certaines peines."
       },
       "kinds": {

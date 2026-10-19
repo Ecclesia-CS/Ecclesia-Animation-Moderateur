@@ -1,9 +1,22 @@
 {
   "cross": "transcripts/insécurité/analyse_croisee.json",
-  "tables": {
-    "3EBF76": "transcripts/insécurité/3EBF76/viz/3EBF76.json",
-    "3E24D5": "transcripts/insécurité/3E24D5/viz/3E24D5.json"
-  },
   "flash_summary": "Quatorze participants, sur deux tables, ont débattu de la même question : comment assurer la sécurité de tous en France ? Personne n'a contesté que les médias et les réseaux exagèrent le sentiment d'insécurité. Les deux tables jugent la prison inefficace pour réinsérer, la table A la gardant pour les personnes dangereuses, et la plupart penchent pour légaliser en partie les drogues. Ce qui sépare surtout les participants, c'est la confiance accordée à la police, à la justice et à l'État. Personne n'a changé d'avis.",
-  "pre_debate": "transcripts/insécurité/ecclesia_pre_debat_Comment_assurer_la_s_curit__de_tous_en_F_2026-10-19.json"
+  "pre_debate": "transcripts/insécurité/ecclesia_pre_debat_Comment_assurer_la_s_curit__de_tous_en_F_2026-10-19.json",
+  "pre_debate_lecture": {
+    "axes": {
+      "x": {
+        "left": "Insécurité relativisée, réduire les peines",
+        "right": "Insécurité prise au sérieux, plus de places de prison"
+      },
+      "y": {
+        "bottom": "Sanction rapide et certaine d'abord",
+        "top": "Cibler le narcotrafic, sanction rapide secondaire"
+      }
+    },
+    "camps": {
+      "1": "Relativise l'insécurité, jugée surtout ressentie et amplifiée par les médias, et veut concentrer les moyens sur les risques qui tuent le plus. Préfère réduire les peines plutôt que construire des places de prison.",
+      "2": "Prend l'insécurité au sérieux, pas comme un simple ressenti, et veut combattre le narcotrafic par la demande, consommateurs compris. Plutôt favorable à de nouvelles places de prison, sans faire de la sanction rapide une priorité.",
+      "3": "Met la sanction rapide et certaine avant la prévention et veut construire des places de prison plutôt que réduire les peines. Seul camp où l'idée de polices privées en concurrence trouve des soutiens."
+    }
+  }
 }

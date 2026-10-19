@@ -19,7 +19,8 @@
   --marine: #15233F; --marine2: #2B4A86; --anthracite: #20242B; --bleu-clair: #9BBBE2;
   --creme: #FBF9F4; --sable: #F1EBDD; --blanc: #FFFFFF;
   --line: #E2DFD9; --fg2: #55575A; --fg3: #898A8C;
-  --pour: #2F6C4F; --contre: #9B3A2D; --nuance: #6D6F71;
+  --pour: #1D7F45; --contre: #C0392B; --nuance: #6D6F71;
+  --pour-vif: #2BB061; --contre-vif: #E5503B;
   --ta: #2B4A86; --tb: #B97A2A; --tc3: #1E6B6D; --tc4: #7A5C99;
   --serif: 'Newsreader', Georgia, serif;
   --sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -178,14 +179,17 @@ details.howto p { margin-top: 6px; max-width: 820px; }
 /* Pré-débat rempli (export de l'appli) */
 .split { display: flex; height: 9px; border-radius: var(--r); overflow: hidden; background: var(--sable); margin-top: 8px; max-width: 360px; }
 .split i { display: block; height: 100%; }
-.split .sp { background: var(--pour); } .split .sc { background: var(--contre); }
-.bycamp { margin-top: 8px; display: grid; gap: 3px; max-width: 360px; }
-.bycamp > div { display: grid; grid-template-columns: 74px 1fr 92px; gap: 8px; align-items: center; font-size: .72rem; color: var(--fg2); }
+.split .sp { background: var(--pour-vif); } .split .sc { background: var(--contre-vif); }
+.bycamp { margin-top: 8px; display: grid; gap: 4px; max-width: 480px; }
+.bycamp > div { display: grid; grid-template-columns: minmax(74px, 220px) minmax(60px, 1fr) 84px; gap: 8px; align-items: center; font-size: .72rem; color: var(--fg2); }
 .bycamp .cn { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--anthracite); }
 .bycamp .cn i { width: 8px; height: 8px; border-radius: 50%; background: var(--dc); }
 .bycamp .split { margin-top: 0; height: 7px; }
 .bycamp .v { text-align: right; font-variant-numeric: tabular-nums; }
 .camp .meta { font-size: .74rem; color: var(--fg2); margin-bottom: 8px; }
+.camp .synth { font-family: var(--serif); font-size: .98rem; line-height: 1.45; margin: 0 0 10px; }
+.bycamp .cn { align-items: flex-start; line-height: 1.25; }
+.bycamp .cn i { margin-top: 3px; flex-shrink: 0; }
 .camp li small { display: block; color: var(--fg2); font-size: .72rem; }
 .camp li b.p { color: var(--pour); } .camp li b.c { color: var(--contre); }
 
@@ -326,30 +330,42 @@ function splitBar(p, c) {
   return `<div class="split" ${tipAttr(`${p} pour · ${c} contre`)}><i class="sp" style="width:${(100 * p) / n}%"></i><i class="sc" style="width:${(100 * c) / n}%"></i></div>`;
 }
 
+// Ligne d'énoncé commune à tous les menus. Anonyme : décomptes seulement, jamais qui a pris position.
+// r = { text, kind: 'cons'|'diss', sens: 'adhesion'|'rejet', pour, contre, extras: [texte], camps: [{ name, color, pour, contre, value }] }
+function stmtRowHTML(r, i) {
+  const badge = r.kind === 'cons'
+    ? `<span class="badge ${r.sens === 'rejet' ? 'contre' : 'pour'}">${r.sens === 'rejet' ? 'Rejet' : 'Adhésion'}</span>`
+    : '<span class="badge diss">Dissensus</span>';
+  const share = r.pour + r.contre ? ` · ${pct(r.pour / (r.pour + r.contre))} pour` : '';
+  const extras = r.extras.filter(Boolean).map((e) => ` · ${esc(e)}`).join('');
+  const byCamp = r.camps.map((c) => `<div><span class="cn" style="--dc:${c.color}"><i></i><span>${esc(c.name)}</span></span>${splitBar(c.pour, c.contre)}<span class="v">${esc(c.value)}</span></div>`).join('');
+  return `<div class="st"><span class="st-rank">${i + 1}</span><div>
+    <div class="st-text">${esc(r.text)}</div>${badge}<span class="st-count"><b class="p">${r.pour} pour</b> · <b class="c">${r.contre} contre</b>${extras}${share}</span>
+    ${splitBar(r.pour, r.contre)}
+    ${byCamp ? `<div class="bycamp">${byCamp}</div>` : ''}
+  </div></div>`;
+}
+function stmtColumnHTML(title, color, rows, ties, noun) {
+  const n = rows.length;
+  const short = n < 3 ? `<p class="short">${n === 0 ? `Aucun${noun.f ? 'e' : ''} ${noun.one} ne remplit ce critère.` : n === 1 ? `Un${noun.f ? 'e' : ''} seul${noun.f ? 'e' : ''} ${noun.one} remplit ce critère.` : `Seul${noun.f ? 'e' : ''}s ${n} ${noun.many} remplissent ce critère.`}</p>` : '';
+  const tie = ties && ties.length ? `<p class="ties">À égalité avec le n° ${n} : ${ties.map(esc).join(' ; ')}.</p>` : '';
+  return `<div class="stcol" style="--col:${color}"><h3>${title}</h3>${rows.map(stmtRowHTML).join('')}${short}${tie}</div>`;
+}
+
 function preDebateFilledHTML(P) {
   const campOf = Object.fromEntries(P.camps.map((c) => [c.camp, c]));
   const n = P.participation;
-  const rowHTML = (s, i, kind) => {
-    const badge = kind === 'cons'
-      ? `<span class="badge ${s.sens === 'rejet' ? 'contre' : 'pour'}">${s.sens === 'rejet' ? 'Rejet' : 'Adhésion'}</span>`
-      : '<span class="badge diss">Dissensus</span>';
-    const extra = [s.abstention ? `${s.abstention} abstention${s.abstention > 1 ? 's' : ''}` : '', s.blanc ? `${s.blanc} blanc${s.blanc > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
-    const byCamp = s.par_camp.map((pc) => {
-      const c = campOf[pc.camp];
-      return `<div><span class="cn" style="--dc:${c.couleur}"><i></i>${esc(`Camp ${c.camp}`)}</span>${splitBar(pc.pour, pc.contre)}<span class="v">${pc.part_pour == null ? 'n.d.' : `${pct(pc.part_pour)} pour`}</span></div>`;
-    }).join('');
-    return `<div class="st"><span class="st-rank">${i + 1}</span><div>
-      <div class="st-text">${esc(s.enonce)}</div>${badge}<span class="st-count"><b class="p">${s.pour} pour</b> · <b class="c">${s.contre} contre</b>${extra ? ` · ${extra}` : ''} · ${pct(s.part_pour)} pour</span>
-      ${splitBar(s.pour, s.contre)}
-      <div class="bycamp">${byCamp}</div>
-    </div></div>`;
-  };
-  const col = (title, color, rows, kind) => {
-    const short = rows.length < 3 ? `<p class="short">${rows.length === 0 ? 'Aucune assertion ne remplit ce critère.' : rows.length === 1 ? 'Une seule assertion remplit ce critère.' : `Seules ${rows.length} assertions remplissent ce critère.`}</p>` : '';
-    return `<div class="stcol" style="--col:${color}"><h3>${title}</h3>${rows.map((s, i) => rowHTML(s, i, kind)).join('')}${short}</div>`;
-  };
+  const toRow = (s, kind) => ({
+    text: s.enonce, kind, sens: s.sens, pour: s.pour, contre: s.contre,
+    extras: [s.abstention ? `${s.abstention} abstention${s.abstention > 1 ? 's' : ''}` : '', s.blanc ? `${s.blanc} blanc${s.blanc > 1 ? 's' : ''}` : ''],
+    camps: s.par_camp.map((pc) => ({ name: preCampName(campOf[pc.camp]), color: campOf[pc.camp].couleur, pour: pc.pour, contre: pc.contre,
+      value: pc.part_pour == null ? 'n.d.' : `${pct(pc.part_pour)} pour` })),
+  });
+  const noun = { one: 'assertion', many: 'assertions', f: true };
+  const col = (title, color, rows, kind) => stmtColumnHTML(title, color, rows.map((s) => toRow(s, kind)), [], noun);
   const camps = P.camps.map((c) => `<div class="camp" style="--cc:${c.couleur}"><h4>${esc(preCampName(c))}</h4>
     <p class="meta">${c.nom_ia ? `Camp ${c.camp} · ` : ''}${c.taille} votant${c.taille > 1 ? 's' : ''} · ${pct(c.part)} des votants placés</p>
+    ${c.synthese ? `<p class="synth">${esc(c.synthese)}</p>` : ''}
     ${c.description_ia ? `<p class="note" style="margin:0 0 8px">${esc(c.description_ia)}</p>` : ''}
     ${c.enonces_caracteristiques.length ? `<ul>${c.enonces_caracteristiques.map((e) => `<li><b class="${e.sens === 'pour' ? 'p' : 'c'}">${e.sens === 'pour' ? 'Pour' : 'Contre'} :</b> ${esc(e.enonce)}<small>${pct(e.part_pour_camp)} pour dans ce camp, ${pct(e.part_pour_reste)} chez les autres votants</small></li>`).join('')}</ul>` : '<p class="note">Aucune assertion ne distingue nettement ce camp.</p>'}
   </div>`).join('');
@@ -372,7 +388,9 @@ function preDebateFilledHTML(P) {
       <p class="help">Chaque point est un votant, anonyme, placé selon ses votes et coloré selon son camp ; le grand cercle numéroté marque le centre du camp. Deux votants proches ont voté de façon semblable.</p>
       <div class="map-box" id="pre-map">${preMapSVG(P)}</div>
       <div class="legend">${P.camps.map((c) => `<span><i style="background:${c.couleur}"></i>${esc(preCampName(c))} (${c.taille})</span>`).join('')}</div>
-      <p class="caption">Les axes sont les deux premières composantes principales des votes : ils n'ont pas de libellé, et ce plan n'est pas celui de la carte du débat (menu suivant). Seuls les distances et les regroupements ont un sens.${v ? ` Ces deux axes résument ${Math.round((v[0] + v[1]) * 100)} % des écarts entre votants.` : ''}</p>
+      <p class="caption">${P.axes
+        ? 'Les axes sont les deux premières composantes principales des votes ; leurs libellés sont une lecture, déduite de la position des camps et des assertions qui les distinguent, pas une mesure.'
+        : 'Les axes sont les deux premières composantes principales des votes : ils n\'ont pas de libellé, seuls les distances et les regroupements ont un sens.'} Ce plan n'est pas celui de la carte du débat (menu suivant).${v ? ` Ces deux axes résument ${Math.round((v[0] + v[1]) * 100)} % des écarts entre votants.` : ''}</p>
     </div>
     <div class="block"><div class="label">Qui pense quoi : les camps expliqués</div>
       <p class="help">Pour chaque camp, les assertions qui le distinguent le plus du reste des votants.</p>
@@ -385,6 +403,10 @@ function preMapSVG(P) {
   for (let v = -7.5; v <= 7.5; v += 2.5) {
     const st = v === 0 ? 'stroke="#C6C4BF" stroke-width="1.5"' : 'stroke="var(--line)" stroke-dasharray="2 4"';
     g.push(`<line x1="${mx(v)}" y1="${my(10)}" x2="${mx(v)}" y2="${my(-10)}" ${st}/><line x1="${mx(-10)}" y1="${my(v)}" x2="${mx(10)}" y2="${my(v)}" ${st}/>`);
+  }
+  if (P.axes) {
+    const a = P.axes;
+    g.push(`<g font-size="12" font-weight="700" fill="var(--marine)"><text x="${mx(-10)}" y="${my(-10) + 22}">◀ ${esc(a.x.left)}</text><text x="${mx(10)}" y="${my(-10) + 22}" text-anchor="end">${esc(a.x.right)} ▶</text><text x="${mx(0)}" y="${my(10) - 12}" text-anchor="middle">▲ ${esc(a.y.top)}</text><text x="${mx(0)}" y="${my(-10) + 42}" text-anchor="middle">▼ ${esc(a.y.bottom)}</text></g>`);
   }
   const campOf = Object.fromEntries(P.camps.map((c) => [c.camp, c]));
   P.carte.points.forEach((p) => {
@@ -399,36 +421,32 @@ function preMapSVG(P) {
 }
 
 // ───────────────────────── Composants partagés ─────────────────────────
-function voiceDot(key, color, nuance) { return `<span class="dot${nuance ? ' nu' : ''}" style="--dc:${color}">${esc(key)}</span>`; }
 
-// scope : { one: 'commun aux tables', many: 'communs aux tables' } — accord du complément selon le nombre.
-function statementsHTML(ranking, colorOf, scope) {
-  const col = (title, color, rows, ties, kind) => {
-    const items = rows.map((s, i) => {
-      const badge = kind === 'cons'
-        ? `<span class="badge ${s.side}">${s.side === 'pour' ? 'Adhésion' : 'Rejet'}</span>`
-        : '<span class="badge diss">Dissensus</span>';
-      const dots = (arr, nu) => arr.length ? arr.map((k) => voiceDot(k, colorOf(k), nu)).join('') : '<span class="none">—</span>';
-      return `<div class="st"><span class="st-rank">${i + 1}</span><div>
-        <div class="st-text">${esc(s.text)}</div>${badge}<span class="st-count"><b class="p">${s.p} pour</b> · <b class="c">${s.c} contre</b>${s.nu ? ` · ${s.nu} nuancé${s.nu > 1 ? 's' : ''}` : ''}</span>
-        <div class="voices"><div class="vc"><h5>Contre</h5><div class="dots">${dots(s.contre)}</div></div><div class="vn"><h5>Nuancé</h5><div class="dots">${dots(s.nuance, true)}</div></div><div class="vp"><h5>Pour</h5><div class="dots">${dots(s.pour)}</div></div></div>
-      </div></div>`;
-    }).join('');
-    const n = rows.length, short = n < 3 ? `<p class="short">${n === 0 ? `Aucun énoncé ${scope.one} ne remplit ce critère.` : n === 1 ? `Un seul énoncé ${scope.one} remplit ce critère.` : `Seuls ${n} énoncés ${scope.many} remplissent ce critère.`}</p>` : '';
-    const tie = ties.length ? `<p class="ties">À égalité avec le n° ${rows.length} : ${ties.map(esc).join(' ; ')}.</p>` : '';
-    return `<div class="stcol" style="--col:${color}"><h3>${title}</h3>${items}${short}${tie}</div>`;
-  };
-  return `<div class="stmts">${col('Les plus forts consensus', 'var(--pour)', ranking.consensus, ranking.consensus_ties, 'cons')}${col('Les plus forts dissensus', 'var(--contre)', ranking.dissensus, ranking.dissensus_ties, 'diss')}</div>
-    <details class="howto"><summary>Comment ce classement est calculé</summary><p>À partir des prises de position relevées dans la transcription (pour, contre, nuancé). Un <b>consensus</b> réunit au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté ; adhésion comme rejet comptent, et ils sont classés par écart net entre les deux camps. Un <b>dissensus</b> a des voix des deux côtés sans majorité nette ; il est classé par la taille du camp minoritaire. Les voix nuancées sont affichées mais n'entrent pas dans le calcul. Pas de pastille = la personne ne s'est pas exprimée sur ce point, ce qui ne veut pas dire qu'elle est neutre.</p></details>`;
+// Énoncés relevés dans la transcription. camps : camps d'opinion du menu (ordre = n° de camp, 1-indexé).
+// scope : { one: 'énoncé commun aux tables', many: 'énoncés communs aux tables' }.
+function statementsHTML(ranking, camps, scope) {
+  const campInfo = (n) => (n === 0 ? { name: 'Non rattachés', color: '#898A8C' } : { name: camps[n - 1].label, color: camps[n - 1].color });
+  const toRow = (s, kind) => ({
+    text: s.text, kind, sens: s.side === 'contre' ? 'rejet' : 'adhesion', pour: s.p, contre: s.c,
+    extras: [s.nu ? `${s.nu} nuancé${s.nu > 1 ? 's' : ''}` : ''],
+    camps: (s.par_camp || []).filter((pc) => pc.pour + pc.contre + pc.nuance > 0).map((pc) => ({
+      ...campInfo(pc.camp), pour: pc.pour, contre: pc.contre,
+      value: pc.pour + pc.contre ? `${pct(pc.pour / (pc.pour + pc.contre))} pour` : `${pc.nuance} nuancé${pc.nuance > 1 ? 's' : ''}` })),
+  });
+  const noun = { one: scope.one, many: scope.many, f: false };
+  return `<div class="stmts">${stmtColumnHTML('Les plus forts consensus', 'var(--pour)', ranking.consensus.map((s) => toRow(s, 'cons')), ranking.consensus_ties, noun)}${stmtColumnHTML('Les plus forts dissensus', 'var(--contre)', ranking.dissensus.map((s) => toRow(s, 'diss')), ranking.dissensus_ties, noun)}</div>
+    <details class="howto"><summary>Comment ce classement est calculé</summary><p>À partir des prises de position relevées dans la transcription (pour, contre, nuancé). Un <b>consensus</b> réunit au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté ; adhésion comme rejet comptent, et ils sont classés par écart net entre les deux côtés. Un <b>dissensus</b> a des voix des deux côtés sans majorité nette ; il est classé par la taille du côté minoritaire. Les voix nuancées sont comptées à part et n'entrent pas dans les parts. Les camps sans prise de position sur un énoncé n'apparaissent pas sous sa barre : ne pas s'être exprimé ne veut pas dire être neutre.</p></details>`;
 }
 
-function campsHTML(groups, unclassified, chipColor) {
-  const chip = (k) => `<span class="chip" style="--dc:${chipColor(k)}"><i></i>${esc(k)}</span>`;
+function campsHTML(groups, unclassified) {
+  const who = (n) => `${n} participant${n > 1 ? 's' : ''}`;
+  const byTable = (g) => (g.by_table && D.tables.length > 1
+    ? ` (${D.tables.filter((t) => g.by_table[t.key]).map((t) => `${g.by_table[t.key]} à la table ${esc(t.key)}`).join(', ')})` : '');
   const cards = groups.map((g) => `<div class="camp" style="--cc:${g.color}"><h4>${esc(g.label)}</h4>
-    <div class="chips">${g.members.slice().sort(keySort).map(chip).join('')}</div>
+    <p class="meta">${who(g.size)}${byTable(g)}</p>
     <ul>${(g.arguments || []).map((a) => `<li>${esc(a)}</li>`).join('')}</ul>${g.note ? `<p class="note">${esc(g.note)}</p>` : ''}</div>`).join('');
-  const un = unclassified && unclassified.members && unclassified.members.length
-    ? `<p class="unclassified"><b>Non rattaché${unclassified.members.length > 1 ? 's' : ''} :</b> ${unclassified.members.map(chip).join(' ')} ${esc(unclassified.note)}</p>` : '';
+  const un = unclassified && unclassified.count
+    ? `<p class="unclassified"><b>${who(unclassified.count)} non rattaché${unclassified.count > 1 ? 's' : ''} :</b> ${esc(unclassified.note)}</p>` : '';
   return `<div class="camps">${cards}</div>${un}`;
 }
 
@@ -487,8 +505,6 @@ function axesGuideHTML() {
 // ───────────────────────── 02 · Synthèse flash ─────────────────────────
 function flashHTML() {
   const F = D.flash, T = D.tables;
-  const byTable = (k) => D.map.find((p) => p.key === k).table;
-  const colorOf = (k) => tableColor(byTable(k));
   return `
     <div class="block"><div class="label">En bref</div>
       <p class="resume">${esc(F.summary)}</p>
@@ -500,39 +516,40 @@ function flashHTML() {
       </div>
     </div>
     <div class="block"><div class="label">Consensus et dissensus${T.length > 1 ? ', toutes tables confondues' : ''}</div>
-      <p class="help">${T.length > 1 ? 'Seuls comptent ici les énoncés sur lesquels chaque table s\'est exprimée.' : ''} Chaque pastille est un participant, dans la couleur de sa table.</p>
-      ${statementsHTML(F.ranking, colorOf, T.length > 1 ? { one: 'commun aux tables', many: 'communs aux tables' } : { one: 'du débat', many: 'du débat' })}
+      <p class="help">${T.length > 1 ? 'Seuls comptent ici les énoncés sur lesquels chaque table s\'est exprimée. ' : ''}La barre donne la part de pour et de contre ; en dessous, la même part dans chaque camp d'opinion du débat.</p>
+      ${statementsHTML(F.ranking, F.groups, T.length > 1 ? { one: 'énoncé commun aux tables', many: 'énoncés communs aux tables' } : { one: 'énoncé du débat', many: 'énoncés du débat' })}
     </div>
     <div class="block"><div class="label">Où se situe chacun, en fin de débat</div>
       <p class="help">Tous les participants sur un même plan, la même grille que dans chaque table. Une couleur par table ; la taille du point suit le temps de parole.</p>
-      <div class="map-box" id="flash-map">${flashMapSVG(colorOf)}</div>
+      <div class="map-box" id="flash-map">${flashMapSVG()}</div>
       <div class="legend">${T.map((t) => `<span><i style="background:${tableColor(t.key)}"></i>${esc(t.label)} · ${esc(t.code)}</span>`).join('')}<span>Point en pointillé : position non déterminable sur un axe</span></div>
       ${axesGuideHTML()}
     </div>
     <div class="block"><div class="label">Les camps d'opinion du débat</div>
       <p class="help">Formés à partir des positions sur la carte, ${T.length > 1 ? 'toutes tables confondues' : ''} : ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant.</p>
-      ${campsHTML(F.groups, F.unclassified, colorOf)}
+      ${campsHTML(F.groups, F.unclassified)}
     </div>`;
 }
-function flashMapSVG(colorOf) {
-  const people = D.map, r = radiusFn(people), off = spreadOffsets(people), g = [mapBackground()];
-  people.forEach((p) => g.push(uncertainLines(p, colorOf(p.key))));
+// Carte anonyme : ni numéro ni note individuelle, seulement la table et la position de chacun.
+function flashMapSVG() {
+  const people = D.map.map((p, i) => ({ ...p, key: `p${i}`, uncertain: Object.fromEntries((p.uncertain || []).map((a) => [a, true])) }));
+  const r = radiusFn(people), off = spreadOffsets(people), g = [mapBackground()];
+  people.forEach((p) => g.push(uncertainLines(p, tableColor(p.table))));
   people.slice().sort((a, b) => b.weight - a.weight).forEach((p) => {
-    const [dx, dy] = off[p.key], x = mx(p.x) + dx, y = my(p.y) + dy, c = colorOf(p.key), u = p.uncertain && Object.keys(p.uncertain).length;
+    const [dx, dy] = off[p.key], x = mx(p.x) + dx, y = my(p.y) + dy, c = tableColor(p.table), u = Object.keys(p.uncertain).length;
     const t = D.tables.find((tt) => tt.key === p.table);
-    g.push(`<g ${tipAttr(personTip(p, `${esc(t.label)} · ${esc(t.code)} · ${fmt(p.weight)} min de parole`))}><circle cx="${x}" cy="${y}" r="${r(p)}" fill="${c}" fill-opacity="${u ? 0.35 : 0.9}" stroke="${u ? c : 'var(--blanc)'}" stroke-width="2"${u ? ' stroke-dasharray="3 3"' : ''}/><text x="${x}" y="${y + 3.5}" font-size="10" font-weight="700" text-anchor="middle" fill="${u ? 'var(--anthracite)' : '#fff'}" pointer-events="none">${esc(p.key)}</text></g>`);
+    g.push(`<circle ${tipAttr(`Un participant de la <b>${esc(t.label)}</b>${u ? '<div class="sub">Position non déterminable sur un axe</div>' : ''}`)} cx="${x}" cy="${y}" r="${r(p)}" fill="${c}" fill-opacity="${u ? 0.35 : 0.9}" stroke="${u ? c : 'var(--blanc)'}" stroke-width="2"${u ? ' stroke-dasharray="3 3"' : ''}/>`);
   });
   return `<svg viewBox="0 0 ${MAP.W} ${MAP.H}" role="img" aria-label="Carte de tous les participants en fin de débat">${g.join('')}</svg>`;
 }
 
 // ───────────────────────── 03+ · Une table ─────────────────────────
 function tableHTML(t) {
-  const colorOf = (k) => (t.personas.find((p) => p.key === k) || {}).color || 'var(--fg3)';
   return `
     <div class="block"><div class="label">Ce qui s'est dit à cette table</div><p class="resume">${esc(t.summary)}</p></div>
     <div class="block"><div class="label">Consensus et dissensus de la table</div>
-      <p class="help">Chaque pastille est un participant de la table, dans la couleur de son camp d'opinion (voir plus bas).</p>
-      ${statementsHTML(t.ranking, colorOf, { one: 'de cette table', many: 'de cette table' })}
+      <p class="help">La barre donne la part de pour et de contre ; en dessous, la même part dans chaque camp d'opinion de la table (voir plus bas).</p>
+      ${statementsHTML(t.ranking, t.groups, { one: 'énoncé de cette table', many: 'énoncés de cette table' })}
     </div>
     <div class="block"><div class="label">Le temps passé sur chaque sujet</div>
       <p class="help">Le débat dans l'ordre, de gauche à droite : chaque bloc est un sujet abordé, rangé selon son lien avec la question posée. Survolez un bloc pour le détail.</p>
@@ -551,7 +568,7 @@ function tableHTML(t) {
         <div>
           <div class="map-box" data-role="map"></div>
           <div class="legend">
-            ${t.groups.map((g) => `<span><i style="background:${g.color}"></i>${esc(g.label)}</span>`).join('')}${t.unclassified.members.length ? '<span><i style="background:#898A8C"></i>Non rattaché</span>' : ''}
+            ${t.groups.map((g) => `<span><i style="background:${g.color}"></i>${esc(g.label)}</span>`).join('')}${t.unclassified.count ? '<span><i style="background:#898A8C"></i>Non rattaché</span>' : ''}
           </div>
           <div class="legend">
             ${Object.entries(LINK).map(([k, l]) => `<span><span class="sw${l.dash ? ' dash' : ''}" style="border-top-color:${l.c}"></span>${k === 'accord' ? 'Accord' : k === 'desaccord' ? 'Désaccord' : 'Concession (le point penche un instant vers l\'autre)'}</span>`).join('')}
@@ -570,7 +587,7 @@ function tableHTML(t) {
       </div>
     </div>
     <div class="block"><div class="label">Les camps d'opinion de la table</div>
-      ${campsHTML(t.groups, t.unclassified, colorOf)}
+      ${campsHTML(t.groups, t.unclassified)}
     </div>`;
 }
 

@@ -11,20 +11,26 @@ Une seule page, des menus repliables de haut en bas :
    passé par sujet, carte animée (échanges en flèches, changements d'avis) avec la tension intégrée au
    panneau « en ce moment », camps d'opinion de la table.
 
-La carte est la MÊME grille dans tous les menus : positions recalées de l'analyse croisée
-(build_cross_viz.py), et non les axes propres à chaque analyse par table. Des analyses par table
-(<CODE>.json écrit par build_manual_viz.py) on garde ce qui est propre au déroulé : prises de parole,
-reformulations horodatées, échanges, événements, courbe de tension, thèmes.
+La carte est la MÊME grille dans tous les menus : positions de l'analyse croisée (build_cross_viz.build,
+recalculée en mémoire), et non les axes propres à chaque analyse par table. Des analyses par table on garde
+ce qui est propre au déroulé (prises de parole, reformulations horodatées, échanges, événements, tension,
+thèmes), calculé EN MÉMOIRE par build_manual_viz.build : aucune page par table ni page croisée n'est écrite.
+
+Anonymat des synthèses (consigne du 2026-10-19) : consensus, dissensus, carte de la synthèse flash et
+camps ne montrent jamais qui a dit quoi, seulement des décomptes (global et par camp) ; seule la carte
+animée d'une table garde ses repères de voix.
 
 Tout ce qui se mesure ou se classe est calculé ici : sélection des 3 consensus/dissensus (règles
-ci-dessous), égalités signalées, minutes par thème. Le seul texte écrit à la main est le résumé flash
-(fichier de spec), soumis aux mêmes garde-fous que l'analyse croisée (ni guillemets ni prénom réel).
+ci-dessous), égalités signalées, minutes par thème. Les seuls textes écrits à la main sont dans la spec :
+le résumé flash et la lecture du pré-débat, soumis aux garde-fous (ni guillemets ni prénom réel).
 
 Spec (JSON, chemins relatifs à backend/) :
   { "cross": "transcripts/<Thème>/analyse_croisee.json",
-    "tables": { "<CODE>": "transcripts/<Thème>/<CODE>/viz/<CODE>.json", ... },
     "flash_summary": "...",
-    "pre_debate": "transcripts/<Thème>/ecclesia_pre_debat_<titre>_<date>.json" }   (ou null)
+    "pre_debate": "transcripts/<Thème>/ecclesia_pre_debat_<titre>_<date>.json",     (ou null)
+    "pre_debate_lecture": {                                                          (facultatif)
+       "axes":  {"x": {"left": "...", "right": "..."}, "y": {"bottom": "...", "top": "..."}},
+       "camps": {"1": "synthèse de deux lignes", "2": "..."} } }
 
 Usage (depuis backend/) :
   .venv\\Scripts\\python "code python\\build_unified_viz.py" <spec.json> [--out <dossier>]
@@ -37,6 +43,7 @@ import sys
 from pathlib import Path
 
 from build_cross_viz import CrossError, _check_text, build as build_cross, load_tables
+from build_manual_viz import AnalysisError, build as build_table
 
 TOP_N = 3
 MIN_VOICES_CONSENSUS = 3   # au moins 3 voix pour/contre pour parler de consensus
@@ -101,20 +108,58 @@ def _dissensus_key(s: dict):
     return (min(s["p"], s["c"]), -s["agreement"], s["p"] + s["c"] + s["nu"])
 
 
-def rank_statements(statements: list[dict], n: int = TOP_N) -> dict:
+_VOICE_KEY_RE = re.compile(r"\b[A-H]\d{1,2}\b")
+
+
+def anonymize_keys(text: str) -> str:
+    """Retire les identifiants de voix (« A7 ») des textes de camps : un camp se décrit sans dire qui en est."""
+    text = re.sub(r"^\s*" + _VOICE_KEY_RE.pattern, "Une personne", text)
+    text = re.sub(r"([.!?]\s+)" + _VOICE_KEY_RE.pattern, lambda m: m.group(1) + "Une personne", text)
+    return _VOICE_KEY_RE.sub("une personne", text)
+
+
+def public_camps(groups: list[dict], unclassified: dict | None, table_of=None) -> tuple[list[dict], dict]:
+    """Camps tels qu'affichés : titre, couleur, taille (et répartition par table), arguments ; jamais leurs membres."""
+    out = []
+    for g in groups:
+        c = {"label": g["label"], "color": g["color"], "size": len(g["members"]),
+             "arguments": [anonymize_keys(a) for a in g.get("arguments", [])],
+             **({"note": anonymize_keys(g["note"])} if g.get("note") else {})}
+        if table_of:
+            by: dict[str, int] = {}
+            for m in g["members"]:
+                by[table_of(m)] = by.get(table_of(m), 0) + 1
+            c["by_table"] = by
+        out.append(c)
+    un = unclassified or {}
+    return out, {"count": len(un.get("members", [])), "note": anonymize_keys(un.get("note", ""))}
+
+
+def rank_statements(statements: list[dict], n: int = TOP_N, camp_of=None, n_camps: int = 0) -> dict:
     """Les n plus forts consensus (adhésion OU rejet) et dissensus, avec les énoncés à égalité avec le
     dernier retenu. `statements` : [{text, stances:[{p, pos, t}]}] déjà restreints aux voix voulues.
 
     Consensus : au moins MIN_VOICES_CONSENSUS voix pour/contre et indice d'accord ≥ CONSENSUS_AGREEMENT.
     Dissensus : au moins une voix de chaque côté et indice d'accord < CONSENSUS_AGREEMENT.
-    Les nuances ne comptent pas dans l'indice ; elles sont affichées."""
+    Les nuances ne comptent pas dans l'indice ; elles sont affichées.
+
+    Sortie anonyme : décomptes seulement, jamais qui a pris position. `camp_of(clé) → n° de camp (1..n_camps)
+    ou None` ajoute `par_camp` (pour/contre/nuance de chaque camp ; camp 0 = voix non rattachées)."""
     rows = []
     for st in statements:
         t = tally(st["stances"])
         if t["p"] + t["c"] + t["nu"] == 0:
             continue
         side = "pour" if t["p"] >= t["c"] else "contre"
-        rows.append({"text": st["text"], "side": side, **t})
+        row = {"text": st["text"], "side": side, "p": t["p"], "c": t["c"], "nu": t["nu"], "agreement": t["agreement"]}
+        if camp_of is not None:
+            per = {i: {"camp": i, "pour": 0, "contre": 0, "nuance": 0} for i in range(1, n_camps + 1)}
+            for s in st["stances"]:
+                ci = camp_of(s["p"]) or 0
+                per.setdefault(ci, {"camp": ci, "pour": 0, "contre": 0, "nuance": 0})[s["pos"]] += 1
+            row["par_camp"] = [v for k, v in sorted(per.items(), key=lambda kv: (kv[0] == 0, kv[0]))
+                               if k != 0 or v["pour"] + v["contre"] + v["nuance"]]
+        rows.append(row)
 
     def pick(cands, key):
         cands = sorted(cands, key=key, reverse=True)   # tri stable : à égalité, l'ordre du fichier
@@ -213,7 +258,7 @@ def _ranked(rows: list, kind: str, camp_ids: set[int], names: list[str]) -> list
     return sorted(out, key=lambda x: x["rang"])
 
 
-def prepare_pre_debate(raw: dict, names: list[str]) -> dict:
+def prepare_pre_debate(raw: dict, names: list[str], lecture: dict | None = None) -> dict:
     """Valide l'export pré-débat de l'appli (chantier 170, format ecclesia.pre_debat.v1) et le prépare
     pour la page : textes soumis aux garde-fous (ni guillemets ni prénom réel), carte ACP mise à l'échelle
     sur le plan de la page avec le même facteur sur les deux axes (les distances ne sont pas déformées).
@@ -269,6 +314,24 @@ def prepare_pre_debate(raw: dict, names: list[str]) -> dict:
                       "enonces_caracteristiques": carac})
     camps.sort(key=lambda c: c["camp"])
 
+    # Lecture écrite à la main dans la spec (pre_debate_lecture) : libellés des axes de la carte ACP et
+    # synthèse de deux lignes par camp. Interprétation, signalée comme telle sur la page.
+    axes = None
+    if lecture:
+        if not isinstance(lecture, dict):
+            raise UnifiedError("pre_debate_lecture : objet attendu")
+        la = lecture.get("axes")
+        if la is not None:
+            axes = {"x": {s: _text((la.get("x") or {}).get(s), f"axe x, {s}", names) for s in ("left", "right")},
+                    "y": {s: _text((la.get("y") or {}).get(s), f"axe y, {s}", names) for s in ("bottom", "top")}}
+        syn = lecture.get("camps") or {}
+        unknown = set(syn) - {str(c["camp"]) for c in camps}
+        if unknown:
+            raise UnifiedError(f"pre_debate_lecture : camps inconnus {sorted(unknown)}")
+        for c in camps:
+            if str(c["camp"]) in syn:
+                c["synthese"] = _text(syn[str(c["camp"])], f"synthèse du camp {c['camp']}", names)
+
     part = raw.get("participation") if isinstance(raw.get("participation"), dict) else {}
     var = carte.get("variance_expliquee")
     return {
@@ -277,6 +340,7 @@ def prepare_pre_debate(raw: dict, names: list[str]) -> dict:
         "consensus": _ranked(_list(raw, "consensus", "fichier"), "consensus", camp_ids, names),
         "dissensus": _ranked(_list(raw, "dissensus", "fichier"), "dissensus", camp_ids, names),
         "camps": camps,
+        "axes": axes,
         "carte": {"points": [{"x": plan(p["x"]), "y": plan(p["y"]), "camp": p["camp"]} for p in pts],
                   "variance_expliquee": [_num(v, "variance expliquée", 0, 1) for v in var]
                   if isinstance(var, list) and len(var) == 2 else None},
@@ -297,11 +361,14 @@ def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
     cross_groups = cross["synthesis"]["groups"]
     common = [s for s in cross["statements"] if s["scope"] == "commun"]
 
+    flash_groups = [{**g, "color": c} for g, c in zip(cross_groups, camp_colors(cross_groups))]
+    flash_camp = {m: i for i, g in enumerate(flash_groups, 1) for m in g["members"]}
+    camps_pub, un_pub = public_camps(flash_groups, cross["synthesis"].get("unclassified"), table_of=lambda m: m[0])
     flash = {
         "summary": spec["flash_summary"],
-        "ranking": rank_statements(common),
-        "groups": [{**g, "color": c} for g, c in zip(cross_groups, camp_colors(cross_groups))],
-        "unclassified": cross["synthesis"].get("unclassified") or {"members": [], "note": ""},
+        "ranking": rank_statements(common, camp_of=flash_camp.get, n_camps=len(flash_groups)),
+        "groups": camps_pub,
+        "unclassified": un_pub,
         "n_participants": len(cross["personas"]),
         "n_common_statements": len(common),
     }
@@ -338,11 +405,13 @@ def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
             })
 
         mine = [{"text": s["text"], "stances": [x for x in s["stances"] if x["p"][0] == k]} for s in cross["statements"]]
+        camp_idx = {m: i for i, g in enumerate(groups, 1) for m in g["members"]}
+        camps_t, un_t = public_camps(groups, unclassified)
         tables.append({
             "key": k, "code": tm["code"], "label": tm["label"], "duration": v["totalDurationMinutes"],
             "summary": relabel(syn["summary"], k),
-            "ranking": rank_statements(mine),
-            "groups": groups, "unclassified": unclassified,
+            "ranking": rank_statements(mine, camp_of=camp_idx.get, n_camps=len(groups)),
+            "groups": camps_t, "unclassified": un_t,
             "kinds": {kk: {"label": KIND_LABELS[kk], "desc": relabel(kd["desc"], k)} for kk, kd in syn["kinds"].items()},
             "themes": syn["themes"], "timeline": syn["timeline"], "mentions": syn.get("mentions", []),
             "theme_minutes": theme_minutes(syn["timeline"]),
@@ -365,15 +434,30 @@ def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
         "meta": {"topic": cross["meta"]["topic"], "date": first.get("date"),
                  "tables": [{"key": t["key"], "code": t["code"], "label": t["label"]} for t in tables]},
         "axes": cross["axes"],
-        "map": [{"key": p["key"], "table": p["table"], "x": p["kf"][-1][1], "y": p["kf"][-1][2],
-                 "weight": p["weight"], "camp": p["camp"], "note": p["note"],
-                 **({"uncertain": p["uncertain"]} if p.get("uncertain") else {})} for p in cross["personas"]],
-        "pre_debate": prepare_pre_debate(pre_debate, names) if pre_debate is not None else None,
+        # carte de la synthèse flash : anonyme (ni identifiant, ni note individuelle)
+        "map": [{"table": p["table"], "x": p["kf"][-1][1], "y": p["kf"][-1][2], "weight": p["weight"],
+                 **({"uncertain": sorted(p["uncertain"])} if p.get("uncertain") else {})} for p in cross["personas"]],
+        "pre_debate": prepare_pre_debate(pre_debate, names, spec.get("pre_debate_lecture"))
+        if pre_debate is not None else None,
         "flash": flash, "tables": tables, "footer": FOOTER,
     }
 
 
 # ───────────────────────── entrées / sorties ─────────────────────────
+
+def table_data(cross_spec: dict, cross_tables: list[dict]) -> dict[str, dict]:
+    """Données de chaque table (déroulé, temps de parole, tension, thèmes) calculées EN MÉMOIRE par
+    build_manual_viz.build, à partir du transcript corrigé et de l'analyse manuelle. Aucune page par table
+    n'est écrite : depuis le 2026-10-19, seule la page unifiée est produite."""
+    out = {}
+    for spec_t, t in zip(cross_spec["tables"], cross_tables):
+        corrected = Path(spec_t["corrected"])
+        stem = corrected.name.replace("_corrected.json", "")
+        date = stem.rsplit("_", 1)[-1] if "_" in stem else ""
+        out[t["code"]] = build_table(t["segments"], t["analysis"], corrected.parent.parent.name, t["code"], date,
+                                     [n for n in t.get("names", []) if len(n) >= 3])
+    return out
+
 
 def _load_json(path: Path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -414,8 +498,8 @@ def main() -> None:
                 pre = _load_json(base / spec["pre_debate"])
             except (OSError, json.JSONDecodeError) as e:
                 raise UnifiedError(f"pré-débat illisible ({spec['pre_debate']}) : {e}") from e
-        data = build(spec, cross, {code: _load_json(base / p) for code, p in spec["tables"].items()}, names, pre)
-    except (CrossError, UnifiedError) as e:
+        data = build(spec, cross, table_data(cross_spec, cross_tables), names, pre)
+    except (CrossError, UnifiedError, AnalysisError) as e:
         print(f"Page unifiée refusée : {e}", file=sys.stderr)
         sys.exit(1)
     out = args.out or args.spec_json.parent / "viz_unifiee"
