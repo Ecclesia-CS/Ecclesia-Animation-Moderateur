@@ -191,6 +191,19 @@ Les étapes 1-2 touchent l'appli (chantier à déclarer dans `docs/chantiers-a-f
 
 ---
 
+## 6. Mise en œuvre côté transcription (2026-10-19)
+
+À la demande de l'utilisateur, **seule la transcription** a été modifiée ; le pré-débat (appli et lecture de son export) est inchangé, données comprises (vérifié : bloc `pre_debate` identique avant/après sur les trois pages).
+
+Fait (`backend/code python/opinion_math.py`, branché dans `build_unified_viz.py`, détail dans `transcription-debat/CLAUDE.md` § Calcul des opinions) :
+- § 4.2 c : carte calculée par l'ACP de Polis sur la matrice voix × énoncés (imputation par la moyenne, √(C/Cp), seuil de 3 prises de position), trajectoires recalculées à chaque prise de position, plus de « penchant » de concession ;
+- § 4.2 d : camps calculés (k-moyennes + silhouette), affichés seulement s'ils battent le test d'absence de structure, jamais d'une seule personne, stabilité affichée ; l'IA ne fait plus que les nommer (`transcription_lecture`, garde de taille) ;
+- énoncés caractéristiques et consensus selon les formules de Polis (§ 4.1, appliquées à la transcription) ;
+- § 4.2 b : alpha de Krippendorff calculé dès qu'un second relevé (`codage_double`) est fourni ;
+- § 4.3-4.4 : variance montrée, test des camps, stabilité, concordance avec la lecture et fiabilité du relevé affichés sur la page.
+
+Résultat sur les trois débats : **aucun camp net** (§ 3.2 confirmé avec la méthode complète). Restent à faire : le relevé sur une grille d'énoncés fixée d'avance (§ 4.2 a), le double codage réel d'au moins un débat (§ 4.2 b), et les comparaisons par paires (Bradley-Terry, § 4.2 c), qui demandent de nouveaux appels à un modèle de langue.
+
 ## Références
 
 **Vérifiées [V]**

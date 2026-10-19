@@ -120,6 +120,9 @@ details.howto p { margin-top: 6px; max-width: 820px; }
 .axes-guide ul { list-style: none; }
 .axes-guide li { display: grid; grid-template-columns: 38px 1fr; gap: 6px; font-size: .76rem; padding: 2px 0; border-bottom: 1px dashed var(--line); }
 .axes-guide li b { text-align: right; color: var(--marine2); }
+.axes-calc li { grid-template-columns: 52px 1fr; }
+ul.method { list-style: none; display: grid; gap: 8px; margin-top: 8px; }
+ul.method li { font-size: .82rem; line-height: 1.45; }
 
 /* Lecteur (carte animée) */
 .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -246,7 +249,7 @@ const tableColor = (k) => TABLE_COLORS[Math.max(0, D.meta.tables.findIndex((t) =
 const LINK = { accord: { c: '#3F8462', dash: null, verb: 'en accord avec' }, desaccord: { c: '#B64A3A', dash: '6 4', verb: 'en désaccord avec' }, concession: { c: '#D79E38', dash: null, verb: 'concède à' } };
 const EVENT_COLORS = { dissensus: '#B64A3A', consensus: '#3F8462', concession: '#D79E38', technique: '#898A8C', meta: '#7A5C99', cadrage: '#6383B4' };
 const EVENT_NAMES = { dissensus: 'dissensus', consensus: 'consensus', concession: 'concession', technique: 'point technique', meta: 'méta', cadrage: 'cadrage' };
-const LINK_WINDOW = 3, LEAN = 0.2;
+const LINK_WINDOW = 3;
 
 // Infobulles : chaque élément survolable porte data-tip = indice dans TIPS (HTML déjà échappé).
 const TIPS = [];
@@ -425,7 +428,7 @@ function preMapSVG(P) {
 // Énoncés relevés dans la transcription. camps : camps d'opinion du menu (ordre = n° de camp, 1-indexé).
 // scope : { one: 'énoncé commun aux tables', many: 'énoncés communs aux tables' }.
 function statementsHTML(ranking, camps, scope) {
-  const campInfo = (n) => (n === 0 ? { name: 'Non rattachés', color: '#898A8C' } : { name: camps[n - 1].label, color: camps[n - 1].color });
+  const campInfo = (n) => { const c = camps.find((g) => g.camp === n); return c ? { name: c.label, color: c.color } : { name: 'Hors camp', color: '#898A8C' }; };
   const toRow = (s, kind) => ({
     text: s.text, kind, sens: s.side === 'contre' ? 'rejet' : 'adhesion', pour: s.p, contre: s.c,
     extras: [s.nu ? `${s.nu} nuancé${s.nu > 1 ? 's' : ''}` : ''],
@@ -435,22 +438,29 @@ function statementsHTML(ranking, camps, scope) {
   });
   const noun = { one: scope.one, many: scope.many, f: false };
   return `<div class="stmts">${stmtColumnHTML('Les plus forts consensus', 'var(--pour)', ranking.consensus.map((s) => toRow(s, 'cons')), ranking.consensus_ties, noun)}${stmtColumnHTML('Les plus forts dissensus', 'var(--contre)', ranking.dissensus.map((s) => toRow(s, 'diss')), ranking.dissensus_ties, noun)}</div>
-    <details class="howto"><summary>Comment ce classement est calculé</summary><p>À partir des prises de position relevées dans la transcription (pour, contre, nuancé). Un <b>consensus</b> réunit au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté ; adhésion comme rejet comptent, et ils sont classés par écart net entre les deux côtés. Un <b>dissensus</b> a des voix des deux côtés sans majorité nette ; il est classé par la taille du côté minoritaire. Les voix nuancées sont comptées à part et n'entrent pas dans les parts. Les camps sans prise de position sur un énoncé n'apparaissent pas sous sa barre : ne pas s'être exprimé ne veut pas dire être neutre.</p></details>`;
+    <details class="howto"><summary>Comment ce classement est calculé</summary><p>À partir des prises de position relevées dans la transcription (pour, contre, nuancé), avec les règles de <b>Polis</b>, l'outil de consultation utilisé notamment à Taïwan. Un énoncé est un <b>consensus</b> s'il réunit au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté, sans qu'aucun camp ne penche de l'autre côté ; adhésion comme rejet comptent. Ils sont classés par le consensus « tenant compte des camps » de Polis : la probabilité d'adhérer (ou de rejeter) est estimée dans chaque camp, puis multipliée d'un camp à l'autre, pour qu'un accord n'en écrase pas un autre. Un <b>dissensus</b> a des voix des deux côtés sans majorité nette ; il est classé par l'écart entre le camp le plus pour et le plus contre, ou, sans camps nets, par la taille du côté minoritaire. Les voix nuancées comptent comme une abstention. Ne pas s'être exprimé ne veut pas dire être neutre.</p></details>`;
 }
 
-function campsHTML(groups, unclassified) {
+function campsHTML(groups, unplaced) {
   const who = (n) => `${n} participant${n > 1 ? 's' : ''}`;
+  const pc = (v) => (v == null ? 'aucune voix' : pct(v));
   const byTable = (g) => (g.by_table && D.tables.length > 1
     ? ` (${D.tables.filter((t) => g.by_table[t.key]).map((t) => `${g.by_table[t.key]} à la table ${esc(t.key)}`).join(', ')})` : '');
+  const M = D.method || {}, C = M.camps || {};
+  if (!groups.length) {
+    const why = C.k && C.silhouette != null
+      ? `Le meilleur regroupement trouvé (${C.k} groupes) a une séparation de ${fmt(C.silhouette, 2)} ; des nuages de points sans aucun groupe atteignent ${fmt(C.silhouette_hasard_95, 2)} une fois sur vingt. Ces groupes pourraient donc être l'effet du hasard : ils ne sont pas affichés.`
+      : `Raison : ${esc(C.raison || 'données insuffisantes')}.`;
+    return `<p class="note"><b>Pas de camps nets.</b> Les prises de position relevées ne dessinent pas de groupes distincts. ${why}</p>`;
+  }
   const cards = groups.map((g) => `<div class="camp" style="--cc:${g.color}"><h4>${esc(g.label)}</h4>
-    <p class="meta">${who(g.size)}${byTable(g)}</p>
-    <ul>${(g.arguments || []).map((a) => `<li>${esc(a)}</li>`).join('')}</ul>${g.note ? `<p class="note">${esc(g.note)}</p>` : ''}</div>`).join('');
-  const un = unclassified && unclassified.count
-    ? `<p class="unclassified"><b>${who(unclassified.count)} non rattaché${unclassified.count > 1 ? 's' : ''} :</b> ${esc(unclassified.note)}</p>` : '';
+    <p class="meta">${who(g.size)}${byTable(g)}</p>${g.synthese ? `<p>${esc(g.synthese)}</p>` : ''}
+    ${g.representative.length ? `<ul>${g.representative.map((e) => `<li><b class="${e.sens === 'pour' ? 'p' : 'c'}">${e.sens === 'pour' ? 'Pour' : 'Contre'} :</b> ${esc(e.text)}<small>${pc(e.part_pour_camp)} pour dans ce camp, ${pc(e.part_pour_reste)} chez les autres</small></li>`).join('')}</ul>` : '<p class="note">Aucun énoncé ne distingue nettement ce camp.</p>'}</div>`).join('');
+  const un = unplaced ? `<p class="unclassified"><b>${who(unplaced)} non placé${unplaced > 1 ? 's' : ''}</b> sur la carte : moins de ${M.min_prises} prises de position relevées, donc dans aucun camp.</p>` : '';
   return `<div class="camps">${cards}</div>${un}`;
 }
 
-// Plan 2D commun à tous les menus : grille de l'analyse croisée, -10..+10 sur chaque axe.
+// Plan 2D commun à tous les menus : les deux composantes principales des prises de position (Polis), ramenées dans ±9, sans unité.
 const MAP = { W: 720, H: 610, L: 58, R: 22, T: 34, B: 58 };
 const mx = (x) => MAP.L + ((x + 10) / 20) * (MAP.W - MAP.L - MAP.R);
 const my = (y) => MAP.T + ((10 - y) / 20) * (MAP.H - MAP.T - MAP.B);
@@ -469,37 +479,47 @@ function spreadOffsets(people) {
   });
   return off;
 }
+const axisName = (k) => { const a = D.axes[k]; return `axe ${k === 'x' ? 1 : 2} · ${Math.round(100 * a.variance)} % des écarts`; };
 function mapBackground() {
   const ax = D.axes, g = [];
   g.push(`<rect x="${mx(-10)}" y="${my(10)}" width="${mx(10) - mx(-10)}" height="${my(-10) - my(10)}" fill="var(--creme)" stroke="var(--line)"/>`);
-  [[-10, 0, 0, 10], [0, 0, 10, 10], [-10, -10, 0, 0], [0, -10, 10, 0]].forEach(([x1, y1, x2, y2], i) => {
-    if (i === 1 || i === 2) g.push(`<rect x="${mx(x1)}" y="${my(y2)}" width="${mx(x2) - mx(x1)}" height="${my(y1) - my(y2)}" fill="var(--sable)" opacity="0.55"/>`);
-  });
-  for (let v = -7.5; v <= 7.5; v += 2.5) {
-    const z = v === 0, st = z ? 'stroke="#C6C4BF" stroke-width="1.5"' : 'stroke="var(--line)" stroke-dasharray="2 4"';
-    g.push(`<line x1="${mx(v)}" y1="${my(10)}" x2="${mx(v)}" y2="${my(-10)}" ${st}/><line x1="${mx(-10)}" y1="${my(v)}" x2="${mx(10)}" y2="${my(v)}" ${st}/>`);
-    const l = (v > 0 ? '+' : '') + String(v).replace('.', ',');
-    g.push(`<text x="${mx(v)}" y="${my(-10) + 14}" font-size="10" text-anchor="middle" fill="var(--fg3)">${l}</text><text x="${mx(-10) - 7}" y="${my(v) + 3}" font-size="10" text-anchor="end" fill="var(--fg3)">${l}</text>`);
-  }
-  const q = ax.quadrants;
-  g.push(`<g font-size="11" fill="var(--fg3)" font-style="italic"><text x="${mx(-10) + 8}" y="${my(10) + 16}">${esc(q.topLeft)}</text><text x="${mx(10) - 8}" y="${my(10) + 16}" text-anchor="end">${esc(q.topRight)}</text><text x="${mx(-10) + 8}" y="${my(-10) - 8}">${esc(q.bottomLeft)}</text><text x="${mx(10) - 8}" y="${my(-10) - 8}" text-anchor="end">${esc(q.bottomRight)}</text></g>`);
-  g.push(`<g font-size="12" font-weight="700" fill="var(--marine)"><text x="${mx(-10)}" y="${my(-10) + 34}">◀ ${esc(ax.x.leftLabel)}</text><text x="${mx(10)}" y="${my(-10) + 34}" text-anchor="end">${esc(ax.x.rightLabel)} ▶</text><text x="${mx(0)}" y="${my(10) - 12}" text-anchor="middle">▲ ${esc(ax.y.topLabel)}</text><text x="${mx(0)}" y="${my(-10) + 52}" text-anchor="middle">▼ ${esc(ax.y.bottomLabel)}</text></g>`);
+  g.push(`<line x1="${mx(0)}" y1="${my(10)}" x2="${mx(0)}" y2="${my(-10)}" stroke="#C6C4BF" stroke-width="1.5"/><line x1="${mx(-10)}" y1="${my(0)}" x2="${mx(10)}" y2="${my(0)}" stroke="#C6C4BF" stroke-width="1.5"/>`);
+  if (!ax) return g.join('');
+  const L = ax.lecture;
+  g.push(`<g font-size="12" font-weight="700" fill="var(--marine)">${L
+    ? `<text x="${mx(-10)}" y="${my(-10) + 34}">◀ ${esc(L.x.left)}</text><text x="${mx(10)}" y="${my(-10) + 34}" text-anchor="end">${esc(L.x.right)} ▶</text><text x="${mx(0)}" y="${my(10) - 12}" text-anchor="middle">▲ ${esc(L.y.top)}</text><text x="${mx(0)}" y="${my(-10) + 52}" text-anchor="middle">▼ ${esc(L.y.bottom)}</text>`
+    : `<text x="${mx(0)}" y="${my(-10) + 34}" text-anchor="middle">◀ ${esc(axisName('x'))} ▶</text><text x="${mx(-10) - 14}" y="${my(0)}" text-anchor="middle" transform="rotate(-90 ${mx(-10) - 14} ${my(0)})">◀ ${esc(axisName('y'))} ▶</text>`}</g>`);
   return g.join('');
 }
-function uncertainLines(p, color) {
-  const u = p.uncertain || {}, out = [];
-  if (u.x) out.push(`<line x1="${mx(-10)}" y1="${my(p.y)}" x2="${mx(10)}" y2="${my(p.y)}" stroke="${color}" stroke-dasharray="1 4" opacity="0.6"/>`);
-  if (u.y) out.push(`<line x1="${mx(p.x)}" y1="${my(10)}" x2="${mx(p.x)}" y2="${my(-10)}" stroke="${color}" stroke-dasharray="1 4" opacity="0.6"/>`);
-  return out.join('');
-}
 function personTip(p, extra) {
-  const u = p.uncertain || {};
-  return `<b>${esc(p.key)}</b> — ${esc(p.camp)}<div class="sub">${extra}</div><div class="it">${esc(p.note)}</div>` +
-    Object.keys(u).map((a) => `<div class="sub">Position non déterminable sur l'axe ${a === 'x' ? 'horizontal' : 'vertical'} : ${esc(u[a])}</div>`).join('');
+  return `<b>${esc(p.key)}</b> · ${esc(p.camp)}<div class="sub">${extra}</div>${p.note ? `<div class="it">${esc(p.note)}</div>` : ''}`;
 }
 function axesGuideHTML() {
-  const blk = (a, lo, hi) => `<div><h4>${esc(a[lo + 'Label'])} ↔ ${esc(a[hi + 'Label'])}</h4><ul>${(a.levels || []).map((l) => `<li><b>${l.v > 0 ? '+' : ''}${String(l.v).replace('.', ',')}</b><span>${esc(l.text)}</span></li>`).join('')}</ul></div>`;
-  return `<details class="howto"><summary>Comment lire les deux axes</summary><div class="axes-guide">${blk(D.axes.x, 'left', 'right')}${blk(D.axes.y, 'bottom', 'top')}</div></details>`;
+  if (!D.axes) return '';
+  const blk = (k, plus, moins) => {
+    const a = D.axes[k];
+    return `<div><h4>${esc(axisName(k)[0].toUpperCase() + axisName(k).slice(1))}</h4><ul>${a.enonces.map((e) => `<li><b>${e.accord_vers === 'plus' ? plus : moins}</b><span>${esc(e.text)}</span></li>`).join('')}</ul></div>`;
+  };
+  return `<details class="howto" open><summary>Comment lire les deux axes</summary><p class="help">Chaque axe est calculé, pas choisi : c'est une combinaison des énoncés qui sépare le plus les participants. Voici ceux qui pèsent le plus ; être d'accord avec l'énoncé pousse du côté indiqué, être en désaccord pousse de l'autre.${D.axes.lecture ? ' Les libellés écrits sur la carte sont une lecture de ces énoncés, pas une mesure.' : ''}</p><div class="axes-guide axes-calc">${blk('x', 'droite', 'gauche')}${blk('y', 'haut', 'bas')}</div></details>`;
+}
+function methodHTML() {
+  const M = D.method, C = M.camps || {}, v = M.variance;
+  const items = [
+    `<li><b>Ce qui est mesuré.</b> Pour chaque participant et chaque énoncé, sa prise de position relevée dans la transcription : pour, contre, nuancé, ou rien. ${M.voix} participants × ${M.enonces} énoncés : ${pct(M.remplissage)} des cases sont remplies, car à l'oral chacun ne se prononce que sur une partie des sujets. Chaque prise de position renvoie à un moment précis de l'enregistrement.</li>`,
+    `<li><b>La carte.</b> Même calcul que Polis : une analyse en composantes principales des prises de position, où un énoncé sur lequel quelqu'un ne s'est pas exprimé compte pour la moyenne des autres, et où la position de ceux qui se sont peu exprimés est corrigée pour ne pas les tasser au centre. ${M.placees} participants sur ${M.voix} sont placés (au moins ${M.min_prises} prises de position).${v ? ` Les deux axes montrent ${Math.round(100 * (v[0] + v[1]))} % des écarts d'opinion ; le reste n'est pas visible sur un plan.` : ''} Un point ne bouge que lorsque la personne prend position sur un nouvel énoncé.</li>`,
+    `<li><b>Les camps.</b> Regroupement par k-moyennes de 2 à 5 groupes, le nombre retenu étant celui qui sépare le mieux (silhouette), comme Polis. Ils ne sont affichés que s'ils se distinguent du hasard : ${C.silhouette != null ? `séparation ${fmt(C.silhouette, 2)}, contre ${fmt(C.silhouette_hasard_95, 2)} atteint une fois sur vingt par des nuages sans aucun groupe${C.stabilite != null ? ` ; en retirant des participants au hasard, les mêmes groupes reviennent à ${pct(C.stabilite)} (indice de Rand ajusté)` : ''}. ${C.nets ? 'Les camps sont donc affichés.' : 'Ce n\'est pas le cas ici : aucun camp n\'est affiché.'}` : `${esc(C.raison || '')}.`}</li>`,
+  ];
+  if (M.concordance_lecture) {
+    const c = M.concordance_lecture;
+    items.push(`<li><b>Comparaison avec une lecture humaine.</b> La carte calculée partage ${pct(c.r2)} de sa forme avec les positions attribuées à la lecture des transcriptions (analyse procustéenne ; le hasard en donne jusqu'à ${pct(c.hasard_95)}).</li>`);
+  }
+  if (M.fiabilite_codage) {
+    const f = M.fiabilite_codage;
+    items.push(`<li><b>Fiabilité du relevé.</b> Un second relevé indépendant des prises de position concorde avec celui-ci : alpha de Krippendorff ${f.alpha == null ? 'non calculable' : fmt(f.alpha, 2)} sur ${f.unites} cases (0,8 et plus : fiable ; 0,667 : acceptable pour des conclusions prudentes).</li>`);
+  } else {
+    items.push(`<li><b>Fiabilité du relevé.</b> Les énoncés et les prises de position ont été relevés par une seule lecture ; aucun second relevé indépendant n'a encore mesuré leur fiabilité.</li>`);
+  }
+  return `<details class="howto"><summary>Comment cette carte et ces camps sont calculés</summary><ul class="method">${items.join('')}</ul></details>`;
 }
 
 // ───────────────────────── 02 · Synthèse flash ─────────────────────────
@@ -520,25 +540,26 @@ function flashHTML() {
       ${statementsHTML(F.ranking, F.groups, T.length > 1 ? { one: 'énoncé commun aux tables', many: 'énoncés communs aux tables' } : { one: 'énoncé du débat', many: 'énoncés du débat' })}
     </div>
     <div class="block"><div class="label">Où se situe chacun, en fin de débat</div>
-      <p class="help">Tous les participants sur un même plan, la même grille que dans chaque table. Une couleur par table ; la taille du point suit le temps de parole.</p>
+      <p class="help">Tous les participants placés sur un même plan, le même que dans chaque table, calculé à partir de leurs prises de position. Deux points proches ont pris position de la même façon. Une couleur par table ; la taille du point suit le temps de parole.</p>
       <div class="map-box" id="flash-map">${flashMapSVG()}</div>
-      <div class="legend">${T.map((t) => `<span><i style="background:${tableColor(t.key)}"></i>${esc(t.label)} · ${esc(t.code)}</span>`).join('')}<span>Point en pointillé : position non déterminable sur un axe</span></div>
-      ${axesGuideHTML()}
+      <div class="legend">${T.map((t) => `<span><i style="background:${tableColor(t.key)}"></i>${esc(t.label)} · ${esc(t.code)}</span>`).join('')}${D.flash.n_participants - D.map.length ? `<span>${D.flash.n_participants - D.map.length} non placé${D.flash.n_participants - D.map.length > 1 ? 's' : ''} : moins de ${D.method.min_prises} prises de position</span>` : ''}</div>
+      ${axesGuideHTML()}${methodHTML()}
     </div>
     <div class="block"><div class="label">Les camps d'opinion du débat</div>
-      <p class="help">Formés à partir des positions sur la carte, ${T.length > 1 ? 'toutes tables confondues' : ''} : ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant.</p>
-      ${campsHTML(F.groups, F.unclassified)}
+      <p class="help">Calculés sur la carte${T.length > 1 ? ', toutes tables confondues' : ''} : ces camps viennent de ce qui s'est dit pendant le débat, et peuvent différer de ceux du questionnaire d'avant. Sous chaque camp, les énoncés qui le distinguent le plus des autres participants.</p>
+      ${campsHTML(F.groups, D.flash.n_participants - D.map.length)}
     </div>`;
 }
 // Carte anonyme : ni numéro ni note individuelle, seulement la table et la position de chacun.
 function flashMapSVG() {
-  const people = D.map.map((p, i) => ({ ...p, key: `p${i}`, uncertain: Object.fromEntries((p.uncertain || []).map((a) => [a, true])) }));
-  const r = radiusFn(people), off = spreadOffsets(people), g = [mapBackground()];
-  people.forEach((p) => g.push(uncertainLines(p, tableColor(p.table))));
+  const people = D.map.map((p, i) => ({ ...p, key: `p${i}` }));
+  const g = [mapBackground()];
+  if (!people.length) return `<svg viewBox="0 0 ${MAP.W} ${MAP.H}" role="img" aria-label="Carte vide">${g.join('')}</svg>`;
+  const r = radiusFn(people), off = spreadOffsets(people);
   people.slice().sort((a, b) => b.weight - a.weight).forEach((p) => {
-    const [dx, dy] = off[p.key], x = mx(p.x) + dx, y = my(p.y) + dy, c = tableColor(p.table), u = Object.keys(p.uncertain).length;
+    const [dx, dy] = off[p.key], x = mx(p.x) + dx, y = my(p.y) + dy, c = tableColor(p.table);
     const t = D.tables.find((tt) => tt.key === p.table);
-    g.push(`<circle ${tipAttr(`Un participant de la <b>${esc(t.label)}</b>${u ? '<div class="sub">Position non déterminable sur un axe</div>' : ''}`)} cx="${x}" cy="${y}" r="${r(p)}" fill="${c}" fill-opacity="${u ? 0.35 : 0.9}" stroke="${u ? c : 'var(--blanc)'}" stroke-width="2"${u ? ' stroke-dasharray="3 3"' : ''}/>`);
+    g.push(`<circle ${tipAttr(`Un participant de la <b>${esc(t.label)}</b>`)} cx="${x}" cy="${y}" r="${r(p)}" fill="${c}" fill-opacity="0.9" stroke="var(--blanc)" stroke-width="2"/>`);
   });
   return `<svg viewBox="0 0 ${MAP.W} ${MAP.H}" role="img" aria-label="Carte de tous les participants en fin de débat">${g.join('')}</svg>`;
 }
@@ -568,13 +589,13 @@ function tableHTML(t) {
         <div>
           <div class="map-box" data-role="map"></div>
           <div class="legend">
-            ${t.groups.map((g) => `<span><i style="background:${g.color}"></i>${esc(g.label)}</span>`).join('')}${t.unclassified.count ? '<span><i style="background:#898A8C"></i>Non rattaché</span>' : ''}
+            ${t.groups.length ? t.groups.map((g) => `<span><i style="background:${g.color}"></i>${esc(g.label)}</span>`).join('') : `<span><i style="background:${tableColor(t.key)}"></i>Pas de camps nets : une seule couleur</span>`}${t.unplaced ? `<span>${t.unplaced} non placé${t.unplaced > 1 ? 's' : ''} : moins de ${D.method.min_prises} prises de position</span>` : ''}
           </div>
           <div class="legend">
-            ${Object.entries(LINK).map(([k, l]) => `<span><span class="sw${l.dash ? ' dash' : ''}" style="border-top-color:${l.c}"></span>${k === 'accord' ? 'Accord' : k === 'desaccord' ? 'Désaccord' : 'Concession (le point penche un instant vers l\'autre)'}</span>`).join('')}
+            ${Object.entries(LINK).map(([k, l]) => `<span><span class="sw${l.dash ? ' dash' : ''}" style="border-top-color:${l.c}"></span>${k === 'accord' ? 'Accord' : k === 'desaccord' ? 'Désaccord' : 'Concession'}</span>`).join('')}
             <label><input type="checkbox" data-role="all-links"> Garder tous les échanges jusqu'ici</label>
           </div>
-          <p class="caption">Même plan et même grille que la carte de la synthèse flash. Une position ne bouge que si la personne change d'avis ; une concession la fait seulement pencher un instant vers l'autre. Un point apparaît à la première prise de parole ; la taille suit le temps de parole.</p>
+          <p class="caption">Même plan que la carte de la synthèse flash. Un point apparaît quand la personne a pris position sur ${D.method.min_prises} énoncés, et ne bouge que lorsqu'elle prend position sur un nouvel énoncé : sa place est recalculée avec ce qu'elle a dit jusque-là. Les échanges (accord, désaccord, concession) sont montrés par des flèches, sans déplacer les points. La taille suit le temps de parole.</p>
         </div>
         <aside class="panel">
           <h4>Tension du débat</h4>
@@ -587,7 +608,7 @@ function tableHTML(t) {
       </div>
     </div>
     <div class="block"><div class="label">Les camps d'opinion de la table</div>
-      ${campsHTML(t.groups, t.unclassified)}
+      ${campsHTML(t.groups, t.unplaced)}
     </div>`;
 }
 
@@ -635,7 +656,8 @@ class Player {
     Object.assign(this, { elMap: q('map'), elSlider: q('slider'), elClock: q('clock'), elPlay: q('play'), elAll: q('all-links'),
       elTension: q('tension'), elTval: q('tval'), elTword: q('tword'), elPhase: q('phase'), elNow: q('now') });
     this.byKey = Object.fromEntries(t.personas.map((p) => [p.key, p]));
-    this.r = radiusFn(t.personas); this.off = spreadOffsets(t.personas);
+    const placed = t.personas.filter((p) => p.placed);
+    this.r = radiusFn(placed.length ? placed : t.personas); this.off = spreadOffsets(placed);
     // infobulles créées une fois : la carte est redessinée à chaque image pendant la lecture
     this.tips = Object.fromEntries(t.personas.map((p) => [p.key, tipAttr(personTip(p, `${fmt(p.weight)} min de parole · arrivée à ${mmss(p.entry)}`))]));
     this.drawTension();
@@ -658,25 +680,14 @@ class Player {
     if (this.now >= this.t.duration) { this.pause(); return; }
     requestAnimationFrame((n) => this.tick(n));
   }
-  basePos(p, t) {
+  // Position calculée : elle ne change qu'à une nouvelle prise de position (keyframes de opinion_math).
+  pos(p, t) {
     const kf = p.kf;
-    if (t < kf[0][0]) return null;
+    if (!kf || !kf.length || t < kf[0][0]) return null;
     for (let i = 1; i < kf.length; i++) {
       if (t <= kf[i][0]) { const a = kf[i - 1], b = kf[i], f = b[0] === a[0] ? 1 : (t - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; }
     }
     const l = kf[kf.length - 1]; return [l[1], l[2]];
-  }
-  // Une concession fait pencher le point de 20 % vers l'autre le temps de l'échange, puis il revient.
-  pos(p, t) {
-    const b = this.basePos(p, t); if (!b) return null;
-    let [x, y] = b;
-    this.t.interactions.forEach((it) => {
-      if (it.type !== 'concession' || it.from !== p.key) return;
-      const u = (t - it.t) / LINK_WINDOW, q = this.byKey[it.to], tb = q && this.basePos(q, t);
-      if (u < 0 || u > 1 || !tb) return;
-      const f = Math.sin(Math.PI * u) * LEAN; x += f * (tb[0] - b[0]); y += f * (tb[1] - b[1]);
-    });
-    return [x, y];
   }
   px(p, pos) { const o = this.off[p.key]; return [mx(pos[0]) + o[0], my(pos[1]) + o[1]]; }
   speaking(p, t) { return (p.speech || []).some(([a, b]) => t >= a && t <= b); }
@@ -687,12 +698,6 @@ class Player {
     g.push(`<defs>${Object.entries(LINK).map(([k, l]) => `<marker id="${id}-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${l.c}"/></marker>`).join('')}<marker id="${id}-shift" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--marine)"/></marker></defs>`);
     const vis = T.personas.map((p) => ({ p, pos: this.pos(p, t) })).filter((o) => o.pos);
     const at = Object.fromEntries(vis.map((o) => [o.p.key, this.px(o.p, o.pos)]));
-    vis.forEach(({ p }) => g.push(uncertainLines(p, p.color)));
-    // changements d'avis : flèche durable de l'ancienne position vers la nouvelle
-    vis.forEach(({ p }) => (p.shifts || []).filter((s) => s.t <= t).forEach((s) => {
-      const o = this.off[p.key], x1 = mx(s.from[0]) + o[0], y1 = my(s.from[1]) + o[1], x2 = mx(s.to[0]) + o[0], y2 = my(s.to[1]) + o[1];
-      g.push(`<circle cx="${x1}" cy="${y1}" r="${this.r(p)}" fill="none" stroke="${p.color}" stroke-dasharray="3 3"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${p.color}" stroke-width="3.5" stroke-linecap="round" marker-end="url(#${id}-shift)"/>`);
-    }));
     // échanges : visibles 3 min de débat en s'estompant ; en option, le cumul jusqu'ici
     const seg = (a, b) => { const [x1, y1] = at[a.key], [x2, y2] = at[b.key], len = Math.hypot(x2 - x1, y2 - y1) || 1, ux = (x2 - x1) / len, uy = (y2 - y1) / len, r1 = this.r(a) + 2, r2 = this.r(b) + 5; return [x1 + ux * r1, y1 + uy * r1, x2 - ux * r2, y2 - uy * r2]; };
     const done = T.interactions.filter((it) => it.t <= t && at[it.from] && at[it.to]);
@@ -706,8 +711,8 @@ class Player {
       g.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${l.c}" stroke-opacity="${1 - 0.75 * u}" stroke-width="2.6"${l.dash ? ` stroke-dasharray="${l.dash}"` : ''} marker-end="url(#${id}-${it.type})"/>`);
     });
     vis.slice().sort((a, b) => b.p.weight - a.p.weight).forEach(({ p }) => {
-      const [x, y] = at[p.key], sp = this.speaking(p, t), r = this.r(p) * (sp ? 1.25 : 1), u = p.uncertain && Object.keys(p.uncertain).length;
-      g.push(`<g ${this.tips[p.key]} opacity="${sp ? 1 : 0.82}"><circle cx="${x}" cy="${y}" r="${r}" fill="${p.color}" fill-opacity="${u ? 0.4 : 0.92}" stroke="${sp ? 'var(--marine)' : u ? p.color : 'var(--blanc)'}" stroke-width="${sp ? 3 : 2}"${u && !sp ? ' stroke-dasharray="3 3"' : ''}/><text x="${x}" y="${y + 3.5}" font-size="10" font-weight="700" text-anchor="middle" fill="${u ? 'var(--anthracite)' : '#fff'}" pointer-events="none">${esc(p.key)}</text></g>`);
+      const [x, y] = at[p.key], sp = this.speaking(p, t), r = this.r(p) * (sp ? 1.25 : 1);
+      g.push(`<g ${this.tips[p.key]} opacity="${sp ? 1 : 0.82}"><circle cx="${x}" cy="${y}" r="${r}" fill="${p.color}" fill-opacity="0.92" stroke="${sp ? 'var(--marine)' : 'var(--blanc)'}" stroke-width="${sp ? 3 : 2}"/><text x="${x}" y="${y + 3.5}" font-size="10" font-weight="700" text-anchor="middle" fill="#fff" pointer-events="none">${esc(p.key)}</text></g>`);
     });
     this.elMap.innerHTML = `<svg viewBox="0 0 ${MAP.W} ${MAP.H}" role="img" aria-label="Carte animée de la ${esc(T.label)}">${g.join('')}</svg>`;
     this.updateTension(t); this.updateNow(t);
@@ -759,7 +764,6 @@ class Player {
   updateNow(t) {
     const T = this.t, items = [];
     T.personas.forEach((p) => (p.points || []).forEach((pt) => { if (pt.t <= t) items.push({ t: pt.t, c: p.color, html: `<span class="kind">${esc(p.key)}</span> ${esc(pt.stance)}` }); }));
-    T.personas.forEach((p) => (p.shifts || []).forEach((s) => { if (s.t <= t) items.push({ t: s.t + 0.002, c: 'var(--marine)', html: `<span class="kind">${esc(p.key)} change d'avis</span> ${esc(s.desc)}` }); }));
     T.interactions.forEach((it) => { if (it.t <= t) items.push({ t: it.t + 0.001, c: LINK[it.type].c, html: `<span class="kind" style="color:${LINK[it.type].c}">${esc(it.from)} ${LINK[it.type].verb} ${esc(it.to)}</span> ${esc(it.desc)}` }); });
     items.sort((a, b) => b.t - a.t);
     const top = items.slice(0, 4);

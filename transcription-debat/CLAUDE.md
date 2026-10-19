@@ -47,7 +47,7 @@ Quand on demande de **faire la transcription** d'un débat, le **seul livrable**
 Recette, dans l'ordre (chaque étape ne se fait que si son résultat n'existe pas déjà) :
 1. **Transcript corrigé** de chaque table : `run_transcription.ps1`, **sans** `-Visualize` → `<CODE>_<DATE>_corrected.json`.
 2. **Analyse manuelle par table** : écrire `<CODE>_analyse_manuelle.json` (format : [§ analyse manuelle](#visualisation-par-analyse-manuelle-alternative-à-gemini)). Ne pas lancer `build_manual_viz.py`.
-3. **Analyse croisée** `transcripts\<Thème>\analyse_croisee.json` : positions de toutes les voix sur la grille commune, camps transverses, énoncés (format : [§ visualisation croisée](#visualisation-croisée-plusieurs-tables-même-sujet)). Ne pas lancer `build_cross_viz.py` : `build_unified_viz.py` la recalcule et la valide.
+3. **Analyse croisée** `transcripts\<Thème>\analyse_croisee.json` : **énoncés et prises de position** de chaque voix (pour / contre / nuance, chacune ancrée sur un de ses segments), thèmes communs (format : [§ visualisation croisée](#visualisation-croisée-plusieurs-tables-même-sujet)). C'est le relevé dont **tout** le reste est calculé : relever, pour chaque voix, chaque énoncé sur lequel elle s'est prononcée (il en faut au moins 3 pour qu'elle soit placée sur la carte). Positions `x`/`y` et camps (`groups`) écrits à la lecture sont **facultatifs** depuis le 2026-10-19 et ne sont plus affichés : s'ils existent, ils servent seulement à mesurer la concordance lecture/calcul (§ [Calcul des opinions](#calcul-des-opinions-de-la-transcription-opinion_mathpy-depuis-le-2026-10-19)). Ne pas lancer `build_cross_viz.py` : `build_unified_viz.py` la recalcule et la valide.
 4. **Données pré-débat** : dans l'appli, superadmin > séance complète clôturée > onglet Analyse > Actions post-séance > **« Extraction données pré-débat »** (chantier 170) télécharge `ecclesia_pre_debat_<titre>_<date>.json` (format `ecclesia.pre_debat.v1`). Le ranger dans `transcripts\<Thème>\`. Les assertions y arrivent souvent entourées de guillemets, telles que saisies : `unwrap_quotes` retire ceux qui entourent **tout** l'énoncé ; un guillemet à l'intérieur reste refusé.
 5. **Spec** `transcripts\<Thème>\analyse_unifiee.json` : résumé flash, chemin de l'export pré-débat, et **lecture du pré-débat** écrite à la main (libellés des axes de la carte, synthèse de deux lignes par camp) ; puis `build_unified_viz.py` → `viz_unifiee\`. Format : [§ Page unique](#page-unique-de-restitution-en-menus-accordéons-référence).
 6. **Vérifier la page au navigateur** (Browser pane, servie en local) : menus, carte animée de chaque table, tension, aucune personne identifiable hors du « débat en mouvement », aucun débordement à 375 px.
@@ -75,10 +75,11 @@ transcription-debat/
     │   ├── build_manual_viz.py      page par table à partir d'une analyse manuelle
     │   ├── build_cross_viz.py       page croisée de plusieurs tables (grille commune)
     │   ├── build_unified_viz.py     page unique en accordéons : pré-débat, synthèse flash, un menu par table
+    │   ├── opinion_math.py          carte, camps, énoncés caractéristiques, consensus, fiabilité de la transcription (Polis + tests de validité, numpy seul)
     │   ├── viz_template_croisee/    gabarit de la page croisée
     │   ├── viz_template_unifiee/    gabarit de la page unique + polices de l'appli (Newsreader, Archivo, OFL) + logo
     │   └── viz_template/            index.html (page unique pilotée par ?debat=<CODE> → <CODE>.json, sinon data.js ; sections conditionnelles) + d3.v7.min.js, logo_ecclesia.png, polices Playfair Display (+ licence OFL) : tout servi localement, pas de CDN ; charte graphique Ecclesia
-    ├── tests/                      289 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate, build_manual_viz, build_cross_viz, build_unified_viz)
+    ├── tests/                      322 tests (anonymize, transcribe_offline, voice, boundaries, correct, deduplicate, quality, evaluate, analyze_debate, build_manual_viz, build_cross_viz, build_unified_viz, opinion_math)
     ├── conftest.py                 ajoute "code python/" au sys.path pour les tests
     ├── run_transcription.ps1       ← LA commande unique (anonymise → transcrit → corrige)
     ├── requirements.txt
@@ -237,13 +238,38 @@ Règles d'affichage (consignes du 19/10, à garder) :
 - **Une seule présentation des énoncés, partout** : badge (Adhésion, Rejet, Dissensus), décomptes, barre pour/contre, puis une barre par camp d'opinion du menu (camps du questionnaire au pré-débat, camps de la transcription ailleurs ; « Non rattachés » en gris). Vert et rouge vifs pour les barres (`--pour-vif` `#2BB061`, `--contre-vif` `#E5503B`), plus soutenus pour le texte et les badges (`--pour` `#1D7F45`, `--contre` `#C0392B`) : moins terne, pas fluo.
 - **Carte pré-débat** : composantes principales des votes, sans unité, ramenées dans ±9 avec le même facteur sur les deux axes. Les libellés d'axes de `pre_debate_lecture` sont une **lecture** (déduite des centres des camps et des assertions qui les distinguent) et la page le dit sous la carte. Ce n'est pas la grille du débat.
 - **Synthèse de chaque camp pré-débat** : deux lignes au plus, tirées seulement des assertions caractéristiques du camp et de ses parts dans les consensus et dissensus. Ne rien prêter au camp qui n'est pas dans l'export.
-- **Un seul plan 2D** pour la synthèse flash et les tables : la grille de l'analyse croisée.
+- **Un seul plan 2D** pour la synthèse flash et les tables : le plan **calculé** à partir des prises de position (§ suivant), jamais une grille choisie à la lecture.
 - **Classement de la transcription** (`rank_statements`) : consensus = ≥ 3 voix pour/contre et indice d'accord ≥ 0,5 (≥ 75 % du même côté, adhésion **ou** rejet), classé par écart net ; dissensus = des voix des deux côtés et indice < 0,5, classé par taille du côté minoritaire. Égalités avec le 3ᵉ signalées ; s'il y en a moins de 3, la page le dit au lieu d'en inventer. Le classement du pré-débat est celui de l'appli, jamais recalculé.
 - **Temps par sujet sans hiérarchie** : « La question posée » / « Questions liées » / « Sujets annexes » (`KIND_LABELS`), jamais « cœur du sujet » ni « leviers et effets ».
 - **Charte de l'appli** (chantier 168) : bleu marine `#15233F`, crème `#FBF9F4`, sable `#F1EBDD`, Newsreader + Archivo (licences OFL à côté), angles quasi droits. Aucun CDN, aucune dépendance.
 - **Garde-fous** : textes écrits à la main (`flash_summary`, `pre_debate_lecture`) et textes de l'export passent par `_check_text` (ni guillemets ni prénom de `name_map.json`). Refus (« Page unifiée refusée ») si l'export n'est pas `ecclesia.pre_debat.v1`, s'il manque une liste, si un nombre est hors bornes, si un camp cité n'existe pas, si une couleur n'est pas `#RRGGBB`, ou si la lecture cite un camp inconnu ou laisse un libellé d'axe vide.
 
 Premiers cas : Héritage (0650D7 × 4999B8, sans pré-débat) ; insécurité (3EBF76 × 3E24D5, avec pré-débat et lecture, 19/10) ; capitalisme et écologie (F4A8FC seule, avec pré-débat, 19/10).
+
+### Calcul des opinions de la transcription (`opinion_math.py`, depuis le 2026-10-19)
+
+Carte, camps, axes, énoncés caractéristiques et classement des consensus sont **calculés** à partir du seul relevé des prises de position (`statements` de l'analyse croisée), avec des méthodes publiées : plus aucune position ni aucun camp choisi à la lecture n'est affiché. Origine : [audit du 2026-10-19](Visualisation%20prises%20de%20positions/audit_methodes_2026-10.md). **Le pré-débat n'est pas concerné** : il reste lu tel quel dans l'export de l'appli, sans aucun recalcul.
+
+| Étape | Méthode | Référence |
+|---|---|---|
+| Matrice voix × énoncés | pour = +1, contre = −1, nuance = 0 (le « passe »), non exprimé = vide | Polis, Small et al. 2021, §1.1 |
+| Carte | vide = moyenne de la colonne ; ACP, 2 composantes ; position × √(C / Cp) ; voix placée si ≥ `MIN_VOTES` = 3 prises de position ; énoncé gardé si ≥ 2 voix placées s'y sont exprimées ; orientation déterministe ; ramenée dans ±9 | Polis §1.1-1.2 |
+| Mouvement | la position d'une voix est recalculée (même base) à chacune de ses prises de position, dès la 3ᵉ : un point ne bouge que quand la personne s'exprime | — |
+| Camps | k-moyennes (k-means++, graine 42), k de 2 à min(5, n/3) à la meilleure silhouette, aucun camp d'une seule personne | Polis §1.3 ; Rousseeuw 1987 |
+| Camps « nets » | silhouette > 95ᵉ centile de la même procédure sur 100 nuages gaussiens sans structure ; sinon **aucun camp affiché** (« Pas de camps nets ») | gap statistic, Tibshirani et al. 2001 |
+| Stabilité | rééchantillonnage des voix, indice de Rand ajusté médian (affiché) | Hennig 2007 ; Hubert & Arabie 1985 |
+| Énoncés d'un camp | P = (1 + N_v)/(2 + N), rapport camp/reste, test de deux proportions, z ≥ 1,2816 et P ≥ 0,5 ; adhésion d'abord, puis rejet | Polis §1.4 |
+| Consensus | éligible : ≥ 3 voix pour/contre, ≥ 75 % du même côté, aucun camp qui penche de l'autre côté ; classé par le produit sur les camps de P(côté \| camp) | Polis §1.4 |
+| Dissensus | voix des deux côtés, sans majorité nette ; classé par l'écart de P(pour \| camp) entre camps, sinon par la taille du côté minoritaire | même définition que l'export pré-débat |
+| Axes | les `AXIS_STATEMENTS` = 4 énoncés de plus fort poids sur chaque composante, avec le côté où l'adhésion pousse | — |
+| Concordance lecture/calcul | si des `x`/`y` de lecture existent : analyse procustéenne, comparée au hasard | Gower 1975 |
+| Fiabilité du relevé | si `codage_double` est donné : alpha de Krippendorff nominal (voix × énoncé, 4 valeurs dont « non exprimé ») | Krippendorff 2004 |
+
+Spec `analyse_unifiee.json`, deux clés facultatives en plus :
+- `"transcription_lecture"` : `{"axes": {"x": {"left","right"}, "y": {"bottom","top"}}, "camps": {"1": {"taille": 4, "label": "…", "synthese": "…"}}}`. **Nomme** ce qui a été calculé, ne le décide pas : refus si un camp cité n'existe pas (ou s'il n'y a pas de camps nets) ou si `taille` ne correspond plus au camp calculé (les camps ont changé : relire la page avant de les renommer). Sans lecture : « Camp 1 », « Camp 2 »… et « axe 1 · x % des écarts ».
+- `"codage_double"` : chemin d'un second relevé **indépendant** des mêmes énoncés, `{"statements": [{"text": "<texte identique>", "stances": [{"p": "A1", "pos": "pour"}]}]}`. Sans lui, la page dit que le relevé n'a pas été doublé.
+
+La page affiche ces chiffres (bloc « Comment cette carte et ces camps sont calculés » de la synthèse flash). État au 2026-10-19 sur les trois débats : **aucun camp net** (Héritage : silhouette 0,53 contre 0,56 au hasard ; capitalisme : 0,36 contre 0,58 ; insécurité : tout regroupement isole une personne), carte calculée concordante avec l'ancienne lecture à 36-60 %. Pour obtenir des camps qui tiennent, il faut **plus de prises de position par voix** (relevé plus complet, idéalement sur une grille d'énoncés fixée d'avance), pas un seuil plus permissif.
 
 ### Publier la visualisation sur un site (ancienne page par table)
 Un seul dossier sur l'hébergeur (GitHub Pages ou autre) pour **tous** les débats : `index.html`, `d3.v7.min.js`, `logo_ecclesia.png`, `playfair-display.woff2`, `playfair-display-italic.woff2` et `OFL-playfair-display.txt` (identiques pour chaque débat) + un `<CODE>.json` par débat. `data.js` est inutile en ligne. **Relire le JSON avant de le publier** (aucun prénom réel).
@@ -341,7 +367,7 @@ Depuis `backend/`, avec le **Python système** (pas le venv) :
 ```
 python -m pytest tests/ -v
 ```
-289 tests : `anonymize_log`, `transcribe_offline`, `voice`, `boundaries`, `correct_transcript`, `deduplicate`, `quality`, `evaluate`, `analyze_debate`, `build_manual_viz`, `build_cross_viz`, `build_unified_viz`. `conftest.py` (racine backend) ajoute `code python/` au `sys.path` ; `tests/conftest.py` neutralise `run_diarization` (les tests ne lancent jamais pyannote : ils passent par `--diarization-cache`).
+322 tests : `anonymize_log`, `transcribe_offline`, `voice`, `boundaries`, `correct_transcript`, `deduplicate`, `quality`, `evaluate`, `analyze_debate`, `build_manual_viz`, `build_cross_viz`, `build_unified_viz`, `opinion_math`. `conftest.py` (racine backend) ajoute `code python/` au `sys.path` ; `tests/conftest.py` neutralise `run_diarization` (les tests ne lancent jamais pyannote : ils passent par `--diarization-cache`).
 
 ---
 
@@ -359,6 +385,7 @@ python -m pytest tests/ -v
 - **Toute évolution de l'attribution se mesure** : rejouer avec `--whisper-cache` + `--diarization-cache` et comparer `evaluate.py metrics` (et `score` quand des références existent) avant/après.
 - **Pas de mode live.** `main.py`/`transcriber.py`/`diarizer.py`/`speaker_tracker.py` et le frontend ont été supprimés : tout est offline.
 - **`analyze_debate.py`** : le LLM ne fait que de l'interprétation ; `weight`/`entry`/`refus`/`speech`/durée, les trajectoires (`kf`, lissage EWMA des scores par bloc) ET la polarisation (Esteban-Ray) sont calculés depuis le JSON, jamais demandés au LLM. Les `stance`/ancres sont des REFORMULATIONS — `validate_scores` rejette les guillemets ; ne jamais lever ce garde-fou ni l'anti-invention de prénoms. `GEMINI_ANALYSIS_MODEL` distinct de `GEMINI_MODEL`. Le template `viz_template/index.html` est une page unique pilotée par `<CODE>.json` (`?debat=`) ou, à défaut, `data.js` (sections conditionnelles, durée via `meta.totalDurationMinutes` — jamais en dur). Aucun script depuis un CDN : il doit rester publiable tel quel sur un site (voir « Publier la visualisation sur un site »), d3, logo et polices sont copiés à côté par `write_viz` (`_ASSETS`). Couleurs et polices de la charte Ecclesia en variables CSS (`--brand`, `--serif`…). Pas de liste des prises de position d'une personne au clic (retirée volontairement). Tout texte du JSON passe par `innerHTML` : ne jamais élargir le motif de `?debat=` au-delà de `[A-Za-z0-9_-]`.
+- **Opinions de la transcription = calcul, jamais lecture** (`opinion_math.py`, § Calcul des opinions) : ne pas réintroduire de position, de camp ou d'axe choisi à la main dans ce qui est affiché ; une lecture ne fait que nommer (`transcription_lecture`, garde de taille). Ne pas abaisser `MIN_VOTES`, ni retirer le test « camps nets » ou l'interdiction des camps d'une personne pour « avoir des camps » : c'est précisément ce que l'audit a jugé non défendable. Tout reste déterministe (graines fixes). Le pré-débat n'est jamais recalculé.
 - **Audit du 2026-10-19 de la chaîne actuelle** (énoncés, camps et carte écrits à la main, pré-débat Polis) : [`Visualisation prises de positions/audit_methodes_2026-10.md`](Visualisation%20prises%20de%20positions/audit_methodes_2026-10.md) — chiffres de fiabilité sur les débats réels et méthodes publiées à adopter. Le lire avant de toucher aux camps, aux énoncés ou à la carte.
 - **Fondations scientifiques de l'analyse** (voir `Visualisation prises de positions/recherche_classification_opinions_2026-07.md`) — ne pas défaire sans lire le doc : appels Gemini d'analyse en `GEN_CONFIG` (temperature 0 + seed, §5.2) ; scoring sur échelle **ordinale** -2..+2 (`ORD_MIN/ORD_MAX`), remappée `×ORD_SCALE` à l'ingestion (§8.3.1) ; ancres des pôles injectées dans le prompt de scoring (`_anchor_lines`, §5.3) ; salience bornée par `SALIENCE_FLOOR=0.3` (§8.3.4) ; keyframes de maintien `TRAJ_HOLD_GAP=3 min`/`TRAJ_TRANSITION=1 min` — une voix silencieuse ne glisse pas sur la carte (§8.3.3) ; audit de symétrie `run_symmetry_audit` (inversion d'axes, ≥ 8 blocs, → `meta.reliability`, §8.4.3) désactivable via `analyze(..., audit=False)`.
 

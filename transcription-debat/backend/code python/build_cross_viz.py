@@ -174,7 +174,7 @@ def build(spec: dict, tables: list[dict]) -> dict:
 
     for label in ("summary",):
         _check_text(spec[label], label, names)
-    for axis in ("x", "y"):
+    for axis in ("x", "y") if spec.get("axes") else ():
         for pole, anchors in spec["axes"][axis]["anchors"].items():
             for a in anchors:
                 _check_text(a, f"ancre {axis}.{pole}", names)
@@ -185,35 +185,41 @@ def build(spec: dict, tables: list[dict]) -> dict:
     for pkey in sorted(given, key=lambda s: (s[0], int(s[1:]))):
         m = spec["personas"][pkey]
         tk, vid = pkey[0], "i" + pkey[1:]
-        x, y = float(m["x"]), float(m["y"])
-        if not (AXIS_MIN <= x <= AXIS_MAX and AXIS_MIN <= y <= AXIS_MAX):
-            raise CrossError(f"{pkey} : position hors du plan ({x}, {y})")
-        unc = m.get("uncertain") or {}
-        if set(unc) - {"x", "y"}:
-            raise CrossError(f"{pkey} : axe incertain inconnu {sorted(unc)}")
         for f in ("camp", "note"):
-            _check_text(m[f], f"{pkey}.{f}", names)
+            if m.get(f):
+                _check_text(m[f], f"{pkey}.{f}", names)
         entry = round(entries[tk][vid], 2)
-        kf, shifts, cur = [[entry, x, y]], [], (x, y)
-        for sh in sorted(m.get("shifts", []), key=lambda s: s["t"]):
-            ts = _snap(starts[tk][vid], sh["t"], f"{pkey} : changement d'avis")
-            nx, ny = float(sh["x"]), float(sh["y"])
-            if not (AXIS_MIN <= nx <= AXIS_MAX and AXIS_MIN <= ny <= AXIS_MAX):
-                raise CrossError(f"{pkey} à {ts} min : changement d'avis hors du plan")
-            if ts <= kf[-1][0] or ts >= duration:
-                raise CrossError(f"{pkey} à {ts} min : changement d'avis pendant le précédent, ou après la fin")
-            _check_text(sh["desc"], f"{pkey} : changement d'avis", names)
-            kf += [[ts, *cur], [round(min(ts + SHIFT_TRANSITION, duration), 2), nx, ny]]
-            shifts.append({"t": ts, "from": list(cur), "to": [nx, ny], "desc": sh["desc"]})
-            cur = (nx, ny)
-        if kf[-1][0] < duration:
-            kf.append([round(duration, 2), *cur])
-        persona = {"key": pkey, "table": tk, "id": vid, "label": pkey, "camp": m["camp"], "note": m["note"],
-                   "x": x, "y": y, "weight": minutes[tk][vid], "entry": entry, "kf": kf}
-        if unc:
-            persona["uncertain"] = unc
-        if shifts:
-            persona["shifts"] = shifts
+        persona = {"key": pkey, "table": tk, "id": vid, "label": pkey, "camp": m.get("camp", ""),
+                   "note": m.get("note", ""), "weight": minutes[tk][vid], "entry": entry}
+        # Position écrite à la lecture : FACULTATIVE depuis le 2026-10-19. La page unifiée calcule la carte
+        # à partir des prises de position (opinion_math) et ne se sert de celle-ci que pour mesurer la
+        # concordance entre la lecture et le calcul.
+        if "x" in m or "y" in m:
+            x, y = float(m["x"]), float(m["y"])
+            if not (AXIS_MIN <= x <= AXIS_MAX and AXIS_MIN <= y <= AXIS_MAX):
+                raise CrossError(f"{pkey} : position hors du plan ({x}, {y})")
+            unc = m.get("uncertain") or {}
+            if set(unc) - {"x", "y"}:
+                raise CrossError(f"{pkey} : axe incertain inconnu {sorted(unc)}")
+            kf, shifts, cur = [[entry, x, y]], [], (x, y)
+            for sh in sorted(m.get("shifts", []), key=lambda s: s["t"]):
+                ts = _snap(starts[tk][vid], sh["t"], f"{pkey} : changement d'avis")
+                nx, ny = float(sh["x"]), float(sh["y"])
+                if not (AXIS_MIN <= nx <= AXIS_MAX and AXIS_MIN <= ny <= AXIS_MAX):
+                    raise CrossError(f"{pkey} à {ts} min : changement d'avis hors du plan")
+                if ts <= kf[-1][0] or ts >= duration:
+                    raise CrossError(f"{pkey} à {ts} min : changement d'avis pendant le précédent, ou après la fin")
+                _check_text(sh["desc"], f"{pkey} : changement d'avis", names)
+                kf += [[ts, *cur], [round(min(ts + SHIFT_TRANSITION, duration), 2), nx, ny]]
+                shifts.append({"t": ts, "from": list(cur), "to": [nx, ny], "desc": sh["desc"]})
+                cur = (nx, ny)
+            if kf[-1][0] < duration:
+                kf.append([round(duration, 2), *cur])
+            persona.update({"x": x, "y": y, "kf": kf})
+            if unc:
+                persona["uncertain"] = unc
+            if shifts:
+                persona["shifts"] = shifts
         personas.append(persona)
 
     # 2. Polarisation et centres de gravité (sur les positions finales, pondérées par le temps de parole ;
@@ -222,7 +228,7 @@ def build(spec: dict, tables: list[dict]) -> dict:
         out, n = {}, {}
         for axis in ("x", "y"):
             pts = [(p["kf"][-1][1 if axis == "x" else 2], p["weight"]) for p in subset
-                   if axis not in p.get("uncertain", {})]
+                   if "kf" in p and axis not in p.get("uncertain", {})]
             out[axis], n[axis] = esteban_ray(pts), len(pts)
         return {"x": out["x"], "y": out["y"], "n": n["x"], "nY": n["y"]}
 
@@ -230,7 +236,7 @@ def build(spec: dict, tables: list[dict]) -> dict:
         res = {}
         for axis in ("x", "y"):
             pts = [(p["kf"][-1][1 if axis == "x" else 2], p["weight"]) for p in subset
-                   if axis not in p.get("uncertain", {}) and p["weight"] > 0]
+                   if "kf" in p and axis not in p.get("uncertain", {}) and p["weight"] > 0]
             tw = sum(w for _, w in pts)
             res[axis] = round(sum(v * w for v, w in pts) / tw, 2) if tw else None
         return res
@@ -261,7 +267,7 @@ def build(spec: dict, tables: list[dict]) -> dict:
 
     # 4. Groupes d'opinion transverses
     seen: set[str] = set()
-    for grp in spec["groups"]:
+    for grp in spec.get("groups", []):
         _check_text(grp["label"], "groupe", names)
         for pk in grp["members"]:
             if pk not in given or pk in seen:
@@ -335,8 +341,8 @@ def build(spec: dict, tables: list[dict]) -> dict:
     return {
         "meta": {"title": spec["title"], "subtitle": spec["subtitle"], "topic": spec.get("topic", ""),
                  "duration": round(duration, 2), "tables": meta_tables},
-        "axes": spec["axes"], "personas": personas, "polarization": polarization, "centroids": centroids,
-        "synthesis": {"summary": spec["summary"], "groups": spec["groups"],
+        "axes": spec.get("axes"), "personas": personas, "polarization": polarization, "centroids": centroids,
+        "synthesis": {"summary": spec["summary"], "groups": spec.get("groups", []),
                       "unclassified": spec.get("unclassified", {"members": [], "note": ""})},
         "themes": common, "statements": statements,
         "differences": spec["differences"], "only_one_table": only, "method": spec["method"],

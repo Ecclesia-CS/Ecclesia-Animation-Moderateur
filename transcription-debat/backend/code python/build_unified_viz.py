@@ -11,10 +11,14 @@ Une seule page, des menus repliables de haut en bas :
    passé par sujet, carte animée (échanges en flèches, changements d'avis) avec la tension intégrée au
    panneau « en ce moment », camps d'opinion de la table.
 
-La carte est la MÊME grille dans tous les menus : positions de l'analyse croisée (build_cross_viz.build,
-recalculée en mémoire), et non les axes propres à chaque analyse par table. Des analyses par table on garde
-ce qui est propre au déroulé (prises de parole, reformulations horodatées, échanges, événements, tension,
-thèmes), calculé EN MÉMOIRE par build_manual_viz.build : aucune page par table ni page croisée n'est écrite.
+La carte est le MÊME plan dans tous les menus, et elle est CALCULÉE (depuis le 2026-10-19, opinion_math) :
+analyse en composantes principales façon Polis de la matrice voix × énoncés tirée des prises de position
+relevées (pour / contre / nuance), camps par k-moyennes + silhouette, affichés seulement s'ils battent un
+test d'absence de structure, énoncés caractéristiques et consensus selon Polis. Les positions et camps
+écrits à la lecture ne sont plus affichés : s'ils existent, ils servent seulement à mesurer la concordance
+entre la lecture et le calcul. Des analyses par table on garde ce qui est propre au déroulé (prises de
+parole, reformulations horodatées, échanges, événements, tension, thèmes), calculé EN MÉMOIRE par
+build_manual_viz.build : aucune page par table ni page croisée n'est écrite.
 
 Anonymat des synthèses (consigne du 2026-10-19) : consensus, dissensus, carte de la synthèse flash et
 camps ne montrent jamais qui a dit quoi, seulement des décomptes (global et par camp) ; seule la carte
@@ -30,7 +34,11 @@ Spec (JSON, chemins relatifs à backend/) :
     "pre_debate": "transcripts/<Thème>/ecclesia_pre_debat_<titre>_<date>.json",     (ou null)
     "pre_debate_lecture": {                                                          (facultatif)
        "axes":  {"x": {"left": "...", "right": "..."}, "y": {"bottom": "...", "top": "..."}},
-       "camps": {"1": "synthèse de deux lignes", "2": "..."} } }
+       "camps": {"1": "synthèse de deux lignes", "2": "..."} },
+    "transcription_lecture": {                                                       (facultatif)
+       "axes":  {"x": {"left": "...", "right": "..."}, "y": {"bottom": "...", "top": "..."}},
+       "camps": {"1": {"taille": 4, "label": "nom du camp calculé", "synthese": "..."}} },
+    "codage_double": "transcripts/<Thème>/codage_2.json" }                           (facultatif)
 
 Usage (depuis backend/) :
   .venv\\Scripts\\python "code python\\build_unified_viz.py" <spec.json> [--out <dossier>]
@@ -42,8 +50,11 @@ import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
+
 from build_cross_viz import CrossError, _check_text, build as build_cross, load_tables
 from build_manual_viz import AnalysisError, build as build_table
+import opinion_math as om
 
 TOP_N = 3
 MIN_VOICES_CONSENSUS = 3   # au moins 3 voix pour/contre pour parler de consensus
@@ -55,15 +66,22 @@ CAMP_COLORS = ["#1E6B6D", "#9B3A2D", "#6383B4", "#7A5C99", "#3F8462", "#B97A2A"]
 UNCLASSIFIED_COLOR = "#898A8C"
 # Pied de page : méthode de CETTE page (le classement diffère de celui de la page croisée, d'où un texte propre).
 FOOTER = [
-    "⚠ Positions interprétatives et volontairement grossières (pas de 2,5), établies à la lecture des transcriptions "
-    "et recalées sur une grille commune à toutes les tables : ce ne sont pas des mesures. Quelques tables et une "
-    "quinzaine de participants forment un petit échantillon, sans valeur statistique.",
+    "⚠ Carte et camps de la transcription calculés, pas choisis : analyse en composantes principales et regroupement "
+    "des prises de position relevées, selon la méthode de Polis, avec un test qui écarte les camps indiscernables du "
+    "hasard. Quelques tables et une quinzaine de participants forment un petit échantillon : à lire avec prudence.",
     f"⚠ Consensus et dissensus sont classés par calcul à partir des prises de position relevées : consensus = au moins "
-    f"{MIN_VOICES_CONSENSUS} voix pour ou contre, dont au moins les trois quarts du même côté ; dissensus = des voix "
-    "des deux côtés sans majorité nette. Ne pas s'être exprimé n'est ni une adhésion ni un rejet.",
-    "⚠ Les résumés et les prises de position sont des reformulations, jamais des citations, et aucun prénom réel "
-    "n'apparaît. Temps de parole, sujets, tension et échanges viennent des analyses de chaque table.",
+    f"{MIN_VOICES_CONSENSUS} voix pour ou contre, dont au moins les trois quarts du même côté, classés par le consensus "
+    "tenant compte des camps de Polis ; dissensus = des voix des deux côtés sans majorité nette. Ne pas s'être exprimé "
+    "n'est ni une adhésion ni un rejet.",
+    "⚠ Les énoncés et les prises de position sont relevés à la lecture de la transcription, chacun rattaché à un moment "
+    "de l'enregistrement ; ce sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît.",
 ]
+
+MAP_EXTENT = 9.0      # carte de la transcription ramenée dans ±9 (même facteur sur les deux axes)
+MAP_CLIP = 9.8        # une position intermédiaire (peu de prises de position) ne sort pas du plan
+MOVE_MINUTES = 1.0    # durée de l'animation quand une nouvelle prise de position déplace un point
+AXIS_STATEMENTS = 4   # énoncés qui pèsent le plus sur chaque axe, montrés sous la carte
+TABLE_COLORS = ["var(--ta)", "var(--tb)", "var(--tc3)", "var(--tc4)"]
 
 PRE_DEBATE_FORMAT = "ecclesia.pre_debat.v1"
 PRE_MAP_EXTENT = 9.0   # la carte ACP pré-débat (sans unité) est ramenée dans ±9 sur le plan -10..+10 de la page
@@ -98,16 +116,6 @@ def tally(stances: list[dict]) -> dict:
             "agreement": round(abs(p - c) / (p + c), 3) if p + c else 0.0}
 
 
-def _consensus_key(s: dict):
-    # marge nette d'abord (10 voix contre 1 pèse plus que 3 voix contre 0), puis netteté, puis voix exprimées
-    return (abs(s["p"] - s["c"]), s["agreement"], s["p"] + s["c"] + s["nu"])
-
-
-def _dissensus_key(s: dict):
-    # taille du camp minoritaire d'abord (un vrai face-à-face), puis équilibre, puis voix exprimées
-    return (min(s["p"], s["c"]), -s["agreement"], s["p"] + s["c"] + s["nu"])
-
-
 _VOICE_KEY_RE = re.compile(r"\b[A-H]\d{1,2}\b")
 
 
@@ -118,40 +126,56 @@ def anonymize_keys(text: str) -> str:
     return _VOICE_KEY_RE.sub("une personne", text)
 
 
-def public_camps(groups: list[dict], unclassified: dict | None, table_of=None) -> tuple[list[dict], dict]:
-    """Camps tels qu'affichés : titre, couleur, taille (et répartition par table), arguments ; jamais leurs membres."""
+def public_camps(groups: list[dict], table_of=None) -> list[dict]:
+    """Camps tels qu'affichés : nom, couleur, taille (et répartition par table), énoncés qui les distinguent,
+    synthèse éventuelle ; jamais leurs membres."""
     out = []
     for g in groups:
-        c = {"label": g["label"], "color": g["color"], "size": len(g["members"]),
-             "arguments": [anonymize_keys(a) for a in g.get("arguments", [])],
-             **({"note": anonymize_keys(g["note"])} if g.get("note") else {})}
+        c = {"camp": g["camp"], "label": g["label"], "color": g["color"], "size": len(g["members"]),
+             "representative": g.get("representative", []),
+             **({"synthese": anonymize_keys(g["synthese"])} if g.get("synthese") else {})}
         if table_of:
             by: dict[str, int] = {}
             for m in g["members"]:
                 by[table_of(m)] = by.get(table_of(m), 0) + 1
             c["by_table"] = by
         out.append(c)
-    un = unclassified or {}
-    return out, {"count": len(un.get("members", [])), "note": anonymize_keys(un.get("note", ""))}
+    return out
 
 
-def rank_statements(statements: list[dict], n: int = TOP_N, camp_of=None, n_camps: int = 0) -> dict:
+def rank_statements(statements: list[dict], groups: list[set[str]] | None = None, n: int = TOP_N,
+                    camp_of=None, n_camps: int = 0) -> dict:
     """Les n plus forts consensus (adhésion OU rejet) et dissensus, avec les énoncés à égalité avec le
-    dernier retenu. `statements` : [{text, stances:[{p, pos, t}]}] déjà restreints aux voix voulues.
+    dernier retenu. `statements` : [{text, stances:[{p, pos, t}]}] déjà restreints aux voix voulues ;
+    `groups` : membres de chaque camp calculé (vide ou None = pas de camps nets : toutes les voix forment
+    un seul groupe).
 
-    Consensus : au moins MIN_VOICES_CONSENSUS voix pour/contre et indice d'accord ≥ CONSENSUS_AGREEMENT.
-    Dissensus : au moins une voix de chaque côté et indice d'accord < CONSENSUS_AGREEMENT.
-    Les nuances ne comptent pas dans l'indice ; elles sont affichées.
+    Éligibilité (inchangée) : consensus = au moins MIN_VOICES_CONSENSUS voix pour/contre, indice d'accord
+    ≥ CONSENSUS_AGREEMENT, et aucun camp qui penche de l'autre côté ; dissensus = des voix des deux côtés
+    et indice < CONSENSUS_AGREEMENT. Les nuances (le « passe » de Polis) ne comptent pas dans l'indice.
 
-    Sortie anonyme : décomptes seulement, jamais qui a pris position. `camp_of(clé) → n° de camp (1..n_camps)
-    ou None` ajoute `par_camp` (pour/contre/nuance de chaque camp ; camp 0 = voix non rattachées)."""
+    Classement (Polis) : consensus par le consensus « tenant compte des groupes », produit sur les camps
+    de P(côté | camp) avec pseudo-comptes ; dissensus par l'écart de P(pour | camp) entre le camp le plus
+    pour et le plus contre, ou, sans camps, par la taille du côté minoritaire.
+
+    Sortie anonyme : décomptes seulement. `camp_of(clé) → n° de camp (1..n_camps) ou None` ajoute
+    `par_camp` (camp 0 = voix non rattachées)."""
+    voices = {s["p"] for st in statements for s in st["stances"]}
+    gs = [g for g in (groups or []) if g] or [voices]
     rows = []
     for st in statements:
         t = tally(st["stances"])
         if t["p"] + t["c"] + t["nu"] == 0:
             continue
         side = "pour" if t["p"] >= t["c"] else "contre"
-        row = {"text": st["text"], "side": side, "p": t["p"], "c": t["c"], "nu": t["nu"], "agreement": t["agreement"]}
+        cons = om.group_consensus(st["stances"], gs)
+        split = om.camp_split(st["stances"], gs) if len(gs) >= 2 else None
+        leans_other = any(
+            om._p(cnt[1] if side == "pour" else cnt[0], cnt[0] + cnt[1]) > 0.5
+            for cnt in (om._counts(st["stances"], g) for g in gs) if cnt[0] + cnt[1])
+        row = {"text": st["text"], "side": side, "p": t["p"], "c": t["c"], "nu": t["nu"], "agreement": t["agreement"],
+               "score_consensus": round(cons[side], 4), "score_dissensus": None if split is None else round(split, 4),
+               "_leans_other": leans_other}
         if camp_of is not None:
             per = {i: {"camp": i, "pour": 0, "contre": 0, "nuance": 0} for i in range(1, n_camps + 1)}
             for s in st["stances"]:
@@ -167,10 +191,13 @@ def rank_statements(statements: list[dict], n: int = TOP_N, camp_of=None, n_camp
         ties = [c for c in cands[n:] if top and key(c) == key(top[-1])]
         return top, ties
 
-    cons = [r for r in rows if r["p"] + r["c"] >= MIN_VOICES_CONSENSUS and r["agreement"] >= CONSENSUS_AGREEMENT]
+    cons = [r for r in rows if r["p"] + r["c"] >= MIN_VOICES_CONSENSUS and r["agreement"] >= CONSENSUS_AGREEMENT
+            and not r["_leans_other"]]
     diss = [r for r in rows if r["p"] >= 1 and r["c"] >= 1 and r["agreement"] < CONSENSUS_AGREEMENT]
-    ctop, cties = pick(cons, _consensus_key)
-    dtop, dties = pick(diss, _dissensus_key)
+    ctop, cties = pick(cons, lambda r: (r["score_consensus"], r["p"] + r["c"]))
+    dtop, dties = pick(diss, lambda r: (r["score_dissensus"] or 0.0, min(r["p"], r["c"]), -r["agreement"]))
+    for r in rows:
+        r.pop("_leans_other")
     return {"consensus": ctop, "consensus_ties": [r["text"] for r in cties],
             "dissensus": dtop, "dissensus_ties": [r["text"] for r in dties]}
 
@@ -183,8 +210,8 @@ def theme_minutes(timeline: list) -> dict[str, float]:
     return out
 
 
-def camp_colors(groups: list[dict]) -> list[str]:
-    return [CAMP_COLORS[i % len(CAMP_COLORS)] for i in range(len(groups))]
+def camp_colors(n: int) -> list[str]:
+    return [CAMP_COLORS[i % len(CAMP_COLORS)] for i in range(n)]
 
 
 # ───────────────────────── pré-débat (export de l'appli) ─────────────────────────
@@ -347,28 +374,183 @@ def prepare_pre_debate(raw: dict, names: list[str], lecture: dict | None = None)
     }
 
 
+# ───────────────────────── opinions de la transcription (calculées) ─────────────────────────
+
+def _ttext(v, where: str, names: list[str]) -> str:
+    if not isinstance(v, str) or not v.strip():
+        raise UnifiedError(f"{where} : texte attendu")
+    try:
+        _check_text(v, where, names)
+    except CrossError as e:
+        raise UnifiedError(str(e)) from e
+    return v
+
+
+def _keyframes(stances: list[tuple[float, int, float]], pm: dict, scale: float, duration: float) -> list[list[float]]:
+    """Trajectoire d'une voix : sa position est recalculée (même base que l'ACP finale) à chaque nouvelle
+    prise de position, dès qu'elle en a MIN_VOTES. Elle ne bouge donc que lorsqu'elle s'exprime sur un
+    énoncé. `stances` : [(t en minutes, colonne de l'énoncé, valeur)]."""
+    col_of = {c: i for i, c in enumerate(pm["cols"])}
+    row = np.full(len(pm["cols"]), np.nan)
+    times = sorted({t for t, _, _ in stances})
+    seen, kf = 0, []
+    for i, t in enumerate(times):
+        for tt, j, v in stances:
+            if tt == t:
+                seen += 1
+                if j in col_of:
+                    row[col_of[j]] = v
+        if seen < om.MIN_VOTES or np.all(np.isnan(row)):
+            continue
+        xy = om.project(row, pm["means"], pm["components"], len(pm["cols"])) * scale
+        xy = [round(float(np.clip(v, -MAP_CLIP, MAP_CLIP)), 3) for v in xy]
+        if not kf:
+            kf.append([round(t, 2), *xy])
+            continue
+        nxt = times[i + 1] if i + 1 < len(times) else duration
+        kf += [[round(t, 2), *kf[-1][1:]], [round(t + min(MOVE_MINUTES, max(0.01, 0.9 * (nxt - t))), 2), *xy]]
+    if kf and kf[-1][0] < duration:
+        kf.append([round(duration, 2), *kf[-1][1:]])
+    return kf
+
+
+def transcription_opinions(cross: dict, durations: dict[str, float], names: list[str],
+                           lecture: dict | None = None, second_coding: dict | None = None) -> dict:
+    """Carte, camps, axes et indicateurs de fiabilité calculés à partir des seules prises de position
+    relevées (opinion_math : Polis + tests de validité). La lecture écrite à la main (libellés des axes,
+    noms et synthèses des camps) est facultative et ne fait que nommer ce qui a été calculé."""
+    personas = cross["personas"]
+    voices = [p["key"] for p in personas]
+    statements = cross["statements"]
+    m = om.vote_matrix(voices, [st["stances"] for st in statements])
+    pm = om.polis_map(m)
+    lecture = lecture or {}
+
+    pos: dict[str, dict] = {k: {"placed": False, "kf": []} for k in voices}
+    groups, axes = [], None
+    camps_info = {"nets": False, "k": 0, "raison": "trop peu de prises de position pour une carte"}
+    if pm is not None:
+        coords = pm["coords"]
+        extent = float(np.max(np.abs(coords))) if coords.size else 0.0
+        scale = MAP_EXTENT / extent if extent > 0 else 1.0
+        by_voice: dict[str, list] = {k: [] for k in voices}
+        for j, st in enumerate(statements):
+            for s in st["stances"]:
+                by_voice[s["p"]].append((s["t"], j, om.ENCODE[s["pos"]]))
+        for i, vi in enumerate(pm["placed"]):
+            k = voices[vi]
+            kf = _keyframes(by_voice[k], pm, scale, durations[k[0]])
+            final = [round(float(v * scale), 3) for v in coords[i]]
+            if kf:
+                kf[-1][1:] = final
+            pos[k] = {"placed": True, "x": final[0], "y": final[1], "kf": kf}
+
+        camps_info = om.camps(coords)
+        if camps_info["nets"]:
+            labels = camps_info["labels"]
+            members = [{voices[pm["placed"][i]] for i, lab in enumerate(labels) if lab == g}
+                       for g in range(camps_info["k"])]
+            for g, (mem, color) in enumerate(zip(members, camp_colors(camps_info["k"])), 1):
+                others = set(voices) - mem
+                groups.append({"camp": g, "label": f"Camp {g}", "color": color,
+                               "members": sorted(mem, key=lambda s: (s[0], int(s[1:]))),
+                               "representative": om.representative(statements, mem, others)})
+
+        def pole(k: int) -> list[dict]:
+            w = pm["components"][k]
+            top = sorted(range(len(w)), key=lambda j: -abs(w[j]))[:AXIS_STATEMENTS]
+            return [{"text": statements[pm["cols"][j]]["text"], "poids": round(float(w[j]), 3),
+                     "accord_vers": "plus" if w[j] > 0 else "moins"} for j in top if abs(w[j]) > 1e-9]
+        axes = {"x": {"variance": round(pm["variance"][0], 3), "enonces": pole(0)},
+                "y": {"variance": round(pm["variance"][1], 3), "enonces": pole(1)}, "lecture": None}
+
+    # Lecture écrite à la main : libellés des axes, noms et synthèses des camps calculés
+    la = lecture.get("axes")
+    if la is not None:
+        if axes is None:
+            raise UnifiedError("transcription_lecture : libellés d'axes donnés, mais aucune carte n'a pu être calculée")
+        axes["lecture"] = {"x": {s: _ttext((la.get("x") or {}).get(s), f"lecture, axe x, {s}", names) for s in ("left", "right")},
+                           "y": {s: _ttext((la.get("y") or {}).get(s), f"lecture, axe y, {s}", names) for s in ("bottom", "top")}}
+    lc = lecture.get("camps") or {}
+    known = {str(g["camp"]): g for g in groups}
+    unknown = set(lc) - set(known)
+    if unknown:
+        raise UnifiedError(f"transcription_lecture : camps inconnus {sorted(unknown)} "
+                           f"({'aucun camp net' if not groups else f'{len(groups)} camps calculés'})")
+    for cid, entry in lc.items():
+        g = known[cid]
+        if not isinstance(entry, dict) or entry.get("taille") != len(g["members"]):
+            raise UnifiedError(f"transcription_lecture, camp {cid} : la taille donnée ne correspond pas au camp calculé "
+                               f"({len(g['members'])} voix) ; les camps ont changé, relire la page avant de les renommer")
+        g["label"] = _ttext(entry.get("label"), f"lecture, nom du camp {cid}", names)
+        if entry.get("synthese"):
+            g["synthese"] = _ttext(entry["synthese"], f"lecture, synthèse du camp {cid}", names)
+
+    # Indicateurs de méthode, tous calculés
+    n_cells = len(voices) * len(statements)
+    filled = int(np.sum(~np.isnan(m)))
+    method = {"voix": len(voices), "placees": sum(1 for p in pos.values() if p["placed"]),
+              "enonces": len(statements), "enonces_carte": len(pm["cols"]) if pm else 0,
+              "remplissage": round(filled / n_cells, 3) if n_cells else 0.0,
+              "min_prises": om.MIN_VOTES,
+              "variance": [axes["x"]["variance"], axes["y"]["variance"]] if axes else None,
+              "camps": {k: camps_info.get(k) for k in ("nets", "k", "silhouette", "silhouette_hasard_95", "stabilite", "raison")}}
+    by_key = {p["key"]: p for p in personas}
+    hand = [k for k in voices if pos[k]["placed"] and "x" in by_key[k]]
+    if pm is not None and len(hand) >= 4 and len(hand) == method["placees"]:
+        a = np.array([[by_key[k]["x"], by_key[k]["y"]] for k in hand])
+        b = np.array([[pos[k]["x"], pos[k]["y"]] for k in hand])
+        method["concordance_lecture"] = {"r2": round(om.procrustes_r2(a, b), 3),
+                                         "hasard_95": round(om.procrustes_null95(a, b), 3), "n": len(hand)}
+    if second_coding is not None:
+        method["fiabilite_codage"] = coding_reliability(statements, voices, second_coding)
+    return {"positions": pos, "groups": groups, "axes": axes, "method": method}
+
+
+def coding_reliability(statements: list[dict], voices: list[str], other: dict) -> dict:
+    """Alpha de Krippendorff (nominal) entre le codage de la page et un second codage indépendant des
+    MÊMES énoncés ({"statements": [{"text", "stances": [{"p", "pos"}]}]}). Unité = une voix × un énoncé ;
+    valeurs pour / contre / nuance / « ne s'est pas exprimé »."""
+    if not isinstance(other, dict) or not isinstance(other.get("statements"), list):
+        raise UnifiedError("second codage : objet {\"statements\": [...]} attendu")
+    theirs = {st.get("text"): {s["p"]: s["pos"] for s in st.get("stances", [])} for st in other["statements"]}
+    missing = [st["text"] for st in statements if st["text"] not in theirs]
+    if missing:
+        raise UnifiedError(f"second codage : énoncés absents (le texte doit être identique) : {missing[:3]}")
+    units = []
+    for st in statements:
+        mine = {s["p"]: s["pos"] for s in st["stances"]}
+        for v in voices:
+            units.append([mine.get(v, "absent"), theirs[st["text"]].get(v, "absent")])
+    agree = sum(1 for a, b in units if a == b)
+    return {"alpha": om.krippendorff_alpha_nominal(units), "unites": len(units),
+            "accord_brut": round(agree / len(units), 3) if units else None}
+
+
 # ───────────────────────── construction ─────────────────────────
 
 def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
-          pre_debate: dict | None = None) -> dict:
-    """`pre_debate` : contenu du JSON pré-débat exporté par l'appli (déjà lu), ou None → blocs à compléter."""
+          pre_debate: dict | None = None, second_coding: dict | None = None) -> dict:
+    """`pre_debate` : contenu du JSON pré-débat exporté par l'appli (déjà lu), ou None → blocs à compléter.
+    `second_coding` : second codage indépendant des prises de position (facultatif) → alpha de Krippendorff."""
     tables_meta = cross["meta"]["tables"]
     missing = [t["code"] for t in tables_meta if t["code"] not in table_viz]
     if missing:
         raise UnifiedError(f"analyse par table manquante pour {missing}")
     _check_text(spec["flash_summary"], "résumé flash", names)
     by_key = {p["key"]: p for p in cross["personas"]}
-    cross_groups = cross["synthesis"]["groups"]
+    durations = {t["key"]: table_viz[t["code"]]["totalDurationMinutes"] for t in tables_meta}
+    op = transcription_opinions(cross, durations, names, spec.get("transcription_lecture"), second_coding)
+    groups = op["groups"]
+    camp_of = {m: g["camp"] for g in groups for m in g["members"]}
+    camp_sets = [set(g["members"]) for g in groups]
+    table_color = {t["key"]: TABLE_COLORS[i % len(TABLE_COLORS)] for i, t in enumerate(tables_meta)}
     common = [s for s in cross["statements"] if s["scope"] == "commun"]
 
-    flash_groups = [{**g, "color": c} for g, c in zip(cross_groups, camp_colors(cross_groups))]
-    flash_camp = {m: i for i, g in enumerate(flash_groups, 1) for m in g["members"]}
-    camps_pub, un_pub = public_camps(flash_groups, cross["synthesis"].get("unclassified"), table_of=lambda m: m[0])
     flash = {
         "summary": spec["flash_summary"],
-        "ranking": rank_statements(common, camp_of=flash_camp.get, n_camps=len(flash_groups)),
-        "groups": camps_pub,
-        "unclassified": un_pub,
+        "ranking": rank_statements(common, camp_sets, camp_of=camp_of.get if groups else None, n_camps=len(groups)),
+        "groups": public_camps(groups, table_of=lambda m: m[0]),
         "n_participants": len(cross["personas"]),
         "n_common_statements": len(common),
     }
@@ -383,35 +565,30 @@ def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
         if set(per_table) != set(vid_to_key):
             raise UnifiedError(f"table {k} : voix différentes entre l'analyse croisée et l'analyse de la table")
 
-        groups = [{"label": g["label"], "color": c, "members": [vid_to_key[m] for m in g["members"]],
-                   "arguments": [relabel(a, k) for a in g["arguments"]],
-                   **({"note": relabel(g["note"], k)} if g.get("note") else {})}
-                  for g, c in zip(syn["groups"], camp_colors(syn["groups"]))]
-        un = syn.get("unclassified") or {"members": [], "note": ""}
-        unclassified = {"members": [vid_to_key[m] for m in un.get("members", [])], "note": relabel(un.get("note", ""), k)}
-        color_of = {m: g["color"] for g in groups for m in g["members"]}
-
         personas = []
         for p in own:
-            src = per_table[p["id"]]
+            src, ps = per_table[p["id"]], op["positions"][p["key"]]
+            g = next((g for g in groups if p["key"] in g["members"]), None)
+            camp = (g["label"] if g else "Sans camp net") if ps["placed"] else \
+                f"Non placé : moins de {om.MIN_VOTES} prises de position relevées"
             personas.append({
-                "key": p["key"], "x": p["x"], "y": p["y"], "kf": p["kf"], "weight": p["weight"],
-                "entry": p["entry"], "camp": p["camp"], "note": p["note"],
-                "color": color_of.get(p["key"], UNCLASSIFIED_COLOR),
+                "key": p["key"], "placed": ps["placed"], "x": ps.get("x"), "y": ps.get("y"), "kf": ps["kf"],
+                "weight": p["weight"], "entry": p["entry"], "camp": camp, "note": p.get("note", ""),
+                "color": g["color"] if g else table_color[k],
                 "speech": src.get("speech", []),
                 "points": [{"t": pt["t"], "stance": relabel(pt["stance"], k)} for pt in src.get("points", [])],
-                **({"uncertain": p["uncertain"]} if p.get("uncertain") else {}),
-                **({"shifts": p["shifts"]} if p.get("shifts") else {}),
             })
 
         mine = [{"text": s["text"], "stances": [x for x in s["stances"] if x["p"][0] == k]} for s in cross["statements"]]
-        camp_idx = {m: i for i, g in enumerate(groups, 1) for m in g["members"]}
-        camps_t, un_t = public_camps(groups, unclassified)
+        own_keys = {p["key"] for p in own}
+        t_groups = [{**g, "members": [m for m in g["members"] if m in own_keys]} for g in groups]
         tables.append({
             "key": k, "code": tm["code"], "label": tm["label"], "duration": v["totalDurationMinutes"],
             "summary": relabel(syn["summary"], k),
-            "ranking": rank_statements(mine, camp_of=camp_idx.get, n_camps=len(groups)),
-            "groups": camps_t, "unclassified": un_t,
+            "ranking": rank_statements(mine, [set(g["members"]) for g in t_groups if g["members"]],
+                                       camp_of=camp_of.get if groups else None, n_camps=len(groups)),
+            "groups": [c for c in public_camps(t_groups) if c["size"]],
+            "unplaced": sum(1 for p in personas if not p["placed"]),
             "kinds": {kk: {"label": KIND_LABELS[kk], "desc": relabel(kd["desc"], k)} for kk, kd in syn["kinds"].items()},
             "themes": syn["themes"], "timeline": syn["timeline"], "mentions": syn.get("mentions", []),
             "theme_minutes": theme_minutes(syn["timeline"]),
@@ -433,10 +610,11 @@ def build(spec: dict, cross: dict, table_viz: dict[str, dict], names: list[str],
     return {
         "meta": {"topic": cross["meta"]["topic"], "date": first.get("date"),
                  "tables": [{"key": t["key"], "code": t["code"], "label": t["label"]} for t in tables]},
-        "axes": cross["axes"],
-        # carte de la synthèse flash : anonyme (ni identifiant, ni note individuelle)
-        "map": [{"table": p["table"], "x": p["kf"][-1][1], "y": p["kf"][-1][2], "weight": p["weight"],
-                 **({"uncertain": sorted(p["uncertain"])} if p.get("uncertain") else {})} for p in cross["personas"]],
+        "axes": op["axes"],
+        "method": op["method"],
+        # carte de la synthèse flash : anonyme (ni identifiant, ni note individuelle), voix placées seulement
+        "map": [{"table": p["table"], "x": op["positions"][p["key"]]["x"], "y": op["positions"][p["key"]]["y"],
+                 "weight": p["weight"]} for p in cross["personas"] if op["positions"][p["key"]]["placed"]],
         "pre_debate": prepare_pre_debate(pre_debate, names, spec.get("pre_debate_lecture"))
         if pre_debate is not None else None,
         "flash": flash, "tables": tables, "footer": FOOTER,
@@ -467,7 +645,7 @@ def write_unified_viz(data: dict, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     body = json.dumps(data, ensure_ascii=False, indent=2)
     (out_dir / "data.js").write_text(
-        "// data.js — généré par build_unified_viz.py. Positions interprétatives, pas des mesures objectives.\n\n"
+        "// data.js — généré par build_unified_viz.py. Carte et camps calculés à partir des prises de position relevées.\n\n"
         f"window.UNIFIED_DATA = {body};\n", encoding="utf-8")
     (out_dir / "unifiee.json").write_text(body + "\n", encoding="utf-8")
     shutil.copyfile(_TEMPLATE_DIR / "index.html", out_dir / "index.html")
@@ -498,7 +676,13 @@ def main() -> None:
                 pre = _load_json(base / spec["pre_debate"])
             except (OSError, json.JSONDecodeError) as e:
                 raise UnifiedError(f"pré-débat illisible ({spec['pre_debate']}) : {e}") from e
-        data = build(spec, cross, table_data(cross_spec, cross_tables), names, pre)
+        second = None
+        if spec.get("codage_double"):
+            try:
+                second = _load_json(base / spec["codage_double"])
+            except (OSError, json.JSONDecodeError) as e:
+                raise UnifiedError(f"second codage illisible ({spec['codage_double']}) : {e}") from e
+        data = build(spec, cross, table_data(cross_spec, cross_tables), names, pre, second)
     except (CrossError, UnifiedError, AnalysisError) as e:
         print(f"Page unifiée refusée : {e}", file=sys.stderr)
         sys.exit(1)

@@ -5,7 +5,7 @@ import pytest
 
 from build_cross_viz import CrossError
 from build_unified_viz import (KIND_LABELS, PRE_MAP_EXTENT, UnifiedError, anonymize_keys, build,
-                               prepare_pre_debate, rank_statements, relabel, tally, theme_minutes)
+                               prepare_pre_debate, public_camps, rank_statements, relabel, tally, theme_minutes)
 
 
 def _st(text, **voices):
@@ -25,16 +25,38 @@ def test_tally_sorts_voices_and_ignores_nuances_in_agreement():
     assert t["agreement"] == pytest.approx(1 / 3, abs=1e-3)
 
 
-def test_consensus_ranked_by_net_margin_and_rejection_counts():
+def test_consensus_ranked_by_polis_group_aware_score():
+    """Sans camps, le consensus de Polis vaut P(côté) = (1 + N_côté) / (2 + N) : 11 pour sur 12 (0,857)
+    passe devant 3 sur 3 (0,8), lui-même devant un rejet à 5 contre 1 (0,75)."""
     r = rank_statements([
         _st("trois sur trois", pour="A1 A2 A3"),
         _st("onze contre un", pour="A1 A2 A3 A4 A5 A6 A7 B1 B2 B3 B4", contre="B5"),
         _st("rejet", pour="A1", contre="B1 B2 B3 B4 B5"),
         _st("trop peu de voix", pour="A1 A2"),
     ])
-    assert [s["text"] for s in r["consensus"]] == ["onze contre un", "rejet", "trois sur trois"]
-    assert r["consensus"][1]["side"] == "contre"
+    assert [s["text"] for s in r["consensus"]] == ["onze contre un", "trois sur trois", "rejet"]
+    assert r["consensus"][2]["side"] == "contre"
+    assert r["consensus"][1]["score_consensus"] == pytest.approx(0.8)
     assert r["dissensus"] == []
+
+
+def test_consensus_is_refused_when_a_camp_leans_the_other_way():
+    """Polis : un accord d'ensemble porté par un seul camp n'est pas un consensus."""
+    stmts = [_st("porté par un camp", pour="A1 A2 A3 A4 A5 A6 A7 B1", contre="B2")]
+    assert rank_statements(stmts)["consensus"]                                    # sans camps : consensus
+    camps = [{"A1", "A2", "A3", "A4", "A5", "A6", "A7"}, {"B1", "B2", "B3"}]
+    stmts = [_st("porté par un camp", pour="A1 A2 A3 A4 A5 A6 A7", contre="B1 B2")]
+    assert rank_statements(stmts, camps)["consensus"] == []
+
+
+def test_dissensus_with_camps_is_ranked_by_gap_between_camps():
+    camps = [{"A1", "A2", "A3"}, {"B1", "B2", "B3"}]
+    r = rank_statements([
+        _st("partagé dans chaque camp", pour="A1 B1", contre="A2 B2"),
+        _st("camp contre camp", pour="A1 A2 A3", contre="B1 B2 B3"),
+    ], camps)
+    assert [s["text"] for s in r["dissensus"]] == ["camp contre camp", "partagé dans chaque camp"]
+    assert r["dissensus"][0]["score_dissensus"] == pytest.approx(0.8 - 0.2)
 
 
 def test_dissensus_needs_both_sides_and_is_ranked_by_minority_size():
@@ -87,25 +109,67 @@ def mini():
                                                    {"key": "B", "code": "BBB222", "label": "Table B"}]},
              "axes": {}, "personas": [_persona("A1", 5, 5), _persona("A2", -5, 0), _persona("B1", 2.5, 2.5), _persona("B2", 0, 0)],
              "synthesis": {"groups": [{"label": "G", "members": ["A1", "B1"], "arguments": []}], "unclassified": {"members": [], "note": ""}},
-             "statements": [{**_st("commun", pour="A1 B1", contre="A2 B2"), "scope": "commun"},
+             "statements": [{**_st("commun 1", pour="A1 B1", contre="A2 B2"), "scope": "commun"},
+                            {**_st("commun 2", pour="A1 B1", contre="A2 B2"), "scope": "commun"},
+                            {**_st("commun 3", pour="A2 B2", contre="A1 B1"), "scope": "commun"},
                             {**_st("propre à A", pour="A1 A2"), "scope": "A"}]}
     viz = {"AAA111": _table_viz("AAA111", ["i1", "i2"]), "BBB222": _table_viz("BBB222", ["i1", "i2"])}
     return {"flash_summary": "Court résumé."}, cross, viz
 
 
-def test_build_uses_common_grid_and_relabels_texts(mini):
+def test_build_computes_the_map_from_stances_and_relabels_texts(mini):
     spec, cross, viz = mini
     data = build(spec, cross, viz, names=["Camille"])
     a = data["tables"][0]
-    assert {p["key"]: (p["x"], p["y"]) for p in a["personas"]} == {"A1": (5, 5), "A2": (-5, 0)}
+    pos = {p["key"]: (p["x"], p["y"]) for t in data["tables"] for p in t["personas"]}
+    assert pos["A1"][0] * pos["B1"][0] > 0 and pos["A2"][0] * pos["B2"][0] > 0   # mêmes positions : même côté
+    assert pos["A1"][0] * pos["A2"][0] < 0                               # positions opposées sur l'axe 1
+    assert max(abs(v) for xy in pos.values() for v in xy) == pytest.approx(9.0)   # ramené dans ±9
+    assert a["personas"][0]["kf"][0][0] == 1.0                            # apparaît à sa 3e prise de position
     assert a["interactions"][0] == {"t": 1, "from": "A1", "to": "A2", "type": "desaccord", "desc": "Répond à A2."}
     assert a["personas"][0]["points"][0]["stance"] == "A1 parle."
-    assert a["unclassified"] == {"count": 1, "note": "Une personne doute."}   # le camp ne dit pas qui
     assert a["kinds"]["coeur"]["label"] == "La question posée"        # jamais « cœur du sujet »
-    assert a["personas"][1]["color"] == "#898A8C"                     # non rattaché : gris
-    assert data["flash"]["n_common_statements"] == 1
-    assert [s["text"] for s in data["flash"]["ranking"]["dissensus"]] == ["commun"]
-    assert [(p["table"], p["x"], p["y"]) for p in data["map"]] == [("A", 5, 5), ("A", -5, 0), ("B", 2.5, 2.5), ("B", 0, 0)]
+    assert data["flash"]["groups"] == [] and data["method"]["camps"]["nets"] is False   # 4 voix : pas de camps
+    assert a["personas"][0]["color"] == "var(--ta)"                   # sans camp : couleur de la table
+    assert data["flash"]["n_common_statements"] == 3
+    assert data["method"]["placees"] == 4 and data["method"]["variance"][0] > 0.9
+    assert data["axes"]["x"]["enonces"][0]["text"].startswith("commun")
+
+
+def test_build_leaves_voices_with_too_few_stances_off_the_map(mini):
+    spec, cross, viz = mini
+    cross = copy.deepcopy(cross)
+    for st in cross["statements"]:
+        st["stances"] = [s for s in st["stances"] if s["p"] != "B2" or st["text"] == "commun 1"]
+    data = build(spec, cross, viz, names=[])
+    b2 = next(p for p in data["tables"][1]["personas"] if p["key"] == "B2")
+    assert b2["placed"] is False and b2["kf"] == [] and b2["camp"].startswith("Non placé")
+    assert len(data["map"]) == 3 and data["tables"][1]["unplaced"] == 1
+
+
+def test_hand_reading_is_only_compared_never_displayed(mini):
+    spec, cross, viz = mini
+    data = build(spec, cross, viz, names=[])
+    assert "concordance_lecture" in data["method"]
+    assert {p["key"]: p["x"] for p in data["tables"][0]["personas"]}["A1"] != 5
+
+
+def test_transcription_reading_names_only_computed_camps(mini):
+    spec, cross, viz = mini
+    with pytest.raises(UnifiedError, match="camps inconnus"):
+        build({**spec, "transcription_lecture": {"camps": {"1": {"taille": 2, "label": "X"}}}}, cross, viz, names=[])
+    data = build({**spec, "transcription_lecture": {"axes": {"x": {"left": "G", "right": "D"}, "y": {"bottom": "B", "top": "H"}}}},
+                 cross, viz, names=[])
+    assert data["axes"]["lecture"]["x"] == {"left": "G", "right": "D"}
+
+
+def test_second_coding_gives_krippendorff_alpha(mini):
+    spec, cross, viz = mini
+    same = {"statements": [{"text": s["text"], "stances": s["stances"]} for s in cross["statements"]]}
+    data = build(spec, cross, viz, names=[], second_coding=same)
+    assert data["method"]["fiabilite_codage"]["alpha"] == 1.0
+    with pytest.raises(UnifiedError, match="énoncés absents"):
+        build(spec, cross, viz, names=[], second_coding={"statements": []})
 
 
 def test_syntheses_never_say_who(mini):
@@ -116,9 +180,9 @@ def test_syntheses_never_say_who(mini):
     for ranking in [data["flash"]["ranking"]] + [t["ranking"] for t in data["tables"]]:
         for row in ranking["consensus"] + ranking["dissensus"]:
             assert not {"pour", "contre", "nuance"} & set(row)          # plus de listes de voix
-    for camps in [data["flash"]["groups"]] + [t["groups"] for t in data["tables"]]:
-        assert all("members" not in c and c["size"] >= 1 for c in camps)
-    assert data["flash"]["groups"][0]["by_table"] == {"A": 1, "B": 1}
+    groups = [{"camp": 1, "label": "Camp 1", "color": "#000", "members": ["A1", "B1"], "representative": []}]
+    camps = public_camps(groups, table_of=lambda m: m[0])
+    assert all("members" not in c for c in camps) and camps[0]["by_table"] == {"A": 1, "B": 1}
 
 
 def test_ranking_counts_per_camp_without_names():

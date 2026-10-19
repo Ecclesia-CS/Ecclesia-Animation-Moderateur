@@ -1,4 +1,4 @@
-// data.js — généré par build_unified_viz.py. Positions interprétatives, pas des mesures objectives.
+// data.js — généré par build_unified_viz.py. Carte et camps calculés à partir des prises de position relevées.
 
 window.UNIFIED_DATA = {
   "meta": {
@@ -14,171 +14,136 @@ window.UNIFIED_DATA = {
   },
   "axes": {
     "x": {
-      "leftLabel": "Le marché, régulé, peut porter la transition",
-      "rightLabel": "Sortir du marché : planifier et socialiser",
-      "anchors": {
-        "left": [
-          "Un prix du carbone aligne le profit des entreprises sur l'intérêt climatique",
-          "Le marché est nécessaire pour savoir ce que veulent les consommateurs",
-          "Laisser le marché opérer une transition douce plutôt que brusquer"
-        ],
-        "right": [
-          "Le capitalisme étend la marchandisation à tout et ses propriétaires tiennent le pouvoir",
-          "Les monopoles publics fonctionnent : étendre cette logique à l'économie",
-          "Planifier la production selon les besoins plutôt que selon le profit"
-        ]
-      },
-      "levels": [
+      "variance": 0.398,
+      "enonces": [
         {
-          "v": -7.5,
-          "text": "Le marché mène la transition, sans contrainte forte"
+          "text": "Un capitalisme fortement régulé peut être compatible avec l'écologie",
+          "poids": 0.597,
+          "accord_vers": "plus"
         },
         {
-          "v": -2.5,
-          "text": "Capitalisme régulé : prix du carbone, normes, quelques nationalisations"
+          "text": "Un quota carbone individuel serait souhaitable",
+          "poids": -0.505,
+          "accord_vers": "moins"
         },
         {
-          "v": 0,
-          "text": "Position non déterminable sur ce clivage, ou propos mêlés"
+          "text": "Concentrer la population en ville est plus écologique",
+          "poids": 0.416,
+          "accord_vers": "plus"
         },
         {
-          "v": 2.5,
-          "text": "Un État qui force et coordonne la transition, au-delà du marché"
-        },
-        {
-          "v": 5,
-          "text": "Le capitalisme lui-même pose problème"
-        },
-        {
-          "v": 7.5,
-          "text": "Socialiser et planifier la production"
+          "text": "Il faut sortir les grands secteurs du marché par la planification publique",
+          "poids": -0.398,
+          "accord_vers": "moins"
         }
       ]
     },
     "y": {
-      "bottomLabel": "Préserver le confort et l'emploi",
-      "topLabel": "Sobriété : consommer moins",
-      "anchors": {
-        "bottom": [
-          "On ne peut pas fermer les industries dont dépendent emplois et confort",
-          "Contraindre la consommation des individus est socialement inacceptable",
-          "Transformer les industries sans les interdire"
-        ],
-        "top": [
-          "Accepter de perdre du confort maintenant plutôt que subir un mur",
-          "Réparer, rénover, consommer moins",
-          "Fixer des limites de consommation pour tous"
-        ]
-      },
-      "levels": [
+      "variance": 0.273,
+      "enonces": [
         {
-          "v": -5,
-          "text": "Préserver le confort et l'emploi, transition douce"
+          "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
+          "poids": 0.661,
+          "accord_vers": "plus"
         },
         {
-          "v": -2.5,
-          "text": "Transformer les industries sans les fermer ni contraindre les individus"
+          "text": "Le marché peut mener seul la transition, en douceur",
+          "poids": -0.647,
+          "accord_vers": "moins"
         },
         {
-          "v": 0,
-          "text": "Position non déterminable sur ce clivage"
+          "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
+          "poids": -0.287,
+          "accord_vers": "moins"
         },
         {
-          "v": 2.5,
-          "text": "Décroître les émissions par choix, limiter la pollution des plus riches"
-        },
-        {
-          "v": 5,
-          "text": "Sobriété : accepter de perdre du confort"
-        },
-        {
-          "v": 7.5,
-          "text": "Limites absolues de consommation pour tous"
+          "text": "Un quota carbone individuel serait souhaitable",
+          "poids": 0.246,
+          "accord_vers": "plus"
         }
       ]
     },
-    "quadrants": {
-      "topLeft": "Réguler le marché et viser la sobriété",
-      "topRight": "Planifier et consommer moins",
-      "bottomLeft": "Marché et confort préservé",
-      "bottomRight": "État qui force la transition, emplois préservés"
+    "lecture": null
+  },
+  "method": {
+    "voix": 11,
+    "placees": 9,
+    "enonces": 7,
+    "enonces_carte": 7,
+    "remplissage": 0.506,
+    "min_prises": 3,
+    "variance": [
+      0.398,
+      0.273
+    ],
+    "camps": {
+      "nets": false,
+      "k": 2,
+      "silhouette": 0.356,
+      "silhouette_hasard_95": 0.579,
+      "stabilite": 0.241,
+      "raison": "les groupes trouvés ne se distinguent pas d'un nuage sans structure"
+    },
+    "concordance_lecture": {
+      "r2": 0.363,
+      "hasard_95": 0.422,
+      "n": 9
     }
   },
   "map": [
     {
       "table": "A",
-      "x": -2.5,
-      "y": 2.5,
+      "x": 5.71,
+      "y": 1.361,
       "weight": 29.143
     },
     {
       "table": "A",
-      "x": -2.5,
-      "y": 0.0,
-      "weight": 4.861,
-      "uncertain": [
-        "y"
-      ]
-    },
-    {
-      "table": "A",
-      "x": 5.0,
-      "y": 7.5,
+      "x": -5.825,
+      "y": 1.711,
       "weight": 6.763
     },
     {
       "table": "A",
-      "x": 7.5,
-      "y": 2.5,
+      "x": -5.791,
+      "y": 2.264,
       "weight": 11.807
     },
     {
       "table": "A",
-      "x": 2.5,
-      "y": -2.5,
+      "x": 3.436,
+      "y": -2.386,
       "weight": 6.79
     },
     {
       "table": "A",
-      "x": 0.0,
-      "y": 5.0,
-      "weight": 2.183,
-      "uncertain": [
-        "x"
-      ]
+      "x": -1.943,
+      "y": -1.779,
+      "weight": 2.183
     },
     {
       "table": "A",
-      "x": -7.5,
-      "y": -5.0,
+      "x": -1.719,
+      "y": -9.0,
       "weight": 7.493
     },
     {
       "table": "A",
-      "x": 2.5,
-      "y": -2.5,
+      "x": 0.393,
+      "y": 1.06,
       "weight": 5.244
     },
     {
       "table": "A",
-      "x": 0.0,
-      "y": 5.0,
+      "x": 0.358,
+      "y": 3.559,
       "weight": 7.456
     },
     {
       "table": "A",
-      "x": -2.5,
-      "y": 2.5,
+      "x": 3.455,
+      "y": 1.814,
       "weight": 6.091
-    },
-    {
-      "table": "A",
-      "x": 0.0,
-      "y": 2.5,
-      "weight": 1.838,
-      "uncertain": [
-        "x"
-      ]
     }
   ],
   "pre_debate": {
@@ -631,84 +596,24 @@ window.UNIFIED_DATA = {
     "ranking": {
       "consensus": [
         {
-          "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
-          "side": "pour",
-          "p": 4,
-          "c": 0,
-          "nu": 2,
-          "agreement": 1.0,
-          "par_camp": [
-            {
-              "camp": 1,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 2,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 3,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 4,
-              "pour": 2,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 5,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 0
-            }
-          ]
-        },
-        {
           "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
           "side": "pour",
           "p": 5,
           "c": 1,
           "nu": 1,
           "agreement": 0.667,
-          "par_camp": [
-            {
-              "camp": 1,
-              "pour": 2,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 2,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 3,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 4,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 5,
-              "pour": 0,
-              "contre": 1,
-              "nuance": 0
-            }
-          ]
+          "score_consensus": 0.6667,
+          "score_dissensus": null
+        },
+        {
+          "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
+          "side": "pour",
+          "p": 4,
+          "c": 0,
+          "nu": 2,
+          "agreement": 1.0,
+          "score_consensus": 0.625,
+          "score_dissensus": null
         },
         {
           "text": "Le marché peut mener seul la transition, en douceur",
@@ -717,38 +622,8 @@ window.UNIFIED_DATA = {
           "c": 3,
           "nu": 1,
           "agreement": 0.5,
-          "par_camp": [
-            {
-              "camp": 1,
-              "pour": 0,
-              "contre": 2,
-              "nuance": 0
-            },
-            {
-              "camp": 2,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 3,
-              "pour": 0,
-              "contre": 1,
-              "nuance": 0
-            },
-            {
-              "camp": 4,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 5,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 0
-            }
-          ]
+          "score_consensus": 0.5714,
+          "score_dissensus": null
         }
       ],
       "consensus_ties": [],
@@ -760,38 +635,8 @@ window.UNIFIED_DATA = {
           "c": 2,
           "nu": 1,
           "agreement": 0.0,
-          "par_camp": [
-            {
-              "camp": 1,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 2,
-              "pour": 0,
-              "contre": 1,
-              "nuance": 0
-            },
-            {
-              "camp": 3,
-              "pour": 0,
-              "contre": 1,
-              "nuance": 0
-            },
-            {
-              "camp": 4,
-              "pour": 1,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 5,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 0
-            }
-          ]
+          "score_consensus": 0.4286,
+          "score_dissensus": null
         },
         {
           "text": "Un capitalisme fortement régulé peut être compatible avec l'écologie",
@@ -800,38 +645,8 @@ window.UNIFIED_DATA = {
           "c": 2,
           "nu": 2,
           "agreement": 0.2,
-          "par_camp": [
-            {
-              "camp": 1,
-              "pour": 3,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 2,
-              "pour": 0,
-              "contre": 2,
-              "nuance": 0
-            },
-            {
-              "camp": 3,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 4,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 1
-            },
-            {
-              "camp": 5,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 0
-            }
-          ]
+          "score_consensus": 0.4444,
+          "score_dissensus": null
         },
         {
           "text": "Un quota carbone individuel serait souhaitable",
@@ -840,119 +655,13 @@ window.UNIFIED_DATA = {
           "c": 2,
           "nu": 1,
           "agreement": 0.2,
-          "par_camp": [
-            {
-              "camp": 1,
-              "pour": 1,
-              "contre": 1,
-              "nuance": 0
-            },
-            {
-              "camp": 2,
-              "pour": 2,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 3,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 4,
-              "pour": 0,
-              "contre": 1,
-              "nuance": 0
-            },
-            {
-              "camp": 5,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 0
-            },
-            {
-              "camp": 0,
-              "pour": 0,
-              "contre": 0,
-              "nuance": 1
-            }
-          ]
+          "score_consensus": 0.5,
+          "score_dissensus": null
         }
       ],
       "dissensus_ties": []
     },
-    "groups": [
-      {
-        "label": "Réguler le capitalisme",
-        "color": "#1E6B6D",
-        "size": 3,
-        "arguments": [
-          "Un prix du carbone redistribué aligne le profit sur le climat, sans socialiser la production.",
-          "Le marché est nécessaire mais court-termiste : il faut des normes et des limites aux plus riches.",
-          "Améliorer ce qui existe est la première étape réaliste."
-        ],
-        "by_table": {
-          "A": 3
-        }
-      },
-      {
-        "label": "Sortir du marché, planifier",
-        "color": "#9B3A2D",
-        "size": 2,
-        "arguments": [
-          "Le capitalisme étend la marchandisation et ses propriétaires tiennent le pouvoir politique.",
-          "Les monopoles publics marchent : planifier selon les besoins plutôt que le profit.",
-          "Fixer des limites de consommation pour tous."
-        ],
-        "by_table": {
-          "A": 2
-        }
-      },
-      {
-        "label": "Anticiper la sobriété",
-        "color": "#6383B4",
-        "size": 2,
-        "arguments": [
-          "Perdre du confort progressivement maintenant plutôt que subir un choc.",
-          "Réparer, rénover, préférer le train et réduire la dépendance au pétrole.",
-          "Une transition laissée au marché n'a rien de doux pour les plus fragiles."
-        ],
-        "by_table": {
-          "A": 2
-        }
-      },
-      {
-        "label": "Transformer sans fermer",
-        "color": "#7A5C99",
-        "size": 2,
-        "arguments": [
-          "Ne pas fermer les industries indispensables, mais forcer leur électrification.",
-          "Prévoir un plan B pour les salariés pour ne pas dépeupler des régions.",
-          "Aider les pays pauvres par des plans multilatéraux d'énergie renouvelable."
-        ],
-        "by_table": {
-          "A": 2
-        }
-      },
-      {
-        "label": "Confiance dans le marché",
-        "color": "#3F8462",
-        "size": 1,
-        "arguments": [
-          "Les prix guideront une transition plus douce que des fermetures.",
-          "Routes, voiture et industries portent emplois et confort quotidien.",
-          "Polluer plus n'est pas la condition du développement des pays pauvres."
-        ],
-        "by_table": {
-          "A": 1
-        }
-      }
-    ],
-    "unclassified": {
-      "count": 1,
-      "note": "ses interventions étaient surtout des questions."
-    },
+    "groups": [],
     "n_participants": 11,
     "n_common_statements": 7
   },
@@ -966,84 +675,24 @@ window.UNIFIED_DATA = {
       "ranking": {
         "consensus": [
           {
-            "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
-            "side": "pour",
-            "p": 4,
-            "c": 0,
-            "nu": 2,
-            "agreement": 1.0,
-            "par_camp": [
-              {
-                "camp": 1,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 2,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 3,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 4,
-                "pour": 2,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 5,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 0
-              }
-            ]
-          },
-          {
             "text": "Les pays en développement doivent pouvoir émettre plus pour se développer",
             "side": "pour",
             "p": 5,
             "c": 1,
             "nu": 1,
             "agreement": 0.667,
-            "par_camp": [
-              {
-                "camp": 1,
-                "pour": 2,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 2,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 3,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 4,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 5,
-                "pour": 0,
-                "contre": 1,
-                "nuance": 0
-              }
-            ]
+            "score_consensus": 0.6667,
+            "score_dissensus": null
+          },
+          {
+            "text": "Il ne faut pas fermer les industries polluantes sans solution pour leurs salariés",
+            "side": "pour",
+            "p": 4,
+            "c": 0,
+            "nu": 2,
+            "agreement": 1.0,
+            "score_consensus": 0.625,
+            "score_dissensus": null
           },
           {
             "text": "Le marché peut mener seul la transition, en douceur",
@@ -1052,38 +701,8 @@ window.UNIFIED_DATA = {
             "c": 3,
             "nu": 1,
             "agreement": 0.5,
-            "par_camp": [
-              {
-                "camp": 1,
-                "pour": 0,
-                "contre": 2,
-                "nuance": 0
-              },
-              {
-                "camp": 2,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 3,
-                "pour": 0,
-                "contre": 1,
-                "nuance": 0
-              },
-              {
-                "camp": 4,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 5,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 0
-              }
-            ]
+            "score_consensus": 0.5714,
+            "score_dissensus": null
           }
         ],
         "consensus_ties": [],
@@ -1095,38 +714,8 @@ window.UNIFIED_DATA = {
             "c": 2,
             "nu": 1,
             "agreement": 0.0,
-            "par_camp": [
-              {
-                "camp": 1,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 2,
-                "pour": 0,
-                "contre": 1,
-                "nuance": 0
-              },
-              {
-                "camp": 3,
-                "pour": 0,
-                "contre": 1,
-                "nuance": 0
-              },
-              {
-                "camp": 4,
-                "pour": 1,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 5,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 0
-              }
-            ]
+            "score_consensus": 0.4286,
+            "score_dissensus": null
           },
           {
             "text": "Un capitalisme fortement régulé peut être compatible avec l'écologie",
@@ -1135,38 +724,8 @@ window.UNIFIED_DATA = {
             "c": 2,
             "nu": 2,
             "agreement": 0.2,
-            "par_camp": [
-              {
-                "camp": 1,
-                "pour": 3,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 2,
-                "pour": 0,
-                "contre": 2,
-                "nuance": 0
-              },
-              {
-                "camp": 3,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 4,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 1
-              },
-              {
-                "camp": 5,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 0
-              }
-            ]
+            "score_consensus": 0.4444,
+            "score_dissensus": null
           },
           {
             "text": "Un quota carbone individuel serait souhaitable",
@@ -1175,104 +734,14 @@ window.UNIFIED_DATA = {
             "c": 2,
             "nu": 1,
             "agreement": 0.2,
-            "par_camp": [
-              {
-                "camp": 1,
-                "pour": 1,
-                "contre": 1,
-                "nuance": 0
-              },
-              {
-                "camp": 2,
-                "pour": 2,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 3,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 4,
-                "pour": 0,
-                "contre": 1,
-                "nuance": 0
-              },
-              {
-                "camp": 5,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 0
-              },
-              {
-                "camp": 0,
-                "pour": 0,
-                "contre": 0,
-                "nuance": 1
-              }
-            ]
+            "score_consensus": 0.5,
+            "score_dissensus": null
           }
         ],
         "dissensus_ties": []
       },
-      "groups": [
-        {
-          "label": "Réguler le capitalisme",
-          "color": "#1E6B6D",
-          "size": 3,
-          "arguments": [
-            "Un prix du carbone redistribué aligne le profit sur le climat, sans socialiser la production.",
-            "Le marché est nécessaire mais court-termiste : il faut des normes et des limites aux plus riches.",
-            "Améliorer ce qui existe est la première étape réaliste."
-          ]
-        },
-        {
-          "label": "Sortir du marché, planifier",
-          "color": "#9B3A2D",
-          "size": 2,
-          "arguments": [
-            "Le capitalisme étend la marchandisation et ses propriétaires tiennent le pouvoir politique.",
-            "Les monopoles publics marchent : planifier selon les besoins plutôt que le profit.",
-            "Fixer des limites de consommation pour tous."
-          ]
-        },
-        {
-          "label": "Anticiper la sobriété",
-          "color": "#6383B4",
-          "size": 2,
-          "arguments": [
-            "Perdre du confort progressivement maintenant plutôt que subir un choc.",
-            "Réparer, rénover, préférer le train et réduire la dépendance au pétrole.",
-            "Une transition laissée au marché n'a rien de doux pour les plus fragiles."
-          ]
-        },
-        {
-          "label": "Transformer sans fermer",
-          "color": "#7A5C99",
-          "size": 2,
-          "arguments": [
-            "Ne pas fermer les industries indispensables, mais forcer leur électrification.",
-            "Prévoir un plan B pour les salariés pour ne pas dépeupler des régions.",
-            "Aider les pays pauvres par des plans multilatéraux d'énergie renouvelable."
-          ]
-        },
-        {
-          "label": "Confiance dans le marché",
-          "color": "#3F8462",
-          "size": 1,
-          "arguments": [
-            "Les prix guideront une transition plus douce que des fermetures.",
-            "Routes, voiture et industries portent emplois et confort quotidien.",
-            "Polluer plus n'est pas la condition du développement des pays pauvres."
-          ]
-        }
-      ],
-      "unclassified": {
-        "count": 1,
-        "note": "ses interventions étaient surtout des questions."
-      },
+      "groups": [],
+      "unplaced": 2,
       "kinds": {
         "coeur": {
           "label": "La question posée",
@@ -1468,25 +937,46 @@ window.UNIFIED_DATA = {
       "personas": [
         {
           "key": "A1",
-          "x": -2.5,
-          "y": 2.5,
+          "placed": true,
+          "x": 5.71,
+          "y": 1.361,
           "kf": [
             [
-              0.19,
-              -2.5,
-              2.5
+              61.03,
+              3.439,
+              3.169
             ],
             [
-              99.92,
-              -2.5,
-              2.5
+              65.33,
+              3.439,
+              3.169
+            ],
+            [
+              66.33,
+              4.015,
+              2.676
+            ],
+            [
+              81.91,
+              4.015,
+              2.676
+            ],
+            [
+              82.91,
+              5.71,
+              1.361
+            ],
+            [
+              99.9,
+              5.71,
+              1.361
             ]
           ],
           "weight": 29.143,
           "entry": 0.19,
-          "camp": "Capitalisme régulé, prix du carbone",
+          "camp": "Sans camp net",
           "note": "Voix la plus présente : défend un capitalisme régulé par un prix du carbone redistribué, des normes et une planification écologique, avec quelques nationalisations au cas par cas. Juge le marché nécessaire mais court-termiste, et veut choisir comment on décroît plutôt que le subir.",
-          "color": "#1E6B6D",
+          "color": "var(--ta)",
           "speech": [
             [
               0.19,
@@ -1822,25 +1312,15 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A2",
-          "x": -2.5,
-          "y": 0.0,
-          "kf": [
-            [
-              2.12,
-              -2.5,
-              0.0
-            ],
-            [
-              99.92,
-              -2.5,
-              0.0
-            ]
-          ],
+          "placed": false,
+          "x": null,
+          "y": null,
+          "kf": [],
           "weight": 4.861,
           "entry": 2.12,
-          "camp": "Réguler d'abord, par pragmatisme",
+          "camp": "Non placé : moins de 3 prises de position relevées",
           "note": "Peu d'interventions : laisse les pays en développement émettre un peu plus en limitant, imagine les aider avec du nucléaire ou de l'hydraulique, et se rallie par pragmatisme au capitalisme régulé tout en se demandant comment un État fort éviterait l'autoritarisme.",
-          "color": "#1E6B6D",
+          "color": "var(--ta)",
           "speech": [
             [
               2.12,
@@ -1896,32 +1376,40 @@ window.UNIFIED_DATA = {
               "t": 90.94,
               "stance": "Conclut qu'améliorer un capitalisme régulé est la première étape réaliste ; on verra ensuite si cela ne suffit pas."
             }
-          ],
-          "uncertain": {
-            "y": "ne s'est pas prononcé sur la sobriété ni sur le confort"
-          }
+          ]
         },
         {
           "key": "A3",
-          "x": 5.0,
-          "y": 7.5,
+          "placed": true,
+          "x": -5.825,
+          "y": 1.711,
           "kf": [
             [
-              3.21,
-              5.0,
-              7.5
+              79.18,
+              -4.903,
+              1.087
             ],
             [
-              99.92,
-              5.0,
-              7.5
+              87.45,
+              -4.903,
+              1.087
+            ],
+            [
+              88.45,
+              -5.825,
+              1.711
+            ],
+            [
+              99.9,
+              -5.825,
+              1.711
             ]
           ],
           "weight": 6.763,
           "entry": 3.21,
-          "camp": "Critique du capitalisme, limites pour tous",
+          "camp": "Sans camp net",
           "note": "Relie la voiture, la ville et la centralisation des activités aux optimisations capitalistes, veut des territoires plus autonomes et défend des limites absolues de consommation pour tous ; concède en fin de débat que la ville existait avant le capitalisme.",
-          "color": "#9B3A2D",
+          "color": "var(--ta)",
           "speech": [
             [
               3.21,
@@ -2037,25 +1525,36 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A4",
-          "x": 7.5,
-          "y": 2.5,
+          "placed": true,
+          "x": -5.791,
+          "y": 2.264,
           "kf": [
             [
-              4.7,
-              7.5,
-              2.5
+              64.32,
+              -4.863,
+              1.726
             ],
             [
-              99.92,
-              7.5,
-              2.5
+              82.79,
+              -4.863,
+              1.726
+            ],
+            [
+              83.79,
+              -5.791,
+              2.264
+            ],
+            [
+              99.9,
+              -5.791,
+              2.264
             ]
           ],
           "weight": 11.807,
           "entry": 4.7,
-          "camp": "Sortir du marché, planifier",
+          "camp": "Sans camp net",
           "note": "Voix la plus critique du capitalisme : la marchandisation s'étend à tout et les propriétaires tiennent le pouvoir. Défend les monopoles publics, une planification appuyée sur les données, un fédéralisme décentralisé, et le quota carbone individuel.",
-          "color": "#9B3A2D",
+          "color": "var(--ta)",
           "speech": [
             [
               4.7,
@@ -2207,25 +1706,46 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A5",
-          "x": 2.5,
-          "y": -2.5,
+          "placed": true,
+          "x": 3.436,
+          "y": -2.386,
           "kf": [
             [
-              5.58,
-              2.5,
-              -2.5
+              56.05,
+              2.041,
+              -0.578
             ],
             [
-              99.92,
-              2.5,
-              -2.5
+              57.34,
+              2.041,
+              -0.578
+            ],
+            [
+              58.34,
+              1.472,
+              -1.513
+            ],
+            [
+              88.84,
+              1.472,
+              -1.513
+            ],
+            [
+              89.84,
+              3.436,
+              -2.386
+            ],
+            [
+              99.9,
+              3.436,
+              -2.386
             ]
           ],
           "weight": 6.79,
           "entry": 5.58,
-          "camp": "Transition imposée aux entreprises",
+          "camp": "Sans camp net",
           "note": "Lie le développement des pays pauvres à notre consommation, voit la ville comme une optimisation écologique, veut que l'État force la transformation des industries plutôt que de les fermer, doute de l'efficience du marché et refuse de contraindre la consommation individuelle.",
-          "color": "#7A5C99",
+          "color": "var(--ta)",
           "speech": [
             [
               5.58,
@@ -2281,25 +1801,26 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A6",
-          "x": 0.0,
-          "y": 5.0,
+          "placed": true,
+          "x": -1.943,
+          "y": -1.779,
           "kf": [
             [
-              9.68,
-              0.0,
-              5.0
+              49.25,
+              -1.943,
+              -1.779
             ],
             [
-              99.92,
-              0.0,
-              5.0
+              99.9,
+              -1.943,
+              -1.779
             ]
           ],
           "weight": 2.183,
           "entry": 9.68,
-          "camp": "Sobriété et transports décarbonés",
+          "camp": "Sans camp net",
           "note": "Trois interventions : le modèle des grandes villes desservies par la voiture n'est pas adapté aux prochaines décennies, il faut aider les pays pauvres sans énergies carbonées, et accepter de perdre un peu de confort pour garder les industries essentielles.",
-          "color": "#6383B4",
+          "color": "var(--ta)",
           "speech": [
             [
               9.68,
@@ -2323,32 +1844,30 @@ window.UNIFIED_DATA = {
               "t": 49.25,
               "stance": "Partage en partie l'avis de garder les industries essentielles, en échange d'un effort de sobriété : réparer, rénover, abandonner une part de confort."
             }
-          ],
-          "uncertain": {
-            "x": "ne s'est prononcé ni sur le marché ni sur la propriété"
-          }
+          ]
         },
         {
           "key": "A7",
-          "x": -7.5,
-          "y": -5.0,
+          "placed": true,
+          "x": -1.719,
+          "y": -9.0,
           "kf": [
             [
-              11.83,
-              -7.5,
-              -5.0
+              51.14,
+              -1.719,
+              -9.0
             ],
             [
-              99.92,
-              -7.5,
-              -5.0
+              99.9,
+              -1.719,
+              -9.0
             ]
           ],
           "weight": 7.493,
           "entry": 11.83,
-          "camp": "Confiance dans le marché",
+          "camp": "Sans camp net",
           "note": "Seule voix confiante dans le marché : défend la voiture et les routes, refuse de laisser les pays pauvres émettre plus, de fermer les industries polluantes ou de sacrifier le confort, et pense que les prix guideront une transition douce.",
-          "color": "#3F8462",
+          "color": "var(--ta)",
           "speech": [
             [
               11.83,
@@ -2448,25 +1967,26 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A8",
-          "x": 2.5,
-          "y": -2.5,
+          "placed": true,
+          "x": 0.393,
+          "y": 1.06,
           "kf": [
             [
-              14.17,
-              2.5,
-              -2.5
+              54.29,
+              0.393,
+              1.06
             ],
             [
-              99.92,
-              2.5,
-              -2.5
+              99.9,
+              0.393,
+              1.06
             ]
           ],
           "weight": 5.244,
           "entry": 14.17,
-          "camp": "Aide multilatérale, plan B pour les salariés",
+          "camp": "Sans camp net",
           "note": "Voit les routes comme un mal nécessaire pour les pays pauvres, à accompagner par des plans multilatéraux d'énergie renouvelable ; s'inquiète de l'hypercentralisation et des bidonvilles, et veut un plan B pour les salariés des industries polluantes.",
-          "color": "#7A5C99",
+          "color": "var(--ta)",
           "speech": [
             [
               14.17,
@@ -2510,25 +2030,36 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A9",
-          "x": 0.0,
-          "y": 5.0,
+          "placed": true,
+          "x": 0.358,
+          "y": 3.559,
           "kf": [
             [
-              18.08,
-              0.0,
-              5.0
+              52.2,
+              0.414,
+              4.11
             ],
             [
-              99.92,
-              0.0,
-              5.0
+              72.55,
+              0.414,
+              4.11
+            ],
+            [
+              73.55,
+              0.358,
+              3.559
+            ],
+            [
+              99.9,
+              0.358,
+              3.559
             ]
           ],
           "weight": 7.456,
           "entry": 18.08,
-          "camp": "Anticiper la sobriété",
+          "camp": "Sans camp net",
           "note": "Veut traiter les pays selon leur stade de développement et accepter une perte de confort progressive plutôt que de subir un choc ; ne croit pas à une transition douce par le marché, mais doute aussi qu'on puisse planifier sans État autoritaire.",
-          "color": "#6383B4",
+          "color": "var(--ta)",
           "speech": [
             [
               18.08,
@@ -2612,25 +2143,36 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A10",
-          "x": -2.5,
-          "y": 2.5,
+          "placed": true,
+          "x": 3.455,
+          "y": 1.814,
           "kf": [
             [
-              21.08,
-              -2.5,
-              2.5
+              84.76,
+              0.565,
+              2.496
             ],
             [
-              99.92,
-              -2.5,
-              2.5
+              93.88,
+              0.565,
+              2.496
+            ],
+            [
+              94.88,
+              3.455,
+              1.814
+            ],
+            [
+              99.9,
+              3.455,
+              1.814
             ]
           ],
           "weight": 6.091,
           "entry": 21.08,
-          "camp": "Capitalisme régulé, convaincu à moitié",
+          "camp": "Sans camp net",
           "note": "Voit la centralisation comme un levier écologique, pose la question de ce qu'on accepte d'abandonner, juge que marché et intérêt public divergent sur l'écologie, et se dit convaincu en principe par un quota carbone pondéré selon les besoins ; reste attaché au capitalisme régulé tout en reconnaissant que l'idée l'arrange.",
-          "color": "#1E6B6D",
+          "color": "var(--ta)",
           "speech": [
             [
               21.08,
@@ -2702,25 +2244,15 @@ window.UNIFIED_DATA = {
         },
         {
           "key": "A11",
-          "x": 0.0,
-          "y": 2.5,
-          "kf": [
-            [
-              22.11,
-              0.0,
-              2.5
-            ],
-            [
-              99.92,
-              0.0,
-              2.5
-            ]
-          ],
+          "placed": false,
+          "x": null,
+          "y": null,
+          "kf": [],
           "weight": 1.838,
           "entry": 22.11,
-          "camp": "Questions sur le prix du carbone",
+          "camp": "Non placé : moins de 3 prises de position relevées",
           "note": "Intervient surtout par des questions : fraude aux quotas carbone, marché chinois du carbone, manière de compléter un prix du carbone jugé insuffisant ; pense qu'un plafond est possible au moins pour les vols.",
-          "color": "#898A8C",
+          "color": "var(--ta)",
           "speech": [
             [
               22.11,
@@ -2816,10 +2348,7 @@ window.UNIFIED_DATA = {
               "t": 89.98,
               "stance": "Juge un plafond possible pour les vols, plus difficile pour la consommation courante ; regrette que la décroissance n'ait pas été abordée."
             }
-          ],
-          "uncertain": {
-            "x": "a surtout posé des questions, sans se prononcer sur le marché"
-          }
+          ]
         }
       ],
       "interactions": [
@@ -3323,8 +2852,8 @@ window.UNIFIED_DATA = {
     }
   ],
   "footer": [
-    "⚠ Positions interprétatives et volontairement grossières (pas de 2,5), établies à la lecture des transcriptions et recalées sur une grille commune à toutes les tables : ce ne sont pas des mesures. Quelques tables et une quinzaine de participants forment un petit échantillon, sans valeur statistique.",
-    "⚠ Consensus et dissensus sont classés par calcul à partir des prises de position relevées : consensus = au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté ; dissensus = des voix des deux côtés sans majorité nette. Ne pas s'être exprimé n'est ni une adhésion ni un rejet.",
-    "⚠ Les résumés et les prises de position sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît. Temps de parole, sujets, tension et échanges viennent des analyses de chaque table."
+    "⚠ Carte et camps de la transcription calculés, pas choisis : analyse en composantes principales et regroupement des prises de position relevées, selon la méthode de Polis, avec un test qui écarte les camps indiscernables du hasard. Quelques tables et une quinzaine de participants forment un petit échantillon : à lire avec prudence.",
+    "⚠ Consensus et dissensus sont classés par calcul à partir des prises de position relevées : consensus = au moins 3 voix pour ou contre, dont au moins les trois quarts du même côté, classés par le consensus tenant compte des camps de Polis ; dissensus = des voix des deux côtés sans majorité nette. Ne pas s'être exprimé n'est ni une adhésion ni un rejet.",
+    "⚠ Les énoncés et les prises de position sont relevés à la lecture de la transcription, chacun rattaché à un moment de l'enregistrement ; ce sont des reformulations, jamais des citations, et aucun prénom réel n'apparaît."
   ]
 };
