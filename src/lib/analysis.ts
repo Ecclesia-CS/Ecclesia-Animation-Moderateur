@@ -1,7 +1,23 @@
 // =============================================================
 // Analyse des camps d'opinion — logique de calcul
 // Fonctions pures, aucune dépendance React.
-// I/O Supabase uniquement dans les deux wrappers en bas de fichier.
+// I/O Supabase uniquement dans les wrappers en bas de fichier.
+//
+// Chantier 171 — calcul aligné sur Polis (Small, Bjorkegren, Erkkilä, Shaw &
+// Megill, « Polis: Scaling Deliberation by Mapping High Dimensional Opinion
+// Spaces », Recerca 26(2), 2021, §1.1-1.4), et camps testés avant d'être crus.
+// Les cinq écarts relevés par l'audit (transcription-debat/Visualisation prises
+// de positions/audit_methodes_2026-10.md, § 4.1) sont corrigés :
+//   1. un vote ABSENT est imputé par la moyenne de la colonne (la passe vaut 0) ;
+//   2. la position est multipliée par √(C / Cp) (C assertions, Cp votées) ;
+//   3. un votant n'est placé qu'à partir de MIN_VOTES_PER_MEMBER votes réels ;
+//   4. assertions caractéristiques : P = (1 + N_v) / (2 + N), rapport camp/reste,
+//      test exact de Fisher ;
+//   5. consensus : produit des P(d'accord | camp).
+// Et, hors Polis mais standard : test « un seul groupe » (silhouette comparée à
+// des données sans structure, principe de la gap statistic — Tibshirani,
+// Walther & Hastie, JRSS-B 2001) et stabilité des camps par sous-échantillonnage
+// des votants (Hennig, CSDA 2007 ; indice de Rand ajusté, Hubert & Arabie 1985).
 // =============================================================
 
 import { PCA } from 'ml-pca'
@@ -14,7 +30,30 @@ import type { VoteValue } from './types'
 const MIN_VOTERS              = 6
 const MIN_ASSERTIONS          = 5
 const MIN_VOTES_PER_ASSERTION = 3  // assertions avec moins de N votes réels exclues
-const MIN_VOTES_PER_MEMBER    = 1  // membres avec moins de N votes après filtrage exclus
+/**
+ * Chantier 171 — votants avec moins de N votes réels (sur les assertions
+ * retenues) exclus de la carte. Polis retire les participants sous 7 votes
+ * (hyperparamètre, réglé pour des consultations à des dizaines ou centaines
+ * d'assertions). Une séance Ecclesia en a 10 à 20 : 5 garde la même idée (pas
+ * de point placé sur un ou deux votes, que la correction √(C/Cp) amplifierait)
+ * sans exiger d'avoir tout voté. Plafonné au nombre d'assertions retenues, comme
+ * Polis (`min(7, nombre d'assertions)`).
+ * Était 1 jusqu'au chantier 171 (abaissé de 2 parce que des votes sur des
+ * assertions rejetées ensuite faisaient disparaître des votants de la carte —
+ * avec la correction de parcimonie, un point à 1 vote serait projeté loin du
+ * centre sur une seule réponse).
+ */
+export const MIN_VOTES_PER_MEMBER = 5
+/** Seuil du test exact de Fisher (unilatéral) des assertions caractéristiques : le 90 % de Polis. */
+export const REPNESS_ALPHA        = 0.10
+/** Seuil du test « un seul groupe ». */
+export const STRUCTURE_ALPHA      = 0.05
+/** Indice de Rand ajusté médian à partir duquel les camps sont dits stables. */
+export const STABLE_ARI           = 0.75
+const NULL_REPLICATES      = 200
+const STABILITY_REPLICATES = 100
+const STABILITY_SUBSAMPLE  = 0.8
+const RANDOM_SEED          = 171
 
 // ── Erreur typée ─────────────────────────────────────────────
 export class AnalysisError extends Error {
@@ -35,98 +74,153 @@ export interface VoteRow {
   attending_in_person?: boolean
 }
 
+/** Valeur d'une case : +1 d'accord, −1 pas d'accord, 0 passe, null = pas d'avis exprimé. */
+export type RawVote = number | null
+
 export interface VoteMatrix {
+  /** Votes bruts, `null` pour un absent ou un vote blanc. */
+  raw:              RawVote[][]
+  /** Matrice imputée (absents = moyenne de la colonne), celle que voit l'ACP. */
   matrix:           number[][]
   keptMemberIds:    string[]
   keptAssertionIds: string[]
+}
+
+/**
+ * Chantier 171 — les camps se distinguent-ils du hasard, et reviennent-ils
+ * quand on retire une partie des votants ?
+ *   - `pValue` : part des jeux de données SANS structure (chaque colonne de
+ *     votes permutée indépendamment : mêmes réponses par assertion, liens entre
+ *     assertions détruits) où le même calcul trouve une silhouette au moins
+ *     aussi bonne. Petite = camps plus nets que le hasard.
+ *   - `stabilityAri` : indice de Rand ajusté médian entre les camps publiés et
+ *     ceux recalculés sur 80 % des votants (1 = identiques, 0 = hasard).
+ *   - `verdict` : 'absents' si p ≥ STRUCTURE_ALPHA (rien ne distingue ces camps
+ *     d'un nuage sans groupes) ; sinon 'nets' si stabilité ≥ STABLE_ARI,
+ *     'fragiles' en dessous.
+ */
+export interface ClusterValidity {
+  silhouette:          number
+  nullSilhouette95:    number
+  pValue:              number
+  replicates:          number
+  stabilityAri:        number
+  stabilityReplicates: number
+  verdict:             'nets' | 'fragiles' | 'absents'
 }
 
 export interface AnalysisResult {
   kChosen:        number
   silhouette:     number
   pcaVariance:    [number, number]
+  /**
+   * assertion_id → { group_id → score }. Chantier 171 : score signé =
+   * rapport P(vote | camp) / P(vote | reste), positif si le camp est plus
+   * souvent d'accord, négatif s'il est plus souvent contre, 0 si l'écart n'est
+   * pas significatif (voir computeRepness). Même forme qu'avant : les écrans
+   * qui trient par score décroissant restent justes.
+   */
   repness:        Record<string, Record<string, number>>
+  /**
+   * assertion_id → score dans [−1, 1] : 2·(∏ P(d'accord | camp))^(1/k) − 1.
+   * Transformation monotone du produit de Polis (même classement), ramenée à
+   * l'échelle de l'ancien score pour que le seuil 0,5 de `get_results_map` et de
+   * l'onglet Analyse garde son sens (> 0,5 ⇔ moyenne géométrique > 0,75).
+   */
   groupConsensus: Record<string, number>
+  /** Produit brut des P(d'accord | camp), non enregistré en base. */
+  consensusProduct: Record<string, number>
+  /** Test « un seul groupe » et stabilité, non enregistrés en base (pas de colonne). */
+  validity:       ClusterValidity
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
+}
+
+// ── Encodage et matrice ───────────────────────────────────────
+
+const encodeVote = (v: VoteValue): RawVote =>
+  v === 'agree' ? 1 : v === 'disagree' ? -1 : v === 'pass' ? 0 : null
+
+/**
+ * Chantier 171 — absents imputés par la moyenne de la colonne (Polis §1.1).
+ * La moyenne est prise sur les votes exprimés (passe comprise, à 0). Une fois
+ * l'ACP centrée, une case imputée ne tire le votant dans aucune direction sur
+ * cette assertion : un absent ne compte plus comme un avis neutre.
+ */
+export function imputeColumnMeans(raw: RawVote[][]): number[][] {
+  if (raw.length === 0) return []
+  const nCols = raw[0].length
+  const means = Array.from({ length: nCols }, (_, j) => {
+    let s = 0, n = 0
+    for (const row of raw) {
+      const v = row[j]
+      if (v !== null) { s += v; n++ }
+    }
+    return n === 0 ? 0 : s / n
+  })
+  return raw.map(row => row.map((v, j) => (v === null ? means[j] : v)))
 }
 
 // ── buildVoteMatrix ───────────────────────────────────────────
 /**
  * Construit la matrice membres × assertions.
- * Encodage : agree=+1, disagree=-1, pass (abstention)=0, absent=0.
+ * Encodage : agree=+1, disagree=-1, pass (abstention)=0, absent=moyenne de la
+ * colonne (chantier 171 ; était 0 avant).
  *
  * Chantier 169 — le VOTE BLANC (`blank`, « la question est mal formulée ») n'est
- * pas une opinion : encodé 0 dans la matrice faute de mieux (même traitement que
- * l'absence, ce que fait pol.is pour une valeur manquante), mais il NE COMPTE PAS
- * comme vote réel dans les seuils de sparsité. Sinon quelqu'un qui n'a que voté
- * blanc serait rangé dans un camp sans avoir exprimé la moindre position.
- * L'abstention (`pass`) reste, elle, un vote réel. pol.is n'a pas de vote blanc.
+ * pas une opinion et ne compte pas comme vote réel dans les seuils de sparsité.
+ * Chantier 171 : il est traité comme une absence (imputé), pas comme une passe —
+ * il ne dit rien du fond de l'assertion. L'abstention (`pass`) reste un vote
+ * réel, à 0 fixe. pol.is n'a pas de vote blanc.
  *
- * `pass` (ligne existante dans assertion_votes) et l'absence de vote (aucune ligne)
- * restent distincts en storage — voir VoteRow / assertion_votes — mais sont volontairement
- * encodés à la même valeur 0 ici (choix v1, cf. notes de recherche pol.is C4/chantier 10).
- * `pass` est un choix actif qui compte dans les stats (voir pass_count côté get_vote_results) ;
- * l'absence est un vrai trou dans la matrice. Fidèle à pol.is serait d'imputer la moyenne de
- * la colonne assertion pour les seuls absents (pass restant à 0 fixe) — pas fait en v1 car ça
- * suppose de garder une matrice binaire séparée "ce vote existe-t-il" en plus des valeurs, et
- * le filtrage de sparsité ci-dessous limite déjà la part de vrais absents dans la matrice.
- * Applique le filtrage sparsité en deux passes :
+ * Filtrage de sparsité en deux passes :
  *   1. Exclure les assertions avec < MIN_VOTES_PER_ASSERTION votes réels
- *   2. Exclure les membres avec < MIN_VOTES_PER_MEMBER votes sur les assertions restantes
+ *   2. Exclure les membres avec < min(MIN_VOTES_PER_MEMBER, assertions retenues)
+ *      votes réels sur les assertions restantes
  */
 export function buildVoteMatrix(
   votes:      VoteRow[],
   members:    string[],
   assertions: string[],
 ): VoteMatrix {
-  // Index vote → valeur numérique
-  const encode = (v: VoteRow['vote']): number =>
-    v === 'agree' ? 1 : v === 'disagree' ? -1 : 0
-
-  // Table de lookup vote : memberIdx × assertionIdx
-  const voteMap = new Map<string, number>()
+  const voteMap = new Map<string, RawVote>()
   for (const v of votes) {
-    voteMap.set(`${v.member_id}::${v.assertion_id}`, encode(v.vote))
+    voteMap.set(`${v.member_id}::${v.assertion_id}`, encodeVote(v.vote))
   }
 
-  // Comptage des votes réels par assertion (≠ absent, mais pass compte)
+  // Comptage des votes réels par assertion (≠ absent, ≠ blanc, mais pass compte)
   const realVotesByAssertion = new Map<string, number>()
   for (const v of votes) {
     if (v.vote === 'blank') continue
-    realVotesByAssertion.set(
-      v.assertion_id,
-      (realVotesByAssertion.get(v.assertion_id) ?? 0) + 1,
-    )
+    realVotesByAssertion.set(v.assertion_id, (realVotesByAssertion.get(v.assertion_id) ?? 0) + 1)
   }
 
   // Passe 1 : filtrer les assertions sous-votées
   const filteredAssertions = assertions.filter(
     aid => (realVotesByAssertion.get(aid) ?? 0) >= MIN_VOTES_PER_ASSERTION,
   )
+  const keptSet = new Set(filteredAssertions)
 
   // Comptage des votes réels par membre sur les assertions retenues
   const realVotesByMember = new Map<string, number>()
   for (const v of votes) {
     if (v.vote === 'blank') continue
-    if (!filteredAssertions.includes(v.assertion_id)) continue
-    realVotesByMember.set(
-      v.member_id,
-      (realVotesByMember.get(v.member_id) ?? 0) + 1,
-    )
+    if (!keptSet.has(v.assertion_id)) continue
+    realVotesByMember.set(v.member_id, (realVotesByMember.get(v.member_id) ?? 0) + 1)
   }
 
   // Passe 2 : filtrer les membres sous-votants
+  const minVotes = Math.max(1, Math.min(MIN_VOTES_PER_MEMBER, filteredAssertions.length))
   const filteredMembers = members.filter(
-    mid => (realVotesByMember.get(mid) ?? 0) >= MIN_VOTES_PER_MEMBER,
+    mid => (realVotesByMember.get(mid) ?? 0) >= minVotes,
   )
 
-  // Construction de la matrice
-  const matrix: number[][] = filteredMembers.map(mid =>
-    filteredAssertions.map(aid => voteMap.get(`${mid}::${aid}`) ?? 0),
+  const raw: RawVote[][] = filteredMembers.map(mid =>
+    filteredAssertions.map(aid => voteMap.get(`${mid}::${aid}`) ?? null),
   )
 
   return {
-    matrix,
+    raw,
+    matrix:           imputeColumnMeans(raw),
     keptMemberIds:    filteredMembers,
     keptAssertionIds: filteredAssertions,
   }
@@ -154,6 +248,34 @@ export function runPCA(matrix: number[][]): {
   }
 }
 
+/**
+ * Chantier 171 — correction de parcimonie de Polis (§1.2) : la position d'un
+ * votant est multipliée par √(C / Cp), C = assertions retenues, Cp = celles
+ * qu'il a votées. Sans elle, quelqu'un qui a peu voté est attiré vers le
+ * centre (ses cases imputées valent la moyenne), où il se confond avec les
+ * vrais modérés.
+ */
+export function sparsityScale(raw: RawVote[][]): number[] {
+  return raw.map(row => {
+    const c  = row.length
+    const cp = row.filter(v => v !== null).length
+    return cp === 0 ? 1 : Math.sqrt(c / cp)
+  })
+}
+
+/** Imputation → ACP → correction de parcimonie : la carte. */
+export function projectOpinions(raw: RawVote[][]): {
+  coords:            [number, number][]
+  varianceExplained: [number, number]
+} {
+  const { coords, varianceExplained } = runPCA(imputeColumnMeans(raw))
+  const scale = sparsityScale(raw)
+  return {
+    coords: coords.map((c, i) => [c[0] * scale[i], c[1] * scale[i]] as [number, number]),
+    varianceExplained,
+  }
+}
+
 // ── silhouetteScore ───────────────────────────────────────────
 /**
  * Calcule le score de silhouette moyen (implémentation manuelle,
@@ -166,39 +288,41 @@ export function silhouetteScore(
   const n = coords.length
   if (n < 2) return 0
 
-  const dist = (a: [number, number], b: [number, number]): number =>
-    Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
-
+  // Chantier 171 — une seule passe O(n²) sans allocation : la silhouette est
+  // recalculée des centaines de fois par le test de structure.
   const uniqueClusters = [...new Set(labels)]
+  if (uniqueClusters.length < 2) return 0
+  const k = uniqueClusters.length
+  const idx = new Map(uniqueClusters.map((c, i) => [c, i]))
+  const lab = labels.map(l => idx.get(l)!)
+  const size = new Array<number>(k).fill(0)
+  for (const l of lab) size[l]++
 
-  const scores = coords.map((_, i) => {
-    const myCluster = labels[i]
+  // sums[i * k + c] = somme des distances de i aux points du cluster c
+  const sums = new Float64Array(n * k)
+  for (let i = 0; i < n; i++) {
+    const [xi, yi] = coords[i]
+    for (let j = i + 1; j < n; j++) {
+      const d = Math.sqrt((xi - coords[j][0]) ** 2 + (yi - coords[j][1]) ** 2)
+      sums[i * k + lab[j]] += d
+      sums[j * k + lab[i]] += d
+    }
+  }
 
-    // Points du même cluster (hors i)
-    const sameCluster = coords.filter((__, j) => j !== i && labels[j] === myCluster)
-
-    // a(i) : distance moyenne intra-cluster
-    const a = sameCluster.length === 0
-      ? 0
-      : sameCluster.reduce((sum, c) => sum + dist(coords[i], c), 0) / sameCluster.length
-
+  let total = 0
+  for (let i = 0; i < n; i++) {
+    const own = lab[i]
+    // a(i) : distance moyenne intra-cluster (hors i)
+    const a = size[own] > 1 ? sums[i * k + own] / (size[own] - 1) : 0
     // b(i) : distance moyenne minimum inter-cluster
-    const otherClusters = uniqueClusters.filter(c => c !== myCluster)
-    if (otherClusters.length === 0) return 0
-
-    const b = Math.min(
-      ...otherClusters.map(c => {
-        const pts = coords.filter((__, j) => labels[j] === c)
-        if (pts.length === 0) return Infinity
-        return pts.reduce((sum, p) => sum + dist(coords[i], p), 0) / pts.length
-      }),
-    )
-
+    let b = Infinity
+    for (let c = 0; c < k; c++) {
+      if (c !== own) b = Math.min(b, sums[i * k + c] / size[c])
+    }
     const denom = Math.max(a, b)
-    return denom === 0 ? 0 : (b - a) / denom
-  })
-
-  return scores.reduce((sum, s) => sum + s, 0) / scores.length
+    total += denom === 0 ? 0 : (b - a) / denom
+  }
+  return total / n
 }
 
 // ── runKMeans ─────────────────────────────────────────────────
@@ -237,81 +361,310 @@ export function runKMeans(coords: [number, number][]): {
   return { groups: bestGroups, kChosen: bestK, silhouette: bestScore }
 }
 
-// ── computeRepness ────────────────────────────────────────────
+// ── Outils statistiques ───────────────────────────────────────
+
+/** PRNG déterministe (mulberry32, comme allocation.ts) : mêmes votes ⇒ même verdict. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function shuffled<T>(arr: T[], rand: () => number): T[] {
+  const out = arr.slice()
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+const logFactCache: number[] = [0]
+function logFact(n: number): number {
+  for (let i = logFactCache.length; i <= n; i++) logFactCache[i] = logFactCache[i - 1] + Math.log(i)
+  return logFactCache[n]
+}
+const logChoose = (n: number, k: number) => logFact(n) - logFact(k) - logFact(n - k)
+
 /**
- * Pour chaque assertion a et groupe g :
- * repness(a,g) = (mean_vote(a,g) − mean_vote(a, not_g)) × n_votes_réels(a,g)
+ * Test exact de Fisher, unilatéral : probabilité, sous l'hypothèse « le camp ne
+ * se distingue pas du reste », d'observer au moins `a` cas parmi les `n` du
+ * camp, quand il y a `a + b` cas sur `n + m` votants en tout (loi
+ * hypergéométrique). Exact à tout effectif, donc adapté aux camps de 3 ou 4
+ * personnes où le test z de Polis n'est pas fiable.
  */
-export function computeRepness(
-  matrix:           number[][],
+export function fisherExactGreater(a: number, n: number, b: number, m: number): number {
+  const N = n + m, K = a + b
+  const hi = Math.min(K, n)
+  const denom = logChoose(N, n)
+  let p = 0
+  for (let i = a; i <= hi; i++) {
+    if (K - i > m) continue
+    p += Math.exp(logChoose(K, i) + logChoose(N - K, n - i) - denom)
+  }
+  return Math.min(1, p)
+}
+
+/** Indice de Rand ajusté (Hubert & Arabie 1985) : 1 = partitions identiques, ≈ 0 = hasard. */
+export function adjustedRandIndex(a: number[], b: number[]): number {
+  const n = a.length
+  if (n < 2) return 1
+  const c2 = (x: number) => (x * (x - 1)) / 2
+  const cells = new Map<string, number>()
+  const rows  = new Map<number, number>()
+  const cols  = new Map<number, number>()
+  for (let i = 0; i < n; i++) {
+    const key = `${a[i]}|${b[i]}`
+    cells.set(key, (cells.get(key) ?? 0) + 1)
+    rows.set(a[i], (rows.get(a[i]) ?? 0) + 1)
+    cols.set(b[i], (cols.get(b[i]) ?? 0) + 1)
+  }
+  let index = 0
+  for (const v of cells.values()) index += c2(v)
+  let sumA = 0, sumB = 0
+  for (const v of rows.values()) sumA += c2(v)
+  for (const v of cols.values()) sumB += c2(v)
+  const expected = (sumA * sumB) / c2(n)
+  const max = (sumA + sumB) / 2
+  return max === expected ? 1 : (index - expected) / (max - expected)
+}
+
+// ── computeRepness ────────────────────────────────────────────
+
+interface VoteTally { n: number; agree: number; disagree: number }
+
+function tallyColumn(raw: RawVote[][], rows: number[], j: number): VoteTally {
+  const t = { n: 0, agree: 0, disagree: 0 }
+  for (const i of rows) {
+    const v = raw[i][j]
+    if (v === null) continue
+    t.n++
+    if (v > 0) t.agree++
+    else if (v < 0) t.disagree++
+  }
+  return t
+}
+
+/** Estimateur de Polis avec lissage de Laplace : (1 + N_v) / (2 + N). */
+export const smoothedShare = (nv: number, n: number) => (1 + nv) / (2 + n)
+
+export interface RepnessDetail {
+  direction: 'agree' | 'disagree'
+  /** P(vote | camp), lissée. */
+  pGroup:    number
+  /** P(vote | reste), lissée. */
+  pRest:     number
+  ratio:     number
+  pValue:    number
+  significant: boolean
+}
+
+/**
+ * Pour une assertion et un camp, le sens (d'accord / contre) qui distingue le
+ * plus le camp du reste. Polis §1.3 : P(v | camp) = (1 + N_v) / (2 + N) où N
+ * compte les votes exprimés (passe comprise, absents et blancs exclus), puis
+ * rapport R = P(v | camp) / P(v | reste). Retenu si :
+ *   - R > 1 et la part du camp dépasse 1/2 (une majorité du camp vote ainsi —
+ *     Polis teste aussi P(v | camp) contre 1/2) ;
+ *   - le test exact de Fisher unilatéral donne p < REPNESS_ALPHA.
+ */
+export function repnessFor(
+  inGroup: VoteTally,
+  rest:    VoteTally,
+): RepnessDetail {
+  const candidates = (['agree', 'disagree'] as const).map(direction => {
+    const a = inGroup[direction], b = rest[direction]
+    const pGroup = smoothedShare(a, inGroup.n)
+    const pRest  = smoothedShare(b, rest.n)
+    const ratio  = pGroup / pRest
+    const pValue = fisherExactGreater(a, inGroup.n, b, rest.n)
+    const significant = ratio > 1 && pGroup > 0.5 && pValue < REPNESS_ALPHA
+    return { direction, pGroup, pRest, ratio, pValue, significant }
+  })
+  const sig = candidates.filter(c => c.significant).sort((x, y) => y.ratio - x.ratio)
+  if (sig.length > 0) return sig[0]
+  return candidates.sort((x, y) => y.ratio - x.ratio)[0]
+}
+
+/** Détail des tests, pour chaque assertion et chaque camp. */
+export function computeRepnessDetails(
+  raw:              RawVote[][],
   groups:           number[],
   keptAssertionIds: string[],
-): Record<string, Record<string, number>> {
+): Record<string, Record<string, RepnessDetail>> {
   const uniqueGroups = [...new Set(groups)]
-  const result: Record<string, Record<string, number>> = {}
-
+  const rowsOf = new Map(uniqueGroups.map(g => [g, groups.flatMap((x, i) => (x === g ? [i] : []))]))
+  const restOf = new Map(uniqueGroups.map(g => [g, groups.flatMap((x, i) => (x !== g ? [i] : []))]))
+  const result: Record<string, Record<string, RepnessDetail>> = {}
   keptAssertionIds.forEach((aid, j) => {
     result[aid] = {}
     for (const g of uniqueGroups) {
-      const inGroup  = matrix.filter((_, i) => groups[i] === g).map(row => row[j])
-      const outGroup = matrix.filter((_, i) => groups[i] !== g).map(row => row[j])
-
-      const mean = (arr: number[]) =>
-        arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length
-
-      const meanIn  = mean(inGroup)
-      const meanOut = mean(outGroup)
-      const nVotes  = inGroup.filter(v => v !== 0).length
-
-      result[aid][String(g)] = (meanIn - meanOut) * nVotes
+      result[aid][String(g)] = repnessFor(tallyColumn(raw, rowsOf.get(g)!, j), tallyColumn(raw, restOf.get(g)!, j))
     }
   })
+  return result
+}
 
+/**
+ * Score enregistré (`session_analysis.repness`) : +R si le camp est
+ * significativement plus souvent d'accord, −R s'il est significativement plus
+ * souvent contre, 0 sinon. Avant le chantier 171 : (moyenne camp − moyenne
+ * reste) × votes du camp, sans test.
+ */
+export function computeRepness(
+  raw:              RawVote[][],
+  groups:           number[],
+  keptAssertionIds: string[],
+): Record<string, Record<string, number>> {
+  const details = computeRepnessDetails(raw, groups, keptAssertionIds)
+  const result: Record<string, Record<string, number>> = {}
+  for (const [aid, byGroup] of Object.entries(details)) {
+    result[aid] = {}
+    for (const [g, d] of Object.entries(byGroup)) {
+      result[aid][g] = d.significant ? (d.direction === 'agree' ? d.ratio : -d.ratio) : 0
+    }
+  }
   return result
 }
 
 // ── computeGroupConsensus ─────────────────────────────────────
 /**
- * Pour chaque assertion : score = min des moyennes par groupe.
- * Une assertion consensuelle est approuvée par tous les groupes en moyenne.
+ * Polis §1.4 : consensus d'une assertion = ∏ sur les camps de
+ * P(d'accord | camp), lissée (1 + N_agree) / (2 + N). Un camp où personne n'a
+ * voté compte pour 1/2 (ni pour ni contre), ce qui évite qu'un petit camp muet
+ * fabrique un consensus. Renvoie le produit brut et le score enregistré
+ * 2·produit^(1/k) − 1 (voir AnalysisResult.groupConsensus).
  */
 export function computeGroupConsensus(
-  matrix:           number[][],
+  raw:              RawVote[][],
   groups:           number[],
   keptAssertionIds: string[],
-): Record<string, number> {
+): { scores: Record<string, number>; products: Record<string, number> } {
   const uniqueGroups = [...new Set(groups)]
-  const result: Record<string, number> = {}
+  const rowsOf = uniqueGroups.map(g => groups.flatMap((x, i) => (x === g ? [i] : [])))
+  const scores: Record<string, number> = {}
+  const products: Record<string, number> = {}
 
   keptAssertionIds.forEach((aid, j) => {
-    const means = uniqueGroups.map(g => {
-      const col = matrix.filter((_, i) => groups[i] === g).map(row => row[j])
-      return col.length === 0 ? 0 : col.reduce((s, v) => s + v, 0) / col.length
+    const ps = rowsOf.map(rows => {
+      const t = tallyColumn(raw, rows, j)
+      return smoothedShare(t.agree, t.n)
     })
-    result[aid] = Math.min(...means)
+    const product = ps.reduce((acc, p) => acc * p, 1)
+    products[aid] = product
+    scores[aid]   = 2 * product ** (1 / Math.max(1, ps.length)) - 1
   })
 
-  return result
+  return { scores, products }
+}
+
+// ── Test « un seul groupe » et stabilité ──────────────────────
+
+function kmeansFixed(coords: [number, number][], k: number): number[] {
+  return kmeans(coords, k, { initialization: 'kmeans++', seed: 42 }).clusters
+}
+
+/** Chaque colonne permutée indépendamment : mêmes réponses par assertion, aucun lien entre assertions. */
+function permuteColumns(raw: RawVote[][], rand: () => number): RawVote[][] {
+  const n = raw.length
+  if (n === 0) return []
+  const out: RawVote[][] = raw.map(row => row.slice())
+  for (let j = 0; j < raw[0].length; j++) {
+    const col = shuffled(raw.map(row => row[j]), rand)
+    for (let i = 0; i < n; i++) out[i][j] = col[i]
+  }
+  return out
+}
+
+/**
+ * Chantier 171 — le k-means trouve toujours des camps, même dans un nuage sans
+ * groupes : on mesure la silhouette que le MÊME calcul (imputation, ACP,
+ * correction, choix de k par silhouette) obtient sur des votes sans structure,
+ * et la stabilité des camps quand on retire 20 % des votants. Sur la matrice
+ * complète, pas sur la carte 2D (limite relevée par l'audit, § 3.1).
+ * Déterministe : graine fixe.
+ */
+export function assessClusterValidity(
+  raw:        RawVote[][],
+  groups:     number[],
+  kChosen:    number,
+  silhouette: number,
+  options:    { replicates?: number; stabilityReplicates?: number; seed?: number } = {},
+): ClusterValidity {
+  const replicates          = options.replicates ?? NULL_REPLICATES
+  const stabilityReplicates = options.stabilityReplicates ?? STABILITY_REPLICATES
+  const rand = mulberry32(options.seed ?? RANDOM_SEED)
+  const n = raw.length
+
+  // 1. Silhouettes sous l'hypothèse « aucune structure »
+  const nullScores: number[] = []
+  for (let r = 0; r < replicates; r++) {
+    const { coords } = projectOpinions(permuteColumns(raw, rand))
+    nullScores.push(runKMeans(coords).silhouette)
+  }
+  nullScores.sort((a, b) => a - b)
+  const atLeast = nullScores.filter(s => s >= silhouette).length
+  const pValue  = (1 + atLeast) / (1 + replicates)
+  const nullSilhouette95 = nullScores.length === 0
+    ? 0
+    : nullScores[Math.min(nullScores.length - 1, Math.floor(0.95 * nullScores.length))]
+
+  // 2. Stabilité : camps recalculés (même k) sur 80 % des votants
+  const m = Math.max(kChosen * 2, Math.round(STABILITY_SUBSAMPLE * n))
+  const aris: number[] = []
+  const indices = raw.map((_, i) => i)
+  for (let r = 0; r < stabilityReplicates && m < n; r++) {
+    const pick = shuffled(indices, rand).slice(0, m).sort((a, b) => a - b)
+    const { coords } = projectOpinions(pick.map(i => raw[i]))
+    const sub = kmeansFixed(coords, kChosen)
+    aris.push(adjustedRandIndex(pick.map(i => groups[i]), sub))
+  }
+  aris.sort((a, b) => a - b)
+  const stabilityAri = aris.length === 0 ? 1 : aris[Math.floor(aris.length / 2)]
+
+  const verdict: ClusterValidity['verdict'] =
+    pValue >= STRUCTURE_ALPHA ? 'absents' : stabilityAri >= STABLE_ARI ? 'nets' : 'fragiles'
+
+  return {
+    silhouette,
+    nullSilhouette95,
+    pValue,
+    replicates,
+    stabilityAri,
+    stabilityReplicates: aris.length,
+    verdict,
+  }
 }
 
 // ── runOpinionAnalysis ────────────────────────────────────────
 /**
- * Orchestrateur : enchaîne buildVoteMatrix → PCA → k-means → repness → consensus.
+ * Orchestrateur : buildVoteMatrix → imputation + ACP + √(C/Cp) → k-means →
+ * repness → consensus → test de structure et stabilité.
  * Lève AnalysisError('INSUFFICIENT_DATA') si les données sont insuffisantes.
+ *
+ * Sert à la séance complète et au sondage en mode camps (même calcul). Le
+ * sondage en consentement n'appelle jamais cette fonction (aucun camp), le
+ * débat simple non plus (aucun vote).
  */
 export function runOpinionAnalysis(
   votes:      VoteRow[],
   members:    string[],
   assertions: string[],
+  options:    { replicates?: number; stabilityReplicates?: number } = {},
 ): AnalysisResult {
   // 1. Construire la matrice filtrée
-  const { matrix, keptMemberIds, keptAssertionIds } = buildVoteMatrix(votes, members, assertions)
+  const { raw, keptMemberIds, keptAssertionIds } = buildVoteMatrix(votes, members, assertions)
 
   // 2. Gardes post-filtrage
   if (keptMemberIds.length < MIN_VOTERS) {
     throw new AnalysisError(
       'INSUFFICIENT_DATA',
-      `Analyse impossible : ${keptMemberIds.length} votant(s) après filtrage, minimum ${MIN_VOTERS} requis.`,
+      `Analyse impossible : ${keptMemberIds.length} votant(s) avec au moins ${MIN_VOTES_PER_MEMBER} votes, minimum ${MIN_VOTERS} requis.`,
     )
   }
   if (keptAssertionIds.length < MIN_ASSERTIONS) {
@@ -321,23 +674,28 @@ export function runOpinionAnalysis(
     )
   }
 
-  // 3. PCA
-  const { coords, varianceExplained } = runPCA(matrix)
+  // 3. Carte : imputation, ACP, correction de parcimonie
+  const { coords, varianceExplained } = projectOpinions(raw)
 
   // 4. k-means (peut lever INSUFFICIENT_DATA si trop peu de points)
   const { groups, kChosen, silhouette } = runKMeans(coords)
 
-  // 5. Métriques d'opinion
-  const repness       = computeRepness(matrix, groups, keptAssertionIds)
-  const groupConsensus = computeGroupConsensus(matrix, groups, keptAssertionIds)
+  // 5. Métriques d'opinion (sur les votes bruts : absents et blancs exclus)
+  const repness = computeRepness(raw, groups, keptAssertionIds)
+  const { scores: groupConsensus, products: consensusProduct } =
+    computeGroupConsensus(raw, groups, keptAssertionIds)
 
-  // 6. Résultat final
+  // 6. Les camps sont-ils réels ?
+  const validity = assessClusterValidity(raw, groups, kChosen, silhouette, options)
+
   return {
     kChosen,
     silhouette,
     pcaVariance: varianceExplained,
     repness,
     groupConsensus,
+    consensusProduct,
+    validity,
     members: keptMemberIds.map((mid, i) => ({
       member_id: mid,
       pca_x:     coords[i][0],
@@ -378,6 +736,12 @@ export interface LoadedAnalysis {
   created_at:             string
   vote_scope:             VoteScope
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
+  /**
+   * Chantier 171 — test « un seul groupe » et stabilité. Présent seulement pour
+   * une analyse calculée dans ce navigateur : aucune colonne ne le garde en base,
+   * une analyse rechargée n'en a donc pas (affichage « relancer l'analyse »).
+   */
+  validity?:              ClusterValidity
 }
 
 /** Résumé d'une analyse, sans le détail des membres — pour lister les analyses d'une séance. */

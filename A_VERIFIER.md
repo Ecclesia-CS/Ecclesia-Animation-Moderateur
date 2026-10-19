@@ -601,3 +601,14 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Bouton absent** en phase autre que `closed`, sur un débat simple, un sondage et côté `#asso`.
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
+
+## Chantier 171 (2026-10-19) · Analyse pré-débat alignée sur Polis, camps testés
+
+Front seul, aucune migration. `src/lib/analysis.ts` (+ tests), `AnalysisPanel.tsx`, `ResultsMapScreen.tsx` (légende), `preDebateExport.ts`. `tsc`, tests (`analysis.test.ts`, `preDebateExport.test.ts`) et build OK. Vérifié au navigateur sur le vrai `AnalysisPanel`, mais avec un faux client Supabase local et des votes synthétiques : verdicts « Camps nets » et « Pas de camps nets », phrase de variance, participant à 2 votes exclu, vue présentiels, largeur mobile.
+
+- [ ] **Base dev, superadmin** : non joué, la session n'a pas le mot de passe. Sur une séance de test avec votes, onglet Analyse > « Analyser les camps » : encadré de fiabilité (vert / orange / rouge) et phrase « Cette carte montre N % des différences d'opinion » sous la carte ; scores clivants signés (+ / −) ; après rechargement de la page, l'encadré devient « Fiabilité des camps non mesurée » (le verdict n'est pas enregistré en base).
+- [ ] **Séance « Capitalisme et écologie »** (14 votants, 4 camps) : l'audit prévoit « Pas de camps nets ». Vérifier sur ses votes `pre_closure` (bouton d'export du chantier 170 : `carte.fiabilite_camps.verdict`).
+- [ ] **Participants hors de la carte** : avec le seuil passé de 1 à 5 votes, un participant qui a voté moins de 5 fois n'a plus de point ni de camp sur l'écran de résultats (`ResultsMapScreen`), et n'a pas de camp pour l'allocation (traité comme neutre). Vérifier que ce cas reste rare sur une vraie séance (compteur « participant(s) hors de la carte » de l'onglet Analyse).
+- [ ] **Anciennes analyses** : celles enregistrées avant ce chantier gardent l'ancien score (écart de moyennes × effectif) mais s'affichent avec la nouvelle légende côté participant. Sans conséquence pour une séance clôturée, à savoir si une séance en cours est analysée à cheval sur le déploiement.
+- [ ] **Durée du calcul** sur une grande séance (le calcul refait 300 fois l'analyse : environ 0,4 s pour 40 votants, 2 s pour 200, mesurés en test) : vérifier que le bouton et l'auto-analyse restent supportables.
+

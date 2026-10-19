@@ -8,7 +8,8 @@ const camp = (m: string) => (members.indexOf(m) < 3 ? 0 : 1)
 
 function analysis(groupOf: (m: string) => number = camp): AnalysisResult {
   return {
-    kChosen: 2, silhouette: 0.5, pcaVariance: [0.4, 0.2], repness: {}, groupConsensus: {},
+    kChosen: 2, silhouette: 0.5, pcaVariance: [0.4, 0.2], repness: {}, groupConsensus: {}, consensusProduct: {},
+    validity: { silhouette: 0.5, nullSilhouette95: 0.4, pValue: 0.01, replicates: 200, stabilityAri: 0.9, stabilityReplicates: 100, verdict: 'nets' },
     members: members.map((m, i) => ({ member_id: m, pca_x: groupOf(m) === 0 ? -1 - i / 10 : 1 + i / 10, pca_y: i / 10, group_id: groupOf(m) })),
   }
 }

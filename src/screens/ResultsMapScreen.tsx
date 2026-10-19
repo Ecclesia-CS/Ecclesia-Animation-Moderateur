@@ -198,8 +198,8 @@ function RepnessLegend() {
     <div className="rounded-[8px] bg-gray-100 px-3 py-2.5 mb-3">
       <p className="text-xs font-semibold text-gray-700 mb-0.5">Explication du score</p>
       <p className="text-xs text-gray-600">
-        Le score sur 5 mesure à quel point votre groupe se distingue des autres sur cette affirmation :
-        différence d'accord moyen × nombre de votants dans le groupe. Plus il est élevé, plus l'assertion est caractéristique.
+        Le score dit combien de fois plus souvent ce groupe est d'accord avec l'affirmation que le reste des participants.
+        Seuls les écarts trop nets pour être dus au hasard sont retenus. Plus il est élevé, plus l'affirmation est caractéristique.
       </p>
     </div>
   )

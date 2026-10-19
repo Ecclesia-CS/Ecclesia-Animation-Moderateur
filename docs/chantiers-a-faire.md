@@ -8,7 +8,7 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
-> 🚧 **Chantier 171 — EN COURS (2026-10-19)** · branche `claude/chantier-171-polis` (partie de `dev`) · analyse pré-débat alignée sur Polis (Small et al. 2021) + test « un seul groupe » et stabilité des camps, étapes 1-2 de `transcription-debat/Visualisation prises de positions/audit_methodes_2026-10.md` § 4.1. Fichiers : `src/lib/analysis.ts` (+ test), `src/components/AnalysisPanel.tsx`, `src/screens/ResultsMapScreen.tsx` (légende du score), `src/lib/preDebateExport.ts` (+ test). Front seul, aucune migration prévue.
+> **Le 2026-10-19, le chantier 171 est fait sur sa branche** (analyse pré-débat alignée sur Polis, test « un seul groupe » et stabilité des camps) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 171. Front seul, **aucune migration**. Branche `claude/chantier-171-polis`, pas encore mergée dans `dev`. Entrée « en cours » retirée.
 
 > **Le 2026-10-19, le chantier 170 est fait** (bouton « Extraction données pré-débat » du superadmin, séance complète clôturée) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 170. Front seul, **aucune migration**. Mergé dans `dev` puis dans `main`. Entrée « en cours » retirée.
 

@@ -78,6 +78,14 @@ export interface PreDebateExport {
   carte: {
     axes:               string
     variance_expliquee: [number, number]
+    /** Chantier 171 — les camps se distinguent-ils du hasard, et sont-ils stables ? */
+    fiabilite_camps: {
+      verdict:              'nets' | 'fragiles' | 'absents'
+      p_valeur:             number
+      silhouette:           number
+      silhouette_hasard_95: number
+      stabilite_ari:        number
+    }
     points:             { x: number; y: number; camp: number }[]
   }
 }
@@ -243,6 +251,8 @@ export function buildPreDebateExport(input: PreDebateInput): PreDebateExport {
       `Seules les assertions avec au moins ${MIN_DECIDED_VOTES} votes pour ou contre sont classées.`,
       "camps : groupes d'opinion calculés sur les votes (analyse en composantes principales puis k-means, comme l'onglet Analyse). enonces_caracteristiques = ce qui distingue le plus le camp du reste des votants. nom_ia et description_ia ne sont présents que si les camps sont exactement ceux nommés par l'IA dans l'appli.",
       "carte : un point par votant placé, anonyme. x et y sont les deux premières composantes principales des votes : les axes n'ont pas de libellé, seules les distances et les regroupements ont un sens.",
+      "carte.variance_expliquee : part des différences d'opinion que montre chaque axe (0,24 = 24 %). Le reste est invisible sur un plan.",
+      "carte.fiabilite_camps : les camps sont-ils réels ? p_valeur = part des jeux de votes sans aucune structure (réponses de chaque assertion mélangées entre votants) où le même calcul trouve des camps au moins aussi nets ; silhouette_hasard_95 = silhouette atteinte par 95 % de ces jeux ; stabilite_ari = ressemblance médiane (1 = identique, 0 = hasard) des camps recalculés sans 20 % des votants. verdict : 'absents' si p_valeur ≥ 0,05 (ne pas présenter de camps), 'fragiles' si les camps changent quand on retire des votants, 'nets' sinon.",
       "Aucun nom ni identifiant de participant n'est inclus.",
     ],
     seance: { titre: input.title, date_seance: input.sessionDate, exporte_le: input.exportedAt, votes: 'avant débat (pre_closure)' },
@@ -253,6 +263,13 @@ export function buildPreDebateExport(input: PreDebateInput): PreDebateExport {
     carte: {
       axes: 'composantes principales 1 (x) et 2 (y) des votes, sans unité',
       variance_expliquee: [round(analysis.pcaVariance[0]), round(analysis.pcaVariance[1])],
+      fiabilite_camps: {
+        verdict:              analysis.validity.verdict,
+        p_valeur:             round(analysis.validity.pValue),
+        silhouette:           round(analysis.validity.silhouette),
+        silhouette_hasard_95: round(analysis.validity.nullSilhouette95),
+        stabilite_ari:        round(analysis.validity.stabilityAri),
+      },
       points,
     },
   }

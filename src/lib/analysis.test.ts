@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { pairGroups, computeMemberMovements, computeConsensusMovements, normalizeLoadedAnalysis, normalizeVoteChanges } from './analysis'
-import type { LoadedAnalysis } from './analysis'
+import {
+  pairGroups, computeMemberMovements, computeConsensusMovements, normalizeLoadedAnalysis, normalizeVoteChanges,
+  imputeColumnMeans, sparsityScale, buildVoteMatrix, smoothedShare, fisherExactGreater,
+  repnessFor, computeRepness, computeGroupConsensus, adjustedRandIndex, runOpinionAnalysis,
+  MIN_VOTES_PER_MEMBER,
+} from './analysis'
+import type { LoadedAnalysis, VoteRow, RawVote } from './analysis'
 
 function analysis(
   members: { member_id: string; group_id: number }[],
@@ -171,5 +176,176 @@ describe('normalizeVoteChanges (chantier 167)', () => {
   it('écarte une transition avec une valeur de vote inconnue', () => {
     const r = normalizeVoteChanges({ transitions: [{ from: 'agree', to: 'maybe', count: 2 }] })
     expect(r.transitions).toEqual([])
+  })
+})
+
+// ── Chantier 171 : formules Polis, test de structure, stabilité ───────────
+
+/** Générateur déterministe pour fabriquer des votes de test. */
+function lcg(seed: number) {
+  let s = seed >>> 0
+  return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296)
+}
+
+/** n votants × m assertions ; `voteOf(i, j)` renvoie le vote ou null (absent). */
+function makeVotes(n: number, m: number, voteOf: (i: number, j: number) => VoteRow['vote'] | null) {
+  const votes: VoteRow[] = []
+  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+    const v = voteOf(i, j)
+    if (v) votes.push({ member_id: `m${i}`, assertion_id: `a${j}`, vote: v })
+  }
+  return {
+    votes,
+    members:    Array.from({ length: n }, (_, i) => `m${i}`),
+    assertions: Array.from({ length: m }, (_, j) => `a${j}`),
+  }
+}
+
+describe('imputeColumnMeans (Polis : absent = moyenne de la colonne)', () => {
+  it('remplace les absents par la moyenne des votes exprimés, la passe restant à 0', () => {
+    const raw: RawVote[][] = [[1, 0], [1, null], [-1, 0], [null, 1]]
+    const m = imputeColumnMeans(raw)
+    expect(m[3][0]).toBeCloseTo(1 / 3)
+    expect(m[1][1]).toBeCloseTo(1 / 3)
+    expect(m[0][1]).toBe(0)
+  })
+  it('met 0 dans une colonne sans aucun vote', () => {
+    expect(imputeColumnMeans([[null], [null]])).toEqual([[0], [0]])
+  })
+})
+
+describe('sparsityScale (Polis : × √(C/Cp))', () => {
+  it('vaut 1 pour qui a tout voté et √2 pour qui a voté la moitié', () => {
+    const s = sparsityScale([[1, -1, 0, 1], [1, null, 0, null]])
+    expect(s[0]).toBe(1)
+    expect(s[1]).toBeCloseTo(Math.SQRT2)
+  })
+})
+
+describe('buildVoteMatrix', () => {
+  it(`retire les votants sous ${MIN_VOTES_PER_MEMBER} votes réels, et le blanc ne compte pas`, () => {
+    // 8 assertions ; m0, m2, m3 votent tout (dont m2 en passant), m1 vote 4 fois + 1 blanc
+    const { votes, members, assertions } = makeVotes(4, 8, (i, j) => {
+      if (i === 1) return j < 4 ? 'disagree' : j === 4 ? 'blank' : null
+      return i === 2 ? 'pass' : 'agree'
+    })
+    const vm = buildVoteMatrix(votes, members, assertions)
+    expect(vm.keptAssertionIds).toHaveLength(8)
+    expect(vm.keptMemberIds).toEqual(['m0', 'm2', 'm3'])
+  })
+  it("garde un blanc et un absent à null dans la matrice brute, imputés pour l'ACP", () => {
+    const { votes, members, assertions } = makeVotes(6, 6, (i, j) =>
+      i === 3 && j === 0 ? 'blank' : i === 2 && j === 0 ? null : j % 2 ? 'agree' : 'disagree')
+    const vm = buildVoteMatrix(votes, members, assertions)
+    const row3 = vm.keptMemberIds.indexOf('m3')
+    expect(vm.raw[row3][0]).toBeNull()
+    expect(vm.raw[vm.keptMemberIds.indexOf('m2')][0]).toBeNull()
+    expect(vm.matrix[row3][0]).toBe(-1) // moyenne de la colonne a0 = -1
+  })
+})
+
+describe('smoothedShare et test exact de Fisher', () => {
+  it('lisse comme Polis : (1 + N_v) / (2 + N)', () => {
+    expect(smoothedShare(0, 0)).toBe(0.5)
+    expect(smoothedShare(3, 4)).toBeCloseTo(4 / 6)
+  })
+  it('donne la probabilité hypergéométrique exacte', () => {
+    // 4/4 d'accord dans le camp, 2/10 dans le reste : C(6,4)/C(14,4) = 15/1001
+    expect(fisherExactGreater(4, 4, 2, 10)).toBeCloseTo(15 / 1001, 10)
+    // 3/4 contre 3/10 : (C(6,3)·C(8,1) + C(6,4)) / C(14,4) = 175/1001
+    expect(fisherExactGreater(3, 4, 3, 10)).toBeCloseTo(175 / 1001, 10)
+    expect(fisherExactGreater(0, 4, 5, 10)).toBeCloseTo(1, 10)
+  })
+})
+
+describe('repnessFor / computeRepness', () => {
+  it('retient un camp unanime face à un reste opposé, avec le rapport des P lissées', () => {
+    const d = repnessFor({ n: 4, agree: 4, disagree: 0 }, { n: 10, agree: 2, disagree: 8 })
+    expect(d.direction).toBe('agree')
+    expect(d.significant).toBe(true)
+    expect(d.ratio).toBeCloseTo((5 / 6) / (3 / 12))
+  })
+  it('ne retient pas un écart que le hasard explique (3/4 contre 3/10)', () => {
+    const d = repnessFor({ n: 4, agree: 3, disagree: 1 }, { n: 10, agree: 3, disagree: 7 })
+    expect(d.significant).toBe(false)
+  })
+  it("signe le score : + si plus souvent d'accord, − si plus souvent contre, 0 sinon", () => {
+    // 2 camps de 5 : a0 tranché, a1 identique dans les deux camps
+    const raw: RawVote[][] = [
+      ...Array.from({ length: 5 }, () => [1, 1] as RawVote[]),
+      ...Array.from({ length: 5 }, () => [-1, 1] as RawVote[]),
+    ]
+    const groups = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+    const r = computeRepness(raw, groups, ['a0', 'a1'])
+    expect(r.a0['0']).toBeGreaterThan(1)
+    expect(r.a0['1']).toBeLessThan(-1)
+    expect(r.a1['0']).toBe(0)
+    expect(r.a1['1']).toBe(0)
+  })
+})
+
+describe("computeGroupConsensus (Polis : produit des P(d'accord | camp))", () => {
+  it('multiplie les parts lissées et les ramène sur [−1, 1] par la moyenne géométrique', () => {
+    const raw: RawVote[][] = [[1], [1], [1], [1], [-1], [null]]
+    const groups = [0, 0, 0, 1, 1, 1]
+    const { products, scores } = computeGroupConsensus(raw, groups, ['a'])
+    const p0 = (1 + 3) / (2 + 3), p1 = (1 + 1) / (2 + 2)
+    expect(products.a).toBeCloseTo(p0 * p1)
+    expect(scores.a).toBeCloseTo(2 * Math.sqrt(p0 * p1) - 1)
+  })
+})
+
+describe('adjustedRandIndex', () => {
+  it('vaut 1 pour deux partitions identiques à la numérotation près', () => {
+    expect(adjustedRandIndex([0, 0, 1, 1, 2], [2, 2, 0, 0, 1])).toBeCloseTo(1)
+  })
+  it('est nul ou négatif pour des partitions sans rapport', () => {
+    expect(adjustedRandIndex([0, 0, 1, 1], [0, 1, 0, 1])).toBeLessThanOrEqual(0)
+  })
+})
+
+describe('runOpinionAnalysis : les camps sont-ils réels ?', () => {
+  const opts = { replicates: 60, stabilityReplicates: 30 }
+
+  it('reconnaît deux camps nets quand les votes en contiennent', () => {
+    const rnd = lcg(7)
+    const { votes, members, assertions } = makeVotes(18, 10, (i, j) => {
+      if (rnd() < 0.1) return null
+      const camp = i < 9 ? 1 : -1
+      const side = j < 5 ? camp : -camp
+      if (rnd() < 0.1) return side > 0 ? 'disagree' : 'agree'
+      return side > 0 ? 'agree' : 'disagree'
+    })
+    const r = runOpinionAnalysis(votes, members, assertions, opts)
+    expect(r.validity.pValue).toBeLessThan(0.05)
+    expect(r.validity.verdict).not.toBe('absents')
+    expect(r.validity.silhouette).toBeGreaterThan(r.validity.nullSilhouette95)
+    // Aucun camp calculé ne mélange les deux camps réels (le choix de k par
+    // silhouette peut, lui, couper un camp réel en plusieurs : limite connue).
+    for (const g of new Set(r.members.map(m => m.group_id))) {
+      const real = new Set(r.members.filter(m => m.group_id === g).map(m => Number(m.member_id.slice(1)) < 9))
+      expect(real.size).toBe(1)
+    }
+    const sig = Object.values(r.repness).flatMap(byG => Object.values(byG)).filter(s => s !== 0)
+    expect(sig.length).toBeGreaterThan(0)
+  })
+
+  it('dit « absents » sur des votes tirés au hasard (le k-means, lui, trouve quand même des camps)', () => {
+    const rnd = lcg(3)
+    const { votes, members, assertions } = makeVotes(14, 12, () => {
+      const u = rnd()
+      return u < 0.45 ? 'agree' : u < 0.9 ? 'disagree' : 'pass'
+    })
+    const r = runOpinionAnalysis(votes, members, assertions, opts)
+    expect(r.kChosen).toBeGreaterThanOrEqual(2)
+    expect(r.validity.verdict).toBe('absents')
+  })
+
+  it('est déterministe : deux calculs sur les mêmes votes donnent le même résultat', () => {
+    const rnd = lcg(11)
+    const { votes, members, assertions } = makeVotes(12, 8, () => (rnd() < 0.5 ? 'agree' : 'disagree'))
+    const a = runOpinionAnalysis(votes, members, assertions, opts)
+    const b = runOpinionAnalysis(votes, members, assertions, opts)
+    expect(b).toEqual(a)
   })
 })

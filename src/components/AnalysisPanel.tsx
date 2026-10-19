@@ -19,8 +19,9 @@ import {
   computeConsensusMovements,
 } from '../lib/analysis'
 import type {
-  LoadedAnalysis, AnalysisResult, SessionAnalysisSummary, VoteChangesSummary, VoteValue,
+  LoadedAnalysis, AnalysisResult, SessionAnalysisSummary, VoteChangesSummary, VoteValue, ClusterValidity,
 } from '../lib/analysis'
+import { MIN_VOTES_PER_MEMBER, STRUCTURE_ALPHA } from '../lib/analysis'
 import type { AssertionAdmin } from '../lib/voting'
 import type { GroupNameResult } from '../lib/types'
 
@@ -131,6 +132,46 @@ function ScatterPlot({ members, kChosen, groupNames }: ScatterProps) {
   )
 }
 
+// ── Fiabilité des camps (chantier 171) ────────────────────────
+function ClusterValidityNote({ validity }: { validity: ClusterValidity | null }) {
+  if (!validity) {
+    return (
+      <p className="text-xs text-gray-600 mt-2 text-center">
+        Fiabilité des camps non mesurée pour cette analyse : relancez « Analyser les camps » pour la tester.
+      </p>
+    )
+  }
+  const p   = validity.pValue < 0.01 ? '< 0,01' : `= ${validity.pValue.toFixed(2).replace('.', ',')}`
+  const ari = validity.stabilityAri.toFixed(2).replace('.', ',')
+  const sil = `silhouette ${validity.silhouette.toFixed(2).replace('.', ',')}, hasard ${validity.nullSilhouette95.toFixed(2).replace('.', ',')} au 95e centile`
+  const style = validity.verdict === 'nets'
+    ? 'bg-green-50 border-green-200 text-green-800'
+    : validity.verdict === 'fragiles'
+      ? 'bg-amber-50 border-amber-200 text-amber-800'
+      : 'bg-red-50 border-red-200 text-red-800'
+  return (
+    <div className={`rounded-[8px] border px-3 py-2 mt-2 text-xs ${style}`}>
+      {validity.verdict === 'absents' ? (
+        <p>
+          <strong>Pas de camps nets.</strong> Des votes sans aucune structure donnent des camps aussi marqués
+          (p {p}, seuil {STRUCTURE_ALPHA.toString().replace('.', ',')} ; {sil}). Les couleurs découpent le nuage, elles ne
+          montrent pas des groupes d&apos;opinion distincts : à ne pas présenter comme tels.
+        </p>
+      ) : validity.verdict === 'fragiles' ? (
+        <p>
+          <strong>Camps fragiles.</strong> Ils se distinguent du hasard (p {p} ; {sil}) mais changent quand on retire
+          20 % des votants (stabilité {ari}, sur 1).
+        </p>
+      ) : (
+        <p>
+          <strong>Camps nets.</strong> Ils se distinguent du hasard (p {p} ; {sil}) et reviennent quand on retire
+          20 % des votants (stabilité {ari}, sur 1).
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── AnalysisPanel principal ───────────────────────────────────
 export default function AnalysisPanel({
   sessionId,
@@ -148,6 +189,11 @@ export default function AnalysisPanel({
   const [loadStatus,    setLoadStatus]    = useState<'loading' | 'loaded' | 'error'>('loading')
   const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'loading' | 'naming' | 'done' | 'error'>('idle')
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null)
+  // Chantier 171 — test « un seul groupe » et stabilité des analyses calculées
+  // dans ce navigateur, par id d'analyse (aucune colonne ne les garde en base).
+  const [validityById,  setValidityById]  = useState<Record<string, ClusterValidity>>({})
+  const rememberValidity = (id: string, v: ClusterValidity) =>
+    setValidityById(prev => ({ ...prev, [id]: v }))
 
   // Toggle présentiels uniquement
   const [attendingOnly,         setAttendingOnly]         = useState(false)
@@ -212,7 +258,8 @@ export default function AnalysisPanel({
         const memberIds    = [...new Set(votes.map(v => v.member_id))]
         const assertionIds = [...new Set(votes.map(v => v.assertion_id))]
         const result = runOpinionAnalysis(votes, memberIds, assertionIds)
-        await saveAnalysisResult(supabase, password, sessionId, result)
+        const savedId = await saveAnalysisResult(supabase, password, sessionId, result)
+        rememberValidity(savedId, result.validity)
         await loadExisting()
       } catch (e) {
         if (e instanceof AnalysisError) return // données insuffisantes — normal en début de vote
@@ -240,7 +287,8 @@ export default function AnalysisPanel({
       const result = runOpinionAnalysis(votes, memberIds, assertionIds)
 
       // 4. Sauvegarder
-      await saveAnalysisResult(supabase, password, sessionId, result)
+      const savedId = await saveAnalysisResult(supabase, password, sessionId, result)
+      rememberValidity(savedId, result.validity)
 
       // 5. Recharger et afficher
       await loadExisting()
@@ -288,6 +336,7 @@ export default function AnalysisPanel({
       created_at: new Date().toISOString(),
       vote_scope: 'current',
       members: r.members,
+      validity: r.validity,
     }
   }
 
@@ -330,6 +379,9 @@ export default function AnalysisPanel({
   }
 
   const displayAnalysis = attendingOnly ? attendingOnlyAnalysis : analysis
+  const displayValidity = displayAnalysis
+    ? displayAnalysis.validity ?? validityById[displayAnalysis.id] ?? null
+    : null
 
   // ── Assertions clivantes (top 3 par groupe) ────────────────
   function topClivantes(groupId: number): { aid: string; score: number; content: string }[] {
@@ -344,8 +396,9 @@ export default function AnalysisPanel({
         score:   scores[String(groupId)] ?? 0,
         content: assertionMap.get(aid) ?? '',
       }))
-      .filter(x => x.content !== '')
-      .sort((a, b) => b.score - a.score)
+      // Chantier 171 — 0 = écart non significatif ; le signe dit le sens.
+      .filter(x => x.content !== '' && x.score !== 0)
+      .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
       .slice(0, 3)
   }
 
@@ -486,17 +539,29 @@ export default function AnalysisPanel({
 
               {/* Scatter plot */}
               <ScatterPlot members={displayAnalysis.members} kChosen={displayAnalysis.k_chosen} groupNames={groupNames} />
+              {displayAnalysis.pca_variance_explained && (
+                <p className="text-xs text-gray-600 mt-2 text-center">
+                  Cette carte montre {Math.round((displayAnalysis.pca_variance_explained[0] + displayAnalysis.pca_variance_explained[1]) * 100)} % des
+                  différences d&apos;opinion entre votants ; le reste ne se voit pas sur un plan.
+                </p>
+              )}
+              <ClusterValidityNote validity={displayValidity} />
               {totalMembers != null && totalMembers > displayAnalysis.members.length && (
                 <p className="text-xs text-amber-600 mt-1 text-center">
-                  ⚠ {totalMembers - displayAnalysis.members.length} participant(s) exclus de l&apos;analyse (aucun vote sur assertions approuvées)
+                  ⚠ {totalMembers - displayAnalysis.members.length} participant(s) hors de la carte (moins de {MIN_VOTES_PER_MEMBER} votes sur les assertions approuvées)
                 </p>
               )}
 
               {/* Assertions clivantes */}
               <div>
-                <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-3">
+                <h4 className="text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">
                   Assertions clivantes
                 </h4>
+                <p className="text-xs text-gray-500 mb-3">
+                  Score positif : le camp est d&apos;accord tant de fois plus souvent que le reste des votants ; négatif : il est
+                  contre tant de fois plus souvent. Seuls les écarts significatifs sont listés (test exact de Fisher, p &lt; 0,10, méthode Polis).
+                  Les analyses enregistrées avant le chantier 171 gardent l&apos;ancien score (écart de moyennes × effectif).
+                </p>
                 <div className="space-y-4">
                   {Array.from({ length: displayAnalysis.k_chosen }, (_, g) => {
                     const items = topClivantes(g)
@@ -529,7 +594,7 @@ export default function AnalysisPanel({
                                   className="flex-shrink-0 mt-0.5 text-xs px-1.5 py-0.5 font-semibold tabular-nums"
                                   style={{ backgroundColor: groupColor(g) + '20', color: groupColor(g) }}
                                 >
-                                  {item.score.toFixed(1)}
+                                  {item.score > 0 ? '+' : ''}{item.score.toFixed(1)}
                                 </span>
                                 <span>{item.content}</span>
                               </li>
@@ -551,8 +616,9 @@ export default function AnalysisPanel({
                   </span>
                 </h4>
                 <p className="text-xs text-gray-500 mb-3">
-                  Points de convergence : assertions que <strong>tous les camps approuvent en moyenne</strong>,
-                  malgré leurs désaccords. Le score est la moyenne du camp le moins favorable (0 = neutre, 1 = adhésion totale).
+                  Points de convergence : assertions que <strong>tous les camps approuvent</strong>, malgré leurs désaccords.
+                  Méthode Polis : produit des parts d&apos;accord de chaque camp, ramené entre −1 et 1 (0 = neutre, 1 = adhésion totale ;
+                  au-dessus de 0,5, chaque camp approuve en moyenne aux trois quarts).
                 </p>
                 {(() => {
                   const items = consensuelles()
