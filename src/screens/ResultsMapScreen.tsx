@@ -37,17 +37,24 @@ interface ResultsMapScreenProps {
 }
 
 // ── Scatter SVG ───────────────────────────────────────────────
+// Chantier 171b — couleur unique des points quand les camps ne sont pas nets.
+const NEUTRAL_POINT = '#15233f'
+
 function ScatterSVG({
   data,
   selfGroupId,
   groupNames,
+  sansCamps = false,
 }: {
   data: ResultsMapData
   selfGroupId: number | null
   groupNames: GroupNameResult[]
+  /** Chantier 171b — verdict 'absents' : un seul nuage, sans couleurs ni légende de camps. */
+  sansCamps?: boolean
 }) {
   const { points, k_chosen } = data
   if (points.length === 0) return null
+  const colorOf = (groupId: number) => sansCamps ? NEUTRAL_POINT : groupColor(groupId)
 
   const xs = points.map(p => p.pca_x)
   const ys = points.map(p => p.pca_y)
@@ -81,18 +88,18 @@ function ScatterSVG({
       <svg viewBox={`0 0 ${W} ${H}`} className="relative w-full max-w-sm mx-auto block" aria-label="Carte des opinions">
         {others.map((p, i) => (
           <circle key={i} cx={cx(p.pca_x)} cy={cy(p.pca_y)} r={5}
-            fill={groupColor(p.group_id)} opacity={0.6} />
+            fill={colorOf(p.group_id)} opacity={sansCamps ? 0.35 : 0.6} />
         ))}
         {self && (
           <>
             <circle cx={cx(self.pca_x)} cy={cy(self.pca_y)} r={9}
-              fill={groupColor(self.group_id)} stroke="white" strokeWidth={2.5} opacity={1} />
+              fill={colorOf(self.group_id)} stroke="white" strokeWidth={2.5} opacity={1} />
             <text
               x={cx(self.pca_x) + 13}
               y={cy(self.pca_y) + 4}
               fontSize={11}
               fontWeight="700"
-              fill={groupColor(self.group_id)}
+              fill={colorOf(self.group_id)}
             >
               Vous
             </text>
@@ -102,7 +109,7 @@ function ScatterSVG({
       </div>
 
       {/* Légende — couleur du groupe réelle, mise en évidence pour le groupe du participant */}
-      <div className="mt-4 grid gap-1">
+      {!sansCamps && <div className="mt-4 grid gap-1">
         {groups.map(g => {
           const gn     = groupNames.find(n => n.table_number === g + 1)
           const isSelf = g === selfGroupId
@@ -132,7 +139,7 @@ function ScatterSVG({
             </div>
           )
         })}
-      </div>
+      </div>}
 
       {self && (
         <p className="text-center text-xs text-gray-600 mt-3">Le grand point cerclé de blanc, c'est vous.</p>
@@ -246,8 +253,13 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
     load()
   }, [session.id, memberId])
 
-  // Groupe du participant dans le scatter (0-indexé)
-  const selfGroupId = data?.points?.find(p => p.is_self)?.group_id ?? null
+  // Chantier 171b — le test « un seul groupe » conclut que ces camps ne se
+  // distinguent pas d'un découpage du hasard : on ne les présente pas.
+  // Analyse antérieure au chantier (verdict inconnu) : présentation inchangée.
+  const campsAbsents = data?.cluster_validity?.verdict === 'absents'
+
+  // Groupe du participant dans le scatter (0-indexé) ; aucun quand les camps sont absents.
+  const selfGroupId = campsAbsents ? null : data?.points?.find(p => p.is_self)?.group_id ?? null
 
   // Noms de tous les groupes (DB en priorité, localStorage fallback)
   const allGroupNames = useMemo((): GroupNameResult[] => {
@@ -272,21 +284,23 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
 
   // Assertions caractéristiques des autres groupes
   const otherGroupTops = useMemo(() => {
-    if (!data?.repness || !data.all_assertions) return []
+    if (!data?.repness || !data.all_assertions || campsAbsents) return []
     const k = data.k_chosen
     return Array.from({ length: k }, (_, g) => ({
       groupId: g,
       items:   topForGroup(data.repness!, data.all_assertions!, g, 3),
     })).filter(g => g.groupId !== selfGroupId)
-  }, [data, selfGroupId])
+  }, [data, selfGroupId, campsAbsents])
 
-  // Points de clivage (repness-based si dispo, sinon fallback consensus_score)
+  // Points de clivage (repness-based si dispo, sinon fallback consensus_score).
+  // Chantier 171b — sans camps nets, le clivage « entre camps » n'a pas de sens :
+  // on retombe sur le dissensus calculé directement sur les votes.
   const clivantes = useMemo(() => {
-    if (data?.repness && data.all_assertions) {
+    if (data?.repness && data.all_assertions && !campsAbsents) {
       return topClivantes(data.repness, data.all_assertions, data.k_chosen, 5)
     }
     return null
-  }, [data])
+  }, [data, campsAbsents])
 
   const dissensusFromVotes = useMemo(() => {
     if (clivantes !== null) return []
@@ -438,9 +452,26 @@ function OpinionMapScreen({ session, memberId, onBack }: ResultsMapScreenProps) 
                 <section className={CARTE_PARCOURS}>
                   <h2 className="font-sans text-[11px] font-bold text-bleu-fonce/70 uppercase tracking-[0.16em] mb-1">Carte des opinions</h2>
                   <p className="text-xs text-gray-500 mb-4">
-                    Chaque point représente un participant. Les couleurs indiquent les camps d'opinion détectés.
+                    {campsAbsents
+                      ? 'Chaque point représente un participant. Deux points proches ont voté de façon semblable.'
+                      : "Chaque point représente un participant. Les couleurs indiquent les camps d'opinion détectés."}
                   </p>
-                  <ScatterSVG data={data} selfGroupId={selfGroupId} groupNames={allGroupNames} />
+                  <ScatterSVG data={data} selfGroupId={selfGroupId} groupNames={allGroupNames} sansCamps={campsAbsents} />
+                  {campsAbsents && (
+                    <div className="mt-4 rounded-[8px] bg-gray-100 px-3 py-2.5 text-xs text-gray-700">
+                      <p className="font-semibold text-bleu-fonce">Pas de camps nets</p>
+                      <p className="mt-0.5 leading-relaxed">
+                        Les avis ne se regroupent pas en camps distincts : un découpage en groupes ne serait pas plus marqué
+                        que sur des votes tirés au hasard. La carte montre donc un seul nuage de participants.
+                      </p>
+                    </div>
+                  )}
+                  {data.pca_variance_explained && (
+                    <p className="mt-3 text-center text-xs text-gray-600">
+                      Cette carte montre {Math.round((data.pca_variance_explained[0] + data.pca_variance_explained[1]) * 100)} % des
+                      différences d&apos;opinion entre participants ; le reste ne se voit pas sur un plan.
+                    </p>
+                  )}
                 </section>
 
                 {/* ── Les autres camps ─────────────────────────── */}

@@ -3,7 +3,7 @@ import {
   pairGroups, computeMemberMovements, computeConsensusMovements, normalizeLoadedAnalysis, normalizeVoteChanges,
   imputeColumnMeans, sparsityScale, buildVoteMatrix, smoothedShare, fisherExactGreater,
   repnessFor, computeRepness, computeGroupConsensus, adjustedRandIndex, runOpinionAnalysis,
-  MIN_VOTES_PER_MEMBER,
+  MIN_VOTES_PER_MEMBER, parseClusterValidity, normalizeResultsMap,
 } from './analysis'
 import type { LoadedAnalysis, VoteRow, RawVote } from './analysis'
 
@@ -144,6 +144,48 @@ describe('normalizeLoadedAnalysis — analyse issue des RPC héritées', () => {
   it('tolère un tableau de membres absent', () => {
     const a = normalizeLoadedAnalysis({ ...legacyRow, members: null })
     expect(a.members).toEqual([])
+  })
+})
+
+// Chantier 171b — `cluster_validity` est un jsonb libre relu de la base.
+describe('cluster_validity relu de la base (chantier 171b)', () => {
+  const validity = {
+    silhouette: 0.41, nullSilhouette95: 0.38, pValue: 0.2, replicates: 200,
+    stabilityAri: 0.5, stabilityReplicates: 100, verdict: 'absents',
+  }
+  const row = {
+    id: 'a1', k_chosen: 2, silhouette_score: 0.41, pca_variance_explained: [0.3, 0.2],
+    repness: {}, group_consensus: {}, created_at: '2026-10-19T10:00:00Z', vote_scope: 'current',
+    members: [],
+  }
+
+  it('recopie un verdict bien formé dans `validity`', () => {
+    const a = normalizeLoadedAnalysis({ ...row, cluster_validity: validity })
+    expect(a.validity?.verdict).toBe('absents')
+    expect(a).not.toHaveProperty('cluster_validity')
+  })
+
+  it('laisse `validity` absent pour une analyse ancienne (colonne NULL)', () => {
+    expect(normalizeLoadedAnalysis({ ...row, cluster_validity: null })).not.toHaveProperty('validity')
+    expect(normalizeLoadedAnalysis(row)).not.toHaveProperty('validity')
+  })
+
+  it('refuse un verdict inconnu ou un champ manquant plutôt que de l’inventer', () => {
+    expect(parseClusterValidity({ ...validity, verdict: 'peut-être' })).toBeNull()
+    expect(parseClusterValidity({ ...validity, pValue: undefined })).toBeNull()
+    expect(parseClusterValidity({ ...validity, stabilityAri: Number.NaN })).toBeNull()
+    expect(parseClusterValidity('absents')).toBeNull()
+  })
+
+  it('get_results_map : verdict et variance validés, absents tolérés (base non migrée)', () => {
+    const base = { k_chosen: 2, points: [], consensus: null }
+    const migrated = normalizeResultsMap({ ...base, pca_variance_explained: [0.3, 0.2], cluster_validity: validity })
+    expect(migrated.cluster_validity?.verdict).toBe('absents')
+    expect(migrated.pca_variance_explained).toEqual([0.3, 0.2])
+    const old = normalizeResultsMap(base)
+    expect(old.cluster_validity).toBeNull()
+    expect(old.pca_variance_explained).toBeNull()
+    expect(normalizeResultsMap({ ...base, pca_variance_explained: [null, 0.2] }).pca_variance_explained).toBeNull()
   })
 })
 

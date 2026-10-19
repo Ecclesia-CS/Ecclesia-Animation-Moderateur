@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **🔧 EN COURS — chantier 171b (2026-10-19)** · fiabilité des camps enregistrée avec l'analyse et montrée aux participants. Branche `claude/chantier-171b-validite` (issue de `claude/chantier-171-polis`, **à merger dans `dev` après le 171**). Fichiers : `supabase/migrations/20261019_chantier171b_cluster_validity.sql`, `src/lib/analysis.ts` (+ test), `src/components/AnalysisPanel.tsx` (commentaire), `src/screens/ResultsMapScreen.tsx`. Code fait ; **migration écrite mais pas appliquée** (aucun accès base dans la session de chantier) : à appliquer sur dev puis vérifier au navigateur sur dev, voir `A_VERIFIER.md` § Chantier 171b. Retirer cette entrée au merge.
+
 > **Le 2026-10-19, le chantier 171 est fait sur sa branche** (analyse pré-débat alignée sur Polis, test « un seul groupe » et stabilité des camps) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 171. Front seul, **aucune migration**. Branche `claude/chantier-171-polis`, pas encore mergée dans `dev`. Entrée « en cours » retirée.
 
 > **Le 2026-10-19, le chantier 170 est fait** (bouton « Extraction données pré-débat » du superadmin, séance complète clôturée) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 170. Front seul, **aucune migration**. Mergé dans `dev` puis dans `main`. Entrée « en cours » retirée.

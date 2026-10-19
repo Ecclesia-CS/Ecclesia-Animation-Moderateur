@@ -130,7 +130,7 @@ export interface AnalysisResult {
   groupConsensus: Record<string, number>
   /** Produit brut des P(d'accord | camp), non enregistré en base. */
   consensusProduct: Record<string, number>
-  /** Test « un seul groupe » et stabilité, non enregistrés en base (pas de colonne). */
+  /** Test « un seul groupe » et stabilité, enregistrés dans `session_analysis.cluster_validity` (chantier 171b). */
   validity:       ClusterValidity
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
 }
@@ -737,9 +737,10 @@ export interface LoadedAnalysis {
   vote_scope:             VoteScope
   members: { member_id: string; pca_x: number; pca_y: number; group_id: number }[]
   /**
-   * Chantier 171 — test « un seul groupe » et stabilité. Présent seulement pour
-   * une analyse calculée dans ce navigateur : aucune colonne ne le garde en base,
-   * une analyse rechargée n'en a donc pas (affichage « relancer l'analyse »).
+   * Chantier 171 — test « un seul groupe » et stabilité. Chantier 171b : relu
+   * depuis `session_analysis.cluster_validity`. Absent pour les analyses
+   * antérieures au 171b (colonne NULL) ou dont le blob ne passe pas
+   * `parseClusterValidity` — l'onglet Analyse affiche alors « relancer ».
    */
   validity?:              ClusterValidity
 }
@@ -776,6 +777,10 @@ export interface ResultsMapData {
   repness?:        Record<string, Record<string, number>>  // assertion_id → {group_id → score}
   group_consensus?: Record<string, number>                 // assertion_id → score
   all_assertions?: Record<string, string>                  // assertion_id → content
+  /** Chantier 171b — absent avant la migration, null pour une analyse ancienne. */
+  pca_variance_explained?: [number, number] | null
+  /** Chantier 171b — validé par `normalizeResultsMap` ; null si absent ou illisible. */
+  cluster_validity?:       ClusterValidity | null
 }
 
 // ── Wrappers Supabase ─────────────────────────────────────────
@@ -839,7 +844,53 @@ export async function loadResultsMap(
   })
   if (error) throw new Error(extractErr(error))
   if (!data) return null
-  return data as ResultsMapData
+  return normalizeResultsMap(data)
+}
+
+/**
+ * Chantier 171b — frontière de get_results_map pour les deux champs ajoutés :
+ * `cluster_validity` est un jsonb libre écrit par une version du front et relu
+ * par une autre (même piège que le localStorage, CLAUDE.md « Ne jamais
+ * faire ») ; `pca_variance_explained` est nullable en base.
+ */
+export function normalizeResultsMap(data: unknown): ResultsMapData {
+  const r = data as ResultsMapData & { pca_variance_explained?: unknown; cluster_validity?: unknown }
+  return {
+    ...r,
+    pca_variance_explained: parsePcaVariance(r.pca_variance_explained),
+    cluster_validity:       parseClusterValidity(r.cluster_validity),
+  }
+}
+
+/** `[x, y]` fini, sinon null (colonne nullable, RPC héritées). */
+export function parsePcaVariance(v: unknown): [number, number] | null {
+  return Array.isArray(v) && v.length >= 2 && v.slice(0, 2).every(x => typeof x === 'number' && Number.isFinite(x))
+    ? [v[0] as number, v[1] as number]
+    : null
+}
+
+const VERDICTS: readonly ClusterValidity['verdict'][] = ['nets', 'fragiles', 'absents']
+
+/**
+ * Chantier 171b — valide un `cluster_validity` relu de la base. Null pour une
+ * analyse antérieure au chantier (colonne NULL) ou pour toute forme
+ * inattendue : mieux vaut « non mesurée » qu'un verdict inventé.
+ */
+export function parseClusterValidity(v: unknown): ClusterValidity | null {
+  if (!v || typeof v !== 'object') return null
+  const o = v as Record<string, unknown>
+  const num = (k: string) => typeof o[k] === 'number' && Number.isFinite(o[k] as number)
+  if (!['silhouette', 'nullSilhouette95', 'pValue', 'replicates', 'stabilityAri', 'stabilityReplicates'].every(num)) return null
+  if (!VERDICTS.includes(o.verdict as ClusterValidity['verdict'])) return null
+  return {
+    silhouette:          o.silhouette as number,
+    nullSilhouette95:    o.nullSilhouette95 as number,
+    pValue:              o.pValue as number,
+    replicates:          o.replicates as number,
+    stabilityAri:        o.stabilityAri as number,
+    stabilityReplicates: o.stabilityReplicates as number,
+    verdict:             o.verdict as ClusterValidity['verdict'],
+  }
 }
 
 /**
@@ -860,12 +911,14 @@ export async function loadResultsMap(
  * plutôt que d'inventer un 0 qui se lirait comme un vrai score.
  */
 export function normalizeLoadedAnalysis(data: unknown): LoadedAnalysis {
-  const a = data as LoadedAnalysis
+  const { cluster_validity, ...a } = data as LoadedAnalysis & { cluster_validity?: unknown }
+  const validity = parseClusterValidity(cluster_validity)
   return {
     ...a,
     repness:         a.repness         ?? {},
     group_consensus: a.group_consensus ?? {},
     members:         Array.isArray(a.members) ? a.members : [],
+    ...(validity ? { validity } : {}),
   }
 }
 
@@ -1173,7 +1226,7 @@ export async function saveAnalysisResult(
   result:    AnalysisResult,
   voteScope: VoteScope = 'current',
 ): Promise<string> {
-  const { data, error } = await supabase.rpc('save_analysis', {
+  const params = {
     p_password:        password,
     p_session_id:      sessionId,
     p_k_chosen:        result.kChosen,
@@ -1183,7 +1236,15 @@ export async function saveAnalysisResult(
     p_group_consensus: result.groupConsensus,
     p_members:         result.members,
     p_vote_scope:      voteScope,
-  })
+  }
+  // Chantier 171b — le verdict de fiabilité part avec l'analyse.
+  let { data, error } = await supabase.rpc('save_analysis', { ...params, p_cluster_validity: result.validity })
+  // Base pas encore migrée (save_analysis à 9 arguments) : PostgREST ne trouve
+  // aucune fonction à cette signature (PGRST202). On enregistre l'analyse sans
+  // le verdict plutôt que de faire échouer tout le calcul.
+  if (error?.code === 'PGRST202') {
+    ;({ data, error } = await supabase.rpc('save_analysis', params))
+  }
   if (error) throw new Error(extractErr(error))
   return data as string
 }

@@ -190,7 +190,9 @@ export default function AnalysisPanel({
   const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'loading' | 'naming' | 'done' | 'error'>('idle')
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null)
   // Chantier 171 — test « un seul groupe » et stabilité des analyses calculées
-  // dans ce navigateur, par id d'analyse (aucune colonne ne les garde en base).
+  // dans ce navigateur, par id d'analyse. Depuis le 171b, le verdict est relu
+  // de la base (`cluster_validity`) ; ce cache ne sert plus que si la base
+  // n'est pas encore migrée (saveAnalysisResult l'enregistre alors sans lui).
   const [validityById,  setValidityById]  = useState<Record<string, ClusterValidity>>({})
   const rememberValidity = (id: string, v: ClusterValidity) =>
     setValidityById(prev => ({ ...prev, [id]: v }))

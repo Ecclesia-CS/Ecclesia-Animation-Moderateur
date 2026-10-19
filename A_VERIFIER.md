@@ -602,6 +602,16 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
 
+## Chantier 171b (2026-10-19) · Fiabilité des camps enregistrée, « pas de camps nets » côté participant
+
+Migration `supabase/migrations/20261019_chantier171b_cluster_validity.sql` (colonne `session_analysis.cluster_validity`, 10e argument de `save_analysis`, `cluster_validity` renvoyé par `get_latest_analysis`/`get_analysis_by_id`/`get_results_map`, plus `pca_variance_explained` par `get_results_map`). **Écrite, testée sur PGlite, PAS appliquée** : la session de chantier n'avait aucun accès base. Code : `src/lib/analysis.ts`, `src/screens/ResultsMapScreen.tsx`. `tsc`, tests et build OK ; écran participant vérifié au navigateur avec un faux client Supabase seulement.
+
+- [ ] **Appliquer sur dev** (`mnjqrlrrzrycuconlfqb`) via `apply_migration`. Avant : `pg_get_functiondef` des quatre fonctions, pour s'assurer que les motifs (`p_vote_scope text DEFAULT 'current'::text)`, `status, vote_scope)`, `'done', p_vote_scope)`, `'vote_scope', v_analysis.vote_scope,`, `'repness', v_analysis.repness,`) y figurent une fois ; sinon la migration échoue d'elle-même sans rien changer. Après : une seule surcharge `save_analysis` (`SELECT oid::regprocedure FROM pg_proc WHERE proname = 'save_analysis'`), droits identiques à ceux d'avant, `get_advisors` sans régression.
+- [ ] **Dev, superadmin** : « Analyser les camps », puis recharger l'onglet Analyse : l'encadré de fiabilité reste (avant : « relancez l'analyse »). `SELECT cluster_validity FROM session_analysis ORDER BY created_at DESC LIMIT 1` non NULL.
+- [ ] **Dev, participant** (séance clôturée ou sondage à camps) : phrase « Cette carte montre N % … » sous la carte ; sur une séance au verdict `absents`, nuage d'une couleur et « Pas de camps nets », sans « Votre groupe » ni « Les autres camps ».
+- [ ] **Prod au merge** : même migration, après la vérification `pg_get_functiondef` sur prod. Tant qu'elle n'est pas appliquée, le front enregistre l'analyse sans le verdict (repli `PGRST202`) : rien ne casse, le verdict ne survit simplement pas au rechargement.
+- [ ] **Séances analysées avant la migration** : verdict inconnu, présentation des camps inchangée côté participant. Relancer l'analyse si l'on veut le verdict (sur une séance clôturée, cela remplace l'analyse montrée aux participants).
+
 ## Chantier 171 (2026-10-19) · Analyse pré-débat alignée sur Polis, camps testés
 
 Front seul, aucune migration. `src/lib/analysis.ts` (+ tests), `AnalysisPanel.tsx`, `ResultsMapScreen.tsx` (légende), `preDebateExport.ts`. `tsc`, tests (`analysis.test.ts`, `preDebateExport.test.ts`) et build OK. Vérifié au navigateur sur le vrai `AnalysisPanel`, mais avec un faux client Supabase local et des votes synthétiques : verdicts « Camps nets » et « Pas de camps nets », phrase de variance, participant à 2 votes exclu, vue présentiels, largeur mobile.
