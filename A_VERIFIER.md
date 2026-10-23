@@ -606,9 +606,6 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
 
-## Chantier 171 : fenêtre d'analyse avant répartition (l'autocomplétion des binômes a été vérifiée au navigateur le 2026-10-23, retirée d'ici ; migration 20261023_chantier171 appliquée sur dev seulement, à appliquer sur prod au merge)
-
-- [ ] **(b)** Superadmin, séance `allocating` : chaque clic sur « Calculer la répartition » / « Recalculer » ouvre la fenêtre ; « Calculer sans analyser » calcule comme avant ; « Analyser puis calculer » enregistre une nouvelle analyse, puis calcule avec les camps à jour. Carte et légende lisibles. (Mot de passe superadmin dev non disponible pour la session : jamais joué à l'écran.)
 
 ## Chantier 174 (2026-10-23) : bouton Résultats publics/privés dans Actions post-séance
 

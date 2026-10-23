@@ -110,30 +110,31 @@ export default function AnalysisBeforeAllocationModal({
           {error && (
             <p role="alert" className="rounded-[8px] text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2">{error}</p>
           )}
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={onSkip}
-              disabled={running}
-              className="rounded-[8px] flex-1 py-3 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
-            >
-              Calculer sans analyser
-            </button>
-            <button
-              onClick={handleAnalyse}
-              disabled={running || loading}
-              className="rounded-[8px] flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
-            >
-              {running ? 'Analyse en cours…' : 'Analyser puis calculer'}
-            </button>
-          </div>
+        </div>
+        <div className="shrink-0 border-t border-bleu-fonce/10 p-4 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
-            onClick={onCancel}
+            onClick={onSkip}
             disabled={running}
-            className="w-full text-xs text-gray-600 underline disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+            className="rounded-[8px] flex-1 py-3 border border-bleu-fonce/20 text-bleu-fonce text-sm font-semibold hover:border-bleu-fonce/40 hover:bg-bleu-fonce/[0.04] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
           >
-            Annuler
+            Calculer sans analyser
           </button>
+          <button
+            onClick={handleAnalyse}
+            disabled={running || loading}
+            className="rounded-[8px] flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair focus-visible:ring-offset-2"
+          >
+            {running ? 'Analyse en cours…' : 'Analyser puis calculer'}
+          </button>
+        </div>
+        <button
+          onClick={onCancel}
+          disabled={running}
+          className="w-full text-xs text-gray-600 underline disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+        >
+          Annuler
+        </button>
         </div>
       </div>
     </div>
