@@ -611,13 +611,13 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 ## Chantier 174 (2026-10-23) : bouton Résultats publics/privés dans Actions post-séance
 
 - `src/screens/SuperadminScreen.tsx` : sur une séance `closed` (hors asso), ouvrir « Actions post-séance » : le bouton « Résultats privés/publics » est en tête et bascule comme celui de « Réglages » (les deux restent synchronisés). Non joué au navigateur (mot de passe superadmin non disponible en session). À vérifier sur dev.
-## Chantier 173 (2026-10-23) — Sujets de table
+## Chantier 173 (2026-10-23) — Sujets de table (révisé 173b)
 
-Migration `supabase/migrations/20261023_chantier173_table_topics.sql` appliquée sur **dev** uniquement (à appliquer sur prod au merge dev → main).
+Migrations `20261023_chantier173_table_topics.sql` et `20261023_chantier173b_sujet_en_cours.sql`, appliquées sur **dev** uniquement (à appliquer sur prod au merge dev → main, dans cet ordre).
 
-**Vérifié au navigateur (dev, table QA `A5E1BB`, séance complète)** : sujet saisi en file « autre sujet » enregistré en `pending` (source `queue`) ; panneau « Sujets à venir » côté modérateur ; ajout manuel ; doublon « ecologie LOCALE » refusé ; Marquer en cours puis Retirer ; bouton « Proposer un vote entre les sujets » (formulaire prérempli, vote lancé et clôturé, aucun sujet passé en cours tout seul) ; bandeau « Sujet en cours : Transports » côté participant.
+**Vérifié au navigateur (dev, table QA `A5E1BB`, séance complète)** : case « Sujet en cours » (validée, effacée par un texte vide) ; bandeau « Sujet en cours » côté participant ; « Ajouter un sujet à la file » (ligne au nom du modérateur avec son sujet, champ bloqué tant qu'il est déjà dans la file) ; lien « Proposer un vote sur tous les sujets de la file (N) » dans Outils Modo > Vote, options préremplies sans doublon ; sujet saisi par un participant capté pour « Sujets non abordés ».
 
-- [ ] **Non joué** : Traité, monter/descendre, supprimer ; débat simple et sondage ; vote répondu par un second appareil ; sujets non abordés dans Actions post-séance (`UnaddressedTopicsPanel`, superadmin et `#asso`) ; conservation des sujets en attente quand le débat se termine.
+- [ ] **Non joué** : effacer le sujet en cours par texte vide ; lancer ce vote jusqu'au bout depuis le lien ; débat simple et sondage ; `#asso` ; panneau « Sujets non abordés » (Actions post-séance, sondage) et conservation des sujets à la fin du débat.
 
 ## Chantier 175 (2026-10-23) : noms dans les réponses au questionnaire
 - `SuperadminScreen.tsx` (`ResponseRow`) : nom du répondant affiché ligne par ligne ; colonne « Nom » du CSV. À confirmer à l'écran avec un vrai superadmin : nom visible pour une réponse faite depuis le vote (session_members) et depuis une table (participants), « Nom inconnu » sinon.
