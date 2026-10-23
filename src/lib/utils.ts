@@ -157,6 +157,7 @@ export function generateQuestionnaireCSV(rows: QuestionnaireExportRow[]): string
   const header = [
     cell('Date'),
     cell('Séance'),
+    cell('Nom'),
     cell('Code table'),
     cell('Débat suivi'),
     cell('Note débat'),
@@ -175,6 +176,7 @@ export function generateQuestionnaireCSV(rows: QuestionnaireExportRow[]): string
     const row = [
       cell(date),
       cell(r.session_title ?? '-'),
+      cell(r.pseudo ?? '-'),
       cell(r.table_join_code ?? '-'),
       cell(r.debate_attended),
       r.debate_rating !== null ? r.debate_rating : '',

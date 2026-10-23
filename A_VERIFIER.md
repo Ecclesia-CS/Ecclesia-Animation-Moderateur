@@ -601,3 +601,6 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Bouton absent** en phase autre que `closed`, sur un débat simple, un sondage et côté `#asso`.
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
+
+## Chantier 175 (2026-10-23) : noms dans les réponses au questionnaire
+- `SuperadminScreen.tsx` (`ResponseRow`) : nom du répondant affiché ligne par ligne ; colonne « Nom » du CSV. À confirmer à l'écran avec un vrai superadmin : nom visible pour une réponse faite depuis le vote (session_members) et depuis une table (participants), « Nom inconnu » sinon.
