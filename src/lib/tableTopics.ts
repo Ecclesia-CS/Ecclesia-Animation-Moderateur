@@ -49,6 +49,11 @@ export async function setTableTopicStatus(topicId: string, statut: TopicStatus):
   if (error) throw error
 }
 
+export async function setTableCurrentTopic(tableId: string, texte: string): Promise<void> {
+  const { error } = await supabase.rpc('set_table_current_topic', { p_table_id: tableId, p_texte: texte })
+  if (error) throw error
+}
+
 export async function deleteTableTopic(topicId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_table_topic', { p_topic_id: topicId })
   if (error) throw error

@@ -28,7 +28,7 @@ import { sessionTypeOf } from '../lib/phaseLabels'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
-import TopicsPanel from '../components/TopicsPanel'
+import CurrentTopicBox from '../components/CurrentTopicBox'
 import FondQuadrille from '../components/FondQuadrille'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ecclesiaLogo from '../assets/ecclesia-logo.webp'
@@ -749,9 +749,9 @@ export default function ModeratorView() {
           </div>
         </div>
 
-        {/* ── Sujets à venir (chantier 173) ───────────────────── */}
+        {/* ── Sujet en cours (chantier 173) ───────────────────── */}
         <div className="animate-montee [animation-delay:170ms]">
-          <TopicsPanel />
+          <CurrentTopicBox />
         </div>
 
         {/* ── Sujet suivant (chantier 131) ───────────────────── */}
