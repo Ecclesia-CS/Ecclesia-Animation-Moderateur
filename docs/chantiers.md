@@ -165,6 +165,14 @@ Séances de test dev « QA Vérifs — Complète » et « QA Vérifs — Débat 
 
 ---
 
+## Chantier 173 (2026-10-23) — Sujets de table
+
+Migration `20261023_chantier173_table_topics.sql` (appliquée sur dev, **pas sur prod**) : table `table_topics` (texte, rang, statut `pending|current|done`, source `manual|queue`, unicité `(table_id, norm)` insensible casse/accents, un seul `current` par table), sans policy ; RPC `list_table_topics`, `add_table_topic`, `set_table_topic_status`, `delete_table_topic`, `reorder_table_topics` (gardes `is_table_moderator`), `list_unaddressed_topics_admin` (`check_session_admin`, donc ouverte aux associations). `add_to_queue` réécrite à partir de `pg_get_functiondef` : un `topic_tag` de la file « autre sujet » (`long`) est enregistré en `pending` sans doublon.
+
+Front : `lib/tableTopics.ts`, `TopicsPanel` (vue modérateur, sous les files : ajout, Marquer en cours, Traité, monter/descendre, supprimer, « Proposer un vote entre les sujets » qui préremplit `ModeratorVoteModal` du chantier 132 avec les sujets en attente ; le gagnant ne devient jamais le sujet en cours), bandeau « Sujet en cours » dans `ParticipantView`, `UnaddressedTopicsPanel` (accordéon Actions post-séance et à côté des inscrits du sondage). Sujets dans `TableContext` (`topics`, `refreshTopics`, broadcast `table_topics`, polling 5 s via `load`). Les sujets non traités restent en base à la sortie du débat. Types de séance : débat simple, sondage, complète et associations couverts (aucun test sur `phase`).
+
+Vérifié : `tsc` propre, dédoublonnage SQL testé sur dev (rollback). Non vérifié au navigateur (pas de code Ecclesia/superadmin disponible dans la session) : voir `A_VERIFIER.md`.
+
 ## Annexe A — Chantiers 1 à 25 : tâches lettrées
 
 > **Repris tel quel de `PROJECT_STATUS.md`, supprimé au chantier 78 (2026-09-07).** Contenu **déplacé, pas résumé**.

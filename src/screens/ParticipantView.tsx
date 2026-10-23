@@ -35,6 +35,7 @@ export default function ParticipantView() {
     claimFloor,
     setNextTopicVote,
     effectivePhase,
+    topics,
   } = useTable()
 
   // Chantier 168 : hauteur de l'en-tête, pour caler la zone des boutons et des files sur l'écran.
@@ -318,6 +319,15 @@ export default function ParticipantView() {
           propre carte, pas dans la page. Sous le seuil de 26 rem (téléphone couché),
           la page défile normalement. Présents vient dessous sur téléphone. */}
       <div className="flex-1 bg-gradient-to-b from-creme to-sable">
+        {/* Chantier 173 : sujet marqué en cours par le modérateur (rien sinon). */}
+        {topics.find(t => t.statut === 'current') && (
+          <div className="border-b border-bleu-fonce/10 bg-white/70">
+            <p className="mx-auto max-w-5xl px-4 py-2.5 text-sm text-bleu-fonce sm:px-6">
+              <span className="font-semibold">Sujet en cours : </span>
+              {topics.find(t => t.statut === 'current')?.texte}
+            </p>
+          </div>
+        )}
         <div
           style={{ '--zone': `max(26rem, calc(100dvh - ${hauteurEntete}px - 2.5rem))` } as CSSProperties}
           className="mx-auto grid w-full max-w-5xl items-start gap-4 px-4 pb-6 pt-4 sm:px-6

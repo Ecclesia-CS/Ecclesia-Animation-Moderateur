@@ -29,6 +29,7 @@ import {
 } from '../lib/sessions'
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, SessionType, PollMode, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import UnaddressedTopicsPanel from '../components/UnaddressedTopicsPanel'
 import { SESSION_TYPE_LABEL, isConsentPoll, itemNoun, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
 import ConsentResultsList from '../components/voting/ConsentResultsList'
 import { DOC_INFO_LABEL } from '../lib/docLinks'
@@ -3825,6 +3826,11 @@ function SessionDetail({
 
                 {/* Chantier 159 — sondage : pas d'onglet Tables, la liste des inscrits
                     est tout en bas de « En direct » (consigne de Jules du 2026-10-05). */}
+                {sessionType === 'poll' && (
+                  <section className="bg-white border border-bleu-fonce/10 shadow-sm rounded-[12px] px-5 pb-4">
+                    <UnaddressedTopicsPanel sessionId={session.id} getPwd={getPwd} />
+                  </section>
+                )}
                 {sessionType === 'poll' && membersAccordion}
               </div>
             )}
@@ -4898,6 +4904,8 @@ function SessionDetail({
                           </button>
                         </div>
                       </div>
+                      {/* Chantier 173 — sujets non abordés des tables */}
+                      <UnaddressedTopicsPanel sessionId={session.id} getPwd={getPwd} />
                       {/* Chantier 170 — séance complète clôturée seulement : c'est la seule
                           où le vote d'avant débat existe et ne bougera plus. */}
                       {currentSession.phase === 'closed' && sessionType === 'full' && !isOrg && (

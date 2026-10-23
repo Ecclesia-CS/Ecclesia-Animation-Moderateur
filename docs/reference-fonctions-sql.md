@@ -131,3 +131,6 @@ Les tables Bloc C (`session_members`, `assertions`, `assertion_votes`, `table_as
 ---
 
 *Annexe de [`CLAUDE.md`](../CLAUDE.md) — extraite au chantier 78 (2026-09-07) pour alléger le fichier réinjecté au démarrage de chaque session. **Contenu déplacé tel quel, rien n'a été supprimé ni résumé.** Si une information d'ici doit redevenir un réflexe permanent, la remonter dans `CLAUDE.md` plutôt que de la dupliquer.*
+
+| `list_table_topics`, `add_table_topic`, `set_table_topic_status`, `delete_table_topic`, `reorder_table_topics` | **Chantier 173** — sujets de table (`table_topics`), gardes `is_table_moderator` (lecture : participant ou modérateur). `add_to_queue` y alimente aussi les sujets (file `long` + `topic_tag`). |
+| `list_unaddressed_topics_admin(password, session_id)` | **Chantier 173** — sujets `pending`/`current` de toutes les tables, `check_session_admin` (associations incluses). |

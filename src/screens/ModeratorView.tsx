@@ -28,6 +28,7 @@ import { sessionTypeOf } from '../lib/phaseLabels'
 import ModeratorToolsButton from '../components/ModeratorToolsButton'
 import CampSpeakingTimes from '../components/CampSpeakingTimes'
 import NextTopicPanel from '../components/NextTopicPanel'
+import TopicsPanel from '../components/TopicsPanel'
 import FondQuadrille from '../components/FondQuadrille'
 import PhaseIndicator from '../components/PhaseIndicator'
 import ecclesiaLogo from '../assets/ecclesia-logo.webp'
@@ -746,6 +747,11 @@ export default function ModeratorView() {
               ghostId={GHOST_ID}
             />
           </div>
+        </div>
+
+        {/* ── Sujets à venir (chantier 173) ───────────────────── */}
+        <div className="animate-montee [animation-delay:170ms]">
+          <TopicsPanel />
         </div>
 
         {/* ── Sujet suivant (chantier 131) ───────────────────── */}
