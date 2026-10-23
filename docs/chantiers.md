@@ -172,7 +172,7 @@ Migration `20261023_chantier173_table_topics.sql` (appliquée sur dev, **pas sur
 
 Front : `lib/tableTopics.ts`, `TopicsPanel` (vue modérateur, sous les files : ajout, Marquer en cours, Traité, monter/descendre, supprimer, « Proposer un vote entre les sujets » qui préremplit `ModeratorVoteModal` du chantier 132 avec les sujets en attente ; le gagnant ne devient jamais le sujet en cours), bandeau « Sujet en cours » dans `ParticipantView`, `UnaddressedTopicsPanel` (accordéon Actions post-séance et à côté des inscrits du sondage). Sujets dans `TableContext` (`topics`, `refreshTopics`, broadcast `table_topics`, polling 5 s via `load`). Les sujets non traités restent en base à la sortie du débat. Types de séance : débat simple, sondage, complète et associations couverts (aucun test sur `phase`).
 
-Vérifié : `tsc` propre, dédoublonnage SQL testé sur dev (rollback). Non vérifié au navigateur (pas de code Ecclesia/superadmin disponible dans la session) : voir `A_VERIFIER.md`.
+Vérifié : `tsc` propre ; au navigateur sur dev (ajout, doublon, en cours, vote, bandeau participant) ; le reste est dans `A_VERIFIER.md`.
 
 ## Annexe A — Chantiers 1 à 25 : tâches lettrées
 

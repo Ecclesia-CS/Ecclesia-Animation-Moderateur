@@ -617,7 +617,6 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 
 Migration `supabase/migrations/20261023_chantier173_table_topics.sql` appliquée sur **dev** uniquement (à appliquer sur prod au merge dev → main).
 
-- [ ] Modérateur : panneau « Sujets à venir » sous les files ; ajout manuel, doublon (« Écologie » / « ecologie ») refusé en silence, Marquer en cours (le précédent repasse en attente), Traité, monter/descendre, supprimer.
-- [ ] Participant : demander la parole « sur un autre sujet » avec un sujet ajoute celui-ci aux sujets à venir du modérateur (sans doublon) ; bandeau « Sujet en cours : … » visible seulement quand le modérateur en marque un.
-- [ ] « Proposer un vote entre les sujets » (≥ 2 sujets en attente) : formulaire prérempli, résultat visible du modérateur, aucun sujet ne passe en cours tout seul. Idem en débat simple et en sondage.
-- [ ] Fin du débat : files vidées, sujets en attente conservés ; visibles dans Actions post-séance (superadmin et `#asso`) et sous le sondage.
+**Vérifié au navigateur (dev, table QA `A5E1BB`, séance complète)** : sujet saisi en file « autre sujet » enregistré en `pending` (source `queue`) ; panneau « Sujets à venir » côté modérateur ; ajout manuel ; doublon « ecologie LOCALE » refusé ; Marquer en cours puis Retirer ; bouton « Proposer un vote entre les sujets » (formulaire prérempli, vote lancé et clôturé, aucun sujet passé en cours tout seul) ; bandeau « Sujet en cours : Transports » côté participant.
+
+- [ ] **Non joué** : Traité, monter/descendre, supprimer ; débat simple et sondage ; vote répondu par un second appareil ; sujets non abordés dans Actions post-séance (`UnaddressedTopicsPanel`, superadmin et `#asso`) ; conservation des sujets en attente quand le débat se termine.
