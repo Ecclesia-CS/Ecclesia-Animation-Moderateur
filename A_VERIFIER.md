@@ -618,3 +618,6 @@ Migration `supabase/migrations/20261023_chantier173_table_topics.sql` appliquée
 **Vérifié au navigateur (dev, table QA `A5E1BB`, séance complète)** : sujet saisi en file « autre sujet » enregistré en `pending` (source `queue`) ; panneau « Sujets à venir » côté modérateur ; ajout manuel ; doublon « ecologie LOCALE » refusé ; Marquer en cours puis Retirer ; bouton « Proposer un vote entre les sujets » (formulaire prérempli, vote lancé et clôturé, aucun sujet passé en cours tout seul) ; bandeau « Sujet en cours : Transports » côté participant.
 
 - [ ] **Non joué** : Traité, monter/descendre, supprimer ; débat simple et sondage ; vote répondu par un second appareil ; sujets non abordés dans Actions post-séance (`UnaddressedTopicsPanel`, superadmin et `#asso`) ; conservation des sujets en attente quand le débat se termine.
+
+## Chantier 175 (2026-10-23) : noms dans les réponses au questionnaire
+- `SuperadminScreen.tsx` (`ResponseRow`) : nom du répondant affiché ligne par ligne ; colonne « Nom » du CSV. À confirmer à l'écran avec un vrai superadmin : nom visible pour une réponse faite depuis le vote (session_members) et depuis une table (participants), « Nom inconnu » sinon.

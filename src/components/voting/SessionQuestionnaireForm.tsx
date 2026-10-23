@@ -72,7 +72,7 @@ export default function SessionQuestionnaireForm({ sessionId, onDone, sessionTyp
             <PhaseIndicator phase={sessionType === 'debate' ? 'closed' : 'post_voting'} sessionType={sessionType} tone="marine" />
             <h2 className="font-sans text-xl font-bold text-creme tracking-[-0.01em]">Questionnaire post-débat</h2>
             <p className="text-sm text-creme/75 leading-snug">
-              Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
+              Quelques questions pour améliorer les prochaines séances.&nbsp;~2&nbsp;min.
             </p>
           </div>
         </div>

@@ -99,7 +99,7 @@ export default function QuestionnaireModal({ onClose, savedResponse, forced = fa
           <div className="relative">
             <h2 className="font-sans text-xl font-bold tracking-[-0.01em] text-creme">Questionnaire post-débat</h2>
             <p className="text-sm text-creme/75 mt-0.5 leading-snug">
-              Quelques questions pour améliorer les prochaines séances.&nbsp;Anonyme,&nbsp;~2&nbsp;min.
+              Quelques questions pour améliorer les prochaines séances.&nbsp;~2&nbsp;min.
             </p>
             {savedResponse && (
               <p className="text-xs text-amber-200 mt-1.5">

@@ -7099,6 +7099,9 @@ function ResponseRow({
             <polyline points="9 18 15 12 9 6"/>
           </svg>
           <span className="text-xs text-gray-500 shrink-0 tabular-nums">{date}</span>
+          <span className={`text-xs font-semibold shrink-0 max-w-[10rem] truncate ${r.pseudo ? 'text-anthracite' : 'text-gray-500 italic font-normal'}`}>
+            {r.pseudo ?? 'Nom inconnu'}
+          </span>
           {r.table_join_code && (
             <span className="text-xs text-indigo-600 tracking-widest shrink-0 font-semibold tabular-nums">
               {r.table_join_code}
