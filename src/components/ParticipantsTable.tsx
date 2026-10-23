@@ -4,6 +4,7 @@ import { useTable } from '../context/TableContext'
 import { useToast } from '../context/ToastContext'
 import { useLiveMs } from '../hooks/useLiveMs'
 import { formatDuration, extractErr } from '../lib/utils'
+import { speakingShares } from '../lib/speakingTime'
 import SpeakerTimer from './SpeakerTimer'
 import ConfirmModal from './ConfirmModal'
 import type { Participant, Table } from '../lib/types'
@@ -19,18 +20,9 @@ export default function ParticipantsTable() {
   const [kickErr, setKickErr]       = useState<string | null>(null)
   const etroit = useEtroit()
 
-  function cumMs(participantId: string): number {
-    return speakingTurns
-      .filter(t => t.participant_id === participantId)
-      .reduce((sum, t) => {
-        const start = new Date(t.started_at).getTime()
-        const end   = t.ended_at ? new Date(t.ended_at).getTime() : now
-        return sum + Math.max(0, end - start)
-      }, 0)
-  }
-
-  const totals      = participants.map(p => ({ id: p.id, ms: cumMs(p.id) }))
-  const sessionTotal = totals.reduce((s, t) => s + t.ms, 0)
+  const { byId, total: sessionTotal } = speakingShares(participants, speakingTurns, now)
+  const msOf  = (id: string) => byId.get(id)?.ms ?? 0
+  const pctOf = (id: string) => byId.get(id)?.pct ?? 0
 
   async function doKick() {
     if (!kickTarget) return
@@ -59,13 +51,13 @@ export default function ParticipantsTable() {
       {etroit ? (
         <ul>
           {participants.map(p => {
-            const ms = totals.find(t => t.id === p.id)?.ms ?? 0
+            const ms = msOf(p.id)
             return (
               <DraggableCard
                 key={p.id}
                 p={p}
                 ms={ms}
-                pct={sessionTotal > 0 ? Math.round((ms / sessionTotal) * 100) : 0}
+                pct={pctOf(p.id)}
                 isSpeaking={table.current_speaker_id === p.id}
                 isSelf={p.id === myParticipant.id}
                 table={table}
@@ -89,8 +81,8 @@ export default function ParticipantsTable() {
         </thead>
         <tbody>
           {participants.map(p => {
-            const ms         = totals.find(t => t.id === p.id)?.ms ?? 0
-            const pct        = sessionTotal > 0 ? Math.round((ms / sessionTotal) * 100) : 0
+            const ms         = msOf(p.id)
+            const pct        = pctOf(p.id)
             const isSpeaking = table.current_speaker_id === p.id
             const isSelf     = p.id === myParticipant.id
             return (

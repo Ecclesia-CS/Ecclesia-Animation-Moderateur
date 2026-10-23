@@ -91,6 +91,10 @@ Puis, sur une séance de test **de prod** :
 - [ ] **106, 109, 117, 118** — onglet Groupes (badge « en surplus », modérateur physique, « Retirer », « Libérer la modération », modale « Ouvrir le débat »).
 - [ ] **91, 92** — recette d'allocation sur une séance de test (déterminisme, actifs/public par table, grappes de binômes).
 
+## Chantier 172 — temps de parole dans les files (2026-10-23) — à jouer
+
+- [ ] Vue modérateur d'une table à plusieurs participants avec des tours de parole passés : dans « Autre sujet » et « Sujet actuel », chaque ligne montre durée + % (barre dès 640 px) **identiques** à la liste Participants ; le chiffre monte pour qui parle ; glisser-déposer entre files toujours fonctionnel ; lecture correcte en étroit (nom, tag de sujet, durée, poignée, croix). Non joué : pas de table de test créable (pas de Code Ecclesia, `.env` sur prod).
+
 ## Chantier 164 — allocation, modérateur laissé de côté (2026-10-09) — reste à jouer
 
 Le calcul et l'application des tables ont été joués au navigateur sur dev (14 actifs/2 modérateurs, avec et sans l'option « interdire » ; 20 actifs/3 modérateurs avec modérateur de réserve) : détail dans `docs/chantiers.md`, ligne 164. Ne reste que ce qui suit.
