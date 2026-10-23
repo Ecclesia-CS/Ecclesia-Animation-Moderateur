@@ -91,6 +91,11 @@ Puis, sur une séance de test **de prod** :
 - [ ] **106, 109, 117, 118** — onglet Groupes (badge « en surplus », modérateur physique, « Retirer », « Libérer la modération », modale « Ouvrir le débat »).
 - [ ] **91, 92** — recette d'allocation sur une séance de test (déterminisme, actifs/public par table, grappes de binômes).
 
+## Chantier 172 — temps de parole dans les files (2026-10-23) — validé
+
+Joué sur dev le 2026-10-23 (table B8F10C de « Test charte 154 · Débat », modération prise par Jules) : dans « Autre sujet » et « Sujet actuel », durée et % de chaque personne **identiques** à la liste Participants (65:01 · 90 %, 05:25 · 7 %, 00:45 · 1 %) ; à 375 px aucun débordement horizontal, la barre est masquée, durée et % tiennent, le pseudo passe sur deux lignes.
+- [x] (validé par Jules le 2026-10-23 : le glisser-déposer fonctionne) Glisser-déposer entre files et dans une file (dnd-kit ignore le pointeur synthétique) : la colonne ajoutée ne doit rien changer. Voir aussi que le chiffre d'une personne qui parle monte en direct.
+
 ## Chantier 164 — allocation, modérateur laissé de côté (2026-10-09) — reste à jouer
 
 Le calcul et l'application des tables ont été joués au navigateur sur dev (14 actifs/2 modérateurs, avec et sans l'option « interdire » ; 20 actifs/3 modérateurs avec modérateur de réserve) : détail dans `docs/chantiers.md`, ligne 164. Ne reste que ce qui suit.
@@ -601,3 +606,18 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Bouton absent** en phase autre que `closed`, sur un débat simple, un sondage et côté `#asso`.
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
+
+
+## Chantier 174 (2026-10-23) : bouton Résultats publics/privés dans Actions post-séance
+
+- `src/screens/SuperadminScreen.tsx` : sur une séance `closed` (hors asso), ouvrir « Actions post-séance » : le bouton « Résultats privés/publics » est en tête et bascule comme celui de « Réglages » (les deux restent synchronisés). Non joué au navigateur (mot de passe superadmin non disponible en session). À vérifier sur dev.
+## Chantier 173 (2026-10-23) — Sujets de table (révisé 173b)
+
+Migrations `20261023_chantier173_table_topics.sql` et `20261023_chantier173b_sujet_en_cours.sql`, appliquées sur **dev** uniquement (à appliquer sur prod au merge dev → main, dans cet ordre).
+
+**Vérifié au navigateur (dev, table QA `A5E1BB`, séance complète)** : case « Sujet en cours » (validée, effacée par un texte vide) ; bandeau « Sujet en cours » côté participant ; « Ajouter un sujet à la file » (ligne au nom du modérateur avec son sujet, champ bloqué tant qu'il est déjà dans la file) ; lien « Proposer un vote sur tous les sujets de la file (N) » dans Outils Modo > Vote, options préremplies sans doublon ; sujet saisi par un participant capté pour « Sujets non abordés ».
+
+- [ ] **Non joué** : effacer le sujet en cours par texte vide ; lancer ce vote jusqu'au bout depuis le lien ; débat simple et sondage ; `#asso` ; panneau « Sujets non abordés » (Actions post-séance, sondage) et conservation des sujets à la fin du débat.
+
+## Chantier 175 (2026-10-23) : noms dans les réponses au questionnaire
+- `SuperadminScreen.tsx` (`ResponseRow`) : nom du répondant affiché ligne par ligne ; colonne « Nom » du CSV. À confirmer à l'écran avec un vrai superadmin : nom visible pour une réponse faite depuis le vote (session_members) et depuis une table (participants), « Nom inconnu » sinon.

@@ -8,6 +8,8 @@ Dernière mise à jour : **2026-10-09** (ouverture du chantier 164, allocation :
 
 ## Chantiers en cours
 
+> **Le 2026-10-23, quatre chantiers sont lancés en parallèle depuis `dev`** (tâches dictées par Jules ; chacun sur sa branche `claude/chantier-17x-…`). À merger dans `dev` d'abord, `main` ensuite par la recette habituelle.
+
 > **Le 2026-10-19, le chantier 170 est fait** (bouton « Extraction données pré-débat » du superadmin, séance complète clôturée) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 170. Front seul, **aucune migration**. Mergé dans `dev` puis dans `main`. Entrée « en cours » retirée.
 
 > **Le 2026-10-15, le chantier 169 est fait sur sa branche** (vote blanc / abstention, proposition après un vote blanc) — voir `docs/chantiers.md` et `A_VERIFIER.md` § Chantier 169. Mergé directement dans `main` le 2026-10-15, migration `20261015_chantier169_*` appliquée sur dev **et** prod ; `dev` doit récupérer `main`. Entrée « en cours » retirée.

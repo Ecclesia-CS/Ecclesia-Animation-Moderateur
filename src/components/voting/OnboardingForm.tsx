@@ -172,7 +172,7 @@ export default function OnboardingForm({ sessionId, member, onSuccess, initial =
               </p>
             </div>
             <ReciprocityNotice />
-            <PairingFields values={answers.pairings} onChange={v => update('pairings', v)} />
+            <PairingFields sessionId={sessionId} values={answers.pairings} onChange={v => update('pairings', v)} />
             {/* Chantier 165 — le cas fréquent : le nom de l'autre n'est pas encore inscrit. */}
             <p className="text-xs text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2 leading-snug">
               💡 {PAIRING_LATER_NOTE}

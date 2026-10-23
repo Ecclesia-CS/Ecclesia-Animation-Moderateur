@@ -1,3 +1,4 @@
+import { listTableTopics, type TableTopic } from '../lib/tableTopics'
 import {
   createContext,
   useCallback,
@@ -69,6 +70,9 @@ interface TableCtxValue {
   setNextTopicVote(value: boolean): Promise<void>
   resetNextTopicVotes(): Promise<void>
   openTableVote(question: string, options: string[]): Promise<string>
+  /** Chantier 173 — sujets de la table (en cours, à venir, traités) et leur rafraîchissement. */
+  topics: TableTopic[]
+  refreshTopics(): Promise<void>
   closeActiveTableVote(voteId: string): Promise<void>
   /** Chantier 161 — le modérateur titulaire termine le débat de sa table. */
   endTableDebate(): Promise<void>
@@ -84,7 +88,7 @@ interface TableCtxValue {
   withdrawShare(shareId: string): Promise<void>
 }
 
-type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns' | 'table_shares'
+type TableName = 'tables' | 'participants' | 'queue_entries' | 'speaking_turns' | 'table_shares' | 'table_topics'
 
 // Chantier 53 — le canal Realtime `table:<id>` est ouvert (ni privé ni signé,
 // audit A1) : n'importe quel porteur de la clé anon publique peut y émettre.
@@ -130,6 +134,7 @@ export function TableProvider({
   const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
   const [speakingTurns, setSpeakingTurns] = useState<SpeakingTurn[]>([])
   const [shares, setShares] = useState<TableShare[]>([])
+  const [topics, setTopics] = useState<TableTopic[]>([])
   const [ready, setReady] = useState(false)
   // Contrôle physique de la table (tables.created_by === userId, tables leaderless
   // exclues) — indépendant de la séance. `designate_moderator` (auto-désignation
@@ -201,13 +206,14 @@ export function TableProvider({
 
   // ── Load (stable, reused for initial load, polling, reconnect) ──
   const load = useCallback(async () => {
-    const [s, p, q, t, sh] = await Promise.all([
+    const [s, p, q, t, sh, tp] = await Promise.all([
       supabase.from('tables').select('*').eq('id', tableId).single(),
       supabase.from('participants').select('*').eq('table_id', tableId),
       supabase.from('queue_entries').select('*').eq('table_id', tableId),
       supabase.from('speaking_turns').select('*').eq('table_id', tableId),
       // Chantier 162a — un échec (RPC absente, droits) ne doit jamais vider la table.
       listTableShares(tableId).catch(() => null),
+      listTableTopics(tableId).catch(() => null),
     ])
     if (!s.data) { showToast('Cette table n\'existe plus.', 'error'); handleEnd(); return }
     const tbl = s.data as Table
@@ -226,6 +232,7 @@ export function TableProvider({
     setQueueEntries((q.data ?? []) as QueueEntry[])
     setSpeakingTurns((t.data ?? []) as SpeakingTurn[])
     if (sh) setShares(sh)
+    if (tp) setTopics(tp)
     if (tbl.session_id) {
       const sess = await getSessionById(tbl.session_id).catch(() => null)
       setSession(sess)
@@ -265,6 +272,9 @@ export function TableProvider({
       } else if (tbl === 'speaking_turns') {
         const { data } = await supabase.from('speaking_turns').select('*').eq('table_id', tableId)
         setSpeakingTurns((data ?? []) as SpeakingTurn[])
+      } else if (tbl === 'table_topics') {
+        const rows = await listTableTopics(tableId).catch(() => null)
+        if (rows) setTopics(rows)
       } else if (tbl === 'table_shares') {
         const rows = await listTableShares(tableId).catch(() => null)
         if (rows) setShares(rows)
@@ -664,6 +674,12 @@ export function TableProvider({
     return voteId
   }, [tableId, broadcast])
 
+  // Chantier 173 — après toute action sur les sujets : refetch local + broadcast.
+  const refreshTopics = useCallback(async () => {
+    await refetch(['table_topics'])
+    broadcast(['table_topics'])
+  }, [refetch, broadcast])
+
   const closeActiveTableVote = useCallback(async (voteId: string) => {
     const { error } = await supabase.rpc('close_table_vote', { p_vote_id: voteId })
     if (error) throw error
@@ -775,6 +791,8 @@ export function TableProvider({
         closeActiveTableVote,
         endTableDebate,
         shares,
+        topics,
+        refreshTopics,
         requestShare,
         decideShare,
         endShare,

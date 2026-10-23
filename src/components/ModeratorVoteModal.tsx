@@ -13,13 +13,16 @@ const POLL_MS = 4000
 
 interface Props {
   onClose: () => void
+  /** Chantier 173 : pré-remplit le formulaire (vote entre les sujets à venir). */
+  initialQuestion?: string
+  initialOptions?: string[]
 }
 
 // Outil "proposer un vote" côté modérateur (chantier 132). Trois écrans dans une
 // même modale : formulaire de création (aucun vote actif/pointé), suivi en direct
 // d'un vote en cours (décompte agrégé uniquement, jamais nominatif), et historique.
-export default function ModeratorVoteModal({ onClose }: Props) {
-  const { table, openTableVote, closeActiveTableVote } = useTable()
+export default function ModeratorVoteModal({ onClose, initialQuestion, initialOptions }: Props) {
+  const { table, queueLong, openTableVote, closeActiveTableVote } = useTable()
   const activeVoteId = table.active_vote_id
 
   const [vote,    setVote]    = useState<(TableVote & { table_vote_options: TableVoteOption[] }) | null>(null)
@@ -28,8 +31,8 @@ export default function ModeratorVoteModal({ onClose }: Props) {
   const [err,     setErr]     = useState<string | null>(null)
 
   const [creating,  setCreating]  = useState(false)
-  const [question,  setQuestion]  = useState('')
-  const [options,   setOptions]   = useState(['', ''])
+  const [question,  setQuestion]  = useState(initialQuestion ?? '')
+  const [options,   setOptions]   = useState(initialOptions && initialOptions.length >= 2 ? initialOptions : ['', ''])
   const [closing,   setClosing]   = useState(false)
 
   const [historyOpen,    setHistoryOpen]    = useState(false)
@@ -85,6 +88,19 @@ export default function ModeratorVoteModal({ onClose }: Props) {
 
   function removeOption(i: number) {
     setOptions(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  // Chantier 173 : les sujets en liste = ceux de la file « prendre la parole sur un autre sujet », sans doublon.
+  const sujetsEnFile = Array.from(new Map(
+    queueLong
+      .map(e => e.topic_tag?.trim())
+      .filter((t): t is string => !!t)
+      .map(t => [t.toLowerCase(), t] as const),
+  ).values())
+
+  function reprendreSujets() {
+    setQuestion(q => q.trim() ? q : 'Quel sujet voulez-vous aborder ensuite ?')
+    setOptions(sujetsEnFile)
   }
 
   const validOptions = options.map(o => o.trim()).filter(Boolean)
@@ -223,6 +239,14 @@ export default function ModeratorVoteModal({ onClose }: Props) {
                       </div>
                     ))}
                   </div>
+                  {sujetsEnFile.length >= 2 && (
+                    <button
+                      onClick={reprendreSujets}
+                      className="block text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"
+                    >
+                      Proposer un vote sur tous les sujets de la file ({sujetsEnFile.length})
+                    </button>
+                  )}
                   <button
                     onClick={addOption}
                     className="text-xs font-semibold text-bleu-fonce underline decoration-bleu-fonce/40 underline-offset-4 hover:decoration-bleu-clair transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bleu-clair"

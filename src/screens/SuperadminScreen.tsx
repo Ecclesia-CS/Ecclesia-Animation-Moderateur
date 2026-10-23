@@ -29,6 +29,7 @@ import {
 } from '../lib/sessions'
 import type { SessionTableRow, TableSpeakingTurnRow, TableAssignmentAdminRow, TableParticipantRow } from '../lib/sessions'
 import type { Session, SessionType, PollMode, QuestionnaireExportRow, CollabSource, GroupNameResult, ModerationPolicy } from '../lib/types'
+import UnaddressedTopicsPanel from '../components/UnaddressedTopicsPanel'
 import { SESSION_TYPE_LABEL, isConsentPoll, itemNoun, phaseSequenceFor, sessionTypeOf } from '../lib/phaseLabels'
 import ConsentResultsList from '../components/voting/ConsentResultsList'
 import { DOC_INFO_LABEL } from '../lib/docLinks'
@@ -837,6 +838,30 @@ function VisibleOnHomeToggle({ session, settings }: { session: SessionRow; setti
 
 /** Verrou des propositions d'assertions (chantier 124) — sans objet dans un
  *  débat simple (aucune assertion). */
+// Chantier 174 : le même bouton vit dans « Réglages » et dans « Actions post-séance ».
+function ResultsPublicToggle({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
+  const { errors, change } = settings
+  return (
+    <div className="space-y-1">
+      <PillToggle
+        on={session.results_public}
+        highlighted={session.results_public}
+        tone="emerald"
+        label={session.results_public ? 'Résultats publics' : 'Résultats privés'}
+        title={
+          session.results_public
+            ? isConsentPoll(session) ? 'Les visiteurs non connectés peuvent voir les options et leurs décomptes de cette séance' : 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
+            : 'Rendre les résultats de cette séance consultables par les visiteurs non connectés'
+        }
+        onClick={() => change('results', { results_public: !session.results_public },
+          pwd => setSessionResultsPublic(pwd, session.id, !session.results_public))}
+      />
+      <p className="text-xs text-gray-500">Ouvre les résultats de la séance aux visiteurs non connectés.</p>
+      {errors.results && <p className="text-xs text-red-600">{errors.results}</p>}
+    </div>
+  )
+}
+
 function AssertionsLockToggle({ session, settings }: { session: SessionRow; settings: SessionSettings }) {
   if (sessionTypeOf(session) === 'debate') return null
   return (
@@ -909,25 +934,7 @@ function SessionSettingsSection({ session, settings }: {
           </div>
         )}
 
-        {showResults && (
-          <div className="space-y-1">
-            <PillToggle
-              on={session.results_public}
-              highlighted={session.results_public}
-              tone="emerald"
-              label={session.results_public ? 'Résultats publics' : 'Résultats privés'}
-              title={
-                session.results_public
-                  ? isConsentPoll(session) ? 'Les visiteurs non connectés peuvent voir les options et leurs décomptes de cette séance' : 'Les visiteurs non connectés peuvent voir les assertions, les votes agrégés et le nuage de points anonyme de cette séance'
-                  : 'Rendre les résultats de cette séance consultables par les visiteurs non connectés'
-              }
-              onClick={() => change('results', { results_public: !session.results_public },
-                pwd => setSessionResultsPublic(pwd, session.id, !session.results_public))}
-            />
-            <p className="text-xs text-gray-500">Ouvre les résultats de la séance aux visiteurs non connectés.</p>
-            {errors.results && <p className="text-xs text-red-600">{errors.results}</p>}
-          </div>
-        )}
+        {showResults && <ResultsPublicToggle session={session} settings={settings} />}
 
         {/* Onboarding (chantier 71) — questions propres à Ecclesia, pas
             d'onboarding dans une séance d'association (chantier 135). */}
@@ -3819,6 +3826,11 @@ function SessionDetail({
 
                 {/* Chantier 159 — sondage : pas d'onglet Tables, la liste des inscrits
                     est tout en bas de « En direct » (consigne de Jules du 2026-10-05). */}
+                {sessionType === 'poll' && (
+                  <section className="bg-white border border-bleu-fonce/10 shadow-sm rounded-[12px] px-5 pb-4">
+                    <UnaddressedTopicsPanel sessionId={session.id} getPwd={getPwd} />
+                  </section>
+                )}
                 {sessionType === 'poll' && membersAccordion}
               </div>
             )}
@@ -3856,6 +3868,8 @@ function SessionDetail({
                       password={getPwd()!}
                       onApplied={loadGroups}
                       onAuthError={onAuthError}
+                      groupNames={groupNames}
+                      onAnalysisComplete={isOrg ? undefined : (a => runNaming(namingGroupsFromAnalysis(a.members)))}
                     />
                   </PanelErrorBoundary>
                 )}
@@ -4845,6 +4859,9 @@ function SessionDetail({
                   </button>
                   {postSessionOpen && (
                     <div className="border-t border-bleu-fonce/10 px-5 py-4 space-y-3">
+                      {currentSession.phase === 'closed' && !isOrg && (
+                        <ResultsPublicToggle session={currentSession} settings={sessionSettings} />
+                      )}
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-700">Questionnaire forcé</span>
                         <button
@@ -4889,6 +4906,8 @@ function SessionDetail({
                           </button>
                         </div>
                       </div>
+                      {/* Chantier 173 — sujets non abordés des tables */}
+                      <UnaddressedTopicsPanel sessionId={session.id} getPwd={getPwd} />
                       {/* Chantier 170 — séance complète clôturée seulement : c'est la seule
                           où le vote d'avant débat existe et ne bougera plus. */}
                       {currentSession.phase === 'closed' && sessionType === 'full' && !isOrg && (
@@ -7080,6 +7099,9 @@ function ResponseRow({
             <polyline points="9 18 15 12 9 6"/>
           </svg>
           <span className="text-xs text-gray-500 shrink-0 tabular-nums">{date}</span>
+          <span className={`text-xs font-semibold shrink-0 max-w-[10rem] truncate ${r.pseudo ? 'text-anthracite' : 'text-gray-500 italic font-normal'}`}>
+            {r.pseudo ?? 'Nom inconnu'}
+          </span>
           {r.table_join_code && (
             <span className="text-xs text-indigo-600 tracking-widest shrink-0 font-semibold tabular-nums">
               {r.table_join_code}

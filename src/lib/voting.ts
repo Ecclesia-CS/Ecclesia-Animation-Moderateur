@@ -651,6 +651,13 @@ export async function getMyPairings(sessionId: string): Promise<PairingResult[]>
   }))
 }
 
+/** Chantier 171 — jusqu'à 5 pseudos de la séance commençant par la saisie (hors moi). */
+export async function suggestPairingPseudos(sessionId: string, prefix: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc('suggest_pairing_pseudos', { p_session_id: sessionId, p_prefix: prefix })
+  if (error) throw new Error(extractErr(error))
+  return Array.isArray(data) ? (data as unknown[]).filter((x): x is string => typeof x === 'string') : []
+}
+
 /** Chantier 165 — les personnes qui m'ont cité et que je peux encore rejoindre. */
 export async function getPairingRequests(sessionId: string): Promise<PairingRequest[]> {
   const { data, error } = await supabase.rpc('get_pairing_requests', { p_session_id: sessionId })

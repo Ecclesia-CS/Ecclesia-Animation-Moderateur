@@ -9,6 +9,7 @@ import { useTable } from '../context/TableContext'
 import { extractErr } from '../lib/utils'
 import { useState } from 'react'
 import type { Participant, QueueEntry } from '../lib/types'
+import TempsParoleFile from './TempsParoleFile'
 import { IconeAutreSujet, IconeSujetActuel } from './IconesFiles'
 
 interface Props {
@@ -147,6 +148,7 @@ function SortableRow({
       <tr ref={setNodeRef} style={style} className="border-b border-dashed border-white/25 last:border-0">
         {numero('italic text-slate-400')}
         <td className="py-2.5 pr-4 font-medium italic text-slate-300">{pseudo}</td>
+        <td className="py-2.5 pr-2" />
         <td className="py-2.5 pr-3" />
       </tr>
     )
@@ -167,6 +169,10 @@ function SortableRow({
             <span className="rounded-[6px] bg-white/10 px-1.5 py-0.5 text-xs text-slate-200">{entry.topic_tag}</span>
           )}
         </span>
+      </td>
+
+      <td className="py-2.5 pr-2 text-right">
+        <TempsParoleFile participantId={entry.participant_id} />
       </td>
 
       <td className="py-2 pr-3 text-right">
