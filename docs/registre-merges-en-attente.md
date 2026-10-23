@@ -17,6 +17,8 @@ Dernière mise à jour : **2026-09-16**.
 
 > **2026-10-14** : `dev` mergé dans `main` (chantier 168, charte graphique, 58 commits, avance rapide), **aucune migration à appliquer sur prod** (aucun fichier `supabase/` ne diffère entre `main` et `dev`). Tag de retour arrière `pre-merge-dev-20261014` (code seulement). Seule nouveauté de dépendances : `@fontsource-variable/archivo` et `@fontsource-variable/newsreader` (polices auto-hébergées). Rien n'est retenu hors de `main` à cette date. Détail dans `A_VERIFIER.md` § 5.
 
+> **2026-10-23** : `dev` mergé dans `main` (chantiers 169 à 173b, 20 commits) et **3 migrations appliquées sur prod** avant le push (171, 173, 173b ; la 169 y était déjà). Corps d'`add_to_queue` comparé à prod via `pg_get_functiondef` avant réécriture : identique à la base du fichier. Tag de retour arrière `pre-merge-dev-20261023` (code seulement). Rien n'est retenu hors de `main` à cette date.
+
 ---
 
 ## 1. Gel du parcours de vote — jusqu'au 2026-09-10 inclus
