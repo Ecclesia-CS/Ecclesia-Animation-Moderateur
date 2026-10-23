@@ -91,9 +91,10 @@ Puis, sur une séance de test **de prod** :
 - [ ] **106, 109, 117, 118** — onglet Groupes (badge « en surplus », modérateur physique, « Retirer », « Libérer la modération », modale « Ouvrir le débat »).
 - [ ] **91, 92** — recette d'allocation sur une séance de test (déterminisme, actifs/public par table, grappes de binômes).
 
-## Chantier 172 — temps de parole dans les files (2026-10-23) — à jouer
+## Chantier 172 — temps de parole dans les files (2026-10-23) — joué sur dev, reste le glisser-déposer
 
-- [ ] Vue modérateur d'une table à plusieurs participants avec des tours de parole passés : dans « Autre sujet » et « Sujet actuel », chaque ligne montre durée + % (barre dès 640 px) **identiques** à la liste Participants ; le chiffre monte pour qui parle ; glisser-déposer entre files toujours fonctionnel ; lecture correcte en étroit (nom, tag de sujet, durée, poignée, croix). Non joué : pas de table de test créable (pas de Code Ecclesia, `.env` sur prod).
+Joué sur dev le 2026-10-23 (table B8F10C de « Test charte 154 · Débat », modération prise par Jules) : dans « Autre sujet » et « Sujet actuel », durée et % de chaque personne **identiques** à la liste Participants (65:01 · 90 %, 05:25 · 7 %, 00:45 · 1 %) ; à 375 px aucun débordement horizontal, la barre est masquée, durée et % tiennent, le pseudo passe sur deux lignes.
+- [ ] Glisser-déposer entre files et dans une file (dnd-kit ignore le pointeur synthétique) : la colonne ajoutée ne doit rien changer. Voir aussi que le chiffre d'une personne qui parle monte en direct.
 
 ## Chantier 164 — allocation, modérateur laissé de côté (2026-10-09) — reste à jouer
 
