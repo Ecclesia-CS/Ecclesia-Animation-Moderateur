@@ -601,3 +601,8 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Bouton absent** en phase autre que `closed`, sur un débat simple, un sondage et côté `#asso`.
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
+
+## Chantier 171 : binômes (autocomplétion) et fenêtre d'analyse avant répartition
+
+- [ ] **(a)** Séance en phase `voting` : à l'onboarding puis dans « Outils » puis « Être avec un ami », taper une lettre dans le champ nom : 5 pseudos au plus s'affichent (sans soi-même), clic ou flèches + Entrée les choisit. Migration `20261023_chantier171_suggest_pairing_pseudos.sql` appliquée sur **dev seulement**.
+- [ ] **(b)** Superadmin, séance `allocating` : chaque clic sur « Calculer la répartition » / « Recalculer » ouvre la fenêtre ; « Calculer sans analyser » calcule comme avant ; « Analyser puis calculer » enregistre une nouvelle analyse, puis calcule avec les camps à jour. Carte et légende lisibles. (Mot de passe superadmin dev non disponible pour la session : jamais joué à l'écran.)

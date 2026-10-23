@@ -3856,6 +3856,8 @@ function SessionDetail({
                       password={getPwd()!}
                       onApplied={loadGroups}
                       onAuthError={onAuthError}
+                      groupNames={groupNames}
+                      onAnalysisComplete={isOrg ? undefined : (a => runNaming(namingGroupsFromAnalysis(a.members)))}
                     />
                   </PanelErrorBoundary>
                 )}

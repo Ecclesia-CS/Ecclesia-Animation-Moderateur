@@ -41,6 +41,9 @@ import {
 } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
 import TableDiagnosticsList from './TableDiagnosticsList'
+import AnalysisBeforeAllocationModal from './AnalysisBeforeAllocationModal'
+import type { LoadedAnalysis } from '../../lib/analysis'
+import type { GroupNameResult } from '../../lib/types'
 
 interface Props {
   sessionId: string
@@ -48,6 +51,10 @@ interface Props {
   /** Appelé après persistance réussie — le parent recharge les groupes. */
   onApplied(): void
   onAuthError(): void
+  /** Chantier 171b : noms des camps, pour la légende de la carte de la fenêtre d'analyse. */
+  groupNames?: GroupNameResult[]
+  /** Chantier 171b : nommage des camps après une analyse lancée depuis la fenêtre (non attendu). */
+  onAnalysisComplete?(analysis: LoadedAnalysis): void | Promise<void>
 }
 
 /** H14 — état du panneau conservé hors React (onglets, reload). */
@@ -103,7 +110,7 @@ function readPersisted(sessionId: string): PersistedState | null {
   }
 }
 
-export default function AllocationPanel({ sessionId, password, onApplied, onAuthError }: Props) {
+export default function AllocationPanel({ sessionId, password, onApplied, onAuthError, groupNames, onAnalysisComplete }: Props) {
   const restored = useMemo(() => readPersisted(sessionId), [sessionId])
 
   const [inputs, setInputs]   = useState<AllocationInputs | null>(null)
@@ -124,6 +131,9 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
   const [signature, setSignature] = useState<string | null>(restored?.signature ?? null)
   const [applying, setApplying] = useState(false)
   const [applied, setApplied]   = useState<string | null>(null)
+  /** Chantier 171b : fenêtre « analyser avant de calculer », et calcul différé jusqu'au rechargement des entrées. */
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false)
+  const [computeAfterReload, setComputeAfterReload] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -224,7 +234,7 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
     }
   }, [inputs, excluded, extraModerators, recorderCount, forbidUnmoderatedTables])
 
-  function handleCompute() {
+  function doCompute() {
     const payload = buildInput()
     if (!payload) return
     setError(null)
@@ -239,6 +249,31 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
       setError(`Échec du calcul : ${extractErr(e)}`)
     }
   }
+
+  // Chantier 171b : le bouton ouvre toujours la fenêtre, jamais le calcul direct.
+  function handleCompute() {
+    setAnalysisModalOpen(true)
+  }
+
+  function handleSkipAnalysis() {
+    setAnalysisModalOpen(false)
+    doCompute()
+  }
+
+  /** L'analyse change `opinionsAvailable` et les camps : recharger les entrées, puis calculer sur l'état à jour. */
+  async function handleAnalysed(analysis: LoadedAnalysis) {
+    setAnalysisModalOpen(false)
+    void Promise.resolve(onAnalysisComplete?.(analysis)).catch(() => { /* nommage best-effort */ })
+    await load()
+    setComputeAfterReload(true)
+  }
+
+  useEffect(() => {
+    if (!computeAfterReload || !inputs || loading) return
+    setComputeAfterReload(false)
+    doCompute()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computeAfterReload, inputs, loading])
 
   /**
    * Chantier 25c — ordre des opérations arrêté avec Jules :
@@ -469,6 +504,18 @@ export default function AllocationPanel({ sessionId, password, onApplied, onAuth
           >
             🎯 {preview ? 'Recalculer la répartition' : 'Calculer la répartition'}
           </button>
+
+          {analysisModalOpen && (
+            <AnalysisBeforeAllocationModal
+              sessionId={sessionId}
+              password={password}
+              groupNames={groupNames}
+              onAuthError={onAuthError}
+              onSkip={handleSkipAnalysis}
+              onAnalysed={handleAnalysed}
+              onCancel={() => setAnalysisModalOpen(false)}
+            />
+          )}
 
           {error && (
             <div className="rounded-[8px] p-3 bg-red-50 border border-red-200 text-sm text-red-700">

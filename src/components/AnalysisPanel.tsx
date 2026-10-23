@@ -61,7 +61,7 @@ interface ScatterProps {
   groupNames?: GroupNameResult[]
 }
 
-function ScatterPlot({ members, kChosen, groupNames }: ScatterProps) {
+export function ScatterPlot({ members, kChosen, groupNames }: ScatterProps) {
   if (members.length === 0) return null
 
   const xs = members.map(m => m.pca_x)
