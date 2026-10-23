@@ -91,6 +91,10 @@ Puis, sur une séance de test **de prod** :
 - [ ] **106, 109, 117, 118** — onglet Groupes (badge « en surplus », modérateur physique, « Retirer », « Libérer la modération », modale « Ouvrir le débat »).
 - [ ] **91, 92** — recette d'allocation sur une séance de test (déterminisme, actifs/public par table, grappes de binômes).
 
+## Chantier 172 — temps de parole dans les files (2026-10-23) — à jouer
+
+- [ ] Vue modérateur d'une table à plusieurs participants avec des tours de parole passés : dans « Autre sujet » et « Sujet actuel », chaque ligne montre durée + % (barre dès 640 px) **identiques** à la liste Participants ; le chiffre monte pour qui parle ; glisser-déposer entre files toujours fonctionnel ; lecture correcte en étroit (nom, tag de sujet, durée, poignée, croix). Non joué : pas de table de test créable (pas de Code Ecclesia, `.env` sur prod).
+
 ## Chantier 164 — allocation, modérateur laissé de côté (2026-10-09) — reste à jouer
 
 Le calcul et l'application des tables ont été joués au navigateur sur dev (14 actifs/2 modérateurs, avec et sans l'option « interdire » ; 20 actifs/3 modérateurs avec modérateur de réserve) : détail dans `docs/chantiers.md`, ligne 164. Ne reste que ce qui suit.
@@ -606,3 +610,15 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 
 - [ ] **(a)** Séance en phase `voting` : à l'onboarding puis dans « Outils » puis « Être avec un ami », taper une lettre dans le champ nom : 5 pseudos au plus s'affichent (sans soi-même), clic ou flèches + Entrée les choisit. Migration `20261023_chantier171_suggest_pairing_pseudos.sql` appliquée sur **dev seulement**.
 - [ ] **(b)** Superadmin, séance `allocating` : chaque clic sur « Calculer la répartition » / « Recalculer » ouvre la fenêtre ; « Calculer sans analyser » calcule comme avant ; « Analyser puis calculer » enregistre une nouvelle analyse, puis calcule avec les camps à jour. Carte et légende lisibles. (Mot de passe superadmin dev non disponible pour la session : jamais joué à l'écran.)
+
+## Chantier 174 (2026-10-23) : bouton Résultats publics/privés dans Actions post-séance
+
+- `src/screens/SuperadminScreen.tsx` : sur une séance `closed` (hors asso), ouvrir « Actions post-séance » : le bouton « Résultats privés/publics » est en tête et bascule comme celui de « Réglages » (les deux restent synchronisés). Non joué au navigateur (mot de passe superadmin non disponible en session). À vérifier sur dev.
+## Chantier 173 (2026-10-23) — Sujets de table
+
+Migration `supabase/migrations/20261023_chantier173_table_topics.sql` appliquée sur **dev** uniquement (à appliquer sur prod au merge dev → main).
+
+- [ ] Modérateur : panneau « Sujets à venir » sous les files ; ajout manuel, doublon (« Écologie » / « ecologie ») refusé en silence, Marquer en cours (le précédent repasse en attente), Traité, monter/descendre, supprimer.
+- [ ] Participant : demander la parole « sur un autre sujet » avec un sujet ajoute celui-ci aux sujets à venir du modérateur (sans doublon) ; bandeau « Sujet en cours : … » visible seulement quand le modérateur en marque un.
+- [ ] « Proposer un vote entre les sujets » (≥ 2 sujets en attente) : formulaire prérempli, résultat visible du modérateur, aucun sujet ne passe en cours tout seul. Idem en débat simple et en sondage.
+- [ ] Fin du débat : files vidées, sujets en attente conservés ; visibles dans Actions post-séance (superadmin et `#asso`) et sous le sondage.
