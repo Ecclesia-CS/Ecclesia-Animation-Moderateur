@@ -601,3 +601,8 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 - [ ] **Bouton absent** en phase autre que `closed`, sur un débat simple, un sondage et côté `#asso`.
 - [ ] **Séance à trop peu de votes** (moins de 6 votants ou 5 assertions) : message « Extraction pré-débat impossible : … » au lieu d'un fichier.
 - [ ] **Prod** : si la migration du chantier 161a n'est pas encore sur prod, `pre_closure` y garde l'ancien comportement (premiers votes posés en post-vote non écartés). L'export fonctionne, mais peut inclure ces votes.
+
+
+## Chantier 174 (2026-10-23) : bouton Résultats publics/privés dans Actions post-séance
+
+- `src/screens/SuperadminScreen.tsx` : sur une séance `closed` (hors asso), ouvrir « Actions post-séance » : le bouton « Résultats privés/publics » est en tête et bascule comme celui de « Réglages » (les deux restent synchronisés). Non joué au navigateur (mot de passe superadmin non disponible en session). À vérifier sur dev.
