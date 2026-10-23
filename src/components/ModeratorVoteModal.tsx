@@ -13,12 +13,15 @@ const POLL_MS = 4000
 
 interface Props {
   onClose: () => void
+  /** Chantier 173 : pré-remplit le formulaire (vote entre les sujets à venir). */
+  initialQuestion?: string
+  initialOptions?: string[]
 }
 
 // Outil "proposer un vote" côté modérateur (chantier 132). Trois écrans dans une
 // même modale : formulaire de création (aucun vote actif/pointé), suivi en direct
 // d'un vote en cours (décompte agrégé uniquement, jamais nominatif), et historique.
-export default function ModeratorVoteModal({ onClose }: Props) {
+export default function ModeratorVoteModal({ onClose, initialQuestion, initialOptions }: Props) {
   const { table, openTableVote, closeActiveTableVote } = useTable()
   const activeVoteId = table.active_vote_id
 
@@ -28,8 +31,8 @@ export default function ModeratorVoteModal({ onClose }: Props) {
   const [err,     setErr]     = useState<string | null>(null)
 
   const [creating,  setCreating]  = useState(false)
-  const [question,  setQuestion]  = useState('')
-  const [options,   setOptions]   = useState(['', ''])
+  const [question,  setQuestion]  = useState(initialQuestion ?? '')
+  const [options,   setOptions]   = useState(initialOptions && initialOptions.length >= 2 ? initialOptions : ['', ''])
   const [closing,   setClosing]   = useState(false)
 
   const [historyOpen,    setHistoryOpen]    = useState(false)

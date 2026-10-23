@@ -611,3 +611,10 @@ Front seul, aucune migration. Bouton « Extraction données pré-débat » dans 
 ## Chantier 174 (2026-10-23) : bouton Résultats publics/privés dans Actions post-séance
 
 - `src/screens/SuperadminScreen.tsx` : sur une séance `closed` (hors asso), ouvrir « Actions post-séance » : le bouton « Résultats privés/publics » est en tête et bascule comme celui de « Réglages » (les deux restent synchronisés). Non joué au navigateur (mot de passe superadmin non disponible en session). À vérifier sur dev.
+## Chantier 173 (2026-10-23) — Sujets de table
+
+Migration `supabase/migrations/20261023_chantier173_table_topics.sql` appliquée sur **dev** uniquement (à appliquer sur prod au merge dev → main).
+
+**Vérifié au navigateur (dev, table QA `A5E1BB`, séance complète)** : sujet saisi en file « autre sujet » enregistré en `pending` (source `queue`) ; panneau « Sujets à venir » côté modérateur ; ajout manuel ; doublon « ecologie LOCALE » refusé ; Marquer en cours puis Retirer ; bouton « Proposer un vote entre les sujets » (formulaire prérempli, vote lancé et clôturé, aucun sujet passé en cours tout seul) ; bandeau « Sujet en cours : Transports » côté participant.
+
+- [ ] **Non joué** : Traité, monter/descendre, supprimer ; débat simple et sondage ; vote répondu par un second appareil ; sujets non abordés dans Actions post-séance (`UnaddressedTopicsPanel`, superadmin et `#asso`) ; conservation des sujets en attente quand le débat se termine.

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getMyPairings, setMyPairings, type PairingResult } from '../../lib/voting'
+import { useEffect, useRef, useState } from 'react'
+import { getMyPairings, setMyPairings, suggestPairingPseudos, type PairingResult } from '../../lib/voting'
 import { extractErr } from '../../lib/utils'
 import EnTeteFenetre from '../EnTeteFenetre'
 
@@ -34,28 +34,111 @@ export function ReciprocityNotice() {
   )
 }
 
+/** Chantier 171 — un champ de nom avec suggestions des pseudos de la séance (5 au plus). */
+function PairingInput({
+  sessionId, value, onChange, placeholder, listId,
+}: {
+  sessionId: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  listId: string
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [active, setActive] = useState(-1)
+  const [open, setOpen] = useState(false)
+  const lastTyped = useRef(0)
+
+  function handleChange(v: string) {
+    onChange(v)
+    const stamp = ++lastTyped.current
+    setActive(-1)
+    if (v.trim() === '') { setSuggestions([]); return }
+    suggestPairingPseudos(sessionId, v)
+      .then(list => { if (stamp === lastTyped.current) { setSuggestions(list); setOpen(true) } })
+      .catch(() => { if (stamp === lastTyped.current) setSuggestions([]) })
+  }
+
+  function choose(p: string) {
+    lastTyped.current++
+    onChange(p)
+    setSuggestions([])
+    setOpen(false)
+    setActive(-1)
+  }
+
+  const shown = open && suggestions.length > 0
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={e => handleChange(e.target.value)}
+        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onFocus={() => setOpen(true)}
+        onKeyDown={e => {
+          if (!shown) return
+          if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => (a + 1) % suggestions.length) }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => (a <= 0 ? suggestions.length - 1 : a - 1)) }
+          else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); choose(suggestions[active]) }
+          else if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
+        }}
+        placeholder={placeholder}
+        role="combobox"
+        aria-expanded={shown}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        autoComplete="off"
+        className="rounded-[8px] w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
+        maxLength={80}
+      />
+      {shown && (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-20 left-0 right-0 mt-1 bg-white border border-bleu-fonce/20 rounded-[8px] shadow-lg overflow-hidden"
+        >
+          {suggestions.map((p, i) => (
+            <li
+              key={p}
+              role="option"
+              aria-selected={i === active}
+              onMouseDown={e => { e.preventDefault(); choose(p) }}
+              className={`px-4 py-2.5 text-sm text-anthracite cursor-pointer ${i === active ? 'bg-bleu-clair/30' : 'hover:bg-bleu-fonce/[0.04]'}`}
+            >
+              {p}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function PairingFields({
+  sessionId,
   values,
   onChange,
 }: {
+  sessionId: string
   values: [string, string]
   onChange: (v: [string, string]) => void
 }) {
   return (
     <div className="space-y-3">
       {[0, 1].map(i => (
-        <input
+        <PairingInput
           key={i}
-          type="text"
+          sessionId={sessionId}
+          listId={`pairing-suggestions-${i}`}
           value={values[i]}
-          onChange={e => {
+          onChange={v => {
             const next: [string, string] = [...values]
-            next[i] = e.target.value
+            next[i] = v
             onChange(next)
           }}
           placeholder={i === 0 ? 'Prénom Nom (facultatif)' : 'Une deuxième personne (facultatif)'}
-          className="rounded-[8px] w-full px-4 py-3 bg-white border border-bleu-fonce/20 text-sm text-anthracite placeholder:text-anthracite/40 focus:outline-none focus:border-bleu-fonce focus:ring-2 focus:ring-bleu-clair/40"
-          maxLength={80}
         />
       ))}
     </div>
@@ -174,7 +257,7 @@ export default function PairingModal({ sessionId, onClose }: { sessionId: string
         {loading ? (
           <p className="text-sm text-gray-600" role="status">Chargement…</p>
         ) : (
-          <PairingFields values={values} onChange={setValues} />
+          <PairingFields sessionId={sessionId} values={values} onChange={setValues} />
         )}
         <PairingResultsList results={results} />
         {placed !== null && (
